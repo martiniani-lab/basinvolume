@@ -3,7 +3,7 @@ import numpy as np
 import abc
 import os
 from scipy.special import gamma
-from basinvolume.spheres import HS_MCrunner
+from mcrunner import HS_MCrunner
 from pele.potentials import HS_WCA, LJ
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
@@ -335,8 +335,8 @@ class HS_Generate_Packing(_Generate_Packing):
             
 if __name__ == "__main__":
     
-    nparticles = 20
-    sim = HS_Generate_Packing(nparticles, sig = 0.2, max_iter = 10)
+    nparticles = 128
+    sim = HS_Generate_Packing(nparticles, max_iter = 10)
     sim.run()
     
     
