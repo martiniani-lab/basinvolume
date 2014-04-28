@@ -84,3 +84,24 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
 class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
     """This class is the python interface for the c++ RecordDisp2Histogram implementation.
     """
+    
+#===============================================================================
+# RecordEnergyTimeseries
+#===============================================================================
+#derives from Action
+
+cdef extern from "basinvolume/actions.h" namespace "bv":
+    cdef cppclass cppRecordEnergyTimeseries "bv::RecordEnergyTimeseries":
+        cppRecordEnergyTimeseries(const size_t) except +
+        _pele.Array[double] get_time_series() except +
+        
+cdef class _Cdef_RecordEnergyTimeseries(_Cdef_Action):
+    """This class is the python interface for the c++ bv::RecordEnergyTimeseries action class implementation
+    """
+    def __cinit__(self, record_every):
+        self.thisptr = <cppAction*>new cppRecordEnergyTimeseries(record_every)
+
+class RecordEnergyTimeseries(_Cdef_RecordEnergyTimeseries):
+    """This class is the python interface for the c++ RecordEnergyTimeseries implementation.
+    """
+    
