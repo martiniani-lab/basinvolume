@@ -1,4 +1,5 @@
 from __future__ import division
+import argparse
 
 class Experimental_Packing(object):
     """
@@ -26,8 +27,6 @@ class Experimental_Packing(object):
         self.y = map(float, self.y)
         self.r = map(float, self.r)
         self.large = map(bool, self.large)
-        #print(self.x[0]+self.x[1])
-        #print(self.large[-1])
 
 class Cut_Out_Packings(object):
     """
@@ -54,5 +53,11 @@ class Cut_Out_Packings(object):
         print(self.path_to_file)
         
 if __name__ == "__main__":
-    sys = Cut_Out_Packings()
+    parser = argparse.ArgumentParser(description='Split experimental data.')
+    parser.add_argument('data_set_index', type=int, nargs='?', default=0, help='selects experimental dataset')
+    parser.add_argument('nr_of_particles', type=int, nargs='?', default=8, help='number of non-frozen particles')
+    parser.add_argument('nr_of_packings', type=int, nargs='?', default=10, help='number of extracted packings')
+    parser.add_argument('path_to_data',type=str, nargs='?', default='data', help='path to data files')
+    args = parser.parse_args()
+    sys = Cut_Out_Packings(args.data_set_index, args.nr_of_particles, args.nr_of_packings, args.path_to_data)
     sys.run()
