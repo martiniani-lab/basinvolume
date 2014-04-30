@@ -121,10 +121,11 @@ class Experimental_Packing(object):
         nr_iterations = 0
         while nr_mobile_found != nr_of_mobile_particles:
             nr_iterations += 1
+            if nr_iterations > 100:
+                nr_iterations = 1
+                center_x, center_y = self._change_center_pathological_configuration(center_x, center_y)
             mobile_particle_radius = self._adapt_radius(mobile_particle_radius, nr_mobile_found, nr_of_mobile_particles, nr_iterations)
             nr_mobile_found = self._get_nr_particles_in_circle(center_x, center_y, mobile_particle_radius)
-            #print("mobile_particle_radius: %f" % mobile_particle_radius)
-            #print("nr_mobile_found: %d" % nr_mobile_found)
         frozen_particle_radius = mobile_particle_radius + self.frozen_shell_thickness*(2*self.average_particle_radius)
         for i in xrange(self.total_nr_of_particles):
             dd = la.norm([self.x[i] - center_x, self.y[i] - center_y])
@@ -148,6 +149,12 @@ class Experimental_Packing(object):
         safe_distance = safe_nr_diameters*(2*self.average_particle_radius)
         if min([abs(self.x[idx] - self.grid.max_x), abs(self.x[idx] - self.grid.min_x), abs(self.y[idx] - self.grid.max_y), abs(self.y[idx] - self.grid.min_y)]) < safe_distance:
             raise Exception('Experimental_Packing: distance to boundary smaller than %f average diameters'%safe_nr_diameters)
+    
+    def _change_center_pathological_configuration(self, center_x, center_y):
+        displacement = 0.2*self.average_particle_radius
+        center_x += displacement
+        center_y += displacement
+        return center_x, center_y
     
     def _get_small_packing_information(self, indices, frozen):
         x = [self.x[idx] for idx in indices]
