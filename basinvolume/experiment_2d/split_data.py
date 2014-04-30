@@ -120,28 +120,18 @@ class Experimental_Packing(object):
                     particle_frozen.append(True)
         
     def _get_nr_particles_in_circle(self, center_x, center_y, radius):
-        result = 0
-        for i in xrange(self.total_nr_of_particles):
-            if la.norm([self.x[i] - center_x, self.y[i] - center_y]) <= radius:
-                result += 1
-        return result
+        return np.count_nonzero([la.norm([x - center_x, y - center_y]) <= radius for x,y in zip(self.x,self.y)])
     
     def _adapt_radius(self, old_radius, found_particles, desired_particles, nr_iterations):
         coupling = 1.0/nr_iterations #can be adapted to damp oscillations
         return old_radius*( (1-coupling) + coupling*sqrt(desired_particles/found_particles) )
     
     def _get_small_packing_information(self, indices, frozen):
-        x = []
-        y = []
-        z = []
-        d = []
+        x = [self.x[idx] for idx in indices]
+        y = [self.y[idx] for idx in indices]
+        z = np.zeros(len(indices))
+        d = [2*self.r[idx] for idx in indices]
         f = frozen
-        for i in xrange(len(indices)):
-            idx = indices[i]
-            x.append(self.x[idx])
-            y.append(self.y[idx])
-            z.append(0)
-            d.append(2*self.r[idx])
         #TODO: shift and rescale coords as it is convenient for the simulations; check output format
         #here one could shift, rescale the coordinates
         ########################################
@@ -200,7 +190,7 @@ class Cut_Out_Packings(object):
         self.small_packings = []
         for i in xrange(self.nr_of_packings):
             self._find_one_small_packing(i)
-            print("found packing %d of %d" % (i, self.nr_of_packings))
+            print("found packing %d of %d" % (i+1, self.nr_of_packings))
             
     def _find_one_small_packing(self, index):
         self.small_packings.append(self.all_particles.extract_small_packing(index))
