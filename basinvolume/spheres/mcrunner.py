@@ -1,9 +1,9 @@
 import numpy as np
-from pele.monte_carlo import _base_MCrunner, RandomCoordsDisplacement, MetropolisTest 
-from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
-from pele.monte_carlo import AdjustStep
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
+from mcpele.monte_carlo import _base_MCrunner, RandomCoordsDisplacement, MetropolisTest 
+from mcpele.monte_carlo import AdjustStep
+from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 
 """
 pele::MCrunner

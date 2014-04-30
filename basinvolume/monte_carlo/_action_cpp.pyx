@@ -6,10 +6,10 @@ cimport pele.potentials._pele as _pele
 cimport cython
 import sys
 from libcpp cimport bool as cbool
-from pele.monte_carlo._pele_mc cimport cppAction,_Cdef_Action
+from mcpele.monte_carlo._pele_mc cimport cppAction,_Cdef_Action
 
-cdef extern from "pele/actions.h" namespace "pele":
-    cdef cppclass cppRecordEnergyHistogram "pele::RecordEnergyHistogram":
+cdef extern from "mcpele/actions.h" namespace "mcpele":
+    cdef cppclass cppRecordEnergyHistogram "mcpele::RecordEnergyHistogram":
         cppRecordEnergyHistogram(double, double, double, size_t) except +
         _pele.Array[double] get_histogram() except +
         void print_terminal(size_t) except +
@@ -83,38 +83,5 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         
 class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
     """This class is the python interface for the c++ RecordDisp2Histogram implementation.
-    """
-    
-#===============================================================================
-# RecordEnergyTimeseries
-#===============================================================================
-#derives from Action
-
-cdef extern from "basinvolume/actions.h" namespace "bv":
-    cdef cppclass cppRecordEnergyTimeseries "bv::RecordEnergyTimeseries":
-        cppRecordEnergyTimeseries(const size_t) except +
-        _pele.Array[double] get_time_series() except +
-        
-cdef class _Cdef_RecordEnergyTimeseries(_Cdef_Action):
-    """This class is the python interface for the c++ bv::RecordEnergyTimeseries action class implementation
-    """
-    def __cinit__(self, record_every):
-        self.thisptr = <cppAction*>new cppRecordEnergyTimeseries(record_every)
-    
-    @cython.boundscheck(False)
-    def get_time_series(self):
-        """return a energy time series array"""
-        cdef cppRecordEnergyTimeseries* newptr = <cppRecordEnergyTimeseries*> self.thisptr
-        cdef _pele.Array[double] seriesi = newptr.get_time_series()
-        cdef double *seriesdata = seriesi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(seriesi.size())
-        cdef size_t i
-        for i in xrange(seriesi.size()):
-            series[i] = seriesdata[i]
-              
-        return series
-    
-class RecordEnergyTimeseries(_Cdef_RecordEnergyTimeseries):
-    """This class is the python interface for the c++ RecordEnergyTimeseries implementation.
     """
     
