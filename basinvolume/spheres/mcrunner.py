@@ -1,7 +1,7 @@
 import numpy as np
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
-from mcpele.monte_carlo import _base_MCrunner, RandomCoordsDisplacement, MetropolisTest 
+from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 
@@ -18,7 +18,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 * add other functionalities that you may find desirable, e.g. dump histogram to file
 """
 
-class HS_MCrunner(_base_MCrunner):
+class HS_MCrunner(_BaseMCRunner):
     """This class is derived from the _base_MCrunner abstract
      method and performs Metropolis Monte Carlo. This particular implementation of the algorithm: 
      * runs niter steps per run call 
@@ -64,7 +64,7 @@ class HS_MCrunner(_base_MCrunner):
         self.mc.set_temperature(T)
         
     
-class BV_MCrunner(_base_MCrunner):
+class BV_MCrunner(_BaseMCRunner):
     """Basin Volume MCrunner
     *coords: initial coordinates, can be the same as origin
     *origin: jammed minimised structure
