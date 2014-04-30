@@ -6,16 +6,16 @@
 #include <list>
 #include <vector>
 #include "pele/array.h"
-#include "pele/mc.h"
-#include "pele/histogram.h"
 #include "pele/distance.h"
-#include "pele/actions.h"
+#include "mcpele/mc.h"
+#include "mcpele/histogram.h"
+#include "mcpele/actions.h"
 
 using std::runtime_error;
 using pele::Array;
-using pele::MC;
+using mcpele::MC;
 using std::sqrt;
-using pele::Action;
+using mcpele::Action;
 
 namespace bv{
 
@@ -24,7 +24,7 @@ namespace bv{
 */
 
 template<typename distance_policy = pele::cartesian_distance >
-class BaseRecordDisp2Histogram : public pele::RecordEnergyHistogram {
+class BaseRecordDisp2Histogram : public mcpele::RecordEnergyHistogram {
 protected:
 	distance_policy *_dist;
 	pele::Array<double> _origin, _rattlers, _distance;

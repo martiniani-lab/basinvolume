@@ -7,7 +7,7 @@ cimport numpy as np
 from pele.potentials import _pele
 cimport pele.potentials._pele as _pele
 cimport pele.optimize._pele_opt as _pele_opt
-from pele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest
+from mcpele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest
 
 cdef extern from "basinvolume/conf_test.h" namespace "bv":
     cdef cppclass cppCheckSameMinimum "bv::CheckSameMinimum":

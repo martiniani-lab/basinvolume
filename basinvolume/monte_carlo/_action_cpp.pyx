@@ -6,10 +6,10 @@ cimport pele.potentials._pele as _pele
 cimport cython
 import sys
 from libcpp cimport bool as cbool
-from pele.monte_carlo._pele_mc cimport cppAction,_Cdef_Action
+from mcpele.monte_carlo._pele_mc cimport cppAction,_Cdef_Action
 
-cdef extern from "pele/actions.h" namespace "pele":
-    cdef cppclass cppRecordEnergyHistogram "pele::RecordEnergyHistogram":
+cdef extern from "mcpele/actions.h" namespace "mcpele":
+    cdef cppclass cppRecordEnergyHistogram "mcpele::RecordEnergyHistogram":
         cppRecordEnergyHistogram(double, double, double, size_t) except +
         _pele.Array[double] get_histogram() except +
         void print_terminal(size_t) except +

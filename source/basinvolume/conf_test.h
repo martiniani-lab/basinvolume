@@ -7,14 +7,14 @@
 #include <random>
 #include <chrono>
 #include "pele/array.h"
-#include "pele/mc.h"
 #include "pele/optimizer.h"
 #include "pele/distance.h"
-#include "pele/conf_test.h"
+#include "mcpele/mc.h"
+#include "mcpele/conf_test.h"
 
 using std::runtime_error;
 using pele::Array;
-using pele::MC;
+using mcpele::MC;
 
 namespace bv{
 
@@ -37,7 +37,7 @@ namespace bv{
  * _Nnoratt: total number of non rattlers degrees of freedom
  * */
 
-class CheckSameMinimum:public pele::ConfTest{
+class CheckSameMinimum:public mcpele::ConfTest{
 protected:
 	pele::periodic_distance _periodic_dist;
 	pele::cartesian_distance _cartesian_dist;

@@ -12,18 +12,27 @@ import numpy as np
 numpy_lib = os.path.split(np.__file__)[0] 
 numpy_include = os.path.join(numpy_lib, 'core/include') 
 
-##find pele path
+##find mcpele path
 pypath = os.environ['PYTHONPATH'].split(os.pathsep)
-found = False
+mcpele_found = False
+pele_found = False
 for path in pypath:
-    if 'pele' in path:
-        pelepath = path
-        found = True
+    if mcpele_found is True and pele_found is True:
         break
-if found is not True:
-    sys.stderr.write("WARNING: could't find path to pele in $PYTHONPATH\n")
-    sys.exit()
-    
+    elif '/mcpele' in path:
+        mcpelepath = path
+        mcpele_found = True
+    elif '/pele' in path:
+        pelepath = path
+        pele_found = True
+
+if mcpele_found is not True or pele_found is not True:
+    if mcpele_found is not True: 
+        sys.stderr.write("WARNING: could't find path to mcpele in $PYTHONPATH\n")
+    if pele_found is not True:
+        sys.stderr.write("WARNING: could't find path to mcpele in $PYTHONPATH\n")
+    sys.exit() 
+
 def generate_cython():
     cwd = os.path.abspath(os.path.dirname(__file__))
     print("Cythonizing sources")
@@ -53,13 +62,13 @@ setup(name='basinvolume',
       version='0.1', 
       description="Python implementation of the basin volume method",
       url='https://bitbucket.org/smcantab/basinvolume',
-      packages=["pele",
-                "pele.monte_carlo",
-                "pele.utils",
-                "pele.spheres",
+      packages=["basinvolume",
+                "basinvolume.monte_carlo",
+                "basinvolume.utils",
+                "basinvolume.spheres",
                 # add the test directories
-                "pele.monte_carlo.tests",
-                "pele.spheres",
+                "basinvolume.monte_carlo.tests",
+                "basinvolume.spheres.tests",
                 ],
         )
 
@@ -83,7 +92,8 @@ depends = [os.path.join("source/basinvolume", f) for f in os.listdir("source/bas
 # uncomment the next line to add extra optimization options
 
 include_pele_source = '-I'+ pelepath + '/source'
-extra_compile_args = [include_pele_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3', "-march=native", "-mtune=native"]
+include_mcpele_source = '-I'+ mcpelepath + '/source'
+extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3', "-march=native", "-mtune=native"]
 
 # note: to compile with debug on and to override extra_compile_args use, e.g.
 # OPT="-g -O2 -march=native" python setup.py ...
