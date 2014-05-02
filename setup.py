@@ -93,7 +93,7 @@ depends = [os.path.join("source/basinvolume", f) for f in os.listdir("source/bas
 
 include_pele_source = '-I'+ pelepath + '/source'
 include_mcpele_source = '-I'+ mcpelepath + '/source'
-extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3', "-march=native", "-mtune=native"]
+extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3']
 
 # note: to compile with debug on and to override extra_compile_args use, e.g.
 # OPT="-g -O2 -march=native" python setup.py ...

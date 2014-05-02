@@ -42,7 +42,7 @@ def read_xyzd(fname):
         if not xyzd: break
         x, y, z, d = xyzd.split()
         coords.extend([float(x),float(y),float(z)])
-        radii.extend([float(d)/2])
+        radii.extend([float(d)])
     return np.array(coords), np.array(radii)
 
 def read_xyzdr(fname, bdim=3):
@@ -55,7 +55,7 @@ def read_xyzdr(fname, bdim=3):
         if not xyzdr: break
         x, y, z, d, r = xyzdr.split()
         coords.extend([float(x),float(y),float(z)])
-        radii.extend([float(d)/2])
+        radii.extend([float(d)])
         for _ in xrange(bdim): 
             rattlers.extend([float(r)])
     return np.array(coords), np.array(radii), np.array(rattlers)

@@ -178,7 +178,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.packings_dir,fname)
-        self.coords, self.hs_radii = read_xyzd(path)
+        self.coords, hs_diameters = read_xyzd(path)
+        self.hs_radii = hs_diameters/2
     
     def _compute_sca(self):
         ##test##

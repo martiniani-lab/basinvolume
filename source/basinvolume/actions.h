@@ -49,7 +49,7 @@ template<typename distance_policy>
 void BaseRecordDisp2Histogram<distance_policy>::action(Array<double> &coords, double energy, bool accepted, MC* mc) {
 		double dr[3];
 		_count = mc->get_iterations_count();
-		if (_count > _eqsteps)
+		if (_count >= _eqsteps)
 		{
 			//compute distances subtracting the origin's coordinates
 			for(size_t i=0;i<_N/3;++i){
@@ -67,6 +67,7 @@ void BaseRecordDisp2Histogram<distance_policy>::action(Array<double> &coords, do
 			//compute square displacement from origin
 			double _d = norm(_distance);
 			_hist->add_entry(_d*_d);
+			_mean = (_mean*(_count-1)+_d*_d)/_count;
 		}
 }
 
