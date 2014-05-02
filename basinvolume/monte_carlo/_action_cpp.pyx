@@ -15,7 +15,8 @@ cdef extern from "mcpele/actions.h" namespace "mcpele":
         void print_terminal(size_t) except +
         double get_max() except +
         double get_min() except +
-   
+        double get_mean() except+
+        
 #===============================================================================
 # RecordDisp2Histogram
 #===============================================================================
@@ -23,21 +24,14 @@ cdef extern from "mcpele/actions.h" namespace "mcpele":
 cdef extern from "basinvolume/actions.h" namespace "bv":
     cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
         cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double],double, double, double, size_t) except +
-        _pele.Array[double] get_histogram() except +
-        void print_terminal(size_t) except +
-        double get_max() except +
-        double get_min() except +
     cdef cppclass cppRecordDisp2HistogramPeriodic "bv::RecordDisp2HistogramPeriodic":
         cppRecordDisp2HistogramPeriodic(_pele.Array[double],_pele.Array[double],double, double, double, size_t, double * boxvec) except +
-        _pele.Array[double] get_histogram() except +
-        void print_terminal(size_t) except +
-        double get_max() except +
-        double get_min() except +
-
+        
 cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisp2Histogram acceptance test class implementation
     """
-    cpdef cbool periodic 
+    cpdef cbool periodic
+    cdef cppRecordEnergyHistogram* newptr
     def __cinit__(self, origin, rattlers, min, max, bin, eqsteps, boxvec=None, boxl=None):
         assert not (boxvec is not None and boxl is not None)
         if boxl is not None:
@@ -61,8 +55,7 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     @cython.boundscheck(False)
     def get_histogram(self):
         """return a histogram array"""
-        cdef cppRecordEnergyHistogram* newptr = <cppRecordEnergyHistogram*> self.thisptr
-        cdef _pele.Array[double] histi = newptr.get_histogram()
+        cdef _pele.Array[double] histi = self.newptr.get_histogram()
         cdef double *histdata = histi.data()
         cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
         cdef size_t i
@@ -72,15 +65,17 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         return hist
         
     def print_terminal(self, ntot):
-        cdef cppRecordEnergyHistogram* newptr2 = <cppRecordEnergyHistogram*> self.thisptr
-        newptr2.print_terminal(ntot)
+        self.newptr.print_terminal(ntot)
     
     def get_bounds_val(self):
-        cdef cppRecordEnergyHistogram* newptr3 = <cppRecordEnergyHistogram*> self.thisptr
-        dmin = newptr3.get_min()
-        dmax = newptr3.get_max()
+        dmin = self.newptr.get_min()
+        dmax = self.newptr.get_max()
         return dmin, dmax
-        
+    
+    def get_mean(self):
+        mean = self.newptr.get_mean()
+        return mean
+    
 class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
     """This class is the python interface for the c++ RecordDisp2Histogram implementation.
     """

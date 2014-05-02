@@ -23,7 +23,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     """
     
     cdef _pele_opt.GradientOptimizer opt # this is stored so that the memory is not freed
-    
+    cdef cppCheckSameMinimum* newptr
     def __cinit__(self, optimizer, origin, hs_radii, boxvec, rattlers, dtol):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
@@ -34,6 +34,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
                                                              _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                              _pele.Array[double](<double*> boxvecc.data, boxvecc.size), 
                                                              _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
+        self.newptr = <cppCheckSameMinimum*> self.thisptr 
         
 class CheckSameMinimum(_Cdef_CheckSameMinimum):
     """This class is the python interface for the c++ CheckSameMinimum implementation.

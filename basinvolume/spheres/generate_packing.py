@@ -4,7 +4,7 @@ import abc
 import os
 from scipy.special import gamma
 from mcrunner import HS_MCrunner
-from pele.potentials import HS_WCA, LJ
+from pele.potentials import HS_WCA, WCA
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
 
@@ -18,8 +18,14 @@ class _Generate_Packing(object):
     *bdim: dimensionality of the box
     *ndim: dimensionality of the problem (i.e. size of the coordinates array)
     *packing_frac: target packing fraction
-    *boxv: an array of size bdim that contains the vectors defining the box
-    *boxl: box side length, this is converted by the the class to a boxv array
+    *boxv and boxl: note that in this implementation we aim to set the particle size and
+    rescale the size of the box containing the particles to meet the target packing_fraction.
+    Therefore it might not be entirely obvious why one should set a boxlengths vector. The reason is that
+    one might not want a cubic box. In that case one sets boxv to have different relative rations,
+    for instance if one want a parallelepiped. The rescaling maintains these relative ratios while
+    meeting the target packing fraction.
+    **boxv: an array of size bdim that contains the vectors defining the box
+    **boxl: box side length, this is converted by the the class to a boxv array
     """
     __metaclass__ = abc.ABCMeta
     
@@ -32,6 +38,7 @@ class _Generate_Packing(object):
         if boxv is None:
             self.boxv = np.array([boxl for _ in xrange(self.bdim)],dtype='d')
         else:
+            assert(len(boxv) == self.bdim)
             self.boxv = np.array(boxv,dtype='d')
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'packings')
@@ -124,12 +131,12 @@ class HS_Generate_Packing(_Generate_Packing):
     *PARAMETERS
     *hs_radii: array with the radii of the particles, if none sample particle sizes from a normal distribution
     *mu: average particle size, passable to normal distribution
-    *sig: standard deviaton of normal distribution from which to sample particles
+    *sig: % standard deviaton of normal distribution from which to sample particles (this value is multiplied by the mean mu)
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential, here irrelevant because 'sca' is set to 0
     """    
-    def __init__(self, nparticles, method='quench', bdim=3, boxl=1, boxv=None, packing_frac=0.35, hs_radii=None, 
-                 mu = 1, sig = 0.05, max_iter = 10):
+    def __init__(self, nparticles, method='quench', bdim=3, boxl=1, boxv=None, packing_frac=0.4, hs_radii=None, 
+                 mu = 1, sig = 0.05, hsf_niter=1e6, hsf_stepsize = 1e-4, max_iter = 10):
         super(HS_Generate_Packing,self).__init__(method, nparticles, bdim=bdim, boxv = boxv, boxl=boxl,
                                                  packing_frac=packing_frac, max_iter = max_iter)
         ##constants#
@@ -137,7 +144,9 @@ class HS_Generate_Packing(_Generate_Packing):
         self.sca = 0. #this must be 0 for hard spheres
         ############
         self.mu = mu
-        self.sig = sig
+        self.sig = sig * mu
+        self.hsf_niter = hsf_niter #number of iteration for each hs fluid configuration
+        self.hsf_stepsize = hsf_stepsize
         self.hs_radii = hs_radii
         self._sample_hs_radii()
         self._resize_box()
@@ -227,10 +236,14 @@ class HS_Generate_Packing(_Generate_Packing):
             self._generate_packing_coords_direct()
     
     def _generate_packing_coords_quench(self):
-        """do a MCMC walk using the quenched coordinates"""
+        """do a MCMC walk using the quenched coordinates. Here we do not satisfy detailed balance and we set the number
+        of steps over which the stepsize is adjusted equal to the total number of steps. The value of the temperature should
+        not matter as these are hard spehres and the difference in energy between valid configurations is 0. We set it high
+        to be on the safe side."""
         if (self.iteration == 0):
-            self.mcrunner = HS_MCrunner(self.potential, self.coords, niter=1e5, stepsize=1e-4, adjustf = 0.9, 
-                                       acceptance=0.2, adjustf_niter = 5000)
+            temperature = 10000.0
+            self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter, 
+                                        adjustf = 0.9, acceptance=0.2, adjustf_niter = 5000)
             self.energy = self.potential.getEnergy(self.coords)
         self.mcrunner.set_config(self.coords, self.energy)
         self.mcrunner.run()        
@@ -243,7 +256,8 @@ class HS_Generate_Packing(_Generate_Packing):
         the gap 
         """
         no_overlap = False
-        pot = LJ(sig=self.boxv[0],boxvec=self.boxv) # choice of sigma might have to be different
+        sigma =  min(self.boxv) / np.power(2,1./6) #set sigma such that the the wca radius is the same as the box smallest side length
+        pot = WCA(sig=sigma,boxvec=self.boxv) # choice of sigma might have to be different
         
         while no_overlap == False:
             no_overlap = True
@@ -335,8 +349,8 @@ class HS_Generate_Packing(_Generate_Packing):
             
 if __name__ == "__main__":
     
-    nparticles = 128
-    sim = HS_Generate_Packing(nparticles, max_iter = 10)
+    nparticles = 20
+    sim = HS_Generate_Packing(nparticles, max_iter = 5)
     sim.run()
     
     

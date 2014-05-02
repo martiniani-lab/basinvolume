@@ -39,12 +39,11 @@ class HS_MCrunner(_BaseMCRunner):
      * is best, here we generate a random integer in [0,i32max) where i32max is the largest signed integer, for each seed. Each module
      * has a separate rng engine, therefore it's best if each receives a different randomly sampled seed
     """
-    def __init__(self, potential, coords, temperature=1.0, niter=1e5,
-                  stepsize=1, hEmin=0, hEmax=100, hbinsize=0.01, radius=2.5,
-                   acceptance=0., adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100):
+    def __init__(self, potential, coords, temperature, stepsize, niter,
+                  acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100):
         #construct base class
         super(HS_MCrunner,self).__init__(potential, coords, temperature,
-                                                  stepsize, niter)
+                                         stepsize, niter)
                                
         #construct test/action classes       
         i32max = np.iinfo(np.int32).max
@@ -54,14 +53,14 @@ class HS_MCrunner(_BaseMCRunner):
         self.metropolis = MetropolisTest(np.random.randint(i32max))
         
         #set up pele:MC
-        self.mc.set_takestep(self.step)
-        self.mc.add_accept_test(self.metropolis)
-        self.mc.add_action(self.adjust_step)
+        self.set_takestep(self.step)
+        self.add_accept_test(self.metropolis)
+        self.add_action(self.adjust_step)
         
     def set_control(self, T):
         """set temperature, canonical control parameter"""
         self.temperature = T
-        self.mc.set_temperature(T)
+        self.set_temperature(T)
         
     
 class BV_MCrunner(_BaseMCRunner):
@@ -79,14 +78,14 @@ class BV_MCrunner(_BaseMCRunner):
     *Etol: tolerance with which a minimised structure is accepted
      when compared to origin energy
     *dtol: tolerance on the rms displacement of the minimised structure
-     with respect to the origin coordinates    
+     with respect to the origin coordinates
     """
-    def __init__(self, coords, origin, hs_radii, boxv, sca, rattlers=None, k=1.0, temperature=1.0, niter=1e5,
-                  stepsize=0.01, dtol=1e-3, eps=1., hmin=0, hmax=100, hbinsize=0.01, acceptance=0.2, 
-                  adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4,
-                  opt_nsteps=1e5):
+    def __init__(self, potential, coords, temperature, stepsize, niter,
+                  origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
+                  hmax=100, hbinsize=0.01, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
+                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
         #construct base class
-        potential = Harmonic(origin,k,boxv)
+        #potential = Harmonic(origin,k,boxv) set in _configure_bv_mcrunner
         super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
         self.origin = origin
@@ -122,16 +121,25 @@ class BV_MCrunner(_BaseMCRunner):
         self.metropolis = MetropolisTest(np.random.randint(i32max))
         
         #set up pele:MC
-        self.mc.set_takestep(self.step)
-        self.mc.add_accept_test(self.metropolis)
-        self.mc.add_conf_test(self.conftest)
-        self.mc.add_action(self.histogram)
-        self.mc.add_action(self.adjust_step)
+        self.set_takestep(self.step)
+        self.add_accept_test(self.metropolis)
+        self.add_conf_test(self.conftest)
+        self.add_action(self.histogram)
+        self.add_action(self.adjust_step)
         
     def set_control(self, c):
         """set temperature, canonical control parameter"""
         self.k = c
         self.potential.set_k(c)
+    
+    def dump_histogram(self, fname):
+        """write histogram to fname"""
+        Emin, Emax = self.histogram.get_bounds_val()
+        histl = self.histogram.get_histogram()
+        hist = np.array(histl)
+        Energies, step = np.linspace(Emin,Emax,num=len(hist),endpoint=False,retstep=True)
+        assert(abs(step - self.binsize) < self.binsize/100)
+        np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
     
     def show_histogram(self):
         """shows the histogram"""
