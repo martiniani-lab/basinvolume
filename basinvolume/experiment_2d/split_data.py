@@ -4,6 +4,7 @@ import numpy as np
 from numpy import linalg as la
 import argparse
 import os
+import sys
 
 class Splitting_Grid(object):
     """
@@ -19,14 +20,18 @@ class Splitting_Grid(object):
         self.nr_of_mobile_particles = nr_of_mobile_particles
         self.distance_from_boundary_x = distance_from_boundary_x
         self.distance_from_boundary_y = distance_from_boundary_y
-        delta_x = max_x - min_x
-        delta_y = max_y - min_y
-        self.number_density = total_nr_of_particles/(delta_x*delta_y)
+        self.delta_x = max_x - min_x
+        self.delta_y = max_y - min_y
+        self.number_density = total_nr_of_particles/(self.delta_x*self.delta_y)
+        self.min_x = min_x
+        self.max_x = max_x
+        self.min_y = min_y
+        self.max_y = max_y
         #dimensions of box excluding the discarded stripes at the boundary
-        min_xg = min_x + delta_x*self.distance_from_boundary_x
-        max_xg = max_x - delta_x*self.distance_from_boundary_x
-        min_yg = min_y + delta_y*self.distance_from_boundary_y
-        max_yg = max_y - delta_y*self.distance_from_boundary_y
+        min_xg = min_x + self.delta_x*self.distance_from_boundary_x
+        max_xg = max_x - self.delta_x*self.distance_from_boundary_x
+        min_yg = min_y + self.delta_y*self.distance_from_boundary_y
+        max_yg = max_y - self.delta_y*self.distance_from_boundary_y
         delta_xg = max_xg - min_xg
         delta_yg = max_yg - min_yg
         #determination of grid parameters (for simple square grid)
@@ -60,6 +65,17 @@ class Experimental_Packing(object):
         self._read_in_data(input_file_name)
         self.grid = Splitting_Grid(nr_of_mobile_particles, distance_from_boundary_x, distance_from_boundary_y, min(self.x), max(self.x), min(self.y), max(self.y), self.total_nr_of_particles)
         self.frozen_shell_thickness = frozen_shell_thickness
+        min_distance_from_boundary_x = self.frozen_shell_thickness*(2*self.average_particle_radius) / self.grid.delta_x
+        min_distance_from_boundary_y = self.frozen_shell_thickness*(2*self.average_particle_radius) / self.grid.delta_y
+        x_small = distance_from_boundary_x < min_distance_from_boundary_x
+        y_small = distance_from_boundary_y < min_distance_from_boundary_y
+        if x_small or y_small:
+            sys.stderr.write("WARNING: distance_from_boundary chosen too small; was reset to approx. minimum\n")
+            if x_small:
+                distance_from_boundary_x = min_distance_from_boundary_x
+            if y_small:
+                distance_from_boundary_y = min_distance_from_boundary_y
+            self.grid = Splitting_Grid(nr_of_mobile_particles, distance_from_boundary_x, distance_from_boundary_y, min(self.x), max(self.x), min(self.y), max(self.y), self.total_nr_of_particles)
     
     def _read_in_data(self, input_file_name):
         self.input_file_name = input_file_name
@@ -105,10 +121,11 @@ class Experimental_Packing(object):
         nr_iterations = 0
         while nr_mobile_found != nr_of_mobile_particles:
             nr_iterations += 1
+            if nr_iterations > 100:
+                nr_iterations = 1
+                center_x, center_y = self._change_center_pathological_configuration(center_x, center_y)
             mobile_particle_radius = self._adapt_radius(mobile_particle_radius, nr_mobile_found, nr_of_mobile_particles, nr_iterations)
             nr_mobile_found = self._get_nr_particles_in_circle(center_x, center_y, mobile_particle_radius)
-            #print("mobile_particle_radius: %f" % mobile_particle_radius)
-            #print("nr_mobile_found: %d" % nr_mobile_found)
         frozen_particle_radius = mobile_particle_radius + self.frozen_shell_thickness*(2*self.average_particle_radius)
         for i in xrange(self.total_nr_of_particles):
             dd = la.norm([self.x[i] - center_x, self.y[i] - center_y])
@@ -116,35 +133,36 @@ class Experimental_Packing(object):
                 particle_indices.append(i)
                 if dd <= mobile_particle_radius:
                     particle_frozen.append(False)
+                    self._check_distance_to_boundary(i)
                 else:
                     particle_frozen.append(True)
         
     def _get_nr_particles_in_circle(self, center_x, center_y, radius):
-        result = 0
-        for i in xrange(self.total_nr_of_particles):
-            if la.norm([self.x[i] - center_x, self.y[i] - center_y]) <= radius:
-                result += 1
-        return result
+        return np.count_nonzero([la.norm([x - center_x, y - center_y]) <= radius for x,y in zip(self.x,self.y)])
     
     def _adapt_radius(self, old_radius, found_particles, desired_particles, nr_iterations):
         coupling = 1.0/nr_iterations #can be adapted to damp oscillations
         return old_radius*( (1-coupling) + coupling*sqrt(desired_particles/found_particles) )
     
+    def _check_distance_to_boundary(self, idx):
+        safe_nr_diameters = 2 #depends on boundary shape of experimental packing
+        safe_distance = safe_nr_diameters*(2*self.average_particle_radius)
+        if min([abs(self.x[idx] - self.grid.max_x), abs(self.x[idx] - self.grid.min_x), abs(self.y[idx] - self.grid.max_y), abs(self.y[idx] - self.grid.min_y)]) < safe_distance:
+            raise Exception('Experimental_Packing: distance to boundary smaller than %f average diameters'%safe_nr_diameters)
+    
+    def _change_center_pathological_configuration(self, center_x, center_y):
+        displacement = 0.2*self.average_particle_radius
+        center_x += displacement
+        center_y += displacement
+        return center_x, center_y
+    
     def _get_small_packing_information(self, indices, frozen):
-        x = []
-        y = []
-        z = []
-        d = []
+        x = [self.x[idx] for idx in indices]
+        y = [self.y[idx] for idx in indices]
+        z = np.zeros(len(indices))
+        d = [2*self.r[idx] for idx in indices]
         f = frozen
-        for i in xrange(len(indices)):
-            idx = indices[i]
-            x.append(self.x[idx])
-            y.append(self.y[idx])
-            z.append(0)
-            d.append(2*self.r[idx])
-        #TODO: shift and rescale coords as it is convenient for the simulations; check output format
-        #here one could shift, rescale the coordinates
-        ########################################
+        #here one could shift, rescale the coordinates, as convenient for simulations
         return Small_Packing_Information(x, y, z, d, f)
     
     def extract_small_packing(self, packing_index):
@@ -161,6 +179,8 @@ class Cut_Out_Packings(object):
     def __init__(self):
         self._read_parameters()
         self._read_experimental_data()
+        if self.all_particles.grid.nr_of_cells < self.nr_of_packings:
+            raise Exception('number of requested packings (%d) is larger than possible for chosen grid/parameters (max. %d)' % (self.nr_of_packings, self.all_particles.grid.nr_of_cells))
     
     def _read_parameters(self):
         self.parser = argparse.ArgumentParser(description='Split experimental data.')
@@ -168,8 +188,8 @@ class Cut_Out_Packings(object):
         self.parser.add_argument('nr_of_particles', type=int, nargs='?', default=8, help='number of non-frozen particles')
         self.parser.add_argument('nr_of_packings', type=int, nargs='?', default=10, help='number of extracted packings')
         self.parser.add_argument('path_to_data',type=str, nargs='?', default='data', help='path to data files')
-        self.parser.add_argument('distance_from_boundary_x',type=float, nargs='?', default=0.01, help='discarded margins left and right, per-cent')
-        self.parser.add_argument('distance_from_boundary_y',type=float, nargs='?', default=0.01, help='discarded margins bottom and top, per-cent')
+        self.parser.add_argument('distance_from_boundary_x',type=float, nargs='?', default=0.04, help='discarded margins left and right, per-cent')
+        self.parser.add_argument('distance_from_boundary_y',type=float, nargs='?', default=0.04, help='discarded margins bottom and top, per-cent')
         self.parser.add_argument('frozen_shell_thickness',type=float, nargs='?', default=2, help='number of average particle diameters in frozen shell')
         self.args = self.parser.parse_args()
         if self.args.nr_of_particles <= 0:
@@ -200,7 +220,7 @@ class Cut_Out_Packings(object):
         self.small_packings = []
         for i in xrange(self.nr_of_packings):
             self._find_one_small_packing(i)
-            print("found packing %d of %d" % (i, self.nr_of_packings))
+            print("found packing %d of %d" % (i+1, self.nr_of_packings))
             
     def _find_one_small_packing(self, index):
         self.small_packings.append(self.all_particles.extract_small_packing(index))
@@ -213,8 +233,6 @@ class Cut_Out_Packings(object):
     def _print_small_packing(self, packing_index, packing_information):
         #TODO: check that this prints the split packings as needed
         #TODO: print also parameters of generated packings
-        #TODO: if more packings requested than possible, reset to maximum value and print warning
-        #TODO: if exploration of neighborhood goes to far into boundary region, trow, and suggest to increase safety margins
         if not os.path.exists(self.path_to_output_small_packings): 
             os.makedirs(self.path_to_output_small_packings)
         output_file = open("/".join([self.path_to_output_small_packings,"split_packing_"+str(packing_index)+".xyzdf"]), "w")
