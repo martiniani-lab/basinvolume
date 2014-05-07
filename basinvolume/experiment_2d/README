@@ -1,0 +1,26 @@
+split_data.py splits the experimental data sets into packings of the requested number of particles, with a surrounding frozen shell.
+
+Assuming that the experimental data is in ./data/ for example
+$ python split_data.py --nr_of_particles 128 --all
+finds all packings (based on 4 different dividing grids) of 128 particles.
+
+$ python split_data.py
+finds 10 packings of 8 particles, from experimental data set "data/PackingsData_1.dat", based on the default grid.
+
+The split packings are written to "data/output/"
+
+The output file name format is
+packing_0_nr_particles_128_exp_file_1_grid_option_all.xyzdf
+where the "f" column is 1 if the particle is frozen and 0 else.
+(Number of particles refers to non-frozen particles.)
+
+Full list of possible parameters:
+self.parser.add_argument('--data_set_index', type=int, nargs='?', default=0, help='selects experimental dataset')
+self.parser.add_argument('--nr_of_particles', type=int, nargs='?', default=8, help='number of non-frozen particles')
+self.parser.add_argument('--nr_of_packings', type=int, nargs='?', default=10, help='number of extracted packings')
+self.parser.add_argument('--path_to_data',type=str, nargs='?', default='data', help='path to data files')
+self.parser.add_argument('--distance_from_boundary_x',type=float, nargs='?', default=0.04, help='discarded margins left and right, per-cent')
+self.parser.add_argument('--distance_from_boundary_y',type=float, nargs='?', default=0.04, help='discarded margins bottom and top, per-cent')
+self.parser.add_argument('--frozen_shell_thickness',type=float, nargs='?', default=2, help='number of average particle diameters in frozen shell')
+self.parser.add_argument('--grid_version',type=int, nargs='?', default=0, help='selects type of grid for splitting')
+self.parser.add_argument('--all', action='store_true', help='extract maximum number of packings')
