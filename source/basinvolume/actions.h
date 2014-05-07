@@ -1,7 +1,7 @@
 #ifndef _BV_ACTIONS_H
 #define _BV_ACTIONS_H
 
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <list>
 #include <vector>
@@ -10,6 +10,8 @@
 #include "mcpele/mc.h"
 #include "mcpele/histogram.h"
 #include "mcpele/actions.h"
+#include "mcpele/takestep.h"
+#include "pele/harmonic.h"
 
 using std::runtime_error;
 using pele::Array;
@@ -68,6 +70,7 @@ void BaseRecordDisp2Histogram<distance_policy>::action(Array<double> &coords, do
 			double _d = norm(_distance);
 			_hist->add_entry(_d*_d);
 			_mean = (_mean*(_count-1)+_d*_d)/_count;
+			//std::cout<<"mean "<<_mean<<std::endl;
 		}
 }
 
@@ -89,6 +92,79 @@ class RecordDisp2HistogramPeriodic : public BaseRecordDisp2Histogram<pele::perio
 						origin, rattlers, min, max, bin, eqsteps,
 						new pele::periodic_distance(boxvec[0], boxvec[1], boxvec[2])){}
 	};
+
+/*
+ * Findk accept test, THIS IS A FICTIOUS ACTION (see note)
+ * find k for an harmonic potential such that the acceptance is within some range
+ * navg number of steps over which acceptance fraction is averaged
+ * factor has to be in (0,1)
+ *
+ *note: this class does some hacky things to exploit the behaviour of MC to get it to do something
+ *that it wasn't originally entirely designed for. Weird things:
+  * need to keep a shared pointer of harmonicperiodic and then need to cast the potential to this type, to call get_k()
+  * set MC->_niter to the largest unsigned inter so that the calculatio must terminate
+ * */
+
+class Findk : public Action {
+protected:
+    shared_ptr<pele::HarmonicPeriodic> _potential;
+    double _target, _factor, _acceptedf, _k, _tol;
+    size_t _navg, _count, _naccepted, _nrejected, _start;
+public:
+    Findk(double target, double factor, size_t navg, double tol);
+    virtual ~Findk() {}
+    virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
+};
+
+Findk::Findk(double target, double factor, size_t navg, double tol):
+            _target(target),_factor(factor),_acceptedf(0),
+            _k(0), _tol(tol), _navg(navg),_count(0),
+            _naccepted(0), _nrejected(0), _start(0){}
+
+
+void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
+
+    if (_start == 0){
+        _potential = std::dynamic_pointer_cast<pele::HarmonicPeriodic>(mc->get_potential_ptr());
+        ++_start;
+    }
+
+    _count = mc->get_iterations_count();
+
+    if (accepted == true)
+        ++_naccepted;
+    else
+        ++_nrejected;
+
+    if(_count % _navg == 0)
+    {
+        _acceptedf = (double) _naccepted / (_naccepted + _nrejected);
+
+        _k = _potential->get_k();
+
+        if (std::abs(_target - _acceptedf) <= _tol){
+            //std::cout<<"k found: "<<_k<<std::endl; //debug
+            //this will trigger premature exit from the MC run loop
+            mc->_niter = std::numeric_limits<size_t>::max();
+        }
+        else if (_acceptedf < _target)
+            _k /= _factor;
+        else
+            _k *= _factor;
+
+        //std::cout<<"_k "<<_k<<std::endl; //debug
+
+        //update the spring constant for the oscillator
+        _potential->set_k(_k);
+
+        //adjust the standard deviation of the normal distribution
+        mc->_stepsize = sqrt(1.0/_k);
+
+        //now reset to zero memory of acceptance and rejection
+        _naccepted = 0;
+        _nrejected = 0;
+    }
+}
 
 }
 #endif

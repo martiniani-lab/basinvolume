@@ -2,8 +2,8 @@ import numpy as np
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
-from mcpele.monte_carlo import AdjustStep
-from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
+from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
+from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
 
 """
 pele::MCrunner
@@ -140,6 +140,8 @@ class BV_MCrunner(_BaseMCRunner):
         Energies, step = np.linspace(Emin,Emax,num=len(hist),endpoint=False,retstep=True)
         assert(abs(step - self.binsize) < self.binsize/100)
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
+        mean = self.histogram.get_mean()
+        return mean
     
     def show_histogram(self):
         """shows the histogram"""
@@ -148,6 +150,83 @@ class BV_MCrunner(_BaseMCRunner):
         val = [i*self.binsize for i in xrange(len(hist))]
         plt.hist(val, weights=hist,bins=len(hist))
         plt.show()
+        
+class Findk_MCrunner(_BaseMCRunner):
+    """Findk MCrunner
+    *coords: initial coordinates, can be the same as origin
+    *origin: jammed minimised structure
+    *hs_radii: array of the radii of the particles
+    *boxv: array with the box size lengths
+    *rattlers: array of rattlers, if not rattler: 1 -> jammed dof
+                                                  0 -> rattler dof
+    *k: spring constant
+    *temperature
+    *niter: number of MC takesteps to perform
+    *stepsize
+    *Etol: tolerance with which a minimised structure is accepted
+     when compared to origin energy
+    *dtol: tolerance on the rms displacement of the minimised structure
+     with respect to the origin coordinates
+    *ktarget: target acceptance associated to kmax
+    *kfactor: the factor by which k is decreased at each iteration, it must be in (0,1)
+    *knavg: number of steps over findk averages the acceptance
+    *ktol: when acceptance-ktarget<ktol the search for k terminates 
+    """
+    def __init__(self, potential, coords, temperature, stepsize, niter,
+                  origin, hs_radii, boxv, sca,
+                  rattlers=None, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
+                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
+        #construct base class
+        super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
+        
+        self.origin = origin
+        self.hs_radii = hs_radii
+        self.boxv = boxv
+        self.sca = sca
+        self.k = k
+        self.dtol = dtol
+        self.eps = eps
+        
+        #findk parameters
+        self.ktarget = ktarget
+        self.kfactor=kfactor 
+        self.knavg=knavg 
+        self.ktol=ktol
+        
+        #manage array of rattlers, if not rattler: 1 -> jammed dof
+        #                                          0 -> rattler dof 
+        if (rattlers == None):
+            self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
+        else:
+            self.rattlers = np.array(rattlers,dtype='d')
+            assert(len(self.rattlers) == self.ndim)
+            assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
+        
+        #construct gradient optimizer
+        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
+        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
+                                         tol=opt_tol, nsteps=opt_nsteps)
+                
+        #construct test/action classes      
+        i32max = np.iinfo(np.int32).max
+        
+        self.conftest = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
+        self.findk = Findk(self.ktarget, self.kfactor, self.knavg, self.ktol)
+        self.step = GaussianCoordsDisplacement(self.ndim, np.random.randint(i32max))
+        
+        #set up pele:MC
+        self.set_takestep(self.step)
+        self.add_conf_test(self.conftest)
+        self.add_action(self.findk)
+        
+    def set_control(self, c):
+        """set k"""
+        self.k = c
+        self.potential.set_k(c)
+    
+    def get_k(self):
+        """return k, canonical control parameter"""
+        return self.potential.get_k()
     
 if __name__ == "__main__":
     #to run harmonic potential go to tests
@@ -169,12 +248,12 @@ if __name__ == "__main__":
 #    print res.coords
     
     #Parallel Tempering
-    test = BV_MCrunner(start_coords, origin, temperature=1, k=1, niter=1e5, hEmin=0,hEmax=100,
-                       stepsize=0.5, adjustf = 0.9, adjustf_niter = 5000, radius=100)
-    test.set_control(1)
+#   test = BV_MCrunner(start_coords, origin, temperature=1, k=1, niter=1e5, hEmin=0,hEmax=100,
+#                       stepsize=0.5, adjustf = 0.9, adjustf_niter = 5000, radius=100)
+    #test.set_control(1)
     start=time.time()
     #test.run()
     end=time.time()
     print end-start
-    test.show_histogram()
+    #test.show_histogram()
     

@@ -52,6 +52,8 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
             self.thisptr = <cppAction*>new cppRecordDisp2HistogramPeriodic(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
                                                                min, max, bin, eqsteps, <double*> bvec.data)
+        self.newptr = <cppRecordEnergyHistogram*> self.thisptr
+        
     @cython.boundscheck(False)
     def get_histogram(self):
         """return a histogram array"""
@@ -80,3 +82,22 @@ class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
     """This class is the python interface for the c++ RecordDisp2Histogram implementation.
     """
     
+#===============================================================================
+# Findk
+#===============================================================================
+
+cdef extern from "basinvolume/actions.h" namespace "bv":    
+    cdef cppclass cppFindk "bv::Findk":
+        cppFindk(double, double, size_t, double) except+
+
+cdef class _Cdef_Findk(_Cdef_Action):
+    """This class is the python interface for the c++ bv::cppFindk action class implementation
+    """
+    cdef cppFindk* newptr
+    def __cinit__(self, target, factor, navg, tol):
+        self.thisptr = <cppAction*>new cppFindk(target, factor, navg, tol)
+        self.newptr = <cppFindk*> self.thisptr
+    
+class Findk(_Cdef_Findk):
+    """This class is the python interface for the c++ Findk implementation.
+    """
