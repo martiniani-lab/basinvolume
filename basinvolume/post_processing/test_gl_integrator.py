@@ -1,5 +1,4 @@
 from gauss_lobatto import *
-from math import sin
 from scipy.integrate import fixed_quad, quad
 
 if __name__ == "__main__":
