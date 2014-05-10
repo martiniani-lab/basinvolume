@@ -24,34 +24,18 @@ cdef extern from "mcpele/actions.h" namespace "mcpele":
 cdef extern from "basinvolume/actions.h" namespace "bv":
     cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
         cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double],double, double, double, size_t) except +
-    cdef cppclass cppRecordDisp2HistogramPeriodic "bv::RecordDisp2HistogramPeriodic":
-        cppRecordDisp2HistogramPeriodic(_pele.Array[double],_pele.Array[double],double, double, double, size_t, double * boxvec) except +
         
 cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisp2Histogram acceptance test class implementation
     """
-    cpdef cbool periodic
     cdef cppRecordEnergyHistogram* newptr
-    def __cinit__(self, origin, rattlers, min, max, bin, eqsteps, boxvec=None, boxl=None):
-        assert not (boxvec is not None and boxl is not None)
-        if boxl is not None:
-            boxvec = [boxl] * 3
-        cdef np.ndarray[double, ndim=1] bvec
-        
+    def __cinit__(self, origin, rattlers, min, max, bin, eqsteps):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         
-        if boxvec is None:
-            self.periodic = False
-            self.thisptr = <cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.size),
+        self.thisptr = <cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
                                                                min, max, bin, eqsteps)
-        else:
-            self.periodic = True
-            bvec = np.array(boxvec, dtype=float)
-            self.thisptr = <cppAction*>new cppRecordDisp2HistogramPeriodic(_pele.Array[double](<double*> orginc.data, orginc.size),
-                                                               _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
-                                                               min, max, bin, eqsteps, <double*> bvec.data)
         self.newptr = <cppRecordEnergyHistogram*> self.thisptr
         
     @cython.boundscheck(False)
@@ -88,14 +72,15 @@ class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
 
 cdef extern from "basinvolume/actions.h" namespace "bv":    
     cdef cppclass cppFindk "bv::Findk":
-        cppFindk(double, double, size_t, double) except+
+        cppFindk(_pele.Array[double], double, double, size_t, double) except+
 
 cdef class _Cdef_Findk(_Cdef_Action):
     """This class is the python interface for the c++ bv::cppFindk action class implementation
     """
     cdef cppFindk* newptr
-    def __cinit__(self, target, factor, navg, tol):
-        self.thisptr = <cppAction*>new cppFindk(target, factor, navg, tol)
+    def __cinit__(self, origin, target, factor, navg, tol):
+        cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
+        self.thisptr = <cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size), target, factor, navg, tol)
         self.newptr = <cppFindk*> self.thisptr
     
 class Findk(_Cdef_Findk):

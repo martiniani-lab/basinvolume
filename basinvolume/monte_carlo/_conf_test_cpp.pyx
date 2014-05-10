@@ -30,6 +30,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         cdef np.ndarray[double, ndim=1] boxvecc = np.array(boxvec, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         cdef _pele_opt.GradientOptimizer opt = optimizer
+        #print rattlers
         self.thisptr = <cppConfTest*>new cppCheckSameMinimum(opt.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                              _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                              _pele.Array[double](<double*> boxvecc.data, boxvecc.size), 

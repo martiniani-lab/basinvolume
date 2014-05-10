@@ -40,11 +40,10 @@ namespace bv{
 class CheckSameMinimum:public mcpele::ConfTest{
 protected:
 	pele::periodic_distance _periodic_dist;
-	pele::cartesian_distance _cartesian_dist;
 	pele::GradientOptimizer * _optimizer;
 	Array<double> _origin, _hs_radii, _rattlers, _distance;
 	double _dtol, _d, _rms;
-	size_t _N, _Nnoratt, _nparticles, _ialign;
+	size_t _N, _Nnoratt, _nparticles;
 public:
 	CheckSameMinimum(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii, Array<double> boxvec,
 			Array<double> rattlers, double dtol);
@@ -59,55 +58,44 @@ public:
 		return x;
 	}
 	inline bool check_overlap(Array<double> &trial_coords);
-	inline void align(Array<double> &trial_coords);
-	inline void get_periodic_distance(Array<double> &trial_coords);
+	inline void get_vec_distance(Array<double> quenched_coords);
 };
 
 CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii,
 		Array<double> boxvec, Array<double> rattlers, double dtol):
 		_periodic_dist(boxvec[0], boxvec[1], boxvec[2]),
-		_cartesian_dist(pele::cartesian_distance()),
-		_optimizer(optimizer), _origin(origin), _hs_radii(hs_radii.copy()),
-		_rattlers(rattlers), _distance(origin.size(),0),_dtol(dtol),_d(0),
-		_rms(0),_N(origin.size()),_Nnoratt(0), _nparticles(_N/3), _ialign(0){
-			for(size_t i=0;i<_N;++i){_Nnoratt += _rattlers[i];}
-			//also find first non rattler
-			for(size_t i=0;i<_N;++i){
-				if (_rattlers[i] == 1){
-					_ialign=3; //i ->3 is only for testing reasons!!!!!!!!!
-					break;}
-			}
+		_optimizer(optimizer), _origin(origin.copy()), _hs_radii(hs_radii.copy()),
+		_rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
+		_rms(0),_N(origin.size()),_Nnoratt(0), _nparticles(_N/3){
+			for(size_t i=0;i<_N;i+=3)
+			    _Nnoratt += _rattlers[i];
 		}
 
-inline void CheckSameMinimum::align(Array<double> &trial_coords){
-	size_t i,j, i1;
-	double dr[3];
+//compute distance from origin after aligning the centre of mass
+//this ignores the rattlers completely
 
-	//it shouldn't matter whether one uses periodic or cartesian distance here
-	//because the rms displacement at the end of the test is che
-	_cartesian_dist.get_rij(dr, &_origin[_ialign*3], &trial_coords[_ialign*3]);
-	//std::cout<<"dr "<<dr[0]<<" "<<dr[1]<<" "<<dr[2]<<std::endl;
-	for(i=0;i<_nparticles;++i){
-			i1 = 3*i;
-			for(j=0;j<3;++j){
-				trial_coords[i1+j] += dr[j];
-			}
-	}
-}
+inline void CheckSameMinimum::get_vec_distance(pele::Array<double> quenched_coords){
+        pele::Array<double> delta_com(3,0);
 
-inline void CheckSameMinimum::get_periodic_distance(Array<double> &trial_coords){
-	size_t i,i1;
-	double dr[3];
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*3;
+            for(size_t j=0;j<3;++j){
+                double d = (quenched_coords[i1+j] - _origin[i1+j])*_rattlers[i1];
+                _distance[i1+j] = d;
+                delta_com[j] += d;
+            }
+        }
 
-	for(i=0;i<_nparticles;++i){
-		i1 = 3*i;
-		_periodic_dist.get_rij(dr, &_origin[i1], &trial_coords[i1]);
-		_distance[i1] = dr[0];
-		_distance[i1+1] = dr[1];
-		_distance[i1+2] = dr[2];
-		}
-}
+        delta_com /= _Nnoratt;
 
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*3;
+            for(size_t j=0;j<3;++j)
+                _distance[i1+j] -= delta_com[j]*_rattlers[i1];
+        }
+    }
 
 inline bool CheckSameMinimum::check_overlap(Array<double> &trial_coords){
 	size_t i,j, i1, j1;
@@ -154,18 +142,10 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
 	if (! quench_success)
 		return false;
 
-	//copy coordinates of quenched structure into _distance array
-	_distance.assign(_optimizer->get_x());
-	//align
-	this->align(_distance);
+	//compute distance between quenched coords and origin
+	//distance for rattlers is set to 0
+	this->get_vec_distance(_optimizer->get_x());
 
-	//compute distances subtracting the origin's coordinates using PBC
-	this->get_periodic_distance(_distance);
-
-	//set to 0 distances of rattlers
-	for (size_t l = 0; l < _N; ++l){
-		_distance[l] *= _rattlers[l];
-	}
 	//compute rms displacement from origin
 	_d = norm(_distance);
 	_rms = _d / sqrt(_Nnoratt);

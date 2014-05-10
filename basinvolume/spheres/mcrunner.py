@@ -114,7 +114,7 @@ class BV_MCrunner(_BaseMCRunner):
         i32max = np.iinfo(np.int32).max
         
         self.binsize = hbinsize
-        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, hmin, hmax,self.binsize,adjustf_niter, self.boxv)
+        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, hmin, hmax,self.binsize,adjustf_niter)
         self.conftest = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.step = RandomCoordsDisplacement(self.ndim, np.random.randint(i32max))
@@ -123,7 +123,7 @@ class BV_MCrunner(_BaseMCRunner):
         #set up pele:MC
         self.set_takestep(self.step)
         self.add_accept_test(self.metropolis)
-        self.add_conf_test(self.conftest)
+        self.add_late_conf_test(self.conftest) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.histogram)
         self.add_action(self.adjust_step)
         
@@ -201,7 +201,7 @@ class Findk_MCrunner(_BaseMCRunner):
             self.rattlers = np.array(rattlers,dtype='d')
             assert(len(self.rattlers) == self.ndim)
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
-        
+            
         #construct gradient optimizer
         self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
@@ -210,10 +210,10 @@ class Findk_MCrunner(_BaseMCRunner):
         #construct test/action classes      
         i32max = np.iinfo(np.int32).max
         
-        self.conftest = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
-        self.findk = Findk(self.ktarget, self.kfactor, self.knavg, self.ktol)
         self.step = GaussianCoordsDisplacement(self.ndim, np.random.randint(i32max))
-        
+        self.conftest = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
+        self.findk = Findk(self.origin, self.ktarget, self.kfactor, self.knavg, self.ktol)
+                
         #set up pele:MC
         self.set_takestep(self.step)
         self.add_conf_test(self.conftest)
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     #build start configuration
     Emax = 0.1
     start_coords = vector_random_uniform_hypersphere(ndim) * np.sqrt(2*Emax) #coordinates sampled from Pow(ndim)
-    Harmonic(origin,1)
+    #Harmonic(origin,1)
     res = modifiedfire_cpp(start_coords,Harmonic(origin,1))
     print res
     

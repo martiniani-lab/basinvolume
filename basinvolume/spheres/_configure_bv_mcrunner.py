@@ -7,6 +7,7 @@ from basinvolume.spheres import BV_MCrunner
 from basinvolume.utils import *
 import ConfigParser
 import time
+import cPickle as pickle
 
 class configure_bv_mcrunner(object):
     """
@@ -20,8 +21,8 @@ class configure_bv_mcrunner(object):
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     """
         
-    def __call__(self, fname, k=1.0, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
-                 hmax=100, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5000, adjustf_navg = 100, 
+    def __call__(self, fname, k=1, temperature=1.0, stepsize=1e-2, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
+                 hmax=1, hbinsize=1e-3, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -37,7 +38,8 @@ class configure_bv_mcrunner(object):
         self._initialise()
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords,k,self.boxv)
+        #harmonic potential with fixed centre of mass
+        potential = Harmonic(self.coords,k,com=True)
         mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
@@ -110,7 +112,10 @@ if __name__ == "__main__":
     sim = configure_bv_mcrunner()
     mcrunner = sim('jammed_packing0.xyzdr')
     print 'simulation started'
-    start=time.time() 
+    start=time.time()
+    #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)
+    #sim = pickle.load(open('testpickle.pickle', "rb"))
+    #mcrunner = sim('jammed_packing0.xyzdr')
     mcrunner.run()
     end=time.time()
     print end-start

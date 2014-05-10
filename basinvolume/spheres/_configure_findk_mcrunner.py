@@ -4,7 +4,7 @@ import abc
 import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir, read_xyzdr
 import ConfigParser
 import time
 
@@ -18,7 +18,7 @@ class configure_findk_mcrunner(object):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
         
-    def __call__(self, fname, k=3e4, temperature=1.0, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
+    def __call__(self, fname, k=1e3, temperature=1.0, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -34,7 +34,7 @@ class configure_findk_mcrunner(object):
         self._initialise()
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords,k,self.boxv)
+        potential = Harmonic(self.coords,k,com=True)
         stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        
         mcrunner = Findk_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                   rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
