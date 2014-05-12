@@ -43,8 +43,31 @@ def calculate_GL_integral(f):
     """
     weight = Gauss_Lobatto_weights(Gauss_Lobatto_abscissas(len(f))())()
     return sum(wi*fi for (wi,fi) in zip(weight,f))
+
+def calculate_GL_integral_range(f,a,b,n=6):
+    """
+    Calculates the Gauss-Lobatto integral of the callable f, in the interval from a,b.
+    """
+    t = Gauss_Lobatto_abscissas(n)()
+    x = [(ti+1)*(b-a)/2+a for ti in t]
+    integrand = [f(xi)*(b-a)/2 for xi in x]
+    return calculate_GL_integral(integrand)
+
+def calculate_GL_integral_trafo(f,a,b,phi,phi_d,n=6):
+    """
+    Calculates the Gauss-Lobatto integral of the callable f, in the interval from a,b,
+    with the coordiante transform given by phi, and its derivative phi_d.
+    It is assumed that phi(1)==b and phi(-1)==a.
+    """
+    t = Gauss_Lobatto_abscissas(n)()
+    integrand = [f(phi(ti))*phi_d(ti) for ti in t]
+    return calculate_GL_integral(integrand)
     
 def print_Gauss_Lobatto_xw(n):
+    """
+    For given order n, prints the Gauss-Lobatto abscissae x and weights w.
+    Sum of the weights should be 2.
+    """
     x = Gauss_Lobatto_abscissas(n)()
     w = Gauss_Lobatto_weights(x)()
     print "abscissas:"
