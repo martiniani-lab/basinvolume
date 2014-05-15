@@ -1,5 +1,5 @@
 from __future__ import division
-from gauss_lobatto import *
+from gauss_lobatto import Gauss_Lobatto_abscissas, Gauss_Lobatto_weights, calculate_GL_integral
 import numpy as np
 
 def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0):
@@ -41,6 +41,23 @@ def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension,
     k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min)
     f = np.array([u_sq_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_ki,ki) in zip(u_sq_k,k)])
     return calculate_GL_integral(f), f
+
+def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0):
+    """
+    Estimates the statistical error of above integral from statistical errors of the squared displacements.
+    The error estimate of the integral is sqrt( sum( w_i**2 * var_i ) ), where w_i is the GL integration weight,
+    and var_i is the variance of the integrand (see Daniel's thesis, p 72).
+    """
+    nr_points = len(u_sq_var_k)
+    if nr_points != len(u_sq_k):
+        raise Exception("calculate_GL_integral_with_transform_get_error: squared displacements and variances have different lengths")
+    displ_k_min = u_sq_k[0]
+    kappa = nr_particles*dimension/displ_k_min
+    k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min)
+    weights = Gauss_Lobatto_weights(Gauss_Lobatto_abscissas(nr_points)())()
+    var_integrand = [u_sq_var_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_var_ki,ki) in zip(u_sq_var_k,k)]
+    sum_sq_weights_vars = sum( wi*wi*vari for (wi,vari) in zip(weights,var_integrand) )
+    return np.sqrt(sum_sq_weights_vars)
 
 if __name__ == "__main__":
     nr_points = 6
