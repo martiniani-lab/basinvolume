@@ -161,7 +161,7 @@ class HS_Generate_Packing(_Generate_Packing):
     
     def _get_particles_volume(self):
         """returns volume of n=self.bdim dimensional sphere"""
-        volumes = 2*np.power(np.pi,self.bdim/2)*np.power(self.hs_radii,self.bdim)/(self.bdim*gamma(self.bdim/2))
+        volumes = volume_nball(self.hs_radii,self.bdim)
         vtot = np.sum(volumes)
         return vtot
       

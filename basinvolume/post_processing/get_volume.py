@@ -14,13 +14,15 @@ class F_Basin_From_MC_Data_Free_COM(object):
         self.displacements = displacements
         self.prob = prob
         self.k_max = self.k_values[-1]
-        self.integral_over_displacements = calculate_GL_integral_with_transform(self.displacements, self.k_max, self.nr_particles, self.dimension)
+        self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, self.nr_particles, self.dimension)
+    
     def get_free_energy_F0(self):
         """
         Computes the free energy F(0) = -log(v).
         Here there is no correction for the fixed c.o.m.
         """
-        return -log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) - 0.5*self.integral_over_displacements
+        F0 = -log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) - 0.5*self.integral_over_displacements
+        return F0, self.f
 
 class F_Basin_From_MC_Data(object):
     """
@@ -54,7 +56,7 @@ class F_Basin_From_MC_Data(object):
         """
         Calculates the integral over the squared displacements from 0 to k_max
         """
-        self.integral_over_displacements = calculate_GL_integral_with_transform(self.displacements, self.k_max, self.nr_particles, self.dimension)
+        self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, self.nr_particles, self.dimension)
         
     def get_free_energy_F0(self):
         """
@@ -62,7 +64,10 @@ class F_Basin_From_MC_Data(object):
         Reference: Daniel A. Asenjo-Andrews, PhD thesis, p 115
         (First term: We do not have box_volume==1)
         """
-        return -log(self.box_volume) - log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) + (self.dimension/2.0)*log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
+        F0 = -log(self.box_volume) - log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) \
+        + (self.dimension/2.0)*log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
+        
+        return F0, self.f
     
 class F_Basin_Th_Integration(object):
     """

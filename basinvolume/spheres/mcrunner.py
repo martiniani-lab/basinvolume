@@ -225,9 +225,11 @@ class Findk_MCrunner(_BaseMCRunner):
         self.potential.set_k(c)
     
     def get_k(self):
-        """return k, canonical control parameter"""
-        return self.potential.get_k()
-    
+        """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
+        stepsize = self.get_stepsize()
+        k = 1.0/(stepsize*stepsize)
+        return k
+        
 if __name__ == "__main__":
     #to run harmonic potential go to tests
     

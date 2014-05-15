@@ -16,6 +16,7 @@ cdef extern from "mcpele/actions.h" namespace "mcpele":
         double get_max() except +
         double get_min() except +
         double get_mean() except+
+        double get_variance() except+
         
 #===============================================================================
 # RecordDisp2Histogram
@@ -58,9 +59,10 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         dmax = self.newptr.get_max()
         return dmin, dmax
     
-    def get_mean(self):
+    def get_mean_variance(self):
         mean = self.newptr.get_mean()
-        return mean
+        variance = self.newptr.get_variance()
+        return mean, variance
     
 class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
     """This class is the python interface for the c++ RecordDisp2Histogram implementation.
@@ -73,7 +75,8 @@ class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
 cdef extern from "basinvolume/actions.h" namespace "bv":    
     cdef cppclass cppFindk "bv::Findk":
         cppFindk(_pele.Array[double], double, double, size_t, double) except+
-
+        double get_prob() except+
+        
 cdef class _Cdef_Findk(_Cdef_Action):
     """This class is the python interface for the c++ bv::cppFindk action class implementation
     """
@@ -82,6 +85,13 @@ cdef class _Cdef_Findk(_Cdef_Action):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         self.thisptr = <cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size), target, factor, navg, tol)
         self.newptr = <cppFindk*> self.thisptr
+    
+    def get_prob(self):
+        """
+        returns the probability of being in the basin at optimized kmax
+        """
+        prob = self.newptr.get_prob()
+        return prob
     
 class Findk(_Cdef_Findk):
     """This class is the python interface for the c++ Findk implementation.

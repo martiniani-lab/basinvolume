@@ -68,6 +68,7 @@ inline void RecordDisp2Histogram::get_vec_distance(pele::Array<double> x){
 
 void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool accepted, MC* mc) {
 		_count = mc->get_iterations_count();
+
 		if (_count >= _eqsteps)
 		{
 			//compute distances subtracting the origin's coordinates
@@ -78,7 +79,10 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 			for (size_t i=0;i<_N;++i)
 			    norm2 += _distance[i]*_distance[i];
 			_hist->add_entry(norm2);
-			_mean = (_mean*(_count-1)+norm2)/_count;
+			double count = (double) _count - _eqsteps + 1;
+			_mean = (_mean*(count-1)+norm2)/count;
+			_mean2 = (_mean2*(count-1)+(norm2*norm2))/count;
+			//std::cout<<"count"<<_count<<std::endl;
 			//std::cout<<"mean "<<_mean<<std::endl;
 		}
 }
@@ -88,11 +92,12 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
  * find k for an harmonic potential such that the acceptance is within some range
  * navg number of steps over which acceptance fraction is averaged
  * factor has to be in (0,1)
+ * get_prob returns the probability (_acceptedf) associated with kmax
  *
  *note: this class does some hacky things to exploit the behaviour of MC to get it to do something
  *that it wasn't originally entirely designed for. Weird things:
-  * need to keep a shared pointer of harmonicperiodic and then need to cast the potential to this type, to call get_k()
-  * set MC->_niter to the largest unsigned inter so that the calculation must terminate
+ * the potential is entirely fictitious, so _k is adjusted through the stepsize
+ * set MC->_niter to the largest unsigned inter so that the calculation must terminate
  * */
 
 class Findk : public Action {
@@ -104,11 +109,12 @@ public:
     Findk(Array<double> origin, double target, double factor, size_t navg, double tol);
     virtual ~Findk() {}
     virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
+    virtual double get_prob(){return _acceptedf;}
 };
 
 Findk::Findk(Array<double> origin, double target, double factor, size_t navg, double tol):
             _origin(origin.copy()),_target(target),_factor(factor),_acceptedf(0),
-            _k(0), _tol(tol), _navg(navg),_count(0),
+            _k(1), _tol(tol), _navg(navg),_count(0),
             _naccepted(0), _nrejected(0), _start(0){}
 
 
@@ -138,8 +144,8 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         else
             _k *= _factor;
 
-        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-        std::cout<<"_k "<<_k<<std::endl; //debug
+        //std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
+        //std::cout<<"_k "<<_k<<std::endl; //debug
 
         //adjust the standard deviation of the normal distribution
         mc->_stepsize = sqrt(1.0/_k);

@@ -1,11 +1,15 @@
 from __future__ import division
 import numpy as np
 import os
-from scipy.special import gamma
+from scipy.special import gamma, gammaln
 
 def volume_nball(radius,n):
-    volume = 2*np.power(np.pi,n/2)*np.power(radius,n)/(n*gamma(n/2))
+    volume = np.power(np.pi,n/2)*np.power(radius,n)/gamma(n/2+1)
     return volume
+
+def log_volume_nball(radius,n):
+    log_volume = n/2.0 * np.log(np.pi) + n * np.log(radius) - gammaln(n/2+1)
+    return log_volume
 
 def cround(r):
     if r > 0.0:

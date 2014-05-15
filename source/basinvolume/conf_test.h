@@ -18,6 +18,35 @@ using mcpele::MC;
 
 namespace bv{
 
+class CheckHyperSphericalContainer:public mcpele::ConfTest{
+protected:
+    pele::Array<double> _origin;
+    double _radius2;
+public:
+    CheckHyperSphericalContainer(pele::Array<double> origin, double radius);
+    virtual bool test(Array<double> &trial_coords, MC * mc);
+    virtual ~CheckHyperSphericalContainer(){};
+};
+
+CheckHyperSphericalContainer::CheckHyperSphericalContainer(pele::Array<double> origin, double radius):
+        _origin(origin.copy()),_radius2(radius*radius){}
+
+bool CheckHyperSphericalContainer::test(Array<double> &trial_coords, MC * mc)
+{
+  double r2=0;
+
+  for(size_t i=0;i<_origin.size();++i)
+  {
+      double r = trial_coords[i] - _origin[i];
+      r2 += r*r;
+  }
+
+  if (r2 > _radius2)
+      return false;
+
+  return true;
+}
+
 /*check same minimum class
  * _optimizer: pointer to object of class GradientOptimizer performing minimisation according to some potential
  * 				passed to the object during its construction

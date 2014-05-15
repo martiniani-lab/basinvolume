@@ -39,8 +39,8 @@ def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension,
     displ_k_min = u_sq_k[0]
     kappa = nr_particles*dimension/displ_k_min
     k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min)
-    f = [u_sq_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_ki,ki) in zip(u_sq_k,k)]
-    return calculate_GL_integral(f)
+    f = np.array([u_sq_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_ki,ki) in zip(u_sq_k,k)])
+    return calculate_GL_integral(f), f
 
 if __name__ == "__main__":
     nr_points = 6
