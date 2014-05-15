@@ -20,27 +20,54 @@ namespace bv{
 
 class CheckHyperSphericalContainer:public mcpele::ConfTest{
 protected:
-    pele::Array<double> _origin;
+    pele::Array<double> _origin, _distance;
     double _radius2;
+    size_t _N;
 public:
     CheckHyperSphericalContainer(pele::Array<double> origin, double radius);
     virtual bool test(Array<double> &trial_coords, MC * mc);
     virtual ~CheckHyperSphericalContainer(){};
+    virtual void inline get_vec_distance(pele::Array<double> coords);
 };
 
 CheckHyperSphericalContainer::CheckHyperSphericalContainer(pele::Array<double> origin, double radius):
-        _origin(origin.copy()),_radius2(radius*radius){}
+        _origin(origin.copy()),_distance(origin.size(),0),_radius2(radius*radius),_N((origin.size()/3)){}
+
+void inline CheckHyperSphericalContainer::get_vec_distance(pele::Array<double> coords){
+        pele::Array<double> delta_com(3,0);
+
+        for(size_t i=0;i<_N;++i)
+        {
+            size_t i1 = i*3;
+            for(size_t j=0;j<3;++j){
+                double d = (coords[i1+j] - _origin[i1+j]);
+                _distance[i1+j] = d;
+                delta_com[j] += d;
+            }
+        }
+
+        delta_com /= _N;
+
+        for(size_t i=0;i<_N;++i)
+        {
+            size_t i1 = i*3;
+            for(size_t j=0;j<3;++j)
+                _distance[i1+j] -= delta_com[j];
+        }
+    }
 
 bool CheckHyperSphericalContainer::test(Array<double> &trial_coords, MC * mc)
 {
-  double r2=0;
-
-  for(size_t i=0;i<_origin.size();++i)
+  /*for(size_t i=0;i<_origin.size();++i)
   {
       double r = trial_coords[i] - _origin[i];
       r2 += r*r;
-  }
+  }*/
 
+  this->get_vec_distance(trial_coords);
+
+  double r = norm(_distance);
+  double r2 = r*r;
   if (r2 > _radius2)
       return false;
 

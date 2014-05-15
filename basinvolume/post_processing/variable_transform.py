@@ -55,9 +55,9 @@ def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr
     kappa = nr_particles*dimension/displ_k_min
     k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min)
     weights = Gauss_Lobatto_weights(Gauss_Lobatto_abscissas(nr_points)())()
-    var_integrand = [u_sq_var_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_var_ki,ki) in zip(u_sq_var_k,k)]
+    var_integrand = np.array([u_sq_var_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_var_ki,ki) in zip(u_sq_var_k,k)])
     sum_sq_weights_vars = sum( wi*wi*vari for (wi,vari) in zip(weights,var_integrand) )
-    return np.sqrt(sum_sq_weights_vars)
+    return np.sqrt(sum_sq_weights_vars), np.sqrt(var_integrand)
 
 if __name__ == "__main__":
     nr_points = 6

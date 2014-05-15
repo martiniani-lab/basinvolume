@@ -167,15 +167,16 @@ if __name__ == "__main__":
     
     #SYSTEM PARAMETERS
     k0=0.0
-    r = 2.0 #hyperradius
+    r = 2 #hyperradius
     n = 3   #number of particles along edge
     nr_particles=n*n*n
     dimension=3
-    nr_points=8
+    nr_points=6
         
     #SIMULATION PARAMETERS
     stepsize = 10.0
     niter = 1e6
+    acceptance=0.2
     
     #===========================================================================
     # BUILD ORIGIN
@@ -201,7 +202,8 @@ if __name__ == "__main__":
     # COMPUTE <U2> FOR K0 (required to compute karray)0
     #===========================================================================
        
-    mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, k=k0, adjustf_niter=1e5, hmin=0, hmax=10, hbinsize=0.01,hyperradius=r)
+    mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, k=k0, adjustf_niter=1e5, hmin=0, hmax=10, hbinsize=0.01,
+                           acceptance=acceptance, hyperradius=r)
     mcrunner.run()
     end=time.time()
     #print end-start
@@ -216,12 +218,13 @@ if __name__ == "__main__":
     # FIND K_MAX
     #===========================================================================
     kstart = 100
-    ktarget = 0.95
+    ktarget = 0.5
+    ktol=0.001
     
-    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, stepsize, niter, origin, k=kstart, ktarget=ktarget, hyperradius=r)
+    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, stepsize, 1e8, origin, k=kstart, ktarget=ktarget, ktol=ktol, hyperradius=r)
     mcrunner.set_control(0) #potential is entirely fictitious, there is no energy test
     mcrunner.run()
-    k_max = mcrunner.get_k()
+    k_max = mcrunner.get_k() #debug remove
     prob = mcrunner.findk.get_prob()
     print 'kmax ',k_max
     print 'prob ',prob
@@ -240,7 +243,8 @@ if __name__ == "__main__":
     meanu2 = []
     var_meanu2 = []
     for k in karray:
-        mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, k=k, adjustf_niter=1e5, hmin=0, hmax=10, hbinsize=0.01,hyperradius=r)
+        mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, k=k, adjustf_niter=1e5, hmin=0, hmax=10, 
+                               acceptance=acceptance, hbinsize=0.01,hyperradius=r)
         mcrunner.set_control(k)
         mcrunner.run()
         status = mcrunner.get_status()
@@ -258,30 +262,35 @@ if __name__ == "__main__":
     # COMPUTE VOLUMES
     #===========================================================================
       
-    prob = prob
-    vol = 1.0
+    boxvol = 1.0
        
     #analytical meanu2
     karray = np.array(karray)
-    meanu2_analytical = (karray + (nr_particles*dimension)/displ_k_min) / (nr_particles*dimension)
+    meanu2_analytical = (karray + (nr_particles*dimension)/displ_k_min) / ((nr_particles-1)*dimension)
     meanu2_analytical = 1.0/meanu2_analytical
     
-    F0, farray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2, vol, prob).get_free_energy_F0()
-    aF0, afarray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2_analytical, vol, prob).get_free_energy_F0()
+    F0, sigF0, farray, sigfarray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2, boxvol, prob).get_free_energy_F0(var_meanu2)
+    aF0, asigF0, afarray, asigfarray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2_analytical, boxvol, 
+                                                            prob).get_free_energy_F0(np.zeros(nr_points))
     
-    print 'meanu2 corrected vol',F0 
-    print 'meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2, prob).get_free_energy_F0()[0]
-    print 'analytical meanu2 corrected vol', aF0
-    print 'analytical meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2_analytical, prob).get_free_energy_F0()[0]
+    print 'meanu2 corrected vol {} {}'.format(F0,sigF0) 
+    print 'meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2, 
+                                                                  prob).get_free_energy_F0(var_meanu2)[:2]
+    print 'analytical meanu2 corrected vol {} {}'.format(aF0, asigF0)
+    print 'analytical meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2_analytical, 
+                                                                             prob).get_free_energy_F0(np.zeros(nr_points))[0:2]
     print 'hypersphere vol',log_volume_nball(r,nr_particles*dimension)
-    from pylab import *
     
-    print len(farray)
-    
+    import matplotlib.pyplot as plt
     
     tarray = Gauss_Lobatto_abscissas(nr_points)()
-    plot(tarray,farray)
-    plot(tarray,afarray)
-    show()
-    
+    plt.figure()
+    plt.errorbar(tarray,farray,yerr=sigfarray)
+    plt.errorbar(tarray,afarray,yerr=asigfarray)
+    plt.show()
+    plt.figure()
+    plt.errorbar(karray,meanu2,yerr=np.sqrt(var_meanu2))
+    plt.errorbar(karray,meanu2_analytical)
+    plt.xscale('log')
+    plt.show()
     
