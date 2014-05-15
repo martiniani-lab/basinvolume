@@ -1,6 +1,6 @@
 from __future__ import division
 from math import pi, log
-from variable_transform import calculate_GL_integral_with_transform
+from variable_transform import calculate_GL_integral_with_transform, calculate_GL_integral_with_transform_get_error
 #import numpy as np
 #import argparse
 #import os
@@ -15,12 +15,20 @@ class F_Basin_From_MC_Data_Free_COM(object):
         self.prob = prob
         self.k_max = self.k_values[-1]
         self.integral_over_displacements = calculate_GL_integral_with_transform(self.displacements, self.k_max, self.nr_particles, self.dimension)
-    def get_free_energy_F0(self):
+    
+    def _calculate_error_F0(self, displacements_variance):
+        return 0.5*calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, self.nr_particles, self.dimension)
+    
+    def get_free_energy_F0(self, displacements_variance=[]):
         """
         Computes the free energy F(0) = -log(v).
         Here there is no correction for the fixed c.o.m.
         """
-        return -log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) - 0.5*self.integral_over_displacements
+        F0 = -log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) - 0.5*self.integral_over_displacements
+        if len(displacements_variance)==0:
+            return F0
+        else:
+            return F0, self._calculate_error_F0(displacements_variance)
 
 class F_Basin_From_MC_Data(object):
     """
@@ -56,13 +64,20 @@ class F_Basin_From_MC_Data(object):
         """
         self.integral_over_displacements = calculate_GL_integral_with_transform(self.displacements, self.k_max, self.nr_particles, self.dimension)
         
-    def get_free_energy_F0(self):
+    def _calculate_error_F0(self, displacements_variance):
+        return 0.5*calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, self.nr_particles, self.dimension)
+        
+    def get_free_energy_F0(self, displacements_variance=[]):
         """
         Computes the free energy F(0) = -log(v).
         Reference: Daniel A. Asenjo-Andrews, PhD thesis, p 115
         (First term: We do not have box_volume==1)
         """
-        return -log(self.box_volume) - log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) + (self.dimension/2.0)*log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
+        F0 = -log(self.box_volume) - log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) + (self.dimension/2.0)*log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
+        if len(displacements_variance)==0:
+            return F0
+        else:
+            return F0, self._calculate_error_F0(displacements_variance)
     
 class F_Basin_Th_Integration(object):
     """
