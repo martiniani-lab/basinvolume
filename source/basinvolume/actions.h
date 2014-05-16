@@ -103,8 +103,8 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 class Findk : public Action {
 protected:
     pele::Array<double> _origin;
-    double _target, _factor, _acceptedf, _sum_acceptedf, _sum_acceptedf2, _var_acceptedf, _k, _tol;
-    size_t _navg, _count, _naccepted, _nrejected, _start, _varcount;
+    double _target, _factor, _acceptedf, _k, _tol;
+    size_t _navg, _count, _naccepted, _nrejected, _start;
 public:
     Findk(Array<double> origin, double target, double factor, size_t navg, double tol);
     virtual ~Findk() {}
@@ -113,9 +113,9 @@ public:
 };
 
 Findk::Findk(Array<double> origin, double target, double factor, size_t navg, double tol):
-            _origin(origin.copy()),_target(target),_factor(factor),_acceptedf(0),_sum_acceptedf(0),
-            _sum_acceptedf2(0), _var_acceptedf(0),_k(1), _tol(tol), _navg(navg),_count(0),
-            _naccepted(0), _nrejected(0), _start(0), _varcount(0){}
+            _origin(origin.copy()),_target(target),_factor(factor),_acceptedf(0),
+            _k(1), _tol(tol), _navg(navg),_count(0),
+            _naccepted(0), _nrejected(0), _start(0){}
 
 
 void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
@@ -134,10 +134,11 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         double ik = mc->_stepsize;
         _k = 1/(ik*ik);
 
-        //_var_acceptedf = _sum_acceptedf2 - _sum_acceptedf*_sum_acceptedf;
-
-        if (std::abs(_target - _acceptedf) <= _tol)
+        if (std::abs(_target - _acceptedf) <= _tol){
+            //std::cout<<"k found: "<<_k<<std::endl; //debug
+            //this will trigger premature exit from the MC run loop
             mc->_niter = std::numeric_limits<size_t>::max();
+        }
         else if (_acceptedf < _target)
             _k /= _factor;
         else
@@ -160,21 +161,3 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
 
 }
 #endif
-
-
-/*
-if (_varcount > 100 && std::abs(_target -_sum_acceptedf) &&_var_acceptedf < 0.0025){
-    std::cout<<"_var_acceptedf "<<_var_acceptedf<<std::endl; //debug
-    mc->_niter = std::numeric_limits<size_t>::max();
-}
-else if (_varcount > 100 && std::abs(_target -_sum_acceptedf) && _var_acceptedf > 0.0025){
-    _varcount = 0;
-    _sum_acceptedf = 0;
-    _sum_acceptedf2 = 0;
-    _navg *= 2;
-}
-else{
-    ++_varcount;
-    _sum_acceptedf = (_sum_acceptedf*(_varcount - 1) + _acceptedf)/_varcount;
-    _sum_acceptedf2 = (_sum_acceptedf2*(_varcount - 1) + (_acceptedf*_acceptedf))/_varcount;
-}*/
