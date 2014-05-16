@@ -6,33 +6,41 @@ import numpy as np
 #import os
 #import sys
 
-class F_Basin_From_MC_Data_Free_COM(object):
-    def __init__(self, dimension, nr_particles, k_values, displacements, prob):
+class Base_Compute_Integral(object):
+    def __init__(self, dimension, nr_particles, k_values, displacements):
         self.dimension = dimension
         self.nr_particles = nr_particles
         self.k_values = k_values
         self.displacements = displacements
-        self.prob = prob
         self.k_max = self.k_values[-1]
+        if self.k_max !=  max(self.k_values):
+            raise Exception("Base_Compute_Integral: label mismatch")
+        self.nr_points = len(self.k_values)
+        if self.nr_points != len(self.displacements):
+            raise Exception("Base_Compute_Integral: illegal input")
         self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, 
                                                                                         self.nr_particles, self.dimension)
-    
     def _calculate_error_F0(self, displacements_variance):
         sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, 
                                                                   self.nr_particles, self.dimension) 
         return 0.5*sigF0, sigIntegrand
     
+class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
+    """
+    Computes the free energy F(0) = -log(v).
+    Here there is no correction for the fixed c.o.m.
+    """
+    def __init__(self, dimension, nr_particles, k_values, displacements, prob):
+        super(F_Basin_From_MC_Data_Free_COM,self).__init__(dimension, nr_particles, k_values, displacements)
+        self.prob = prob
+        
     def get_free_energy_F0(self, displacements_variance):
-        """
-        Computes the free energy F(0) = -log(v).
-        Here there is no correction for the fixed c.o.m.
-        """
         F0 = -log(self.prob) - (self.nr_particles*self.dimension/2.0)*log(2.0*pi/self.k_max) - 0.5*self.integral_over_displacements
         sigF0, sigf = self._calculate_error_F0(displacements_variance)
         
         return F0, sigF0, self.f, sigf
 
-class F_Basin_From_MC_Data(object):
+class F_Basin_From_MC_Data(Base_Compute_Integral):
     """
     Calculate the basin volume from the MC output via
     thermodynamic integration.
@@ -46,32 +54,10 @@ class F_Basin_From_MC_Data(object):
     Daniel A. Asenjo-Andrews, PhD thesis
     """
     def __init__(self, dimension, nr_particles, k_values, displacements, box_volume, prob):
-        self.dimension = dimension
-        self.nr_particles = nr_particles
-        self.k_values = k_values
-        self.displacements = displacements
+        super(F_Basin_From_MC_Data,self).__init__(dimension, nr_particles, k_values, displacements)
         self.box_volume = box_volume
         self.prob = prob
-        self.k_max = self.k_values[-1]
-        if self.k_max !=  max(self.k_values):
-            raise Exception("F_Basin_From_MC_Data: label mismatch")
-        self.nr_points = len(self.k_values)
-        if self.nr_points != len(self.displacements):
-            raise Exception("F_Basin_From_MC_Data: illegal input")
-        self._calculate_integral()
-        
-    def _calculate_integral(self):
-        """
-        Calculates the integral over the squared displacements from 0 to k_max
-        """
-        self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, 
-                                                                                        self.nr_particles, self.dimension)
-        
-    def _calculate_error_F0(self, displacements_variance):
-        sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, 
-                                                                  self.nr_particles, self.dimension) 
-        return 0.5*sigF0, sigIntegrand
-        
+         
     def get_free_energy_F0(self, displacements_variance):
         """
         Computes the free energy F(0) = -log(v).
@@ -79,7 +65,7 @@ class F_Basin_From_MC_Data(object):
         (First term: We do not have box_volume==1)
         we added a +log(self.nr_particles) term
         """
-        F0 = -np.log(self.box_volume) + np.log(self.nr_particles) - np.log(self.prob) - (self.nr_particles*self.dimension/2.0)*np.log(2.0*pi/self.k_max) + \
+        F0 = -np.log(self.box_volume) - np.log(self.prob) - (self.nr_particles*self.dimension/2.0)*np.log(2.0*pi/self.k_max) + \
         (self.dimension/2.0)*np.log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
         
         sigF0, sigf = self._calculate_error_F0(displacements_variance)
