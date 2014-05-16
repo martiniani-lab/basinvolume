@@ -38,9 +38,9 @@ public:
 	        for(size_t i=0;i<_N;i+=3)
 	            _Nnoratt += _rattlers[i];
 	    }
-	virtual ~RecordDisp2Histogram() {delete _hist;}
+	virtual ~RecordDisp2Histogram(){};
 	virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
-	virtual void inline get_vec_distance(pele::Array<double> x);
+	void inline get_vec_distance(pele::Array<double> x);
 };
 
 inline void RecordDisp2Histogram::get_vec_distance(pele::Array<double> x){
@@ -78,7 +78,7 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 			double norm2 = 0;
 			for (size_t i=0;i<_N;++i)
 			    norm2 += _distance[i]*_distance[i];
-			_hist->add_entry(norm2);
+			_hist.add_entry(norm2);
 			double count = (double) _count - _eqsteps + 1;
 			_mean = (_mean*(count-1)+norm2)/count;
 			_mean2 = (_mean2*(count-1)+(norm2*norm2))/count;
@@ -109,7 +109,7 @@ public:
     Findk(Array<double> origin, double target, double factor, size_t navg, double tol);
     virtual ~Findk() {}
     virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
-    virtual double get_prob(){return _acceptedf;}
+    double get_prob(){return _acceptedf;}
 };
 
 Findk::Findk(Array<double> origin, double target, double factor, size_t navg, double tol):

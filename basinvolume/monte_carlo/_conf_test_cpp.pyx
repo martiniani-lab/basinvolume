@@ -12,6 +12,8 @@ from mcpele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest
 cdef extern from "basinvolume/conf_test.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
         cppCheckHyperSphericalContainer(_pele.Array[double], double) except+
+    cdef cppclass cppCheckOverlap "bv::CheckOverlap":
+        cppCheckOverlap(_pele.Array[double], _pele.Array[double]) except+
     cdef cppclass cppCheckSameMinimum "bv::CheckSameMinimum":
         cppCheckSameMinimum(_pele_opt.cGradientOptimizer *, _pele.Array[double], _pele.Array[double],
                             _pele.Array[double], _pele.Array[double] , double) except+
@@ -31,6 +33,24 @@ cdef class _Cdef_CheckHyperSphericalContainer(_Cdef_ConfTest):
         
 class CheckHyperSphericalContainer(_Cdef_CheckHyperSphericalContainer):
     """This class is the python interface for the c++ CheckHyperSphericalContainer implementation."""
+
+#===============================================================================
+# Check Overlap
+#===============================================================================
+
+cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
+    """This class is the python interface for the c++ pele::CheckOverlap configuration test class implementation
+    """
+    cdef cppCheckOverlap* newptr
+    def __cinit__(self, hs_radii, boxvec):
+        cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
+        cdef np.ndarray[double, ndim=1] boxvecc = np.array(boxvec, dtype=float)
+        self.thisptr = <cppConfTest*>new cppCheckOverlap(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
+                                                             _pele.Array[double](<double*> boxvecc.data, boxvecc.size))
+        self.newptr = <cppCheckOverlap*> self.thisptr
+        
+class CheckOverlap(_Cdef_CheckOverlap):
+    """This class is the python interface for the c++ CheckOverlap implementation."""
 
 #===============================================================================
 # Check same minimum

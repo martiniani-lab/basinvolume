@@ -27,7 +27,7 @@ public:
     CheckHyperSphericalContainer(pele::Array<double> origin, double radius);
     virtual bool test(Array<double> &trial_coords, MC * mc);
     virtual ~CheckHyperSphericalContainer(){};
-    virtual void inline get_vec_distance(pele::Array<double> coords);
+    void inline get_vec_distance(pele::Array<double> coords);
 };
 
 CheckHyperSphericalContainer::CheckHyperSphericalContainer(pele::Array<double> origin, double radius):
@@ -72,6 +72,45 @@ bool CheckHyperSphericalContainer::test(Array<double> &trial_coords, MC * mc)
       return false;
 
   return true;
+}
+
+/*CHECK OVERLAP*/
+class CheckOverlap:public mcpele::ConfTest{
+protected:
+    pele::periodic_distance _periodic_dist;
+    Array<double> _hs_radii;
+    size_t _nparticles;
+public:
+    CheckOverlap(Array<double> hs_radii, Array<double> boxvec);
+    virtual bool test(Array<double> &trial_coords, MC * mc);
+    virtual ~CheckOverlap(){};
+};
+
+CheckOverlap::CheckOverlap(Array<double> hs_radii, Array<double> boxvec):
+        _periodic_dist(boxvec[0], boxvec[1], boxvec[2]),_hs_radii(hs_radii.copy()),
+        _nparticles(_hs_radii.size()/3){}
+
+inline bool CheckOverlap::test(Array<double> &trial_coords, MC * mc){
+    size_t i,j, i1, j1;
+    double dr[3];
+    double dij2,dij;
+
+    for(i=0;i<_nparticles;++i){
+        i1 = 3*i;
+        for(j=0;j<_nparticles;++j){
+            if(i != j){
+                j1 = 3*j;
+                _periodic_dist.get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
+                dij2 = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
+                dij = sqrt(dij2);
+                dij -= (_hs_radii[i] + _hs_radii[j]);
+                if (dij <= 0)
+                    return false;
+                }
+            }
+        }
+
+    return true;
 }
 
 /*check same minimum class
