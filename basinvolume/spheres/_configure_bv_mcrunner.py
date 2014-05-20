@@ -21,12 +21,14 @@ class configure_bv_mcrunner(object):
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     """
         
-    def __call__(self, fname, k=1, temperature=1.0, stepsize=1e-2, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
-                 hmax=20, hbinsize=1e-2, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
+    def __call__(self, fname, k=17, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
+                 hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
+        elif dname.endswith('.xydr'):
+            dname = dname[:-5]
         self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
         self.packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
@@ -39,7 +41,7 @@ class configure_bv_mcrunner(object):
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords,k,com=True)
+        potential = Harmonic(self.coords, k, com=True, ndim=self.bdim)
         mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
@@ -60,7 +62,7 @@ class configure_bv_mcrunner(object):
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert(self.bdim==3) #currently PBC only implemented for 3d case
+        assert(self.bdim==2 or self.bdim==3) #currently PBC only implemented for 3d case
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get('JAMMED_PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
@@ -74,7 +76,10 @@ class configure_bv_mcrunner(object):
         This should be run in initialise()
         """
         path = os.path.join(self.packings_dir,self.fname)
-        self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
+        if self.bdim == 2:
+            self.coords, hs_diameters, self.rattlers = read_xydr(path)
+        else:
+            self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
         self.hs_radii = hs_diameters/2
         
     def _print_initialise(self):
@@ -87,6 +92,8 @@ class configure_bv_mcrunner(object):
         dname = self.fname 
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
+        elif dname.endswith('.xydr'):
+            dname = dname[:-5]
         fname = '{}/explore_{}.config'.format(self.base_directory,dname)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
@@ -110,7 +117,7 @@ class configure_bv_mcrunner(object):
 if __name__ == "__main__":
     
     sim = configure_bv_mcrunner()
-    mcrunner = sim('jammed_packing0.xyzdr')
+    mcrunner = sim('jammed_packing0.xydr')
     print 'simulation started'
     start=time.time()
     #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)

@@ -90,12 +90,11 @@ public:
 
 template<typename distance_policy>
 CheckOverlap<distance_policy>::CheckOverlap(Array<double> hs_radii, std::shared_ptr<distance_policy> dist):
-        _hs_radii(hs_radii.copy()), _periodic_dist(dist)
+        _hs_radii(hs_radii.copy()), _nparticles(_hs_radii.size()), _periodic_dist(dist)
 {
     if (_periodic_dist == NULL)
         throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
     _ndim = dist->get_ndim();
-    _nparticles = _hs_radii.size()/_ndim;
 }
 
 template<typename distance_policy>
@@ -190,12 +189,11 @@ CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * op
 		Array<double> rattlers, double dtol, std::shared_ptr<distance_policy> dist):
 		_optimizer(optimizer), _origin(origin.copy()), _hs_radii(hs_radii.copy()),
 		_rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
-		_rms(0),_N(origin.size()),_Nnoratt(0),_periodic_dist(dist)
+		_rms(0),_N(origin.size()),_Nnoratt(0),_nparticles(_hs_radii.size()),_periodic_dist(dist)
         {
             if (_periodic_dist == NULL)
                 throw std::runtime_error("CheckSameMinimum::periodic distance uninitialised");
             _ndim = dist->get_ndim();
-            _nparticles = _hs_radii.size()/_ndim;
 
             for(size_t i=0;i<_N;i+=_ndim)
 			    _Nnoratt += _rattlers[i];

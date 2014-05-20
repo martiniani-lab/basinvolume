@@ -306,7 +306,7 @@ class HS_Generate_Packing(_Generate_Packing):
         while no_overlap == False:
             no_overlap = True 
             self.coords = self._sample_random_coords()
-            print "generated new start coords "
+            print "generated new7 start coords "
             #check that no two particles are overlapping (using nearest image convention)
             no_overlap = self._check_overlaps()
     
@@ -373,7 +373,7 @@ class HS_Generate_Packing(_Generate_Packing):
 if __name__ == "__main__":
     
     nparticles = 20
-    sim = HS_Generate_Packing(nparticles, max_iter = 5, bdim=2)
+    sim = HS_Generate_Packing(nparticles, max_iter = 5, bdim=2, packing_frac=0.65)
     sim.run()
     
     
