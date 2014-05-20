@@ -31,7 +31,7 @@ class _Generate_Packing(object):
     
     def __init__(self, method, nparticles, bdim=3, boxv = None, boxl=1.0, packing_frac=0.4, max_iter = 1):
         self.method = method
-        assert(bdim==3) #currently PBC only implemented for 3d case
+        assert(bdim==2 or bdim==3) #currently PBC only implemented for 3d case
         self.nparticles = nparticles
         self.bdim = bdim
         self.ndim = self.nparticles * self.bdim
@@ -72,7 +72,7 @@ class _Generate_Packing(object):
         vol_part = self._get_particles_volume()
         vol_box = np.prod(self.boxv)
         phi = vol_part/vol_box #instanteneous pack frac
-        a = np.power(phi/self.packing_frac,1./3)
+        a = np.power(phi/self.packing_frac,1./self.bdim)
         self.boxv *= a
         ###test###
         vol_box = np.prod(self.boxv)
@@ -134,6 +134,7 @@ class HS_Generate_Packing(_Generate_Packing):
     *sig: % standard deviaton of normal distribution from which to sample particles (this value is multiplied by the mean mu)
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential, here irrelevant because 'sca' is set to 0
+    *hsf stands for hard sphere fluid
     """    
     def __init__(self, nparticles, method='quench', bdim=3, boxl=1, boxv=None, packing_frac=0.4, hs_radii=None, 
                  mu = 1, sig = 0.05, hsf_niter=1e6, hsf_stepsize = 1e-4, max_iter = 10):
@@ -155,7 +156,7 @@ class HS_Generate_Packing(_Generate_Packing):
         if self.method is 'quench':
             #this is necessary to initialise the radii if using the quench routine
             self._initialise_coords_quench()
-        self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
+        self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         self._print_initialise()
         self.initialised = True     
     
@@ -242,8 +243,8 @@ class HS_Generate_Packing(_Generate_Packing):
         to be on the safe side."""
         if (self.iteration == 0):
             temperature = 10000.0
-            self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter, 
-                                        adjustf = 0.9, acceptance=0.2, adjustf_niter = 5000)
+            self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
+                                        self.hs_radii,self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 5000)
             self.energy = self.potential.getEnergy(self.coords)
         self.mcrunner.set_config(self.coords, self.energy)
         self.mcrunner.run()        
@@ -257,7 +258,7 @@ class HS_Generate_Packing(_Generate_Packing):
         """
         no_overlap = False
         sigma =  min(self.boxv) / np.power(2,1./6) #set sigma such that the the wca radius is the same as the box smallest side length
-        pot = WCA(sig=sigma,boxvec=self.boxv) # choice of sigma might have to be different
+        pot = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of sigma might have to be different
         
         while no_overlap == False:
             no_overlap = True
@@ -319,10 +320,17 @@ class HS_Generate_Packing(_Generate_Packing):
         """write coordinates to file .xyzd"""
         coords = self._correct_coords()
         directory = self.base_directory
-        fname = "{0}/packing{1}.xyzd".format(directory,self.iteration)
-        f = open(fname,'w')
-        for i in xrange(self.nparticles):
-            f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+        if self.bdim == 2:
+            fname = "{0}/packing{1}.xyd".format(directory,self.iteration)
+            f = open(fname,'w')
+            for i in xrange(self.nparticles):
+                f.write('{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                                                                  self.hs_radii[i]*2))
+        else:
+            fname = "{0}/packing{1}.xyzd".format(directory,self.iteration)
+            f = open(fname,'w')
+            for i in xrange(self.nparticles):
+                f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                coords[i*self.bdim+2],self.hs_radii[i]*2))
         f.close()
     
@@ -335,22 +343,37 @@ class HS_Generate_Packing(_Generate_Packing):
         fname = "{0}/packing{1}.dat".format(directory,self.iteration)
         f = open(fname,'w')
         f.write('{}\n'.format(self.nparticles))
-        f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
-        f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
-        f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
-        f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
-        for i in xrange(self.nparticles):
-            for j in xrange(self.bdim):
-                f.write('{}\t'.format(coords[i*self.bdim+j]))
-            f.write('{}\t'.format(self.hs_radii[i]*2))
-            f.write('{}\n'.format(colour))
+        
+        if self.bdim == 2:
+            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, 0))
+            f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
+            f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
+            f.write('0.0 \t 0.0 \t {}\n'.format(0))
+            
+            for i in xrange(self.nparticles):
+                for j in xrange(self.bdim):
+                    f.write('{}\t'.format(coords[i*self.bdim+j]))
+                f.write('{}\t'.format(0))
+                f.write('{}\t'.format(self.hs_radii[i]*2))
+                f.write('{}\n'.format(colour))
+        else:
+            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
+            f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
+            f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
+            f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
+        
+            for i in xrange(self.nparticles):
+                for j in xrange(self.bdim):
+                    f.write('{}\t'.format(coords[i*self.bdim+j]))
+                f.write('{}\t'.format(self.hs_radii[i]*2))
+                f.write('{}\n'.format(colour))
         f.close()
 
             
 if __name__ == "__main__":
     
     nparticles = 20
-    sim = HS_Generate_Packing(nparticles, max_iter = 5)
+    sim = HS_Generate_Packing(nparticles, max_iter = 5, bdim=2)
     sim.run()
     
     

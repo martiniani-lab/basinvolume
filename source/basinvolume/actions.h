@@ -28,14 +28,14 @@ namespace bv{
 class RecordDisp2Histogram : public mcpele::RecordEnergyHistogram {
 protected:
 	pele::Array<double> _origin, _rattlers, _distance;
-	size_t _N, _Nnoratt, _nparticles;
+	size_t _N, _Nnoratt, _ndim, _nparticles;
 public:
-	RecordDisp2Histogram(pele::Array<double> origin, pele::Array<double> rattlers, double min,
+	RecordDisp2Histogram(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, double min,
 	        double max, double bin, size_t eqsteps):
 	    RecordEnergyHistogram(min, max, bin, eqsteps),
 	    _origin(origin.copy()),_rattlers(rattlers.copy()),_distance(origin.size()),
-	    _N(origin.size()), _Nnoratt(0), _nparticles(_N/3){
-	        for(size_t i=0;i<_N;i+=3)
+	    _N(origin.size()), _Nnoratt(0), _ndim(ndim), _nparticles(_N/ndim){
+	        for(size_t i=0;i<_N;i+=_ndim)
 	            _Nnoratt += _rattlers[i];
 	    }
 	virtual ~RecordDisp2Histogram(){};
@@ -44,12 +44,12 @@ public:
 };
 
 inline void RecordDisp2Histogram::get_vec_distance(pele::Array<double> x){
-        pele::Array<double> delta_com(3,0);
+        pele::Array<double> delta_com(_ndim,0);
 
         for(size_t i=0;i<_nparticles;++i)
         {
-            size_t i1 = i*3;
-            for(size_t j=0;j<3;++j){
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j){
                 double d = (x[i1+j] - _origin[i1+j]);
                 _distance[i1+j] = d;
                 delta_com[j] += d;
@@ -60,8 +60,8 @@ inline void RecordDisp2Histogram::get_vec_distance(pele::Array<double> x){
 
         for(size_t i=0;i<_nparticles;++i)
         {
-            size_t i1 = i*3;
-            for(size_t j=0;j<3;++j)
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j)
                 _distance[i1+j] -= delta_com[j];
         }
     }

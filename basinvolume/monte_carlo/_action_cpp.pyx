@@ -24,19 +24,19 @@ cdef extern from "mcpele/actions.h" namespace "mcpele":
 #derives from record energy histogram
 cdef extern from "basinvolume/actions.h" namespace "bv":
     cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
-        cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double],double, double, double, size_t) except +
+        cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t) except +
         
 cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisp2Histogram acceptance test class implementation
     """
     cdef cppRecordEnergyHistogram* newptr
-    def __cinit__(self, origin, rattlers, min, max, bin, eqsteps):
+    def __cinit__(self, origin, rattlers, ndim, min, max, bin, eqsteps):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         
         self.thisptr = <cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
-                                                               min, max, bin, eqsteps)
+                                                               ndim, min, max, bin, eqsteps)
         self.newptr = <cppRecordEnergyHistogram*> self.thisptr
         
     @cython.boundscheck(False)
