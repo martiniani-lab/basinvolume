@@ -28,28 +28,28 @@ namespace bv{
 class RecordDisp2Histogram : public mcpele::RecordEnergyHistogram {
 protected:
 	pele::Array<double> _origin, _rattlers, _distance;
-	size_t _N, _Nnoratt, _nparticles;
+	size_t _N, _Nnoratt, _ndim, _nparticles;
 public:
-	RecordDisp2Histogram(pele::Array<double> origin, pele::Array<double> rattlers, double min,
+	RecordDisp2Histogram(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, double min,
 	        double max, double bin, size_t eqsteps):
 	    RecordEnergyHistogram(min, max, bin, eqsteps),
 	    _origin(origin.copy()),_rattlers(rattlers.copy()),_distance(origin.size()),
-	    _N(origin.size()), _Nnoratt(0), _nparticles(_N/3){
-	        for(size_t i=0;i<_N;i+=3)
+	    _N(origin.size()), _Nnoratt(0), _ndim(ndim), _nparticles(_N/ndim){
+	        for(size_t i=0;i<_N;i+=_ndim)
 	            _Nnoratt += _rattlers[i];
 	    }
-	virtual ~RecordDisp2Histogram() {delete _hist;}
+	virtual ~RecordDisp2Histogram(){};
 	virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
-	virtual void inline get_vec_distance(pele::Array<double> x);
+	void inline get_vec_distance(pele::Array<double> x);
 };
 
 inline void RecordDisp2Histogram::get_vec_distance(pele::Array<double> x){
-        pele::Array<double> delta_com(3,0);
+        pele::Array<double> delta_com(_ndim,0);
 
         for(size_t i=0;i<_nparticles;++i)
         {
-            size_t i1 = i*3;
-            for(size_t j=0;j<3;++j){
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j){
                 double d = (x[i1+j] - _origin[i1+j]);
                 _distance[i1+j] = d;
                 delta_com[j] += d;
@@ -60,8 +60,8 @@ inline void RecordDisp2Histogram::get_vec_distance(pele::Array<double> x){
 
         for(size_t i=0;i<_nparticles;++i)
         {
-            size_t i1 = i*3;
-            for(size_t j=0;j<3;++j)
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j)
                 _distance[i1+j] -= delta_com[j];
         }
     }
@@ -78,7 +78,7 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 			double norm2 = 0;
 			for (size_t i=0;i<_N;++i)
 			    norm2 += _distance[i]*_distance[i];
-			_hist->add_entry(norm2);
+			_hist.add_entry(norm2);
 			double count = (double) _count - _eqsteps + 1;
 			_mean = (_mean*(count-1)+norm2)/count;
 			_mean2 = (_mean2*(count-1)+(norm2*norm2))/count;
@@ -109,7 +109,7 @@ public:
     Findk(Array<double> origin, double target, double factor, size_t navg, double tol);
     virtual ~Findk() {}
     virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
-    virtual double get_prob(){return _acceptedf;}
+    double get_prob(){return _acceptedf;}
 };
 
 Findk::Findk(Array<double> origin, double target, double factor, size_t navg, double tol):
@@ -144,8 +144,8 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         else
             _k *= _factor;
 
-        //std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-        //std::cout<<"_k "<<_k<<std::endl; //debug
+        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
+        std::cout<<"_k "<<_k<<std::endl; //debug
 
         //adjust the standard deviation of the normal distribution
         mc->_stepsize = sqrt(1.0/_k);

@@ -4,7 +4,7 @@ import abc
 import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
-from basinvolume.utils import trymakedir, read_xyzdr
+from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 import ConfigParser
 import time
 
@@ -18,11 +18,13 @@ class configure_findk_mcrunner(object):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
         
-    def __call__(self, fname, k=2e2, temperature=1.0, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
+    def __call__(self, fname, k=1e2, temperature=1.0, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
+        elif dname.endswith('.xydr'):
+            dname = dname[:-5]
         self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
         self.packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
@@ -34,7 +36,7 @@ class configure_findk_mcrunner(object):
         self._initialise()
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords,0,com=True) #set the potential to 0, the potential is completely fictiotious here (there's no energy test),
+        potential = Harmonic(self.coords,0) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
         #k is entirely controlled by the stepsize 
         stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        
         mcrunner = Findk_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
@@ -56,7 +58,7 @@ class configure_findk_mcrunner(object):
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert(self.bdim==3) #currently PBC only implemented for 3d case
+        assert(self.bdim==2 or self.bdim==3) #currently PBC only implemented for 2d-3d case
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get('JAMMED_PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
@@ -70,7 +72,10 @@ class configure_findk_mcrunner(object):
         This should be run in initialise()
         """
         path = os.path.join(self.packings_dir,self.fname)
-        self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
+        if self.bdim == 2:
+            self.coords, hs_diameters, self.rattlers = read_xydr(path)
+        else:
+            self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
         self.hs_radii = hs_diameters/2
         
     def _print_initialise(self):
@@ -83,6 +88,8 @@ class configure_findk_mcrunner(object):
         dname = self.fname 
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
+        elif dname.endswith('.xydr'):
+            dname = dname[:-5]
         fname = '{}/explore_{}.config'.format(self.base_directory,dname)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
@@ -106,7 +113,7 @@ class configure_findk_mcrunner(object):
 if __name__ == "__main__":
     
     sim = configure_findk_mcrunner()
-    mcrunner = sim('jammed_packing0.xyzdr')
+    mcrunner = sim('jammed_packing0.xydr')
     print 'simulation started'
     start=time.time() 
     mcrunner.run()

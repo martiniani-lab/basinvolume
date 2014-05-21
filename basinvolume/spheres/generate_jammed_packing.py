@@ -36,7 +36,7 @@ class _Generate_Jammed_Packing(object):
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('PACKING','nparticles')
         self.bdim = configf.getint('PACKING','boxdim')
-        assert(self.bdim==3) #currently PBC only implemented for 3d case
+        assert(self.bdim==2 or self.bdim==3) #currently PBC only implemented for 3d case
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
@@ -102,7 +102,7 @@ class _Generate_Jammed_Packing(object):
     def run(self):
         """run generate packings"""
         for fname in os.listdir(self.packings_dir):
-            if 'xyzd' in fname:
+            if ('xyzd' in fname and self.bdim == 3) or ('xyd' in fname and self.bdim == 2):
                 print fname
                 self.one_iteration(fname)
             
@@ -128,7 +128,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def initialise(self):
         self._compute_sca()
-        self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
+        self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         self.rattlers = np.empty(self.nparticles,dtype='d')
         self._print_initialise()
     
@@ -163,7 +163,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _generate_packing_coords(self):
         """quenches the imported structure using FIRE"""
-        res = modifiedfire_cpp(self.coords,self.potential,nsteps=1e6, tol=1e-5)
+        res = modifiedfire_cpp(self.coords,self.potential, nsteps=1e6, tol=1e-5)
         assert(res.success == True)
         self.coords = res.coords
         self.energy = res.energy
@@ -178,7 +178,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.packings_dir,fname)
-        self.coords, hs_diameters = read_xyzd(path)
+        if self.bdim == 2:
+            self.coords, hs_diameters = read_xyd(path)
+        else:
+            self.coords, hs_diameters = read_xyzd(path)
         self.hs_radii = hs_diameters/2
     
     def _compute_sca(self):
@@ -226,11 +229,18 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """write coordinates to file .xyzdr"""
         coords = self._correct_coords()
         directory = self.base_directory
-        fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
-        f = open(fname,'w')
-        for i in xrange(self.nparticles):
-            f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
-                                                               coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
+        if self.bdim == 2:
+            fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
+            f = open(fname,'w')
+            for i in xrange(self.nparticles):
+                f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                                                                          self.hs_radii[i]*2,self.rattlers[i]))
+        else:
+            fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
+            f = open(fname,'w')
+            for i in xrange(self.nparticles):
+                f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                                                                          coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
         f.close()
     
     def _write_opengl_input(self,n):
@@ -242,15 +252,27 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         fname = "{0}/jammed_packing{1}.dat".format(directory,n)
         f = open(fname,'w')
         f.write('{}\n'.format(self.nparticles))
-        f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
-        f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
-        f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
-        f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
-        for i in xrange(self.nparticles):
-            for j in xrange(self.bdim):
-                f.write('{}\t'.format(coords[i*self.bdim+j]))
-            f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
-            f.write('{}\n'.format(colour-int(self.rattlers[i])))
+        if self.bdim == 2:
+            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, 0))
+            f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
+            f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
+            f.write('0.0 \t 0.0 \t {}\n'.format(0))
+            for i in xrange(self.nparticles):
+                for j in xrange(self.bdim):
+                    f.write('{}\t'.format(coords[i*self.bdim+j]))
+                f.write('{}\t'.format(0))
+                f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
+                f.write('{}\n'.format(colour-int(self.rattlers[i])))
+        else:
+            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
+            f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
+            f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
+            f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
+            for i in xrange(self.nparticles):
+                for j in xrange(self.bdim):
+                    f.write('{}\t'.format(coords[i*self.bdim+j]))
+                f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
+                f.write('{}\n'.format(colour-int(self.rattlers[i])))
         f.close()
 
             

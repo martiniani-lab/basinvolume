@@ -36,17 +36,17 @@ class ES_MCrunner(_BaseMCRunner):
      with respect to the origin coordinates
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, k=1.0, dtol=1e-3, eps=1., hmin=0, hmax=100, hbinsize=0.01, acceptance=0.2, 
+                  origin, bdim, k=1.0, dtol=1e-3, eps=1., hmin=0, hmax=100, hbinsize=0.01, acceptance=0.2, 
                   adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5, 
                   opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
-        #potential = Harmonic(origin,k,boxv) set in _configure_bv_mcrunner
         super(ES_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
         self.origin = origin
         self.k = k
         self.dtol = dtol
         self.eps = eps
+        self.bdim = bdim
         
         #construct gradient optimizer
 #        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
@@ -57,12 +57,12 @@ class ES_MCrunner(_BaseMCRunner):
         i32max = np.iinfo(np.int32).max
         self.rattlers = np.array([1.0 for _ in xrange(self.ndim)])
         self.binsize = hbinsize
-        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, hmin, hmax, self.binsize, adjustf_niter)
-        self.conf = CheckHyperSphericalContainer(self.origin,hyperradius)
+        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax, self.binsize, adjustf_niter)
+        self.conf = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
         #self.conftest = CheckSphericalContainer(1.0)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
-        self.step = RandomCoordsDisplacement(self.ndim, np.random.randint(i32max))
-        #self.step = GaussianCoordsDisplacement(self.ndim, np.random.randint(i32max))
+        self.step = RandomCoordsDisplacement(np.random.randint(i32max))
+        #self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.metropolis = MetropolisTest(np.random.randint(i32max))
         
         #set up pele:MC
@@ -120,7 +120,7 @@ class ES_Findk_MCrunner(_BaseMCRunner):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
+                  origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
                   opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
         super(ES_Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
@@ -129,6 +129,7 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         self.k = k
         self.dtol = dtol
         self.eps = eps
+        self.bdim = bdim
         
         #findk parameters
         self.ktarget = ktarget
@@ -139,8 +140,8 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         #construct test/action classes      
         i32max = np.iinfo(np.int32).max
         
-        self.step = GaussianCoordsDisplacement(self.ndim, np.random.randint(i32max))
-        self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius)
+        self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
+        self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
         self.findk = Findk(self.origin, self.ktarget, self.kfactor, self.knavg, self.ktol)
                 
         #set up pele:MC
@@ -169,8 +170,8 @@ if __name__ == "__main__":
     k0=0.0
     r = 2 #hyperradius
     n = 3   #number of particles along edge
-    nr_particles=n*n*n
-    dimension=3
+    dimension=2
+    nr_particles=np.power(n,dimension)
     nr_points=6
         
     #SIMULATION PARAMETERS
@@ -187,8 +188,9 @@ if __name__ == "__main__":
     origin = []
     for x in pos:
         for y in pos:
-            for z in pos:
-                origin.append([x,y,z])
+            origin.append([x,y])
+#            for z in pos:
+#                origin.append([x,y,z])
                 
     origin = np.array(origin).flatten()
 
@@ -196,13 +198,13 @@ if __name__ == "__main__":
     # POTENTIAL
     #===========================================================================
     
-    potential = Harmonic(origin,k0,com=True)
+    potential = Harmonic(origin,k0,com=True,ndim=dimension)
         
     #===========================================================================
     # COMPUTE <U2> FOR K0 (required to compute karray)0
     #===========================================================================
        
-    mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, k=k0, adjustf_niter=1e5, hmin=0, hmax=10, hbinsize=0.01,
+    mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k0, adjustf_niter=1e5, hmin=0, hmax=10, hbinsize=0.01,
                            acceptance=acceptance, hyperradius=r)
     mcrunner.run()
     end=time.time()
@@ -221,7 +223,7 @@ if __name__ == "__main__":
     ktarget = 0.5
     ktol=0.001
     
-    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, stepsize, 1e8, origin, k=kstart, ktarget=ktarget, ktol=ktol, hyperradius=r)
+    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, stepsize, 1e8, origin, dimension, k=kstart, ktarget=ktarget, ktol=ktol, hyperradius=r)
     mcrunner.set_control(0) #potential is entirely fictitious, there is no energy test
     mcrunner.run()
     k_max = mcrunner.get_k() #debug remove
@@ -243,7 +245,7 @@ if __name__ == "__main__":
     meanu2 = []
     var_meanu2 = []
     for k in karray:
-        mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, k=k, adjustf_niter=1e5, hmin=0, hmax=10, 
+        mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k, adjustf_niter=1e5, hmin=0, hmax=10, 
                                acceptance=acceptance, hbinsize=0.01,hyperradius=r)
         mcrunner.set_control(k)
         mcrunner.run()

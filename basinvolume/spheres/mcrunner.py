@@ -3,7 +3,7 @@ from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
-from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
+from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk, CheckOverlap
 
 """
 pele::MCrunner
@@ -30,7 +30,7 @@ class HS_MCrunner(_BaseMCRunner):
      * record energy histogram (the energy histogram is resizable, but the bounds are defined by hEmin and hEmax,
        furthermore the bin size is set with hbinsize. Care must be taken because the array is resizable, if the step size
        is small and extremely high or low energies are sampled the memory for the histogram will be reallocated and this 
-       might cause a badalloc error, if trying to allocate a huge array. If you are sampling unwanted extremely high or low energies
+       might cause a badalloc error, if trying to allocate a #potential = Harmonic(origin,k,boxv) set in _configure_bv_mcrunnerhuge array. If you are sampling unwanted extremely high or low energies
        then you might want to add a pele::EnergyWindow test that guarantees to keep you within a specific energy range and/or 
        make the stepsize larger or you might want to re-think about your simulation. Generally you shouldn't be 
        spanning energies that differ by several orders of magnitude, if that is the case, resizable or not resizable arrays are
@@ -40,7 +40,7 @@ class HS_MCrunner(_BaseMCRunner):
      * has a separate rng engine, therefore it's best if each receives a different randomly sampled seed
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100):
+                  hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100):
         #construct base class
         super(HS_MCrunner,self).__init__(potential, coords, temperature,
                                          stepsize, niter)
@@ -49,13 +49,14 @@ class HS_MCrunner(_BaseMCRunner):
         i32max = np.iinfo(np.int32).max
         
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
-        self.step = RandomCoordsDisplacement(self.ndim, np.random.randint(i32max))
+        self.step = RandomCoordsDisplacement(np.random.randint(i32max))
         self.metropolis = MetropolisTest(np.random.randint(i32max))
-        
+        self.checkoverlap = CheckOverlap(hs_radii, boxvec)
         #set up pele:MC
         self.set_takestep(self.step)
         self.add_accept_test(self.metropolis)
         self.add_action(self.adjust_step)
+        self.add_late_conf_test(self.checkoverlap)
         
     def set_control(self, T):
         """set temperature, canonical control parameter"""
@@ -85,12 +86,12 @@ class BV_MCrunner(_BaseMCRunner):
                   hmax=100, hbinsize=0.01, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
                   adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
         #construct base class
-        #potential = Harmonic(origin,k,boxv) set in _configure_bv_mcrunner
         super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
         self.origin = origin
         self.hs_radii = hs_radii
         self.boxv = boxv
+        self.bdim = len(boxv)
         self.sca = sca
         self.k = k
         self.dtol = dtol
@@ -106,7 +107,7 @@ class BV_MCrunner(_BaseMCRunner):
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
         #construct gradient optimizer
-        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
+        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
                                          tol=opt_tol, nsteps=opt_nsteps)
                 
@@ -114,10 +115,10 @@ class BV_MCrunner(_BaseMCRunner):
         i32max = np.iinfo(np.int32).max
         
         self.binsize = hbinsize
-        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, hmin, hmax,self.binsize,adjustf_niter)
+        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize,adjustf_niter)
         self.conftest = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
-        self.step = RandomCoordsDisplacement(self.ndim, np.random.randint(i32max))
+        self.step = RandomCoordsDisplacement(np.random.randint(i32max))
         self.metropolis = MetropolisTest(np.random.randint(i32max))
         
         #set up pele:MC
@@ -141,7 +142,7 @@ class BV_MCrunner(_BaseMCRunner):
         assert(abs(step - self.binsize) < self.binsize/100)
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean = self.histogram.get_mean()
-        return mean
+        return mean#potential = Harmonic(origin,k,boxv) set in _configure_bv_mcrunner
     
     def show_histogram(self):
         """shows the histogram"""
@@ -182,6 +183,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.origin = origin
         self.hs_radii = hs_radii
         self.boxv = boxv
+        self.bdim = len(boxv)
         self.sca = sca
         self.k = k
         self.dtol = dtol
@@ -201,16 +203,16 @@ class Findk_MCrunner(_BaseMCRunner):
             self.rattlers = np.array(rattlers,dtype='d')
             assert(len(self.rattlers) == self.ndim)
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
-            
+        
         #construct gradient optimizer
-        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
+        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
                                          tol=opt_tol, nsteps=opt_nsteps)
                 
         #construct test/action classes      
         i32max = np.iinfo(np.int32).max
         
-        self.step = GaussianCoordsDisplacement(self.ndim, np.random.randint(i32max))
+        self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
         self.findk = Findk(self.origin, self.ktarget, self.kfactor, self.knavg, self.ktol)
                 

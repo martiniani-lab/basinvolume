@@ -37,6 +37,33 @@ def put_in_box(x, boxvec):
     x = x.reshape(-1, len(boxvec))
     x -= boxvec * np.round(x / boxvec)
     
+def read_xyd(fname):
+    coords = []
+    radii = []
+    f = open(fname, "r")
+    while True:
+        xyd = f.readline()
+        if not xyd: break
+        x, y, d = xyd.split()
+        coords.extend([float(x),float(y)])
+        radii.extend([float(d)])
+    return np.array(coords), np.array(radii)
+
+def read_xydr(fname, bdim=2):
+    coords = []
+    radii = []
+    rattlers = []
+    f = open(fname, "r")
+    while True:
+        xydr = f.readline()
+        if not xydr: break
+        x, y, d, r = xydr.split()
+        coords.extend([float(x),float(y)])
+        radii.extend([float(d)])
+        for _ in xrange(bdim): 
+            rattlers.extend([float(r)])
+    return np.array(coords), np.array(radii), np.array(rattlers)
+
 def read_xyzd(fname):
     coords = []
     radii = []
