@@ -336,11 +336,11 @@ class Cut_Out_Packings(object):
         self.grid_descriptor = str(self.grid_version)
         if (self.all):
             self.grid_descriptor = "all"
-        output_file = open("/".join([self.path_to_output_small_packings,"packing_"+str(packing_index)+"_nr_particles_"+str(self.nr_of_particles)+"_exp_file_"+str(self.data_set_index)+"_grid_option_"+self.grid_descriptor+".xyzdf"]), "w")
+        output_file = open("/".join([self.path_to_output_small_packings,"packing_"+str(packing_index)+"_nr_particles_"+str(self.nr_of_particles)+"_exp_file_"+str(self.data_set_index)+"_grid_option_"+self.grid_descriptor+".xydf"]), "w")
         #here one could print an extra file with only the frozen particles of the packing
         #output_file_f = open("/".join([self.path_to_output_small_packings,"frozen_only_split_packing_"+str(packing_index)+".xyzdf"]), "w")
         for i in xrange(len(packing_information.x)):
-            output_file.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(packing_information.x[i], packing_information.y[i], packing_information.z[i], packing_information.d[i], packing_information.f[i]))
+            output_file.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(packing_information.x[i], packing_information.y[i], packing_information.d[i], packing_information.f[i]))
             #if packing_information.f[i]==True:
             #    output_file_f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(packing_information.x[i], packing_information.y[i], packing_information.z[i], packing_information.d[i], packing_information.f[i]))
         output_file.close()

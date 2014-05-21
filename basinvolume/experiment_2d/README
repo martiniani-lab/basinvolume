@@ -10,7 +10,7 @@ finds 10 packings of 8 particles, from experimental data set "data/PackingsData_
 The split packings are written to "data/output/"
 
 The output file name format is
-packing_0_nr_particles_128_exp_file_1_grid_option_all.xyzdf
+packing_0_nr_particles_128_exp_file_1_grid_option_all.xydf
 where the "f" column is 1 if the particle is frozen and 0 else.
 (Number of particles refers to non-frozen particles.)
 
