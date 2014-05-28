@@ -99,7 +99,7 @@ if __name__ == "__main__":
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
-    #Tarray = spring_constants_variable_transform(4, kmax, displ_k_min, mcrunner.nparticles, 2, 0)
+    
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=10, pfreq=1, base_directory=path, verbose=True)
     ptrunner.run()
     

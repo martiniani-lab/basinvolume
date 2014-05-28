@@ -119,7 +119,7 @@ class ES_Findk_MCrunner(_BaseMCRunner):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.99, knavg=10000, ktol=0.05, 
+                  origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.5, knavg=10000, ktol=0.05, 
                   opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
         super(ES_Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
