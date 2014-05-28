@@ -1,9 +1,12 @@
+from __future__ import print_function
 import numpy as np
+import sys
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk, CheckOverlap
+import pylab as plt
 
 """
 pele::MCrunner
@@ -83,7 +86,7 @@ class BV_MCrunner(_BaseMCRunner):
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
-                  hmax=100, hbinsize=0.01, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
+                  hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
                   adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
@@ -93,9 +96,10 @@ class BV_MCrunner(_BaseMCRunner):
         self.boxv = boxv
         self.bdim = len(boxv)
         self.sca = sca
-        self.k = k
+        self.set_control(k)
         self.dtol = dtol
         self.eps = eps
+        self.nparticles = len(hs_radii)
         
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof 
@@ -132,6 +136,7 @@ class BV_MCrunner(_BaseMCRunner):
         """set temperature, canonical control parameter"""
         self.k = c
         self.potential.set_k(c)
+        self.reset_energy()
     
     def dump_histogram(self, fname):
         """write histogram to fname"""
@@ -141,12 +146,11 @@ class BV_MCrunner(_BaseMCRunner):
         Energies, step = np.linspace(Emin,Emax,num=len(hist),endpoint=False,retstep=True)
         assert(abs(step - self.binsize) < self.binsize/100)
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
-        mean = self.histogram.get_mean()
-        return mean#potential = Harmonic(origin,k,boxv) set in _configure_bv_mcrunner
+        mean, variance = self.histogram.get_mean_variance()
+        return mean, variance
     
     def show_histogram(self):
         """shows the histogram"""
-        import pylab as plt
         hist = self.histogram.get_histogram()
         val = [i*self.binsize for i in xrange(len(hist))]
         plt.hist(val, weights=hist,bins=len(hist))
@@ -175,7 +179,7 @@ class Findk_MCrunner(_BaseMCRunner):
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca,
-                  rattlers=None, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
+                  rattlers=None, dtol=1e-3, eps=1., ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
                   opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
@@ -185,7 +189,6 @@ class Findk_MCrunner(_BaseMCRunner):
         self.boxv = boxv
         self.bdim = len(boxv)
         self.sca = sca
-        self.k = k
         self.dtol = dtol
         self.eps = eps
         
@@ -223,8 +226,7 @@ class Findk_MCrunner(_BaseMCRunner):
         
     def set_control(self, c):
         """set k"""
-        self.k = c
-        self.potential.set_k(c)
+        print("WARNING: findk set control is not defined, spring constant is set through stepsize", file=sys.stderr)
     
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
@@ -247,7 +249,7 @@ if __name__ == "__main__":
     start_coords = vector_random_uniform_hypersphere(ndim) * np.sqrt(2*Emax) #coordinates sampled from Pow(ndim)
     #Harmonic(origin,1)
     res = modifiedfire_cpp(start_coords,Harmonic(origin,1))
-    print res
+    print(res)
     
 #    print res.coords
     
@@ -258,6 +260,6 @@ if __name__ == "__main__":
     start=time.time()
     #test.run()
     end=time.time()
-    print end-start
+    print(end-start)
     #test.show_histogram()
     

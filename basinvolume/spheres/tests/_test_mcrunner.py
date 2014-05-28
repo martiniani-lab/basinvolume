@@ -4,6 +4,11 @@ from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement, CheckSphericalContainer
 from basinvolume.monte_carlo import RecordDisp2Histogram, CheckHyperSphericalContainer, Findk
+import pylab as plt
+from basinvolume.post_processing import spring_constants_variable_transform as vt
+from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
+from basinvolume.utils import log_volume_nball
+import copy
 
 """
 pele::MCrunner
@@ -36,30 +41,26 @@ class ES_MCrunner(_BaseMCRunner):
      with respect to the origin coordinates
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, bdim, k=1.0, dtol=1e-3, eps=1., hmin=0, hmax=100, hbinsize=0.01, acceptance=0.2, 
+                  origin, bdim, k=0.0, dtol=1e-3, eps=1., hmin=0, hmax=100, hbinsize=0.01, acceptance=0.2, 
                   adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5, 
                   opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
         super(ES_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
         self.origin = origin
-        self.k = k
+        self.set_control(k)
         self.dtol = dtol
         self.eps = eps
         self.bdim = bdim
         
         #construct gradient optimizer
-#        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
-#        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
-#                                         tol=opt_tol, nsteps=opt_nsteps)
                 
         #construct test/action classes      
         i32max = np.iinfo(np.int32).max
         self.rattlers = np.array([1.0 for _ in xrange(self.ndim)])
         self.binsize = hbinsize
         self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax, self.binsize, adjustf_niter)
-        self.conf = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
-        #self.conftest = CheckSphericalContainer(1.0)
+        self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.step = RandomCoordsDisplacement(np.random.randint(i32max))
         #self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
@@ -69,8 +70,7 @@ class ES_MCrunner(_BaseMCRunner):
         self.set_takestep(self.step)
         self.add_accept_test(self.metropolis)
         #self.add_conf_test(self.conftest)
-        self.add_conf_test(self.conf)
-        #self.add_late_conf_test(self.conftest) #conf_test will happen after accept test because it is much cheaper
+        self.add_conf_test(self.conftest)
         self.add_action(self.histogram)
         self.add_action(self.adjust_step)
         
@@ -92,7 +92,6 @@ class ES_MCrunner(_BaseMCRunner):
     
     def show_histogram(self):
         """shows the histogram"""
-        import pylab as plt
         hist = self.histogram.get_histogram()
         val = [i*self.binsize for i in xrange(len(hist))]
         plt.hist(val, weights=hist,bins=len(hist))
@@ -120,13 +119,13 @@ class ES_Findk_MCrunner(_BaseMCRunner):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
+                  origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.99, knavg=10000, ktol=0.05, 
                   opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
         super(ES_Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
         self.origin = origin
-        self.k = k
+        self.set_control(k)
         self.dtol = dtol
         self.eps = eps
         self.bdim = bdim
@@ -153,6 +152,7 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         """set k"""
         self.k = c
         self.potential.set_k(c)
+        self.reset_energy()
     
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
@@ -160,16 +160,11 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         k = 1.0/(stepsize*stepsize)
         return k
 
-  
-if __name__ == "__main__":
-    from basinvolume.post_processing import spring_constants_variable_transform as vt
-    from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
-    from basinvolume.utils import log_volume_nball
-    
+def main():
     #SYSTEM PARAMETERS
-    k0=0.0
+    k0=0
     r = 2 #hyperradius
-    n = 3   #number of particles along edge
+    n = 5   #number of particles along edge
     dimension=2
     nr_particles=np.power(n,dimension)
     nr_points=6
@@ -197,9 +192,8 @@ if __name__ == "__main__":
     #===========================================================================
     # POTENTIAL
     #===========================================================================
+    potential = Harmonic(origin,k0,True,dimension)
     
-    potential = Harmonic(origin,k0,com=True,ndim=dimension)
-        
     #===========================================================================
     # COMPUTE <U2> FOR K0 (required to compute karray)0
     #===========================================================================
@@ -219,13 +213,13 @@ if __name__ == "__main__":
     #===========================================================================
     # FIND K_MAX
     #===========================================================================
-    kstart = 100
-    ktarget = 0.5
-    ktol=0.001
-    
-    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, stepsize, 1e8, origin, dimension, k=kstart, ktarget=ktarget, ktol=ktol, hyperradius=r)
-    mcrunner.set_control(0) #potential is entirely fictitious, there is no energy test
+    kstart = 5
+    ktarget = 0.6
+    ktol=0.0001
+    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, np.sqrt(1./kstart), 1e10, origin, dimension, k=kstart, ktarget=ktarget, ktol=ktol, hyperradius=r)
+    mcrunner.set_control(kstart) #potential is entirely fictitious, there is no energy test
     mcrunner.run()
+    #print mcrunner.potential.get_k()
     k_max = mcrunner.get_k() #debug remove
     prob = mcrunner.findk.get_prob()
     print 'kmax ',k_max
@@ -236,7 +230,7 @@ if __name__ == "__main__":
     # COMPUTE k ARRAY
     #===========================================================================
     
-    karray = vt(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0)
+    karray = vt(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k0)
     
     #===========================================================================
     # COMPUTE <U2> FOR k ARRAY
@@ -244,14 +238,15 @@ if __name__ == "__main__":
         
     meanu2 = []
     var_meanu2 = []
+    karray = np.array(karray)
+    
     for k in karray:
         mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k, adjustf_niter=1e5, hmin=0, hmax=10, 
                                acceptance=acceptance, hbinsize=0.01,hyperradius=r)
-        mcrunner.set_control(k)
         mcrunner.run()
-        status = mcrunner.get_status()
-        #print status
         #mcrunner.show_histogram()
+        print mcrunner.potential.get_k()
+        print mcrunner.get_status()
         mean, var = mcrunner.histogram.get_mean_variance()
         meanu2.append(mean)
         var_meanu2.append(var)
@@ -270,6 +265,7 @@ if __name__ == "__main__":
     karray = np.array(karray)
     meanu2_analytical = (karray + (nr_particles*dimension)/displ_k_min) / ((nr_particles-1)*dimension)
     meanu2_analytical = 1.0/meanu2_analytical
+    #meanu2_analytical = (nr_particles*dimension)/karray
     
     F0, sigF0, farray, sigfarray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2, boxvol, prob).get_free_energy_F0(var_meanu2)
     aF0, asigF0, afarray, asigfarray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2_analytical, boxvol, 
@@ -283,7 +279,6 @@ if __name__ == "__main__":
                                                                              prob).get_free_energy_F0(np.zeros(nr_points))[0:2]
     print 'hypersphere vol',log_volume_nball(r,nr_particles*dimension)
     
-    import matplotlib.pyplot as plt
     
     tarray = Gauss_Lobatto_abscissas(nr_points)()
     plt.figure()
@@ -293,6 +288,12 @@ if __name__ == "__main__":
     plt.figure()
     plt.errorbar(karray,meanu2,yerr=np.sqrt(var_meanu2))
     plt.errorbar(karray,meanu2_analytical)
-    plt.xscale('log')
+    #plt.xscale('log')
     plt.show()
+    
+  
+if __name__ == "__main__":
+    main()
+    
+    
     

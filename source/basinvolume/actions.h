@@ -134,6 +134,9 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         double ik = mc->_stepsize;
         _k = 1/(ik*ik);
 
+        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
+        std::cout<<"_k "<<_k<<std::endl; //debug
+
         if (std::abs(_target - _acceptedf) <= _tol){
             //std::cout<<"k found: "<<_k<<std::endl; //debug
             //this will trigger premature exit from the MC run loop
@@ -143,9 +146,6 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
             _k /= _factor;
         else
             _k *= _factor;
-
-        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-        std::cout<<"_k "<<_k<<std::endl; //debug
 
         //adjust the standard deviation of the normal distribution
         mc->_stepsize = sqrt(1.0/_k);

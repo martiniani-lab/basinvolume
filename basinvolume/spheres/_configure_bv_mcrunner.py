@@ -23,16 +23,30 @@ class configure_bv_mcrunner(object):
         
     def __call__(self, fname, k=17, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
-                 opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
+                 opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings', base_dir=None):
+        self.fname = fname
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
-        self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
-        self.packings_dir = os.path.join(os.getcwd(),packings_dir)
-        self.configpath = os.path.join(packings_dir,'jammed_packings.config')
-        self.fname = fname
+        
+        if base_dir is None:
+            base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+            assert(os.path.exists(base_directory))
+        else:
+            if not os.path.isabs(base_dir):
+                base_directory = os.path.join(os.getcwd(),packings_dir)
+        self.base_directory = base_directory
+        
+        if not os.path.isabs(packings_dir):
+            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        self.packings_dir = packings_dir
+        
+        self.packing_configpath = os.path.join(packings_dir,'jammed_packings.config')
+        self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')  
+        self.kmin_configpath = os.path.join(self.base_directory,'kmin_'+dname+'.config')
+        
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':eps,'hmin':hmin,'hmax':hmax,
                       'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
@@ -41,7 +55,7 @@ class configure_bv_mcrunner(object):
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords, k, com=True, ndim=self.bdim)
+        potential = Harmonic(self.coords, k, True, self.bdim)
         mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
@@ -51,15 +65,15 @@ class configure_bv_mcrunner(object):
         
     def _initialise(self):
         """initialisation function"""
-        self._import_packing_config_file()
+        self._import_config_files()
         self._import_packing_configuration()
         #change directory only at the end of initialise
         self._print_initialise()
         os.chdir(self.base_directory)
         
-    def _import_packing_config_file(self):
+    def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
-        configf.read(str(self.configpath))
+        configf.read(str(self.packing_configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
         assert(self.bdim==2 or self.bdim==3) #currently PBC only implemented for 3d case
@@ -68,6 +82,12 @@ class configure_bv_mcrunner(object):
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
+        configf.read(str(self.findk_configpath))
+        self.kmax = configf.getfloat('FINDK','kmax')
+        self.prob_kmax = configf.getfloat('FINDK','prob')
+        configf.read(str(self.kmin_configpath))
+        self.displ_k_min = configf.getfloat('KMIN','displ_k_min')
+        self.var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')
         
     def _import_packing_configuration(self):
         """imports the coordinates, data relative to the shape of the particles and
@@ -123,14 +143,13 @@ if __name__ == "__main__":
     #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)
     #sim = pickle.load(open('testpickle.pickle', "rb"))
     #mcrunner = sim('jammed_packing0.xyzdr')
-    mcrunner.run()
+    #mcrunner.run()
     end=time.time()
     print end-start
     status = mcrunner.get_status()
-    print status
-    mcrunner.show_histogram()
-    
-    
+    #print status
+    #mcrunner.show_histogram()
+    print sim.var_displ_k_min
         
                 
             

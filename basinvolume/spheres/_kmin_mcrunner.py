@@ -20,8 +20,8 @@ class _kmin_mcrunner(object):
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     """
         
-    def __init__(self, fname, k=0, temperature=1.0, stepsize=1e-1, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
-                 hmax=10, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
+    def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
+                 hmax=5, hbinsize=0.01, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -29,11 +29,14 @@ class _kmin_mcrunner(object):
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
         self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
-        self.packings_dir = os.path.join(os.getcwd(),packings_dir)
+        if not os.path.isabs(packings_dir):
+            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
         self.fname = fname
         #self.mc_params = dict(k=k, temperature=temperature, )
-        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':eps,'hmin':hmin,'hmax':hmax,
+        self.temperature=1.0
+        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':eps,'hmin':hmin,'hmax':hmax,
                       'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                       'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         self._import_packing_config_file()
@@ -41,8 +44,9 @@ class _kmin_mcrunner(object):
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords, k, com=True, ndim=self.bdim)
-        self.mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
+        
+        potential = Harmonic(self.coords, k, True, self.bdim)
+        self.mcrunner = BV_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
                                opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps) 
@@ -82,7 +86,6 @@ class _kmin_mcrunner(object):
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        os.chdir(self.base_directory)
         self._print_parameters()
     
     def _print_parameters(self):

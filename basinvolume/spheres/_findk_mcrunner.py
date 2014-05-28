@@ -18,7 +18,7 @@ class _findk_mcrunner(object):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
         
-    def __init__(self, fname, k=1e2, temperature=1.0, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
+    def __init__(self, fname, k=1e2, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -26,21 +26,25 @@ class _findk_mcrunner(object):
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
         self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
-        self.packings_dir = os.path.join(os.getcwd(),packings_dir)
+        if not os.path.isabs(packings_dir):
+            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
         self.fname = fname
         #self.mc_params = dict(k=k, temperature=temperature, )
-        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
+        self.temperature=1.0
+        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
                           'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         self._import_packing_config_file()
         self._import_packing_configuration()
         #self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords,0) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
+        
+        potential = Harmonic(self.coords,0,False,self.bdim) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
         #k is entirely controlled by the stepsize 
         stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        
-        self.mcrunner = Findk_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
-                                  rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
+        self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
+                                  rattlers=self.rattlers, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
                                   ktol=ktol, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps) 
         self._print_initialise()
     
@@ -78,7 +82,6 @@ class _findk_mcrunner(object):
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        os.chdir(base_directory)
         self._print_parameters()
     
     def _print_parameters(self):
@@ -127,10 +130,10 @@ class _findk_mcrunner(object):
     
 if __name__ == "__main__":
     
-    sim = _findk_mcrunner('jammed_packing0.xydr')
+    sim = _findk_mcrunner('jammed_packing1.xydr')
     print 'simulation started'
     start=time.time() 
     sim.run()
     end=time.time()
-    print end-start
+    print "time ",end-start
     

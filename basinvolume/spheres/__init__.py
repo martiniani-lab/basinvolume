@@ -2,3 +2,5 @@ from mcrunner import HS_MCrunner, BV_MCrunner, Findk_MCrunner
 from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
 from _configure_bv_mcrunner import configure_bv_mcrunner
+from _findk_mcrunner import _findk_mcrunner
+from _kmin_mcrunner import _kmin_mcrunner
