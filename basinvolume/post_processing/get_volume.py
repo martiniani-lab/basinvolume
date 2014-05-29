@@ -7,11 +7,12 @@ import numpy as np
 #import sys
 
 class Base_Compute_Integral(object):
-    def __init__(self, dimension, nr_particles, k_values, displacements):
+    def __init__(self, dimension, nr_particles, k_values, displacements, kappa_const=1.0):
         self.dimension = dimension
         self.nr_particles = nr_particles
         self.k_values = k_values
         self.displacements = displacements
+        self.kappa_const = kappa_const
         self.k_max = self.k_values[-1]
         if self.k_max !=  max(self.k_values):
             raise Exception("Base_Compute_Integral: label mismatch")
@@ -19,10 +20,11 @@ class Base_Compute_Integral(object):
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
         self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, 
-                                                                                        self.nr_particles, self.dimension)
+                                                                                        self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const)
     def _calculate_error_F0(self, displacements_variance):
+        #calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0)
         sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, 
-                                                                  self.nr_particles, self.dimension) 
+                                                                  self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const) 
         return 0.5*sigF0, sigIntegrand
     
 class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
@@ -30,8 +32,8 @@ class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
     Computes the free energy F(0) = -log(v).
     Here there is no correction for the fixed c.o.m.
     """
-    def __init__(self, dimension, nr_particles, k_values, displacements, prob):
-        super(F_Basin_From_MC_Data_Free_COM,self).__init__(dimension, nr_particles, k_values, displacements)
+    def __init__(self, dimension, nr_particles, k_values, displacements, prob, kappa_const=1.0):
+        super(F_Basin_From_MC_Data_Free_COM,self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const)
         self.prob = prob
         
     def get_free_energy_F0(self, displacements_variance):
@@ -53,8 +55,8 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
     Reference: Xu et al., PRL 106, 245502 (2011)
     Daniel A. Asenjo-Andrews, PhD thesis
     """
-    def __init__(self, dimension, nr_particles, k_values, displacements, box_volume, prob):
-        super(F_Basin_From_MC_Data,self).__init__(dimension, nr_particles, k_values, displacements)
+    def __init__(self, dimension, nr_particles, k_values, displacements, box_volume, prob, kappa_const=1.0):
+        super(F_Basin_From_MC_Data,self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const)
         self.box_volume = box_volume
         self.prob = prob
          
@@ -72,11 +74,12 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         
         return F0, sigF0, self.f, sigf
     
-class F_Basin_Th_Integration(object):
+if __name__ == "__main__":
     """
     Read in MC data for spring constants, displacements, probability to be in basin;
-    plus parameters: nr particles, Euclidean dimension
+    plus parameters: nr particles, Euclidean dimension, Vbox
     """
     #TODO: Read in parameters and output from MC simulation
     #TODO: Compute F(0) and print output in reasonable way
-    ###################################
+    #F_Basin_From_MC_Data...
+    ###################################  

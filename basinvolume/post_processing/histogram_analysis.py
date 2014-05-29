@@ -60,14 +60,8 @@ def F_acc_Gaussian_Poly_HS_Fluid(phiHD, V_box, nr_particles, box_dimension, diam
         return Poly_HS_Fluid_3d(m1,m2,m3).get_F_acc(phiHD, V_box, nr_particles)
     else:
         raise Exception("F_acc_Gaussian_Poly_HS_Fluid: illegal box_dimension")
-    
-"""
-class Free_Energy_Histogram(object):
-    self.F0 = [1,1,1,1]
-    hist(self.F0)
-"""
 
-if __name__ == "__main__":
+def test_HS_fluids():
     d2 = Poly_HS_Fluid_2d(2,3)
     print d2.get_fex(1.0/2.0)
     d3 = Poly_HS_Fluid_3d(1,2,3)
@@ -80,5 +74,16 @@ if __name__ == "__main__":
     diameter_variance = 0.1
     print F_acc_Gaussian_Poly_HS_Fluid(phiHD, L_box**2, nr_particles, 2, diameter_mean, diameter_variance)
     print F_acc_Gaussian_Poly_HS_Fluid(phiHD, L_box**3, nr_particles, 3, diameter_mean, diameter_variance)
+    
+"""
+class Free_Energy_Histogram(object):
+    self.F0 = [1,1,1,1]
+    hist(self.F0)
+"""
+
+if __name__ == "__main__":
+    #test_HS_fluids()
+    #TODO: get computed basin free energies F[0] and do something with them
+    #TODO: print output in reasonable way
     
     

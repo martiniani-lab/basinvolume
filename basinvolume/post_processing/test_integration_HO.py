@@ -25,8 +25,9 @@ if __name__ == "__main__":
     #computation by GL without variable transform, order 4
     int_F1.append( ref_F2 - 0.5*calculate_GL_integral_range(lambda x: nr_particles*dimension/x, k1, k2, 4) )
     #computation by GL with variable transform, order 4
-    k_order4 = spring_constants_variable_transform(4, k2, nr_particles*dimension/k1, nr_particles, dimension, k1)
-    int_F1.append( ref_F2 - 0.5*calculate_GL_integral_with_transform([nr_particles*dimension/ki for ki in k_order4], k2, nr_particles, dimension, k1)[0] )
+    kappa_const = 1.0
+    k_order4 = spring_constants_variable_transform(4, k2, nr_particles*dimension/k1, nr_particles, dimension, k1, kappa_const=kappa_const)
+    int_F1.append( ref_F2 - 0.5*calculate_GL_integral_with_transform([nr_particles*dimension/ki for ki in k_order4], k2, nr_particles, dimension, k1, kappa_const=kappa_const)[0] )
     print 'reference:'
     print ref_F1
     print 'integrated:'
@@ -43,18 +44,19 @@ if __name__ == "__main__":
     displ_k0 = (L/2)**2
     nr_particles = 1
     dimension = 1
-    k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension)
+    kappa_const=1.0
+    k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const=kappa_const)
     usq = np.zeros(nr_points)
     usq[0] = displ_k0
     for i in xrange(1,nr_points):
         usq[i] = 1.0/k[i]
-    vol = F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, k, usq, prob)
+    vol = F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, k, usq, prob, kappa_const=kappa_const)
     F0, sigF0, far, sigfar = vol.get_free_energy_F0(np.ones(nr_points))
     print "F0: ", F0
     print "sigF0: ", sigF0
     print "far: ", far
     print "sigfar: ", sigfar
-    vol_fixed1 = F_Basin_From_MC_Data(dimension, nr_particles, k, usq, box_volume, prob)
+    vol_fixed1 = F_Basin_From_MC_Data(dimension, nr_particles, k, usq, box_volume, prob, kappa_const=kappa_const)
     F0_fixed1, sigF0_fixed1, far_fixed1, sigfar_fixed1 = vol_fixed1.get_free_energy_F0(np.ones(nr_points))
     print "F0_fixed1: ", F0_fixed1
     print "sigF0_fixed1: ", sigF0_fixed1
