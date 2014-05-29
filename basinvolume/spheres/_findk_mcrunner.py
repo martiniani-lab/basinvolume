@@ -8,7 +8,7 @@ from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 import ConfigParser
 import time
 
-class configure_findk_mcrunner(object):
+class _findk_mcrunner(object):
     """
     this is a class that implements configure_findk_mcrunner class,
     *k: harmonic spring constant
@@ -18,7 +18,7 @@ class configure_findk_mcrunner(object):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
         
-    def __call__(self, fname, k=1e2, temperature=1.0, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
+    def __init__(self, fname, k=1e2, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -26,33 +26,34 @@ class configure_findk_mcrunner(object):
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
         self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
-        self.packings_dir = os.path.join(os.getcwd(),packings_dir)
+        if not os.path.isabs(packings_dir):
+            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
         self.fname = fname
         #self.mc_params = dict(k=k, temperature=temperature, )
-        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
+        self.temperature=1.0
+        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
                           'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
-        self._initialise()
-        #construct mcrunner
-        #self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords,0) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
-        #k is entirely controlled by the stepsize 
-        stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        
-        mcrunner = Findk_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
-                                  rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
-                                  ktol=ktol, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps)
-        
-        return mcrunner 
-        
-    def _initialise(self):
-        """initialisation function"""
         self._import_packing_config_file()
         self._import_packing_configuration()
-        #change directory only at the end of initialise
-        self._print_initialise()
-        os.chdir(self.base_directory)
+        #self.coords is origin, set initial configuration and origin to be the same
         
+        potential = Harmonic(self.coords,0,False,self.bdim) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
+        #k is entirely controlled by the stepsize 
+        stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        
+        self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
+                                  rattlers=self.rattlers, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
+                                  ktol=ktol, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps) 
+        self._print_initialise()
+    
+    def run(self):
+        self.mcrunner.run()
+        self.kmax = self.mcrunner.get_k()
+        self.prob = self.mcrunner.findk.get_prob()
+        self._print_results()        
+    
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.configpath))
@@ -85,16 +86,16 @@ class configure_findk_mcrunner(object):
     
     def _print_parameters(self):
         """writes the simulation parameters"""
-        dname = self.fname 
+        dname = 'findk_' + self.fname 
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
-        fname = '{}/explore_{}.config'.format(self.base_directory,dname)
+        fname = '{}/{}.config'.format(self.base_directory,dname)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Explore_Jammed_Packings wrapper class input parameters\n')
-        f.write('[IMPORTED_JAMMED_PACKING]\n')
+        f.write('[FINDK_IMPORTED_JAMMED_PACKING]\n')
         f.write('nparticles: {}\n'.format(self.nparticles))
         f.write('packing_fraction: {}\n'.format(self.imp_packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
@@ -105,29 +106,34 @@ class configure_findk_mcrunner(object):
         f.write('\n')
         assert(self.sca >0)
         f.write('sca: {}\n'.format(self.sca))
-        f.write('[MCRUNNER]\n')
+        f.write('[FINDK_MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value)) 
         f.close()
     
+    def _print_results(self):
+        dname = 'findk_' + self.fname
+        if dname.endswith('.xyzdr'):
+            dname = dname[:-6]
+        elif dname.endswith('.xydr'):
+            dname = dname[:-5]
+        fname = '{}/{}.config'.format(self.base_directory,dname)
+        f = open(fname,'a')
+        f.write('[FINDK_MCRUNNER_STATUS]\n')
+        status = self.mcrunner.get_status()
+        for key, value in status.iteritems() :
+            f.write('{}: {}\n'.format(key,value))
+        f.write('[FINDK]\n')
+        f.write('kmax: {}\n'.format(self.kmax))
+        f.write('prob: {}\n'.format(self.prob))
+        f.close()
+    
 if __name__ == "__main__":
     
-    sim = configure_findk_mcrunner()
-    mcrunner = sim('jammed_packing0.xydr')
+    sim = _findk_mcrunner('jammed_packing1.xydr')
     print 'simulation started'
     start=time.time() 
-    mcrunner.run()
+    sim.run()
     end=time.time()
-    print end-start
-    status = mcrunner.get_status()
-    print status
-    print mcrunner.get_k()
+    print "time ",end-start
     
-    
-        
-                
-            
-              
-                
-                
-                

@@ -13,15 +13,15 @@ cdef extern from "basinvolume/conf_test.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
         cppCheckHyperSphericalContainer(_pele.Array[double], double, size_t) except+
     cdef cppclass cppCheckOverlap2D "bv::CheckOverlap2D":
-        cppCheckOverlap2D(_pele.Array[double], _pele.Array[double]) except+
+        cppCheckOverlap2D(_pele.Array[double], double*) except+
     cdef cppclass cppCheckOverlap3D "bv::CheckOverlap3D":
-        cppCheckOverlap3D(_pele.Array[double], _pele.Array[double]) except+
+        cppCheckOverlap3D(_pele.Array[double], double*) except+
     cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
         cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double], _pele.Array[double] , double) except+
+                            double*, _pele.Array[double] , double) except+
     cdef cppclass cppCheckSameMinimum3D "bv::CheckSameMinimum3D":
         cppCheckSameMinimum3D(_pele_opt.cGradientOptimizer *, _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double], _pele.Array[double] , double) except+
+                            double*, _pele.Array[double] , double) except+
                             
 #===============================================================================
 # Check hyper spherical container
@@ -49,14 +49,14 @@ cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
     #cdef cppCheckOverlap* newptr
     def __cinit__(self, hs_radii, boxvec):
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
-        cdef np.ndarray[double, ndim=1] boxvecc = np.array(boxvec, dtype=float)
+        cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
         if (len(boxvec) == 2):
             self.thisptr = <cppConfTest*>new cppCheckOverlap2D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                             _pele.Array[double](<double*> boxvecc.data, boxvecc.size))
+                                                             <double*> bv.data)
         else:
             assert(len(boxvec) == 3)
             self.thisptr = <cppConfTest*>new cppCheckOverlap3D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                             _pele.Array[double](<double*> boxvecc.data, boxvecc.size))
+                                                             <double*> bv.data)
         #self.newptr = <cppCheckOverlap*> self.thisptr
         
 class CheckOverlap(_Cdef_CheckOverlap):
@@ -75,20 +75,20 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     def __cinit__(self, optimizer, origin, hs_radii, boxvec, rattlers, dtol):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
-        cdef np.ndarray[double, ndim=1] boxvecc = np.array(boxvec, dtype=float)
+        cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         cdef _pele_opt.GradientOptimizer opt = optimizer
         #print rattlers
         if (len(boxvec) == 2):
             self.thisptr = <cppConfTest*>new cppCheckSameMinimum2D(opt.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                  _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                                 _pele.Array[double](<double*> boxvecc.data, boxvecc.size), 
+                                                                 <double*> bv.data, 
                                                                  _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
         else:
             assert(len(boxvec) == 3)
             self.thisptr = <cppConfTest*>new cppCheckSameMinimum3D(opt.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                  _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                                 _pele.Array[double](<double*> boxvecc.data, boxvecc.size), 
+                                                                 <double*> bv.data, 
                                                                  _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
         #self.newptr = <cppCheckSameMinimum*> self.thisptr 
         

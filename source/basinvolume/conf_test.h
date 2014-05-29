@@ -9,6 +9,7 @@
 #include "pele/array.h"
 #include "pele/optimizer.h"
 #include "pele/distance.h"
+#include "pele/harmonic.h" //debug
 #include "mcpele/mc.h"
 #include "mcpele/conf_test.h"
 #include <memory>
@@ -59,16 +60,17 @@ void inline CheckHyperSphericalContainer::get_vec_distance(pele::Array<double> c
 
 bool CheckHyperSphericalContainer::test(Array<double> &trial_coords, MC * mc)
 {
-  /*for(size_t i=0;i<_origin.size();++i)
-  {
-      double r = trial_coords[i] - _origin[i];
-      r2 += r*r;
-  }*/
-
+    /*
+    //debug
+    std::shared_ptr<pele::BaseHarmonic> potential;
+    potential = std::dynamic_pointer_cast<pele::BaseHarmonic>(mc->_potential);
+    double k = potential->get_k();
+    std::cout<<"k "<<k<<std::endl;
+    ////
+    */
   this->get_vec_distance(trial_coords);
 
-  double r = norm(_distance);
-  double r2 = r*r;
+  double r2 = dot(_distance,_distance);
   if (r2 > _radius2)
       return false;
 
@@ -79,8 +81,9 @@ bool CheckHyperSphericalContainer::test(Array<double> &trial_coords, MC * mc)
 template<typename distance_policy>
 class CheckOverlap:public mcpele::ConfTest{
 protected:
+    const static size_t _ndim = distance_policy::_ndim;
     Array<double> _hs_radii;
-    size_t _ndim, _nparticles;
+    size_t _nparticles;
     std::shared_ptr<distance_policy> _periodic_dist;
 public:
     CheckOverlap(Array<double> hs_radii, std::shared_ptr<distance_policy> dist=NULL);
@@ -94,13 +97,12 @@ CheckOverlap<distance_policy>::CheckOverlap(Array<double> hs_radii, std::shared_
 {
     if (_periodic_dist == NULL)
         throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
-    _ndim = dist->get_ndim();
 }
 
 template<typename distance_policy>
 inline bool CheckOverlap<distance_policy>::test(Array<double> &trial_coords, MC * mc){
     size_t i,j, i1, j1;
-    std::vector<double> dr(_ndim);
+    double dr[_ndim];
     double dij;
 
     for(i=0;i<_nparticles;++i){
@@ -124,19 +126,19 @@ inline bool CheckOverlap<distance_policy>::test(Array<double> &trial_coords, MC 
     return true;
 }
 
-class CheckOverlap2D:public CheckOverlap<pele::periodic_distance2D>{
+class CheckOverlap2D:public CheckOverlap<pele::periodic_distance<2>>{
 public:
-    CheckOverlap2D(Array<double> hs_radii, Array<double> boxvec):
-        CheckOverlap< pele::periodic_distance2D >(hs_radii,
-                std::make_shared<pele::periodic_distance2D>(boxvec[0], boxvec[1]))
+    CheckOverlap2D(Array<double> hs_radii, double const *boxvec):
+        CheckOverlap< pele::periodic_distance<2> >(hs_radii,
+                std::make_shared<pele::periodic_distance<2>>(boxvec))
         {}
 };
 
-class CheckOverlap3D:public CheckOverlap<pele::periodic_distance>{
+class CheckOverlap3D:public CheckOverlap<pele::periodic_distance<3>>{
 public:
-    CheckOverlap3D(Array<double> hs_radii, Array<double> boxvec):
-        CheckOverlap< pele::periodic_distance>(hs_radii,
-                  std::make_shared<pele::periodic_distance>(boxvec[0], boxvec[1], boxvec[2]))
+    CheckOverlap3D(Array<double> hs_radii, double const *boxvec):
+        CheckOverlap< pele::periodic_distance<3>>(hs_radii,
+                  std::make_shared<pele::periodic_distance<3>>(boxvec))
                   {}
 };
 
@@ -162,10 +164,11 @@ public:
 template<typename distance_policy>
 class CheckSameMinimum:public mcpele::ConfTest{
 protected:
+    static const size_t _ndim = distance_policy::_ndim;
 	pele::GradientOptimizer * _optimizer;
 	Array<double> _origin, _hs_radii, _rattlers, _distance;
 	double _dtol, _d, _rms;
-	size_t _ndim, _N, _Nnoratt, _nparticles;
+	size_t _N, _Nnoratt, _nparticles;
 	std::shared_ptr<distance_policy> _periodic_dist;
 public:
 	CheckSameMinimum(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii, Array<double> rattlers, double dtol,
@@ -193,7 +196,6 @@ CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * op
         {
             if (_periodic_dist == NULL)
                 throw std::runtime_error("CheckSameMinimum::periodic distance uninitialised");
-            _ndim = dist->get_ndim();
 
             for(size_t i=0;i<_N;i+=_ndim)
 			    _Nnoratt += _rattlers[i];
@@ -229,7 +231,7 @@ inline void CheckSameMinimum<distance_policy>::get_vec_distance(pele::Array<doub
 template<typename distance_policy>
 inline bool CheckSameMinimum<distance_policy>::check_overlap(Array<double> &trial_coords){
 	size_t i,j, i1, j1;
-	std::vector<double> dr(_ndim);
+	double dr[_ndim];
 	double dij;
 
 	for(i=0;i<_nparticles;++i){
@@ -287,21 +289,21 @@ bool CheckSameMinimum<distance_policy>::test(Array<double> &trial_coords, MC * m
 		return true;
 }
 
-class CheckSameMinimum2D:public CheckSameMinimum<pele::periodic_distance2D>{
+class CheckSameMinimum2D:public CheckSameMinimum<pele::periodic_distance<2>>{
 public:
     CheckSameMinimum2D(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii,
-                        Array<double> boxvec, Array<double> rattlers, double dtol):
-        CheckSameMinimum<pele::periodic_distance2D>(optimizer, origin, hs_radii, rattlers, dtol,
-                std::make_shared<pele::periodic_distance2D>(boxvec[0], boxvec[1]))
+                        double const *boxvec, Array<double> rattlers, double dtol):
+        CheckSameMinimum<pele::periodic_distance<2>>(optimizer, origin, hs_radii, rattlers, dtol,
+                std::make_shared<pele::periodic_distance<2>>(boxvec))
         {}
 };
 
-class CheckSameMinimum3D:public CheckSameMinimum<pele::periodic_distance>{
+class CheckSameMinimum3D:public CheckSameMinimum<pele::periodic_distance<3>>{
 public:
     CheckSameMinimum3D(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii,
-                            Array<double> boxvec, Array<double> rattlers, double dtol):
-            CheckSameMinimum<pele::periodic_distance>(optimizer, origin, hs_radii, rattlers, dtol,
-                    std::make_shared<pele::periodic_distance>(boxvec[0], boxvec[1], boxvec[2]))
+                        double const *boxvec, Array<double> rattlers, double dtol):
+            CheckSameMinimum<pele::periodic_distance<3>>(optimizer, origin, hs_radii, rattlers, dtol,
+                    std::make_shared<pele::periodic_distance<3>>(boxvec))
         {}
 };
 

@@ -57,6 +57,7 @@ def read_xydr(fname, bdim=2):
     while True:
         xydr = f.readline()
         if not xydr: break
+        #print 'xydr ',xydr
         x, y, d, r = xydr.split()
         coords.extend([float(x),float(y)])
         radii.extend([float(d)])

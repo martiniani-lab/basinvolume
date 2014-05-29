@@ -7,6 +7,7 @@ from mcrunner import HS_MCrunner
 from pele.potentials import HS_WCA, WCA
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
+import argparse
 
 class _Generate_Packing(object):
     """
@@ -29,14 +30,14 @@ class _Generate_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
     
-    def __init__(self, method, nparticles, bdim=3, boxv = None, boxl=1.0, packing_frac=0.4, max_iter = 1):
+    def __init__(self, method, nparticles, bdim=3, boxv = None, packing_frac=0.4, max_iter = 1):
         self.method = method
         assert(bdim==2 or bdim==3) #currently PBC only implemented for 3d case
         self.nparticles = nparticles
         self.bdim = bdim
         self.ndim = self.nparticles * self.bdim
         if boxv is None:
-            self.boxv = np.array([boxl for _ in xrange(self.bdim)],dtype='d')
+            self.boxv = np.array([1.0 for _ in xrange(self.bdim)],dtype='d')
         else:
             assert(len(boxv) == self.bdim)
             self.boxv = np.array(boxv,dtype='d')
@@ -136,9 +137,9 @@ class HS_Generate_Packing(_Generate_Packing):
     *eps: LJ interaction energy of WCA part of the HS potential, here irrelevant because 'sca' is set to 0
     *hsf stands for hard sphere fluid
     """    
-    def __init__(self, nparticles, method='quench', bdim=3, boxl=1, boxv=None, packing_frac=0.4, hs_radii=None, 
+    def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, 
                  mu = 1, sig = 0.05, hsf_niter=1e6, hsf_stepsize = 1e-4, max_iter = 10):
-        super(HS_Generate_Packing,self).__init__(method, nparticles, bdim=bdim, boxv = boxv, boxl=boxl,
+        super(HS_Generate_Packing,self).__init__(method, nparticles, bdim=bdim, boxv = boxv, 
                                                  packing_frac=packing_frac, max_iter = max_iter)
         ##constants#
         self.eps = 1.
@@ -372,12 +373,22 @@ class HS_Generate_Packing(_Generate_Packing):
             
 if __name__ == "__main__":
     
-    nparticles = 20
-    sim = HS_Generate_Packing(nparticles, max_iter = 5, bdim=2, packing_frac=0.65)
-    sim.run()
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
+    parser.add_argument("nparticles", type=int, help="number of particles")
+    parser.add_argument("-n","--npackings", type=int, help="number of packings to produce",default=1)
+    parser.add_argument("-d","--boxdim", type=int, help="box dimensions",default=3)
+    parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.5)
+    parser.add_argument("-u","--rmean", type=float, help="mean particle radius",default=1.0)
+    parser.add_argument("-s","--rsigma", type=float, help="% standard deviation",default=0.05)
+    parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
+    parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-4)
+    parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
+    args = parser.parse_args()
+    print args
     
-    
-        
+    sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
+                              mu = args.rmean, sig = args.rsigma, hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings)
+    sim.run()    
                 
             
               

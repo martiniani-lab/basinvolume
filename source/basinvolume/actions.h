@@ -103,7 +103,7 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 class Findk : public Action {
 protected:
     pele::Array<double> _origin;
-    double _target, _factor, _acceptedf, _k, _tol;
+    double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf, _mid_acceptedf;
     size_t _navg, _count, _naccepted, _nrejected, _start;
 public:
     Findk(Array<double> origin, double target, double factor, size_t navg, double tol);
@@ -114,8 +114,8 @@ public:
 
 Findk::Findk(Array<double> origin, double target, double factor, size_t navg, double tol):
             _origin(origin.copy()),_target(target),_factor(factor),_acceptedf(0),
-            _k(1), _tol(tol), _navg(navg),_count(0),
-            _naccepted(0), _nrejected(0), _start(0){}
+            _k(1), _tol(tol), _old_acceptedf(0),
+            _navg(navg),_count(0), _naccepted(0), _nrejected(0), _start(0){}
 
 
 void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
@@ -129,10 +129,20 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
 
     if(_count % _navg == 0)
     {
+        _old_acceptedf = _acceptedf;
         _acceptedf = (double) _naccepted / (_naccepted + _nrejected);
+
+        //adjust step if last two step oscillated around the target, uses a lower bound
+        double d = (_target - _old_acceptedf) * (_target - _acceptedf);
+        if (d < 0){
+            _factor = std::min(_factor*(2.0-_factor),0.999999999);
+        }
 
         double ik = mc->_stepsize;
         _k = 1/(ik*ik);
+
+        //std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
+        //std::cout<<"_k "<<_k<<std::endl; //debug
 
         if (std::abs(_target - _acceptedf) <= _tol){
             //std::cout<<"k found: "<<_k<<std::endl; //debug
@@ -143,9 +153,6 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
             _k /= _factor;
         else
             _k *= _factor;
-
-        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-        std::cout<<"_k "<<_k<<std::endl; //debug
 
         //adjust the standard deviation of the normal distribution
         mc->_stepsize = sqrt(1.0/_k);

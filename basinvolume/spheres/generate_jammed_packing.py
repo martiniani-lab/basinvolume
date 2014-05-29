@@ -7,6 +7,7 @@ from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *
 import ConfigParser
 import re
+import argparse
 
 class _Generate_Jammed_Packing(object):
     """
@@ -25,7 +26,9 @@ class _Generate_Jammed_Packing(object):
     def __init__(self, packing_frac=0.65, packings_dir='packings'):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'jammed_packings')
-        self.packings_dir = os.path.join(os.getcwd(),packings_dir)
+        if not os.path.isabs(packings_dir):
+            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir,'packings.config')
         self._import_packing_config_file()
         self.iteration = 0
@@ -278,7 +281,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             
 if __name__ == "__main__":
     
-    sim = HS_Generate_Jammed_Packing()
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
+    parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
+    parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
+    parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
+    args = parser.parse_args()
+    print args
+    
+    sim = HS_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir)
     sim.run()
     
     
