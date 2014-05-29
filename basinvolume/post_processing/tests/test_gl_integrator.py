@@ -1,4 +1,4 @@
-from gauss_lobatto import *
+from basinvolume.post_processing import *
 from scipy.integrate import fixed_quad, quad
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from __future__ import division
 from math import pi, log
-from variable_transform import calculate_GL_integral_with_transform, calculate_GL_integral_with_transform_get_error
+from basinvolume.post_processing import calculate_GL_integral_with_transform, calculate_GL_integral_with_transform_get_error
 import numpy as np
 #import argparse
 #import os

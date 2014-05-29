@@ -1,5 +1,5 @@
 from __future__ import division
-from gauss_lobatto import Gauss_Lobatto_abscissas, Gauss_Lobatto_weights, calculate_GL_integral
+from basinvolume.post_processing import Gauss_Lobatto_abscissas, Gauss_Lobatto_weights, calculate_GL_integral
 import numpy as np
 
 def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0, kappa_const=1.0):

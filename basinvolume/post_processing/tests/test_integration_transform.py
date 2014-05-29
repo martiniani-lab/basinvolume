@@ -1,5 +1,5 @@
 from __future__ import division
-from variable_transform import *
+from basinvolume.post_processing import *
 from scipy.integrate import quad, fixed_quad
 
 def integrand(x):

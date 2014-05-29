@@ -2,9 +2,9 @@ from __future__ import division
 import numpy as np
 from scipy.integrate import quad, romb
 from math import log, pi
-from gauss_lobatto import calculate_GL_integral_range
-from variable_transform import spring_constants_variable_transform, calculate_GL_integral_with_transform
-from get_volume import F_Basin_From_MC_Data_Free_COM, F_Basin_From_MC_Data
+from basinvolume.post_processing import calculate_GL_integral_range
+from basinvolume.post_processing import spring_constants_variable_transform, calculate_GL_integral_with_transform
+from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM, F_Basin_From_MC_Data
 
 def F_HO(N,d,k):
     return -0.5*N*d*log(2*pi/k)

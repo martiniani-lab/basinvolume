@@ -40,7 +40,7 @@ class _findk_mcrunner(object):
         self._import_packing_configuration()
         #self.coords is origin, set initial configuration and origin to be the same
         
-        potential = Harmonic(self.coords,0,False,self.bdim) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
+        potential = Harmonic(self.coords,0,bdim=self.bdim,com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
         #k is entirely controlled by the stepsize 
         stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        
         self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,

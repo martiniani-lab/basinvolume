@@ -111,7 +111,7 @@ class TestHarmonic(unittest.TestCase):
             temperature=T
             stepsize=0.5
             niter=3e6
-            potential = Harmonic(self.origin,0,True,bdim)
+            potential = Harmonic(self.origin,0,bdim=bdim,com=True)
             #potential.set_k(0.0)
             mcrunner = Metropolis_MCrunner(potential, start_coords, temperature, stepsize, niter, hEmax = 100, adjustf = 0.9, 
                                            k=1.0,adjustf_niter = 10000, radius=10000000)
