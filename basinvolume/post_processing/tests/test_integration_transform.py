@@ -10,14 +10,14 @@ def integrand(x):
     #(for best performance of the variable transform)
     return (3*128)/(x+3*128/22)
 
-def test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension):
+def test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const):
     """
     Computes integral with variable transform and directly for consistency check.
     """
-    k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension)
+    k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const=kappa_const)
     samples = [integrand(x) for x in k]
     print "integral by variable transform:"
-    print calculate_GL_integral_with_transform(samples, k_max, nr_particles, dimension)
+    print calculate_GL_integral_with_transform(samples, k_max, nr_particles, dimension, kappa_const=kappa_const)
     print "integral by quad:"
     print quad(integrand, k[0], k[-1])
     print "integral by fixed_quad:"
@@ -31,4 +31,5 @@ if __name__ == "__main__":
     displ_k0 = 22
     nr_particles = 128
     dimension = 3
-    test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension)
+    kappa_const=1
+    test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const)

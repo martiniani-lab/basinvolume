@@ -1,3 +1,4 @@
+import numpy as np
 from basinvolume.post_processing import *
 from scipy.integrate import fixed_quad, quad
 

@@ -25,7 +25,7 @@ if __name__ == "__main__":
     #computation by GL without variable transform, order 4
     int_F1.append( ref_F2 - 0.5*calculate_GL_integral_range(lambda x: nr_particles*dimension/x, k1, k2, 4) )
     #computation by GL with variable transform, order 4
-    kappa_const = 1.0
+    kappa_const = 2
     k_order4 = spring_constants_variable_transform(4, k2, nr_particles*dimension/k1, nr_particles, dimension, k1, kappa_const=kappa_const)
     int_F1.append( ref_F2 - 0.5*calculate_GL_integral_with_transform([nr_particles*dimension/ki for ki in k_order4], k2, nr_particles, dimension, k1, kappa_const=kappa_const)[0] )
     print 'reference:'
@@ -44,7 +44,6 @@ if __name__ == "__main__":
     displ_k0 = (L/2)**2
     nr_particles = 1
     dimension = 1
-    kappa_const=1.0
     k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const=kappa_const)
     usq = np.zeros(nr_points)
     usq[0] = displ_k0
