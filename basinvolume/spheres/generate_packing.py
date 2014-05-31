@@ -138,7 +138,7 @@ class HS_Generate_Packing(_Generate_Packing):
     *hsf stands for hard sphere fluid
     """    
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, 
-                 mu = 1, sig = 0.05, hsf_niter=1e6, hsf_stepsize = 1e-4, max_iter = 10):
+                 mu = 1, sig = 0.2, hsf_niter=1e6, hsf_stepsize = 1e-4, max_iter = 10):
         super(HS_Generate_Packing,self).__init__(method, nparticles, bdim=bdim, boxv = boxv, 
                                                  packing_frac=packing_frac, max_iter = max_iter)
         ##constants#
@@ -276,7 +276,7 @@ class HS_Generate_Packing(_Generate_Packing):
             if (self.nparticles > 12):
                 neighbours = 12
             else:
-                neighbours = self.nparticles
+                neighbours = self.nparticles-2
             
             CTE = np.exp( np.log(10) / (neighbours-1))
             weight = [CTE**i for i in xrange(neighbours)]

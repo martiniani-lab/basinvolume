@@ -41,7 +41,7 @@ class ES_MCrunner(_BaseMCRunner):
      with respect to the origin coordinates
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, bdim, k=0.0, dtol=1e-3, eps=1., hmin=0, hmax=100, hbinsize=0.01, acceptance=0.2, 
+                  origin, bdim, k=0.0, dtol=1e-3, eps=1., hmin=0, hmax=100, hbinsize=0.1, acceptance=0.2, 
                   adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5, 
                   opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
@@ -119,7 +119,7 @@ class ES_Findk_MCrunner(_BaseMCRunner):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.5, knavg=10000, ktol=0.05, 
+                  origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.7, knavg=10000, ktol=0.05, 
                   opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
         super(ES_Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
@@ -163,14 +163,14 @@ class ES_Findk_MCrunner(_BaseMCRunner):
 def main():
     #SYSTEM PARAMETERS
     k0=0
-    r = 2 #hyperradius
+    r = 3 #hyperradius
     n = 5   #number of particles along edge
     dimension=3
     nr_particles=np.power(n,dimension)
-    nr_points=6
+    nr_points=3
         
     #SIMULATION PARAMETERS
-    stepsize = 10.0
+    stepsize = 1
     niter = 1e5
     acceptance=0.2
     
@@ -183,11 +183,12 @@ def main():
     origin = []
     for x in pos:
         for y in pos:
-            #origin.append([x,y])
             for z in pos:
                 origin.append([x,y,z])
+                #origin.append([x,y])
                 
     origin = np.array(origin).flatten()
+    #print origin
 
     #===========================================================================
     # POTENTIAL
@@ -198,25 +199,25 @@ def main():
     # COMPUTE <U2> FOR K0 (required to compute karray)0
     #===========================================================================
        
-    mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k0, adjustf_niter=1e5, hmin=0, hmax=10, hbinsize=0.01,
+    mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k0, adjustf_niter=1e4, hmin=0, hmax=10, hbinsize=0.01,
                            acceptance=acceptance, hyperradius=r)
     mcrunner.run()
-    end=time.time()
+    #end=time.time()
     #print end-start
     status = mcrunner.get_status()
     print status
-    print 'meanu2 k=0 and variance ',mcrunner.histogram.get_mean_variance()
     #mcrunner.show_histogram()
         
-    displ_k_min, var_displ_k_min =mcrunner.histogram.get_mean_variance()
-        
+    displ_k_min, var_displ_k_min = mcrunner.histogram.get_mean_variance()
+    print 'meanu2 k=0 and variance {} {}'.format(displ_k_min, var_displ_k_min)
     #===========================================================================
     # FIND K_MAX
     #===========================================================================
-    kstart = 5
-    ktarget = 0.6
-    ktol=0.0001
-    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, np.sqrt(1./kstart), 1e10, origin, dimension, k=kstart, ktarget=ktarget, ktol=ktol, hyperradius=r)
+    kstart = 20
+    ktarget = 0.85
+    ktol=0.001
+    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, np.sqrt(1./kstart), 1e10, origin, dimension, k=kstart, ktarget=ktarget, 
+                                 ktol=ktol, hyperradius=r)
     mcrunner.set_control(kstart) #potential is entirely fictitious, there is no energy test
     mcrunner.run()
     #print mcrunner.potential.get_k() derive a 
@@ -229,9 +230,9 @@ def main():
     #===========================================================================
     # COMPUTE k ARRAY
     #===========================================================================
-    kappa_const=1
+    kappa_const=10
     karray = vt(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k0, kappa_const=kappa_const)
-    
+    print 'karray',karray
     #===========================================================================
     # COMPUTE <U2> FOR k ARRAY
     #===========================================================================
@@ -241,7 +242,7 @@ def main():
     karray = np.array(karray)
     
     for k in karray:
-        mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k, adjustf_niter=1e5, hmin=0, hmax=10, 
+        mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k, adjustf_niter=1e4, hmin=0, hmax=10, 
                                acceptance=acceptance, hbinsize=0.01,hyperradius=r)
         mcrunner.run()
         #mcrunner.show_histogram()
@@ -263,7 +264,7 @@ def main():
        
     #analytical meanu2
     karray = np.array(karray)
-    meanu2_analytical = (karray + (nr_particles*dimension)/displ_k_min) / ((nr_particles-1)*dimension)
+    meanu2_analytical = (karray + kappa_const*(nr_particles*dimension)/displ_k_min) / ((nr_particles)*dimension)
     meanu2_analytical = 1.0/meanu2_analytical
     #meanu2_analytical = (nr_particles*dimension)/karray
     
@@ -284,11 +285,15 @@ def main():
     plt.figure()
     plt.errorbar(tarray,farray,yerr=sigfarray)
     plt.errorbar(tarray,afarray,yerr=asigfarray)
+    plt.xlabel('t')
+    plt.ylabel('integrand')
     plt.show()
     plt.figure()
     plt.errorbar(karray,meanu2,yerr=np.sqrt(var_meanu2))
     plt.errorbar(karray,meanu2_analytical)
-    plt.xscale('log')
+    plt.xlabel('k')
+    plt.ylabel('<u2>')
+    #plt.xscale('log')
     plt.show()
     
   

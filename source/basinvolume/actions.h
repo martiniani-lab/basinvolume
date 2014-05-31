@@ -69,7 +69,7 @@ inline void RecordDisp2Histogram::get_vec_distance(pele::Array<double> x){
 void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool accepted, MC* mc) {
 		_count = mc->get_iterations_count();
 
-		if (_count >= _eqsteps)
+		if (_count > _eqsteps)
 		{
 			//compute distances subtracting the origin's coordinates
 			this->get_vec_distance(coords);
@@ -84,6 +84,7 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 			_mean2 = (_mean2*(count-1)+(norm2*norm2))/count;
 			//std::cout<<"count"<<_count<<std::endl;
 			//std::cout<<"mean "<<_mean<<std::endl;
+			//std::cout<<"mean2 "<<_mean2<<std::endl;
 		}
 }
 
@@ -135,7 +136,7 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         //adjust step if last two step oscillated around the target, uses a lower bound
         double d = (_target - _old_acceptedf) * (_target - _acceptedf);
         if (d < 0){
-            _factor = std::min(_factor*(2.0-_factor),0.999999999);
+            _factor = std::min(_factor*(2.0-_factor),0.99);
         }
 
         double ik = mc->_stepsize;

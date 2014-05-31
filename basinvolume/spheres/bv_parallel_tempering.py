@@ -19,13 +19,13 @@ if __name__ == "__main__":
     
     #Parallel Tempering
     sim = configure_bv_mcrunner()
-    mcrunner = sim(fname, niter=1e4, stepsize=1e-1, dtol=1e-4, hmin=0, 
-                 hmax=100, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5000, adjustf_navg = 100)
+    mcrunner = sim(fname, niter=2e3, stepsize=1e-1, dtol=1e-4, hmin=0, 
+                 hmax=5, hbinsize=1e-3, acceptance=0.2, adjustf=0.9, adjustf_niter = 3e4, adjustf_navg = 100)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
     
-    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=10, pfreq=1, base_directory=path, verbose=True)
+    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=1001, pfreq=100, skip=1000, base_directory=path, verbose=True)
     ptrunner.run()
     

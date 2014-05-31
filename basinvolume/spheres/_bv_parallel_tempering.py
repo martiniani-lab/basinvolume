@@ -8,10 +8,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     u2meank0 is mean of histogram from simulation done at k=0
     Tmax and Tmin here correspond to kmin and kmax, they should be computed by bv_find_params 
     """
-    def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, base_directory=None, verbose=False):
-        super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter= max_ptiter, pfreq=pfreq, 
+    def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, base_directory=None, verbose=False):
+        super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter= max_ptiter, pfreq=pfreq, skip=skip, 
                                                    base_directory=base_directory, verbose=verbose)
-        self.u2meank0 = u2meank0 
+        self.u2meank0 = u2meank0
 
     def _get_temps(self):
         """
@@ -20,9 +20,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         or when steps involve minimisation, as the low temperatures are closer to the minimum)
         """
         if (self.rank == 0):
-            Tarray = spring_constants_variable_transform(self.nproc, self.Tmax, self.u2meank0, 
+            Tarray = spring_constants_variable_transform(self.nproc+1, self.Tmax, self.u2meank0, 
                                                          self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
-            self.Tarray = np.array(Tarray,dtype='d')
+            Tarray = np.array(Tarray[1:],dtype='d') #exclude k=0 entry, no need to be simulated, mean already available
+            self.Tarray = Tarray[::-1]
         else:
             self.Tarray = None
     
@@ -39,27 +40,50 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             exchange_pattern = np.empty(len(Earray),dtype='int32')
             exchange_pattern.fill(self.no_exchange_int)
             self.anyswap = False
-            for i in xrange(0,self.nproc,2):
-                if self.verbose:
-                    print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
-                E1 = Earray[i]
-                T1 = self.Tarray[i]
-                E2 = Earray[i+self.exchange_choice]
-                T2 = self.Tarray[i+self.exchange_choice]
-                deltaE = E1 - E2
-                deltabeta = 1
-                w = min( 1. , np.exp( deltaE * deltabeta ) )
-                rand = np.random.rand()
-                #print "E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w) 
-                if w > rand:
-                    #accept exchange
+            if self.exchange_choice == 1:
+                for i in xrange(0,self.nproc-1,2):
                     if self.verbose:
-                        self.ex_outstream.write("accepting exchange %d %d %g %g %g %g %d\n" % (self.nodelist[i], self.nodelist[i+self.exchange_choice], E1, E2, T1, T2, self.ptiter))
-                    assert(exchange_pattern[i] == self.no_exchange_int)                      #verify that is not using the same processor twice for swaps
-                    assert(exchange_pattern[i+self.exchange_choice] == self.no_exchange_int) #verify that is not using the same processor twice for swaps
-                    exchange_pattern[i] = self.nodelist[i+self.exchange_choice]
-                    exchange_pattern[i+self.exchange_choice] = self.nodelist[i]
-                    self.anyswap = True
+                        print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
+                    E1 = Earray[i]
+                    T1 = self.Tarray[i]
+                    E2 = Earray[i+self.exchange_choice]
+                    T2 = self.Tarray[i+self.exchange_choice]
+                    deltaE = E1/T1 - E2/T2
+                    deltabeta = T1 - T2
+                    w = min( 1. , np.exp(deltabeta * deltaE) ) #Hamiltonian replica exchange exp[-0.5*(ki-kj)*(xi^2-xj^2)]
+                    rand = np.random.rand()
+                    #print "E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w) 
+                    if w > rand:
+                        #accept exchange
+                        if self.verbose:
+                            self.ex_outstream.write("accepting exchange %d %d %g %g %g %g %d\n" % (self.nodelist[i], self.nodelist[i+self.exchange_choice], E1, E2, T1, T2, self.ptiter))
+                        assert(exchange_pattern[i] == self.no_exchange_int)                      #verify that is not using the same processor twice for swaps
+                        assert(exchange_pattern[i+self.exchange_choice] == self.no_exchange_int) #verify that is not using the same processor twice for swaps
+                        exchange_pattern[i] = self.nodelist[i+self.exchange_choice]
+                        exchange_pattern[i+self.exchange_choice] = self.nodelist[i]
+                        self.anyswap = True
+            else:
+                for i in xrange(2,self.nproc,2):
+                    if self.verbose:
+                        print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
+                    E1 = Earray[i]
+                    T1 = self.Tarray[i]
+                    E2 = Earray[i+self.exchange_choice]
+                    T2 = self.Tarray[i+self.exchange_choice]
+                    deltaE = E1/T1 - E2/T2
+                    deltabeta = T1 - T2
+                    w = min( 1. , np.exp(deltabeta * deltaE) ) #Hamiltonian replica exchange exp[-0.5*(ki-kj)*(xi^2-xj^2)]
+                    rand = np.random.rand()
+                    #print "E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w) 
+                    if w > rand:
+                        #accept exchange
+                        if self.verbose:
+                            self.ex_outstream.write("accepting exchange %d %d %g %g %g %g %d\n" % (self.nodelist[i], self.nodelist[i+self.exchange_choice], E1, E2, T1, T2, self.ptiter))
+                        assert(exchange_pattern[i] == self.no_exchange_int)                      #verify that is not using the same processor twice for swaps
+                        assert(exchange_pattern[i+self.exchange_choice] == self.no_exchange_int) #verify that is not using the same processor twice for swaps
+                        exchange_pattern[i] = self.nodelist[i+self.exchange_choice]
+                        exchange_pattern[i+self.exchange_choice] = self.nodelist[i]
+                        self.anyswap = True
             ############end of for loop###############
             #record self.permutation_pattern to print permutations in print function
             if self.anyswap:

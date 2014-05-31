@@ -18,8 +18,8 @@ class _findk_mcrunner(object):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
         
-    def __init__(self, fname, k=1e2, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
-                 opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
+    def __init__(self, fname, k=1e3, niter=1e6, dtol=1e-4, eps=1., ktarget=0.75, kfactor=0.9, knavg=1000, ktol=0.05,
+                 opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
@@ -130,7 +130,7 @@ class _findk_mcrunner(object):
     
 if __name__ == "__main__":
     
-    sim = _findk_mcrunner('jammed_packing1.xydr')
+    sim = _findk_mcrunner('jammed_packing0.xydr')
     print 'simulation started'
     start=time.time() 
     sim.run()
