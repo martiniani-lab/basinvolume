@@ -120,7 +120,8 @@ class BV_MCrunner(_BaseMCRunner):
         
         self.binsize = hbinsize
         self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize,adjustf_niter)
-        self.conftest = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
+        self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
+        self.conftest2 = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.step = RandomCoordsDisplacement(np.random.randint(i32max))
         self.metropolis = MetropolisTest(np.random.randint(i32max))
@@ -128,9 +129,10 @@ class BV_MCrunner(_BaseMCRunner):
         #set up pele:MC
         self.set_takestep(self.step)
         self.add_accept_test(self.metropolis)
-        self.add_late_conf_test(self.conftest) #conf_test will happen after accept test because it is much cheaper
+        self.add_late_conf_test(self.conftest1)
+        self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.histogram)
-        self.add_action(self.adjust_step)
+        #self.add_action(self.adjust_step)
         
     def set_control(self, c):
         """set temperature, canonical control parameter"""
@@ -180,7 +182,7 @@ class Findk_MCrunner(_BaseMCRunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca,
                   rattlers=None, dtol=1e-3, eps=1., ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
-                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
+                  opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -201,6 +203,7 @@ class Findk_MCrunner(_BaseMCRunner):
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof 
         if (rattlers == None):
+            #assume no rattlers
             self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
         else:
             self.rattlers = np.array(rattlers,dtype='d')
@@ -208,7 +211,7 @@ class Findk_MCrunner(_BaseMCRunner):
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
         #construct gradient optimizer
-        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
                                          tol=opt_tol, nsteps=opt_nsteps)
                 
@@ -216,12 +219,14 @@ class Findk_MCrunner(_BaseMCRunner):
         i32max = np.iinfo(np.int32).max
         
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
-        self.conftest = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
+        self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
+        self.conftest2 = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
         self.findk = Findk(self.origin, self.ktarget, self.kfactor, self.knavg, self.ktol)
                 
         #set up pele:MC
         self.set_takestep(self.step)
-        self.add_conf_test(self.conftest)
+        self.add_conf_test(self.conftest1)
+        self.add_conf_test(self.conftest2)
         self.add_action(self.findk)
         
     def set_control(self, c):

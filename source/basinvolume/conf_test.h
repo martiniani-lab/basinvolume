@@ -94,10 +94,10 @@ public:
 template<typename distance_policy>
 CheckOverlap<distance_policy>::CheckOverlap(Array<double> hs_radii, std::shared_ptr<distance_policy> dist):
         _hs_radii(hs_radii.copy()), _nparticles(_hs_radii.size()), _periodic_dist(dist)
-{
-    if (_periodic_dist == NULL)
-        throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
-}
+        {
+            if (_periodic_dist == NULL)
+                throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
+        }
 
 template<typename distance_policy>
 inline bool CheckOverlap<distance_policy>::test(Array<double> &trial_coords, MC * mc){
@@ -116,13 +116,12 @@ inline bool CheckOverlap<distance_policy>::test(Array<double> &trial_coords, MC 
                 dij = sqrt(dij2);
                 dij -= (_hs_radii[i] + _hs_radii[j]);
                 if (dij <= 0){
-                    std::cout<<"rejected"<<std::endl;
+                    //std::cout<<"rejected"<<std::endl;
                     return false;
-                }
                 }
             }
         }
-
+    }
     return true;
 }
 
@@ -158,10 +157,155 @@ public:
  * _dtol: tolerance on distances
  * _Etol: tolerance on energies (a minimum should be whithin this value from _Emin)
  * _Eor: energy of the origin (must pass it because CheckSameMinimum knows nothing about the potential used by the optimiser)
- * _Nnoratt: total number of non rattlers degrees of freedom
+ * _inoratt: index of first non-rattler
+ * _Nnoratt: number of non-rattlers
  * */
 
 template<typename distance_policy>
+class CheckSameMinimum:public mcpele::ConfTest{
+protected:
+    static const size_t _ndim = distance_policy::_ndim;
+    pele::GradientOptimizer * _optimizer;
+    Array<double> _origin, _hs_radii, _rattlers, _distance;
+    double _dtol, _d, _rms;
+    size_t _nparticles;
+    std::shared_ptr<distance_policy> _dist_policy;
+    size_t _Nnoratt, _inoratt;
+public:
+    CheckSameMinimum(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii, Array<double> rattlers, double dtol,
+            std::shared_ptr<distance_policy> dist=NULL);
+    virtual bool test(Array<double> &trial_coords, MC * mc);
+    virtual ~CheckSameMinimum(){}
+
+    double get_distance(){return _d;}
+    Array<double> get_distance_array(){
+        return _distance.copy();
+    }
+    inline void get_vec_distance(pele::Array<double> quenched_coords);
+};
+
+template<typename distance_policy>
+CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii,
+        Array<double> rattlers, double dtol, std::shared_ptr<distance_policy> dist):
+        _optimizer(optimizer), _origin(origin.copy()), _hs_radii(hs_radii.copy()),
+        _rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
+        _rms(0),_nparticles(_hs_radii.size()), _dist_policy(dist)
+        {
+            if (_dist_policy == NULL)
+                throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
+
+            for(size_t i=0;i<_origin.size();i+=_ndim)
+                if (_rattlers[i] != 0){
+                    _inoratt = i/_ndim;
+                    break;
+                }
+
+            for(size_t i=0;i<_origin.size();i+=_ndim)
+                _Nnoratt += _rattlers[i];
+        }
+
+//compute distance from origin after aligning the centre of mass
+//this ignores the rattlers completely
+
+template<typename distance_policy>
+inline void CheckSameMinimum<distance_policy>::get_vec_distance(pele::Array<double> quenched_coords){
+        double dr[_ndim];
+
+        //measure distance between two non rattlers
+        _dist_policy->get_rij(dr, &quenched_coords[_inoratt], &_origin[_inoratt]);
+
+        //align structures
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j){
+                quenched_coords[i1+j] -= dr[j];
+            }
+        }
+
+        //compute distance between aligned structures
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*_ndim;
+            _dist_policy->get_rij(dr, &quenched_coords[i1], &_origin[i1]);
+
+            for(size_t j=0;j<_ndim;++j){
+                _distance[i1+j] = dr[j] * _rattlers[i1+j];
+            }
+        }
+    }
+
+template<typename distance_policy>
+bool CheckSameMinimum<distance_policy>::test(Array<double> &trial_coords, MC * mc)
+{
+    _optimizer->reset(trial_coords);
+    _optimizer->run();
+
+    //add number of energy evaluations to mc eval count
+    size_t nfev = _optimizer->get_nfev();
+    mc->_neval += nfev;
+
+    //first test: minimisation must have converged
+    bool quench_success = _optimizer->success();
+    if (! quench_success)
+        return false;
+
+
+    //compute distance between quenched coords and origin
+    //distance for rattlers is set to 0
+    this->get_vec_distance(_optimizer->get_x());
+
+    //compute rms displacement from origin
+    _d = norm(_distance);
+    _rms = _d / sqrt(_Nnoratt);
+    if (_rms > _dtol){
+        //std::cout<<"failed quench rms "<<_rms<<std::endl;
+        return false;
+    }
+    else{
+        //std::cout<<"successfull quench rms "<<_rms<<std::endl;
+        return true;
+    }
+}
+
+class CheckSameMinimum2D:public CheckSameMinimum<pele::cartesian_distance<2>>{
+public:
+    CheckSameMinimum2D(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii,
+                        Array<double> rattlers, double dtol):
+        CheckSameMinimum<pele::cartesian_distance<2>>(optimizer, origin, hs_radii, rattlers, dtol,
+                std::make_shared<pele::cartesian_distance<2>>())
+        {}
+};
+
+class CheckSameMinimum3D:public CheckSameMinimum<pele::cartesian_distance<3>>{
+public:
+    CheckSameMinimum3D(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii,
+                        Array<double> rattlers, double dtol):
+        CheckSameMinimum<pele::cartesian_distance<3>>(optimizer, origin, hs_radii, rattlers, dtol,
+                std::make_shared<pele::cartesian_distance<3>>())
+        {}
+};
+
+class CheckSameMinimumPeriodic2D:public CheckSameMinimum<pele::periodic_distance<2>>{
+public:
+    CheckSameMinimumPeriodic2D(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii,
+                        double const *boxvec, Array<double> rattlers, double dtol):
+        CheckSameMinimum<pele::periodic_distance<2>>(optimizer, origin, hs_radii, rattlers, dtol,
+                std::make_shared<pele::periodic_distance<2>>(boxvec))
+        {}
+};
+
+class CheckSameMinimumPeriodic3D:public CheckSameMinimum<pele::periodic_distance<3>>{
+public:
+    CheckSameMinimumPeriodic3D(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii,
+                        double const *boxvec, Array<double> rattlers, double dtol):
+            CheckSameMinimum<pele::periodic_distance<3>>(optimizer, origin, hs_radii, rattlers, dtol,
+                    std::make_shared<pele::periodic_distance<3>>(boxvec))
+        {}
+};
+
+
+/*template<typename distance_policy>
 class CheckSameMinimum:public mcpele::ConfTest{
 protected:
     static const size_t _ndim = distance_policy::_ndim;
@@ -174,10 +318,7 @@ public:
 	CheckSameMinimum(pele::GradientOptimizer * optimizer, Array<double> origin, Array<double> hs_radii, Array<double> rattlers, double dtol,
 	        std::shared_ptr<distance_policy> dist=NULL);
 	virtual bool test(Array<double> &trial_coords, MC * mc);
-	virtual ~CheckSameMinimum(){
-		if (_optimizer != NULL)
-			delete _optimizer;
-	}
+	virtual ~CheckSameMinimum(){}
 	double get_distance(){return _d;}
 	Array<double> get_distance_array(){
 		Array<double> x(_distance.copy());
@@ -192,12 +333,12 @@ CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * op
 		Array<double> rattlers, double dtol, std::shared_ptr<distance_policy> dist):
 		_optimizer(optimizer), _origin(origin.copy()), _hs_radii(hs_radii.copy()),
 		_rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
-		_rms(0),_N(origin.size()),_Nnoratt(0),_nparticles(_hs_radii.size()),_periodic_dist(dist)
+		_rms(0),_N(origin.size()/_ndim),_Nnoratt(0),_nparticles(_hs_radii.size()),_periodic_dist(dist)
         {
             if (_periodic_dist == NULL)
                 throw std::runtime_error("CheckSameMinimum::periodic distance uninitialised");
 
-            for(size_t i=0;i<_N;i+=_ndim)
+            for(size_t i=0;i<_origin.size();i+=_ndim)
 			    _Nnoratt += _rattlers[i];
 		}
 
@@ -212,13 +353,13 @@ inline void CheckSameMinimum<distance_policy>::get_vec_distance(pele::Array<doub
         {
             size_t i1 = i*_ndim;
             for(size_t j=0;j<_ndim;++j){
-                double d = (quenched_coords[i1+j] - _origin[i1+j])*_rattlers[i1];
-                _distance[i1+j] = d;
+                double d = (quenched_coords[i1+j] - _origin[i1+j]);
+                _distance[i1+j] = d * _rattlers[i1];
                 delta_com[j] += d;
             }
         }
 
-        delta_com /= _Nnoratt;
+        delta_com /= _N;
 
         for(size_t i=0;i<_nparticles;++i)
         {
@@ -305,7 +446,7 @@ public:
             CheckSameMinimum<pele::periodic_distance<3>>(optimizer, origin, hs_radii, rattlers, dtol,
                     std::make_shared<pele::periodic_distance<3>>(boxvec))
         {}
-};
+};*/
 
 }
 

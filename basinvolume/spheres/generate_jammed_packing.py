@@ -166,7 +166,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _generate_packing_coords(self):
         """quenches the imported structure using FIRE"""
-        res = modifiedfire_cpp(self.coords,self.potential, nsteps=1e6, tol=1e-5)
+        res = modifiedfire_cpp(self.coords,self.potential, maxstep=0.6, nsteps=1e8, tol=1e-9)
         assert(res.success == True)
         self.coords = res.coords
         self.energy = res.energy
@@ -256,14 +256,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         f = open(fname,'w')
         f.write('{}\n'.format(self.nparticles))
         if self.bdim == 2:
-            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, 0))
+            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, -np.amax(self.hs_radii)))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
-            f.write('0.0 \t 0.0 \t {}\n'.format(0))
+            f.write('0.0 \t 0.0 \t {}\n'.format(np.amax(self.hs_radii)*2))
             for i in xrange(self.nparticles):
                 for j in xrange(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
-                f.write('{}\t'.format(0))
+                f.write('{}\t'.format(0.0))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
                 f.write('{}\n'.format(colour-int(self.rattlers[i])))
         else:

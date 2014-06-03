@@ -10,6 +10,7 @@
 #include "mcpele/mc.h"
 #include "mcpele/histogram.h"
 #include "mcpele/actions.h"
+#include "conf_test.h"
 #include "mcpele/takestep.h"
 #include "pele/harmonic.h"
 
@@ -28,16 +29,13 @@ namespace bv{
 class RecordDisp2Histogram : public mcpele::RecordEnergyHistogram {
 protected:
 	pele::Array<double> _origin, _rattlers, _distance;
-	size_t _N, _Nnoratt, _ndim, _nparticles;
+	size_t _N, _ndim, _nparticles;
 public:
 	RecordDisp2Histogram(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, double min,
 	        double max, double bin, size_t eqsteps):
 	    RecordEnergyHistogram(min, max, bin, eqsteps),
 	    _origin(origin.copy()),_rattlers(rattlers.copy()),_distance(origin.size()),
-	    _N(origin.size()), _Nnoratt(0), _ndim(ndim), _nparticles(_N/ndim){
-	        for(size_t i=0;i<_N;i+=_ndim)
-	            _Nnoratt += _rattlers[i];
-	    }
+	    _N(origin.size()), _ndim(ndim), _nparticles(_N/_ndim){}
 	virtual ~RecordDisp2Histogram(){};
 	virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
 	void inline get_vec_distance(pele::Array<double> x);
@@ -82,9 +80,6 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 			double count = (double) _count - _eqsteps + 1;
 			_mean = (_mean*(count-1)+norm2)/count;
 			_mean2 = (_mean2*(count-1)+(norm2*norm2))/count;
-			//std::cout<<"count"<<_count<<std::endl;
-			//std::cout<<"mean "<<_mean<<std::endl;
-			//std::cout<<"mean2 "<<_mean2<<std::endl;
 		}
 }
 
@@ -101,10 +96,11 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
  * set MC->_niter to the largest unsigned inter so that the calculation must terminate
  * */
 
+//template<size_t bdim>
 class Findk : public Action {
 protected:
     pele::Array<double> _origin;
-    double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf, _mid_acceptedf;
+    double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf;
     size_t _navg, _count, _naccepted, _nrejected, _start;
 public:
     Findk(Array<double> origin, double target, double factor, size_t navg, double tol);
@@ -122,6 +118,7 @@ Findk::Findk(Array<double> origin, double target, double factor, size_t navg, do
 void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
 
     _count = mc->get_iterations_count();
+
 
     if (accepted == true)
         ++_naccepted;

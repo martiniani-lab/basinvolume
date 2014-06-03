@@ -31,7 +31,7 @@ class analyse_jammed_packings(object):
         self.whole_evalues = []
         self.nbins = 500
         self.nbins_low = 500
-        self.low_range = (-0.5,3)
+        self.low_range = (-0.5,0.5)
         
     def _initialise(self):
         """initialisation function"""
@@ -45,7 +45,7 @@ class analyse_jammed_packings(object):
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert(self.bdim==3) #currently PBC only implemented for 3d case
+        assert(self.bdim is 2 or self.bdim is 3) #currently PBC only implemented for 3d case
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get('JAMMED_PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
@@ -57,7 +57,11 @@ class analyse_jammed_packings(object):
             this should be run in initialise()
         """
         path = os.path.join(self.packings_dir,fname)
-        self.coords, self.hs_radii, self.rattlers = read_xyzdr(path)
+        if self.bdim == 2:
+            self.coords, hs_diameters, self.rattlers = read_xydr(path)
+        else:
+            self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
+        self.hs_radii = hs_diameters/2
     
     def _histogram_eigenvalues(self):
         #self.eigenvalues = np.array(self.eigenvalues,dtype='d')
@@ -105,6 +109,9 @@ class analyse_jammed_packings(object):
         #hess_num = self.potential.NumericalHessian(self.coords)
         #np.testing.assert_almost_equal(hess,hess_num,decimal=5)
         w, v = np.linalg.eig(hess)
+        for e in w:
+            if e < 0:
+                print 'negative eigenvalue ',e
         self.whole_evalues.extend(w)
         #break down hessian into diagonal elements and  compute their eigenvalues
         for i in xrange(self.nparticles):
@@ -122,7 +129,7 @@ class analyse_jammed_packings(object):
     def run(self):
         """run generate packings"""
         for fname in os.listdir(self.packings_dir):
-            if 'xyzdr' in fname:
+            if 'xyzdr' in fname or 'xydr' in fname:
                 print fname
                 self.one_iteration(fname)
         self._histogram_eigenvalues()

@@ -23,7 +23,7 @@ class configure_bv_mcrunner(object):
         
     def __call__(self, fname, k=17, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
-                 opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings', base_dir=None):
+                 opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-7, opt_nsteps=1e4, packings_dir='jammed_packings', base_dir=None):
         self.fname = fname
         dname = fname
         if dname.endswith('.xyzdr'):

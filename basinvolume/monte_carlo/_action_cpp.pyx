@@ -6,6 +6,7 @@ cimport pele.potentials._pele as _pele
 cimport cython
 import sys
 from libcpp cimport bool as cbool
+cimport mcpele.monte_carlo._pele_mc as _pele_mc
 from mcpele.monte_carlo._pele_mc cimport cppAction,_Cdef_Action
 
 cdef extern from "mcpele/actions.h" namespace "mcpele":

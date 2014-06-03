@@ -132,7 +132,7 @@ class _collect_u2_vs_k(object):
         plt.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
         plt.xlabel('k')
         plt.ylabel('<u2>')
-        plt.xscale('log')
+        plt.xscale('symlog')
         #plt.yscale('log')
         plt.show()
     
@@ -140,5 +140,5 @@ class _collect_u2_vs_k(object):
 if __name__ == "__main__":
     
     sim = _collect_u2_vs_k()
-    sim('jammed_packing3')
+    sim('jammed_packing1')
     
