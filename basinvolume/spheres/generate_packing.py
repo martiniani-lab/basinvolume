@@ -186,6 +186,14 @@ class HS_Generate_Packing(_Generate_Packing):
             self.hs_radii = np.array(self.hs_radii,dtype='d')
         assert(self.hs_radii.all() > 0)
     
+#    def _sample_hs_radii(self):
+#        if self.hs_radii is None:
+#            areas = np.random.normal(self.mu,self.sig,self.nparticles)
+#            self.hs_radii = np.sqrt(areas)
+#        else:
+#            self.hs_radii = np.array(self.hs_radii,dtype='d')
+#        assert(self.hs_radii.all() > 0)
+    
     def _check_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
@@ -264,7 +272,7 @@ class HS_Generate_Packing(_Generate_Packing):
         while no_overlap == False:
             no_overlap = True
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords,pot,nsteps=2000)
+            res = lbfgs_cpp(coords,pot,nsteps=10000)
             #assert(res.success is True) #checks that a minimum configuration has been found
             self.coords = np.array(res.coords)
             print "generated new start coords "
@@ -278,7 +286,7 @@ class HS_Generate_Packing(_Generate_Packing):
             else:
                 neighbours = self.nparticles-2
             
-            CTE = np.exp( np.log(10) / (neighbours-1))
+            CTE = np.exp( np.log(12) / (neighbours-1))
             weight = [CTE**i for i in xrange(neighbours)]
             weight = weight[::-1]
             weight.extend([0 for i in xrange(self.nparticles-neighbours)])

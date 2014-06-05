@@ -18,7 +18,7 @@ class _findk_mcrunner(object):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
         
-    def __init__(self, fname, k=1e3, niter=1e6, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
+    def __init__(self, fname, k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -33,7 +33,7 @@ class _findk_mcrunner(object):
         self.fname = fname
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.temperature=1.0
-        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
+        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
                           'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         self._import_packing_config_file()
@@ -44,7 +44,7 @@ class _findk_mcrunner(object):
         #k is entirely controlled by the stepsize 
         stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        
         self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
-                                  rattlers=self.rattlers, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
+                                  rattlers=self.rattlers, avgcount=avgcount, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
                                   ktol=ktol, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps) 
         self._print_initialise()
     
@@ -52,6 +52,7 @@ class _findk_mcrunner(object):
         self.mcrunner.run()
         self.kmax = self.mcrunner.get_k()
         self.prob = self.mcrunner.findk.get_prob()
+        self.displ_k_max, self.var_displ_k_max = self.mcrunner.findk.get_mean_variance()
         self._print_results()        
     
     def _import_packing_config_file(self):
@@ -126,6 +127,8 @@ class _findk_mcrunner(object):
         f.write('[FINDK]\n')
         f.write('kmax: {}\n'.format(self.kmax))
         f.write('prob: {}\n'.format(self.prob))
+        f.write('displ_k_max: {}\n'.format(self.displ_k_max))
+        f.write('var_displ_k_max: {}\n'.format(self.var_displ_k_max))
         f.close()
     
 if __name__ == "__main__":

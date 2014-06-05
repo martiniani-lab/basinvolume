@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 from mcpele.parallel_tempering import MPI_PT_RLhandshake
 from basinvolume.post_processing import spring_constants_variable_transform
+from basinvolume.spheres import BV_MCrunner
 
 class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """
@@ -20,12 +21,36 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         or when steps involve minimisation, as the low temperatures are closer to the minimum)
         """
         if (self.rank == 0):
-            Tarray = spring_constants_variable_transform(self.nproc+1, self.Tmax, self.u2meank0, 
+            Tarray = spring_constants_variable_transform(self.nproc+2, self.Tmax, self.u2meank0, 
                                                          self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
-            Tarray = np.array(Tarray[1:],dtype='d') #exclude k=0 entry, no need to be simulated, mean already available
+            Tarray = np.array(Tarray[1:-1],dtype='d') #exclude k=0 and kmax entry, no need to be simulated, means already available
             self.Tarray = Tarray[::-1]
         else:
             self.Tarray = None
+    
+    def _attempt_exchange(self):
+        """
+        this function brings together all the functions necessary to attempt a configuration swap, it is structures as
+        following:
+        *root gathers the energies from the slaves
+        
+        """
+        #gather energies, only root will do so
+        Earray = self._gather_energies(self.energy)
+        if self.verbose:
+            if Earray is not None:
+                print "Earray", Earray
+        #find exchange pattern (list of exchange buddies)
+        exchange_pattern = self._find_exchange_buddy(Earray)
+        #now scatter the exchange pattern so that everybody knows who their buddy is
+        exchange_buddy = self._scatter_single_value(np.array(exchange_pattern,dtype='d'))
+        exchange_buddy = int(exchange_buddy)
+        #attempt configurations swap
+        self.config = self._exchange_pairs(exchange_buddy, self.config)
+        #recompute energy (this assumes that mcrunner has member origin)
+        assert isinstance(self.mcrunner,BV_MCrunner)
+        dx = np.array(self.config-self.mcrunner.origin,dtype='d')
+        self.E = 0.5*self.T*np.dot(dx,dx)
     
     def _find_exchange_buddy(self, Earray):
         """
@@ -40,7 +65,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             exchange_pattern = np.empty(len(Earray),dtype='int32')
             exchange_pattern.fill(self.no_exchange_int)
             self.anyswap = False
-            for i in xrange(0,self.nproc,2):
+            for i in self.nodelist[0::2]:
                 if self.verbose:
                     print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
                 E1 = Earray[i]

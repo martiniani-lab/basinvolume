@@ -46,7 +46,7 @@ class configure_bv_mcrunner(object):
         self.packing_configpath = os.path.join(packings_dir,'jammed_packings.config')
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')  
         self.kmin_configpath = os.path.join(self.base_directory,'kmin_'+dname+'.config')
-        
+                
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':eps,'hmin':hmin,'hmax':hmax,
                       'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
@@ -85,6 +85,8 @@ class configure_bv_mcrunner(object):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')
         self.prob_kmax = configf.getfloat('FINDK','prob')
+        self.displ_k_max = configf.getfloat('FINDK','displ_k_max')
+        self.var_displ_k_max = configf.getfloat('FINDK','var_displ_k_max')
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat('KMIN','displ_k_min')
         self.var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')

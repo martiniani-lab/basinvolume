@@ -7,7 +7,7 @@ from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 import ConfigParser
 import time
-from basinvolume.post_processing import F_Basin_From_MC_Data, Gauss_Lobatto_abscissas
+from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
 import pylab as plt
 
 class _collect_u2_vs_k(object):
@@ -56,6 +56,8 @@ class _collect_u2_vs_k(object):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')
         self.prob_kmax = configf.getfloat('FINDK','prob')
+        self.displ_k_max = configf.getfloat('FINDK','displ_k_max')
+        self.var_displ_k_max = configf.getfloat('FINDK','var_displ_k_max')
         configf.read(str(self.kmin_configpath))
         self.kmin = configf.getfloat('KMIN_MCRUNNER','k')
         self.displ_k_min = configf.getfloat('KMIN','displ_k_min')
@@ -65,7 +67,7 @@ class _collect_u2_vs_k(object):
         """
         must run before import u2
         """
-        karray = [] 
+        karray = [self.kmax] 
         path = os.path.join(self.explore_dir,'temperatures')
         f = open(path, "r")
         while True:
@@ -79,6 +81,9 @@ class _collect_u2_vs_k(object):
         n = len(self.karray)-1
         self.u2_array = [0 for _ in xrange(n)]
         self.var_array = [0 for _ in xrange(n)] 
+        #prepend kmax
+        self.u2_array[0] = self.displ_k_max
+        self.var_array[0] = self.var_displ_k_min
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
@@ -89,8 +94,10 @@ class _collect_u2_vs_k(object):
                     niter, u2, var = lineList[-1].split()
                     self.u2_array[int(dir)] = u2
                     self.var_array[int(dir)] = var
+        #extend with kmin
         self.u2_array.extend([self.displ_k_min])
         self.var_array.extend([self.var_displ_k_min])
+        #reverse array
         self.u2_array = np.array(self.u2_array[::-1],dtype='d')
         self.var_array = np.array(self.var_array[::-1],dtype='d')
         print self.u2_array
@@ -115,7 +122,14 @@ class _collect_u2_vs_k(object):
         self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, np.prod(self.boxv),\
                                                                                 self.prob_kmax).get_free_energy_F0(self.var_array)
+        
+        self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
+                                                                                self.u2_array, np.prod(self.boxv),\
+                                                                                self.prob_kmax).get_free_energy_F0(self.var_array)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
+        rF0 = self.F0 + self.nparticles*np.log(np.prod(self.boxv))
+        rF0unc = self.F0unc + self.nparticles*np.log(np.prod(self.boxv))
+        print 'rF0 {} rF0unc {}'.format(rF0, rF0unc)
 
     def _plot_data(self):
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
@@ -132,7 +146,7 @@ class _collect_u2_vs_k(object):
         plt.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
         plt.xlabel('k')
         plt.ylabel('<u2>')
-        plt.xscale('symlog')
+        #plt.xscale('log')
         #plt.yscale('log')
         plt.show()
     
@@ -140,5 +154,5 @@ class _collect_u2_vs_k(object):
 if __name__ == "__main__":
     
     sim = _collect_u2_vs_k()
-    sim('jammed_packing1')
+    sim('jammed_packing0')
     

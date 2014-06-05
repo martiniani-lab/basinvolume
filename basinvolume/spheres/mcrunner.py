@@ -132,7 +132,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.histogram)
-        #self.add_action(self.adjust_step)
+        self.add_action(self.adjust_step)
         
     def set_control(self, c):
         """set temperature, canonical control parameter"""
@@ -169,6 +169,9 @@ class Findk_MCrunner(_BaseMCRunner):
     *k: spring constant
     *temperature
     *niter: number of MC takesteps to perform
+    *avgcount is the number of steps over which the mean square displacement is
+    *    averaged once kmax has been found
+    *
     *stepsize
     *Etol: tolerance with which a minimised structure is accepted
      when compared to origin energy
@@ -181,7 +184,7 @@ class Findk_MCrunner(_BaseMCRunner):
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca,
-                  rattlers=None, dtol=1e-3, eps=1., ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
+                  rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
                   opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
@@ -195,6 +198,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.eps = eps
         
         #findk parameters
+        self.avgcount = avgcount
         self.ktarget = ktarget
         self.kfactor=kfactor 
         self.knavg=knavg 
@@ -221,7 +225,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
-        self.findk = Findk(self.origin, self.ktarget, self.kfactor, self.knavg, self.ktol)
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol)
                 
         #set up pele:MC
         self.set_takestep(self.step)

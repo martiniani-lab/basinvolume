@@ -1,10 +1,9 @@
 import numpy as np
 import time
-from pele.potentials import Harmonic, HS_WCA
-from pele.optimize import ModifiedFireCPP
+from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement, CheckSphericalContainer
-from basinvolume.monte_carlo import RecordDisp2Histogram, CheckHyperSphericalContainer, Findk, CheckSameMinimum
+from basinvolume.monte_carlo import RecordDisp2Histogram, CheckHyperSphericalContainer, Findk
 import pylab as plt
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
 from basinvolume.post_processing import spring_constants_variable_transform as vt
@@ -53,11 +52,8 @@ class ES_MCrunner(_BaseMCRunner):
         self.dtol = dtol
         self.eps = eps
         self.bdim = bdim
-        self.nparticles = self.ndim / self.bdim
-        self.hs_radii = np.array([0.0 for _ in xrange()])
+        
         #construct gradient optimizer
-#        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
-#                                         tol=opt_tol, nsteps=opt_nsteps)
                 
         #construct test/action classes      
         i32max = np.iinfo(np.int32).max
@@ -65,7 +61,6 @@ class ES_MCrunner(_BaseMCRunner):
         self.binsize = hbinsize
         self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax, self.binsize, adjustf_niter)
         self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
-        #self.checkmin = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.boxv, self.rattlers, self.dtol)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.step = RandomCoordsDisplacement(np.random.randint(i32max))
         #self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
@@ -75,7 +70,6 @@ class ES_MCrunner(_BaseMCRunner):
         self.set_takestep(self.step)
         self.add_accept_test(self.metropolis)
         #self.add_conf_test(self.conftest)
-        self.add_conf_test(self.checkmin)
         self.add_conf_test(self.conftest)
         self.add_action(self.histogram)
         self.add_action(self.adjust_step)
@@ -173,7 +167,7 @@ def main():
     n = 5   #number of particles along edge
     dimension=3
     nr_particles=np.power(n,dimension)
-    nr_points=3
+    nr_points=6
         
     #SIMULATION PARAMETERS
     stepsize = 1
@@ -236,7 +230,7 @@ def main():
     #===========================================================================
     # COMPUTE k ARRAY
     #===========================================================================
-    kappa_const=10
+    kappa_const=1
     karray = vt(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k0, kappa_const=kappa_const)
     print 'karray',karray
     #===========================================================================

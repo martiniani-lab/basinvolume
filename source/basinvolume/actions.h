@@ -89,6 +89,7 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
  * navg number of steps over which acceptance fraction is averaged
  * factor has to be in (0,1)
  * get_prob returns the probability (_acceptedf) associated with kmax
+ * avg_count is the number of steps over which the displacement squared is averaged
  *
  *note: this class does some hacky things to exploit the behaviour of MC to get it to do something
  *that it wasn't originally entirely designed for. Weird things:
@@ -99,33 +100,79 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 //template<size_t bdim>
 class Findk : public Action {
 protected:
-    pele::Array<double> _origin;
-    double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf;
-    size_t _navg, _count, _naccepted, _nrejected, _start;
+    pele::Array<double> _origin, _rattlers, _distance;
+    double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf, _mean, _mean2;
+    size_t _ndim, _nparticles, _avg_count, _navg, _count, _naccepted, _nrejected, _start;
+    bool _converged;
 public:
-    Findk(Array<double> origin, double target, double factor, size_t navg, double tol);
+    Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol);
     virtual ~Findk() {}
     virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
+    void inline get_vec_distance(pele::Array<double> x);
     double get_prob(){return _acceptedf;}
+    double get_mean(){return _mean;};
+    double get_variance(){return (_mean2 - _mean*_mean);};
 };
 
-Findk::Findk(Array<double> origin, double target, double factor, size_t navg, double tol):
-            _origin(origin.copy()),_target(target),_factor(factor),_acceptedf(0),
-            _k(1), _tol(tol), _old_acceptedf(0),
-            _navg(navg),_count(0), _naccepted(0), _nrejected(0), _start(0){}
+Findk::Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t avg_count, double target,
+        double factor, size_t navg, double tol):
+            _origin(origin.copy()), _rattlers(rattlers.copy()),_distance(origin.size()),
+            _target(target),_factor(factor),_acceptedf(0), _k(1), _tol(tol),
+            _old_acceptedf(0), _mean(0), _mean2(0), _ndim(ndim), _nparticles(_origin.size()/_ndim),
+            _navg(navg), _avg_count(avg_count), _count(0), _naccepted(0), _nrejected(0), _start(0), _converged(false){}
 
+inline void Findk::get_vec_distance(pele::Array<double> x){
+        pele::Array<double> delta_com(_ndim,0);
+
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j){
+                double d = (x[i1+j] - _origin[i1+j]);
+                _distance[i1+j] = d;
+                delta_com[j] += d;
+            }
+        }
+
+        delta_com /= _nparticles;
+
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j)
+                _distance[i1+j] -= delta_com[j];
+        }
+    }
 
 void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
 
-    _count = mc->get_iterations_count();
-
+    size_t mc_count = mc->get_iterations_count();
 
     if (accepted == true)
         ++_naccepted;
     else
         ++_nrejected;
 
-    if(_count % _navg == 0)
+    if (_converged)
+    {
+        //increase averaging count
+        ++_count;
+        //compute distances subtracting the origin's coordinates
+        this->get_vec_distance(coords);
+
+        //compute square displacement from origin
+        double norm2 = 0;
+        for (size_t i=0;i<_origin.size();++i)
+            norm2 += _distance[i]*_distance[i];
+
+        _mean = (_mean*(_count-1)+norm2)/_count;
+        _mean2 = (_mean2*(_count-1)+(norm2*norm2))/_count;
+
+        //this will trigger premature exit from the MC run loop
+        if (_count == _avg_count)
+            mc->_niter = std::numeric_limits<size_t>::max();
+    }
+    else if(mc_count % _navg == 0)
     {
         _old_acceptedf = _acceptedf;
         _acceptedf = (double) _naccepted / (_naccepted + _nrejected);
@@ -139,14 +186,11 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         double ik = mc->_stepsize;
         _k = 1/(ik*ik);
 
-        //std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-        //std::cout<<"_k "<<_k<<std::endl; //debug
+//        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
+//        std::cout<<"_k "<<_k<<std::endl; //debug
 
-        if (std::abs(_target - _acceptedf) <= _tol){
-            //std::cout<<"k found: "<<_k<<std::endl; //debug
-            //this will trigger premature exit from the MC run loop
-            mc->_niter = std::numeric_limits<size_t>::max();
-        }
+        if (std::abs(_target - _acceptedf) <= _tol)
+            _converged = true;
         else if (_acceptedf < _target)
             _k /= _factor;
         else
