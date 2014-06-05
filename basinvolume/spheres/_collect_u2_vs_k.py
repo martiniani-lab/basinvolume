@@ -92,8 +92,8 @@ class _collect_u2_vs_k(object):
                     lineList = fileHandle.readlines()
                     fileHandle.close()
                     niter, u2, var = lineList[-1].split()
-                    self.u2_array[int(dir)] = u2
-                    self.var_array[int(dir)] = var
+                    self.u2_array[int(dir)+1] = u2
+                    self.var_array[int(dir)+1] = var
         #extend with kmin
         self.u2_array.extend([self.displ_k_min])
         self.var_array.extend([self.var_displ_k_min])
@@ -146,6 +146,7 @@ class _collect_u2_vs_k(object):
         plt.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
         plt.xlabel('k')
         plt.ylabel('<u2>')
+        #plt.ylim((0,2))
         #plt.xscale('log')
         #plt.yscale('log')
         plt.show()
