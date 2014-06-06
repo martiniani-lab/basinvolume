@@ -28,6 +28,6 @@ if __name__ == "__main__":
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
     nskip = int(adjustf_niter/niter)
-    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=1000, pfreq=100, skip=nskip, base_directory=path, verbose=True)
+    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=1000, pfreq=10, skip=nskip, base_directory=path, verbose=True)
     ptrunner.run()
     

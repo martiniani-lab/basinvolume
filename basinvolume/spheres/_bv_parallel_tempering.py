@@ -3,6 +3,7 @@ import numpy as np
 from mcpele.parallel_tempering import MPI_PT_RLhandshake
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
+#from basinvolume.utils import trymakedir
 
 class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """
@@ -13,6 +14,21 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter= max_ptiter, pfreq=pfreq, skip=skip, 
                                                    base_directory=base_directory, verbose=verbose)
         self.u2meank0 = u2meank0
+
+    def _print(self):
+        self._all_dump_histogram()
+        self._all_dump_timeseries()
+        self._all_print_status()
+        self._master_print_permutations()
+
+    def _all_dump_timeseries(self):
+        """for this to work the directory must have been initialised in _print_initialise"""
+        base_directory = self.base_directory
+        if (self.ptiter % self.pfreq == 0):
+            directory = "{0}/{1}".format(base_directory,self.rank)
+            iteration = self.mcrunner.get_iterations_count()
+            fname = "{0}/TimeSeries.{1}".format(directory,float(iteration))
+            self.mcrunner.dump_timeseries(fname)
 
     def _get_temps(self):
         """

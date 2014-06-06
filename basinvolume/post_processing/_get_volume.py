@@ -22,7 +22,9 @@ class Base_Compute_Integral(object):
         self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, 
                                                                                         self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const)
     def _calculate_error_F0(self, displacements_variance):
-        #calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0)
+        """
+        calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0)
+        """
         sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, 
                                                                   self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const) 
         return 0.5*sigF0, sigIntegrand
