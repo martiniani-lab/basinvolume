@@ -42,16 +42,21 @@ def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension,
     f = np.array([u_sq_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_ki,ki) in zip(u_sq_k,k)])
     return calculate_GL_integral(f), f
 
-def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0):
+def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0, displ_k_min_trafo=[]):
     """
     Estimates the statistical error of above integral from statistical errors of the squared displacements.
     The error estimate of the integral is sqrt( sum( w_i**2 * var_i ) ), where w_i is the GL integration weight,
     and var_i is the variance of the integrand (see Daniel's thesis, p 72).
+    Note: By providing displ_k_min_trafo, one can use a displacement at k_0 (estimated before PT runs) for the variable transform, different from the PT k=0 result. 
     """
     nr_points = len(u_sq_var_k)
     if nr_points != len(u_sq_k):
         raise Exception("calculate_GL_integral_with_transform_get_error: squared displacements and variances have different lengths")
-    displ_k_min = u_sq_k[0]
+    displ_k_min = 0
+    if displ_k_min_trafo == None:
+        displ_k_min = u_sq_k[0]
+    else:
+        displ_k_min = displ_k_min_trafo
     kappa = nr_particles*dimension/displ_k_min*kappa_const
     k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k_min, kappa_const=kappa_const)
     weights = Gauss_Lobatto_weights(Gauss_Lobatto_abscissas(nr_points)())()
