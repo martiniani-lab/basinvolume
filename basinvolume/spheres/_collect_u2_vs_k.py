@@ -9,13 +9,14 @@ import ConfigParser
 import time
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
 import pylab as plt
+import argparse
 
 class _collect_u2_vs_k(object):
     """
     this is a class that implements _collect_u2_vs_k class 
     """
         
-    def __call__(self, fname, base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
+    def __call__(self, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):
@@ -53,7 +54,7 @@ class _collect_u2_vs_k(object):
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
-        configf.read(str(self.findk_configpath))
+        configf.read(str(self.findk_configpath))tennis
         self.kmax = configf.getfloat('FINDK','kmax')
         self.prob_kmax = configf.getfloat('FINDK','prob')
         self.displ_k_max = configf.getfloat('FINDK','displ_k_max')
@@ -95,31 +96,6 @@ class _collect_u2_vs_k(object):
         self.u2_array.extend([self.displ_k_max])
         self.var_array.extend([self.var_displ_k_max])
         print self.u2_array
-
-#    def _import_u2_reverse(self):
-#        n = len(self.karray)-1
-#        self.u2_array = [0 for _ in xrange(n)]
-#        self.var_array = [0 for _ in xrange(n)] 
-#        #prepend kmax
-#        self.u2_array[0] = self.displ_k_max
-#        self.var_array[0] = self.var_displ_k_min
-#        for subdir, dirs, files in os.walk(self.explore_dir):
-#            for dir in dirs:
-#                if dir.isdigit():
-#                    path = os.path.join(self.explore_dir,dir+'/hist_mean')
-#                    fileHandle = open (path,"r")
-#                    lineList = fileHandle.readlines()
-#                    fileHandle.close()
-#                    niter, u2, var = lineList[-1].split()
-#                    self.u2_array[int(dir)+1] = u2
-#                    self.var_array[int(dir)+1] = var
-#        #extend with kmin
-#        self.u2_array.extend([self.displ_k_min])
-#        self.var_array.extend([self.var_displ_k_min])
-#        #reverse array
-#        self.u2_array = np.array(self.u2_array[::-1],dtype='d')
-#        self.var_array = np.array(self.var_array[::-1],dtype='d')
-#        print self.u2_array
         
          
     def _print_u2_vs_k(self):
@@ -159,20 +135,46 @@ class _collect_u2_vs_k(object):
         plt.errorbar(self.tarray,self.farray,yerr=self.sigfarray)
         plt.xlabel('t')
         plt.ylabel('integrand')
-        plt.show()
-        plt.figure()
+        plt.savefig('')
+        plt.figure(self.base_directory+'/integrand.eps')
         plt.plot(cont_karray,u2_array_app,'-')
         plt.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
         plt.xlabel('k')
         plt.ylabel('<u2>')
-        #plt.ylim((0,2))
+        plt.ylim(bottom=0)
         #plt.xscale('log')
         #plt.yscale('log')
-        plt.show()
+        plt.figure(self.base_directory+'/u2_vs_k.eps')
     
         
 if __name__ == "__main__":
     
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
+    #parser.add_argument("nparticles", type=int, help="number of particles")
+    parser.add_argument("-f","--fname", type=str, help="specify packing to analyze",default=None)
+    parser.add_argument("-d","--fdir", type=str, help="directory containing file, if not absolute path by default: fdir+fname",default='explore_bv_')
+    parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir",default=os.getcwd())
+    args = parser.parse_args()
+    print args
+    
+    fname = args.fname
+    fdir = args.fdir
+    wdir = args.w
+    assert(os.path.isabs(wdir))
+    
+    if not os.path.isabs(fdir):
+        fdir = os.path.join(wdir,fdir+fname)
+    
     sim = _collect_u2_vs_k()
-    sim('jammed_packing0')
+    
+    if (fname != None):
+        sim(fname=fname,explore_dir=fdir)
+    else :
+        for subdir, dirs, files in os.walk(wdir):
+            for dir in dirs:
+                if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
+                    path = os.path.join(wdir,dir)
+                    sim(explore_dir=path)
+                    
+            
     

@@ -92,10 +92,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 T1 = self.Tarray[i]
                 
                 #this if statement assumes nodelist[0::2]
-                if (i = 0):
+                if (i == 0):
                     x = self.mcrunner.get_norm_coords()
-                    print x*x
-                    deltaE = E2/T2 - x*x
+                    deltaE = E2/T2 - 0.5*x*x
                 else:
                     E1 = Earray[i]
                     deltaE = E2/T2 - E1/T1
@@ -105,6 +104,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 w = np.exp(deltaE * deltabeta)
                 rand = np.random.rand()
                 #print 'w {} rand {}'.format(w,rand)
+                #print 'deltaE {} deltaT {}'.format(deltaE, deltabeta)
                 #print "E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w) 
                 if w > rand:
                     #accept exchange
