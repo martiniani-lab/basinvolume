@@ -18,9 +18,9 @@ if __name__ == "__main__":
     fname = args.jammed_packing_fname
     
     #Parallel Tempering
-    tot_niter = 1e5
+    tot_niter = 1e6
     
-    ptiter = int(tot_niter*0.1) #10% PT swaps
+    ptiter = int(tot_niter*0.01) #10% PT swaps
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
     adjustf_niter = int(tot_niter*0.01) #equilibrate for the first 1/100th of steps
     nskip = int(adjustf_niter/niter)
@@ -35,6 +35,6 @@ if __name__ == "__main__":
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
         
-    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter, pfreq=pfreq, skip=nskip, base_directory=path, verbose=False)
+    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter, pfreq=pfreq, skip=nskip, base_directory=path, verbose=True)
     ptrunner.run()
     

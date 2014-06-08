@@ -98,9 +98,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 else:
                     E1 = Earray[i]
                     deltaE = E2/T2 - E1/T1
-                
                 deltabeta = T2 - T1
-                
                 w = np.exp(deltaE * deltabeta)
                 rand = np.random.rand()
                 #print 'w {} rand {}'.format(w,rand)

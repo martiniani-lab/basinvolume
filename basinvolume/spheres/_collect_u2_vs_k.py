@@ -38,7 +38,7 @@ class _collect_u2_vs_k(object):
         base_directory = self.base_directory
         trymakedir(base_directory)
         self._import_ks()
-        self._import_u2()
+        self._import_u2_reverse()
         self._print_u2_vs_k()
         self._compute_volume()
         self._plot_data()
@@ -54,7 +54,7 @@ class _collect_u2_vs_k(object):
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
-        configf.read(str(self.findk_configpath))tennis
+        configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')
         self.prob_kmax = configf.getfloat('FINDK','prob')
         self.displ_k_max = configf.getfloat('FINDK','displ_k_max')
@@ -79,7 +79,7 @@ class _collect_u2_vs_k(object):
         self.karray = np.array(karray,dtype='d')
 
     def _import_u2_reverse(self):
-        n = len(self.karray)
+        n = len(self.karray)-1
         self.u2_array = [0 for _ in xrange(n)]
         self.var_array = [0 for _ in xrange(n)] 
         for subdir, dirs, files in os.walk(self.explore_dir):
@@ -95,7 +95,8 @@ class _collect_u2_vs_k(object):
         #extend with kmin
         self.u2_array.extend([self.displ_k_max])
         self.var_array.extend([self.var_displ_k_max])
-        print self.u2_array
+        self.u2_array = np.array(self.u2_array,dtype='d')
+        self.var_array = np.array(self.var_array,dtype='d')
         
          
     def _print_u2_vs_k(self):
@@ -135,8 +136,9 @@ class _collect_u2_vs_k(object):
         plt.errorbar(self.tarray,self.farray,yerr=self.sigfarray)
         plt.xlabel('t')
         plt.ylabel('integrand')
-        plt.savefig('')
-        plt.figure(self.base_directory+'/integrand.eps')
+        #plt.savefig('')
+        plt.show()
+        #plt.figure(self.base_directory+'/integrand.eps')
         plt.plot(cont_karray,u2_array_app,'-')
         plt.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
         plt.xlabel('k')
@@ -144,8 +146,8 @@ class _collect_u2_vs_k(object):
         plt.ylim(bottom=0)
         #plt.xscale('log')
         #plt.yscale('log')
-        plt.figure(self.base_directory+'/u2_vs_k.eps')
-    
+        #plt.figure(self.base_directory+'/u2_vs_k.eps')
+        plt.show()
         
 if __name__ == "__main__":
     
@@ -159,7 +161,7 @@ if __name__ == "__main__":
     
     fname = args.fname
     fdir = args.fdir
-    wdir = args.w
+    wdir = args.workdir
     assert(os.path.isabs(wdir))
     
     if not os.path.isabs(fdir):
