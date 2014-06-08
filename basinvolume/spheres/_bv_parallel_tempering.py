@@ -40,7 +40,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if (self.rank == 0):
             Tarray = spring_constants_variable_transform(self.nproc+1, self.Tmax, self.u2meank0, 
                                                          self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
-            Tarray = np.array(Tarray[:-1],dtype='d') #exclude k=0 and kmax entry, no need to be simulated, means already available
+            Tarray = np.array(Tarray[:-1],dtype='d') #exclude kmax entry, no need to be simulated, means already available
             self.Tarray = Tarray
         else:
             self.Tarray = None
@@ -63,11 +63,12 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         exchange_buddy = self._scatter_single_value(np.array(exchange_pattern,dtype='d'))
         exchange_buddy = int(exchange_buddy)
         #attempt configurations swap
-        self.config = self._exchange_pairs(exchange_buddy, self.config)
-        #recompute energy (this assumes that mcrunner has member origin)
-        assert isinstance(self.mcrunner,BV_MCrunner)
-        dx = np.array(self.config-self.mcrunner.origin,dtype='d')
-        self.E = 0.5*self.T*np.dot(dx,dx)
+        if (exchange_buddy != self.no_exchange_int):
+            self.config = self._exchange_pairs(exchange_buddy, self.config)
+            #recompute energy (this assumes that mcrunner has member origin)
+            assert isinstance(self.mcrunner,BV_MCrunner)
+            dx = np.array(self.config-self.mcrunner.origin,dtype='d')
+            self.E = 0.5*self.T*np.dot(dx,dx)
     
     def _find_exchange_buddy(self, Earray):
         """
