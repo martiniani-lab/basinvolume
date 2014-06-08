@@ -54,8 +54,8 @@ class configure_bv_mcrunner(object):
         self._initialise()
         
         #automatically estimate size of histogram
-        hmax = self.displ_k_max*self.kmax
-        hbinsize= hmax * 0.001 
+        hmax = self.displ_k_min*k #self.displ_k_max*self.kmax
+        hbinsize= hmax * 0.0001 
         
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same

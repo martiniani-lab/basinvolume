@@ -20,9 +20,9 @@ if __name__ == "__main__":
     #Parallel Tempering
     tot_niter = 1e6
     
-    ptiter = int(tot_niter*0.01) #10% PT swaps
+    ptiter = int(tot_niter*0.0005) #0.5% PT swaps
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
-    adjustf_niter = int(tot_niter*0.01) #equilibrate for the first 1/100th of steps
+    adjustf_niter = int(tot_niter*0.01) #equilibrate for the first 1/100th of total steps
     nskip = int(adjustf_niter/niter)
     pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 10 snapshots)
     print 'tot_niter: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(tot_niter, ptiter, niter, adjustf_niter, nskip, pfreq)

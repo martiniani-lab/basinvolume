@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 import abc
 import os
+import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
@@ -41,6 +42,7 @@ class _collect_u2_vs_k(object):
         self._import_u2_reverse()
         self._print_u2_vs_k()
         self._compute_volume()
+        self._import_time_series()
         self._plot_data()
     
     def _import_config_files(self):
@@ -98,7 +100,19 @@ class _collect_u2_vs_k(object):
         self.u2_array = np.array(self.u2_array,dtype='d')
         self.var_array = np.array(self.var_array,dtype='d')
         
-         
+    def _import_time_series(self):
+        timeseries = []
+        for subdir, dirs, files in os.walk(self.explore_dir):
+            for dir in dirs:
+                if dir.isdigit():
+                    path = os.path.join(self.explore_dir,dir)
+                    file_list = glob.glob(path + '/TimeSeries*')
+                    series = []
+                    for series_path in file_list:
+                        series.extend(np.genfromtxt(series_path, delimiter='\t'))
+                    timeseries.append(series)
+        self.timeseries = np.array(timeseries)
+                    
     def _print_u2_vs_k(self):
         """writes <u2> and variance vs """
         dname = 'u2_vs_k'
@@ -132,22 +146,33 @@ class _collect_u2_vs_k(object):
         u2_array_app = (cont_karray + (self.nparticles*self.bdim)/self.displ_k_min) / (self.nparticles*self.bdim)
         u2_array_app = 1.0/u2_array_app
         
-        plt.figure()
-        plt.errorbar(self.tarray,self.farray,yerr=self.sigfarray)
-        plt.xlabel('t')
-        plt.ylabel('integrand')
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        #timeseries
+        for series in self.timeseries:
+            ax.plot(series[0::500],'-',linewidth=2)
+        plt.show()
+        #integrand
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(self.tarray,self.farray,yerr=self.sigfarray)
+        ax.set_xlabel('t')
+        ax.set_ylabel('integrand')
         #plt.savefig('')
         plt.show()
         #plt.figure(self.base_directory+'/integrand.eps')
-        plt.plot(cont_karray,u2_array_app,'-')
-        plt.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
-        plt.xlabel('k')
-        plt.ylabel('<u2>')
-        plt.ylim(bottom=0)
-        #plt.xscale('log')
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(cont_karray,u2_array_app,'-')
+        ax.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
+        ax.set_xlabel('k')
+        ax.set_ylabel('<u2>')
+        ax.set_ylim(bottom=0)
+        #plt.xscale('symlog')
         #plt.yscale('log')
         #plt.figure(self.base_directory+'/u2_vs_k.eps')
         plt.show()
+        
         
 if __name__ == "__main__":
     
