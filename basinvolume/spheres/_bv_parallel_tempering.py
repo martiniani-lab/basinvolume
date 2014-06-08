@@ -63,12 +63,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         exchange_buddy = self._scatter_single_value(np.array(exchange_pattern,dtype='d'))
         exchange_buddy = int(exchange_buddy)
         #attempt configurations swap
-        if (exchange_buddy != self.no_exchange_int):
-            self.config = self._exchange_pairs(exchange_buddy, self.config)
-            #recompute energy (this assumes that mcrunner has member origin)
-            assert isinstance(self.mcrunner,BV_MCrunner)
-            dx = np.array(self.config-self.mcrunner.origin,dtype='d')
-            self.E = 0.5*self.T*np.dot(dx,dx)
+        self.config = self._exchange_pairs(exchange_buddy, self.config)
+        #recompute energy (this assumes that mcrunner has member origin)
+        assert isinstance(self.mcrunner,BV_MCrunner)
+        dx = np.array(self.config-self.mcrunner.origin,dtype='d')
+        self.E = 0.5*self.T*np.dot(dx,dx)
     
     def _find_exchange_buddy(self, Earray):
         """
@@ -94,11 +93,13 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 
                 #this if statement assumes nodelist[0::2]
                 if (i == 0):
-                    x = self.mcrunner.get_norm_coords()
-                    deltaE = E2/T2 - 0.5*x*x
+                    assert isinstance(self.mcrunner,BV_MCrunner)
+                    dx = np.array(self.config-self.mcrunner.origin,dtype='d')
+                    deltaE = E2/T2 - 0.5*np.dot(dx,dx)
                 else:
                     E1 = Earray[i]
                     deltaE = E2/T2 - E1/T1
+                    
                 deltabeta = T2 - T1
                 w = np.exp(deltaE * deltabeta)
                 rand = np.random.rand()
