@@ -7,12 +7,24 @@ import numpy as np
 #import sys
 
 class Base_Compute_Integral(object):
-    def __init__(self, dimension, nr_particles, k_values, displacements, kappa_const=1.0):
+    def __init__(self, dimension, nr_particles, k_values, displacements, kappa_const=1.0, displ_k_min_trafo=None):
+        """
+        Compute the integral needed for the th. integration.
+        This only computes in the integral over the squared displacements and does not apply corrections nor does it know about the Einstein crystal part.
+        dimension: Euclidean dimension of box
+        nr_particles: number of particles
+        k_values: array of spring constants, in inceasing order
+        displacements: array of displacements corresponding to the array of spring constants
+        kappa_const: A constant that can be set to change the variable transform in the integral
+        displ_k_min_trafo: if provided, this means that the variable transform is computed from a displacement at k=0 different from
+                            the one used to actually compute the integral
+        """
         self.dimension = dimension
         self.nr_particles = nr_particles
         self.k_values = k_values
         self.displacements = displacements
         self.kappa_const = kappa_const
+        self.displ_k_min_trafo = displ_k_min_trafo
         self.k_max = self.k_values[-1]
         if self.k_max !=  max(self.k_values):
             raise Exception("Base_Compute_Integral: label mismatch")
@@ -20,13 +32,13 @@ class Base_Compute_Integral(object):
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
         self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, 
-                                                                                        self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const)
+                                                                                        self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const, displ_k_min_trafo=self.displ_k_min_trafo)
     def _calculate_error_F0(self, displacements_variance):
         """
         calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0)
         """
         sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, 
-                                                                  self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const) 
+                                                                  self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const, displ_k_min_trafo=self.displ_k_min_trafo) 
         return 0.5*sigF0, sigIntegrand
     
 class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
@@ -34,8 +46,8 @@ class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
     Computes the free energy F(0) = -log(v).
     Here there is no correction for the fixed c.o.m.
     """
-    def __init__(self, dimension, nr_particles, k_values, displacements, prob, kappa_const=1.0):
-        super(F_Basin_From_MC_Data_Free_COM,self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const)
+    def __init__(self, dimension, nr_particles, k_values, displacements, prob, kappa_const=1.0, displ_k_min_trafo=None):
+        super(F_Basin_From_MC_Data_Free_COM,self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const, displ_k_min_trafo=displ_k_min_trafo)
         self.prob = prob
         
     def get_free_energy_F0(self, displacements_variance):
@@ -57,8 +69,8 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
     Reference: Xu et al., PRL 106, 245502 (2011)
     Daniel A. Asenjo-Andrews, PhD thesis
     """
-    def __init__(self, dimension, nr_particles, k_values, displacements, box_volume, prob, kappa_const=1.0):
-        super(F_Basin_From_MC_Data,self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const)
+    def __init__(self, dimension, nr_particles, k_values, displacements, box_volume, prob, kappa_const=1.0, displ_k_min_trafo=None):
+        super(F_Basin_From_MC_Data,self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const, displ_k_min_trafo=displ_k_min_trafo)
         self.box_volume = box_volume
         self.prob = prob
          
@@ -69,8 +81,13 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         (First term: We do not have box_volume==1)
         we added a +log(self.nr_particles) term
         """
-        F0 = -np.log(self.box_volume) - np.log(self.prob) - (self.nr_particles*self.dimension/2.0)*np.log(2.0*pi/self.k_max) + \
-        (self.dimension/2.0)*np.log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
+        ##############################INCL KINETIC TERM#########################################
+        #This way of correcting for fixed c.o.m. includes a term from the kinetic part of the Einstein crystal partition function.
+        #F0 = -np.log(self.box_volume) - np.log(self.prob) - (self.nr_particles*self.dimension/2.0)*np.log(2.0*pi/self.k_max) + \
+        #(self.dimension/2.0)*np.log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
+        
+        ##############################NO KINETIC TERM#########################################
+        F0 = -np.log(self.box_volume) - np.log(self.prob) - (self.nr_particles*self.dimension/2.0)*np.log(2.0*pi/self.k_max) - 0.5*self.integral_over_displacements
         
         sigF0, sigf = self._calculate_error_F0(displacements_variance)
         
