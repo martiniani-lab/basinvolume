@@ -107,3 +107,47 @@ cdef class _Cdef_Findk(_Cdef_Action):
 class Findk(_Cdef_Findk):
     """This class is the python interface for the c++ Findk implementation.
     """
+    
+#===============================================================================
+# RecordEnergyTimeseries
+#===============================================================================
+
+cdef extern from "basinvolume/actions.h" namespace "bv":    
+    cdef cppclass cppRecordDisplacementTimeseries "bv::RecordDisplacementTimeseries":
+        cppRecordDisplacementTimeseries(_pele.Array[double], const size_t, const size_t, const size_t) except +
+        _pele.Array[double] get_time_series() except +
+        void clear() except +
+        
+cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
+    """This class is the python interface for the c++ bv::RecordDisplacementTimeseries action class implementation
+    """
+    cdef cppRecordDisplacementTimeseries* newptr
+    def __cinit__(self, origin, bdim, niter, record_every):
+        cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
+        cdef size_t cbdim = bdim
+        cdef size_t cniter = niter
+        cdef size_t crecord_every = record_every
+        
+        self.thisptr = <cppAction*>new cppRecordDisplacementTimeseries(_pele.Array[double](<double*> orginc.data, orginc.size),
+                                                                       cbdim, cniter, crecord_every)
+        self.newptr = <cppRecordDisplacementTimeseries*> self.thisptr
+        
+    @cython.boundscheck(False)
+    def get_time_series(self):
+        """return a energy time series array"""
+        cdef _pele.Array[double] seriesi = self.newptr.get_time_series()
+        cdef double *seriesdata = seriesi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(seriesi.size())
+        cdef size_t i
+        for i in xrange(seriesi.size()):
+            series[i] = seriesdata[i]
+              
+        return series
+    
+    def clear(self):
+        """clears time series"""
+        self.newptr.clear()
+    
+class RecordDisplacementTimeseries(_Cdef_RecordDisplacementTimeseries):
+    """This class is the python interface for the c++ RecordDisplacementTimeseries implementation.
+    """

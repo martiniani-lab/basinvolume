@@ -108,8 +108,9 @@ class _collect_u2_vs_k(object):
                 if dir.isdigit():
                     path = os.path.join(self.explore_dir,dir)
                     file_list = glob.glob(path + '/TimeSeries*')
-                    series = []
+                    file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
                     series_order.append(int(dir))
+                    series = []
                     for series_path in file_list:
                         series.extend(np.genfromtxt(series_path, delimiter='\t'))
                     timeseries.append(series)
@@ -158,7 +159,7 @@ class _collect_u2_vs_k(object):
         #timeseries
         for i,series in enumerate(self.timeseries):
             ax.plot(series[::10],ls=next(linecycler),linewidth=3,label=str(i))
-        plt.yscale('symlog')
+        #plt.yscale('symlog')
         ax.legend(frameon=False,loc=1)
         plt.show()
         #integrand

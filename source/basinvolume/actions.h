@@ -28,6 +28,7 @@ namespace bv{
 
 class RecordDisp2Histogram : public mcpele::RecordEnergyHistogram {
 protected:
+    inline void _get_vec_distance(const pele::Array<double>& x);
 	pele::Array<double> _origin, _rattlers, _distance;
 	size_t _N, _ndim, _nparticles;
 public:
@@ -38,10 +39,9 @@ public:
 	    _N(origin.size()), _ndim(ndim), _nparticles(_N/_ndim){}
 	virtual ~RecordDisp2Histogram(){};
 	virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
-	void inline get_vec_distance(pele::Array<double> x);
 };
 
-inline void RecordDisp2Histogram::get_vec_distance(pele::Array<double> x){
+inline void RecordDisp2Histogram::_get_vec_distance(const pele::Array<double>& x){
         pele::Array<double> delta_com(_ndim,0);
 
         for(size_t i=0;i<_nparticles;++i)
@@ -70,7 +70,7 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 		if (_count > _eqsteps)
 		{
 			//compute distances subtracting the origin's coordinates
-			this->get_vec_distance(coords);
+			this->_get_vec_distance(coords);
 
 			//compute square displacement from origin
 			double norm2 = 0;
@@ -100,6 +100,7 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 //template<size_t bdim>
 class Findk : public Action {
 protected:
+    inline void _get_vec_distance(const pele::Array<double>& x);
     pele::Array<double> _origin, _rattlers, _distance;
     double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf, _mean, _mean2;
     size_t _ndim, _nparticles, _avg_count, _navg, _count, _naccepted, _nrejected, _start;
@@ -108,7 +109,6 @@ public:
     Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol);
     virtual ~Findk() {}
     virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
-    void inline get_vec_distance(pele::Array<double> x);
     double get_prob(){return _acceptedf;}
     double get_mean(){return _mean;};
     double get_variance(){return (_mean2 - _mean*_mean);};
@@ -121,7 +121,7 @@ Findk::Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t a
             _old_acceptedf(0), _mean(0), _mean2(0), _ndim(ndim), _nparticles(_origin.size()/_ndim),
             _avg_count(avg_count), _navg(navg), _count(0), _naccepted(0), _nrejected(0), _start(0), _converged(false){}
 
-inline void Findk::get_vec_distance(pele::Array<double> x){
+inline void Findk::_get_vec_distance(const pele::Array<double>& x){
         pele::Array<double> delta_com(_ndim,0);
 
         for(size_t i=0;i<_nparticles;++i)
@@ -158,7 +158,7 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         //increase averaging count
         ++_count;
         //compute distances subtracting the origin's coordinates
-        this->get_vec_distance(coords);
+        this->_get_vec_distance(coords);
 
         //compute square displacement from origin
         double norm2 = 0;
@@ -206,6 +206,75 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
 
     //reset coordinates to origin
     coords.assign(_origin);
+}
+
+/*
+ * Record displacement time series, measuring every __record_every-th step.
+ */
+
+class RecordDisplacementTimeseries : public Action{
+    private:
+        inline void _record_displacement_value(const double dx);
+        inline void _get_vec_distance(const pele::Array<double>& x);
+        pele::Array<double> _origin, _distance;
+        const size_t _ndim, _nparticles, _ts_niter, _record_every;
+        std::vector<double> _time_series;
+    public:
+        RecordDisplacementTimeseries(pele::Array<double> origin, const size_t ndim, const size_t niter, const size_t record_every);
+        virtual ~RecordDisplacementTimeseries(){}
+        virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
+        pele::Array<double> get_time_series();
+        void clear(){_time_series.clear();}
+};
+
+RecordDisplacementTimeseries::RecordDisplacementTimeseries(pele::Array<double> origin, const size_t ndim,
+        const size_t ts_niter, const size_t record_every)
+    :_origin(origin.copy()), _distance(_origin.size()), _ndim(ndim), _nparticles(_origin.size()/_ndim),
+     _ts_niter(ts_niter),_record_every(record_every)
+    {
+        _time_series.reserve(_ts_niter);
+        if (record_every==0) throw std::runtime_error("RecordDisplacementTimeseries: __record_every expected to be at least 1");
+    }
+
+inline void RecordDisplacementTimeseries::_get_vec_distance(const pele::Array<double>& x){
+        pele::Array<double> delta_com(_ndim,0);
+
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j){
+                double d = (x[i1+j] - _origin[i1+j]);
+                _distance[i1+j] = d;
+                delta_com[j] += d;
+            }
+        }
+
+        delta_com /= _nparticles;
+
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j)
+                _distance[i1+j] -= delta_com[j];
+        }
+    }
+
+inline void RecordDisplacementTimeseries::_record_displacement_value(const double dx){
+    _time_series.push_back(dx);
+}
+
+void RecordDisplacementTimeseries::action(Array<double> &coords, double energy, bool accepted, MC* mc){
+    size_t counter = mc->get_iterations_count();
+    if (counter % _record_every == 0){
+        this->_get_vec_distance(coords);
+        double dx = norm(_distance);
+        this->_record_displacement_value(dx);
+    }
+}
+
+pele::Array<double> RecordDisplacementTimeseries::get_time_series(){
+    _time_series.shrink_to_fit();
+    return pele::Array<double>(_time_series).copy();
 }
 
 }

@@ -4,8 +4,8 @@ import sys
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
-from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement, RecordEnergyTimeseries
-from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk, CheckOverlap
+from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
+from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk, CheckOverlap, RecordDisplacementTimeseries
 import pylab as plt
 
 """
@@ -88,7 +88,7 @@ class BV_MCrunner(_BaseMCRunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
                   hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
-                  adjustf_navg = 100, ts_freq=10, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
+                  adjustf_navg = 100, ts_niter=None, ts_freq=10, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -101,6 +101,8 @@ class BV_MCrunner(_BaseMCRunner):
         self.dtol = dtol
         self.eps = eps
         self.nparticles = len(hs_radii)
+        if ts_niter is None:
+            ts_niter = niter
         
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof 
@@ -124,7 +126,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
-        self.time_series = RecordEnergyTimeseries(niter, ts_freq)
+        self.time_series = RecordDisplacementTimeseries(self.origin,self.bdim, ts_niter, ts_freq)
         self.step = RandomCoordsDisplacement(np.random.randint(i32max))
         self.metropolis = MetropolisTest(np.random.randint(i32max))
         

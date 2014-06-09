@@ -27,7 +27,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if (self.ptiter>0 and self.ptiter % self.pfreq == 0):
             directory = "{0}/{1}".format(base_directory,self.rank)
             iteration = self.mcrunner.get_iterations_count()
-            fname = "{0}/TimeSeries.{1}".format(directory,float(iteration))
+            fname = "{0}/TimeSeries.{1}".format(directory,int(iteration))
             self.mcrunner.dump_timeseries(fname)
 
     def _get_temps(self):
@@ -84,7 +84,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             exchange_pattern = np.empty(len(Earray),dtype='int32')
             exchange_pattern.fill(self.no_exchange_int) #reset exchange pattern to no exchange
             self.anyswap = False
-            for i in self.nodelist[0::2]:
+            for i in self.nodelist[1::2]:
                 if self.verbose:
                     print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
                 

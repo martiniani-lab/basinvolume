@@ -22,7 +22,7 @@ class configure_bv_mcrunner(object):
     """
         
     def __call__(self, fname, k=17, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
-                 hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
+                 hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, ts_niter=None, ts_freq=10,
                  opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-7, opt_nsteps=1e4, packings_dir='jammed_packings', base_dir=None):
         self.fname = fname
         dname = fname
@@ -50,6 +50,7 @@ class configure_bv_mcrunner(object):
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':eps,'hmin':hmin,'hmax':hmax,
                       'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
+                      'ts_niter':ts_niter, 'ts_freq':ts_freq,
                       'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         self._initialise()
         
@@ -64,6 +65,7 @@ class configure_bv_mcrunner(object):
         mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
+                               ts_niter=None, ts_freq=10,
                                opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps)
         
         return mcrunner 

@@ -22,6 +22,7 @@ namespace bv{
 
 class CheckHyperSphericalContainer:public mcpele::ConfTest{
 protected:
+    inline void _get_vec_distance(const pele::Array<double>& coords);
     pele::Array<double> _origin, _distance;
     double _radius2;
     size_t _ndim,_N;
@@ -29,13 +30,12 @@ public:
     CheckHyperSphericalContainer(pele::Array<double> origin, double radius, size_t ndim);
     virtual bool test(Array<double> &trial_coords, MC * mc);
     virtual ~CheckHyperSphericalContainer(){};
-    void inline get_vec_distance(pele::Array<double> coords);
 };
 
 CheckHyperSphericalContainer::CheckHyperSphericalContainer(pele::Array<double> origin, double radius, size_t ndim):
         _origin(origin.copy()),_distance(origin.size(),0),_radius2(radius*radius),_ndim(ndim), _N((origin.size()/ndim)){}
 
-void inline CheckHyperSphericalContainer::get_vec_distance(pele::Array<double> coords){
+inline void CheckHyperSphericalContainer::_get_vec_distance(const pele::Array<double>& coords){
         pele::Array<double> delta_com(_ndim,0);
 
         for(size_t i=0;i<_N;++i)
@@ -68,7 +68,7 @@ bool CheckHyperSphericalContainer::test(Array<double> &trial_coords, MC * mc)
     std::cout<<"k "<<k<<std::endl;
     ////
     */
-  this->get_vec_distance(trial_coords);
+  this->_get_vec_distance(trial_coords);
 
   double r2 = dot(_distance,_distance);
   if (r2 > _radius2)
@@ -164,6 +164,7 @@ public:
 template<typename distance_policy>
 class CheckSameMinimum:public mcpele::ConfTest{
 protected:
+    inline void _get_vec_distance(pele::Array<double> quenched_coords);
     static const size_t _ndim = distance_policy::_ndim;
     pele::GradientOptimizer * _optimizer;
     Array<double> _origin, _hs_radii, _rattlers, _distance;
@@ -181,7 +182,6 @@ public:
     Array<double> get_distance_array(){
         return _distance.copy();
     }
-    inline void get_vec_distance(pele::Array<double> quenched_coords);
 };
 
 template<typename distance_policy>
@@ -208,7 +208,7 @@ CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * op
 //this ignores the rattlers completely
 
 template<typename distance_policy>
-inline void CheckSameMinimum<distance_policy>::get_vec_distance(pele::Array<double> quenched_coords){
+inline void CheckSameMinimum<distance_policy>::_get_vec_distance(pele::Array<double> quenched_coords){
         double dr[_ndim];
 
         //measure distance between two non rattlers
@@ -253,7 +253,7 @@ bool CheckSameMinimum<distance_policy>::test(Array<double> &trial_coords, MC * m
 
     //compute distance between quenched coords and origin
     //distance for rattlers is set to 0
-    this->get_vec_distance(_optimizer->get_x());
+    this->_get_vec_distance(_optimizer->get_x());
 
     //compute rms displacement from origin
     _d = norm(_distance);
