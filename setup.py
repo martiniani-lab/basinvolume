@@ -111,6 +111,12 @@ cxx_modules = [
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,
               ),
+    Extension("basinvolume.utils._utils_cpp", 
+              ["basinvolume/utils/_utils_cpp.cxx"] + include_sources,
+              include_dirs=include_dirs,
+              extra_compile_args=extra_compile_args,
+              language="c++", depends=depends,
+              ),
                ]
 
 setup(ext_modules=cxx_modules,
