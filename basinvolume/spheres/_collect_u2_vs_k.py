@@ -7,10 +7,10 @@ from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 import ConfigParser
-import time
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
 import pylab as plt
 import argparse
+from itertools import cycle
 
 class _collect_u2_vs_k(object):
     """
@@ -102,16 +102,20 @@ class _collect_u2_vs_k(object):
         
     def _import_time_series(self):
         timeseries = []
+        series_order = []
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
                     path = os.path.join(self.explore_dir,dir)
                     file_list = glob.glob(path + '/TimeSeries*')
                     series = []
+                    series_order.append(int(dir))
                     for series_path in file_list:
                         series.extend(np.genfromtxt(series_path, delimiter='\t'))
                     timeseries.append(series)
-        self.timeseries = np.array(timeseries)
+        X = np.array(timeseries)
+        Y = series_order
+        self.timeseries = np.array([x for (y,x) in sorted(zip(Y,X))])
                     
     def _print_u2_vs_k(self):
         """writes <u2> and variance vs """
@@ -142,6 +146,9 @@ class _collect_u2_vs_k(object):
         print 'rF0 {} rF0unc {}'.format(rF0, rF0unc)
 
     def _plot_data(self):
+        lines = ["-","--","-."]
+        linecycler = cycle(lines)
+        
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
         u2_array_app = (cont_karray + (self.nparticles*self.bdim)/self.displ_k_min) / (self.nparticles*self.bdim)
         u2_array_app = 1.0/u2_array_app
@@ -149,8 +156,10 @@ class _collect_u2_vs_k(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         #timeseries
-        for series in self.timeseries:
-            ax.plot(series[0::500],'-',linewidth=2)
+        for i,series in enumerate(self.timeseries):
+            ax.plot(series[::10],ls=next(linecycler),linewidth=3,label=str(i))
+        plt.yscale('symlog')
+        ax.legend(frameon=False,loc=1)
         plt.show()
         #integrand
         fig = plt.figure()

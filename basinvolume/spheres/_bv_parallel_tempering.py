@@ -3,7 +3,7 @@ import numpy as np
 from mcpele.parallel_tempering import MPI_PT_RLhandshake
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
-#from basinvolume.utils import trymakedir
+from basinvolume.utils import get_dist_com
 
 class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """
@@ -24,7 +24,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     def _all_dump_timeseries(self):
         """for this to work the directory must have been initialised in _print_initialise"""
         base_directory = self.base_directory
-        if (self.ptiter % self.pfreq == 0):
+        if (self.ptiter>0 and self.ptiter % self.pfreq == 0):
             directory = "{0}/{1}".format(base_directory,self.rank)
             iteration = self.mcrunner.get_iterations_count()
             fname = "{0}/TimeSeries.{1}".format(directory,float(iteration))
@@ -63,11 +63,12 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         exchange_buddy = self._scatter_single_value(np.array(exchange_pattern,dtype='d'))
         exchange_buddy = int(exchange_buddy)
         #attempt configurations swap
-        self.config = self._exchange_pairs(exchange_buddy, self.config)
-        #recompute energy (this assumes that mcrunner has member origin)
-        assert isinstance(self.mcrunner,BV_MCrunner)
-        dx = np.array(self.config-self.mcrunner.origin,dtype='d')
-        self.E = 0.5*self.T*np.dot(dx,dx)
+        assert(self.mcrunner.potential.get_k() == self.T) #debug
+        self.config = self._exchange_pairs(exchange_buddy, np.array(self.config,dtype='d'))
+        if (exchange_buddy != self.no_exchange_int):
+            #recompute energy (this assumes that mcrunner has member origin)
+            assert isinstance(self.mcrunner,BV_MCrunner)
+            self.energy = self.mcrunner.potential.getEnergy(np.array(self.config,dtype='d'))
     
     def _find_exchange_buddy(self, Earray):
         """
@@ -81,7 +82,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             assert(len(Earray)==len(self.Tarray))
             assert(self.T == 0.0) #this function assumes that the master node has k=0
             exchange_pattern = np.empty(len(Earray),dtype='int32')
-            exchange_pattern.fill(self.no_exchange_int)
+            exchange_pattern.fill(self.no_exchange_int) #reset exchange pattern to no exchange
             self.anyswap = False
             for i in self.nodelist[0::2]:
                 if self.verbose:
@@ -89,15 +90,15 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 
                 E2 = Earray[i+self.exchange_choice]
                 T2 = self.Tarray[i+self.exchange_choice]
+                E1 = Earray[i]
                 T1 = self.Tarray[i]
-                
+
                 #this if statement assumes nodelist[0::2]
                 if (i == 0):
                     assert isinstance(self.mcrunner,BV_MCrunner)
-                    dx = np.array(self.config-self.mcrunner.origin,dtype='d')
-                    deltaE = E2/T2 - 0.5*np.dot(dx,dx)
+                    dx = get_dist_com(np.array(self.config,dtype='d'),np.array(self.mcrunner.origin,dtype='d'),self.mcrunner.bdim)
+                    deltaE = E2/T2 - 0.5*dx*dx
                 else:
-                    E1 = Earray[i]
                     deltaE = E2/T2 - E1/T1
                     
                 deltabeta = T2 - T1
