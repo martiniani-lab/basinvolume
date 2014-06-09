@@ -18,16 +18,23 @@ if __name__ == "__main__":
     fname = args.jammed_packing_fname
     
     #Parallel Tempering
+    tot_niter = 1e6
+    
+    ptiter = int(tot_niter*0.0005) #0.5% PT swaps
+    niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
+    adjustf_niter = int(tot_niter*0.01) #equilibrate for the first 1/100th of total steps
+    nskip = int(adjustf_niter/niter)
+    pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 10 snapshots)
+    print 'tot_niter: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(tot_niter, ptiter, niter, adjustf_niter, nskip, pfreq)
+    
     sim = configure_bv_mcrunner()
-    niter = 1e3
-    adjustf_niter = 1e4
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
-    nskip = int(adjustf_niter/niter)
-    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=1000, pfreq=10, skip=nskip, base_directory=path, verbose=True)
+        
+    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter, pfreq=pfreq, skip=nskip, base_directory=path, verbose=True)
     ptrunner.run()
     

@@ -119,7 +119,7 @@ Findk::Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t a
             _origin(origin.copy()), _rattlers(rattlers.copy()),_distance(origin.size()),
             _target(target),_factor(factor),_acceptedf(0), _k(1), _tol(tol),
             _old_acceptedf(0), _mean(0), _mean2(0), _ndim(ndim), _nparticles(_origin.size()/_ndim),
-            _navg(navg), _avg_count(avg_count), _count(0), _naccepted(0), _nrejected(0), _start(0), _converged(false){}
+            _avg_count(avg_count), _navg(navg), _count(0), _naccepted(0), _nrejected(0), _start(0), _converged(false){}
 
 inline void Findk::get_vec_distance(pele::Array<double> x){
         pele::Array<double> delta_com(_ndim,0);

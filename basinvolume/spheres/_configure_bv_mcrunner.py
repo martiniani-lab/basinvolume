@@ -52,6 +52,11 @@ class configure_bv_mcrunner(object):
                       'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                       'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         self._initialise()
+        
+        #automatically estimate size of histogram
+        hmax = self.displ_k_min*k #self.displ_k_max*self.kmax
+        hbinsize= hmax * 0.0001 
+        
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass

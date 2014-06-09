@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 import abc
 import os
+import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
@@ -9,13 +10,14 @@ import ConfigParser
 import time
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
 import pylab as plt
+import argparse
 
 class _collect_u2_vs_k(object):
     """
     this is a class that implements _collect_u2_vs_k class 
     """
         
-    def __call__(self, fname, base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
+    def __call__(self, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):
@@ -37,9 +39,10 @@ class _collect_u2_vs_k(object):
         base_directory = self.base_directory
         trymakedir(base_directory)
         self._import_ks()
-        self._import_u2()
+        self._import_u2_reverse()
         self._print_u2_vs_k()
         self._compute_volume()
+        self._import_time_series()
         self._plot_data()
     
     def _import_config_files(self):
@@ -67,23 +70,20 @@ class _collect_u2_vs_k(object):
         """
         must run before import u2
         """
-        karray = [self.kmax] 
+        karray = [] 
         path = os.path.join(self.explore_dir,'temperatures')
         f = open(path, "r")
         while True:
             k = f.readline()
             if not k: break
             karray.extend([float(k)])
-        karray.extend([self.kmin])
-        self.karray = np.array(karray[::-1],dtype='d')
+        karray.extend([self.kmax])
+        self.karray = np.array(karray,dtype='d')
 
-    def _import_u2(self):
+    def _import_u2_reverse(self):
         n = len(self.karray)-1
         self.u2_array = [0 for _ in xrange(n)]
         self.var_array = [0 for _ in xrange(n)] 
-        #prepend kmax
-        self.u2_array[0] = self.displ_k_max
-        self.var_array[0] = self.var_displ_k_min
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
@@ -92,17 +92,27 @@ class _collect_u2_vs_k(object):
                     lineList = fileHandle.readlines()
                     fileHandle.close()
                     niter, u2, var = lineList[-1].split()
-                    self.u2_array[int(dir)+1] = u2
-                    self.var_array[int(dir)+1] = var
+                    self.u2_array[int(dir)] = u2
+                    self.var_array[int(dir)] = var
         #extend with kmin
-        self.u2_array.extend([self.displ_k_min])
-        self.var_array.extend([self.var_displ_k_min])
-        #reverse array
-        self.u2_array = np.array(self.u2_array[::-1],dtype='d')
-        self.var_array = np.array(self.var_array[::-1],dtype='d')
-        print self.u2_array
+        self.u2_array.extend([self.displ_k_max])
+        self.var_array.extend([self.var_displ_k_max])
+        self.u2_array = np.array(self.u2_array,dtype='d')
+        self.var_array = np.array(self.var_array,dtype='d')
         
-         
+    def _import_time_series(self):
+        timeseries = []
+        for subdir, dirs, files in os.walk(self.explore_dir):
+            for dir in dirs:
+                if dir.isdigit():
+                    path = os.path.join(self.explore_dir,dir)
+                    file_list = glob.glob(path + '/TimeSeries*')
+                    series = []
+                    for series_path in file_list:
+                        series.extend(np.genfromtxt(series_path, delimiter='\t'))
+                    timeseries.append(series)
+        self.timeseries = np.array(timeseries)
+                    
     def _print_u2_vs_k(self):
         """writes <u2> and variance vs """
         dname = 'u2_vs_k'
@@ -136,24 +146,62 @@ class _collect_u2_vs_k(object):
         u2_array_app = (cont_karray + (self.nparticles*self.bdim)/self.displ_k_min) / (self.nparticles*self.bdim)
         u2_array_app = 1.0/u2_array_app
         
-        plt.figure()
-        plt.errorbar(self.tarray,self.farray,yerr=self.sigfarray)
-        plt.xlabel('t')
-        plt.ylabel('integrand')
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        #timeseries
+        for series in self.timeseries:
+            ax.plot(series[0::500],'-',linewidth=2)
         plt.show()
-        plt.figure()
-        plt.plot(cont_karray,u2_array_app,'-')
-        plt.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
-        plt.xlabel('k')
-        plt.ylabel('<u2>')
-        #plt.ylim((0,2))
-        #plt.xscale('log')
+        #integrand
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(self.tarray,self.farray,yerr=self.sigfarray)
+        ax.set_xlabel('t')
+        ax.set_ylabel('integrand')
+        #plt.savefig('')
+        plt.show()
+        #plt.figure(self.base_directory+'/integrand.eps')
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(cont_karray,u2_array_app,'-')
+        ax.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
+        ax.set_xlabel('k')
+        ax.set_ylabel('<u2>')
+        ax.set_ylim(bottom=0)
+        #plt.xscale('symlog')
         #plt.yscale('log')
+        #plt.figure(self.base_directory+'/u2_vs_k.eps')
         plt.show()
-    
+        
         
 if __name__ == "__main__":
     
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
+    #parser.add_argument("nparticles", type=int, help="number of particles")
+    parser.add_argument("-f","--fname", type=str, help="specify packing to analyze",default=None)
+    parser.add_argument("-d","--fdir", type=str, help="directory containing file, if not absolute path by default: fdir+fname",default='explore_bv_')
+    parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir",default=os.getcwd())
+    args = parser.parse_args()
+    print args
+    
+    fname = args.fname
+    fdir = args.fdir
+    wdir = args.workdir
+    assert(os.path.isabs(wdir))
+    
+    if not os.path.isabs(fdir):
+        fdir = os.path.join(wdir,fdir+fname)
+    
     sim = _collect_u2_vs_k()
-    sim('jammed_packing0')
+    
+    if (fname != None):
+        sim(fname=fname,explore_dir=fdir)
+    else :
+        for subdir, dirs, files in os.walk(wdir):
+            for dir in dirs:
+                if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
+                    path = os.path.join(wdir,dir)
+                    sim(explore_dir=path)
+                    
+            
     

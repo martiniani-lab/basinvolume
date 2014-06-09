@@ -135,13 +135,16 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         self.kfactor=kfactor 
         self.knavg=knavg 
         self.ktol=ktol
+        self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
+        self.avgcount = 1e4
         
         #construct test/action classes      
         i32max = np.iinfo(np.int32).max
         
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
-        self.findk = Findk(self.origin, self.ktarget, self.kfactor, self.knavg, self.ktol)
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol)
+                           
                 
         #set up pele:MC
         self.set_takestep(self.step)
@@ -221,7 +224,8 @@ def main():
     mcrunner.set_control(kstart) #potential is entirely fictitious, there is no energy test
     mcrunner.run()
     #print mcrunner.potential.get_k() derive a 
-    k_max = mcrunner.get_k() #debug remove
+    k_max = mcrunner.get_k()
+    displ_k_max, var_displ_k_max = mcrunner.findk.get_mean_variance()
     prob = mcrunner.findk.get_prob()
     print 'kmax ',k_max
     print 'prob ',prob
@@ -241,7 +245,7 @@ def main():
     var_meanu2 = []
     karray = np.array(karray)
     
-    for k in karray:
+    for k in karray[:-1]:
         mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k, adjustf_niter=1e4, hmin=0, hmax=10, 
                                acceptance=acceptance, hbinsize=0.01,hyperradius=r)
         mcrunner.run()
@@ -251,6 +255,11 @@ def main():
         mean, var = mcrunner.histogram.get_mean_variance()
         meanu2.append(mean)
         var_meanu2.append(var)
+    
+    #append kmax displacement value
+    meanu2.append(displ_k_max)
+    var_meanu2.append(var_displ_k_max)
+    
     meanu2 = np.array(meanu2)
     var_meanu2 = np.array(var_meanu2)
     print meanu2
@@ -263,7 +272,6 @@ def main():
     boxvol = 1.0
        
     #analytical meanu2
-    karray = np.array(karray)
     meanu2_analytical = (karray + kappa_const*(nr_particles*dimension)/displ_k_min) / ((nr_particles)*dimension)
     meanu2_analytical = 1.0/meanu2_analytical
     #meanu2_analytical = (nr_particles*dimension)/karray
@@ -281,24 +289,28 @@ def main():
     print 'hypersphere vol',log_volume_nball(r,nr_particles*dimension)
     
     
-    tarray = Gauss_Lobatto_abscissas(nr_points)()
-    plt.figure()
-    plt.errorbar(tarray,farray,yerr=sigfarray)
-    plt.errorbar(tarray,afarray,yerr=asigfarray)
-    plt.xlabel('t')
-    plt.ylabel('integrand')
-    plt.show()
-    plt.figure()
-    plt.errorbar(karray,meanu2,yerr=np.sqrt(var_meanu2))
-    plt.errorbar(karray,meanu2_analytical)
-    plt.xlabel('k')
-    plt.ylabel('<u2>')
-    #plt.xscale('log')
-    plt.show()
+#    tarray = Gauss_Lobatto_abscissas(nr_points)()
+#    plt.figure()
+#    plt.errorbar(tarray,farray,yerr=sigfarray)
+#    plt.errorbar(tarray,afarray,yerr=asigfarray)
+#    plt.xlabel('t')
+#    plt.ylabel('integrand')
+#    plt.show()
+#    plt.figure()
+#    plt.errorbar(karray,meanu2,yerr=np.sqrt(var_meanu2))
+#    plt.errorbar(karray,meanu2_analytical)
+#    plt.xlabel('k')
+#    plt.ylabel('<u2>')
+#    #plt.xscale('log')
+#    plt.show()
     
   
 if __name__ == "__main__":
+    start=time.time()
     main()
+    end=time.time()
+    print(end-start)
+    
     
     
     

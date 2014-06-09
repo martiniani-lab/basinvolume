@@ -32,15 +32,16 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
 
     def _get_temps(self):
         """
+        NOTE: BECAUSE K0 IS INCLUDED IN THE CALCULATION TARRAY CANNOT BE REVERSED AS [::-1]
         set up the spring constant. We give root the lowest temperature.
         This should increase performance when pair lists are used (they are updated less often at low temperature
         or when steps involve minimisation, as the low temperatures are closer to the minimum)
         """
         if (self.rank == 0):
-            Tarray = spring_constants_variable_transform(self.nproc+2, self.Tmax, self.u2meank0, 
+            Tarray = spring_constants_variable_transform(self.nproc+1, self.Tmax, self.u2meank0, 
                                                          self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
-            Tarray = np.array(Tarray[1:-1],dtype='d') #exclude k=0 and kmax entry, no need to be simulated, means already available
-            self.Tarray = Tarray[::-1]
+            Tarray = np.array(Tarray[:-1],dtype='d') #exclude kmax entry, no need to be simulated, means already available
+            self.Tarray = Tarray
         else:
             self.Tarray = None
     
@@ -78,21 +79,32 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         """        
         if (self.rank == 0):
             assert(len(Earray)==len(self.Tarray))
+            assert(self.T == 0.0) #this function assumes that the master node has k=0
             exchange_pattern = np.empty(len(Earray),dtype='int32')
             exchange_pattern.fill(self.no_exchange_int)
             self.anyswap = False
             for i in self.nodelist[0::2]:
                 if self.verbose:
                     print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
-                E1 = Earray[i]
-                T1 = self.Tarray[i]
+                
                 E2 = Earray[i+self.exchange_choice]
                 T2 = self.Tarray[i+self.exchange_choice]
-                deltaE = E2/T2 - E1/T1
+                T1 = self.Tarray[i]
+                
+                #this if statement assumes nodelist[0::2]
+                if (i == 0):
+                    assert isinstance(self.mcrunner,BV_MCrunner)
+                    dx = np.array(self.config-self.mcrunner.origin,dtype='d')
+                    deltaE = E2/T2 - 0.5*np.dot(dx,dx)
+                else:
+                    E1 = Earray[i]
+                    deltaE = E2/T2 - E1/T1
+                    
                 deltabeta = T2 - T1
-                w = min( 1. , np.exp( deltaE * deltabeta ) )
+                w = np.exp(deltaE * deltabeta)
                 rand = np.random.rand()
                 #print 'w {} rand {}'.format(w,rand)
+                #print 'deltaE {} deltaT {}'.format(deltaE, deltabeta)
                 #print "E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w) 
                 if w > rand:
                     #accept exchange
