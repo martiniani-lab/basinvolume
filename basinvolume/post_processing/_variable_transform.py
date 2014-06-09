@@ -42,7 +42,7 @@ def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension,
     f = np.array([u_sq_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_ki,ki) in zip(u_sq_k,k)])
     return calculate_GL_integral(f), f
 
-def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0, displ_k_min_trafo=[]):
+def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0, displ_k_min_trafo=None):
     """
     Estimates the statistical error of above integral from statistical errors of the squared displacements.
     The error estimate of the integral is sqrt( sum( w_i**2 * var_i ) ), where w_i is the GL integration weight,

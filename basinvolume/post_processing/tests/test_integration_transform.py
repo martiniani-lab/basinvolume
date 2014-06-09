@@ -1,6 +1,7 @@
 from __future__ import division
 from basinvolume.post_processing import *
 from scipy.integrate import quad, fixed_quad
+import numpy as np
 
 def integrand(x):
     #return (x+10)**-2
@@ -16,8 +17,13 @@ def test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, di
     """
     k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const=kappa_const)
     samples = [integrand(x) for x in k]
-    print "integral by variable transform:"
+    print "integral by variable transform (reference):"
     print calculate_GL_integral_with_transform(samples, k_max, nr_particles, dimension, kappa_const=kappa_const)
+    print "integral with error parameter in variable transform:"
+    #####
+    ##### calculate_GL_integral_with_transform_get_error( kappa_const=1.0, displ_k_min_trafo=None):
+    #####
+    print calculate_GL_integral_with_transform_get_error(samples, np.ones(nr_points), k_max, nr_particles, dimension, k_min=0.0, kappa_const=kappa_const)
     print "integral by quad:"
     print quad(integrand, k[0], k[-1])
     print "integral by fixed_quad:"
