@@ -52,13 +52,17 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         *root gathers the energies from the slaves
         
         """
-        #gather energies, only root will do so
-        Earray = self._gather_energies(self.energy)
+        #compute dx with com correction for each replica
+        assert isinstance(self.mcrunner,BV_MCrunner)
+        dx = get_dist_com(np.array(self.config,dtype='d'),np.array(self.mcrunner.origin,dtype='d'),self.mcrunner.bdim)
+        
+        #gather dx, only root will do so
+        dx_array = self._gather_energies(dx)
         if self.verbose:
-            if Earray is not None:
-                print "Earray", Earray
+            if dx_array is not None:
+                print "dx_array", dx_array
         #find exchange pattern (list of exchange buddies)
-        exchange_pattern = self._find_exchange_buddy(Earray)
+        exchange_pattern = self._find_exchange_buddy(dx_array)
         #now scatter the exchange pattern so that everybody knows who their buddy is
         exchange_buddy = self._scatter_single_value(np.array(exchange_pattern,dtype='d'))
         exchange_buddy = int(exchange_buddy)
@@ -67,10 +71,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.config = self._exchange_pairs(exchange_buddy, np.array(self.config,dtype='d'))
         if (exchange_buddy != self.no_exchange_int):
             #recompute energy (this assumes that mcrunner has member origin)
-            assert isinstance(self.mcrunner,BV_MCrunner)
             self.energy = self.mcrunner.potential.getEnergy(np.array(self.config,dtype='d'))
-    
-    def _find_exchange_buddy(self, Earray):
+        
+    def _find_exchange_buddy(self, dx_array):
         """
         This function determines the exchange pattern alternating swaps with right and left neighbours.
         An exchange pattern array is constructed, filled with self.no_exchange_int which
@@ -79,38 +82,33 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         The exchange partner is then scattered to the other processors.
         """        
         if (self.rank == 0):
-            assert(len(Earray)==len(self.Tarray))
-            assert(self.T == 0.0) #this function assumes that the master node has k=0
-            exchange_pattern = np.empty(len(Earray),dtype='int32')
+            assert(len(dx_array)==len(self.Tarray))
+            exchange_pattern = np.empty(len(dx_array),dtype='int32')
             exchange_pattern.fill(self.no_exchange_int) #reset exchange pattern to no exchange
             self.anyswap = False
+            
             for i in self.nodelist[1::2]:
                 if self.verbose:
                     print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
                 
-                E2 = Earray[i+self.exchange_choice]
-                T2 = self.Tarray[i+self.exchange_choice]
-                E1 = Earray[i]
+                dx1 = dx_array[i]
                 T1 = self.Tarray[i]
+                dx2 = dx_array[i+self.exchange_choice]
+                T2 = self.Tarray[i+self.exchange_choice]
 
-                #this if statement assumes nodelist[0::2]
-                if (i == 0):
-                    assert isinstance(self.mcrunner,BV_MCrunner)
-                    dx = get_dist_com(np.array(self.config,dtype='d'),np.array(self.mcrunner.origin,dtype='d'),self.mcrunner.bdim)
-                    deltaE = E2/T2 - 0.5*dx*dx
-                else:
-                    deltaE = E2/T2 - E1/T1
-                    
+                #Hamiltonia replica exchange
+                deltaE = 0.5*dx2*dx2 - 0.5*dx1*dx1
                 deltabeta = T2 - T1
                 w = np.exp(deltaE * deltabeta)
                 rand = np.random.rand()
+                
                 #print 'w {} rand {}'.format(w,rand)
                 #print 'deltaE {} deltaT {}'.format(deltaE, deltabeta)
                 #print "E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w) 
                 if w > rand:
                     #accept exchange
                     if self.verbose:
-                        self.ex_outstream.write("accepting exchange %d %d %g %g %g %g %d\n" % (self.nodelist[i], self.nodelist[i+self.exchange_choice], E1, E2, T1, T2, self.ptiter))
+                        self.ex_outstream.write("accepting exchange %d %d %g %g %g %g %d\n" % (self.nodelist[i], self.nodelist[i+self.exchange_choice], dx1, dx2, T1, T2, self.ptiter))
                     assert(exchange_pattern[i] == self.no_exchange_int)                      #verify that is not using the same processor twice for swaps
                     assert(exchange_pattern[i+self.exchange_choice] == self.no_exchange_int) #verify that is not using the same processor twice for swaps
                     exchange_pattern[i] = self.nodelist[i+self.exchange_choice]
