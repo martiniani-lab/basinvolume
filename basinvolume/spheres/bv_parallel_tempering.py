@@ -23,17 +23,17 @@ if __name__ == "__main__":
     ptiter = int(tot_niter*0.1) #10% PT swaps
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
     adjustf_niter = int(tot_niter*0.01) #equilibrate for the first 1/100th of total steps
+    pt_eq_niter = adjustf_niter #equilibrate pt for the second 1/100th of total steps
     nskip = int(adjustf_niter/niter)
     pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 10 snapshots)
     ts_freq = 10
-    ts_niter = int(niter*pfreq/ts_freq)
-    
+    ts_niter = int(niter*pfreq/ts_freq) 
     print 'tot_niter: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(tot_niter, ptiter, niter, adjustf_niter, nskip, pfreq)
     
     sim = configure_bv_mcrunner()
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
-                 ts_niter=ts_niter, ts_freq=ts_freq)
+                 pt_eq_niter = pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min

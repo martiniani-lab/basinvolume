@@ -84,11 +84,12 @@ class BV_MCrunner(_BaseMCRunner):
     *dtol: tolerance on the rms displacement of the minimised structure
      with respect to the origin coordinates
      *ts_freq: time series "record" frequency
+     *pt_eq_niter number of steps over which pt is equilibrated
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
-                  hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
-                  adjustf_navg = 100, ts_niter=None, ts_freq=10, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
+                  hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
+                  pt_eq_niter=0, ts_niter=None, ts_freq=10, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -122,7 +123,7 @@ class BV_MCrunner(_BaseMCRunner):
         i32max = np.iinfo(np.int32).max
         
         self.binsize = hbinsize
-        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize,adjustf_niter)
+        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize,(adjustf_niter+pt_eq_niter))
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)

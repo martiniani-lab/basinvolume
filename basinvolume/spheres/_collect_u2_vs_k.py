@@ -136,11 +136,11 @@ class _collect_u2_vs_k(object):
         
         self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, np.prod(self.boxv),\
-                                                                                self.prob_kmax).get_free_energy_F0(self.var_array)
+                                                                                self.prob_kmax,displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
         
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, np.prod(self.boxv),\
-                                                                                self.prob_kmax).get_free_energy_F0(self.var_array)
+                                                                                self.prob_kmax,displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
         rF0 = self.F0 + self.nparticles*np.log(np.prod(self.boxv))
         rF0unc = self.F0unc + self.nparticles*np.log(np.prod(self.boxv))

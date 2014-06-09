@@ -170,7 +170,7 @@ def main():
     n = 5   #number of particles along edge
     dimension=3
     nr_particles=np.power(n,dimension)
-    nr_points=6
+    nr_points=10
         
     #SIMULATION PARAMETERS
     stepsize = 1
