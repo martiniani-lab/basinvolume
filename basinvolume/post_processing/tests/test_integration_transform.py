@@ -11,19 +11,21 @@ def integrand(x):
     #(for best performance of the variable transform)
     return (3*128)/(x+3*128/22)
 
-def test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const):
+def test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const, displ_k_min_trafo):
     """
     Computes integral with variable transform and directly for consistency check.
     """
-    k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const=kappa_const)
+    k_old = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const=kappa_const)
+    k = spring_constants_variable_transform(nr_points, k_max, displ_k_min_trafo, nr_particles, dimension, kappa_const=kappa_const)
+    print "k_old: "
+    print k_old
+    print "k: "
+    print k
     samples = [integrand(x) for x in k]
     print "integral by variable transform (reference):"
-    print calculate_GL_integral_with_transform(samples, k_max, nr_particles, dimension, kappa_const=kappa_const)
-    print "integral with error parameter in variable transform:"
-    #####
-    ##### calculate_GL_integral_with_transform_get_error( kappa_const=1.0, displ_k_min_trafo=None):
-    #####
-    print calculate_GL_integral_with_transform_get_error(samples, np.ones(nr_points), k_max, nr_particles, dimension, k_min=0.0, kappa_const=kappa_const)
+    print calculate_GL_integral_with_transform(samples, k_max, nr_particles, dimension, kappa_const=kappa_const, displ_k_min_trafo=displ_k_min_trafo)
+    print "error on integral by variable transform with parameter:"
+    print calculate_GL_integral_with_transform_get_error(samples, samples, k_max, nr_particles, dimension, k_min=0.0, kappa_const=kappa_const, displ_k_min_trafo=samples[0])
     print "integral by quad:"
     print quad(integrand, k[0], k[-1])
     print "integral by fixed_quad:"
@@ -38,4 +40,5 @@ if __name__ == "__main__":
     nr_particles = 128
     dimension = 3
     kappa_const=1
-    test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const)
+    displ_k_min_trafo = 22
+    test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const, displ_k_min_trafo)

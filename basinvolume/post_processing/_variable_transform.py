@@ -28,7 +28,7 @@ def test_variable_transform(k, displ_k_min, nr_particles, dimension, kappa_const
     t = [2*np.log(1+(ki-kmin)/kappa)/np.log(1+(kmax-kmin)/kappa)-1 for ki in k]
     return t
 
-def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0):
+def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0, displ_k_min_trafo=None):
     """
     Input: Squared displacements, measured at the spring constant values given by
     spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension).
@@ -36,7 +36,11 @@ def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension,
     Output: Integral over squared displacements from zero to k_max (maximum spring constant).
     """
     nr_points = len(u_sq_k)
-    displ_k_min = u_sq_k[0]
+    displ_k_min = 0
+    if displ_k_min_trafo == None:
+        displ_k_min = u_sq_k[0]
+    else:
+        displ_k_min = displ_k_min_trafo
     kappa = nr_particles*dimension/displ_k_min*kappa_const
     k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k_min, kappa_const=kappa_const)
     f = np.array([u_sq_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_ki,ki) in zip(u_sq_k,k)])
