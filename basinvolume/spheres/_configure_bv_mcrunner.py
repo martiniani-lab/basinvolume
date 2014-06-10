@@ -24,7 +24,7 @@ class configure_bv_mcrunner(object):
     def __call__(self, fname, k=17, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=10,
-                 opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-7, opt_nsteps=1e4, packings_dir='jammed_packings', base_dir=None):
+                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, opt_nsteps=1e4, packings_dir='jammed_packings', base_dir=None):
         self.fname = fname
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -47,18 +47,26 @@ class configure_bv_mcrunner(object):
         self.packing_configpath = os.path.join(packings_dir,'jammed_packings.config')
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')  
         self.kmin_configpath = os.path.join(self.base_directory,'kmin_'+dname+'.config')
-                
-        #self.mc_params = dict(k=k, temperature=temperature, )
-        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':eps,'hmin':hmin,'hmax':hmax,
-                      'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
-                      'pt_eq_niter':pt_eq_niter,'ts_niter':ts_niter, 'ts_freq':ts_freq,
-                      'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
-        self._initialise()
+        
+        self._import_config_files()
+        self._import_packing_configuration()
         
         #automatically estimate size of histogram
         hmax = self.displ_k_min*k #self.displ_k_max*self.kmax
         hbinsize= hmax * 0.0001 
         
+        #automatically set opt max step
+        if opt_maxstep is None:
+            opt_maxstep = self.boxv[0]*0.1
+        
+        #self.mc_params = dict(k=k, temperature=temperature, )
+        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':eps,'hmin':hmin,'hmax':hmax,
+                      'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
+                      'pt_eq_niter':pt_eq_niter,'ts_niter':ts_niter, 'ts_freq':ts_freq,
+                      'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
+        
+        self._initialise()
+                
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
@@ -73,8 +81,6 @@ class configure_bv_mcrunner(object):
         
     def _initialise(self):
         """initialisation function"""
-        self._import_config_files()
-        self._import_packing_configuration()
         #change directory only at the end of initialise
         self._print_initialise()
         os.chdir(self.base_directory)

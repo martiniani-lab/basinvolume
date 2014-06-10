@@ -142,11 +142,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #initialise needs to import at least one configuration to compute sca
         if self.iteration is 0:
             self.initialise()
-        self._generate_packing_coords()
-        self._find_rattlers()
-        #strips the integer unique identifier out of fname
-        n = int(re.search(r'\d+',fname).group())
-        self._print(n)
+        success = self._generate_packing_coords() #returns false if saddle
+        
+        if success:
+            self._find_rattlers()
+            #strips the integer unique identifier out of fname
+            n = int(re.search(r'\d+',fname).group())
+            self._print(n)
+        
         self.iteration+=1
     
     def _find_rattlers(self):
@@ -166,12 +169,39 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _generate_packing_coords(self):
         """quenches the imported structure using FIRE"""
-        res = modifiedfire_cpp(self.coords,self.potential, maxstep=0.6, nsteps=1e8, tol=1e-9)
-        assert(res.success == True)
+        res = modifiedfire_cpp(self.coords,self.potential, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
+        if not res.success:
+            return False;
+        
         self.coords = res.coords
         self.energy = res.energy
+        
+        #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_overlaps()
-        assert(no_overlap) #asserts that none of the hard sphere is overlapping
+        if not no_overlap:
+            return False 
+        
+        #analyse packing, assert that the whole system has only 3 0'evalues + a 0 evalue for each rattler 0 evalue
+        hess = self.potential.getHessian(self.coords)
+        ratt0evals= []
+        for i in xrange(self.nparticles):
+            i1 = self.bdim*i
+            hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
+            w, v = np.linalg.eig(hess_block)
+            w = np.real(w)
+            ratt0evals.extend([x for x in w if abs(x) < 0.1]) #append to array of zero evalues due to rattlers
+        
+        w, v = np.linalg.eig(hess)
+        w = np.real(w)
+        full0evals = [x for x in w if abs(x) < 0.1]
+        if len(full0evals) - len(ratt0evals) > self.bdim:
+            return False
+        
+        #check that there isn't any significantly negative evalue
+        if np.any(w) < -0.1:
+            return False
+        
+        return True
     
     def _get_particles_volume(self):
         """returns volume of n=self.bdim dimensional sphere"""

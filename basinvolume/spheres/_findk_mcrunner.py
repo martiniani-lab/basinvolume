@@ -19,7 +19,7 @@ class _findk_mcrunner(object):
     """
         
     def __init__(self, fname, k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
-                 opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
+                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
@@ -33,13 +33,19 @@ class _findk_mcrunner(object):
         self.fname = fname
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.temperature=1.0
+        
+        self._import_packing_config_file()
+        self._import_packing_configuration()
+        
+        #automatically set opt max step
+        if opt_maxstep is None:
+            opt_maxstep = self.boxv[0]*0.1
+        
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
                           'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
-        self._import_packing_config_file()
-        self._import_packing_configuration()
-        #self.coords is origin, set initial configuration and origin to be the same
         
+        #self.coords is origin, set initial configuration and origin to be the same
         potential = Harmonic(self.coords,0,bdim=self.bdim,com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
         #k is entirely controlled by the stepsize 
         stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        

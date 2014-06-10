@@ -33,13 +33,13 @@ if __name__ == "__main__":
     
     ncores = args.ncores
     
-    findk_kwargs = dict(k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9, kfactor=0.4,
-                        knavg=2000, ktol=0.025, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-7, opt_nsteps=1e4,
+    findk_kwargs = dict(k=3e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9, kfactor=0.4,
+                        knavg=2000, ktol=0.025, opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4,
                         packings_dir=packings_dir)
     
-    kmin_kwargs = dict(k=0, stepsize=1e-1, niter=1e6, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1, 
+    kmin_kwargs = dict(k=0, stepsize=1e-1, niter=1e5, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1, 
                        acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100,
-                       opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-7, opt_nsteps=1e4, packings_dir=packings_dir)
+                       opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4, packings_dir=packings_dir)
     
     mypool = mp.Pool(ncores)
     

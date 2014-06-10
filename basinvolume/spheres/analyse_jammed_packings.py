@@ -109,10 +109,18 @@ class analyse_jammed_packings(object):
         #hess_num = self.potential.NumericalHessian(self.coords)
         #np.testing.assert_almost_equal(hess,hess_num,decimal=5)
         w, v = np.linalg.eig(hess)
-        for e in w:
-            if e < 0:
-                print 'negative eigenvalue ',e
+#        for e in w:
+#            if e < 0:
+#                print 'negative eigenvalue ',e
+        w = np.real(w)
+        w = w.tolist()
+        w.sort(key = lambda x: abs(x))
+        if abs(w[self.bdim*2]) < 0.1:
+            print "configuration is a saddle"
+            print "lowest elements of evalues array",w[:self.bdim*2]
+        print "\n"
         self.whole_evalues.extend(w)
+        
         #break down hessian into diagonal elements and  compute their eigenvalues
         for i in xrange(self.nparticles):
             i1 = self.bdim*i
@@ -125,7 +133,7 @@ class analyse_jammed_packings(object):
                 assert(self.rattlers[i1]==0)
             self.block_evalues.extend(w)
         self.iteration+=1
-    
+        print "\n"
     def run(self):
         """run generate packings"""
         for fname in os.listdir(self.packings_dir):

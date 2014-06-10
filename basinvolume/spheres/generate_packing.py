@@ -184,9 +184,9 @@ class HS_Generate_Packing(_Generate_Packing):
             self.hs_radii = np.random.normal(self.mu,self.sig,self.nparticles)
         else:
             self.hs_radii = np.array(self.hs_radii,dtype='d')
-        assert(self.hs_radii.all() > 0)
+        assert(np.all(self.hs_radii > 0))
     
-#    def _sample_hs_radii(self):
+#    def _sample_hs_radii_from_area(self):
 #        if self.hs_radii is None:
 #            areas = np.random.normal(self.mu,self.sig,self.nparticles)
 #            self.hs_radii = np.sqrt(areas)
@@ -272,7 +272,7 @@ class HS_Generate_Packing(_Generate_Packing):
         while no_overlap == False:
             no_overlap = True
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords,pot,nsteps=10000)
+            res = lbfgs_cpp(coords,pot,nsteps=1000)
             #assert(res.success is True) #checks that a minimum configuration has been found
             self.coords = np.array(res.coords)
             print "generated new start coords "

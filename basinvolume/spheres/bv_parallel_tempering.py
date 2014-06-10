@@ -19,11 +19,11 @@ if __name__ == "__main__":
     fname = args.jammed_packing_fname
     
     #Parallel Tempering
-    tot_niter = 1e6
+    tot_niter = 1e5
     
     ptiter = int(tot_niter*0.1) #10% PT swaps
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
-    adjustf_niter = int(tot_niter*0.01) #equilibrate for the first 1/100th of total steps
+    adjustf_niter = int(tot_niter*0.02) #equilibrate for the first 1/100th of total steps
     nskip = int(adjustf_niter/niter) #don't swap while adjusting the step-size
     pt_eq_niter = int(tot_niter*0.1) #equilibrate pt for the following 1/10th of total steps
     pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 10 snapshots)
