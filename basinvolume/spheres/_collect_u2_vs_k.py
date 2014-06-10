@@ -15,9 +15,10 @@ from itertools import cycle
 class _collect_u2_vs_k(object):
     """
     this is a class that implements _collect_u2_vs_k class 
+    *ts_skip number of points skipped when printing time series (every ts_skip)
     """
         
-    def __call__(self, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
+    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):
@@ -32,6 +33,7 @@ class _collect_u2_vs_k(object):
         self.findk_configpath = os.path.join(self.explore_dir,'findk_'+fname+'.config')  
         self.kmin_configpath = os.path.join(self.explore_dir,'kmin_'+fname+'.config')
         
+        self.ts_skip = ts_skip
         self._import_config_files()
         self.run()
     
@@ -77,8 +79,9 @@ class _collect_u2_vs_k(object):
             k = f.readline()
             if not k: break
             karray.extend([float(k)])
-        karray.extend([self.kmax])
-        self.karray = np.array(karray,dtype='d')
+        #prepend kmax
+        karray.insert(0,self.kmax)
+        self.karray = np.array(karray[::-1],dtype='d')
 
     def _import_u2_reverse(self):
         n = len(self.karray)-1
@@ -94,11 +97,11 @@ class _collect_u2_vs_k(object):
                     niter, u2, var = lineList[-1].split()
                     self.u2_array[int(dir)] = u2
                     self.var_array[int(dir)] = var
-        #extend with kmin
-        self.u2_array.extend([self.displ_k_max])
-        self.var_array.extend([self.var_displ_k_max])
-        self.u2_array = np.array(self.u2_array,dtype='d')
-        self.var_array = np.array(self.var_array,dtype='d')
+        #prepend u2 kmax
+        self.u2_array.insert(0,self.displ_k_max)
+        self.var_array.insert(0,self.var_displ_k_max)
+        self.u2_array = np.array(self.u2_array[::-1],dtype='d')
+        self.var_array = np.array(self.var_array[::-1],dtype='d')
         
     def _import_time_series(self):
         timeseries = []
@@ -158,9 +161,10 @@ class _collect_u2_vs_k(object):
         ax = fig.add_subplot(111)
         #timeseries
         for i,series in enumerate(self.timeseries):
-            ax.plot(series[::10],ls=next(linecycler),linewidth=3,label=str(i))
+            ax.plot(series[::self.ts_skip],ls=next(linecycler),linewidth=3,label=str(i))
         #plt.yscale('symlog')
         ax.legend(frameon=False,loc=1)
+        plt.savefig(self.base_directory+'/time_series.eps')
         plt.show()
         #integrand
         fig = plt.figure()
@@ -168,9 +172,9 @@ class _collect_u2_vs_k(object):
         ax.errorbar(self.tarray,self.farray,yerr=self.sigfarray)
         ax.set_xlabel('t')
         ax.set_ylabel('integrand')
-        #plt.savefig('')
+        plt.savefig(self.base_directory+'/integrand.eps')
         plt.show()
-        #plt.figure(self.base_directory+'/integrand.eps')
+        #plt.figure()
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(cont_karray,u2_array_app,'-')
@@ -180,7 +184,7 @@ class _collect_u2_vs_k(object):
         ax.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
-        #plt.figure(self.base_directory+'/u2_vs_k.eps')
+        plt.savefig(self.base_directory+'/u2_vs_k.eps')
         plt.show()
         
         

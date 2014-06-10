@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 import argparse
 from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
+import time
             
 if __name__ == "__main__":
     """
@@ -28,8 +29,7 @@ if __name__ == "__main__":
     pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 10 snapshots)
     ts_freq = 10
     ts_niter = int(niter*pfreq/ts_freq) 
-    print 'tot_niter: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(tot_niter, ptiter, niter, adjustf_niter, nskip, pfreq)
-    
+        
     sim = configure_bv_mcrunner()
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
@@ -40,5 +40,9 @@ if __name__ == "__main__":
     kmax = sim.kmax
         
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip, base_directory=path, verbose=False)
+    start=time.time()
     ptrunner.run()
+    end=time.time()
+    print 'tot_niter: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(tot_niter, ptiter, niter, adjustf_niter, nskip, pfreq)
+    print 'elapsed time',end-start
     

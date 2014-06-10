@@ -150,10 +150,7 @@ if __name__ == "__main__":
     mcrunner = sim('jammed_packing0.xydr')
     print 'simulation started'
     start=time.time()
-    #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)
-    #sim = pickle.load(open('testpickle.pickle', "rb"))
-    #mcrunner = sim('jammed_packing0.xyzdr')
-    #mcrunner.run()
+    mcrunner.run()
     end=time.time()
     print end-start
     status = mcrunner.get_status()

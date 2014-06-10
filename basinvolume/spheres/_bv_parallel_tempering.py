@@ -40,7 +40,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if (self.rank == 0):
             Tarray = spring_constants_variable_transform(self.nproc+1, self.Tmax, self.u2meank0, 
                                                          self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
-            Tarray = np.array(Tarray[:-1],dtype='d') #exclude kmax entry, no need to be simulated, means already available
+            Tarray = Tarray[::-1]
+            Tarray = np.array(Tarray[1:],dtype='d') #exclude kmax entry, no need to be simulated, mean is already available
             self.Tarray = Tarray
         else:
             self.Tarray = None
