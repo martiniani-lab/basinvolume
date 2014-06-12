@@ -125,7 +125,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.binsize = hbinsize
         self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize,(adjustf_niter+pt_eq_niter))
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
-        self.conftest2 = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
+        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.time_series = RecordDisplacementTimeseries(self.origin,self.bdim, ts_niter, ts_freq)
         self.step = RandomCoordsDisplacement(np.random.randint(i32max))
@@ -236,7 +236,7 @@ class Findk_MCrunner(_BaseMCRunner):
         
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
-        self.conftest2 = CheckSameMinimum(self.optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
+        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
         self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol)
                 
         #set up pele:MC

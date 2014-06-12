@@ -73,9 +73,7 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 			this->_get_vec_distance(coords);
 
 			//compute square displacement from origin
-			double norm2 = 0;
-			for (size_t i=0;i<_N;++i)
-			    norm2 += _distance[i]*_distance[i];
+			double norm2 = dot(_distance,_distance);
 			_hist.add_entry(norm2);
 			double count = (double) _count - _eqsteps + 1;
 			_mean = (_mean*(count-1)+norm2)/count;
@@ -161,15 +159,13 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         this->_get_vec_distance(coords);
 
         //compute square displacement from origin
-        double norm2 = 0;
-        for (size_t i=0;i<_origin.size();++i)
-            norm2 += _distance[i]*_distance[i];
+        double norm2 = dot(_distance,_distance);
 
         _mean = (_mean*(_count-1)+norm2)/_count;
         _mean2 = (_mean2*(_count-1)+(norm2*norm2))/_count;
 
         //this will trigger premature exit from the MC run loop
-        if (_count == _avg_count)
+        if (_count >= _avg_count)
             mc->_niter = std::numeric_limits<size_t>::max();
     }
     else if(mc_count % _navg == 0)
