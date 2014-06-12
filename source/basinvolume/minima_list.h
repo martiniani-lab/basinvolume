@@ -98,7 +98,7 @@ bool MinimaList<distance_policy>::agrees_with_input(const index_t this_match, co
     if ( fabs(energy.at(this_match)-energy_inp) > tol_energy )
 	return false; //failed energy test
     //3. check: coordinate match
-    const std::vector<coor_t>::const_iterator it = coor.at(this_match)->begin();
+    std::vector<coor_t>::const_iterator it = coor.at(this_match)->begin();
     const index_t tmp_N = coor.at(this_match)->size();
     for (index_t i = 0; i < tmp_N; ++i, ++it){
 	if ( rattler[i]*fabs( *it - coor_inp[i] ) > tol_delta_x_element )
