@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <random>
 #include <chrono>
+#include <memory>
+
 #include "pele/array.h"
 #include "pele/optimizer.h"
 #include "pele/distance.h"
@@ -14,7 +16,7 @@
 #include "pele/lowest_eig_potential.h"
 #include "mcpele/mc.h"
 #include "mcpele/conf_test.h"
-#include <memory>
+#include "minima_list.h"
 
 using std::runtime_error;
 using pele::Array;
@@ -161,6 +163,7 @@ public:
  * _Eor: energy of the origin (must pass it because CheckSameMinimum knows nothing about the potential used by the optimiser)
  * _inoratt: index of first non-rattler
  * _Nnoratt: number of non-rattlers
+ * use the flag -D RECORD_MINIMA_LIST to record information about the minima that we fall into
  * */
 
 template<typename distance_policy>
@@ -168,6 +171,7 @@ class CheckSameMinimum:public mcpele::ConfTest{
 protected:
     inline void _get_vec_distance(pele::Array<double> quenched_coords);
     inline void _check_convergence(pele::Array<double> quenched_coords);
+    inline void _record_minimum();
     static const size_t _ndim = distance_policy::_ndim;
     pele::GradientOptimizer * _optimizer;
     pele::BasePotential * _potential;
@@ -177,8 +181,14 @@ protected:
     std::shared_ptr<distance_policy> _dist_policy;
     size_t _Nnoratt, _inoratt;
     //convergence test classes
+    bool _perform_convergence_test;
     double _lbfgstol, _lbfgsM, _lbfgsniter, _lbfgsmaxstep, _lowtol, _hightol, _eigtol, _H0;
     Array<double> _ranvec;
+    //minima listing
+    bool _record_minimum_list;
+    double _tol_delta_x, _tol_energy, _tol_delta_x_element;
+    Array<double> _aligned_quenched_coords;
+    MinimaList<distance_policy> _minima_list;
 public:
     CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
             Array<double> rattlers, double dtol, std::shared_ptr<distance_policy> dist=NULL);
@@ -197,8 +207,10 @@ CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * op
         _optimizer(optimizer), _potential(potential), _origin(origin.copy()), _hs_radii(hs_radii.copy()),
         _rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
         _rms(0),_nparticles(_hs_radii.size()), _dist_policy(dist),_Nnoratt(0),
-        _lbfgstol(1e-2), _lbfgsM(5), _lbfgsniter(30), _lbfgsmaxstep(0.3), _lowtol(1e-10),
-        _hightol(_optimizer->get_tol()), _eigtol(0.1), _ranvec(_origin.copy()), _H0(1)
+        _perform_convergence_test(true), _lbfgstol(1e-2), _lbfgsM(5), _lbfgsniter(30),
+        _lbfgsmaxstep(0.3), _lowtol(1e-10), _hightol(_optimizer->get_tol()), _eigtol(0.1), _ranvec(_origin.copy()), _H0(1),
+        _record_minimum_list(false), _tol_delta_x(1e-10), _tol_energy(1e-10), _tol_delta_x_element(_tol_delta_x*origin.size()),
+        _minima_list(_tol_delta_x, _tol_energy, _tol_delta_x_element, _dist_policy)
         {
             if (_dist_policy == NULL)
                 throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
@@ -213,6 +225,9 @@ CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * op
                 _Nnoratt += _rattlers[i];
 
             _ranvec/=norm(_ranvec);
+
+            if (_record_minimum_list)
+        	_aligned_quenched_coords.resize(_origin.size());
         }
 
 //compute distance from origin after aligning the centre of mass
@@ -233,6 +248,8 @@ inline void CheckSameMinimum<distance_policy>::_get_vec_distance(pele::Array<dou
                 quenched_coords[i1+j] -= dr[j];
             }
         }
+        if (_record_minimum_list)
+            _aligned_quenched_coords = quenched_coords.copy();
 
         //compute distance between aligned structures
         for(size_t i=0;i<_nparticles;++i)
@@ -278,7 +295,8 @@ bool CheckSameMinimum<distance_policy>::test(Array<double> &trial_coords, MC * m
     _optimizer->reset(trial_coords);
     _optimizer->run();
 
-    this->_check_convergence(_optimizer->get_x());
+    if (_perform_convergence_test)
+	this->_check_convergence(_optimizer->get_x());
 
     //add number of energy evaluations to mc eval count
     size_t nfev = _optimizer->get_nfev();
@@ -298,6 +316,8 @@ bool CheckSameMinimum<distance_policy>::test(Array<double> &trial_coords, MC * m
     _d = norm(_distance);
     _rms = _d / sqrt(_Nnoratt);
     if (_rms > _dtol){
+	if (_record_minimum_list)
+	    this->_record_minimum();
         //std::cout<<"failed quench rms "<<_rms<<std::endl;
         return false;
     }
@@ -305,6 +325,12 @@ bool CheckSameMinimum<distance_policy>::test(Array<double> &trial_coords, MC * m
         //std::cout<<"successfull quench rms "<<_rms<<std::endl;
         return true;
     }
+}
+
+template<typename distance_policy>
+inline void CheckSameMinimum<distance_policy>::_record_minimum()
+{
+    _minima_list.check_new_minimum(_d, _optimizer->get_f(), _aligned_quenched_coords, _rattlers);
 }
 
 class CheckSameMinimum2D:public CheckSameMinimum<pele::cartesian_distance<2>>{

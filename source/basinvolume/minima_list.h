@@ -74,7 +74,8 @@ MinimaList<distance_policy>::MinimaList(const coor_t tol_delta_x_, const energy_
     }
 
 template<typename distance_policy>
-bool MinimaList<distance_policy>::check_new_minimum(const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler){
+bool MinimaList<distance_policy>::check_new_minimum(const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
+{
     // 1. get possible matches for candidate based on delta_x and dtol
     const map_t::const_iterator low = this->lower_bound(delta_x_inp-tol_delta_x);
     const map_t::const_iterator high= this->upper_bound(delta_x_inp+tol_delta_x);
@@ -93,7 +94,8 @@ bool MinimaList<distance_policy>::check_new_minimum(const coor_t delta_x_inp, co
 }
 
 template<typename distance_policy>
-bool MinimaList<distance_policy>::agrees_with_input(const index_t this_match, const energy_t energy_inp, pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler){
+bool MinimaList<distance_policy>::agrees_with_input(const index_t this_match, const energy_t energy_inp, pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
+{
     //1. check for (scalar) delta_x passed
     //2. check: energy match
     if ( fabs(energy.at(this_match)-energy_inp) > tol_energy )
@@ -109,12 +111,14 @@ bool MinimaList<distance_policy>::agrees_with_input(const index_t this_match, co
 }
 
 template<typename distance_policy>
-void MinimaList<distance_policy>::record_duplicate(const index_t this_match){
+void MinimaList<distance_policy>::record_duplicate(const index_t this_match)
+{
     ++count.at(this_match);
 }
 
 template<typename distance_policy>
-void MinimaList<distance_policy>::record_new_minimum(const map_t::const_iterator insertion_hint, const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<double> coor_inp){
+void MinimaList<distance_policy>::record_new_minimum(const map_t::const_iterator insertion_hint, const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<double> coor_inp)
+{
     const index_t new_index = nr_distinct_minima();
     this->insert(insertion_hint, std::make_pair(delta_x_inp, new_index));
     energy.push_back(energy_inp);
@@ -124,7 +128,8 @@ void MinimaList<distance_policy>::record_new_minimum(const map_t::const_iterator
 }
 
 template<typename distance_policy>
-pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_policy>::euclidean_displacement_vector(const index_t idx_i, const index_t idx_j, const index_t nr_points)const{
+pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_policy>::euclidean_displacement_vector(const index_t idx_i, const index_t idx_j, const index_t nr_points)const
+{
     if (nr_points <= 1) throw std::runtime_error("MinimaList<distance_policy>::euclidean_displacement_vector: illegal number of points");
     std::vector<coor_t> res(*coor.at(idx_i));
     res.shrink_to_fit();
@@ -137,7 +142,8 @@ pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_po
 }
 
 template<typename distance_policy>
-pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_policy>::euclidean_displacement_vector(const index_t idx_i, pele::Array<coor_t> coords_j, const index_t nr_points)const{
+pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_policy>::euclidean_displacement_vector(const index_t idx_i, pele::Array<coor_t> coords_j, const index_t nr_points)const
+{
     if (nr_points <= 1) throw std::runtime_error("MinimaList<distance_policy>::euclidean_displacement_vector: illegal number of points");
     pele::Array<coor_t> res = pele::Array<coor_t>( *coor.at(idx_i) ).copy();
     const coor_t del = 1/coor_t(nr_points-1);
