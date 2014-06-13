@@ -26,13 +26,18 @@ set(pele_include ../../../pele/source)
 include_directories(${pele_include})
 message("pele include directory ${pele_include}")
 
-## build the basinvolume library
-#FILE(GLOB basinvolume_sources ${basinvolume_include}/*.cpp)
-#add_library(basinvolume_lib ${basinvolume_sources})
+# set mcpele include directory
+set(mcpele_include ../../../mcpele/source)
+include_directories(${mcpele_include})
+message("mcpele include directory ${mcpele_include}")
+
+# build the pele library
+FILE(GLOB pele_sources ${pele_include}/*.cpp)
+add_library(pele_lib ${pele_sources})
 
 # get all the source files
 FILE(GLOB sources *.cpp)
 
 add_executable(test_main ${sources})
 #target_link_libraries(test_main basinvolume_lib gtest gtest_main pthread)
-target_link_libraries(test_main gtest gtest_main pthread)
+target_link_libraries(test_main pele_lib gtest gtest_main pthread)
