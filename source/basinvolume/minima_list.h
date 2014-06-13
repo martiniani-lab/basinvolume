@@ -39,6 +39,7 @@ public:
      * */
     index_t nr_distinct_minima()const{return this->size();}
     index_t nr_minimum_visits(const index_t idx)const{return count.at(idx);}
+    energy_t get_energy(const index_t idx)const{return energy.at(idx);}
     bool check_new_minimum(const coor_t, const energy_t, pele::Array<coor_t>, pele::Array<coor_t>);
     /*
      * Once the CheckSameMinimum test (given the used tol) has decided that the found minimum is different
@@ -52,15 +53,15 @@ public:
     bool agrees_with_input(const index_t, const energy_t, pele::Array<coor_t>, pele::Array<coor_t>);
     void record_duplicate(const index_t);
     void record_new_minimum(const map_t::const_iterator, const coor_t, const energy_t, pele::Array<double>);
-    pele::Array<coor_t> euclidean_displacement_vector(const index_t, const index_t, const index_t);
+    pele::Array<coor_t> euclidean_displacement_vector(const index_t idx_i, const index_t idx_j, const index_t nr_points)const;
     /*
-     * Gives the displacement vector that one should add n_points-1 times to minimum with index i to
-     * arrive at minimum j.
-     * This should be useful to plot the energy along that direct Euclidean connection line of the two minima.
+     * Gives the displacement vector that one should add n_points-1 times to minimum with index j to
+     * arrive at minimum i.
      * */
-    pele::Array<coor_t> euclidean_displacement_vector(const index_t, pele::Array<coor_t>, const index_t);
+    pele::Array<coor_t> euclidean_displacement_vector(const index_t idx_i, pele::Array<coor_t> coords_j, const index_t nr_points)const;
     /*
-     * Same as above, but between minimum with index i and minimum given by coords in second argument.
+     * Same as above, but between minimum with index i and minimum given by coords_j in second argument.
+     * This could be used to compute the energy along a displacement line, going from the origin minimum at coords_j to the neighbor at index_i.
      * */
 };
 
@@ -120,6 +121,31 @@ void MinimaList<distance_policy>::record_new_minimum(const map_t::const_iterator
     coor.push_back(std::make_shared<std::vector<coor_t> >(coor_inp.data(), coor_inp.data()+coor_inp.size()));
     coor.back()->shrink_to_fit();
     count.push_back(1);
+}
+
+template<typename distance_policy>
+pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_policy>::euclidean_displacement_vector(const index_t idx_i, const index_t idx_j, const index_t nr_points)const{
+    if (nr_points <= 1) throw std::runtime_error("MinimaList<distance_policy>::euclidean_displacement_vector: illegal number of points");
+    std::vector<coor_t> res(*coor.at(idx_i));
+    res.shrink_to_fit();
+    const coor_t del = 1/coor_t(nr_points-1);
+    for (index_t i = 0; i < res.size(); ++i){
+	res.at(i) -= coor.at(idx_j)->at(i);
+	res.at(i) *= del;
+    }
+    return pele::Array<coor_t>(res).copy();
+}
+
+template<typename distance_policy>
+pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_policy>::euclidean_displacement_vector(const index_t idx_i, pele::Array<coor_t> coords_j, const index_t nr_points)const{
+    if (nr_points <= 1) throw std::runtime_error("MinimaList<distance_policy>::euclidean_displacement_vector: illegal number of points");
+    pele::Array<coor_t> res = pele::Array<coor_t>( *coor.at(idx_i) ).copy();
+    const coor_t del = 1/coor_t(nr_points-1);
+    for (index_t i = 0; i < res.size(); ++i){
+	res[i] -= coords_j[i];
+	res[i] *= del;
+    }
+    return res.copy();
 }
 
 }//namespace bv
