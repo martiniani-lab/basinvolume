@@ -100,7 +100,7 @@ extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-W
 
 cxx_modules = [
     Extension("basinvolume.monte_carlo._conf_test_cpp", 
-              ["basinvolume/monte_carlo/_conf_test_cpp.cxx"] + include_sources,
+              ["basinvolume/monte_carlo/_conf_test_cpp.cxx",pelepath+"/source/lbfgs.cpp"] + include_sources,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,

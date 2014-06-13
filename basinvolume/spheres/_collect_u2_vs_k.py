@@ -18,7 +18,7 @@ class _collect_u2_vs_k(object):
     *ts_skip number of points skipped when printing time series (every ts_skip)
     """
         
-    def __call__(self, ts_skip=10, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
+    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):

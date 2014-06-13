@@ -17,16 +17,16 @@ cdef extern from "basinvolume/conf_test.h" namespace "bv":
     cdef cppclass cppCheckOverlap3D "bv::CheckOverlap3D":
         cppCheckOverlap3D(_pele.Array[double], double*) except+
     cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
-        cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.Array[double], _pele.Array[double],
+        cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
                             _pele.Array[double] , double) except+
     cdef cppclass cppCheckSameMinimum3D "bv::CheckSameMinimum3D":
-        cppCheckSameMinimum3D(_pele_opt.cGradientOptimizer *, _pele.Array[double], _pele.Array[double],
+        cppCheckSameMinimum3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
                             _pele.Array[double] , double) except+
     cdef cppclass cppCheckSameMinimumPeriodic2D "bv::CheckSameMinimumPeriodic2D":
-        cppCheckSameMinimumPeriodic2D(_pele_opt.cGradientOptimizer *, _pele.Array[double], _pele.Array[double],
+        cppCheckSameMinimumPeriodic2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
                             double*, _pele.Array[double] , double) except+
     cdef cppclass cppCheckSameMinimumPeriodic3D "bv::CheckSameMinimumPeriodic3D":
-        cppCheckSameMinimumPeriodic3D(_pele_opt.cGradientOptimizer *, _pele.Array[double], _pele.Array[double],
+        cppCheckSameMinimumPeriodic3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
                             double*, _pele.Array[double] , double) except+
                             
 #===============================================================================
@@ -77,36 +77,40 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     """
     
     cdef _pele_opt.GradientOptimizer opt # this is stored so that the memory is not freed
+    cdef _pele.BasePotential potential
+    
     #cdef cppCheckSameMinimum* newptr
-    def __cinit__(self, optimizer, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3):
+    def __cinit__(self, optimizer, pot, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         cdef _pele_opt.GradientOptimizer opt = optimizer
+        cdef _pele.BasePotential potential = pot
         cdef np.ndarray[double, ndim=1] bv
         self.opt = opt #guarantees that optimizer does not go out of scope
+        self.potential = pot
         #print rattlers
         
         if boxvec is None:
             if (bdim == 2):
-                self.thisptr = <cppConfTest*>new cppCheckSameMinimum2D(opt.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = <cppConfTest*>new cppCheckSameMinimum2D(opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
             else:
                 assert(bdim == 3)
-                self.thisptr = <cppConfTest*>new cppCheckSameMinimum3D(opt.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = <cppConfTest*>new cppCheckSameMinimum3D(opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
         else:    
             bv = np.array(boxvec, dtype=float)
             if (len(boxvec) == 2):
-                self.thisptr = <cppConfTest*>new cppCheckSameMinimumPeriodic2D(opt.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = <cppConfTest*>new cppCheckSameMinimumPeriodic2D(opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
             else:
                 assert(len(boxvec) == 3)
-                self.thisptr = <cppConfTest*>new cppCheckSameMinimumPeriodic3D(opt.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = <cppConfTest*>new cppCheckSameMinimumPeriodic3D(opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
