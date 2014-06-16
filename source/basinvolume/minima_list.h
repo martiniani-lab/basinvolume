@@ -26,6 +26,7 @@ private:
     const coor_t tol_delta_x_element;
     std::shared_ptr<dist_t> dist;
     // 1. (minimum_label,delta_x) stored in map (this)
+    std::vector<coor_t> delta_x; // useful for fast, random access to delta_x(k); if this turns out to use too much memory, we can recover delta_x information from map instead
     // 2. energies
     std::vector<energy_t> energy;
     // 3. coordinates: these should be the "alinged coordinates", as obtained in the CheckSameMinimum class before computing the distance to the origin
@@ -40,6 +41,8 @@ public:
     index_t nr_distinct_minima()const{return this->size();}
     index_t nr_minimum_visits(const index_t idx)const{return count.at(idx);}
     energy_t get_energy(const index_t idx)const{return energy.at(idx);}
+    coor_t get_delta_x(const index_t idx)const{return delta_x.at(idx);}
+    pele::Array<coor_t>get_coords(const index_t idx)const{return pele::Array<double>(*coor.at(idx)).copy();}
     bool check_new_minimum(const coor_t, const energy_t, pele::Array<coor_t>, pele::Array<coor_t>);
     /*
      * Once the CheckSameMinimum test (given the used tol) has decided that the found minimum is different
@@ -121,6 +124,7 @@ void MinimaList<distance_policy>::record_new_minimum(const map_t::const_iterator
 {
     const index_t new_index = nr_distinct_minima();
     this->insert(insertion_hint, std::make_pair(delta_x_inp, new_index));
+    delta_x.push_back(delta_x_inp);
     energy.push_back(energy_inp);
     coor.push_back(std::make_shared<std::vector<coor_t> >(coor_inp.data(), coor_inp.data()+coor_inp.size()));
     coor.back()->shrink_to_fit();

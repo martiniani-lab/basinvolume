@@ -199,6 +199,11 @@ public:
     Array<double> get_distance_array(){
         return _distance.copy();
     }
+    size_t ml_nr_distinct_minima()const{return _minima_list.nr_distinct_minima();}
+    size_t ml_nr_minimum_visits(const size_t idx)const{return _minima_list.nr_minimum_visits(idx);}
+    double ml_get_energy(const size_t idx)const{return _minima_list.get_energy(idx);}
+    double ml_get_delta_x(const size_t idx)const{return _minima_list.get_delta_x(idx);}
+    Array<double> ml_get_coords(const size_t idx)const{return _minima_list.get_coords(idx);}
 };
 
 template<typename distance_policy>
