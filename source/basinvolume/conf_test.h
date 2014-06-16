@@ -208,7 +208,7 @@ CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * op
         _rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
         _rms(0),_nparticles(_hs_radii.size()), _dist_policy(dist),_Nnoratt(0),
         _perform_convergence_test(true), _lbfgstol(1e-2), _lbfgsM(5), _lbfgsniter(30),
-        _lbfgsmaxstep(0.3), _lowtol(1e-10), _hightol(_optimizer->get_tol()), _eigtol(0.1), _ranvec(_origin.copy()), _H0(1),
+        _lbfgsmaxstep(0.3), _lowtol(1e-10), _hightol(_optimizer->get_tol()), _eigtol(0.1), _H0(1), _ranvec(_origin.copy()),
         _record_minimum_list(false), _tol_delta_x(1e-10), _tol_energy(1e-10), _tol_delta_x_element(_tol_delta_x*origin.size()),
         _minima_list(_tol_delta_x, _tol_energy, _tol_delta_x_element, _dist_policy)
         {
