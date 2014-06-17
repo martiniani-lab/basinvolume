@@ -18,7 +18,6 @@
 
 class CheckSameMinimumTest: public ::testing::Test{
 public:
-//typedef typename pele::cartesian_distance<3> dist_t;
     typedef std::vector<double> vec_t;
     typedef pele::Array<double> arr_t;
     typedef pele::Harmonic pot_t;

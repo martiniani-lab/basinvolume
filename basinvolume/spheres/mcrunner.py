@@ -3,6 +3,8 @@ import numpy as np
 import sys
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
+from pele.storage import Database
+from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk, CheckOverlap, RecordDisplacementTimeseries
@@ -162,6 +164,22 @@ class BV_MCrunner(_BaseMCRunner):
         timeseries = np.array(self.time_series.get_time_series())
         np.savetxt(fname, timeseries)
         self.time_series.clear()
+        
+    def dump_minima_list(self, fname):
+        """write minima list to pele database"""
+        db= Database(fname)
+        minima_dicts = []
+        #add origin to database, with _id == 0, to make post processing possible
+        #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
+        #distance should be zero because it is distance to itself
+        mindict0 = dict(energy=self.potential.getEnergy(self.origin), coords=self.origin, user_data=dict(count=0, distance=0))
+        minima_dicts.append(mindict0)
+        #add neighboring minima to database
+        for i in xrange(self.conftest2.ml_nr_distinct_minima()):
+            mindicti = dict(energy=self.conftest2.ml_get_energy(i), coords=self.conftest2.ml_get_coords(i), user_data=dict(count=self.conftest2.ml_nr_minimum_visits(i), distance=self.conftest2.ml_get_delta_x(i)))
+            minima_dicts.append(mindicti)
+        db.engine.execute(Minimum.__table__.insert(), minima_dicts)
+        db.session.commit()
     
     def dump_lowesteig_ts(self, fname):
         """write time series to fname"""

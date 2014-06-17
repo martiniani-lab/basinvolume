@@ -5,14 +5,12 @@
 #include <gtest/gtest.h>
 
 #include "pele/array.h"
-#include "pele/distance.h"
 #include "basinvolume/minima_list.h"
 
 #define EXPECT_NEAR_RELATIVE(A, B, T)  EXPECT_NEAR(fabs(A)/(fabs(A)+fabs(B)+1), fabs(B)/(fabs(A)+fabs(B)+1), T)
 
 class MinimaListTest: public ::testing::Test{
 public:
-    typedef typename pele::cartesian_distance<3> dist_t;
     typedef std::vector<double> vec_t;
     typedef pele::Array<double> arr_t;
     double tol_delta_x;
@@ -56,8 +54,8 @@ public:
 };
 
 TEST_F(MinimaListTest, CountingAndCoords){
-    bv::MinimaList<dist_t> ml(tol_delta_x, tol_energy, tol_delta_x_element, std::make_shared<dist_t>());
-    bv::MinimaList<dist_t> mlr(tol_delta_x, tol_energy, tol_delta_x_element, std::make_shared<dist_t>());
+    bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
+    bv::MinimaList mlr(tol_delta_x, tol_energy, tol_delta_x_element);
     for (size_t i = 0; i < nr_insertions; ++i){
 	const bool status = ml.check_new_minimum(42, 44, x, rattlera);
 	bool statusr;
@@ -73,7 +71,7 @@ TEST_F(MinimaListTest, CountingAndCoords){
 }
 
 TEST_F(MinimaListTest, DeltaXScalarTest){
-    bv::MinimaList<dist_t> ml(tol_delta_x, tol_energy, tol_delta_x_element, std::make_shared<dist_t>());
+    bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
     bool status;
     status = ml.check_new_minimum(42, 44, x, rattlera);
     EXPECT_TRUE(status);
@@ -90,7 +88,7 @@ TEST_F(MinimaListTest, DeltaXScalarTest){
 }
 
 TEST_F(MinimaListTest, EnergyTest){
-    bv::MinimaList<dist_t> ml(tol_delta_x, tol_energy, tol_delta_x_element, std::make_shared<dist_t>());
+    bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
     bool status;
     status = ml.check_new_minimum(42, 44, x, rattlera);
     EXPECT_TRUE(status);
@@ -114,7 +112,7 @@ TEST_F(MinimaListTest, EnergyTest){
 }
 
 TEST_F(MinimaListTest, CoordinateTest2){
-    bv::MinimaList<dist_t> ml(tol_delta_x, tol_energy, tol_delta_x_element, std::make_shared<dist_t>());
+    bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
     bool status;
     status = ml.check_new_minimum(42, 44, x, rattlera);
     EXPECT_TRUE(status);
@@ -130,7 +128,7 @@ TEST_F(MinimaListTest, CoordinateTest2){
 }
 
 TEST_F(MinimaListTest, EuclideanConnectionTest){
-    bv::MinimaList<dist_t> ml(tol_delta_x, tol_energy, tol_delta_x_element, std::make_shared<dist_t>());
+    bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
     arr_t y(x.copy());
     for (size_t i=0; i < y.size(); ++i){y[i] += sqrt(i+2);}
     ml.check_new_minimum(0.3,0.4,x,rattlera);
