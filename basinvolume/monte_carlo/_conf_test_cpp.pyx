@@ -61,6 +61,11 @@ cdef extern from "basinvolume/conf_test.h" namespace "bv":
                             _pele.Array[double] , double) except+
         _pele.Array[double] get_lowesteig_ts() except +
         void lowesteig_ts_clear() except +
+        size_t ml_nr_distinct_minima() except +
+        size_t ml_nr_minimum_visits(const size_t) except +
+        double ml_get_energy(const size_t) except +
+        double ml_get_delta_x(const size_t) except+
+        _pele.Array[double] ml_get_coords(const size_t) except +
     cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
         cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
                             _pele.Array[double] , double) except+
@@ -149,7 +154,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     @cython.boundscheck(False)
     def ml_get_coords(self, idx):
         """return a coordinates array for minimum with index: idx"""
-        cdef _pele.Array[double] coori = self.newptr.ml_get_coords(idx);
+        cdef _pele.Array[double] coori = self.newptr.ml_get_coords(idx)
         cdef double *coordata = coori.data()
         cdef np.ndarray[double, ndim=1, mode="c"] coor = np.zeros(coori.size())
         cdef size_t i
