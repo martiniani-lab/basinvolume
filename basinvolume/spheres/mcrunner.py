@@ -172,7 +172,7 @@ class BV_MCrunner(_BaseMCRunner):
         #add origin to database, with _id == 0, to make post processing possible
         #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
         #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.potential.getEnergy(self.origin), coords=self.origin, user_data=dict(count=0, distance=0))
+        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.origin), coords=self.origin, user_data=dict(count=0, distance=0))
         minima_dicts.append(mindict0)
         #add neighboring minima to database
         for i in xrange(self.conftest2.ml_nr_distinct_minima()):
