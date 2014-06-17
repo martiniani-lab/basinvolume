@@ -188,7 +188,7 @@ protected:
     bool _record_minimum_list;
     double _tol_delta_x, _tol_energy, _tol_delta_x_element;
     Array<double> _aligned_quenched_coords;
-    MinimaList<distance_policy> _minima_list;
+    MinimaList _minima_list;
 public:
     CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
             Array<double> rattlers, double dtol, std::shared_ptr<distance_policy> dist=NULL);
@@ -215,7 +215,7 @@ CheckSameMinimum<distance_policy>::CheckSameMinimum(pele::GradientOptimizer * op
         _perform_convergence_test(true), _lbfgstol(1e-2), _lbfgsM(5), _lbfgsniter(30),
         _lbfgsmaxstep(0.3), _lowtol(1e-10), _hightol(_optimizer->get_tol()), _eigtol(0.1), _H0(1), _ranvec(_origin.copy()),
         _record_minimum_list(false), _tol_delta_x(1e-10), _tol_energy(1e-10), _tol_delta_x_element(_tol_delta_x*origin.size()),
-        _minima_list(_tol_delta_x, _tol_energy, _tol_delta_x_element, _dist_policy)
+        _minima_list(_tol_delta_x, _tol_energy, _tol_delta_x_element)
         {
             if (_dist_policy == NULL)
                 throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");

@@ -79,7 +79,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     cdef _pele_opt.GradientOptimizer opt # this is stored so that the memory is not freed
     cdef _pele.BasePotential potential
     
-    #cdef cppCheckSameMinimum* newptr
+    cdef cppCheckSameMinimum* newptr
     def __cinit__(self, optimizer, pot, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
@@ -114,17 +114,18 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
-        #self.newptr = <cppCheckSameMinimum*> self.thisptr 
+        self.newptr = <cppCheckSameMinimum*> self.thisptr 
+    
     def ml_nr_distinct_minima(self):
-        cdef nr_distinct_minima = self.ml_nr_distinct_minima()
+        cdef nr_distinct_minima = self.newptr.ml_nr_distinct_minima()
         return nr_distinct_minima
     def ml_get_energy(self, idx):
-        cdef this_energy = self.ml_get_energy(idx)
+        cdef this_energy = self.newptr.ml_get_energy(idx)
         return this_energy
     @cython.boundscheck(False)
     def ml_get_coords(self, idx):
         """return a coordinates array for minimum with index: idx"""
-        cdef _pele.Array[double] coori = self.ml_get_coords(idx);
+        cdef _pele.Array[double] coori = self.newptr.ml_get_coords(idx);
         cdef double *coordata = coori.data()
         cdef np.ndarray[double, ndim=1, mode="c"] coor = np.zeros(coori.size())
         cdef size_t i
@@ -132,10 +133,10 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
             coor[i] = coordata[i]
         return coor
     def ml_nr_minimum_visits(self,idx):
-        cdef nr_minimum_visits = self.ml_nr_minimum_visits(idx)
+        cdef nr_minimum_visits = self.newptr.ml_nr_minimum_visits(idx)
         return nr_minimum_visits
     def ml_get_delta_x(self,idx):
-        cdef delta_x = self.ml_get_delta_x(idx)
+        cdef delta_x = self.newptr.ml_get_delta_x(idx)
         return delta_x
         
 class CheckSameMinimum(_Cdef_CheckSameMinimum):
