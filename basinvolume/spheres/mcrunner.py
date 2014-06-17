@@ -163,6 +163,12 @@ class BV_MCrunner(_BaseMCRunner):
         np.savetxt(fname, timeseries)
         self.time_series.clear()
     
+    def dump_lowesteig_ts(self, fname):
+        """write time series to fname"""
+        timeseries = np.array(self.conftest2.get_lowesteig_ts())
+        np.savetxt(fname, timeseries)
+        self.conftest2.lowesteig_ts_clear()
+        
     def show_histogram(self):
         """shows the histogram"""
         hist = self.histogram.get_histogram()

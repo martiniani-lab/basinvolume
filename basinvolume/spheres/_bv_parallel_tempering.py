@@ -29,6 +29,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             iteration = self.mcrunner.get_iterations_count()
             fname = "{0}/TimeSeries.{1}".format(directory,int(iteration))
             self.mcrunner.dump_timeseries(fname)
+            ##this should be made optional
+            fname = "{0}/LowestEigTimeSeries.{1}".format(directory,int(iteration))
+            self.mcrunner.dump_lowesteig_ts(fname)
 
     def _get_temps(self):
         """

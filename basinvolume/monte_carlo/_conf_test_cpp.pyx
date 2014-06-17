@@ -16,19 +16,6 @@ cdef extern from "basinvolume/conf_test.h" namespace "bv":
         cppCheckOverlap2D(_pele.Array[double], double*) except+
     cdef cppclass cppCheckOverlap3D "bv::CheckOverlap3D":
         cppCheckOverlap3D(_pele.Array[double], double*) except+
-    cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
-        cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double] , double) except+
-    cdef cppclass cppCheckSameMinimum3D "bv::CheckSameMinimum3D":
-        cppCheckSameMinimum3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double] , double) except+
-    cdef cppclass cppCheckSameMinimumPeriodic2D "bv::CheckSameMinimumPeriodic2D":
-        cppCheckSameMinimumPeriodic2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            double*, _pele.Array[double] , double) except+
-    cdef cppclass cppCheckSameMinimumPeriodic3D "bv::CheckSameMinimumPeriodic3D":
-        cppCheckSameMinimumPeriodic3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            double*, _pele.Array[double] , double) except+
-                            
 #===============================================================================
 # Check hyper spherical container
 #===============================================================================
@@ -68,6 +55,25 @@ cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
 class CheckOverlap(_Cdef_CheckOverlap):
     """This class is the python interface for the c++ CheckOverlap implementation."""
 
+cdef extern from "basinvolume/conf_test.h" namespace "bv":
+    cdef cppclass cppCheckSameMinimum "bv::CheckSameMinimum":
+        cppCheckSameMinimum(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
+                            _pele.Array[double] , double) except+
+        _pele.Array[double] get_lowesteig_ts() except +
+        void lowesteig_ts_clear() except +
+    cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
+        cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
+                            _pele.Array[double] , double) except+
+    cdef cppclass cppCheckSameMinimum3D "bv::CheckSameMinimum3D":
+        cppCheckSameMinimum3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
+                            _pele.Array[double] , double) except+
+    cdef cppclass cppCheckSameMinimumPeriodic2D "bv::CheckSameMinimumPeriodic2D":
+        cppCheckSameMinimumPeriodic2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
+                            double*, _pele.Array[double] , double) except+
+    cdef cppclass cppCheckSameMinimumPeriodic3D "bv::CheckSameMinimumPeriodic3D":
+        cppCheckSameMinimumPeriodic3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
+                            double*, _pele.Array[double] , double) except+
+
 #===============================================================================
 # Check same minimum
 #===============================================================================
@@ -78,8 +84,8 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     
     cdef _pele_opt.GradientOptimizer opt # this is stored so that the memory is not freed
     cdef _pele.BasePotential potential
+    cdef cppCheckSameMinimum* newptr
     
-    #cdef cppCheckSameMinimum* newptr
     def __cinit__(self, optimizer, pot, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
@@ -88,7 +94,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         cdef _pele.BasePotential potential = pot
         cdef np.ndarray[double, ndim=1] bv
         self.opt = opt #guarantees that optimizer does not go out of scope
-        self.potential = pot
+        self.potential = potential
         #print rattlers
         
         if boxvec is None:
@@ -114,7 +120,23 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
-        #self.newptr = <cppCheckSameMinimum*> self.thisptr 
+        self.newptr = <cppCheckSameMinimum*> self.thisptr
+    
+    @cython.boundscheck(False)
+    def get_lowesteig_ts(self):
+        """return a energy time series array"""
+        cdef _pele.Array[double] seriesi = self.newptr.get_lowesteig_ts()
+        cdef double *seriesdata = seriesi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(seriesi.size())
+        cdef size_t i
+        for i in xrange(seriesi.size()):
+            series[i] = seriesdata[i]
+              
+        return series
+    
+    def lowesteig_ts_clear(self):
+        """clears time series"""
+        self.newptr.lowesteig_ts_clear()
         
 class CheckSameMinimum(_Cdef_CheckSameMinimum):
     """This class is the python interface for the c++ CheckSameMinimum implementation.

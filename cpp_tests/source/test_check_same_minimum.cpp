@@ -18,7 +18,7 @@
 
 class CheckSameMinimumTest: public ::testing::Test{
 public:
-typedef typename pele::cartesian_distance<3> dist_t;
+//typedef typename pele::cartesian_distance<3> dist_t;
     typedef std::vector<double> vec_t;
     typedef pele::Array<double> arr_t;
     typedef pele::Harmonic pot_t;
@@ -54,6 +54,6 @@ typedef typename pele::cartesian_distance<3> dist_t;
 
 TEST_F(CheckSameMinimumTest, BasicFunctionality){
     pele::GradientOptimizer* opt = new opt_t(pot, origin, _lbfgstol, _lbfgsM);
-    bv::CheckSameMinimum<dist_t> check(opt, pot, origin, hs_radii, rattlers, dtol, std::make_shared<dist_t>());
+    bv::CheckSameMinimum3D check(opt, pot, origin, hs_radii, rattlers, dtol);
     delete opt;
 }

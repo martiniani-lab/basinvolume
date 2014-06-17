@@ -43,9 +43,9 @@ public:
     bool check_new_minimum(const coor_t, const energy_t, pele::Array<coor_t>, pele::Array<coor_t>);
     /*
      * Once the CheckSameMinimum test (given the used tol) has decided that the found minimum is different
-     * this function takes the information on that "neighboring" minimum and stores it.
+     * this function takes the information on that "neighbouring" minimum and stores it.
      * If the neighbour was already known, we increase its count and return false.
-     * If the neighbour was not yet known (visited), we add it to the list of neighbors and return true.
+     * If the neighbour was not yet known (visited), we add it to the list of neighbours and return true.
      * This behaviour is analogous to the behaviour of std::map.
      * We are using std::multimap for now to avoid problems due to floating point arithmetic with the keys (delta_x).
      * Presumably, this is not necessary and can be changed with the typedef above.
@@ -81,11 +81,11 @@ bool MinimaList<distance_policy>::check_new_minimum(const coor_t delta_x_inp, co
     const map_t::const_iterator high= this->upper_bound(delta_x_inp+tol_delta_x);
     // 2. check if candidate agrees with any potential match
     for (map_t::const_iterator i = low; i != high; ++i){
-	const index_t this_match = i->second;
-	if (agrees_with_input(this_match, energy_inp, coor_inp, rattler)){
-	    // candidate new minimum agrees with a previously found one
-	    record_duplicate(this_match);
-	    return false;
+        const index_t this_match = i->second;
+        if (agrees_with_input(this_match, energy_inp, coor_inp, rattler)){
+            // candidate new minimum agrees with a previously found one
+            record_duplicate(this_match);
+            return false;
 	}
     }
     // candidate new minimum does not agree with any previously found one, store candidate new minimum
@@ -104,8 +104,8 @@ bool MinimaList<distance_policy>::agrees_with_input(const index_t this_match, co
     std::vector<coor_t>::const_iterator it = coor.at(this_match)->begin();
     const index_t tmp_N = coor.at(this_match)->size();
     for (index_t i = 0; i < tmp_N; ++i, ++it){
-	if ( rattler[i]*fabs( *it - coor_inp[i] ) > tol_delta_x_element )
-	    return false; //failed coordinate test
+        if ( rattler[i]*fabs( *it - coor_inp[i] ) > tol_delta_x_element )
+            return false; //failed coordinate test
     }
     return true; //all tests passed
 }
@@ -135,8 +135,8 @@ pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_po
     res.shrink_to_fit();
     const coor_t del = 1/coor_t(nr_points-1);
     for (index_t i = 0; i < res.size(); ++i){
-	res.at(i) -= coor.at(idx_j)->at(i);
-	res.at(i) *= del;
+        res.at(i) -= coor.at(idx_j)->at(i);
+        res.at(i) *= del;
     }
     return pele::Array<coor_t>(res).copy();
 }
@@ -148,8 +148,8 @@ pele::Array<typename MinimaList<distance_policy>::coor_t> MinimaList<distance_po
     pele::Array<coor_t> res = pele::Array<coor_t>( *coor.at(idx_i) ).copy();
     const coor_t del = 1/coor_t(nr_points-1);
     for (index_t i = 0; i < res.size(); ++i){
-	res[i] -= coords_j[i];
-	res[i] *= del;
+        res[i] -= coords_j[i];
+        res[i] *= del;
     }
     return res.copy();
 }
