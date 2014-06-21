@@ -10,7 +10,6 @@
 #include "mcpele/mc.h"
 #include "mcpele/histogram.h"
 #include "mcpele/actions.h"
-#include "conf_test.h"
 #include "mcpele/takestep.h"
 #include "pele/harmonic.h"
 
