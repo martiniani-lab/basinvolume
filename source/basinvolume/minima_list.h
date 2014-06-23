@@ -4,8 +4,8 @@
 #include <map>
 #include <memory>
 #include <stdexcept>
-#include <vector>
 #include <cmath>
+#include <list>
 
 #include "pele/array.h"
 #include "pele/distance.h"
@@ -20,12 +20,13 @@ public:
 private:
     coor_t delta_x_;
     energy_t energy_;
-    std::vector<coor_t> coor_;
+    pele::Array<coor_t> coor_;
     index_t count_;
 public:
     coor_t delta_x()const{return delta_x_;}
     energy_t energy()const{return energy_;}
-    std::vector<coor_t>& coor(){return coor_;}
+    pele::Array<coor_t> coor()const{return coor_;}
+    pele::Array<coor_t> get_coor()const{return coor_.copy();}
 };
 
 class MinimaList{
@@ -60,8 +61,8 @@ public:
     bool check_new_minimum(const Minimum& input, pele::Array<coor_t> rattler)
     {
 	// 1. get possible matches for candidate based on delta_x and dtol
-	const map_t::const_iterator low = mm->lower_bound(delta_x_inp-tol_delta_x);
-	const map_t::const_iterator high= mm->upper_bound(delta_x_inp+tol_delta_x);
+	const map_t::const_iterator low = mm.lower_bound(input.delta_x()-tol_delta_x);
+	const map_t::const_iterator high= mm.upper_bound(input.delta_x()+tol_delta_x);
         // 2. check if candidate agrees with any potential match
         for (map_t::const_iterator i = low; i != high; ++i){
 	    const Minimum* this_match = i->second;
