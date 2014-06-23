@@ -196,7 +196,7 @@ CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::Ba
         _rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
         _rms(0),_nparticles(_hs_radii.size()), _dist_policy(dist),_Nnoratt(0),
         _lbfgstol(1e-2), _lbfgsM(5), _lbfgsniter(30), _lbfgsmaxstep(0.3), _lowtol(1e-10),
-        _hightol(_optimizer->get_tol()), _eigtol(0.1), _ranvec(_origin.copy()), _H0(1)
+        _hightol(_optimizer->get_tol()), _eigtol(0.1), _H0(1), _ranvec(_origin.copy())
         {
             if (_dist_policy == NULL)
                 throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
