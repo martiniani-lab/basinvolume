@@ -12,52 +12,67 @@
 
 namespace bv{
 
-class MinimaList: public std::multimap<double,size_t>{
+class Minimum{
 public:
     typedef double energy_t;
     typedef double coor_t;
     typedef size_t index_t;
-    typedef std::multimap<coor_t,index_t> map_t;
+private:
+    coor_t delta_x_;
+    energy_t energy_;
+    std::vector<coor_t> coor_;
+    index_t count_;
+public:
+    coor_t delta_x()const{return delta_x_;}
+    energy_t energy()const{return energy_;}
+    std::vector<coor_t>& coor(){return coor_;}
+};
+
+class MinimaList{
+public:
+    typedef Minimum::energy_t energy_t;
+    typedef Minimum::coor_t coor_t;
+    typedef Minimum::index_t index_t;
+    typedef std::list<Minimum> store_t;
+    typedef std::multimap<coor_t,Minimum*> map_t;
 private:
     const coor_t tol_delta_x;
     const energy_t tol_energy;
     const coor_t tol_delta_x_element;
-    // 1. (minimum_label,delta_x) stored in map (this)
-    std::vector<coor_t> delta_x; // useful for fast, random access to delta_x(k); if this turns out to use too much memory, we can recover delta_x information from map instead
-    // 2. energies
-    std::vector<energy_t> energy;
-    // 3. coordinates: these should be the "alinged coordinates", as obtained in the CheckSameMinimum class before computing the distance to the origin
-    std::vector<std::shared_ptr<std::vector<coor_t> > > coor;
-    // 4. how many times the minimum has been found
-    std::vector<index_t> count;
+    store_t ml;
+    map_t mm;
 public:
     MinimaList(const coor_t tol_delta_x_, const energy_t tol_energy_, const coor_t tol_delta_x_element_):
-        tol_delta_x(tol_delta_x_), tol_energy(tol_energy_), tol_delta_x_element(tol_delta_x_element_)
-        {}
+	tol_delta_x(tol_delta_x_), tol_energy(tol_energy_), tol_delta_x_element(tol_delta_x_element_)
+	{}
     /*
      * To make the distance comparison between CheckSameMinimum and here consistent, the tolerances should be set accordingly.
      * */
-    index_t nr_distinct_minima()const{return this->size();}
+    index_t nr_distinct_minima()const{return ml.size();}
+    //The following 4 functions are index based and can not be implemented efficently here
+    /*
     index_t nr_minimum_visits(const index_t idx)const{return count.at(idx);}
     energy_t get_energy(const index_t idx)const{return energy.at(idx);}
     coor_t get_delta_x(const index_t idx)const{return delta_x.at(idx);}
     pele::Array<coor_t> get_coords(const index_t idx)const{return pele::Array<double>(*coor.at(idx)).copy();}
-    bool check_new_minimum(const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
+    */
+    //bool check_new_minimum(const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
+    bool check_new_minimum(const Minimum& input, pele::Array<coor_t> rattler)
     {
-        // 1. get possible matches for candidate based on delta_x and dtol
-        const map_t::const_iterator low = this->lower_bound(delta_x_inp-tol_delta_x);
-        const map_t::const_iterator high= this->upper_bound(delta_x_inp+tol_delta_x);
+	// 1. get possible matches for candidate based on delta_x and dtol
+	const map_t::const_iterator low = mm->lower_bound(delta_x_inp-tol_delta_x);
+	const map_t::const_iterator high= mm->upper_bound(delta_x_inp+tol_delta_x);
         // 2. check if candidate agrees with any potential match
         for (map_t::const_iterator i = low; i != high; ++i){
-    	const index_t this_match = i->second;
-    	if (agrees_with_input(this_match, energy_inp, coor_inp, rattler)){
-    	    // candidate new minimum agrees with a previously found one
-    	    record_duplicate(this_match);
-    	    return false;
-    	}
+	    const Minimum* this_match = i->second;
+	    if (agrees_with_input(this_match, input.energy(), input.coor(), rattler)){
+		// candidate new minimum agrees with a previously found one
+		record_duplicate(this_match);
+		return false;
+	    }
         }
         // candidate new minimum does not agree with any previously found one, store candidate new minimum
-        record_new_minimum(low, delta_x_inp, energy_inp, coor_inp);
+        record_new_minimum(low, input);
         return true;
     }
     /*
