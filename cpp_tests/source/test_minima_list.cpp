@@ -66,8 +66,8 @@ TEST_F(MinimaListTest, CountingAndCoords){
     }
     EXPECT_TRUE(ml.nr_distinct_minima()==1);
     EXPECT_TRUE(mlr.nr_distinct_minima()==1);
-    EXPECT_TRUE(ml.nr_minimum_visits(0)==nr_insertions);
-    EXPECT_TRUE(mlr.nr_minimum_visits(0)==nr_insertions);
+    EXPECT_TRUE(ml.nr_minima_visits().at(0)==nr_insertions);
+    EXPECT_TRUE(mlr.nr_minima_visits().at(0)==nr_insertions);
 }
 
 TEST_F(MinimaListTest, DeltaXScalarTest){
@@ -82,9 +82,9 @@ TEST_F(MinimaListTest, DeltaXScalarTest){
     status = ml.check_new_minimum(42-1.5*tol_delta_x, 44, x, rattlera);
     EXPECT_TRUE(status);
     EXPECT_TRUE(ml.nr_distinct_minima()==3);
-    EXPECT_TRUE(ml.nr_minimum_visits(0)==2);
-    EXPECT_TRUE(ml.nr_minimum_visits(1)==1);
-    EXPECT_TRUE(ml.nr_minimum_visits(2)==1);
+    EXPECT_TRUE(ml.nr_minima_visits().at(0)==2);
+    EXPECT_TRUE(ml.nr_minima_visits().at(1)==1);
+    EXPECT_TRUE(ml.nr_minima_visits().at(2)==1);
 }
 
 TEST_F(MinimaListTest, EnergyTest){
@@ -93,22 +93,22 @@ TEST_F(MinimaListTest, EnergyTest){
     status = ml.check_new_minimum(42, 44, x, rattlera);
     EXPECT_TRUE(status);
     EXPECT_TRUE(ml.nr_distinct_minima()==1);
-    EXPECT_TRUE(ml.nr_minimum_visits(0)==1);
+    EXPECT_TRUE(ml.nr_minima_visits().at(0)==1);
     status = ml.check_new_minimum(42, 44+0.5*tol_energy, x, rattlera);
     EXPECT_TRUE(status==false);
     EXPECT_TRUE(ml.nr_distinct_minima()==1);
-    EXPECT_TRUE(ml.nr_minimum_visits(0)==2);
+    EXPECT_TRUE(ml.nr_minima_visits().at(0)==2);
     status = ml.check_new_minimum(42, 44+1.5*tol_energy, x, rattlera);
     EXPECT_TRUE(status);
     status = ml.check_new_minimum(42, 44-1.5*tol_energy, x, rattlera);
     EXPECT_TRUE(status);
     EXPECT_TRUE(ml.nr_distinct_minima()==3);
-    EXPECT_TRUE(ml.nr_minimum_visits(0)==2);
-    EXPECT_TRUE(ml.nr_minimum_visits(1)==1);
-    EXPECT_TRUE(ml.nr_minimum_visits(2)==1);
-    EXPECT_NEAR(44, ml.get_energy(0), 1e-15);
-    EXPECT_NEAR(44+1.5*tol_energy, ml.get_energy(1), 1e-15);
-    EXPECT_NEAR(44-1.5*tol_energy, ml.get_energy(2), 1e-15);
+    EXPECT_TRUE(ml.nr_minima_visits().at(0)==2);
+    EXPECT_TRUE(ml.nr_minima_visits().at(1)==1);
+    EXPECT_TRUE(ml.nr_minima_visits().at(2)==1);
+    EXPECT_NEAR(44, ml.energies().at(0), 1e-15);
+    EXPECT_NEAR(44+1.5*tol_energy, ml.energies().at(1), 1e-15);
+    EXPECT_NEAR(44-1.5*tol_energy, ml.energies().at(2), 1e-15);
 }
 
 TEST_F(MinimaListTest, CoordinateTest2){
@@ -125,32 +125,4 @@ TEST_F(MinimaListTest, CoordinateTest2){
     EXPECT_TRUE(status);
     status = ml.check_new_minimum(42, 44, y, rattlera);
     EXPECT_TRUE(status==false);
-}
-
-TEST_F(MinimaListTest, EuclideanConnectionTest){
-    bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
-    arr_t y(x.copy());
-    for (size_t i=0; i < y.size(); ++i){y[i] += sqrt(i+2);}
-    ml.check_new_minimum(0.3,0.4,x,rattlera);
-    ml.check_new_minimum(0.3,0.4,y,rattlera);
-    EXPECT_TRUE(ml.nr_distinct_minima()==2);
-    const size_t nr_points(100);
-    // compute distance directly, consider arrays x, y, where x corresponds to i and y corresponds to j
-    arr_t direct_displ_vector;
-    direct_displ_vector.resize(x.size());
-    for (size_t i = 0; i < x.size(); ++i){
-	direct_displ_vector[i] = (x[i]-y[i])/double(nr_points-1);
-    }
-    // compute displacement vector buy minimum class
-    arr_t displ_vector_A = ml.euclidean_displacement_vector(0,1,nr_points);
-    arr_t displ_vector_B = ml.euclidean_displacement_vector(0,y,nr_points);
-    // compare
-    for (size_t i = 0; i < x.size(); ++i){
-	EXPECT_NEAR(direct_displ_vector[i], displ_vector_A[i], 1e-15);
-	EXPECT_NEAR(displ_vector_A[i], displ_vector_B[i], 1e-15);
-    }
-    // test iteration direction
-    for (size_t i = 0; i < x.size(); ++i){
-	EXPECT_NEAR(y[i]+(nr_points-1)*displ_vector_A[i], x[i], 1e-15);
-    }
 }

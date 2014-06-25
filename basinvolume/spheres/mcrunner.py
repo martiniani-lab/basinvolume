@@ -128,7 +128,11 @@ class BV_MCrunner(_BaseMCRunner):
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.time_series = RecordDisplacementTimeseries(self.origin,self.bdim, ts_niter, ts_freq)
+        ##############
         self.step = RandomCoordsDisplacement(np.random.randint(i32max))
+        #self.step = RandomCoordsDisplacement()
+        #self.step.set_seed(np.random.randint(i32max))
+        ##############
         self.metropolis = MetropolisTest(np.random.randint(i32max))
         
         #set up pele:MC

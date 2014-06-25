@@ -152,6 +152,8 @@ if __name__ == "__main__":
     print end-start
     status = sim.mcrunner.get_status()
     print status
+    print 'd2 kmin: ',sim.displ_k_min
+    print 'var: ',sim.var_displ_k_min
     sim.mcrunner.show_histogram()
     
     
