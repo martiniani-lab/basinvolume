@@ -19,7 +19,9 @@ class _findk_mcrunner(object):
     """
      #niter=1e8   
      #avgcount=1e5
-    def __init__(self, fname, k=1e2, niter=1e5, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
+     ####k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
+                 ##opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'
+    def __init__(self, fname, k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -142,7 +144,8 @@ class _findk_mcrunner(object):
     
 if __name__ == "__main__":
     
-    sim = _findk_mcrunner('jammed_packing0.xydr')
+    #sim = _findk_mcrunner('jammed_packing0.xydr')
+    sim = _findk_mcrunner('jammed_packing0.xyzdr')
     print 'simulation started'
     start=time.time() 
     sim.run()

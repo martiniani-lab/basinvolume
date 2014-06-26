@@ -31,9 +31,9 @@ linecycler = cycle(lines)
 color_cycle=[cm(1.*i/6) for i in xrange(6)]
 ########################################################## 
 
-def analytical_d2(x,k,N):
+def analytical_d2(x,k,N,boxdim=3):
     f = float(k*x)/2
-    g = float(3*N-3)/2 -1
+    g = float(boxdim*N-boxdim)/2 -1
     return np.exp(-f)*np.power(f,g)
 
 vec_analytical_d2 = np.vectorize(analytical_d2)

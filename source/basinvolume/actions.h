@@ -174,14 +174,15 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         //adjust step if last two step oscillated around the target, uses a lower bound
         double d = (_target - _old_acceptedf) * (_target - _acceptedf);
         if (d < 0){
-            _factor = std::min(_factor*(2.0-_factor),0.99);
+            _factor = std::min<double>(_factor*(2.0-_factor),0.99);
         }
 
         double ik = mc->_stepsize;
         _k = 1/(ik*ik);
 
-//        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-//        std::cout<<"_k "<<_k<<std::endl; //debug
+        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
+        std::cout<<"_k "<<_k<<std::endl; //debug
+        std::cout<<"_factor"<<_factor<<std::endl;//debug
 
         if (std::abs(_target - _acceptedf) <= _tol)
             _converged = true;
@@ -192,6 +193,7 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
 
         //adjust the standard deviation of the normal distribution
         mc->_stepsize = sqrt(1.0/_k);
+        std::cout << "mc->_stepsize: " << mc->_stepsize << std::endl;
 
         //now reset to zero memory of acceptance and rejection
         _naccepted = 0;
