@@ -150,12 +150,14 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
     else
         ++_nrejected;
 
+    //if (_converged&&accepted)
     if (_converged)
     {
         //increase averaging count
         ++_count;
         //compute distances subtracting the origin's coordinates
-        this->_get_vec_distance(coords);
+        //this->_get_vec_distance(coords); //update distance in any case, also if new configuration is illegal
+        if (accepted) this->_get_vec_distance(coords); //update distance only if new configuration is legal
 
         //compute square displacement from origin
         double norm2 = dot(_distance,_distance);
