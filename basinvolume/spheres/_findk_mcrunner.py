@@ -17,8 +17,8 @@ class _findk_mcrunner(object):
     *knavg: number of steps over findk averages the acceptance
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
-        
-    def __init__(self, fname, k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
+     #niter=1e8   
+    def __init__(self, fname, k=1e2, niter=1e4, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -145,4 +145,10 @@ if __name__ == "__main__":
     sim.run()
     end=time.time()
     print "time ",end-start
+    print "self.kmax: ", sim.kmax
+    print "self.prob: ", sim.prob
+    print "self.displ_k_max: ", sim.displ_k_max
+    print "self.var_displ_k_max: ", sim.var_displ_k_max
+    print "Nd/k: ", sim.nparticles*sim.bdim/sim.kmax
+    print "(N-1)d/k", (sim.nparticles-1)*sim.bdim/sim.kmax
     
