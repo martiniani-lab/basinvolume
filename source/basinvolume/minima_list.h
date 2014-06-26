@@ -43,7 +43,6 @@ public:
     typedef Minimum::index_t index_t;
     typedef std::list<Minimum> store_t;
     typedef std::multimap<coor_t,Minimum*> map_t;
-    typedef std::multimap<energy_t,Minimum*> energy_map_t;
 
 private:
     const coor_t tol_delta_x;
