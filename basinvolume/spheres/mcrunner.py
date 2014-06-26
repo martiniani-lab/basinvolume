@@ -8,6 +8,37 @@ from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk, CheckOverlap, RecordDisplacementTimeseries
 import pylab as plt
 
+#for plotting histogram
+from itertools import cycle
+import matplotlib.pyplot as plt
+from scipy.integrate import quad
+
+#more stuff for plotting histogram and comparing to prediction
+#######################SET LATEX OPTIONS###################                            
+plt.rc('text', usetex=True)
+plt.rc('font',**{'family':'serif','serif':['Computer Modern']})
+#rc('text.latex',preamble=r'\usepackage{times}')                                       
+plt.rcParams.update({'font.size': 20})
+plt.rcParams['xtick.major.pad'] = 8
+plt.rcParams['ytick.major.pad'] = 8
+##########################################################                             
+####SET COLOUR MAP######                                                               
+cm = plt.get_cmap('Dark2')
+########################                                                               
+#####################LINE STYLE CYCLER####################                             
+lines = ["-","--","-."]
+linecycler = cycle(lines)
+color_cycle=[cm(1.*i/6) for i in xrange(6)]
+########################################################## 
+
+def analytical_d2(x,k,N):
+    f = float(k*x)/2
+    g = float(3*N-3)/2 -1
+    return np.exp(-f)*np.power(f,g)
+
+vec_analytical_d2 = np.vectorize(analytical_d2)
+#end: things for histogram
+
 """
 pele::MCrunner
 
@@ -201,7 +232,7 @@ class Findk_MCrunner(_BaseMCRunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca,
                   rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
-                  opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5):
+                  opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=0.15, binsize=0.001):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -241,13 +272,17 @@ class Findk_MCrunner(_BaseMCRunner):
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol)
+        self.binsize = binsize
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol, hmin, hmax, self.binsize)
+        #nr_eq_steps = 1e2 #####it seems that this is not known a priori
+        #self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize, nr_eq_steps)
                 
         #set up pele:MC
         self.set_takestep(self.step)
         self.add_conf_test(self.conftest1)
         self.add_conf_test(self.conftest2)
         self.add_action(self.findk)
+        #self.add_action(self.histogram)
         
     def set_control(self, c):
         """set k"""
@@ -257,8 +292,30 @@ class Findk_MCrunner(_BaseMCRunner):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
         k = 1.0/(stepsize*stepsize)
+        #k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
         return k
+    
+    def get_entries(self):
+        return self.findk.get_entries()
+    
+    def show_histogram(self):
+        """shows the histogram"""
+        hist = self.findk.get_histogram()
+        val = [i*self.binsize for i in xrange(len(hist))]
+        n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
+                                    alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
+        ###analytical
+        bincenters = 0.5*(bins[1:]+bins[:-1])
+        and2 = vec_analytical_d2(val,self.get_k(),len(self.hs_radii))/quad(vec_analytical_d2,bincenters[0],bincenters[-1],args=(self.get_k(),len(self.hs_radii)))[0]
+        plt.plot(bincenters, and2, linewidth=2.5, ls='--',color=color_cycle[-1])
+        plt.xlim(0,0.3)
+        plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
+        plt.ylabel(r'frequency $\times 10$')
+        plt.tight_layout()
+        plt.savefig('findk_histogram.eps')
+        plt.show()
         
+    
 if __name__ == "__main__":
     #to run harmonic potential go to tests
     

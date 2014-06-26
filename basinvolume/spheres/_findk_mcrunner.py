@@ -18,7 +18,8 @@ class _findk_mcrunner(object):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
      #niter=1e8   
-    def __init__(self, fname, k=1e2, niter=1e4, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
+     #avgcount=1e5
+    def __init__(self, fname, k=1e2, niter=1e5, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -48,7 +49,9 @@ class _findk_mcrunner(object):
         #self.coords is origin, set initial configuration and origin to be the same
         potential = Harmonic(self.coords,0,bdim=self.bdim,com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
         #k is entirely controlled by the stepsize 
-        stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation        
+        stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation
+        #stepsize = np.sqrt(self.ndim/k)  #####################
+        #####       
         self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                   rattlers=self.rattlers, avgcount=avgcount, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
                                   ktol=ktol, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps) 
@@ -151,4 +154,6 @@ if __name__ == "__main__":
     print "self.var_displ_k_max: ", sim.var_displ_k_max
     print "Nd/k: ", sim.nparticles*sim.bdim/sim.kmax
     print "(N-1)d/k", (sim.nparticles-1)*sim.bdim/sim.kmax
+    sim.mcrunner.show_histogram()
+    print "entries in histogram: ",sim.mcrunner.get_entries()
     

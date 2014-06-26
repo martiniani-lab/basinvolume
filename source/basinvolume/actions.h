@@ -64,9 +64,7 @@ inline void RecordDisp2Histogram::_get_vec_distance(const pele::Array<double>& x
     }
 
 void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool accepted, MC* mc) {
-		_count = mc->get_iterations_count();
-
-		if (_count > _eqsteps)
+		if (mc->get_iterations_count() > get_eqsteps())
 		{
 			//compute distances subtracting the origin's coordinates
 			this->_get_vec_distance(coords);
@@ -74,9 +72,9 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
 			//compute square displacement from origin
 			double norm2 = dot(_distance,_distance);
 			_hist.add_entry(norm2);
-			double count = (double) _count - _eqsteps + 1;
-			_mean = (_mean*(count-1)+norm2)/count;
-			_mean2 = (_mean2*(count-1)+(norm2*norm2))/count;
+			//double count = (double) _count - _eqsteps + 1;
+			//_mean = (_mean*(count-1)+norm2)/count;
+			//_mean2 = (_mean2*(count-1)+(norm2*norm2))/count;
 		}
 }
 
@@ -95,28 +93,27 @@ void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool acc
  * */
 
 //template<size_t bdim>
-class Findk : public Action {
+class Findk : public mcpele::RecordEnergyHistogram {
 protected:
     inline void _get_vec_distance(const pele::Array<double>& x);
     pele::Array<double> _origin, _rattlers, _distance;
-    double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf, _mean, _mean2;
-    size_t _ndim, _nparticles, _avg_count, _navg, _count, _naccepted, _nrejected, _start;
+    double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf;
+    size_t _ndim, _nparticles, _avg_count, _navg, _naccepted, _nrejected, _start;
     bool _converged;
 public:
-    Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol);
+    Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol, double min, double max, double bin);
     virtual ~Findk() {}
     virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
     double get_prob(){return _acceptedf;}
-    double get_mean(){return _mean;};
-    double get_variance(){return (_mean2 - _mean*_mean);};
 };
 
 Findk::Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t avg_count, double target,
-        double factor, size_t navg, double tol):
+        double factor, size_t navg, double tol, double min, double max, double bin):
+	    RecordEnergyHistogram(min, max, bin, 42), //we do not specify equlilibration steps; recoding starts when kmax search converged
             _origin(origin.copy()), _rattlers(rattlers.copy()),_distance(origin.size()),
             _target(target),_factor(factor),_acceptedf(0), _k(1), _tol(tol),
-            _old_acceptedf(0), _mean(0), _mean2(0), _ndim(ndim), _nparticles(_origin.size()/_ndim),
-            _avg_count(avg_count), _navg(navg), _count(0), _naccepted(0), _nrejected(0), _start(0), _converged(false){}
+            _old_acceptedf(0), _ndim(ndim), _nparticles(_origin.size()/_ndim),
+            _avg_count(avg_count), _navg(navg), _naccepted(0), _nrejected(0), _start(0), _converged(false){}
 
 inline void Findk::_get_vec_distance(const pele::Array<double>& x){
         pele::Array<double> delta_com(_ndim,0);
@@ -153,8 +150,6 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
     //if (_converged&&accepted)
     if (_converged)
     {
-        //increase averaging count
-        ++_count;
         //compute distances subtracting the origin's coordinates
         //this->_get_vec_distance(coords); //update distance in any case, also if new configuration is illegal
         if (accepted) this->_get_vec_distance(coords); //update distance only if new configuration is legal
@@ -162,12 +157,14 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
         //compute square displacement from origin
         double norm2 = dot(_distance,_distance);
 
-        _mean = (_mean*(_count-1)+norm2)/_count;
-        _mean2 = (_mean2*(_count-1)+(norm2*norm2))/_count;
+        //if search for kmax has converged, push displacement into histogram
+        _hist.add_entry(norm2);
+        //RecordEnergyHistogram::action(coords,energy,accepted,mc);
 
         //this will trigger premature exit from the MC run loop
-        if (_count >= _avg_count)
+        if (_hist.entries() >= _avg_count){
             mc->_niter = std::numeric_limits<size_t>::max();
+        }
     }
     else if(mc_count % _navg == 0)
     {

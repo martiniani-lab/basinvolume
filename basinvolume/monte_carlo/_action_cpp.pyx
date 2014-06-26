@@ -75,21 +75,23 @@ class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
 
 cdef extern from "basinvolume/actions.h" namespace "bv":    
     cdef cppclass cppFindk "bv::Findk":
-        cppFindk(_pele.Array[double], _pele.Array[double], size_t, size_t, double, double, size_t, double) except+
+        cppFindk(_pele.Array[double], _pele.Array[double], size_t, size_t, double, double, size_t, double, double, double, double) except+
         double get_prob() except+
         double get_mean() except+
         double get_variance() except+
+        _pele.Array[double] get_histogram() except +
+        int get_entries() except+
         
 cdef class _Cdef_Findk(_Cdef_Action):
     """This class is the python interface for the c++ bv::cppFindk action class implementation
     """
     cdef cppFindk* newptr
-    def __cinit__(self, origin, rattlers, bdim, avgcount, target, factor, navg, tol):
+    def __cinit__(self, origin, rattlers, bdim, avgcount, target, factor, navg, tol, min, max, bin):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         self.thisptr = <cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                 _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
-                                                bdim, avgcount, target, factor, navg, tol)
+                                                bdim, avgcount, target, factor, navg, tol, min, max, bin)
         self.newptr = <cppFindk*> self.thisptr
     
     def get_prob(self):
@@ -99,10 +101,26 @@ cdef class _Cdef_Findk(_Cdef_Action):
         prob = self.newptr.get_prob()
         return prob
     
+    def get_entries(self):
+        entries = self.newptr.get_entries()
+        return entries
+    
     def get_mean_variance(self):
         mean = self.newptr.get_mean()
         variance = self.newptr.get_variance()
         return mean, variance
+    
+    @cython.boundscheck(False)
+    def get_histogram(self):
+        """return a histogram array"""
+        cdef _pele.Array[double] histi = self.newptr.get_histogram()
+        cdef double *histdata = histi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef size_t i
+        for i in xrange(histi.size()):
+            hist[i] = histdata[i]
+              
+        return hist
     
 class Findk(_Cdef_Findk):
     """This class is the python interface for the c++ Findk implementation.
