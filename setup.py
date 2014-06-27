@@ -76,7 +76,7 @@ setup(name='basinvolume',
 # build the c++ files
 #
 
-include_sources = ["source/basinvolume" + f for f in os.listdir("source/basinvolume") 
+include_sources = ["source/basinvolume/" + f for f in os.listdir("source/basinvolume") 
                    if f.endswith(".cpp")]
 include_dirs = [numpy_include, "source"]
 
