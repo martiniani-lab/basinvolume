@@ -30,7 +30,8 @@ namespace bv{
 //template<size_t bdim>
 class Findk : public mcpele::RecordEnergyHistogram {
 protected:
-    inline void _get_vec_distance(const pele::Array<double>& x);
+    void _get_vec_distance(const pele::Array<double>& x);
+    void adjust_k(const size_t, mcpele::MC*);
     pele::Array<double> _origin, _rattlers, _distance;
     double _target, _factor, _acceptedf, _k, _tol, _old_acceptedf;
     size_t _ndim, _nparticles, _avg_count, _navg, _naccepted, _nrejected, _start;

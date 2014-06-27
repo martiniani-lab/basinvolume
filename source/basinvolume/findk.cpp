@@ -9,8 +9,8 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
         double factor, size_t navg, double tol, double min, double max, double bin):
 	    RecordEnergyHistogram(min, max, bin, 42), //we do not specify equlilibration steps; recoding starts when kmax search converged
             _origin(origin.copy()), _rattlers(rattlers.copy()),_distance(origin.size()),
-            _target(target),_factor(factor),_acceptedf(0), _k(1), _tol(tol),
-            _old_acceptedf(0), _ndim(ndim), _nparticles(_origin.size()/_ndim),
+            _target(target),_factor(factor),_acceptedf(1), _k(1), _tol(tol),
+            _old_acceptedf(1), _ndim(ndim), _nparticles(_origin.size()/_ndim),
             _avg_count(avg_count), _navg(navg), _naccepted(0), _nrejected(0), _start(0), _converged(false){}
 
 void Findk::_get_vec_distance(const pele::Array<double>& x){
@@ -70,28 +70,11 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
         _acceptedf = (double) _naccepted / (_naccepted + _nrejected);
 
         //adjust step if last two step oscillated around the target, uses a lower bound
-        double d = (_target - _old_acceptedf) * (_target - _acceptedf);
-        if (d < 0){
-            _factor = std::min<double>(_factor*(2.0-_factor),0.99);
-        }
-
-        double ik = mc->_stepsize;
-        _k = 1/(ik*ik);
-
-        std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-        std::cout<<"_k "<<_k<<std::endl; //debug
-        std::cout<<"_factor"<<_factor<<std::endl;//debug
-
-        if (std::abs(_target - _acceptedf) <= _tol)
-            _converged = true;
-        else if (_acceptedf < _target)
-            _k /= _factor;
-        else
-            _k *= _factor;
+        adjust_k(mc_count/_navg, mc);
 
         //adjust the standard deviation of the normal distribution
         mc->_stepsize = std::sqrt(1.0/_k);
-        std::cout << "mc->_stepsize: " << mc->_stepsize << std::endl;
+        //std::cout << "mc->_stepsize: " << mc->_stepsize << std::endl;//debug
 
         //now reset to zero memory of acceptance and rejection
         _naccepted = 0;
@@ -100,6 +83,29 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
 
     //reset coordinates to origin
     coords.assign(_origin);
+}
+
+void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
+    // parameter: can be adapted for better convergence
+    const size_t period = 1;
+    //get k
+    const double ik = mc->_stepsize;
+    _k = 1/(ik*ik);
+    //debug output
+    //std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
+    //std::cout<<"_k "<<_k<<std::endl; //debug
+    //std::cout<<"_factor (not needed: )"<<_factor<<std::endl;//debug
+    //std::cout<<"iterations "<< iterations << std::endl;//debug
+    //check for convergence
+    if (fabs(_target - _acceptedf) < _tol){
+	_converged = true;
+	return;
+    }
+    //adapt k size
+    const double this_diff = (_target - _acceptedf);
+    const double tmp1 = 1.0/(iterations%period+1);
+    const double tmp = (1-tmp1) + tmp1*(_target/_acceptedf);
+    _k *= tmp;
 }
 
 }//namespace bv
