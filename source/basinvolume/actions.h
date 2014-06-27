@@ -13,12 +13,6 @@
 #include "mcpele/takestep.h"
 #include "pele/harmonic.h"
 
-using std::runtime_error;
-using pele::Array;
-using mcpele::MC;
-using std::sqrt;
-using mcpele::Action;
-
 namespace bv{
 
 /*
@@ -37,7 +31,7 @@ public:
 	    _origin(origin.copy()),_rattlers(rattlers.copy()),_distance(origin.size()),
 	    _N(origin.size()), _ndim(ndim), _nparticles(_N/_ndim){}
 	virtual ~RecordDisp2Histogram(){};
-	virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
+	virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
 };
 
 inline void RecordDisp2Histogram::_get_vec_distance(const pele::Array<double>& x){
@@ -63,7 +57,7 @@ inline void RecordDisp2Histogram::_get_vec_distance(const pele::Array<double>& x
         }
     }
 
-void RecordDisp2Histogram::action(Array<double> &coords, double energy, bool accepted, MC* mc) {
+void RecordDisp2Histogram::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc) {
 		if (mc->get_iterations_count() > get_eqsteps())
 		{
 			//compute distances subtracting the origin's coordinates
@@ -101,13 +95,13 @@ protected:
     size_t _ndim, _nparticles, _avg_count, _navg, _naccepted, _nrejected, _start;
     bool _converged;
 public:
-    Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol, double min, double max, double bin);
+    Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol, double min, double max, double bin);
     virtual ~Findk() {}
-    virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
+    virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
     double get_prob(){return _acceptedf;}
 };
 
-Findk::Findk(Array<double> origin, Array<double> rattlers, size_t ndim, size_t avg_count, double target,
+Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
         double factor, size_t navg, double tol, double min, double max, double bin):
 	    RecordEnergyHistogram(min, max, bin, 42), //we do not specify equlilibration steps; recoding starts when kmax search converged
             _origin(origin.copy()), _rattlers(rattlers.copy()),_distance(origin.size()),
@@ -138,7 +132,7 @@ inline void Findk::_get_vec_distance(const pele::Array<double>& x){
         }
     }
 
-void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
+void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc){
 
     size_t mc_count = mc->get_iterations_count();
 
@@ -192,7 +186,7 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
             _k *= _factor;
 
         //adjust the standard deviation of the normal distribution
-        mc->_stepsize = sqrt(1.0/_k);
+        mc->_stepsize = std::sqrt(1.0/_k);
         std::cout << "mc->_stepsize: " << mc->_stepsize << std::endl;
 
         //now reset to zero memory of acceptance and rejection
@@ -208,7 +202,7 @@ void Findk::action(Array<double> &coords, double energy, bool accepted, MC* mc){
  * Record displacement time series, measuring every __record_every-th step.
  */
 
-class RecordDisplacementTimeseries : public Action{
+class RecordDisplacementTimeseries : public mcpele::Action{
     private:
         inline void _record_displacement_value(const double dx);
         inline void _get_vec_distance(const pele::Array<double>& x);
@@ -218,7 +212,7 @@ class RecordDisplacementTimeseries : public Action{
     public:
         RecordDisplacementTimeseries(pele::Array<double> origin, const size_t ndim, const size_t niter, const size_t record_every);
         virtual ~RecordDisplacementTimeseries(){}
-        virtual void action(Array<double> &coords, double energy, bool accepted, MC* mc);
+        virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
         pele::Array<double> get_time_series();
         void clear(){_time_series.clear();}
 };
@@ -259,7 +253,7 @@ inline void RecordDisplacementTimeseries::_record_displacement_value(const doubl
     _time_series.push_back(dx);
 }
 
-void RecordDisplacementTimeseries::action(Array<double> &coords, double energy, bool accepted, MC* mc){
+void RecordDisplacementTimeseries::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc){
     size_t counter = mc->get_iterations_count();
     if (counter % _record_every == 0){
         this->_get_vec_distance(coords);
