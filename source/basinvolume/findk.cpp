@@ -92,10 +92,9 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     const double ik = mc->_stepsize;
     _k = 1/(ik*ik);
     //debug output
-    //std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-    //std::cout<<"_k "<<_k<<std::endl; //debug
-    //std::cout<<"_factor (not needed: )"<<_factor<<std::endl;//debug
-    //std::cout<<"iterations "<< iterations << std::endl;//debug
+    std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
+    std::cout<<"_k "<<_k<<std::endl; //debug
+    std::cout<<"iterations "<< iterations << std::endl;//debug
     //check for convergence
     if (fabs(_target - _acceptedf) < _tol){
 	_converged = true;

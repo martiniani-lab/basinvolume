@@ -141,7 +141,7 @@ class _kmin_mcrunner(object):
     
 if __name__ == "__main__":
     
-    sim = _kmin_mcrunner('jammed_packing0.xydr')
+    sim = _kmin_mcrunner('jammed_packing1.xyzdr')
     print 'simulation started'
     start=time.time()
     #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)
