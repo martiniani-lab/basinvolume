@@ -8,7 +8,7 @@ from pele.potentials import _pele
 cimport pele.potentials._pele as _pele
 
 cdef extern from "basinvolume/utils.h" namespace "bv":
-    double get_distance_com(_pele.Array[double], _pele.Array[double], size_t) except +
+    double get_distance_com(_pele.Array[double], _pele.Array[double], size_t) except+
 
 def get_dist_com(coords, origin, bdim):
     cdef np.ndarray[double, ndim=1] coordsc = np.array(coords, dtype=float)

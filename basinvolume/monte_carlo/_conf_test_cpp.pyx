@@ -13,7 +13,7 @@ cdef extern from "basinvolume/conf_test.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
         cppCheckHyperSphericalContainer(_pele.Array[double], double, size_t) except+
     cdef cppclass cppCheckOverlap2D "bv::CheckOverlap2D":
-        cppCheckOverlap2D(_pele.Array[double], double*) except+
+        cppCheckOverlap2D(_pele.Array[double], double*) except +
     cdef cppclass cppCheckOverlap3D "bv::CheckOverlap3D":
         cppCheckOverlap3D(_pele.Array[double], double*) except+
     cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
