@@ -1,0 +1,27 @@
+#ifndef _BV_CONVERGENCE_TEST_H
+#define _BV_CONVERGENCE_TEST_H
+
+#include "pele/array.h"
+
+namespace bv{
+
+
+class convergence_test{
+private:
+    double _lbfgstol, _lbfgsM, _lbfgsniter, _lbfgsmaxstep, _lowtol, _hightol, _eigtol, _H0;
+    pele::Array<double> _ranvec;
+    //_lbfgstol(1e-2), _lbfgsM(5), _lbfgsniter(30), _lbfgsmaxstep(0.3), _lowtol(1e-10),
+    //_hightol(_optimizer->get_tol()), _eigtol(0.1), _H0(1), _ranvec(_origin.copy())
+public:
+    convergence_test(const double _lbfgstol_, const double _lbfgsM_, const double _lbfgsniter_, const double _lbfgsmaxstep_, const double _lowtol_, const double _hightol_, const double _eigtol_, const double _H0_, pele::Array<double> _ranvec_):
+	_lbfgstol(_lbfgstol_), _lbfgsM(_lbfgsM_), _lbfgsniter(_lbfgsniter_), _lbfgsmaxstep(_lbfgsmaxstep_), _lowtol(_lowtol_), _hightol(_hightol_), _eigtol(_eigtol_), _H0(_H0_), _ranvec(_ranvec_.copy())
+	{
+	    _ranvec/=norm(_ranvec);
+	}
+    void check_convergence(pele::Array<double>, pele::BasePotential* , const size_t, pele::GradientOptimizer*);
+};
+
+
+}//namespace bv
+
+#endif//#ifndef _BV_CONVERGENCE_TEST_H

@@ -12,9 +12,11 @@
 #include "pele/optimizer.h"
 #include "pele/distance.h"
 #include "pele/harmonic.h" //debug
-#include "pele/lbfgs.h"
+
 #include "mcpele/mc.h"
 #include "mcpele/conf_test.h"
+
+#include "convergence_test.h"
 
 namespace bv{
 
@@ -52,11 +54,11 @@ protected:
     std::shared_ptr<pele::DistanceInterface> _dist_policy;
     size_t _Nnoratt, _inoratt;
     //convergence test classes
-    double _lbfgstol, _lbfgsM, _lbfgsniter, _lbfgsmaxstep, _lowtol, _hightol, _eigtol, _H0;
-    Array<double> _ranvec;
+    convergence_test _conv_test;
+    bool _perform_convergence_test;
 public:
     CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
-            Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL);
+            Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL, const bool perform_convergence_test=false);
     virtual bool test(Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckSameMinimum(){}
 
