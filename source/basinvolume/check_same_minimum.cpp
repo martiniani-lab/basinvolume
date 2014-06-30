@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "check_same_minimum.h"
 
 using pele::Array;
@@ -7,14 +9,14 @@ namespace bv{
 
 
 CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin,
-        Array<double> hs_radii, Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, const bool perform_convergence_test):
+        Array<double> hs_radii, Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, const bool perform_convergence_test, const bool collect_minima_list):
         _ndim(ndim), _optimizer(optimizer), _potential(potential), _origin(origin.copy()), _hs_radii(hs_radii.copy()),
         _rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
         _rms(0),_nparticles(_hs_radii.size()), _dist_policy(dist),_Nnoratt(0),
+        _perform_convergence_test(perform_convergence_test),
         _conv_test(1e-2, 5, 30, 0.3, 1e-10, _optimizer->get_tol(), 0.1, 1, _origin),
-	_perform_convergence_test(perform_convergence_test)
-        //_lbfgstol(1e-2), _lbfgsM(5), _lbfgsniter(30), _lbfgsmaxstep(0.3), _lowtol(1e-10),
-        //_hightol(_optimizer->get_tol()), _eigtol(0.1), _H0(1), _ranvec(_origin.copy())
+	_collect_minima_list(collect_minima_list),
+	_minima_list(1e-4, _optimizer->get_tol(), 1e-4/sqrt(origin.size())) //MinimaList(tol_delta_x_, tol_energy_, tol_delta_x_element_)
         {
             if (_dist_policy == NULL)
                 throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");

@@ -17,6 +17,7 @@
 #include "mcpele/conf_test.h"
 
 #include "convergence_test.h"
+#include "minima_list.h"
 
 namespace bv{
 
@@ -54,11 +55,14 @@ protected:
     std::shared_ptr<pele::DistanceInterface> _dist_policy;
     size_t _Nnoratt, _inoratt;
     //convergence test classes
-    convergence_test _conv_test;
     bool _perform_convergence_test;
+    convergence_test _conv_test;
+    //minima list
+    MinimaList _minima_list;
+    bool _collect_minima_list;
 public:
     CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
-            Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL, const bool perform_convergence_test=false);
+            Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL, const bool perform_convergence_test=false, const bool collect_minima_list=false);
     virtual bool test(Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckSameMinimum(){}
 
