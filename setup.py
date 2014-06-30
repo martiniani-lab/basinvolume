@@ -112,7 +112,7 @@ cxx_modules = [
               language="c++", depends=depends,
               ),
     Extension("basinvolume.utils._utils_cpp", 
-              ["basinvolume/utils/_utils_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp"] + include_sources,
+              ["basinvolume/utils/_utils_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp",pelepath+"/source/lbfgs.cpp"] + include_sources,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,
