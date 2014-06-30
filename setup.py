@@ -106,7 +106,7 @@ cxx_modules = [
               language="c++", depends=depends,
               ),
     Extension("basinvolume.monte_carlo._action_cpp", 
-              ["basinvolume/monte_carlo/_action_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp"] + include_sources,
+              ["basinvolume/monte_carlo/_action_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp",pelepath+"/source/lbfgs.cpp"] + include_sources,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,

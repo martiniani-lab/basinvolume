@@ -1,0 +1,124 @@
+#include "pele/lowest_eig_potential.h"
+
+#include "check_same_minimum.h"
+
+using pele::Array;
+using mcpele::MC;
+
+namespace bv{
+
+
+CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin,
+        Array<double> hs_radii, Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist):
+        _ndim(ndim), _optimizer(optimizer), _potential(potential), _origin(origin.copy()), _hs_radii(hs_radii.copy()),
+        _rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
+        _rms(0),_nparticles(_hs_radii.size()), _dist_policy(dist),_Nnoratt(0),
+        _lbfgstol(1e-2), _lbfgsM(5), _lbfgsniter(30), _lbfgsmaxstep(0.3), _lowtol(1e-10),
+        _hightol(_optimizer->get_tol()), _eigtol(0.1), _H0(1), _ranvec(_origin.copy())
+        {
+            if (_dist_policy == NULL)
+                throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
+
+            for(size_t i=0;i<_origin.size();i+=_ndim)
+                if (_rattlers[i] != 0){
+                    _inoratt = i/_ndim;
+                    break;
+                }
+
+            for(size_t i=0;i<_origin.size();i+=_ndim)
+                _Nnoratt += _rattlers[i];
+
+            _ranvec/=norm(_ranvec);
+        }
+
+//compute distance from origin after aligning the centre of mass
+//this ignores the rattlers completely
+
+void CheckSameMinimum::_get_vec_distance(pele::Array<double> quenched_coords){
+        pele::Array<double> dr(_ndim);
+
+        //measure distance between two non rattlers
+        _dist_policy->get_rij(dr.data(), &quenched_coords[_inoratt], &_origin[_inoratt]);
+
+        //align structures
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*_ndim;
+            for(size_t j=0;j<_ndim;++j){
+                quenched_coords[i1+j] -= dr[j];
+            }
+        }
+
+        //compute distance between aligned structures
+        for(size_t i=0;i<_nparticles;++i)
+        {
+            size_t i1 = i*_ndim;
+            _dist_policy->get_rij(dr.data(), &quenched_coords[i1], &_origin[i1]);
+
+            for(size_t j=0;j<_ndim;++j){
+                _distance[i1+j] = dr[j] * _rattlers[i1+j];
+            }
+        }
+    }
+
+void CheckSameMinimum::_check_convergence(pele::Array<double> quenched_coords)
+{
+    bool minimum = false;
+    size_t l = 0;
+    while (minimum == false && l < 10){
+        minimum = true;
+        pele::LowestEigPotential lowesteigpot(_potential, quenched_coords, _ndim);
+        pele::LBFGS lbfgs(&lowesteigpot, _ranvec.copy(), _lbfgstol, _lbfgsM);
+        lbfgs.set_maxstep(_lbfgsmaxstep);
+        lbfgs.set_H0(_H0);
+        lbfgs.set_use_relative_f(1);
+        lbfgs.run(_lbfgsniter);
+        _H0 = lbfgs.get_H0();
+        double lowesteig = lbfgs.get_f();
+        if ( lowesteig < _eigtol){
+            minimum = false;
+            _optimizer->set_tol(_lowtol);
+            _optimizer->run();
+            std::cout<<"NOT A MINIMUM"<<std::endl;
+        }
+        ++l;
+    }
+        _optimizer->set_tol(_hightol);
+}
+
+bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
+{
+    _optimizer->reset(trial_coords);
+    _optimizer->run();
+
+    this->_check_convergence(_optimizer->get_x());
+
+    //add number of energy evaluations to mc eval count
+    size_t nfev = _optimizer->get_nfev();
+    mc->_neval += nfev;
+
+    //first test: minimisation must have converged
+    bool quench_success = _optimizer->success();
+    if (! quench_success)
+        return false;
+
+
+    //compute distance between quenched coords and origin
+    //distance for rattlers is set to 0
+    this->_get_vec_distance(_optimizer->get_x());
+
+    //compute rms displacement from origin
+    _d = norm(_distance);
+    _rms = _d / sqrt(_Nnoratt);
+    if (_rms > _dtol){
+        //std::cout<<"failed quench rms "<<_rms<<std::endl;
+        return false;
+    }
+    else{
+        //std::cout<<"successfull quench rms "<<_rms<<std::endl;
+        return true;
+    }
+}
+
+
+}//namespace bv

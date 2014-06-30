@@ -9,13 +9,15 @@ cimport pele.potentials._pele as _pele
 cimport pele.optimize._pele_opt as _pele_opt
 from mcpele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest
 
-cdef extern from "basinvolume/conf_test.h" namespace "bv":
+cdef extern from "basinvolume/check_hyper_spherical_container.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
-        cppCheckHyperSphericalContainer(_pele.Array[double], double, size_t) except+
+        cppCheckHyperSphericalContainer(_pele.Array[double], double, size_t) except +
+cdef extern from "basinvolume/check_overlap.h" namespace "bv":
     cdef cppclass cppCheckOverlap2D "bv::CheckOverlap2D":
-        cppCheckOverlap2D(_pele.Array[double], double*) except +
+        cppCheckOverlap2D(_pele.Array[double], double*) except+
     cdef cppclass cppCheckOverlap3D "bv::CheckOverlap3D":
         cppCheckOverlap3D(_pele.Array[double], double*) except+
+cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
     cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
         cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
                             _pele.Array[double] , double) except+

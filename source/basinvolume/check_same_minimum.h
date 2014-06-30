@@ -1,0 +1,109 @@
+#ifndef _BV_CHECK_SAME_MINIMUM_H
+#define _BV_CHECK_SAME_MINIMUM_H
+
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+#include <random>
+#include <chrono>
+#include <memory>
+
+#include "pele/array.h"
+#include "pele/optimizer.h"
+#include "pele/distance.h"
+#include "pele/harmonic.h" //debug
+#include "pele/lbfgs.h"
+#include "mcpele/mc.h"
+#include "mcpele/conf_test.h"
+
+namespace bv{
+
+
+/*check same minimum class
+ * _optimizer: pointer to object of class GradientOptimizer performing minimisation according to some potential
+ * 				passed to the object during its construction
+ * _origin: coordinates to which the quenched structure is compared to
+ * _rattlers: array of 1s or 0s: if not indicates a rattler,0 -> rattler
+ * 															1 -> jammed particle
+ * 			this convention removes if statements in the for loop and replaces them with
+ * 			arithmetic operation (distance[i] *= rattlers[i]), distance is set artificially to
+ * 			zero if the particle is a rattler. note _rattlers.size() = coords.size()
+ * _distance: array containing the Euclidean distance between trial_coords and origin
+ * _d: norm of distance
+ * _rms: root mean square displacement from origin
+ * _E = energy of the quenched state
+ * _dtol: tolerance on distances
+ * _Etol: tolerance on energies (a minimum should be whithin this value from _Emin)
+ * _Eor: energy of the origin (must pass it because CheckSameMinimum knows nothing about the potential used by the optimiser)
+ * _inoratt: index of first non-rattler
+ * _Nnoratt: number of non-rattlers
+ * */
+
+class CheckSameMinimum:public mcpele::ConfTest{
+protected:
+    inline void _get_vec_distance(pele::Array<double> quenched_coords);
+    inline void _check_convergence(pele::Array<double> quenched_coords);
+    size_t _ndim;
+    pele::GradientOptimizer * _optimizer;
+    pele::BasePotential * _potential;
+    Array<double> _origin, _hs_radii, _rattlers, _distance;
+    double _dtol, _d, _rms;
+    size_t _nparticles;
+    std::shared_ptr<pele::DistanceInterface> _dist_policy;
+    size_t _Nnoratt, _inoratt;
+    //convergence test classes
+    double _lbfgstol, _lbfgsM, _lbfgsniter, _lbfgsmaxstep, _lowtol, _hightol, _eigtol, _H0;
+    Array<double> _ranvec;
+public:
+    CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
+            Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL);
+    virtual bool test(Array<double> &trial_coords, mcpele::MC * mc);
+    virtual ~CheckSameMinimum(){}
+
+    double get_distance(){return _d;}
+    Array<double> get_distance_array(){
+        return _distance.copy();
+    }
+};
+
+
+class CheckSameMinimum2D:public CheckSameMinimum{
+public:
+    CheckSameMinimum2D(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
+                        Array<double> rattlers, double dtol):
+        CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers, dtol,2,
+                std::make_shared<pele::CartesianDistanceWrapper<2>>())
+        {}
+};
+
+class CheckSameMinimum3D:public CheckSameMinimum{
+public:
+    CheckSameMinimum3D(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
+                        Array<double> rattlers, double dtol):
+        CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers, dtol, 3,
+                std::make_shared<pele::CartesianDistanceWrapper<3>>())
+        {}
+};
+
+class CheckSameMinimumPeriodic2D:public CheckSameMinimum{
+public:
+    CheckSameMinimumPeriodic2D(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
+                        double const *boxvec, Array<double> rattlers, double dtol):
+        CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers, dtol,2,
+                std::make_shared<pele::PeriodicDistanceWrapper<2>>(boxvec))
+        {}
+};
+
+class CheckSameMinimumPeriodic3D:public CheckSameMinimum{
+public:
+    CheckSameMinimumPeriodic3D(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
+                        double const *boxvec, Array<double> rattlers, double dtol):
+            CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers, dtol, 3,
+                    std::make_shared<pele::PeriodicDistanceWrapper<3>>(boxvec))
+        {}
+};
+
+
+}//namespace bv
+
+#endif//#ifndef _BV_CHECK_SAME_MINIMUM_H
