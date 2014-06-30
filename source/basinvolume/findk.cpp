@@ -10,8 +10,12 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
 	    RecordEnergyHistogram(min, max, bin, 42), //we do not specify equlilibration steps; recoding starts when kmax search converged
             _origin(origin.copy()), _rattlers(rattlers.copy()),_distance(origin.size()),
             _target(target),_factor(factor),_acceptedf(1), _k(1), _tol(tol),
-            _old_acceptedf(1), _ndim(ndim), _nparticles(_origin.size()/_ndim),
-            _avg_count(avg_count), _navg(navg), _naccepted(0), _nrejected(0), _start(0), _converged(false){}
+            _ndim(ndim), _nparticles(_origin.size()/_ndim),
+            _avg_count(avg_count), _navg(navg), _naccepted(0), _nrejected(0), _start(0), _converged(false)
+    {
+	//initial quench
+
+    }
 
 void Findk::_get_vec_distance(const pele::Array<double>& x){
         pele::Array<double> delta_com(_ndim,0);
@@ -53,7 +57,7 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
         if (accepted) this->_get_vec_distance(coords); //update distance only if new configuration is legal
 
         //compute square displacement from origin
-        double norm2 = dot(_distance,_distance);
+        double norm2 = dot(_distance, _distance);
 
         //if search for kmax has converged, push displacement into histogram
         _hist.add_entry(norm2);
@@ -66,8 +70,7 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
     }
     else if(mc_count % _navg == 0)
     {
-        _old_acceptedf = _acceptedf;
-        _acceptedf = (double) _naccepted / (_naccepted + _nrejected);
+        _acceptedf = static_cast<double>(_naccepted) / static_cast<double>(_naccepted + _nrejected);
 
         //adjust step if last two step oscillated around the target, uses a lower bound
         adjust_k(mc_count/_navg, mc);
@@ -101,10 +104,10 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
 	return;
     }
     //adapt k size
-    const double this_diff = (_target - _acceptedf);
     const double tmp1 = 1.0/(iterations%period+1);
-    const double tmp = (1-tmp1) + tmp1*(_target/_acceptedf);
-    _k *= tmp;
+    const double tmp2 = 1 + (_target-_acceptedf)/(_target+_acceptedf);
+    const double tmp = (1-tmp1) + tmp1*tmp2;
+    _k *= tmp*tmp;
 }
 
 }//namespace bv
