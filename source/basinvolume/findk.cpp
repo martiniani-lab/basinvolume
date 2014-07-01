@@ -60,7 +60,7 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
         //RecordEnergyHistogram::action(coords,energy,accepted,mc);
 
         //this will trigger premature exit from the MC run loop
-        if (_hist.entries() >= _avg_count){
+        if (static_cast<size_t>(_hist.entries()) >= _avg_count){
             mc->_niter = std::numeric_limits<size_t>::max();
         }
     }

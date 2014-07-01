@@ -58,8 +58,8 @@ protected:
     bool _perform_convergence_test;
     convergence_test _conv_test;
     //minima list
-    MinimaList _minima_list;
     bool _collect_minima_list;
+    MinimaList _minima_list;
 public:
     CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
             Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL, const bool perform_convergence_test=false, const bool collect_minima_list=false);
