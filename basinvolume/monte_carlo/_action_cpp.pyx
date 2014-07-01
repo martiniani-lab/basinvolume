@@ -1,32 +1,16 @@
 # distutils: language = c++
+# distutils: sources = ['record_disp2_histogram.cpp', 'record_displacement_timeseries.cpp', 'findk.cpp'] 
+
 import numpy as np
 cimport numpy as np
 from pele.potentials import _pele
-cimport pele.potentials._pele as _pele
 cimport cython
 import sys
-from libcpp cimport bool as cbool
-cimport mcpele.monte_carlo._pele_mc as _pele_mc
-from mcpele.monte_carlo._pele_mc cimport cppAction,_Cdef_Action
 
-cdef extern from "mcpele/actions.h" namespace "mcpele":
-    cdef cppclass cppRecordEnergyHistogram "mcpele::RecordEnergyHistogram":
-        cppRecordEnergyHistogram(double, double, double, size_t) except +
-        _pele.Array[double] get_histogram() except +
-        void print_terminal(size_t) except+
-        double get_max() except+
-        double get_min() except+
-        double get_mean() except+
-        double get_variance() except+
-        
 #===============================================================================
 # RecordDisp2Histogram
 #===============================================================================
-#derives from record energy histogram
-cdef extern from "basinvolume/record_disp2_histogram.h" namespace "bv":
-    cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
-        cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t) except +
-        
+       
 cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisp2Histogram acceptance test class implementation
     """
@@ -39,8 +23,12 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
                                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
                                                                ndim, min, max, bin, eqsteps)
         self.newptr = <cppRecordEnergyHistogram*> self.thisptr
-        
+    
+    def __dealloc__(self):
+        del self.thisptr
+    
     @cython.boundscheck(False)
+    @cython.wraparound(False) 
     def get_histogram(self):
         """return a histogram array"""
         cdef _pele.Array[double] histi = self.newptr.get_histogram()
@@ -68,20 +56,11 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
 class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
     """This class is the python interface for the c++ RecordDisp2Histogram implementation.
     """
-    
+
 #===============================================================================
 # Findk
 #===============================================================================
-
-cdef extern from "basinvolume/findk.h" namespace "bv":    
-    cdef cppclass cppFindk "bv::Findk":
-        cppFindk(_pele.Array[double], _pele.Array[double], size_t, size_t, double, double, size_t, double, double, double, double) except+
-        double get_prob() except+
-        double get_mean() except+
-        double get_variance() except+
-        _pele.Array[double] get_histogram() except +
-        int get_entries() except+
-        
+          
 cdef class _Cdef_Findk(_Cdef_Action):
     """This class is the python interface for the c++ bv::cppFindk action class implementation
     """
@@ -93,6 +72,9 @@ cdef class _Cdef_Findk(_Cdef_Action):
                                                 _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
                                                 bdim, avgcount, target, factor, navg, tol, min, max, bin)
         self.newptr = <cppFindk*> self.thisptr
+    
+    def __dealloc__(self):
+        del self.thisptr
     
     def get_prob(self):
         """
@@ -111,6 +93,7 @@ cdef class _Cdef_Findk(_Cdef_Action):
         return mean, variance
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def get_histogram(self):
         """return a histogram array"""
         cdef _pele.Array[double] histi = self.newptr.get_histogram()
@@ -130,12 +113,6 @@ class Findk(_Cdef_Findk):
 # RecordEnergyTimeseries
 #===============================================================================
 
-cdef extern from "basinvolume/record_displacement_timeseries.h" namespace "bv":    
-    cdef cppclass cppRecordDisplacementTimeseries "bv::RecordDisplacementTimeseries":
-        cppRecordDisplacementTimeseries(_pele.Array[double], const size_t, const size_t, const size_t) except +
-        _pele.Array[double] get_time_series() except +
-        void clear() except +
-        
 cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisplacementTimeseries action class implementation
     """
@@ -149,8 +126,12 @@ cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
         self.thisptr = <cppAction*>new cppRecordDisplacementTimeseries(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                        cbdim, cniter, crecord_every)
         self.newptr = <cppRecordDisplacementTimeseries*> self.thisptr
-        
+    
+    def __dealloc__(self):
+        del self.thisptr
+    
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def get_time_series(self):
         """return a energy time series array"""
         cdef _pele.Array[double] seriesi = self.newptr.get_time_series()
