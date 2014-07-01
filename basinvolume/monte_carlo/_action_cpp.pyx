@@ -28,6 +28,7 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         del self.thisptr
     
     @cython.boundscheck(False)
+    @cython.wraparound(False) 
     def get_histogram(self):
         """return a histogram array"""
         cdef _pele.Array[double] histi = self.newptr.get_histogram()
@@ -92,6 +93,7 @@ cdef class _Cdef_Findk(_Cdef_Action):
         return mean, variance
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def get_histogram(self):
         """return a histogram array"""
         cdef _pele.Array[double] histi = self.newptr.get_histogram()
@@ -129,6 +131,7 @@ cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
         del self.thisptr
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def get_time_series(self):
         """return a energy time series array"""
         cdef _pele.Array[double] seriesi = self.newptr.get_time_series()
