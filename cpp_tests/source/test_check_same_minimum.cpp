@@ -53,5 +53,9 @@ public:
 
 TEST_F(CheckSameMinimumTest, BasicFunctionality){
     opt_t opt(pot, origin, _lbfgstol, _lbfgsM);
-    bv::CheckSameMinimum3D check(&opt, pot, origin, hs_radii, rattlers, dtol);
+    bv::CheckSameMinimum3D check_basic(&opt, pot, origin, hs_radii, rattlers, dtol);
+    //bv::CheckSameMinimum3D check_eigenvalues(&opt, pot, origin, hs_radii, rattlers, dtol, true, false);
+    //bv::CheckSameMinimum3D check_minima(&opt, pot, origin, hs_radii, rattlers, dtol, false, true);
+    //bv::CheckSameMinimum3D check_both(&opt, pot, origin, hs_radii, rattlers, dtol, true, true);
+    EXPECT_TRUE(42==42);
 }
