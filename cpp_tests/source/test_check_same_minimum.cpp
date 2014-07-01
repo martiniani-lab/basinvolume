@@ -54,8 +54,15 @@ public:
 TEST_F(CheckSameMinimumTest, BasicFunctionality){
     opt_t opt(pot, origin, _lbfgstol, _lbfgsM);
     bv::CheckSameMinimum3D check_basic(&opt, pot, origin, hs_radii, rattlers, dtol);
-    //bv::CheckSameMinimum3D check_eigenvalues(&opt, pot, origin, hs_radii, rattlers, dtol, true, false);
-    //bv::CheckSameMinimum3D check_minima(&opt, pot, origin, hs_radii, rattlers, dtol, false, true);
-    //bv::CheckSameMinimum3D check_both(&opt, pot, origin, hs_radii, rattlers, dtol, true, true);
-    EXPECT_TRUE(42==42);
+    EXPECT_TRUE(check_basic.perform_convergence_test()==false);
+    EXPECT_TRUE(check_basic.collect_minima_list()==false);
+    bv::CheckSameMinimum3D check_eigenvalues(&opt, pot, origin, hs_radii, rattlers, dtol, true, false);
+    EXPECT_TRUE(check_eigenvalues.perform_convergence_test()==true);
+    EXPECT_TRUE(check_eigenvalues.collect_minima_list()==false);
+    bv::CheckSameMinimum3D check_minima(&opt, pot, origin, hs_radii, rattlers, dtol, false, true);
+    EXPECT_TRUE(check_minima.perform_convergence_test()==false);
+    EXPECT_TRUE(check_minima.collect_minima_list()==true);
+    bv::CheckSameMinimum3D check_both(&opt, pot, origin, hs_radii, rattlers, dtol, true, true);
+    EXPECT_TRUE(check_both.perform_convergence_test()==true);
+    EXPECT_TRUE(check_both.collect_minima_list()==true);
 }
