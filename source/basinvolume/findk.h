@@ -28,7 +28,7 @@ namespace bv{
  * */
 
 //template<size_t bdim>
-class Findk : public mcpele::RecordEnergyHistogram {
+class Findk : public mcpele::Action{
 protected:
     void _get_vec_distance(const pele::Array<double>& x);
     void adjust_k(const size_t, mcpele::MC*);
@@ -36,11 +36,21 @@ protected:
     double _target, _factor, _acceptedf, _k, _tol;
     size_t _ndim, _nparticles, _avg_count, _navg, _naccepted, _nrejected, _start;
     bool _converged;
+private:
+    mcpele::Histogram _hist;
 public:
     Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol, double min, double max, double bin);
     virtual ~Findk() {}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
     double get_prob(){return _acceptedf;}
+    int get_entries() const {return _hist.entries();}
+    double get_mean() const {return _hist.get_mean();}
+    double get_variance() const {return _hist.get_variance();}
+    pele::Array<double> get_histogram() const {
+	    std::vector<double> vecdata(_hist.get_vecdata());
+	    pele::Array<double> histogram(vecdata);
+	    return histogram.copy();
+    }
 };
 
 }//namespace bv
