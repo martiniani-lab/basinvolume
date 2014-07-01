@@ -34,9 +34,14 @@ message("mcpele include directory ${mcpele_include}")
 FILE(GLOB pele_sources ${pele_include}/*.cpp)
 add_library(pele_lib ${pele_sources})
 
+## build the mcpele library
+#FILE(GLOB mcpele_sources ${mcpele_include}/*.cpp)
+#add_library(mcpele_lib ${mcpele_sources})
+
 # get all the source files
 FILE(GLOB sources *.cpp)
 
 add_executable(test_main ${sources})
 #target_link_libraries(test_main basinvolume_lib gtest gtest_main pthread)
+#target_link_libraries(test_main pele_lib mcpele_lib gtest gtest_main pthread)
 target_link_libraries(test_main pele_lib gtest gtest_main pthread)

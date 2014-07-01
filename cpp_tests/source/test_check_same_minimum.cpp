@@ -12,7 +12,7 @@
 
 #include "mcpele/mc.h"
 
-#include "basinvolume/conf_test.h"
+#include "basinvoume/check_same_minimum.h"
 
 #define EXPECT_NEAR_RELATIVE(A, B, T)  EXPECT_NEAR(fabs(A)/(fabs(A)+fabs(B)+1), fabs(B)/(fabs(A)+fabs(B)+1), T)
 
@@ -52,7 +52,6 @@ public:
 };
 
 TEST_F(CheckSameMinimumTest, BasicFunctionality){
-    pele::GradientOptimizer* opt = new opt_t(pot, origin, _lbfgstol, _lbfgsM);
-    bv::CheckSameMinimum3D check(opt, pot, origin, hs_radii, rattlers, dtol);
-    delete opt;
+    opt_t opt(pot, origin, _lbfgstol, _lbfgsM);
+    bv::CheckSameMinimum3D check(&opt, pot, origin, hs_radii, rattlers, dtol);
 }
