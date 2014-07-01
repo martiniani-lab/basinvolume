@@ -1,36 +1,12 @@
 # distutils: language = c++
+# distutils: sources = ['check_same_minimum.cpp', 'check_hyper_spherical_container'] 
+
 cimport cython
 import sys
-from libcpp cimport bool as cbool
 import numpy as np
 cimport numpy as np
 from pele.potentials import _pele
-cimport pele.potentials._pele as _pele
-cimport pele.optimize._pele_opt as _pele_opt
-from mcpele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest
-
-cdef extern from "basinvolume/check_hyper_spherical_container.h" namespace "bv":
-    cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
-        cppCheckHyperSphericalContainer(_pele.Array[double], double, size_t) except +
-cdef extern from "basinvolume/check_overlap.h" namespace "bv":
-    cdef cppclass cppCheckOverlap2D "bv::CheckOverlap2D":
-        cppCheckOverlap2D(_pele.Array[double], double*) except+
-    cdef cppclass cppCheckOverlap3D "bv::CheckOverlap3D":
-        cppCheckOverlap3D(_pele.Array[double], double*) except+
-cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
-    cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
-        cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double] , double) except+
-    cdef cppclass cppCheckSameMinimum3D "bv::CheckSameMinimum3D":
-        cppCheckSameMinimum3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double] , double) except+
-    cdef cppclass cppCheckSameMinimumPeriodic2D "bv::CheckSameMinimumPeriodic2D":
-        cppCheckSameMinimumPeriodic2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            double*, _pele.Array[double] , double) except+
-    cdef cppclass cppCheckSameMinimumPeriodic3D "bv::CheckSameMinimumPeriodic3D":
-        cppCheckSameMinimumPeriodic3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            double*, _pele.Array[double] , double) except+
-                            
+    
 #===============================================================================
 # Check hyper spherical container
 #===============================================================================
@@ -43,6 +19,9 @@ cdef class _Cdef_CheckHyperSphericalContainer(_Cdef_ConfTest):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         self.thisptr = <cppConfTest*>new cppCheckHyperSphericalContainer(_pele.Array[double](<double*> orginc.data, orginc.size), radius, ndim)
         self.newptr = <cppCheckHyperSphericalContainer*> self.thisptr
+    
+    def __dealloc__(self):
+        del self.thisptr
         
 class CheckHyperSphericalContainer(_Cdef_CheckHyperSphericalContainer):
     """This class is the python interface for the c++ CheckHyperSphericalContainer implementation."""
@@ -66,6 +45,8 @@ cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
             self.thisptr = <cppConfTest*>new cppCheckOverlap3D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                              <double*> bv.data)
         #self.newptr = <cppCheckOverlap*> self.thisptr
+    def __dealloc__(self):
+        del self.thisptr
         
 class CheckOverlap(_Cdef_CheckOverlap):
     """This class is the python interface for the c++ CheckOverlap implementation."""
@@ -89,7 +70,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         cdef _pele_opt.GradientOptimizer opt = optimizer
         cdef _pele.BasePotential potential = pot
         cdef np.ndarray[double, ndim=1] bv
-        self.opt = opt #guarantees that optimizer does not go out of scope
+        self.opt = optimizer
         self.potential = pot
         #print rattlers
         
@@ -116,7 +97,10 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol)
-        #self.newptr = <cppCheckSameMinimum*> self.thisptr 
+        #self.newptr = <cppCheckSameMinimum*> self.thisptr
+    
+    def __dealloc__(self):
+        del self.thisptr
         
 class CheckSameMinimum(_Cdef_CheckSameMinimum):
     """This class is the python interface for the c++ CheckSameMinimum implementation.
