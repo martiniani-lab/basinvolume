@@ -1,5 +1,3 @@
-# distutils: language = c++
-
 cimport pele.potentials._pele as _pele
 from libcpp cimport bool as cbool
 cimport mcpele.monte_carlo._pele_mc as _pele_mc

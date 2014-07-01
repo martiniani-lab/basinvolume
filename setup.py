@@ -76,8 +76,15 @@ setup(name='basinvolume',
 # build the c++ files
 #
 
-include_sources = ["source/basinvolume/" + f for f in os.listdir("source/basinvolume") 
+include_sources_bv = ["source/basinvolume/" + f for f in os.listdir("source/basinvolume") 
                    if f.endswith(".cpp")]
+
+include_sources_mcpele = [mcpelepath+"/source/mcpele/" + f for f in os.listdir(mcpelepath+"/source/mcpele") 
+                   if f.endswith(".cpp")]
+
+include_sources_pele = [pelepath+"/source/" + f for f in os.listdir(pelepath+"/source") 
+                   if f.endswith(".cpp")]
+
 include_dirs = [numpy_include, "source"]
 
 depends = [os.path.join("source/basinvolume", f) for f in os.listdir("source/basinvolume/") 
@@ -98,21 +105,23 @@ extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-W
 # note: to compile with debug on and to override extra_compile_args use, e.g.
 # OPT="-g -O2 -march=native" python setup.py ...
 
+print include_sources_bv + include_sources_mcpele + include_sources_pele
+
 cxx_modules = [
     Extension("basinvolume.monte_carlo._conf_test_cpp", 
-              ["basinvolume/monte_carlo/_conf_test_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp",pelepath+"/source/lbfgs.cpp"] + include_sources,
+              ["basinvolume/monte_carlo/_conf_test_cpp.cxx"] + include_sources_bv + include_sources_mcpele + include_sources_pele,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,
               ),
     Extension("basinvolume.monte_carlo._action_cpp", 
-              ["basinvolume/monte_carlo/_action_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp",pelepath+"/source/lbfgs.cpp"] + include_sources,
+              ["basinvolume/monte_carlo/_action_cpp.cxx"] + include_sources_bv + include_sources_mcpele + include_sources_pele,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,
               ),
-    Extension("basinvolume.utils._utils_cpp", 
-              ["basinvolume/utils/_utils_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp",pelepath+"/source/lbfgs.cpp"] + include_sources,
+    Extension("basinvolume.utils._utils_cpp",
+              ["basinvolume/utils/_utils_cpp.cxx"],
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,
