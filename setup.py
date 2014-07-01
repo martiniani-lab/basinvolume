@@ -7,6 +7,8 @@ from numpy.distutils.core import setup
 from numpy.distutils.core import Extension
 from numpy.distutils.misc_util import has_cxx_sources
 import numpy as np
+import pele
+import mcpele
 
 ## Numpy header files 
 numpy_lib = os.path.split(np.__file__)[0] 
@@ -16,22 +18,17 @@ numpy_include = os.path.join(numpy_lib, 'core/include')
 pypath = os.environ['PYTHONPATH'].split(os.pathsep)
 mcpele_found = False
 pele_found = False
-for path in pypath:
-    if mcpele_found is True and pele_found is True:
-        break
-    elif '/mcpele' in path:
-        mcpelepath = path
-        mcpele_found = True
-    elif '/pele' in path:
-        pelepath = path
-        pele_found = True
 
-if mcpele_found is not True or pele_found is not True:
-    if mcpele_found is not True: 
-        sys.stderr.write("WARNING: could't find path to mcpele in $PYTHONPATH\n")
-    if pele_found is not True:
-        sys.stderr.write("WARNING: could't find path to mcpele in $PYTHONPATH\n")
-    sys.exit() 
+try:
+    pelepath = os.path.dirname(pele.__file__)[:-5]
+except:
+    sys.stderr.write("WARNING: could't find path to pele\n")
+    sys.exit()
+try:
+    mcpelepath = os.path.dirname(mcpele.__file__)[:-7]
+except:
+    sys.stderr.write("WARNING: could't find path to mcpele\n")
+    sys.exit()
 
 def generate_cython():
     cwd = os.path.abspath(os.path.dirname(__file__))
@@ -76,8 +73,15 @@ setup(name='basinvolume',
 # build the c++ files
 #
 
-include_sources = ["source/basinvolume/" + f for f in os.listdir("source/basinvolume") 
+include_sources_bv = ["source/basinvolume/" + f for f in os.listdir("source/basinvolume") 
                    if f.endswith(".cpp")]
+
+include_sources_mcpele = [mcpelepath+"/source/mcpele/" + f for f in os.listdir(mcpelepath+"/source/mcpele") 
+                   if f.endswith(".cpp")]
+
+include_sources_pele = [pelepath+"/source/" + f for f in os.listdir(pelepath+"/source") 
+                   if f.endswith(".cpp")]
+
 include_dirs = [numpy_include, "source"]
 
 depends = [os.path.join("source/basinvolume", f) for f in os.listdir("source/basinvolume/") 
@@ -100,19 +104,19 @@ extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-W
 
 cxx_modules = [
     Extension("basinvolume.monte_carlo._conf_test_cpp", 
-              ["basinvolume/monte_carlo/_conf_test_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp",pelepath+"/source/lbfgs.cpp"] + include_sources,
+              ["basinvolume/monte_carlo/_conf_test_cpp.cxx"] + include_sources_bv + include_sources_mcpele + include_sources_pele,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,
               ),
     Extension("basinvolume.monte_carlo._action_cpp", 
-              ["basinvolume/monte_carlo/_action_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp",pelepath+"/source/lbfgs.cpp"] + include_sources,
+              ["basinvolume/monte_carlo/_action_cpp.cxx"] + include_sources_bv + include_sources_mcpele + include_sources_pele,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,
               ),
-    Extension("basinvolume.utils._utils_cpp", 
-              ["basinvolume/utils/_utils_cpp.cxx",mcpelepath+"/source/mcpele/histogram.cpp",pelepath+"/source/lbfgs.cpp"] + include_sources,
+    Extension("basinvolume.utils._utils_cpp",
+              ["basinvolume/utils/_utils_cpp.cxx"],
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends,
