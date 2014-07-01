@@ -84,8 +84,14 @@ include_sources_pele = [pelepath+"/source/" + f for f in os.listdir(pelepath+"/s
 
 include_dirs = [numpy_include, "source"]
 
-depends = [os.path.join("source/basinvolume", f) for f in os.listdir("source/basinvolume/") 
-           if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
+depends_bv = [os.path.join("source/basinvolume", f) for f in os.listdir("source/basinvolume/") 
+              if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
+
+depends_mcpele = [os.path.join(mcpelepath+"/source/mcpele", f) for f in os.listdir(mcpelepath+"/source/mcpele") 
+                  if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
+
+depends_pele = [os.path.join(pelepath+"/source/pele", f) for f in os.listdir(pelepath+"/source/pele") 
+                if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
 
 # note: on my computer (ubuntu 12.04 gcc version 4.6.3), when compiled with the
 # flag -march=native I run into problems.  Everything seems to run ok, but when
@@ -102,24 +108,28 @@ extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-W
 # note: to compile with debug on and to override extra_compile_args use, e.g.
 # OPT="-g -O2 -march=native" python setup.py ...
 
+include_sources_all = include_sources_bv + include_sources_mcpele + include_sources_pele
+#recompile if any of depends has been modified
+depends_all = depends_bv + depends_mcpele + depends_pele 
+
 cxx_modules = [
     Extension("basinvolume.monte_carlo._conf_test_cpp", 
-              ["basinvolume/monte_carlo/_conf_test_cpp.cxx"] + include_sources_bv + include_sources_mcpele + include_sources_pele,
+              ["basinvolume/monte_carlo/_conf_test_cpp.cxx"] + include_sources_all,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
-              language="c++", depends=depends,
+              language="c++", depends=depends_all,
               ),
     Extension("basinvolume.monte_carlo._action_cpp", 
-              ["basinvolume/monte_carlo/_action_cpp.cxx"] + include_sources_bv + include_sources_mcpele + include_sources_pele,
+              ["basinvolume/monte_carlo/_action_cpp.cxx"] + include_sources_all,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
-              language="c++", depends=depends,
+              language="c++", depends=depends_all,
               ),
     Extension("basinvolume.utils._utils_cpp",
               ["basinvolume/utils/_utils_cpp.cxx"],
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
-              language="c++", depends=depends,
+              language="c++", depends=depends_bv,
               ),
                ]
 
