@@ -7,6 +7,8 @@ from numpy.distutils.core import setup
 from numpy.distutils.core import Extension
 from numpy.distutils.misc_util import has_cxx_sources
 import numpy as np
+import pele
+import mcpele
 
 ## Numpy header files 
 numpy_lib = os.path.split(np.__file__)[0] 
@@ -16,22 +18,17 @@ numpy_include = os.path.join(numpy_lib, 'core/include')
 pypath = os.environ['PYTHONPATH'].split(os.pathsep)
 mcpele_found = False
 pele_found = False
-for path in pypath:
-    if mcpele_found is True and pele_found is True:
-        break
-    elif '/mcpele' in path:
-        mcpelepath = path
-        mcpele_found = True
-    elif '/pele' in path:
-        pelepath = path
-        pele_found = True
 
-if mcpele_found is not True or pele_found is not True:
-    if mcpele_found is not True: 
-        sys.stderr.write("WARNING: could't find path to mcpele in $PYTHONPATH\n")
-    if pele_found is not True:
-        sys.stderr.write("WARNING: could't find path to mcpele in $PYTHONPATH\n")
-    sys.exit() 
+try:
+    pelepath = os.path.dirname(pele.__file__)[:-5]
+except:
+    sys.stderr.write("WARNING: could't find path to pele\n")
+    sys.exit()
+try:
+    mcpelepath = os.path.dirname(mcpele.__file__)[:-7]
+except:
+    sys.stderr.write("WARNING: could't find path to mcpele\n")
+    sys.exit()
 
 def generate_cython():
     cwd = os.path.abspath(os.path.dirname(__file__))
@@ -104,8 +101,6 @@ extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-W
 
 # note: to compile with debug on and to override extra_compile_args use, e.g.
 # OPT="-g -O2 -march=native" python setup.py ...
-
-print include_sources_bv + include_sources_mcpele + include_sources_pele
 
 cxx_modules = [
     Extension("basinvolume.monte_carlo._conf_test_cpp", 
