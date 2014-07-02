@@ -43,6 +43,7 @@ public:
     virtual ~Findk() {}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
     double get_prob(){return _acceptedf;}
+    double get_k(){return _k;}
     int get_entries() const {return _hist.entries();}
     double get_mean() const {return _hist.get_mean();}
     double get_variance() const {return _hist.get_variance();}

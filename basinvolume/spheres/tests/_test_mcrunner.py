@@ -143,7 +143,10 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol)
+        self.min = 0
+        self.max = 10
+        self.bin = 0.2
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol, self.min, self.max, self.bin)
                            
                 
         #set up pele:MC

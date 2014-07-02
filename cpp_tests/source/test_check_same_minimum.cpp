@@ -120,25 +120,11 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
     delete check_both;
 }
 
-TEST_F(CheckSameMinimumTest, FindkTest){
+TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     fire_t* opt = new fire_t(pot, origin, 1e-2, 1, 1);
     mcpele::MC* mc = new mcpele::MC(pot, x, 1, stepsize);
     mcpele::TakeStep* sampler_uniform = new mcpele::RandomCoordsDisplacement;
     mc->set_takestep(sampler_uniform);
-    mcpele::AcceptTest* metropolis = new mcpele::MetropolisTest(42);
-    mc->add_accept_test(metropolis);
-    const size_t adj_iter(max_iter/1e1);
-    mcpele::Action* adjust_step = new mcpele::AdjustStep(0.2, 0.5, adj_iter, adj_iter/1e1);
-    mc->add_action(adjust_step);
-    //add conf tests, check same minimum
-    mcpele::ConfTest* check_basic = new bv::CheckSameMinimum3D(opt, pot, origin, hs_radii, rattlers, dtol);
-    mcpele::ConfTest* check_eigenvalues = new bv::CheckSameMinimum3D(opt, pot, origin, hs_radii, rattlers, dtol, true, false);
-    mcpele::ConfTest* check_minima = new bv::CheckSameMinimum3D(opt, pot, origin, hs_radii, rattlers, dtol, false, true);
-    mcpele::ConfTest* check_both = new bv::CheckSameMinimum3D(opt, pot, origin, hs_radii, rattlers, dtol, true, true);
-    mc->add_conf_test(check_basic);
-    mc->add_conf_test(check_eigenvalues);
-    mc->add_late_conf_test(check_minima);
-    mc->add_late_conf_test(check_both);
     //add action findk
     const size_t findk__avg_count = 1e3;
     const double findk__target = 0.85;
@@ -150,21 +136,20 @@ TEST_F(CheckSameMinimumTest, FindkTest){
     mcpele::Action* findk = new bv::Findk(origin, rattlers, nr_dim, findk__avg_count, findk__target, 0.424242, findk__navg, findk__tol, findk__min, findk__max, findk__bin);
     mc->add_action(findk);
     //run mc
-    //mc->set_print_progress();
-    const size_t niter = 1e2;
+    mc->set_print_progress();
+    const size_t niter = 1e5;
     mc->run(niter);
     //check output
     EXPECT_TRUE(mc->get_iterations_count()==niter);
     EXPECT_NEAR(mc->get_conf_rejection_fraction(), 0, 1e-10); //there is only one minimum, so there should be no rejection due to check same minimum
+    //since there is only one basin, and no rejection, k should decrease to zero
+    //the precise final value depends on the inital value, the iteration, etc.
+    EXPECT_NEAR(static_cast<bv::Findk*>(findk)->get_k(), 0, 1e-2);
+    //check that stepsize of mc is correctly adapted to k as adjusted in findk
+    EXPECT_NEAR_RELATIVE(mc->_stepsize, 1/sqrt( static_cast<bv::Findk*>(findk)->get_k() ), 1e-15);
     //free
     delete opt;
     delete mc;
     delete sampler_uniform;
-    delete metropolis;
-    delete adjust_step;
-    delete check_basic;
-    delete check_eigenvalues;
-    delete check_minima;
-    delete check_both;
     delete findk;
 }
