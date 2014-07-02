@@ -6,6 +6,8 @@ import sys
 import numpy as np
 cimport numpy as np
 from pele.potentials import _pele
+from pele.storage import Database
+from pele.storage.database import Minimum
     
 #===============================================================================
 # Check hyper spherical container
@@ -62,7 +64,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     cdef _pele_opt.GradientOptimizer opt # this is stored so that the memory is not freed
     cdef _pele.BasePotential potential
     
-    #cdef cppCheckSameMinimum* newptr
+    cdef cppCheckSameMinimum* newptr
     def __cinit__(self, optimizer, pot, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3, perform_convergence_test=False, collect_minima_list=False):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
@@ -97,10 +99,35 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
-        #self.newptr = <cppCheckSameMinimum*> self.thisptr
+        self.newptr = <cppCheckSameMinimum*> self.thisptr
     
     def __dealloc__(self):
         del self.thisptr
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False) 
+    def dump_minima(self, minima_dicts):
+        cdef size_t nr_neighboring_minima = self.newptr.ml_nr_distinct_minima()
+        self.newptr.ml_reset_minima_iterator()
+        cdef cppMinimum* minimumi
+        cdef _pele.Array[double] coori
+        cdef double* coordata
+        cdef np.ndarray[double, ndim=1, mode="c"] coor
+        cdef size_t ii
+        for i in xrange(nr_neighboring_minima):
+            minimumi = self.newptr.ml_next_minimum()
+            coori = minimumi.get_coor()
+            coordata = coori.data()
+            coor = np.zeros(coori.size())
+            for ii in xrange(coori.size()):
+                coor[ii] = coordata[ii]
+            mindicti = dict(energy=minimumi.energy(), coords=coor, user_data=dict(count=minimumi.count(), distance=minimumi.delta_x()))
+            minima_dicts.append(mindicti)
+        assert len(minima_dicts) == nr_neighboring_minima + 1 #in the minima_dicts list, there is also the original minimum
+    
+    def ml_nr_distinct_minima(self):
+        cdef nr_distinct_minima = self.newptr.ml_nr_distinct_minima()
+        return nr_distinct_minima
         
 class CheckSameMinimum(_Cdef_CheckSameMinimum):
     """This class is the python interface for the c++ CheckSameMinimum implementation.
