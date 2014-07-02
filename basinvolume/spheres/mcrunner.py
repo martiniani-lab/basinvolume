@@ -272,8 +272,10 @@ class Findk_MCrunner(_BaseMCRunner):
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
+        self.hmin = hmin
+        self.hmax = hmax
         self.binsize = binsize
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol, hmin, hmax, self.binsize)
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
         #nr_eq_steps = 1e2 #####it seems that this is not known a priori
         #self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize, nr_eq_steps)
                 

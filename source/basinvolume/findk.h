@@ -27,17 +27,31 @@ namespace bv{
  * set MC->_niter to the largest unsigned inter so that the calculation must terminate
  * */
 
-//template<size_t bdim>
 class Findk : public mcpele::Action{
+
 protected:
     void _get_vec_distance(const pele::Array<double>& x);
     void adjust_k(const size_t, mcpele::MC*);
-    pele::Array<double> _origin, _rattlers, _distance;
-    double _target, _factor, _acceptedf, _k, _tol;
-    size_t _ndim, _nparticles, _avg_count, _navg, _naccepted, _nrejected, _start;
+    pele::Array<double> _origin;
+    pele::Array<double>_rattlers;
+    pele::Array<double>_distance;
+    double _target;
+    double _factor;
+    double _acceptedf;
+    double _k;
+    double _tol;
+    size_t _ndim;
+    size_t _nparticles;
+    size_t _avg_count;
+    size_t _navg;
+    size_t _naccepted;
+    size_t _nrejected;
+    size_t _start;
     bool _converged;
+
 private:
     mcpele::Histogram _hist;
+
 public:
     Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol, double min, double max, double bin);
     virtual ~Findk() {}

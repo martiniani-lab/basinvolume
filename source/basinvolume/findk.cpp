@@ -6,12 +6,25 @@
 namespace bv{
 
 Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
-        double factor, size_t navg, double tol, double min, double max, double bin):
-            _origin(origin.copy()), _rattlers(rattlers.copy()),_distance(origin.size()),
-            _target(target),_factor(factor),_acceptedf(1), _k(1), _tol(tol),
-            _ndim(ndim), _nparticles(_origin.size()/_ndim),
-            _avg_count(avg_count), _navg(navg), _naccepted(0), _nrejected(0), _start(0), _converged(false),
-            _hist(min, max, bin){} //we do not specify equlilibration steps; recoding starts when kmax search converged
+        double factor, size_t navg, double tol, double min, double max, double bin)
+	:_origin(origin.copy())
+	,_rattlers(rattlers.copy())
+	,_distance(origin.size())
+	,_target(target)
+	,_factor(factor)
+	,_acceptedf(1)
+	,_k(1)
+	,_tol(tol)
+	,_ndim(ndim)
+	,_nparticles(_origin.size()/_ndim)
+	,_avg_count(avg_count)
+	,_navg(navg)
+	,_naccepted(0)
+	,_nrejected(0)
+	,_start(0)
+	,_converged(false)
+        ,_hist(min, max, bin)
+	{}
 
 void Findk::_get_vec_distance(const pele::Array<double>& x){
         pele::Array<double> delta_com(_ndim,0);
@@ -87,7 +100,7 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
 
 void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     // parameter: can be adapted for better convergence
-    const size_t period = 1;
+    const size_t period = 3;
     //get k
     const double ik = mc->_stepsize;
     _k = 1/(ik*ik);

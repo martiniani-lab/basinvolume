@@ -16,6 +16,7 @@
 #include "mcpele/takestep.h"
 #include "mcpele/accept_test.h"
 #include "mcpele/actions.h"
+#include "mcpele/conf_test.h"
 
 #include "basinvolume/check_same_minimum.h"
 #include "basinvolume/findk.h"
@@ -144,7 +145,7 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     EXPECT_NEAR(mc->get_conf_rejection_fraction(), 0, 1e-10); //there is only one minimum, so there should be no rejection due to check same minimum
     //since there is only one basin, and no rejection, k should decrease to zero
     //the precise final value depends on the inital value, the iteration, etc.
-    EXPECT_NEAR(static_cast<bv::Findk*>(findk)->get_k(), 0, 1e-2);
+    EXPECT_NEAR(static_cast<bv::Findk*>(findk)->get_k(), 0, 1);
     //check that stepsize of mc is correctly adapted to k as adjusted in findk
     EXPECT_NEAR_RELATIVE(mc->_stepsize, 1/sqrt( static_cast<bv::Findk*>(findk)->get_k() ), 1e-15);
     //free
@@ -153,3 +154,13 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     delete sampler_uniform;
     delete findk;
 }
+
+/*
+TEST_F(CheckSameMinimumTest, FindkTestHypersphere){
+    fire_t* opt = new fire_t(pot, origin, 1e-2, 1, 1);
+    mcpele::MC* mc = new mcpele::MC(pot, x, 1, stepsize);
+    mcpele::TakeStep* sampler_gaussian = new mcpele::GaussianCoordsDisplacement;
+    const double hyperradius = 42;
+    mcpele::ConfTest* sphere = new mcpele::CheckHyperSphericalContainer(hyperradius, nr_dim);
+}
+*/
