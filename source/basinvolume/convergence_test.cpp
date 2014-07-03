@@ -8,7 +8,7 @@ namespace bv{
 
 void convergence_test::check_convergence(pele::Array<double> quenched_coords, pele::BasePotential * _potential, const size_t _ndim, pele::GradientOptimizer * _optimizer)
 {
-	std::cout << "convergence_test::check_convergence" << std::endl;
+	//std::cout << "convergence_test::check_convergence" << std::endl;
 	bool minimum = false;
 	size_t l = 0;
 	while (minimum == false && l < 10){

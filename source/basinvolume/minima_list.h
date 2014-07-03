@@ -14,6 +14,8 @@
 
 namespace bv{
 
+//Minimum* ml_next_minimum(){return _minima_list.next_minimum();}
+
 class MinimaList{
 
 public:
@@ -29,7 +31,7 @@ private:
     const coor_t tol_delta_x_element;
     store_t minima_storage;
     map_t minima_order;
-
+    store_t::iterator minima_iterator_;
 public:
     MinimaList(const coor_t tol_delta_x_, const energy_t tol_energy_, const coor_t tol_delta_x_element_):
 	tol_delta_x(tol_delta_x_), tol_energy(tol_energy_), tol_delta_x_element(tol_delta_x_element_)
@@ -42,6 +44,8 @@ public:
     std::vector<index_t> nr_minima_visits()const{return property_listing<index_t>(&Minimum::count);}
     std::vector<energy_t> energies()const{return property_listing<energy_t>(&Minimum::energy);}
     std::vector<coor_t> delta_x_listing()const{return property_listing<coor_t>(&Minimum::delta_x);}
+    void reset_minima_iterator(){minima_iterator_ = minima_storage.begin();}
+    Minimum* next_minimum(){return &*minima_iterator_++;}
     //TODO: consider how the minima should be best accessed to be dumped to the database (via check same minimum class)!
 
     template<class T>

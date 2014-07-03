@@ -3,6 +3,8 @@ import numpy as np
 import sys
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
+from pele.storage import Database
+from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk, CheckOverlap, RecordDisplacementTimeseries
@@ -197,6 +199,21 @@ class BV_MCrunner(_BaseMCRunner):
         timeseries = np.array(self.time_series.get_time_series())
         np.savetxt(fname, timeseries)
         self.time_series.clear()
+        
+    def dump_minima_list(self, fname):
+        """write minima list to pele database"""
+        db= Database(fname)
+        minima_dicts = []
+        #add origin to database, with _id == 0, to make post processing possible
+        #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
+        #distance should be zero because it is distance to itself
+        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.origin), coords=self.origin, user_data=dict(count=0, distance=0))
+        minima_dicts.append(mindict0)
+        #add neighboring minima to database
+        self.conftest2.dump_minima(minima_dicts)
+        assert len(minima_dicts) == self.conftest2.ml_nr_distinct_minima()+1
+        db.engine.execute(Minimum.__table__.insert(), minima_dicts)
+        db.session.commit()
     
     def show_histogram(self):
         """shows the histogram"""
@@ -272,8 +289,10 @@ class Findk_MCrunner(_BaseMCRunner):
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
+        self.hmin = hmin
+        self.hmax = hmax
         self.binsize = binsize
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol, hmin, hmax, self.binsize)
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
         #nr_eq_steps = 1e2 #####it seems that this is not known a priori
         #self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize, nr_eq_steps)
                 

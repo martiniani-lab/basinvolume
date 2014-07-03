@@ -143,7 +143,10 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol)
+        self.min = 0
+        self.max = 10
+        self.bin = 0.2
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol, self.min, self.max, self.bin)
                            
                 
         #set up pele:MC
@@ -216,7 +219,9 @@ def main():
     #===========================================================================
     # FIND K_MAX
     #===========================================================================
-    kstart = 20
+    #kstart = 20
+    kstart = 1000
+    #kstart = nr_particles*dimension/(r*r)
     ktarget = 0.85
     ktol=0.001
     mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, np.sqrt(1./kstart), 1e10, origin, dimension, k=kstart, ktarget=ktarget, 
@@ -230,6 +235,7 @@ def main():
     print 'kmax ',k_max
     print 'prob ',prob
     #k_max= nr_particles*dimension/(r*r) = 20.25
+    print 'nr_particles*dimension/(r*r): ',nr_particles*dimension/(r*r)
     
     #===========================================================================
     # COMPUTE k ARRAY

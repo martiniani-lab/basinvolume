@@ -72,6 +72,10 @@ public:
     }
     bool perform_convergence_test()const{return _perform_convergence_test;}
     bool collect_minima_list()const{return _collect_minima_list;}
+    //forwarding minima database information to the outside
+    size_t ml_nr_distinct_minima()const{return _minima_list.nr_distinct_minima();}
+    void ml_reset_minima_iterator(){ _minima_list.reset_minima_iterator();}
+    Minimum* ml_next_minimum(){return _minima_list.next_minimum();}
 };
 
 
