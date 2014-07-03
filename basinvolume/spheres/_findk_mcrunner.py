@@ -160,7 +160,7 @@ class _findk_mcrunner(object):
 if __name__ == "__main__":
     
     #sim = _findk_mcrunner('jammed_packing0.xydr')
-    sim = _findk_mcrunner('jammed_packing1.xyzdr')
+    sim = _findk_mcrunner('jammed_packing0.xyzdr')
     print 'simulation started'
     start=time.time() 
     sim.run()

@@ -19,11 +19,8 @@ cdef class _Cdef_CheckHyperSphericalContainer(_Cdef_ConfTest):
     cdef cppCheckHyperSphericalContainer* newptr
     def __cinit__(self, origin, radius, ndim):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
-        self.thisptr = <cppConfTest*>new cppCheckHyperSphericalContainer(_pele.Array[double](<double*> orginc.data, orginc.size), radius, ndim)
-        self.newptr = <cppCheckHyperSphericalContainer*> self.thisptr
-    
-    def __dealloc__(self):
-        del self.thisptr
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckHyperSphericalContainer(_pele.Array[double](<double*> orginc.data, orginc.size), radius, ndim))
+        self.newptr = <cppCheckHyperSphericalContainer*> self.thisptr.get()
         
 class CheckHyperSphericalContainer(_Cdef_CheckHyperSphericalContainer):
     """This class is the python interface for the c++ CheckHyperSphericalContainer implementation."""
@@ -40,15 +37,15 @@ cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
         cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
         if (len(boxvec) == 2):
-            self.thisptr = <cppConfTest*>new cppCheckOverlap2D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
+            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlap2D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                              <double*> bv.data)
+                                                   )
         else:
             assert(len(boxvec) == 3)
-            self.thisptr = <cppConfTest*>new cppCheckOverlap3D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
+            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlap3D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                              <double*> bv.data)
+                                                   )
         #self.newptr = <cppCheckOverlap*> self.thisptr
-    def __dealloc__(self):
-        del self.thisptr
         
 class CheckOverlap(_Cdef_CheckOverlap):
     """This class is the python interface for the c++ CheckOverlap implementation."""
@@ -78,31 +75,32 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         
         if boxvec is None:
             if (bdim == 2):
-                self.thisptr = <cppConfTest*>new cppCheckSameMinimum2D(opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimum2D(opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
+                                                       )
             else:
                 assert(bdim == 3)
-                self.thisptr = <cppConfTest*>new cppCheckSameMinimum3D(opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimum3D(opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
+                                                       )
         else:    
             bv = np.array(boxvec, dtype=float)
             if (len(boxvec) == 2):
-                self.thisptr = <cppConfTest*>new cppCheckSameMinimumPeriodic2D(opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic2D(opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
+                                                       )
             else:
                 assert(len(boxvec) == 3)
-                self.thisptr = <cppConfTest*>new cppCheckSameMinimumPeriodic3D(opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic3D(opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
-        self.newptr = <cppCheckSameMinimum*> self.thisptr
-    
-    def __dealloc__(self):
-        del self.thisptr
+                                                       )
+        self.newptr = <cppCheckSameMinimum*> self.thisptr.get()
     
     @cython.boundscheck(False)
     @cython.wraparound(False) 

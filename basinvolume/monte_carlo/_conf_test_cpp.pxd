@@ -1,7 +1,7 @@
 from libcpp cimport bool as cbool
 cimport pele.potentials._pele as _pele
 cimport pele.optimize._pele_opt as _pele_opt
-from mcpele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest, shared_ptr
+from mcpele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest,shared_ptr
 
 cdef extern from "basinvolume/check_hyper_spherical_container.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
