@@ -387,7 +387,7 @@ if __name__ == "__main__":
     parser.add_argument("-d","--boxdim", type=int, help="box dimensions",default=3)
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.5)
     parser.add_argument("-u","--rmean", type=float, help="mean particle radius",default=1.0)
-    parser.add_argument("-s","--rsigma", type=float, help="% standard deviation",default=0.05)
+    parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-4)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")

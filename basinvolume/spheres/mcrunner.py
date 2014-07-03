@@ -327,7 +327,7 @@ class Findk_MCrunner(_BaseMCRunner):
         bincenters = 0.5*(bins[1:]+bins[:-1])
         and2 = vec_analytical_d2(val,self.get_k(),len(self.hs_radii))/quad(vec_analytical_d2,bincenters[0],bincenters[-1],args=(self.get_k(),len(self.hs_radii)))[0]
         plt.plot(bincenters, and2, linewidth=2.5, ls='--',color=color_cycle[-1])
-        plt.xlim(0,0.3)
+        plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
         plt.ylabel(r'frequency $\times 10$')
         plt.tight_layout()

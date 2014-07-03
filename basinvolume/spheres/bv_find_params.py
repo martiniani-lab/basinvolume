@@ -33,7 +33,7 @@ if __name__ == "__main__":
     
     ncores = args.ncores
     
-    findk_kwargs = dict(k=3e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9, kfactor=0.4,
+    findk_kwargs = dict(k=150, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9, kfactor=0.4,
                         knavg=2000, ktol=0.025, opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4,
                         packings_dir=packings_dir)
     

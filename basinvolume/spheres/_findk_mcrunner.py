@@ -23,7 +23,7 @@ class _findk_mcrunner(object):
     ####k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
         ##opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'
     
-    def __init__(self, fname, k=1e3, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
+    def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     print "self.prob: ", sim.prob
     print "self.displ_k_max: ", sim.displ_k_max
     print "self.var_displ_k_max: ", sim.var_displ_k_max
-    print "Nd/k: ", sim.nparticles*sim.bdim/sim.kmax
+    #print "Nd/k: ", sim.nparticles*sim.bdim/sim.kmax
     print "(N-1)d/k", (sim.nparticles-1)*sim.bdim/sim.kmax
     sim.mcrunner.show_histogram()
     print "entries in histogram: ",sim.mcrunner.get_entries()

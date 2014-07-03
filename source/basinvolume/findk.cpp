@@ -23,7 +23,7 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
 	,_nrejected(0)
 	,_start(0)
 	,_converged(false)
-        ,_hist(min, max, bin)
+    ,_hist(min, max, bin)
 	{}
 
 void Findk::_get_vec_distance(const pele::Array<double>& x){
@@ -58,7 +58,6 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
     else
         ++_nrejected;
 
-    //if (_converged&&accepted)
     if (_converged)
     {
         //compute distances subtracting the origin's coordinates
@@ -104,15 +103,19 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     //get k
     const double ik = mc->_stepsize;
     _k = 1/(ik*ik);
+
     //debug output
     std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
     std::cout<<"_k "<<_k<<std::endl; //debug
     std::cout<<"iterations "<< iterations << std::endl;//debug
+
     //check for convergence
-    if (fabs(_target - _acceptedf) < _tol){
-	_converged = true;
-	return;
+    if (fabs(_target - _acceptedf) < _tol)
+    {
+        _converged = true;
+        return;
     }
+
     //adapt k size
     const double tmp1 = 1.0/(iterations%period+1);
     const double tmp2 = 1 + (_target-_acceptedf)/(_target+_acceptedf);

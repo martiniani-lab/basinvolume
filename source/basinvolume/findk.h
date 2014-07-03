@@ -53,7 +53,8 @@ private:
     mcpele::Histogram _hist;
 
 public:
-    Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor, size_t navg, double tol, double min, double max, double bin);
+    Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor,
+            size_t navg, double tol, double min, double max, double bin);
     virtual ~Findk() {}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
     double get_prob(){return _acceptedf;}

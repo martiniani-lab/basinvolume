@@ -62,7 +62,8 @@ protected:
     MinimaList _minima_list;
 public:
     CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin, Array<double> hs_radii,
-            Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL, const bool perform_convergence_test=false, const bool collect_minima_list=false);
+            Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL,
+            bool perform_convergence_test=false, bool collect_minima_list=false);
     virtual bool test(Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckSameMinimum(){}
 
