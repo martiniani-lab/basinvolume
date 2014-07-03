@@ -19,13 +19,11 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         
-        self.thisptr = <cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.size),
+        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
                                                                ndim, min, max, bin, eqsteps)
-        self.newptr = <cppRecordEnergyHistogram*> self.thisptr
-    
-    def __dealloc__(self):
-        del self.thisptr
+                                             )
+        self.newptr = <cppRecordEnergyHistogram*> self.thisptr.get()
     
     @cython.boundscheck(False)
     @cython.wraparound(False) 
@@ -68,13 +66,11 @@ cdef class _Cdef_Findk(_Cdef_Action):
     def __cinit__(self, origin, rattlers, bdim, avgcount, target, factor, navg, tol, min, max, bin):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
-        self.thisptr = <cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size),
+        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                 _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
                                                 bdim, avgcount, target, factor, navg, tol, min, max, bin)
-        self.newptr = <cppFindk*> self.thisptr
-    
-    def __dealloc__(self):
-        del self.thisptr
+                                             )
+        self.newptr = <cppFindk*> self.thisptr.get()
     
     def get_prob(self):
         """
@@ -123,12 +119,10 @@ cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
         cdef size_t cniter = niter
         cdef size_t crecord_every = record_every
         
-        self.thisptr = <cppAction*>new cppRecordDisplacementTimeseries(_pele.Array[double](<double*> orginc.data, orginc.size),
+        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisplacementTimeseries(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                        cbdim, cniter, crecord_every)
-        self.newptr = <cppRecordDisplacementTimeseries*> self.thisptr
-    
-    def __dealloc__(self):
-        del self.thisptr
+                                             )
+        self.newptr = <cppRecordDisplacementTimeseries*> self.thisptr.get()
     
     @cython.boundscheck(False)
     @cython.wraparound(False)

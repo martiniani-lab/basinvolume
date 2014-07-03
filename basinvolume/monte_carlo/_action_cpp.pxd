@@ -1,7 +1,7 @@
 cimport pele.potentials._pele as _pele
 from libcpp cimport bool as cbool
 cimport mcpele.monte_carlo._pele_mc as _pele_mc
-from mcpele.monte_carlo._pele_mc cimport cppAction,_Cdef_Action
+from mcpele.monte_carlo._pele_mc cimport cppAction,_Cdef_Action, shared_ptr
 from mcpele.monte_carlo._action_cpp cimport cppRecordEnergyHistogram
 
 #derives from record energy histogram

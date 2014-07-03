@@ -171,7 +171,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """quenches the imported structure using FIRE"""
         res = modifiedfire_cpp(self.coords,self.potential, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
         if not res.success:
-            return False;
+            return False
         
         self.coords = res.coords
         self.energy = res.energy

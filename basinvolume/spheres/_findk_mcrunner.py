@@ -2,7 +2,8 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.potentials import Harmonic
+from pele.potentials import Harmonic, HS_WCA
+from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 import ConfigParser
@@ -48,6 +49,19 @@ class _findk_mcrunner(object):
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
                           'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
+        
+        
+        #quench origim
+        pot_optimizer = HS_WCA(1, self.sca, self.hs_radii, boxvec=self.boxv)
+        res = modifiedfire_cpp(self.coords,pot_optimizer, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
+        if not res.success:
+            assert(False)
+        self.coords = res.coords
+        print res
+        hess = pot_optimizer.getHessian(self.coords)
+        w, v = np.linalg.eig(hess)
+        w = np.real(w)
+        print sorted(w)
         
         #self.coords is origin, set initial configuration and origin to be the same
         potential = Harmonic(self.coords,0,bdim=self.bdim,com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
@@ -146,7 +160,7 @@ class _findk_mcrunner(object):
 if __name__ == "__main__":
     
     #sim = _findk_mcrunner('jammed_packing0.xydr')
-    sim = _findk_mcrunner('jammed_packing0.xyzdr')
+    sim = _findk_mcrunner('jammed_packing1.xyzdr')
     print 'simulation started'
     start=time.time() 
     sim.run()
