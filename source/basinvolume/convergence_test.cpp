@@ -6,7 +6,9 @@
 namespace bv{
 
 
-void convergence_test::check_convergence(pele::Array<double> quenched_coords, pele::BasePotential * _potential, const size_t _ndim, pele::GradientOptimizer * _optimizer)
+void convergence_test::check_convergence(pele::Array<double> quenched_coords,
+        pele::BasePotential * _potential, const size_t _ndim,
+        pele::GradientOptimizer * _optimizer)
 {
     //std::cout << "convergence_test::check_convergence" << std::endl;
     bool minimum = false;
@@ -22,10 +24,10 @@ void convergence_test::check_convergence(pele::Array<double> quenched_coords, pe
         _H0 = lbfgs.get_H0();
         double lowesteig = lbfgs.get_f();
         if ( lowesteig < _eigtol){
-        minimum = false;
-        _optimizer->set_tol(_lowtol);
-        _optimizer->run();
-        std::cout<<"NOT A MINIMUM"<<std::endl;
+            minimum = false;
+            _optimizer->set_tol(_lowtol);
+            _optimizer->run();
+            std::cout<<"NOT A MINIMUM"<<std::endl;
         }
         ++l;
     }

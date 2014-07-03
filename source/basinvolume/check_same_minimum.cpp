@@ -8,59 +8,71 @@ using mcpele::MC;
 namespace bv{
 
 
-CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer, pele::BasePotential * potential, Array<double> origin,
-        Array<double> hs_radii, Array<double> rattlers, double dtol, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, const bool perform_convergence_test, const bool collect_minima_list):
-        _ndim(ndim), _optimizer(optimizer), _potential(potential), _origin(origin.copy()), _hs_radii(hs_radii.copy()),
-        _rattlers(rattlers.copy()), _distance(origin.size(),0),_dtol(dtol),_d(0),
-        _rms(0),_nparticles(_hs_radii.size()), _dist_policy(dist),_Nnoratt(0),
-        _perform_convergence_test(perform_convergence_test),
-        _conv_test(1e-2, 5, 30, 0.3, 1e-10, _optimizer->get_tol(), 0.1, 1, _origin),
+CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer,
+        pele::BasePotential * potential, Array<double> origin, Array<double>
+        hs_radii, Array<double> rattlers, double dtol, size_t ndim,
+        std::shared_ptr<pele::DistanceInterface> dist, const bool
+        perform_convergence_test, const bool collect_minima_list)
+    : _ndim(ndim), 
+    _optimizer(optimizer), 
+    _potential(potential),
+    _origin(origin.copy()), 
+    _hs_radii(hs_radii.copy()),
+    _rattlers(rattlers.copy()),
+    _distance(origin.size(), 0),
+    _dtol(dtol), _d(0),
+    _rms(0), 
+    _nparticles(_hs_radii.size()), 
+    _dist_policy(dist),_Nnoratt(0),
+    _perform_convergence_test(perform_convergence_test), 
+    _conv_test(1e-2, 5, 30, 0.3, 1e-10, _optimizer->get_tol(), 0.1, 1, _origin),
     _collect_minima_list(collect_minima_list),
     _minima_list(1e-4, _optimizer->get_tol(), 1e-4/sqrt(origin.size())) //MinimaList(tol_delta_x_, tol_energy_, tol_delta_x_element_)
-        {
-            if (_dist_policy == NULL)
-                throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
+{
+    if (_dist_policy == NULL)
+        throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
 
-            for(size_t i=0;i<_origin.size();i+=_ndim)
-                if (_rattlers[i] != 0){
-                    _inoratt = i/_ndim;
-                    break;
-                }
-
-            for(size_t i=0;i<_origin.size();i+=_ndim)
-                _Nnoratt += _rattlers[i];
-
+    for (size_t i=0;i<_origin.size();i+=_ndim) {
+        if (_rattlers[i] != 0){
+            _inoratt = i/_ndim;
+            break;
         }
+    }
+
+    for (size_t i=0;i<_origin.size();i+=_ndim){
+        _Nnoratt += _rattlers[i];
+    }
+
+}
 
 //compute distance from origin after aligning the centre of mass
 //this ignores the rattlers completely
 
-void CheckSameMinimum::_get_vec_distance(pele::Array<double> quenched_coords){
-        pele::Array<double> dr(_ndim);
+void CheckSameMinimum::_get_vec_distance(pele::Array<double> quenched_coords)
+{
+    pele::Array<double> dr(_ndim);
 
-        //measure distance between two non rattlers
-        _dist_policy->get_rij(dr.data(), &quenched_coords[_inoratt], &_origin[_inoratt]);
+    //measure distance between two non rattlers
+    _dist_policy->get_rij(dr.data(), &quenched_coords[_inoratt], &_origin[_inoratt]);
 
-        //align structures
-        for(size_t i=0;i<_nparticles;++i)
-        {
-            size_t i1 = i*_ndim;
-            for(size_t j=0;j<_ndim;++j){
-                quenched_coords[i1+j] -= dr[j];
-            }
-        }
-
-        //compute distance between aligned structures
-        for(size_t i=0;i<_nparticles;++i)
-        {
-            size_t i1 = i*_ndim;
-            _dist_policy->get_rij(dr.data(), &quenched_coords[i1], &_origin[i1]);
-
-            for(size_t j=0;j<_ndim;++j){
-                _distance[i1+j] = dr[j] * _rattlers[i1+j];
-            }
+    //align structures
+    for(size_t i=0;i<_nparticles;++i) {
+        size_t i1 = i*_ndim;
+        for(size_t j=0;j<_ndim;++j){
+            quenched_coords[i1+j] -= dr[j];
         }
     }
+
+    //compute distance between aligned structures
+    for(size_t i=0;i<_nparticles;++i) {
+        size_t i1 = i*_ndim;
+        _dist_policy->get_rij(dr.data(), &quenched_coords[i1], &_origin[i1]);
+
+        for(size_t j=0;j<_ndim;++j){
+            _distance[i1+j] = dr[j] * _rattlers[i1+j];
+        }
+    }
+}
 
 void CheckSameMinimum::_check_convergence(pele::Array<double> quenched_coords)
 {
