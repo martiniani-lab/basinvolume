@@ -24,13 +24,13 @@ namespace bv{
 
 /*check same minimum class
  * _optimizer: pointer to object of class GradientOptimizer performing minimisation according to some potential
- * 				passed to the object during its construction
+ *                 passed to the object during its construction
  * _origin: coordinates to which the quenched structure is compared to
  * _rattlers: array of 1s or 0s: if not indicates a rattler,0 -> rattler
- * 															1 -> jammed particle
- * 			this convention removes if statements in the for loop and replaces them with
- * 			arithmetic operation (distance[i] *= rattlers[i]), distance is set artificially to
- * 			zero if the particle is a rattler. note _rattlers.size() = coords.size()
+ *                                                             1 -> jammed particle
+ *             this convention removes if statements in the for loop and replaces them with
+ *             arithmetic operation (distance[i] *= rattlers[i]), distance is set artificially to
+ *             zero if the particle is a rattler. note _rattlers.size() = coords.size()
  * _distance: array containing the Euclidean distance between trial_coords and origin
  * _d: norm of distance
  * _rms: root mean square displacement from origin

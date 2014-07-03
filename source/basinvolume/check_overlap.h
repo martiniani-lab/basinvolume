@@ -26,11 +26,11 @@ protected:
 public:
 
     CheckOverlap(pele::Array<double> hs_radii, std::shared_ptr<DIST_POL> dist=NULL):
-	_hs_radii(hs_radii.copy()), _nparticles(_hs_radii.size()), _periodic_dist(dist)
-	{
-	    if (_periodic_dist == NULL)
-		throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
-	}
+    _hs_radii(hs_radii.copy()), _nparticles(_hs_radii.size()), _periodic_dist(dist)
+    {
+        if (_periodic_dist == NULL)
+        throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
+    }
 
     virtual ~CheckOverlap(){};
 

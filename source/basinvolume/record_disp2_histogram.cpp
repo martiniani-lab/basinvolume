@@ -26,15 +26,15 @@ void RecordDisp2Histogram::_get_vec_distance(const pele::Array<double>& x){
     }
 
 void RecordDisp2Histogram::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc) {
-		if (mc->get_iterations_count() > get_eqsteps())
-		{
-			//compute distances subtracting the origin's coordinates
-			this->_get_vec_distance(coords);
+        if (mc->get_iterations_count() > get_eqsteps())
+        {
+            //compute distances subtracting the origin's coordinates
+            this->_get_vec_distance(coords);
 
-			//compute square displacement from origin
-			double norm2 = dot(_distance,_distance);
-			_hist.add_entry(norm2);
-		}
+            //compute square displacement from origin
+            double norm2 = dot(_distance,_distance);
+            _hist.add_entry(norm2);
+        }
 }
 
 }//namespace bv
