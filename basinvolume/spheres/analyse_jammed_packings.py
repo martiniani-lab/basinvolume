@@ -4,9 +4,11 @@ import abc
 import os
 from pele.potentials import HS_WCA
 from basinvolume.utils import *
+from basinvolume.spheres import HSWCASystem
 import ConfigParser
 import time
 import re
+from pele.gui import run_gui
 import pylab
 
 class analyse_jammed_packings(object):
@@ -62,6 +64,58 @@ class analyse_jammed_packings(object):
         else:
             self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
         self.hs_radii = hs_diameters/2
+      
+    def analyse_hessian(self,fname):
+        """compute hessian and its eigenvalues
+        """
+        self.hess_block = np.zeros((self.bdim,self.bdim));        
+        hess = self.potential.getHessian(self.coords)
+        
+        #analyse packing, assert that the whole system has only 3 0'evalues + a 0 evalue for each rattler 0 evalue
+        ratt0evals= []
+        for i in xrange(self.nparticles):
+            i1 = self.bdim*i
+            hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
+            w, v = np.linalg.eig(hess_block)
+            w = np.real(w)
+            if np.any(np.absolute(w) < 1):
+                print 'zero eigenvalue, particle {}'.format(i)
+                print w
+                assert(self.rattlers[i1]==0)
+            self.block_evalues.extend(w)
+            ratt0evals.extend([x for x in w if abs(x) < 0.1]) #append to array of zero evalues due to rattlers
+        
+        w, v = np.linalg.eig(hess)
+        w = np.real(w)
+        full0evals = [x for x in w if abs(x) < 0.1]
+        if len(full0evals) - len(ratt0evals) > self.bdim:
+            print "configuration is a saddle: more than 3 + bloc0's eigenvalues"
+        self.whole_evalues.extend(w)
+        
+        #check that there isn't any significantly negative evalue
+        if np.any(w) < -0.1:
+            print "configuration is a saddle, it has strongly negative evalue"
+        
+        self.iteration+=1
+        print "\n"
+    
+    def one_iteration(self, fname):
+        self._import_packing_configuration(fname)
+        if self.iteration is 0:
+            self._initialise()
+            self.system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv)
+            self.potential = self.system.get_potential()
+            self.db = self.system.create_database()
+        self.analyse_hessian(fname)
+        self.db.addMinimum(self.potential.getEnergy(self.coords), self.coords)
+    
+    def run(self):
+        """run generate packings"""
+        for fname in os.listdir(self.packings_dir):
+            if 'xyzdr' in fname or 'xydr' in fname:
+                print fname
+                self.one_iteration(fname)
+        self._histogram_eigenvalues()
     
     def _histogram_eigenvalues(self):
         #self.eigenvalues = np.array(self.eigenvalues,dtype='d')
@@ -96,52 +150,6 @@ class analyse_jammed_packings(object):
         pylab.bar(center, self.whole_histogram_low, align='center', width=width)
         pylab.savefig('whole_histogram_low{}.eps'.format(self.low_range[1]))
         pylab.show()
-        
-    def one_iteration(self,fname):
-        """compute hessian and its eigenvalues
-        """
-        self.hess_block = np.zeros((self.bdim,self.bdim));
-        if self.iteration is 0:
-            self._initialise()
-        self._import_packing_configuration(fname)
-        self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
-        hess = self.potential.getHessian(self.coords)
-        
-        #analyse packing, assert that the whole system has only 3 0'evalues + a 0 evalue for each rattler 0 evalue
-        ratt0evals= []
-        for i in xrange(self.nparticles):
-            i1 = self.bdim*i
-            hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
-            w, v = np.linalg.eig(hess_block)
-            w = np.real(w)
-            if np.any(np.absolute(w) < 1):
-                print 'zero eigenvalue, particle {}'.format(i)
-                print w
-                assert(self.rattlers[i1]==0)
-            self.block_evalues.extend(w)
-            ratt0evals.extend([x for x in w if abs(x) < 0.1]) #append to array of zero evalues due to rattlers
-        
-        w, v = np.linalg.eig(hess)
-        w = np.real(w)
-        full0evals = [x for x in w if abs(x) < 0.1]
-        if len(full0evals) - len(ratt0evals) > self.bdim:
-            print "configuration is a saddle: more than 3 + bloc0's eigenvalues"
-        self.whole_evalues.extend(w)
-        
-        #check that there isn't any significantly negative evalue
-        if np.any(w) < -0.1:
-            print "configuration is a saddle, it has strongly negative evalue"
-        
-        self.iteration+=1
-        print "\n"
-    
-    def run(self):
-        """run generate packings"""
-        for fname in os.listdir(self.packings_dir):
-            if 'xyzdr' in fname or 'xydr' in fname:
-                print fname
-                self.one_iteration(fname)
-        self._histogram_eigenvalues()
     
     def _print_initialise(self):
         base_directory = self.base_directory
@@ -177,6 +185,7 @@ if __name__ == "__main__":
     analyse.run()
     end=time.time()
     print "time elapsed",end-start
+    run_gui(analyse.system, analyse.db)
     
     
         
