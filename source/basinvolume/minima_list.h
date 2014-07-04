@@ -34,8 +34,8 @@ private:
     store_t::iterator minima_iterator_;
 public:
     MinimaList(const coor_t tol_delta_x_, const energy_t tol_energy_, const coor_t tol_delta_x_element_):
-	tol_delta_x(tol_delta_x_), tol_energy(tol_energy_), tol_delta_x_element(tol_delta_x_element_)
-	{}
+    tol_delta_x(tol_delta_x_), tol_energy(tol_energy_), tol_delta_x_element(tol_delta_x_element_)
+    {}
     /*
      * To make the distance comparison between CheckSameMinimum and here consistent, the tolerances should be set accordingly.
      * */
@@ -50,13 +50,13 @@ public:
 
     template<class T>
     std::vector<T> property_listing(T(Minimum::*property)()const)const{
-	std::vector<T> result;
-	result.reserve(nr_distinct_minima());
-	for (store_t::const_iterator i = minima_storage.begin(); i != minima_storage.end(); ++i){
-	    result.push_back(((*i).*property)());
-	}
-	result.shrink_to_fit();
-	return result;
+    std::vector<T> result;
+    result.reserve(nr_distinct_minima());
+    for (store_t::const_iterator i = minima_storage.begin(); i != minima_storage.end(); ++i){
+        result.push_back(((*i).*property)());
+    }
+    result.shrink_to_fit();
+    return result;
     }
 
     //The following 4 functions are index based and can not be implemented efficently here
@@ -69,22 +69,22 @@ public:
 
     bool check_new_minimum(const Minimum& input, pele::Array<coor_t> rattler)
     {
-	return check_new_minimum(input.delta_x(), input.energy(), input.coor(), rattler);
+    return check_new_minimum(input.delta_x(), input.energy(), input.coor(), rattler);
     }
 
     bool check_new_minimum(const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
     {
-	// 1. get possible matches for candidate based on delta_x and dtol
-	const map_t::const_iterator low = minima_order.lower_bound(delta_x_inp-tol_delta_x);
-	const map_t::const_iterator high= minima_order.upper_bound(delta_x_inp+tol_delta_x);
+    // 1. get possible matches for candidate based on delta_x and dtol
+    const map_t::const_iterator low = minima_order.lower_bound(delta_x_inp-tol_delta_x);
+    const map_t::const_iterator high= minima_order.upper_bound(delta_x_inp+tol_delta_x);
         // 2. check if candidate agrees with any potential match
         for (map_t::const_iterator i = low; i != high; ++i){
-	    Minimum*const& this_match = i->second;
-	    if (agrees_with_input(this_match, energy_inp, coor_inp, rattler)){
-		// candidate new minimum agrees with a previously found one
-		record_duplicate(this_match);
-		return false;
-	    }
+        Minimum*const& this_match = i->second;
+        if (agrees_with_input(this_match, energy_inp, coor_inp, rattler)){
+        // candidate new minimum agrees with a previously found one
+        record_duplicate(this_match);
+        return false;
+        }
         }
         // candidate new minimum does not agree with any previously found one, store candidate new minimum
         record_new_minimum(low, delta_x_inp, energy_inp, coor_inp);
@@ -105,26 +105,26 @@ public:
         //1. check for (scalar) delta_x passed
         //2. check: energy match
         if ( fabs(this_match->energy()-energy_inp) > tol_energy )
-    	return false; //failed energy test
+        return false; //failed energy test
         //3. check: coordinate match
         coor_t* it = this_match->coor().data();
         const index_t tmp_N = this_match->coor().size();
         for (index_t i = 0; i < tmp_N; ++i, ++it){
-    	if ( rattler[i]*fabs( *it - coor_inp[i] ) > tol_delta_x_element )
-    	    return false; //failed coordinate test
+        if ( rattler[i]*fabs( *it - coor_inp[i] ) > tol_delta_x_element )
+            return false; //failed coordinate test
         }
         return true; //all tests passed
     }
 
     void record_duplicate(Minimum*const& this_match)
     {
-	this_match->increment_count();
+    this_match->increment_count();
     }
 
     void record_new_minimum(const map_t::const_iterator insertion_hint, const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp)
     {
-	minima_storage.push_back( Minimum(delta_x_inp, energy_inp, coor_inp) );
-	minima_order.insert(insertion_hint, std::make_pair(delta_x_inp, &minima_storage.back()));
+    minima_storage.push_back( Minimum(delta_x_inp, energy_inp, coor_inp) );
+    minima_order.insert(insertion_hint, std::make_pair(delta_x_inp, &minima_storage.back()));
     }
 };
 
