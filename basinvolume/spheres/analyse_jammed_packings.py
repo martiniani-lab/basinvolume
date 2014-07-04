@@ -3,13 +3,15 @@ import numpy as np
 import abc
 import os
 from pele.potentials import HS_WCA
+from pele.storage import Minimum
 from basinvolume.utils import *
 from basinvolume.spheres import HSWCASystem
 import ConfigParser
 import time
 import re
-from pele.gui import run_gui
 import pylab
+from pele.gui import run_gui
+import argparse
 
 class analyse_jammed_packings(object):
     """
@@ -22,12 +24,14 @@ class analyse_jammed_packings(object):
     *boxv: an array of size bdim that contains the vectors defining the box
     """
         
-    def __init__(self, packings_dir='jammed_packings'):
+    def __init__(self, etol=0.1, packings_dir='jammed_packings', hist_show=False):
         self.base_directory = os.path.join(os.getcwd(),'analyse_jammed_packings')
         self.packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
         self._import_packing_config_file()
         self.eps=1.
+        self.etol = 0.1
+        self.show = hist_show
         self.iteration = 0
         self.block_evalues = []
         self.whole_evalues = []
@@ -78,16 +82,16 @@ class analyse_jammed_packings(object):
             hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
             w, v = np.linalg.eig(hess_block)
             w = np.real(w)
-            if np.any(np.absolute(w) < 1):
+            if np.any(np.absolute(w) < self.etol):
                 print 'zero eigenvalue, particle {}'.format(i)
                 print w
                 assert(self.rattlers[i1]==0)
             self.block_evalues.extend(w)
-            ratt0evals.extend([x for x in w if abs(x) < 0.1]) #append to array of zero evalues due to rattlers
+            ratt0evals.extend([x for x in w if abs(x) < self.etol]) #append to array of zero evalues due to rattlers
         
         w, v = np.linalg.eig(hess)
         w = np.real(w)
-        full0evals = [x for x in w if abs(x) < 0.1]
+        full0evals = [x for x in w if abs(x) < self.etol]
         if len(full0evals) - len(ratt0evals) > self.bdim:
             print "configuration is a saddle: more than 3 + bloc0's eigenvalues"
         self.whole_evalues.extend(w)
@@ -103,11 +107,19 @@ class analyse_jammed_packings(object):
         self._import_packing_configuration(fname)
         if self.iteration is 0:
             self._initialise()
-            self.system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv)
+            self.system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim)
             self.potential = self.system.get_potential()
             self.db = self.system.create_database()
         self.analyse_hessian(fname)
-        self.db.addMinimum(self.potential.getEnergy(self.coords), self.coords)
+        coords = self.coords.copy()
+        np.array(put_in_box(coords,self.boxv))
+        self.db.addMinimum(self.potential.getEnergy(self.coords), coords)
+#        m = Minimum(self.potential.getEnergy(self.coords), coords)
+#        m.user_data = dict(rattlers=self.rattlers[::self.bdim])
+#        self.db.session.add(m)
+#        self.db.session.commit()
+        
+        
     
     def run(self):
         """run generate packings"""
@@ -126,14 +138,16 @@ class analyse_jammed_packings(object):
         center = (bins[:-1] + bins[1:]) / 2
         pylab.bar(center, self.block_histogram, align='center', width=width)
         pylab.savefig('blocks_histogram.eps')
-        pylab.show()
+        if self.show:
+            pylab.show()
         pylab.figure()
         self.block_histogram_low, bins = np.histogram(self.block_evalues ,bins=self.nbins_low, range=self.low_range)
         width = bins[1] - bins[0]
         center = (bins[:-1] + bins[1:]) / 2
         pylab.bar(center, self.block_histogram_low, align='center', width=width)
         pylab.savefig('blocks_histogram_low{}.eps'.format(self.low_range[1]))
-        pylab.show()
+        if self.show:
+            pylab.show()
         
         self.whole_evalues = np.real(self.whole_evalues)
         pylab.figure()
@@ -142,14 +156,16 @@ class analyse_jammed_packings(object):
         center = (bins[:-1] + bins[1:]) / 2
         pylab.bar(center, self.whole_histogram, align='center', width=width)
         pylab.savefig('whole_histogram.eps')
-        pylab.show()
+        if self.show:
+            pylab.show()
         pylab.figure()
         self.whole_histogram_low, bins = np.histogram(self.whole_evalues ,bins=self.nbins_low, range=self.low_range)
         width = bins[1] - bins[0]
         center = (bins[:-1] + bins[1:]) / 2
         pylab.bar(center, self.whole_histogram_low, align='center', width=width)
         pylab.savefig('whole_histogram_low{}.eps'.format(self.low_range[1]))
-        pylab.show()
+        if self.show:
+            pylab.show()
     
     def _print_initialise(self):
         base_directory = self.base_directory
@@ -180,7 +196,14 @@ class analyse_jammed_packings(object):
     
 if __name__ == "__main__":
     
-    analyse = analyse_jammed_packings()
+    parser = argparse.ArgumentParser(description="analyse hard disks/spheres packings")
+    parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
+    parser.add_argument("--show", action='store_true', help="show histograms",default=False)
+    parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="jammed_packings")
+    args = parser.parse_args()
+    print args
+    
+    analyse = analyse_jammed_packings(etol=args.etol, packings_dir=args.packingsdir, hist_show=args.show)
     start=time.time()
     analyse.run()
     end=time.time()
