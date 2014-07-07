@@ -34,6 +34,7 @@ class _Generate_Jammed_Packing(object):
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
+            
         
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
@@ -139,6 +140,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """perform one iteration
         """
         self._import_packing_configuration(fname)
+        #assert that largest particle is not > 1/3 of smallest box size
+        if np.amax(self.hs_radii)*2 >= np.amin(self.boxv)/2.5:
+            print "WARNING: max diameter >= 1/2.5 box side!"
         #initialise needs to import at least one configuration to compute sca
         if self.iteration is 0:
             self.initialise()
@@ -290,7 +294,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         f = open(fname,'w')
         f.write('{}\n'.format(self.nparticles))
         if self.bdim == 2:
-            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, -np.amax(self.hs_radii)))
+            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, - np.amax(self.hs_radii)))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(np.amax(self.hs_radii)*2))
