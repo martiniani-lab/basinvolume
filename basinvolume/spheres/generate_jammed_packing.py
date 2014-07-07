@@ -140,7 +140,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """perform one iteration
         """
         self._import_packing_configuration(fname)
-        #assert that largest particle is not > 1/3 of smallest box size
+        #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii)*2*(1+self.sca) >= np.amin(self.boxv)/2:
             print "WARNING: max soft diameter >= 1/2 box side!"
         #initialise needs to import at least one configuration to compute sca
