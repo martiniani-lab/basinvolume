@@ -33,6 +33,7 @@ class _Generate_Jammed_Packing(object):
         self._import_packing_config_file()
         self.iteration = 0
         self.sca = -1
+        self.eps = 1.
         
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
@@ -125,7 +126,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
         
         ##constants#
-        self.eps = 1.
         self.rattler_eval_tol = rattler_eval_tol 
         ############
     
@@ -171,6 +171,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """quenches the imported structure using FIRE"""
         res = modifiedfire_cpp(self.coords,self.potential, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
         if not res.success:
+            print 'quench failed'
             return False
         
         self.coords = res.coords
@@ -179,6 +180,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_overlaps()
         if not no_overlap:
+            print 'overlap found'
             return False 
         
         #analyse packing, assert that the whole system has only 3 0'evalues + a 0 evalue for each rattler 0 evalue
@@ -195,10 +197,12 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         w = np.real(w)
         full0evals = [x for x in w if abs(x) < 0.1]
         if len(full0evals) - len(ratt0evals) > self.bdim:
+            print 'hessian 0s mismatch rattlers 0s'
             return False
         
         #check that there isn't any significantly negative evalue
         if np.any(w) < -0.1:
+            print 'eigevalue < -0.1'
             return False
         
         return True
@@ -266,13 +270,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
             f = open(fname,'w')
             for i in xrange(self.nparticles):
-                f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                f.write('{:.16}\t{:.16}\t{:.16}\t{:.16}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           self.hs_radii[i]*2,self.rattlers[i]))
         else:
             fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
             f = open(fname,'w')
             for i in xrange(self.nparticles):
-                f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                f.write('{:.16}\t{:.16}\t{:.16}\t{:.16}\t{:.16}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
         f.close()
     

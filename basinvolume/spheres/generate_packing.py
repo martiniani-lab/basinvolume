@@ -47,6 +47,9 @@ class _Generate_Packing(object):
         self.max_iter = max_iter
         self.box_resized = False
         self.initialised = False
+        ##constants#
+        self.eps = 1. #energy unit
+        ############
         
     @abc.abstractmethod
     def initialise(self):
@@ -141,10 +144,8 @@ class HS_Generate_Packing(_Generate_Packing):
                  mu = 1, sig = 0.2, hsf_niter=1e6, hsf_stepsize = 1e-4, max_iter = 10):
         super(HS_Generate_Packing,self).__init__(method, nparticles, bdim=bdim, boxv = boxv, 
                                                  packing_frac=packing_frac, max_iter = max_iter)
-        ##constants#
-        self.eps = 1.
+        
         self.sca = 0. #this must be 0 for hard spheres
-        ############
         self.mu = mu
         self.sig = sig * mu
         self.hsf_niter = hsf_niter #number of iteration for each hs fluid configuration
@@ -333,13 +334,13 @@ class HS_Generate_Packing(_Generate_Packing):
             fname = "{0}/packing{1}.xyd".format(directory,self.iteration)
             f = open(fname,'w')
             for i in xrange(self.nparticles):
-                f.write('{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                f.write('{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                   self.hs_radii[i]*2))
         else:
             fname = "{0}/packing{1}.xyzd".format(directory,self.iteration)
             f = open(fname,'w')
             for i in xrange(self.nparticles):
-                f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                coords[i*self.bdim+2],self.hs_radii[i]*2))
         f.close()
     
@@ -354,11 +355,10 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write('{}\n'.format(self.nparticles))
         
         if self.bdim == 2:
-            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, 0))
+            f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, -np.amax(self.hs_radii)))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
-            f.write('0.0 \t 0.0 \t {}\n'.format(0))
-            
+            f.write('0.0 \t 0.0 \t {}\n'.format(np.amax(self.hs_radii)*2))
             for i in xrange(self.nparticles):
                 for j in xrange(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
@@ -370,7 +370,6 @@ class HS_Generate_Packing(_Generate_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
-        
             for i in xrange(self.nparticles):
                 for j in xrange(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))

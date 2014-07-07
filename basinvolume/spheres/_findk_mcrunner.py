@@ -8,6 +8,7 @@ from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 import ConfigParser
 import time
+import copy
 
 class _findk_mcrunner(object):
     """
@@ -24,7 +25,7 @@ class _findk_mcrunner(object):
         ##opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'
     
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
-                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'):
+                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings', verbose=False):
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
@@ -38,6 +39,7 @@ class _findk_mcrunner(object):
         self.fname = fname
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.temperature=1.0
+        self.eps = eps
         
         self._import_packing_config_file()
         self._import_packing_configuration()
@@ -46,22 +48,28 @@ class _findk_mcrunner(object):
         if opt_maxstep is None:
             opt_maxstep = self.boxv[0]*0.1
         
-        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':eps, 'ktarget':ktarget, 
+        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':self.eps, 'ktarget':ktarget, 
                           'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         
         
-        #quench origim
-        pot_optimizer = HS_WCA(1, self.sca, self.hs_radii, boxvec=self.boxv)
-        res = modifiedfire_cpp(self.coords,pot_optimizer, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
+        #re-quench origin to avoid rounding errors
+        pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
+        res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
         if not res.success:
             assert(False)
+        drms= np.sqrt(np.dot(self.coords,self.coords)/self.ndim) - np.sqrt(np.dot(res.coords, res.coords)/self.ndim)
+        assert(drms <= dtol)
         self.coords = res.coords
-        print res
-        hess = pot_optimizer.getHessian(self.coords)
-        w, v = np.linalg.eig(hess)
-        w = np.real(w)
-        print sorted(w)
+        
+        if verbose:
+            print 'results from quench \n'
+            print res
+            hess = pot_optimizer.getHessian(self.coords)
+            w, v = np.linalg.eig(hess)
+            w = np.real(w)
+            print 'eigenvalues'
+            print sorted(w)
         
         #self.coords is origin, set initial configuration and origin to be the same
         potential = Harmonic(self.coords,0,bdim=self.bdim,com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
@@ -160,7 +168,7 @@ class _findk_mcrunner(object):
 if __name__ == "__main__":
     
     #sim = _findk_mcrunner('jammed_packing0.xydr')
-    sim = _findk_mcrunner('jammed_packing0.xyzdr')
+    sim = _findk_mcrunner('jammed_packing0.xyzdr', verbose=True)
     print 'simulation started'
     start=time.time() 
     sim.run()

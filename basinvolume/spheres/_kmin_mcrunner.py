@@ -2,7 +2,8 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.potentials import Harmonic
+from pele.potentials import Harmonic, HS_WCA
+from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import BV_MCrunner
 from basinvolume.utils import *
 import ConfigParser
@@ -22,7 +23,7 @@ class _kmin_mcrunner(object):
         
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
-                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings'):
+                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings', verbose=False):
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
@@ -36,6 +37,7 @@ class _kmin_mcrunner(object):
         self.fname = fname
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.temperature=1.0
+        self.eps = eps
         
         self._import_packing_config_file()
         self._import_packing_configuration()
@@ -48,6 +50,24 @@ class _kmin_mcrunner(object):
                       'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                       'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
                     
+        #re-quench origin to avoid rounding errors
+        pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
+        res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
+        if not res.success:
+            assert(False)
+        drms= np.sqrt(np.dot(self.coords,self.coords)/self.ndim) - np.sqrt(np.dot(res.coords, res.coords)/self.ndim)
+        assert(drms <= dtol)
+        self.coords = res.coords
+        
+        if verbose:
+            print 'results from quench \n'
+            print res
+            hess = pot_optimizer.getHessian(self.coords)
+            w, v = np.linalg.eig(hess)
+            w = np.real(w)
+            print 'eigenvalues'
+            print sorted(w)
+        
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
@@ -141,7 +161,7 @@ class _kmin_mcrunner(object):
     
 if __name__ == "__main__":
     
-    sim = _kmin_mcrunner('jammed_packing1.xyzdr')
+    sim = _kmin_mcrunner('jammed_packing0.xyzdr', verbose=True)
     print 'simulation started'
     start=time.time()
     #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)
