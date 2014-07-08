@@ -37,12 +37,12 @@ cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
         cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
         if (len(boxvec) == 2):
-            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlap2D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
+            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT2](_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                              <double*> bv.data)
                                                    )
         else:
             assert(len(boxvec) == 3)
-            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlap3D(_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
+            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT3](_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                              <double*> bv.data)
                                                    )
         #self.newptr = <cppCheckOverlap*> self.thisptr
