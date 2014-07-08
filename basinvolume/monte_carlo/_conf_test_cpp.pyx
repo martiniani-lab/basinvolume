@@ -76,27 +76,27 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         
         if boxvec is None:
             if (bdim == 2):
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimum2D(opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT2](opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
                                                        )
             else:
                 assert(bdim == 3)
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimum3D(opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT3](opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
                                                        )
         else:    
             bv = np.array(boxvec, dtype=float)
             if (len(boxvec) == 2):
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic2D(opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT2](opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
                                                        )
             else:
                 assert(len(boxvec) == 3)
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic3D(opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT2](opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
                                                                      <double*> bv.data, 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)

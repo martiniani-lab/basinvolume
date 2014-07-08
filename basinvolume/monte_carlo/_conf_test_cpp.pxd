@@ -39,15 +39,9 @@ cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
         size_t ml_nr_distinct_minima() except +
         _pele.Array[cppMinimum *] get_array_of_minima() except +
         
-    cdef cppclass cppCheckSameMinimum2D "bv::CheckSameMinimum2D":
-        cppCheckSameMinimum2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
+    cdef cppclass cppCheckSameMinimumCartesian "bv::CheckSameMinimumCartesian"[ndim]:
+        cppCheckSameMinimumCartesian(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
                             _pele.Array[double] , double, cbool, cbool) except+
-    cdef cppclass cppCheckSameMinimum3D "bv::CheckSameMinimum3D":
-        cppCheckSameMinimum3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double] , double, cbool, cbool) except+
-    cdef cppclass cppCheckSameMinimumPeriodic2D "bv::CheckSameMinimumPeriodic2D":
-        cppCheckSameMinimumPeriodic2D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            double*, _pele.Array[double] , double, cbool, cbool) except+
-    cdef cppclass cppCheckSameMinimumPeriodic3D "bv::CheckSameMinimumPeriodic3D":
-        cppCheckSameMinimumPeriodic3D(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
+    cdef cppclass cppCheckSameMinimumPeriodic "bv::CheckSameMinimumPeriodic"[ndim]:
+        cppCheckSameMinimumPeriodic(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
                             double*, _pele.Array[double] , double, cbool, cbool) except+
