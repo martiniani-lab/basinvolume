@@ -1,1 +1,1 @@
-This is an implementation of the basin volume method
+This is an implementation of the mean basin volume method

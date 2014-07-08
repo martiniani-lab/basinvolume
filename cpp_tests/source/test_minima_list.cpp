@@ -54,76 +54,99 @@ public:
     }
 };
 
+std::vector<size_t> nr_minima_visits(bv::MinimaList & ml)
+{
+    std::vector<size_t> nvec(ml.nr_distinct_minima());
+    size_t i = 0;
+    for (auto const & m : ml){
+        nvec[i++] = m.count();
+    }
+    return nvec;
+}
+
+/** return the vector of energies to each minimum */
+std::vector<double> energies(bv::MinimaList & ml)
+{
+    std::vector<double> evec(ml.nr_distinct_minima());
+    size_t i = 0;
+    for (auto const & m : ml){
+        evec[i] = m.energy();
+        ++i;
+    }
+    return evec;
+}
+
+
 TEST_F(MinimaListTest, CountingAndCoords){
     bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
     bv::MinimaList mlr(tol_delta_x, tol_energy, tol_delta_x_element);
     for (size_t i = 0; i < nr_insertions; ++i){
-	const bool status = ml.check_new_minimum(42, 44, x, rattlera);
+	const bool status = ml.insert_minimum(42, 44, x, rattlera);
 	bool statusr;
-	if (i!=3) statusr= mlr.check_new_minimum(42, 44, xr, rattlerb);
-	else statusr= mlr.check_new_minimum(42, 44, x, rattlerb);
+	if (i!=3) statusr= mlr.insert_minimum(42, 44, xr, rattlerb);
+	else statusr= mlr.insert_minimum(42, 44, x, rattlerb);
 	EXPECT_TRUE( (status==false) ^ (i==0) );
 	EXPECT_TRUE( (statusr==false) ^ (i==0) );
     }
     EXPECT_TRUE(ml.nr_distinct_minima()==1);
     EXPECT_TRUE(mlr.nr_distinct_minima()==1);
-    EXPECT_TRUE(ml.nr_minima_visits().at(0)==nr_insertions);
-    EXPECT_TRUE(mlr.nr_minima_visits().at(0)==nr_insertions);
+    EXPECT_EQ(nr_minima_visits(ml).at(0), nr_insertions);
+    EXPECT_EQ(nr_minima_visits(mlr).at(0), nr_insertions);
 }
 
 TEST_F(MinimaListTest, DeltaXScalarTest){
     bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
     bool status;
-    status = ml.check_new_minimum(42, 44, x, rattlera);
+    status = ml.insert_minimum(42, 44, x, rattlera);
     EXPECT_TRUE(status);
-    status = ml.check_new_minimum(42+0.5*tol_delta_x, 44, x, rattlera);
+    status = ml.insert_minimum(42+0.5*tol_delta_x, 44, x, rattlera);
     EXPECT_TRUE(status==false);
-    status = ml.check_new_minimum(42+1.5*tol_delta_x, 44, x, rattlera);
+    status = ml.insert_minimum(42+1.5*tol_delta_x, 44, x, rattlera);
     EXPECT_TRUE(status);
-    status = ml.check_new_minimum(42-1.5*tol_delta_x, 44, x, rattlera);
+    status = ml.insert_minimum(42-1.5*tol_delta_x, 44, x, rattlera);
     EXPECT_TRUE(status);
     EXPECT_TRUE(ml.nr_distinct_minima()==3);
-    EXPECT_TRUE(ml.nr_minima_visits().at(0)==2);
-    EXPECT_TRUE(ml.nr_minima_visits().at(1)==1);
-    EXPECT_TRUE(ml.nr_minima_visits().at(2)==1);
+    EXPECT_TRUE(nr_minima_visits(ml).at(0)==2);
+    EXPECT_TRUE(nr_minima_visits(ml).at(1)==1);
+    EXPECT_TRUE(nr_minima_visits(ml).at(2)==1);
 }
 
 TEST_F(MinimaListTest, EnergyTest){
     bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
     bool status;
-    status = ml.check_new_minimum(42, 44, x, rattlera);
+    status = ml.insert_minimum(42, 44, x, rattlera);
     EXPECT_TRUE(status);
-    EXPECT_TRUE(ml.nr_distinct_minima()==1);
-    EXPECT_TRUE(ml.nr_minima_visits().at(0)==1);
-    status = ml.check_new_minimum(42, 44+0.5*tol_energy, x, rattlera);
-    EXPECT_TRUE(status==false);
-    EXPECT_TRUE(ml.nr_distinct_minima()==1);
-    EXPECT_TRUE(ml.nr_minima_visits().at(0)==2);
-    status = ml.check_new_minimum(42, 44+1.5*tol_energy, x, rattlera);
+    EXPECT_EQ(ml.nr_distinct_minima(), 1);
+    EXPECT_EQ(nr_minima_visits(ml).at(0), 1);
+    status = ml.insert_minimum(42, 44+0.5*tol_energy, x, rattlera);
+    EXPECT_FALSE(status);
+    EXPECT_EQ(ml.nr_distinct_minima(), 1);
+    EXPECT_EQ(nr_minima_visits(ml).at(0), 2);
+    status = ml.insert_minimum(42, 44+1.5*tol_energy, x, rattlera);
     EXPECT_TRUE(status);
-    status = ml.check_new_minimum(42, 44-1.5*tol_energy, x, rattlera);
+    status = ml.insert_minimum(42, 44-1.5*tol_energy, x, rattlera);
     EXPECT_TRUE(status);
     EXPECT_TRUE(ml.nr_distinct_minima()==3);
-    EXPECT_TRUE(ml.nr_minima_visits().at(0)==2);
-    EXPECT_TRUE(ml.nr_minima_visits().at(1)==1);
-    EXPECT_TRUE(ml.nr_minima_visits().at(2)==1);
-    EXPECT_NEAR(44, ml.energies().at(0), 1e-15);
-    EXPECT_NEAR(44+1.5*tol_energy, ml.energies().at(1), 1e-15);
-    EXPECT_NEAR(44-1.5*tol_energy, ml.energies().at(2), 1e-15);
+    EXPECT_TRUE(nr_minima_visits(ml).at(0)==2);
+    EXPECT_TRUE(nr_minima_visits(ml).at(1)==1);
+    EXPECT_TRUE(nr_minima_visits(ml).at(2)==1);
+    EXPECT_NEAR(44, energies(ml).at(0), 1e-15);
+    EXPECT_NEAR(44+1.5*tol_energy, energies(ml).at(1), 1e-15);
+    EXPECT_NEAR(44-1.5*tol_energy, energies(ml).at(2), 1e-15);
 }
 
 TEST_F(MinimaListTest, CoordinateTest2){
     bv::MinimaList ml(tol_delta_x, tol_energy, tol_delta_x_element);
     bool status;
-    status = ml.check_new_minimum(42, 44, x, rattlera);
+    status = ml.insert_minimum(42, 44, x, rattlera);
     EXPECT_TRUE(status);
     arr_t y(x.copy());
     y[4] += 0.5*tol_delta_x_element;
-    status = ml.check_new_minimum(42, 44, y, rattlera);
+    status = ml.insert_minimum(42, 44, y, rattlera);
     EXPECT_TRUE(status==false);
     y[4] += tol_delta_x_element;
-    status = ml.check_new_minimum(42, 44, y, rattlera);
+    status = ml.insert_minimum(42, 44, y, rattlera);
     EXPECT_TRUE(status);
-    status = ml.check_new_minimum(42, 44, y, rattlera);
+    status = ml.insert_minimum(42, 44, y, rattlera);
     EXPECT_TRUE(status==false);
 }
