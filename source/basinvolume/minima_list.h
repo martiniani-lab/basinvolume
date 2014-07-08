@@ -54,32 +54,8 @@ public:
     const_iterator begin() const { return minima_storage.begin(); }
     const_iterator end() const { return minima_storage.end(); }
 
-    /** return the number of distinct minia */
+    /** return the number of distinct minima */
     index_t nr_distinct_minima() const { return minima_storage.size(); }
-
-    /**
-     * return a vector of visits to each minima
-     * */
-    std::vector<index_t> nr_minima_visits() const
-    {
-        std::vector<index_t> nvec(nr_distinct_minima());
-        size_t i = 0;
-        for (auto const & m : *this){
-            nvec[i] = m.count();
-        }
-        return nvec;
-    }
-
-    /** return the vector of energies to each minimum */
-    std::vector<energy_t> energies() const
-    {
-        std::vector<energy_t> evec(nr_distinct_minima());
-        size_t i = 0;
-        for (auto const & m : *this){
-            evec[i] = m.energy();
-        }
-        return evec;
-    }
 
     bool check_new_minimum(const Minimum& input, pele::Array<coor_t> rattler)
     {
