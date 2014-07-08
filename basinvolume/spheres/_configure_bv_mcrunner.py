@@ -22,7 +22,7 @@ class configure_bv_mcrunner(object):
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     """
         
-    def __call__(self, fname, k=17, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
+    def __call__(self, fname, k=1.0, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=10,
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, opt_nsteps=1e4, 
@@ -97,7 +97,8 @@ class configure_bv_mcrunner(object):
                                rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
                                pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq,
-                               opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps)
+                               opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                               perform_convergence_test=False, collect_minima_list=True)
         
         return mcrunner 
         
@@ -183,6 +184,7 @@ if __name__ == "__main__":
     print end-start
     status = mcrunner.get_status()
     print status
+    mcrunner.dump_minima_list('minima_list.db')
     mcrunner.show_histogram()
     
         

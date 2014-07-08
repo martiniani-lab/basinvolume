@@ -20,6 +20,7 @@ CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer,
     _hs_radii(hs_radii.copy()),
     _rattlers(rattlers.copy()),
     _distance(origin.size(), 0),
+    _new_minimum(origin.size()),
     _dtol(dtol), _d(0),
     _rms(0), 
     _nparticles(_hs_radii.size()), 
@@ -27,7 +28,7 @@ CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer,
     _perform_convergence_test(perform_convergence_test), 
     _conv_test(1e-2, 5, 30, 0.3, 1e-10, _optimizer->get_tol(), 0.1, 1, _origin),
     _collect_minima_list(collect_minima_list),
-    _minima_list(1e-4, _optimizer->get_tol(), 1e-4/sqrt(origin.size())) //MinimaList(tol_delta_x_, tol_energy_, tol_delta_x_element_)
+    _minima_list(_dtol*sqrt(origin.size()), _optimizer->get_tol(), _dtol) //MinimaList(tol_delta_x_, tol_energy_, tol_delta_x_element_)
 {
     if (_dist_policy == NULL)
         throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
@@ -63,6 +64,10 @@ void CheckSameMinimum::_get_vec_distance(pele::Array<double> quenched_coords)
         }
     }
 
+    if (_collect_minima_list){
+        _new_minimum.assign(quenched_coords);
+    }
+
     //compute distance between aligned structures
     for(size_t i=0;i<_nparticles;++i) {
         size_t i1 = i*_ndim;
@@ -84,8 +89,9 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
     _optimizer->reset(trial_coords);
     _optimizer->run();
 
-    if (_perform_convergence_test)
-    this->_check_convergence(_optimizer->get_x());
+    if (_perform_convergence_test){
+        this->_check_convergence(_optimizer->get_x());
+    }
 
     //add number of energy evaluations to mc eval count
     size_t nfev = _optimizer->get_nfev();
@@ -96,7 +102,6 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
     if (! quench_success)
         return false;
 
-
     //compute distance between quenched coords and origin
     //distance for rattlers is set to 0
     this->_get_vec_distance(_optimizer->get_x());
@@ -106,6 +111,9 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
     _rms = _d / sqrt(_Nnoratt);
     if (_rms > _dtol){
         //std::cout<<"failed quench rms "<<_rms<<std::endl;
+        if (_collect_minima_list){
+            _minima_list.check_new_minimum(_d, _optimizer->get_f(), _new_minimum, _rattlers);
+        }
         return false;
     }
     else{

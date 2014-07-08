@@ -122,7 +122,8 @@ class BV_MCrunner(_BaseMCRunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
                   hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
-                  pt_eq_niter=0, ts_niter=None, ts_freq=10, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5):
+                  pt_eq_niter=0, ts_niter=None, ts_freq=10, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5,
+                  perform_convergence_test=False, collect_minima_list=False):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -158,7 +159,10 @@ class BV_MCrunner(_BaseMCRunner):
         self.binsize = hbinsize
         self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,self.binsize,(adjustf_niter+pt_eq_niter))
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
-        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, self.rattlers, self.dtol, bdim = self.bdim)
+        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, 
+                                          self.rattlers, self.dtol, bdim = self.bdim, 
+                                          perform_convergence_test=perform_convergence_test, 
+                                          collect_minima_list=collect_minima_list)
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.time_series = RecordDisplacementTimeseries(self.origin,self.bdim, ts_niter, ts_freq)
         ##############
@@ -211,7 +215,8 @@ class BV_MCrunner(_BaseMCRunner):
         minima_dicts.append(mindict0)
         #add neighboring minima to database
         self.conftest2.dump_minima(minima_dicts)
-        assert len(minima_dicts) == self.conftest2.ml_nr_distinct_minima()+1
+        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima()+1)
+        print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)
         db.session.commit()
     

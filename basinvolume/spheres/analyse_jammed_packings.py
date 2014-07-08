@@ -109,7 +109,7 @@ class analyse_jammed_packings(object):
             self._initialise()
             self.system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim)
             self.potential = self.system.get_potential()
-            self.db = self.system.create_database()
+            self.db = self.system.create_database('test_db.sqlite', createdb=True)
         self.analyse_hessian(fname)
         coords = self.coords.copy()
         np.array(put_in_box(coords,self.boxv))

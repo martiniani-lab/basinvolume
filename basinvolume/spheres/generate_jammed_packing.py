@@ -274,13 +274,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
             f = open(fname,'w')
             for i in xrange(self.nparticles):
-                f.write('{:.16}\t{:.16}\t{:.16}\t{:.16}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           self.hs_radii[i]*2,self.rattlers[i]))
         else:
             fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
             f = open(fname,'w')
             for i in xrange(self.nparticles):
-                f.write('{:.16}\t{:.16}\t{:.16}\t{:.16}\t{:.16}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
         f.close()
     
