@@ -79,6 +79,21 @@ public:
     bool collect_minima_list() const { return _collect_minima_list; }
     //forwarding minima database information to the outside
     size_t ml_nr_distinct_minima() const { return _minima_list.nr_distinct_minima(); }
+
+    /**
+     * return and Array of the minima we've found
+     *
+     * This is primarily for easy access in cython.  C++ code should probably
+     * use the iterator syntax
+     */
+    pele::Array<Minimum *> get_array_of_minima()
+    {
+        pele::Array<Minimum *> minima(_minima_list.nr_distinct_minima());
+        size_t i = 0;
+        for (auto & m : _minima_list) {
+            minima[i++] = &m;
+        }
+    }
 };
 
 
