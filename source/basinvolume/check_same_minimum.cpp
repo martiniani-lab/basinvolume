@@ -109,10 +109,11 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
     //compute rms displacement from origin
     _d = norm(_distance);
     _rms = _d / sqrt(_Nnoratt);
+
     if (_rms > _dtol){
         //std::cout<<"failed quench rms "<<_rms<<std::endl;
         if (_collect_minima_list){
-            _minima_list.check_new_minimum(_d, _optimizer->get_f(), _new_minimum, _rattlers);
+            _minima_list.insert_minimum(_d, _optimizer->get_f(), _new_minimum, _rattlers);
         }
         return false;
     }
