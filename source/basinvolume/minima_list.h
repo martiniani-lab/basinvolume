@@ -23,7 +23,7 @@ public:
     typedef Minimum::coor_t coor_t;
     typedef Minimum::index_t index_t;
     typedef std::list<Minimum> store_t;
-    typedef std::multimap<coor_t,Minimum*> map_t;
+    typedef std::multimap<coor_t, Minimum*> map_t;
     typedef typename store_t::iterator iterator;
     typedef typename store_t::const_iterator const_iterator;
 
@@ -59,17 +59,23 @@ public:
 
     bool check_new_minimum(const Minimum& input, pele::Array<coor_t> rattler)
     {
-        return check_new_minimum(input.delta_x(), input.energy(), input.coor(), rattler);
+        return insert_minimum(input.delta_x(), input.energy(), input.coor(), rattler);
     }
 
-    bool check_new_minimum(const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
+    /**
+     * insert a minimum into the database if it is not already in
+     *
+     * return true if the minimum is already in or false otherwise
+     */
+    bool insert_minimum(const coor_t delta_x_inp, const energy_t energy_inp,
+            pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
     {
         // 1. get possible matches for candidate based on delta_x and dtol
         const map_t::const_iterator low = minima_order.lower_bound(delta_x_inp-tol_delta_x);
         const map_t::const_iterator high= minima_order.upper_bound(delta_x_inp+tol_delta_x);
         // 2. check if candidate agrees with any potential match
         for (map_t::const_iterator i = low; i != high; ++i) {
-            Minimum*const& this_match = i->second;
+            Minimum * const this_match = i->second;
             if (agrees_with_input(this_match, energy_inp, coor_inp, rattler)) {
                 // candidate new minimum agrees with a previously found one
                 record_duplicate(this_match);
