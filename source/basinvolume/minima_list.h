@@ -63,11 +63,9 @@ public:
     }
 
     /**
-     * insert a minimum into the database if it is not already in
-     *
-     * return true if the minimum is already in or false otherwise
+     * return a pointer to the minimum or NULL
      */
-    bool insert_minimum(const coor_t delta_x_inp, const energy_t energy_inp,
+    Minimum * find_minimum(const coor_t delta_x_inp, const energy_t energy_inp,
             pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
     {
         // 1. get possible matches for candidate based on delta_x and dtol
@@ -75,15 +73,30 @@ public:
         const map_t::const_iterator high= minima_order.upper_bound(delta_x_inp+tol_delta_x);
         // 2. check if candidate agrees with any potential match
         for (map_t::const_iterator i = low; i != high; ++i) {
-            Minimum * const this_match = i->second;
-            if (agrees_with_input(this_match, energy_inp, coor_inp, rattler)) {
+            Minimum * this_match = i->second;
+            if (compare_minima(this_match, energy_inp, coor_inp, rattler)) {
                 // candidate new minimum agrees with a previously found one
-                record_duplicate(this_match);
-                return false;
+                return this_match;
             }
         }
+        return NULL;
+    }
+
+    /**
+     * insert a minimum into the database if it is not already in
+     *
+     * return true if the minimum is already in or false otherwise
+     */
+    bool insert_minimum(const coor_t delta_x_inp, const energy_t energy_inp,
+            pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
+    {
+        Minimum * m = find_minimum(delta_x_inp, energy_inp, coor_inp, rattler);
+        if (m != NULL) {
+            record_duplicate(m);
+            return false;
+        }
         // candidate new minimum does not agree with any previously found one, store candidate new minimum
-        record_new_minimum(low, delta_x_inp, energy_inp, coor_inp);
+        record_new_minimum(delta_x_inp, energy_inp, coor_inp);
         return true;
     }
 
@@ -96,7 +109,11 @@ public:
      * We are using std::multimap for now to avoid problems due to floating point arithmetic with the keys (delta_x).
      * Presumably, this is not necessary and can be changed with the typedef above.
      */
-    bool agrees_with_input(const Minimum* this_match, const energy_t energy_inp,
+
+    /**
+     * returun true if the minima are the same else return false
+     */
+    bool compare_minima(const Minimum* this_match, const energy_t energy_inp,
             pele::Array<coor_t> coor_inp, pele::Array<coor_t> rattler)
     {
         // 1. check for (scalar) delta_x passed
@@ -115,16 +132,15 @@ public:
         return true; //all tests passed
     }
 
-    void record_duplicate(Minimum*const& this_match)
+    void record_duplicate(Minimum * const this_match)
     {
         this_match->increment_count();
     }
 
-    void record_new_minimum(const map_t::const_iterator insertion_hint,
-            const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp)
+    void record_new_minimum(const coor_t delta_x_inp, const energy_t energy_inp, pele::Array<coor_t> coor_inp)
     {
         minima_storage.push_back( Minimum(delta_x_inp, energy_inp, coor_inp) );
-        minima_order.insert(insertion_hint, std::make_pair(delta_x_inp, &minima_storage.back()));
+        minima_order.insert(map_t::value_type(delta_x_inp, &minima_storage.back()));
     }
 };
 

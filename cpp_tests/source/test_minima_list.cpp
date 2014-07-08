@@ -90,8 +90,8 @@ TEST_F(MinimaListTest, CountingAndCoords){
     }
     EXPECT_TRUE(ml.nr_distinct_minima()==1);
     EXPECT_TRUE(mlr.nr_distinct_minima()==1);
-    EXPECT_TRUE(nr_minima_visits(ml).at(0)==nr_insertions);
-    EXPECT_TRUE(nr_minima_visits(ml).at(0)==nr_insertions);
+    EXPECT_EQ(nr_minima_visits(ml).at(0), nr_insertions);
+    EXPECT_EQ(nr_minima_visits(mlr).at(0), nr_insertions);
 }
 
 TEST_F(MinimaListTest, DeltaXScalarTest){
