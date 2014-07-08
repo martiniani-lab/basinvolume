@@ -85,7 +85,7 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
     _optimizer->run();
 
     if (_perform_convergence_test)
-    this->_check_convergence(_optimizer->get_x());
+        this->_check_convergence(_optimizer->get_x());
 
     //add number of energy evaluations to mc eval count
     size_t nfev = _optimizer->get_nfev();
@@ -104,14 +104,7 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
     //compute rms displacement from origin
     _d = norm(_distance);
     _rms = _d / sqrt(_Nnoratt);
-    if (_rms > _dtol){
-        //std::cout<<"failed quench rms "<<_rms<<std::endl;
-        return false;
-    }
-    else{
-        //std::cout<<"successfull quench rms "<<_rms<<std::endl;
-        return true;
-    }
+    return _rms <= _dtol;
 }
 
 

@@ -57,11 +57,6 @@ public:
     /** return the number of distinct minima */
     index_t nr_distinct_minima() const { return minima_storage.size(); }
 
-    bool check_new_minimum(const Minimum& input, pele::Array<coor_t> rattler)
-    {
-        return insert_minimum(input.delta_x(), input.energy(), input.coor(), rattler);
-    }
-
     /**
      * return a pointer to the minimum or NULL
      */
