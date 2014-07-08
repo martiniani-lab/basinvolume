@@ -107,14 +107,14 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     @cython.wraparound(False) 
     def dump_minima(self, minima_dicts):
         cdef size_t nr_neighboring_minima = self.newptr.ml_nr_distinct_minima()
-        self.newptr.ml_reset_minima_iterator()
         cdef cppMinimum* minimumi
         cdef _pele.Array[double] coori
         cdef double* coordata
         cdef np.ndarray[double, ndim=1, mode="c"] coor
         cdef size_t ii
+        cdef _pele.Array[cppMinimum *] minima = self.newptr.get_array_of_minima()
         for i in xrange(nr_neighboring_minima):
-            minimumi = self.newptr.ml_next_minimum()
+            minimumi = minima[i]
             coori = minimumi.get_coor()
             coordata = coori.data()
             coor = np.zeros(coori.size())

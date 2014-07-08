@@ -67,6 +67,23 @@ public:
 
 };
 
+class CheckOverlap2D:public CheckOverlap<pele::periodic_distance<2>>{
+public:
+    CheckOverlap2D(Array<double> hs_radii, double const *boxvec)
+        : CheckOverlap< pele::periodic_distance<2> >(hs_radii,
+                std::make_shared<pele::periodic_distance<2>>(boxvec))
+    {}
+};
+
+class CheckOverlap3D:public CheckOverlap<pele::periodic_distance<3>>{
+public:
+    CheckOverlap3D(Array<double> hs_radii, double const *boxvec)
+        : CheckOverlap< pele::periodic_distance<3>>(hs_radii,
+                std::make_shared<pele::periodic_distance<3>>(boxvec))
+    {}
+};
+
+
 }//namespace bv
 
 #endif//#ifndef _BV_CHECK_OVERLAP_H

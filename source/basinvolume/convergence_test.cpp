@@ -5,7 +5,9 @@
 
 namespace bv{
 
-
+/**
+ * compute the lowest eigenvalue to ensure that it is positive
+ */
 void convergence_test::check_convergence(pele::Array<double> quenched_coords,
         pele::BasePotential * _potential, const size_t _ndim,
         pele::GradientOptimizer * _optimizer)
@@ -31,7 +33,7 @@ void convergence_test::check_convergence(pele::Array<double> quenched_coords,
         }
         ++l;
     }
-        _optimizer->set_tol(_hightol);
+    _optimizer->set_tol(_hightol);
 }
 
 
