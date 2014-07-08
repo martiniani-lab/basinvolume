@@ -93,6 +93,7 @@ public:
         for (auto & m : _minima_list) {
             minima[i++] = &m;
         }
+        return minima;
     }
 };
 
