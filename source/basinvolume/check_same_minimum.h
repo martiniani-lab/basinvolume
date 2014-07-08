@@ -97,35 +97,23 @@ public:
     }
 };
 
-
-class CheckSameMinimum2D:public CheckSameMinimum{
+template<size_t ndim>
+class CheckSameMinimumCartesian:public CheckSameMinimum{
 public:
-    CheckSameMinimum2D(pele::GradientOptimizer * optimizer, 
+    CheckSameMinimumCartesian(pele::GradientOptimizer * optimizer,
             pele::BasePotential * potential, Array<double> origin,
             Array<double> hs_radii, Array<double> rattlers, double dtol, bool
             perform_convergence_test=false, bool collect_minima_list=false)
         : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
-                dtol,2, std::make_shared<pele::CartesianDistanceWrapper<2>>(),
+                dtol,2, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
                 perform_convergence_test, collect_minima_list)
     {}
 };
 
-class CheckSameMinimum3D:public CheckSameMinimum{
+template<size_t ndim>
+class CheckSameMinimumPeriodic:public CheckSameMinimum{
 public:
-    CheckSameMinimum3D(pele::GradientOptimizer * optimizer,
-            pele::BasePotential * potential, Array<double> origin,
-            Array<double> hs_radii, Array<double> rattlers, double dtol, 
-            bool perform_convergence_test=false, bool
-            collect_minima_list=false)
-        : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
-                dtol, 3, std::make_shared<pele::CartesianDistanceWrapper<3>>(),
-                perform_convergence_test, collect_minima_list)
-    {}
-};
-
-class CheckSameMinimumPeriodic2D:public CheckSameMinimum{
-public:
-    CheckSameMinimumPeriodic2D(pele::GradientOptimizer * optimizer,
+    CheckSameMinimumPeriodic(pele::GradientOptimizer * optimizer,
             pele::BasePotential * potential, Array<double> origin,
             Array<double> hs_radii, double const *boxvec, 
             Array<double> rattlers, double dtol, 
@@ -133,26 +121,10 @@ public:
             bool collect_minima_list=false)
         : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
                 dtol, 2,
-                std::make_shared<pele::PeriodicDistanceWrapper<2>>(boxvec),
+                std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
                 perform_convergence_test, collect_minima_list)
     {}
 };
-
-class CheckSameMinimumPeriodic3D:public CheckSameMinimum{
-public:
-    CheckSameMinimumPeriodic3D(pele::GradientOptimizer * optimizer,
-            pele::BasePotential * potential, Array<double> origin,
-            Array<double> hs_radii, double const *boxvec, 
-            Array<double> rattlers, double dtol, 
-            bool perform_convergence_test=false, 
-            bool collect_minima_list=false)
-        : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
-                dtol, 3,
-                std::make_shared<pele::PeriodicDistanceWrapper<3>>(boxvec),
-                perform_convergence_test, collect_minima_list)
-    {}
-};
-
 
 }//namespace bv
 

@@ -72,16 +72,16 @@ public:
 
 TEST_F(CheckSameMinimumTest, BasicFunctionality){
     opt_t opt(pot, origin, _lbfgstol, _lbfgsM);
-    bv::CheckSameMinimum3D check_basic(&opt, pot, origin, hs_radii, rattlers, dtol);
+    bv::CheckSameMinimumCartesian<3>  check_basic(&opt, pot, origin, hs_radii, rattlers, dtol);
     EXPECT_TRUE(check_basic.perform_convergence_test()==false);
     EXPECT_TRUE(check_basic.collect_minima_list()==false);
-    bv::CheckSameMinimum3D check_eigenvalues(&opt, pot, origin, hs_radii, rattlers, dtol, true, false);
+    bv::CheckSameMinimumCartesian<3>  check_eigenvalues(&opt, pot, origin, hs_radii, rattlers, dtol, true, false);
     EXPECT_TRUE(check_eigenvalues.perform_convergence_test()==true);
     EXPECT_TRUE(check_eigenvalues.collect_minima_list()==false);
-    bv::CheckSameMinimum3D check_minima(&opt, pot, origin, hs_radii, rattlers, dtol, false, true);
+    bv::CheckSameMinimumCartesian<3>  check_minima(&opt, pot, origin, hs_radii, rattlers, dtol, false, true);
     EXPECT_TRUE(check_minima.perform_convergence_test()==false);
     EXPECT_TRUE(check_minima.collect_minima_list()==true);
-    bv::CheckSameMinimum3D check_both(&opt, pot, origin, hs_radii, rattlers, dtol, true, true);
+    bv::CheckSameMinimumCartesian<3>  check_both(&opt, pot, origin, hs_radii, rattlers, dtol, true, true);
     EXPECT_TRUE(check_both.perform_convergence_test()==true);
     EXPECT_TRUE(check_both.collect_minima_list()==true);
 }
@@ -97,10 +97,10 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
     shared_ptr<mcpele::Action> adjust_step = std::make_shared<mcpele::AdjustStep>(0.2, 0.5, adj_iter, adj_iter/1e1);
     mc->add_action(adjust_step);
     //add conf tests, check same minimum
-    shared_ptr<mcpele::ConfTest> check_basic = std::make_shared<bv::CheckSameMinimum3D>(opt, pot, origin, hs_radii, rattlers, dtol);
-    shared_ptr<mcpele::ConfTest> check_eigenvalues = std::make_shared<bv::CheckSameMinimum3D>(opt, pot, origin, hs_radii, rattlers, dtol, true, false);
-    shared_ptr<mcpele::ConfTest> check_minima = std::make_shared<bv::CheckSameMinimum3D>(opt, pot, origin, hs_radii, rattlers, dtol, false, true);
-    shared_ptr<mcpele::ConfTest> check_both = std::make_shared<bv::CheckSameMinimum3D>(opt, pot, origin, hs_radii, rattlers, dtol, true, true);
+    shared_ptr<mcpele::ConfTest> check_basic = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol);
+    shared_ptr<mcpele::ConfTest> check_eigenvalues = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, true, false);
+    shared_ptr<mcpele::ConfTest> check_minima = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, false, true);
+    shared_ptr<mcpele::ConfTest> check_both = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, true, true);
     mc->add_conf_test(check_basic);
     mc->add_conf_test(check_eigenvalues);
     mc->add_late_conf_test(check_minima);
