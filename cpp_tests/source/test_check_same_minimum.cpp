@@ -86,39 +86,36 @@ TEST_F(CheckSameMinimumTest, BasicFunctionality){
 
 TEST_F(CheckSameMinimumTest, MCInteraction){
     auto opt = std::make_shared<fire_t>(pot, origin, 1e-2, 1, 1);
-    mcpele::MC* mc = new mcpele::MC(pot, x, 1, stepsize);
+    mcpele::MC mc(pot, x, 1, stepsize);
     shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>();
-    mc->set_takestep(sampler_uniform);
+    mc.set_takestep(sampler_uniform);
     shared_ptr<mcpele::AcceptTest> metropolis = std::make_shared<mcpele::MetropolisTest>(42);
-    mc->add_accept_test(metropolis);
+    mc.add_accept_test(metropolis);
     const size_t adj_iter(max_iter/1e1);
     shared_ptr<mcpele::Action> adjust_step = std::make_shared<mcpele::AdjustStep>(0.2, 0.5, adj_iter, adj_iter/1e1);
-    mc->add_action(adjust_step);
+    mc.add_action(adjust_step);
     //add conf tests, check same minimum
     shared_ptr<mcpele::ConfTest> check_basic = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol);
     shared_ptr<mcpele::ConfTest> check_eigenvalues = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, true, false);
     shared_ptr<mcpele::ConfTest> check_minima = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, false, true);
     shared_ptr<mcpele::ConfTest> check_both = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, true, true);
-    mc->add_conf_test(check_basic);
-    mc->add_conf_test(check_eigenvalues);
-    mc->add_late_conf_test(check_minima);
-    mc->add_late_conf_test(check_both);
+    mc.add_conf_test(check_basic);
+    mc.add_conf_test(check_eigenvalues);
+    mc.add_late_conf_test(check_minima);
+    mc.add_late_conf_test(check_both);
     //run mc
-    //mc->set_print_progress();
+    //mc.set_print_progress();
     const size_t niter = 1e2;
-    mc->run(niter);
+    mc.run(niter);
     //check output
-    EXPECT_TRUE(mc->get_iterations_count()==niter);
-    EXPECT_NEAR(mc->get_conf_rejection_fraction(), 0, 1e-10); //there is only one minimum, so there should be no rejection due to check same minimum
-    //free
-    delete mc;
+    EXPECT_TRUE(mc.get_iterations_count()==niter);
+    EXPECT_NEAR(mc.get_conf_rejection_fraction(), 0, 1e-10); //there is only one minimum, so there should be no rejection due to check same minimum
 }
 
 TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
-    fire_t* opt = new fire_t(pot, origin, 1e-2, 1, 1);
-    mcpele::MC* mc = new mcpele::MC(pot, x, 1, stepsize);
+    mcpele::MC mc(pot, x, 1, stepsize);
     shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>();
-    mc->set_takestep(sampler_uniform);
+    mc.set_takestep(sampler_uniform);
     //add action findk
     const size_t findk__avg_count = 1e3;
     const double findk__target = 0.85;
@@ -128,30 +125,18 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     const double findk__max = 10;
     const double findk__bin = 0.2;
     shared_ptr<mcpele::Action> findk = std::make_shared<bv::Findk>(origin, rattlers, nr_dim, findk__avg_count, findk__target, 0.424242, findk__navg, findk__tol, findk__min, findk__max, findk__bin);
-    mc->add_action(findk);
+    mc.add_action(findk);
     //run mc
-    mc->set_print_progress();
+    mc.set_print_progress();
     const size_t niter = 1e5;
-    mc->run(niter);
+    mc.run(niter);
     //check output
-    EXPECT_TRUE(mc->get_iterations_count()==niter);
-    EXPECT_NEAR(mc->get_conf_rejection_fraction(), 0, 1e-10); //there is only one minimum, so there should be no rejection due to check same minimum
+    EXPECT_TRUE(mc.get_iterations_count()==niter);
+    EXPECT_NEAR(mc.get_conf_rejection_fraction(), 0, 1e-10); //there is only one minimum, so there should be no rejection due to check same minimum
     //since there is only one basin, and no rejection, k should decrease to zero
     //the precise final value depends on the inital value, the iteration, etc.
     EXPECT_NEAR(std::static_pointer_cast<bv::Findk>(findk)->get_k(), 0, 1);
     //check that stepsize of mc is correctly adapted to k as adjusted in findk
-    EXPECT_NEAR_RELATIVE(mc->_stepsize, 1/sqrt( std::static_pointer_cast<bv::Findk>(findk)->get_k() ), 1e-15);
-    //free
-    delete opt;
-    delete mc;
+    EXPECT_NEAR_RELATIVE(mc._stepsize, 1/sqrt( std::static_pointer_cast<bv::Findk>(findk)->get_k() ), 1e-15);
 }
 
-/*
-TEST_F(CheckSameMinimumTest, FindkTestHypersphere){
-    fire_t* opt = new fire_t(pot, origin, 1e-2, 1, 1);
-    mcpele::MC* mc = new mcpele::MC(pot, x, 1, stepsize);
-    mcpele::TakeStep* sampler_gaussian = new mcpele::GaussianCoordsDisplacement;
-    const double hyperradius = 42;
-    mcpele::ConfTest* sphere = new mcpele::CheckHyperSphericalContainer(hyperradius, nr_dim);
-}
-*/
