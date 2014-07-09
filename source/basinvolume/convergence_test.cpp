@@ -1,3 +1,4 @@
+#include <memory>
 #include "pele/lbfgs.h"
 #include "pele/lowest_eig_potential.h"
 
@@ -9,16 +10,16 @@ namespace bv{
  * compute the lowest eigenvalue to ensure that it is positive
  */
 void convergence_test::check_convergence(pele::Array<double> quenched_coords,
-        pele::BasePotential * _potential, const size_t _ndim,
-        pele::GradientOptimizer * _optimizer)
+        std::shared_ptr<pele::BasePotential> _potential, const size_t _ndim,
+        std::shared_ptr<pele::GradientOptimizer> _optimizer)
 {
     //std::cout << "convergence_test::check_convergence" << std::endl;
     bool minimum = false;
     size_t l = 0;
     while (minimum == false && l < 10){
         minimum = true;
-        pele::LowestEigPotential lowesteigpot(_potential, quenched_coords, _ndim);
-        pele::LBFGS lbfgs(&lowesteigpot, _ranvec.copy(), _lbfgstol, _lbfgsM);
+        auto lowesteigpot = std::make_shared<pele::LowestEigPotential>(_potential, quenched_coords, _ndim);
+        pele::LBFGS lbfgs(lowesteigpot, _ranvec.copy(), _lbfgstol, _lbfgsM);
         lbfgs.set_maxstep(_lbfgsmaxstep);
         lbfgs.set_H0(_H0);
         lbfgs.set_use_relative_f(1);

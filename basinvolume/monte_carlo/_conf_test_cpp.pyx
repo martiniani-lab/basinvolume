@@ -38,12 +38,12 @@ cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
         cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
         if (len(boxvec) == 2):
             self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT2](_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                             <double*> bv.data)
+                                                             _pele.Array[double](<double*> bv.data, bv.size) )
                                                    )
         else:
             assert(len(boxvec) == 3)
             self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT3](_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                             <double*> bv.data)
+                                                             _pele.Array[double](<double*> bv.data, bv.size) )
                                                    )
         #self.newptr = <cppCheckOverlap*> self.thisptr
         
@@ -91,14 +91,14 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
             if (len(boxvec) == 2):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT2](opt.thisptr, potential.thisptr,_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                                     <double*> bv.data, 
+                                                                     _pele.Array[double](<double*> bv.data, bv.size), 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
                                                        )
             else:
                 assert(len(boxvec) == 3)
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT2](opt.thisptr, potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                                     <double*> bv.data, 
+                                                                     _pele.Array[double](<double*> bv.data, bv.size), 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, perform_convergence_test, collect_minima_list)
                                                        )
         self.newptr = <cppCheckSameMinimum*> self.thisptr.get()

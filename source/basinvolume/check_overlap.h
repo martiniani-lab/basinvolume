@@ -70,7 +70,7 @@ public:
 template<size_t ndim>
 class CheckOverlapPeriodic:public CheckOverlap<pele::periodic_distance<ndim> >{
 public:
-    CheckOverlapPeriodic(Array<double> hs_radii, double const *boxvec)
+    CheckOverlapPeriodic(Array<double> hs_radii, pele::Array<double> boxvec)
         : CheckOverlap< pele::periodic_distance<ndim> >(hs_radii,
                 std::make_shared<pele::periodic_distance<ndim>>(boxvec))
     {}

@@ -1,6 +1,7 @@
 #ifndef _BV_CONVERGENCE_TEST_H
 #define _BV_CONVERGENCE_TEST_H
 
+#include <memory>
 #include "pele/array.h"
 
 namespace bv{
@@ -21,7 +22,9 @@ public:
     {
         _ranvec /= norm(_ranvec);
     }
-    void check_convergence(pele::Array<double>, pele::BasePotential* , const size_t, pele::GradientOptimizer*);
+    void check_convergence(pele::Array<double> quenched_coords,
+            std::shared_ptr<pele::BasePotential> _potential, const size_t _ndim,
+            std::shared_ptr<pele::GradientOptimizer> _optimizer);
 };
 
 

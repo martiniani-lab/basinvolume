@@ -40,7 +40,7 @@ public:
     arr_t shifted_origin;
     arr_t x;
     double k;
-    pot_t* pot;
+    std::shared_ptr<pele::BasePotential> pot;
     double _lbfgstol;
     double _lbfgsM;
     arr_t hs_radii;
@@ -48,46 +48,44 @@ public:
     double dtol;
     double stepsize;
     size_t max_iter;
-    virtual void SetUp(){
-	nr_particles = 42;
-	nr_dim = 3;
-	nr_dof = nr_particles*nr_dim;
-	origin = arr_t(nr_dof,0).copy();
-	shifted_origin = arr_t(nr_dof,11).copy();
-	x = arr_t(nr_dof,0).copy();
-	k = 4242;
-	pot = new pot_t(origin, k, nr_dim);
-	_lbfgstol = 1e-2;
-	_lbfgsM = 5;
-	hs_radii = arr_t(nr_particles,1).copy();
-	rattlers = arr_t(nr_dof,1).copy();
-	dtol = 1e-7;
-	stepsize = 1e-2;
-	max_iter = 1e5;
-    }
-    virtual void TearDown(){
-	delete pot;
+    virtual void SetUp()
+    {
+        nr_particles = 42;
+        nr_dim = 3;
+        nr_dof = nr_particles*nr_dim;
+        origin = arr_t(nr_dof,0).copy();
+        shifted_origin = arr_t(nr_dof,11).copy();
+        x = arr_t(nr_dof,0).copy();
+        k = 4242;
+        pot = std::make_shared<pot_t>(origin, k, nr_dim);
+        _lbfgstol = 1e-2;
+        _lbfgsM = 5;
+        hs_radii = arr_t(nr_particles,1).copy();
+        rattlers = arr_t(nr_dof,1).copy();
+        dtol = 1e-7;
+        stepsize = 1e-2;
+        max_iter = 1e5;
     }
 };
 
 TEST_F(CheckSameMinimumTest, BasicFunctionality){
-    opt_t opt(pot, origin, _lbfgstol, _lbfgsM);
-    bv::CheckSameMinimumCartesian<3>  check_basic(&opt, pot, origin, hs_radii, rattlers, dtol);
+    auto opt = std::make_shared<opt_t>(pot, origin, _lbfgstol, _lbfgsM);
+    bv::CheckSameMinimumCartesian<3>  check_basic(opt, pot, origin, hs_radii, rattlers, dtol);
     EXPECT_TRUE(check_basic.perform_convergence_test()==false);
     EXPECT_TRUE(check_basic.collect_minima_list()==false);
-    bv::CheckSameMinimumCartesian<3>  check_eigenvalues(&opt, pot, origin, hs_radii, rattlers, dtol, true, false);
+    bv::CheckSameMinimumCartesian<3>  check_eigenvalues(opt, pot, origin, hs_radii, rattlers, dtol, true, false);
     EXPECT_TRUE(check_eigenvalues.perform_convergence_test()==true);
     EXPECT_TRUE(check_eigenvalues.collect_minima_list()==false);
-    bv::CheckSameMinimumCartesian<3>  check_minima(&opt, pot, origin, hs_radii, rattlers, dtol, false, true);
+    bv::CheckSameMinimumCartesian<3>  check_minima(opt, pot, origin, hs_radii, rattlers, dtol, false, true);
     EXPECT_TRUE(check_minima.perform_convergence_test()==false);
     EXPECT_TRUE(check_minima.collect_minima_list()==true);
-    bv::CheckSameMinimumCartesian<3>  check_both(&opt, pot, origin, hs_radii, rattlers, dtol, true, true);
+    bv::CheckSameMinimumCartesian<3>  check_both(opt, pot, origin, hs_radii, rattlers, dtol, true, true);
     EXPECT_TRUE(check_both.perform_convergence_test()==true);
     EXPECT_TRUE(check_both.collect_minima_list()==true);
 }
 
 TEST_F(CheckSameMinimumTest, MCInteraction){
-    fire_t* opt = new fire_t(pot, origin, 1e-2, 1, 1);
+    auto opt = std::make_shared<fire_t>(pot, origin, 1e-2, 1, 1);
     mcpele::MC* mc = new mcpele::MC(pot, x, 1, stepsize);
     shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>();
     mc->set_takestep(sampler_uniform);
@@ -113,7 +111,6 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
     EXPECT_TRUE(mc->get_iterations_count()==niter);
     EXPECT_NEAR(mc->get_conf_rejection_fraction(), 0, 1e-10); //there is only one minimum, so there should be no rejection due to check same minimum
     //free
-    delete opt;
     delete mc;
 }
 
