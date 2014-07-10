@@ -254,7 +254,7 @@ class Findk_MCrunner(_BaseMCRunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca,
                   rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, kfactor=0.9, knavg=500, ktol=0.05, 
-                  opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=0.15, binsize=0.001):
+                  opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         

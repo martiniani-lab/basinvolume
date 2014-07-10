@@ -164,10 +164,10 @@ class configure_bv_mcrunner(object):
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')
         for val in self.boxv:
-            f.write('{} '.format(val))
+            f.write('{:.16f} '.format(val))
         f.write('\n')
         assert(self.sca >0)
-        f.write('sca: {}\n'.format(self.sca))
+        f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value)) 

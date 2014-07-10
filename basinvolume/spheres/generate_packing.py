@@ -106,7 +106,7 @@ class _Generate_Packing(object):
         assert(self.box_resized)
         f.write('boxv: ')
         for val in self.boxv:
-            f.write('{} '.format(val))
+            f.write('{:.16f} '.format(val))
         f.write('\n')
         f.close()
         

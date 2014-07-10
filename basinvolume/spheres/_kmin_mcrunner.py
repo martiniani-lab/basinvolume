@@ -22,7 +22,7 @@ class _kmin_mcrunner(object):
     """
         
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
-                 hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
+                 hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings', verbose=False):
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -133,10 +133,10 @@ class _kmin_mcrunner(object):
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')
         for val in self.boxv:
-            f.write('{} '.format(val))
+            f.write('{:.16f} '.format(val))
         f.write('\n')
         assert(self.sca >0)
-        f.write('sca: {}\n'.format(self.sca))
+        f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[KMIN_MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value)) 

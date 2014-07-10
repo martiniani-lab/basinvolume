@@ -86,10 +86,10 @@ class _Generate_Jammed_Packing(object):
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')
         for val in self.boxv:
-            f.write('{} '.format(val))
+            f.write('{:.16f} '.format(val))
         f.write('\n')
         assert(self.sca >0)
-        f.write('sca: {}\n'.format(self.sca))
+        f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('\n')
         f.close()
         
@@ -134,6 +134,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self._compute_sca()
         self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         self.rattlers = np.empty(self.nparticles,dtype='d')
+        self.rattlers_draw = np.empty(self.nparticles,dtype='d')
         self._print_initialise()
     
     def one_iteration(self,fname):
@@ -162,14 +163,20 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             i1 = self.bdim*i
             hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
             w, v = np.linalg.eig(hess_block)
-            rattler = np.less_equal(np.absolute(w),self.rattler_eval_tol)
-            #self.rattlers[i] = float(not True in rattler)
-            if True in rattler:
-                self.rattlers[i] = 0.
+            w = np.real(w)
+            self.rattlers[i] = np.amin(np.absolute(w))
+            self.rattlers_draw[i] = float(self.rattlers[i] >= self.rattler_eval_tol)
+            if self.rattlers_draw[i] < 1:
                 print 'zero eigenvalue, particle {}'.format(i)
                 print w
-            else:
-                self.rattlers[i] = 1.
+#            rattler = np.less_equal(np.absolute(w),self.rattler_eval_tol)
+#            #self.rattlers[i] = float(not True in rattler)
+#            if True in rattler:
+#                self.rattlers[i] = 0.
+#                print 'zero eigenvalue, particle {}'.format(i)
+#                print w
+#            else:
+#                self.rattlers[i] = 1.
     
     def _generate_packing_coords(self):
         """quenches the imported structure using FIRE"""
@@ -195,11 +202,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
             w, v = np.linalg.eig(hess_block)
             w = np.real(w)
-            ratt0evals.extend([x for x in w if abs(x) < 0.1]) #append to array of zero evalues due to rattlers
+            ratt0evals.extend([x for x in w if abs(x) < self.rattler_eval_tol]) #append to array of zero evalues due to rattlers
         
         w, v = np.linalg.eig(hess)
         w = np.real(w)
-        full0evals = [x for x in w if abs(x) < 0.1]
+        full0evals = [x for x in w if abs(x) < self.rattler_eval_tol]
         if len(full0evals) - len(ratt0evals) > self.bdim:
             print 'hessian 0s mismatch rattlers 0s'
             return False
@@ -303,7 +310,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(0.0))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
-                f.write('{}\n'.format(colour-int(self.rattlers[i])))
+                f.write('{}\n'.format(colour-int(self.rattlers_draw[i])))
         else:
             f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
@@ -313,7 +320,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 for j in xrange(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
-                f.write('{}\n'.format(colour-int(self.rattlers[i])))
+                f.write('{}\n'.format(colour-int(self.rattlers_draw[i])))
         f.close()
 
             

@@ -47,23 +47,7 @@ def read_xyd(fname):
         x, y, d = xyd.split()
         coords.extend([float(x),float(y)])
         radii.extend([float(d)])
-    return np.array(coords), np.array(radii)
-
-def read_xydr(fname, bdim=2):
-    coords = []
-    radii = []
-    rattlers = []
-    f = open(fname, "r")
-    while True:
-        xydr = f.readline()
-        if not xydr: break
-        #print 'xydr ',xydr
-        x, y, d, r = xydr.split()
-        coords.extend([float(x),float(y)])
-        radii.extend([float(d)])
-        for _ in xrange(bdim): 
-            rattlers.extend([float(r)])
-    return np.array(coords), np.array(radii), np.array(rattlers)
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d')
 
 def read_xyzd(fname):
     coords = []
@@ -75,9 +59,26 @@ def read_xyzd(fname):
         x, y, z, d = xyzd.split()
         coords.extend([float(x),float(y),float(z)])
         radii.extend([float(d)])
-    return np.array(coords), np.array(radii)
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d')
 
-def read_xyzdr(fname, bdim=3):
+def read_xydr(fname, etol=1.0, bdim=2):
+    coords = []
+    radii = []
+    rattlers = []
+    f = open(fname, "r")
+    while True:
+        xydr = f.readline()
+        if not xydr: break
+        #print 'xydr ',xydr
+        x, y, d, r = xydr.split()
+        coords.extend([float(x),float(y)])
+        radii.extend([float(d)])
+        rattler = float(float(r)>=etol)
+        for _ in xrange(bdim): 
+            rattlers.extend([rattler])
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
+
+def read_xyzdr(fname, etol=1., bdim=3):
     coords = []
     radii = []
     rattlers = []
@@ -88,6 +89,7 @@ def read_xyzdr(fname, bdim=3):
         x, y, z, d, r = xyzdr.split()
         coords.extend([float(x),float(y),float(z)])
         radii.extend([float(d)])
+        rattler = float(float(r)>=etol)
         for _ in xrange(bdim): 
-            rattlers.extend([float(r)])
-    return np.array(coords), np.array(radii), np.array(rattlers)
+            rattlers.extend([rattler])
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
