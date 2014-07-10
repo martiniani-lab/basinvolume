@@ -49,7 +49,7 @@ protected:
     size_t _ndim;
     std::shared_ptr<pele::GradientOptimizer> _optimizer;
     std::shared_ptr<pele::BasePotential> _potential;
-    Array<double> _origin, _hs_radii, _rattlers, _distance;
+    Array<double> _origin, _hs_radii, _rattlers, _distance, _new_minimum;
     double _dtol, _d, _rms;
     size_t _nparticles;
     std::shared_ptr<pele::DistanceInterface> _dist_policy;
