@@ -99,8 +99,9 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
 
     //first test: minimisation must have converged
     bool quench_success = _optimizer->success();
-    if (! quench_success)
+    if (! quench_success){
         return false;
+    }
 
     //compute distance between quenched coords and origin
     //distance for rattlers is set to 0

@@ -1,21 +1,23 @@
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import Harmonic, HS_WCA
 from pele.systems import BaseSystem
+from pele.landscape import smoothPath
+
 import numpy as np
-
-
 
 class HSWCASystem(BaseSystem):
     """
-    etol: tolerance to calssify eigenvalues, if e<etol the it's a rattler 
+    etol: tolerance to classify eigenvalues, if e<etol the it's a rattler 
+    dtol: rms tolerance on distance between two structures
     """    
-    def __init__(self, eps, sca, hs_radii, boxv, etol=1, bdim=3):
+    def __init__(self, eps, sca, hs_radii, boxv, dtol=1e-4, etol=1, bdim=3):
         super(HSWCASystem, self).__init__()
         self.potential = HS_WCA(eps, sca, hs_radii, boxvec=boxv)
         self.bdim=bdim
         self.radii = hs_radii * (1. + sca)
         self.natoms = len(self.radii)
         self.etol=etol
+        self.dtol = dtol
             
     def get_potential(self):
         return self.potential
@@ -37,6 +39,43 @@ class HSWCASystem(BaseSystem):
     def get_orthogonalize_to_zero_eigenvectors(self):
         return None
     
+    def get_mindist(self):
+        """
+        align wrt one particle that is not a rattler in both configurations
+        then compute the distance ignoring the rattlers of structure 1
+        """
+        def mindist(x1, x2):
+            rattlers1 = self.find_rattlers(x1)
+            rattlers2 = self.find_rattlers(x2)
+            #build arrays of non rattlers indices
+            rindex1 = np.flatnonzero(rattlers1)
+            rindex2 = np.flatnonzero(rattlers2)
+            #indeces in rindex1 that are also in rindex2
+            mask = np.in1d(rindex1, rindex2)
+            #index of first element that is not a rattler in neither configurations
+            i = next((i for i, e in enumerate(mask) if e==True), None)
+            i1 = rindex1[i]
+            #align x2
+            dx = x2[i1*self.bdim:(i1+1)*self.bdim] - x1[i1*self.bdim:(i1+1)*self.bdim]
+            alg_x2 = np.subtract(np.reshape(x2, (-1,self.bdim)), dx).flatten()
+            #compute the distance ignoring the rattlers of structure 1
+            dist = np.reshape((x1-alg_x2),(-1,self.bdim)) * np.reshape(rattlers1,(-1,1))
+            dist = np.linalg.norm(dist.flatten())
+            return dist, x1, alg_x2
+        return mindist
+    
+    def get_compare_exact(self, **kwargs):
+        """this function quickly determines whether two clusters are identical
+        given translational symmetries
+        """
+        mindist = self.get_mindist()
+        return lambda x1, x2: mindist(x1, x2)[0]/np.sqrt(self.natoms) < self.dtol
+
+    def smooth_path(self, path, **kwargs):
+        mindist = self.get_mindist()
+        return smoothPath(path, mindist, **kwargs)
+        
+
     def find_rattlers(self, coords):
         hess = self.potential.getHessian(coords)
         rattlers = np.ones(self.natoms)
