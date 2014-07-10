@@ -105,7 +105,7 @@ public:
             Array<double> hs_radii, Array<double> rattlers, double dtol, bool
             perform_convergence_test=false, bool collect_minima_list=false)
         : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
-                dtol,2, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
+                dtol, ndim, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
                 perform_convergence_test, collect_minima_list)
     {}
 };
@@ -120,7 +120,7 @@ public:
             bool perform_convergence_test=false, 
             bool collect_minima_list=false)
         : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
-                dtol, 2,
+                dtol, ndim,
                 std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
                 perform_convergence_test, collect_minima_list)
     {}
