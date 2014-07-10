@@ -47,8 +47,8 @@ protected:
     inline void _get_vec_distance(pele::Array<double> quenched_coords);
     inline void _check_convergence(pele::Array<double> quenched_coords);
     size_t _ndim;
-    pele::GradientOptimizer * _optimizer;
-    pele::BasePotential * _potential;
+    std::shared_ptr<pele::GradientOptimizer> _optimizer;
+    std::shared_ptr<pele::BasePotential> _potential;
     Array<double> _origin, _hs_radii, _rattlers, _distance;
     double _dtol, _d, _rms;
     size_t _nparticles;
@@ -61,8 +61,8 @@ protected:
     bool _collect_minima_list;
     MinimaList _minima_list;
 public:
-    CheckSameMinimum(pele::GradientOptimizer * optimizer, 
-            pele::BasePotential * potential, Array<double> origin,
+    CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
+            std::shared_ptr<pele::BasePotential> potential, Array<double> origin,
             Array<double> hs_radii, Array<double> rattlers, double dtol, 
             size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL,
             const bool perform_convergence_test=false, 
@@ -100,8 +100,8 @@ public:
 template<size_t ndim>
 class CheckSameMinimumCartesian:public CheckSameMinimum{
 public:
-    CheckSameMinimumCartesian(pele::GradientOptimizer * optimizer,
-            pele::BasePotential * potential, Array<double> origin,
+    CheckSameMinimumCartesian(std::shared_ptr<pele::GradientOptimizer> optimizer,
+            std::shared_ptr<pele::BasePotential> potential, Array<double> origin,
             Array<double> hs_radii, Array<double> rattlers, double dtol, bool
             perform_convergence_test=false, bool collect_minima_list=false)
         : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
@@ -113,9 +113,9 @@ public:
 template<size_t ndim>
 class CheckSameMinimumPeriodic:public CheckSameMinimum{
 public:
-    CheckSameMinimumPeriodic(pele::GradientOptimizer * optimizer,
-            pele::BasePotential * potential, Array<double> origin,
-            Array<double> hs_radii, double const *boxvec, 
+    CheckSameMinimumPeriodic(std::shared_ptr<pele::GradientOptimizer> optimizer,
+            std::shared_ptr<pele::BasePotential> potential, Array<double> origin,
+            Array<double> hs_radii, pele::Array<double> boxvec,
             Array<double> rattlers, double dtol, 
             bool perform_convergence_test=false, 
             bool collect_minima_list=false)

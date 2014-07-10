@@ -8,8 +8,8 @@ using mcpele::MC;
 namespace bv{
 
 
-CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer,
-        pele::BasePotential * potential, Array<double> origin, Array<double>
+CheckSameMinimum::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
+        std::shared_ptr<pele::BasePotential> potential, Array<double> origin, Array<double>
         hs_radii, Array<double> rattlers, double dtol, size_t ndim,
         std::shared_ptr<pele::DistanceInterface> dist, const bool
         perform_convergence_test, const bool collect_minima_list)
@@ -50,6 +50,10 @@ CheckSameMinimum::CheckSameMinimum(pele::GradientOptimizer * optimizer,
 
 void CheckSameMinimum::_get_vec_distance(pele::Array<double> quenched_coords)
 {
+//    std::cout << quenched_coords << "\n";
+//    std::cout << _ndim << " " << quenched_coords.size() << " " << _nparticles << "\n";
+    assert(quenched_coords.size() == _origin.size());
+    assert(quenched_coords.size() == _ndim * _nparticles);
     pele::Array<double> dr(_ndim);
 
     //measure distance between two non rattlers

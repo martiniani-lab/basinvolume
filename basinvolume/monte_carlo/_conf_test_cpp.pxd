@@ -18,7 +18,7 @@ cdef extern from *:
 
 cdef extern from "basinvolume/check_overlap.h" namespace "bv":
     cdef cppclass cppCheckOverlapPeriodic "bv::CheckOverlapPeriodic"[ndim]:
-        cppCheckOverlapPeriodic(_pele.Array[double], double*) except+
+        cppCheckOverlapPeriodic(_pele.Array[double], _pele.Array[double]) except+
 
 
 
@@ -34,14 +34,18 @@ cdef extern from "basinvolume/minimum.h" namespace "bv":
 
 cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
     cdef cppclass cppCheckSameMinimum "bv::CheckSameMinimum":
-        cppCheckSameMinimum(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
+        cppCheckSameMinimum(shared_ptr[_pele.cBasePotential], _pele.Array[double], 
+                            _pele.Array[double], _pele.Array[double],
                             _pele.Array[double] , double, cbool, cbool) except+
         size_t ml_nr_distinct_minima() except +
         _pele.Array[cppMinimum *] get_array_of_minima() except +
         
     cdef cppclass cppCheckSameMinimumCartesian "bv::CheckSameMinimumCartesian"[ndim]:
-        cppCheckSameMinimumCartesian(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double] , double, cbool, cbool) except+
+        cppCheckSameMinimumCartesian(shared_ptr[_pele_opt.cGradientOptimizer], 
+                                     shared_ptr[_pele.cBasePotential], _pele.Array[double], 
+                                     _pele.Array[double], _pele.Array[double] , double, cbool, cbool) except+
     cdef cppclass cppCheckSameMinimumPeriodic "bv::CheckSameMinimumPeriodic"[ndim]:
-        cppCheckSameMinimumPeriodic(_pele_opt.cGradientOptimizer *, _pele.cBasePotential *, _pele.Array[double], _pele.Array[double],
-                            double*, _pele.Array[double] , double, cbool, cbool) except+
+        cppCheckSameMinimumPeriodic(shared_ptr[_pele_opt.cGradientOptimizer], 
+                                    shared_ptr[_pele.cBasePotential], _pele.Array[double], 
+                                    _pele.Array[double], _pele.Array[double], _pele.Array[double], 
+                                    double, cbool, cbool) except+
