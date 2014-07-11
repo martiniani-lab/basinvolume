@@ -70,7 +70,10 @@ class configure_bv_mcrunner(object):
                       'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         
         #add seeds dictionary to mc_params
-        self.mc_params.update(seeds)
+        try:
+            self.mc_params.update(seeds)
+        except:
+            print "WARNING:seeds not passed"
         
         self._initialise()
         

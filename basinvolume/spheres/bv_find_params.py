@@ -4,6 +4,7 @@ import pele.utils.fix_multiprocessing
 import os
 import argparse
 import traceback
+import copy
 from _findk_mcrunner import _findk_mcrunner
 from _kmin_mcrunner import _kmin_mcrunner
 
@@ -34,7 +35,7 @@ if __name__ == "__main__":
     
     ncores = args.ncores
     
-    findk_kwargs = dict(k=150, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9, kfactor=0.4,
+    findk_kwargs = dict(k=600, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9, kfactor=0.4,
                         knavg=2000, ktol=0.025, opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4,
                         packings_dir=packings_dir)
     
@@ -49,11 +50,15 @@ if __name__ == "__main__":
         for fname in os.listdir(packings_dir):
             if ".xy" in fname:
                 #construct mcrunners in place and append them to pool
-                seeds = dict(seed_takestep=np.random.randint(i32max))
-                mypool.apply_async(worker_findk, args=(fname,findk_kwargs.update(seeds),))
+                seeds_dict = dict(seed_takestep=np.random.randint(i32max))
+                seeds = dict(seeds=seeds_dict)
+                findk_kwargs_s = copy.deepcopy(dict(findk_kwargs,**seeds)) 
+                mypool.apply_async(worker_findk, args=(fname,findk_kwargs_s,))
                 
-                seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
-                mypool.apply_async(worker_kmin, args=(fname,kmin_kwargs.update(seeds),))
+                seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
+                seeds = dict(seeds=seeds_dict)
+                kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))
+                mypool.apply_async(worker_kmin, args=(fname,kmin_kwargs_s,))
     except:
         mypool.terminate()
         mypool.join()

@@ -264,14 +264,15 @@ class HS_Generate_Packing(_Generate_Packing):
         """
         it generates an initial set of coordinates from a LJ quench,
         the LJ particles are then substitued by HS based on the size of
-        the gap 
+        the gap
+        coordinates are generated until a valid configuration is foun
         """
         no_overlap = False
         sigma =  min(self.boxv) / np.power(2,1./6) #set sigma such that the the wca radius is the same as the box smallest side length
         pot = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of sigma might have to be different
-        
+                
         while no_overlap == False:
-            no_overlap = True
+            no_overlap = True             
             coords = self._sample_random_coords()
             res = lbfgs_cpp(coords,pot,nsteps=1000)
             #assert(res.success is True) #checks that a minimum configuration has been found
@@ -282,8 +283,8 @@ class HS_Generate_Packing(_Generate_Packing):
             #build an array with the weighted distance to neighbours, the shortest distance is 10 times heavier than the largest
             dmin = np.sort(distances,axis=1)
             
-            if (self.nparticles > 12):
-                neighbours = 12
+            if (self.nparticles > 8):
+                neighbours = 8
             else:
                 neighbours = self.nparticles-2
             
@@ -376,7 +377,28 @@ class HS_Generate_Packing(_Generate_Packing):
                 f.write('{}\t'.format(self.hs_radii[i]*2))
                 f.write('{}\n'.format(colour))
         f.close()
-
+        
+    def _print_parameters(self):
+        """writes the simulation parameters"""
+        fname = '{}/packings.config'.format(self.base_directory)
+        f = open(fname,'w')
+        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        f.write('#Generate_Packings base class input parameters\n')
+        f.write('[PACKING]\n')
+        f.write('method: {}\n'.format(self.method))
+        f.write('nparticles: {}\n'.format(self.nparticles))
+        f.write('packing_fraction: {}\n'.format(self.packing_frac))
+        f.write('boxdim: {}\n'.format(self.bdim))
+        f.write('ndim: {}\n'.format(self.ndim))
+        f.write('radii_mean: {}\n'.format(self.mu))
+        f.write('radii_stdev: {}\n'.format(self.sig))
+        f.write('max_iter: {}\n'.format(self.max_iter))
+        assert(self.box_resized)
+        f.write('boxv: ')
+        for val in self.boxv:
+            f.write('{:.16f} '.format(val))
+        f.write('\n')
+        f.close()
             
 if __name__ == "__main__":
     

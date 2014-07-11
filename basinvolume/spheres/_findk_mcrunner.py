@@ -55,7 +55,10 @@ class _findk_mcrunner(object):
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         
         #add seeds dictionary to mc_params
-        self.mc_params.update(seeds)
+        try:
+            self.mc_params.update(seeds)
+        except:
+            print "WARNING:seeds not passed"
         
         #re-quench origin to avoid rounding errors
         pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
