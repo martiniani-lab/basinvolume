@@ -13,22 +13,24 @@ CheckSameMinimum::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> opti
         hs_radii, Array<double> rattlers, double dtol, size_t ndim,
         std::shared_ptr<pele::DistanceInterface> dist, const bool
         perform_convergence_test, const bool collect_minima_list)
-    : _ndim(ndim), 
-    _optimizer(optimizer), 
-    _potential(potential),
-    _origin(origin.copy()), 
-    _hs_radii(hs_radii.copy()),
-    _rattlers(rattlers.copy()),
-    _distance(origin.size(), 0),
-    _new_minimum(origin.size()),
-    _dtol(dtol), _d(0),
-    _rms(0), 
-    _nparticles(_hs_radii.size()), 
-    _dist_policy(dist),_Nnoratt(0),
-    _perform_convergence_test(perform_convergence_test), 
-    _conv_test(1e-2, 5, 30, 0.3, 1e-10, _optimizer->get_tol(), 0.1, 1, _origin),
-    _collect_minima_list(collect_minima_list),
-    _minima_list(_dtol*sqrt(origin.size()), _optimizer->get_tol(), _dtol) //MinimaList(tol_delta_x_, tol_energy_, tol_delta_x_element_)
+    : _ndim(ndim),
+      _optimizer(optimizer),
+      _potential(potential),
+      _origin(origin.copy()),
+      _hs_radii(hs_radii.copy()),
+      _rattlers(rattlers.copy()),
+      _distance(origin.size(), 0),
+      _new_minimum(origin.size()),
+      _dtol(dtol),
+      _d(0),
+      _rms(0),
+      _nparticles(_hs_radii.size()),
+      _dist_policy(dist),
+      _Nnoratt(0),
+      _perform_convergence_test(perform_convergence_test),
+      _conv_test(30, 1e-10, _optimizer->get_tol(), 0.1, _origin, potential, ndim),
+      _collect_minima_list(collect_minima_list),
+      _minima_list(_dtol*sqrt(origin.size()), _optimizer->get_tol(), _dtol)
 {
     if (_dist_policy == NULL)
         throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
@@ -85,7 +87,7 @@ void CheckSameMinimum::_get_vec_distance(pele::Array<double> quenched_coords)
 
 void CheckSameMinimum::_check_convergence(pele::Array<double> quenched_coords)
 {
-    _conv_test.check_convergence(quenched_coords, _potential, _ndim, _optimizer);
+    _conv_test.check_convergence(quenched_coords, _optimizer);
 }
 
 bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)

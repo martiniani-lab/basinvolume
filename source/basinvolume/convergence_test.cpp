@@ -10,23 +10,14 @@ namespace bv{
  * compute the lowest eigenvalue to ensure that it is positive
  */
 void convergence_test::check_convergence(pele::Array<double> quenched_coords,
-        std::shared_ptr<pele::BasePotential> _potential, const size_t _ndim,
         std::shared_ptr<pele::GradientOptimizer> _optimizer)
 {
-    //std::cout << "convergence_test::check_convergence" << std::endl;
     bool minimum = false;
     size_t l = 0;
     while (minimum == false && l < 10){
         minimum = true;
-        auto lowesteigpot = std::make_shared<pele::LowestEigPotential>(_potential, quenched_coords, _ndim);
-        pele::LBFGS lbfgs(lowesteigpot, _ranvec.copy(), _lbfgstol, _lbfgsM);
-        lbfgs.set_maxstep(_lbfgsmaxstep);
-        lbfgs.set_H0(_H0);
-        lbfgs.set_use_relative_f(1);
-        lbfgs.run(_lbfgsniter);
-        _H0 = lbfgs.get_H0();
-        double lowesteig = lbfgs.get_f();
-        if ( lowesteig < _eigtol){
+        const double lowesteig = _ev_finder.compute_lowest_eigenvalue(quenched_coords);
+        if (lowesteig < _eigtol){
             minimum = false;
             _optimizer->set_tol(_lowtol);
             _optimizer->run();
