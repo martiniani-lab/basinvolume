@@ -127,7 +127,7 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     shared_ptr<mcpele::Action> findk = std::make_shared<bv::Findk>(origin, rattlers, nr_dim, findk__avg_count, findk__target, 0.424242, findk__navg, findk__tol, findk__min, findk__max, findk__bin);
     mc.add_action(findk);
     //run mc
-    mc.set_print_progress();
+    //mc.set_print_progress();
     const size_t niter = 1e5;
     mc.run(niter);
     //check output

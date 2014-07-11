@@ -12,7 +12,8 @@ FindNrDecorrelationSteps::FindNrDecorrelationSteps(const double desired_mean_rsm
 
 size_t FindNrDecorrelationSteps::get_nr_decorrelation_steps() const
 {
-    if (nr_decorrelation_steps.count() == 0) {
+    if (!done()) {
+        std::cout << "only done " << nr_decorrelation_steps.count() << " out of " <<  nr_samples_avergage << " measurements\n";
         throw std::runtime_error("FindNrDecorrelationSteps::get_nr_decorrelation_steps: illegal read attempt");
     }
     return nr_decorrelation_steps.mean();
@@ -26,6 +27,9 @@ bool FindNrDecorrelationSteps::done() const
 void FindNrDecorrelationSteps::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc)
 {
     if (mc->get_iterations_count() < nr_iterations_start) {
+        return;
+    }
+    if (done()) {
         return;
     }
     compute_and_update_rmsd(coords);
