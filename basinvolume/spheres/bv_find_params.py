@@ -1,3 +1,4 @@
+import numpy as np
 import multiprocessing as mp
 import pele.utils.fix_multiprocessing
 import os
@@ -43,12 +44,16 @@ if __name__ == "__main__":
     
     mypool = mp.Pool(ncores)
     
+    i32max = np.iinfo(np.int32).max
     try:
         for fname in os.listdir(packings_dir):
             if ".xy" in fname:
                 #construct mcrunners in place and append them to pool
-                mypool.apply_async(worker_findk, args=(fname,findk_kwargs,))
-                mypool.apply_async(worker_kmin, args=(fname,kmin_kwargs,))
+                seeds = dict(seed_takestep=np.random.randint(i32max))
+                mypool.apply_async(worker_findk, args=(fname,findk_kwargs.update(seeds),))
+                
+                seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
+                mypool.apply_async(worker_kmin, args=(fname,kmin_kwargs.update(seeds),))
     except:
         mypool.terminate()
         mypool.join()

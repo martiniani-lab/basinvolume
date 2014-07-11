@@ -24,8 +24,10 @@ class _findk_mcrunner(object):
     ####k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
         ##opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'
     
-    def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
-                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings', verbose=False):
+    def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.85, 
+                 kfactor=0.6, knavg=1000, ktol=0.05, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, 
+                 opt_nsteps=1e4, seeds=None, packings_dir='jammed_packings', verbose=False):
+        
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
@@ -52,6 +54,8 @@ class _findk_mcrunner(object):
                           'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
         
+        #add seeds dictionary to mc_params
+        self.mc_params.update(seeds)
         
         #re-quench origin to avoid rounding errors
         pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
@@ -77,9 +81,11 @@ class _findk_mcrunner(object):
         stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation
         #stepsize = np.sqrt(self.ndim/k)  #####################
         #####       
-        self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
-                                  rattlers=self.rattlers, avgcount=avgcount, dtol=dtol, eps=eps, ktarget=ktarget, kfactor=kfactor, knavg=knavg, 
-                                  ktol=ktol, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps) 
+        self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
+                                       self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, avgcount=avgcount, 
+                                       dtol=dtol, eps=eps, ktarget=ktarget,kfactor=kfactor, knavg=knavg, ktol=ktol, 
+                                       opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, 
+                                       opt_nsteps=opt_nsteps, seeds=seeds) 
         self._print_initialise()
     
     def run(self):
@@ -168,12 +174,15 @@ class _findk_mcrunner(object):
 if __name__ == "__main__":
     
     #sim = _findk_mcrunner('jammed_packing0.xydr')
-    sim = _findk_mcrunner('jammed_packing0.xyzdr', verbose=True)
+    pppn = [2,6,42,1806,47058,2214502422,52495396602]
+    seeds = dict(seed_takestep=pppn[0])
+    
+    sim = _findk_mcrunner('jammed_packing1.xyzdr', seeds=seeds, verbose=True)
     print 'simulation started'
     start=time.time() 
     sim.run()
     end=time.time()
-    print "time ",end-start
+    print 'time elapsed', end-start
     print "self.kmax: ", sim.kmax
     print "self.prob: ", sim.prob
     print "self.displ_k_max: ", sim.displ_k_max

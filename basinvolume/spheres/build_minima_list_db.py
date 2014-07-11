@@ -101,6 +101,7 @@ def main():
     
     mindist = system.get_mindist()
     m0 = db.getMinimum(1)
+    
     def get_energy(mts):
         """
         this function returns the distance between the origin coordinates and

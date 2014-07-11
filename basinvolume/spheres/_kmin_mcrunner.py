@@ -22,8 +22,10 @@ class _kmin_mcrunner(object):
     """
         
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
-                 hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
-                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-3, opt_nsteps=1e4, packings_dir='jammed_packings', verbose=False):
+                 hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
+                 adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-3, opt_nsteps=1e4, 
+                 seeds=None, packings_dir='jammed_packings', verbose=False):
+        
         dname = fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
@@ -49,7 +51,10 @@ class _kmin_mcrunner(object):
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':eps,'hmin':hmin,'hmax':hmax,
                       'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                       'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
-                    
+        
+        #add seeds dictionary to mc_params
+        self.mc_params.update(seeds)
+        
         #re-quench origin to avoid rounding errors
         pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
         res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
@@ -73,10 +78,12 @@ class _kmin_mcrunner(object):
         #harmonic potential with fixed centre of mass
         
         potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
-        self.mcrunner = BV_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
-                               rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
-                               acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
-                               opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps) 
+        self.mcrunner = BV_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
+                                    self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, k=k, dtol=dtol, 
+                                    eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize, acceptance=acceptance, 
+                                    adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
+                                    opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                                    seeds=seeds) 
         
         self._print_initialise()
         
@@ -161,7 +168,10 @@ class _kmin_mcrunner(object):
     
 if __name__ == "__main__":
     
-    sim = _kmin_mcrunner('jammed_packing0.xyzdr', verbose=True)
+    pppn = [2,6,42,1806,47058,2214502422,52495396602]
+    seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
+    
+    sim = _kmin_mcrunner('jammed_packing1.xyzdr', seeds=seeds, verbose=True)
     print 'simulation started'
     start=time.time()
     #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)
@@ -169,7 +179,7 @@ if __name__ == "__main__":
     #mcrunner = sim('jammed_packing0.xyzdr')
     sim.run()
     end=time.time()
-    print end-start
+    print 'time elapsed', end-start
     status = sim.mcrunner.get_status()
     print status
     print 'd2 kmin: ',sim.displ_k_min
