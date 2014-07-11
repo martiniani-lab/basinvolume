@@ -116,12 +116,12 @@ TEST_F(MinimaListTest, EnergyTest){
     bool status;
     status = ml.insert_minimum(42, 44, x, rattlera);
     EXPECT_TRUE(status);
-    EXPECT_EQ(ml.nr_distinct_minima(), 1);
-    EXPECT_EQ(nr_minima_visits(ml).at(0), 1);
+    EXPECT_EQ(ml.nr_distinct_minima(), 1u);
+    EXPECT_EQ(nr_minima_visits(ml).at(0), 1u);
     status = ml.insert_minimum(42, 44+0.5*tol_energy, x, rattlera);
     EXPECT_FALSE(status);
-    EXPECT_EQ(ml.nr_distinct_minima(), 1);
-    EXPECT_EQ(nr_minima_visits(ml).at(0), 2);
+    EXPECT_EQ(ml.nr_distinct_minima(), 1u);
+    EXPECT_EQ(nr_minima_visits(ml).at(0), 2u);
     status = ml.insert_minimum(42, 44+1.5*tol_energy, x, rattlera);
     EXPECT_TRUE(status);
     status = ml.insert_minimum(42, 44-1.5*tol_energy, x, rattlera);
