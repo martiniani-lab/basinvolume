@@ -29,17 +29,20 @@ if __name__ == "__main__":
     pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 10 snapshots)
     ts_freq = 10
     ts_niter = int(niter*pfreq/ts_freq) 
-        
+    i32max = np.iinfo(np.int32).max
+    seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
+    
     sim = configure_bv_mcrunner()
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
-                 pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq)
+                 pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, seeds=seeds)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
         
-    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip, base_directory=path, verbose=False)
+    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip, 
+                                     base_directory=path, verbose=True)
     start=time.time()
     ptrunner.run()
     end=time.time()
