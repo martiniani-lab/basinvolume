@@ -32,8 +32,8 @@ void RecordDisp2Histogram::action(pele::Array<double> &coords, double energy, bo
             this->_get_vec_distance(coords);
 
             //compute square displacement from origin
-            double norm2 = dot(_distance,_distance);
-            _hist.add_entry(norm2);
+            double norm2 = dot(_distance, _distance);
+            m_hist.add_entry(norm2);
         }
 }
 
