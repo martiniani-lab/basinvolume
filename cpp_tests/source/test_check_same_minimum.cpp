@@ -87,7 +87,7 @@ TEST_F(CheckSameMinimumTest, BasicFunctionality){
 TEST_F(CheckSameMinimumTest, MCInteraction){
     auto opt = std::make_shared<fire_t>(pot, origin, 1e-2, 1, 1);
     mcpele::MC mc(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>();
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
     mc.set_takestep(sampler_uniform);
     shared_ptr<mcpele::AcceptTest> metropolis = std::make_shared<mcpele::MetropolisTest>(42);
     mc.add_accept_test(metropolis);
@@ -114,7 +114,7 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
 
 TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     mcpele::MC mc(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>();
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
     mc.set_takestep(sampler_uniform);
     //add action findk
     const size_t findk__avg_count = 1e3;
@@ -127,7 +127,7 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     shared_ptr<mcpele::Action> findk = std::make_shared<bv::Findk>(origin, rattlers, nr_dim, findk__avg_count, findk__target, 0.424242, findk__navg, findk__tol, findk__min, findk__max, findk__bin);
     mc.add_action(findk);
     //run mc
-    mc.set_print_progress();
+    //mc.set_print_progress();
     const size_t niter = 1e5;
     mc.run(niter);
     //check output

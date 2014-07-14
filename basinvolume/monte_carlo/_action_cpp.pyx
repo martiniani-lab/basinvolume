@@ -144,3 +144,32 @@ cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
 class RecordDisplacementTimeseries(_Cdef_RecordDisplacementTimeseries):
     """This class is the python interface for the c++ RecordDisplacementTimeseries implementation.
     """
+    
+#===============================================================================
+# FindNrDecorrelationStep
+#===============================================================================
+
+cdef class _Cdef_FindNrDecorrelationSteps(_Cdef_Action):
+    """python interface for bv::FindNrDecorrelationStep"""
+    
+    cdef cppFindNrDecorrelationSteps* newptr
+    
+    def __cinit__(self, desired_mean_rsm_displ, nr_iterations_start, nr_samples_avergage,
+                  initial_coords, boxdim):
+        cdef np.ndarray[double, ndim=1] initial_coordsc = np.array(initial_coords, dtype=float)
+        self.thisptr = shared_ptr[cppAction](<cppAction*>new
+                         cppFindNrDecorrelationSteps(desired_mean_rsm_displ, nr_iterations_start,
+                                                    nr_samples_avergage, _pele.Array[double](<double*>
+                                                         initial_coordsc.data, initial_coordsc.size), boxdim))
+        self.newptr = <cppFindNrDecorrelationSteps*> self.thisptr.get()
+    
+    def get_nr_decorrelation_steps(self):
+        cdef steps = self.newptr.get_nr_decorrelation_steps()
+        return steps
+    
+    def done(self):
+        cdef cbool res = self.newptr.done()
+        return res
+
+
+
