@@ -78,7 +78,7 @@ def read_xydr(fname, etol=1.0, bdim=2):
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
 
-def read_xyzdr(fname, etol=1., bdim=3):
+def read_xyzdr(fname, etol=1.0, bdim=3):
     coords = []
     radii = []
     rattlers = []
