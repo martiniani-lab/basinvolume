@@ -3,7 +3,7 @@ import numpy as np
 import abc
 import os
 from scipy.special import gamma
-from mcrunner import HS_MCrunner
+from mcrunner import HS_MCrunner, HS_MCrunnerOptDiffusion
 from pele.potentials import HS_WCA, WCA
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
@@ -141,7 +141,7 @@ class HS_Generate_Packing(_Generate_Packing):
     *hsf stands for hard sphere fluid
     """    
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, 
-                 mu = 1, sig = 0.2, hsf_niter=1e6, hsf_stepsize = 1e-4, max_iter = 10):
+                 mu = 1, sig = 0.2, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10):
         super(HS_Generate_Packing,self).__init__(method, nparticles, bdim=bdim, boxv = boxv, 
                                                  packing_frac=packing_frac, max_iter = max_iter)
         
@@ -252,10 +252,16 @@ class HS_Generate_Packing(_Generate_Packing):
         not matter as these are hard spehres and the difference in energy between valid configurations is 0. We set it high
         to be on the safe side."""
         if (self.iteration == 0):
-            temperature = 10000.0
+            temperature = 1.0
+            dif_mcrunner = HS_MCrunnerOptDiffusion(self.potential, self.coords, temperature, self.hsf_stepsize, 1e8,
+                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 50000)
+            dif_mcrunner.run()
+            self.hsf_stepsize = dif_mcrunner.get_stepsize()
+            self.hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
+            print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
+            self.coords, self.energy = dif_mcrunner.get_config()
             self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
-                                        self.hs_radii,self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 5000)
-            self.energy = self.potential.getEnergy(self.coords)
+                                        self.hs_radii,self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 0)
         self.mcrunner.set_config(self.coords, self.energy)
         self.mcrunner.run()        
         self.coords, self.energy = self.mcrunner.get_config()

@@ -25,8 +25,8 @@ class _findk_mcrunner(object):
         ##opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'
     
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9, 
-                 kfactor=0.6, knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, 
-                 opt_nsteps=1e4, seeds=None, packings_dir='jammed_packings', verbose=False):
+                 kfactor=0.6, knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, 
+                 opt_nsteps=1e5, seeds=None, packings_dir='jammed_packings', verbose=False):
         
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing15.xydr', seeds=seeds, verbose=True)
+    sim = _findk_mcrunner('jammed_packing184.xydr', seeds=seeds, verbose=True)
     print 'simulation started'
     start=time.time() 
     sim.run()

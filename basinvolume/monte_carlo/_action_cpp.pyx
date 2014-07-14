@@ -166,10 +166,8 @@ cdef class _Cdef_FindNrDecorrelationSteps(_Cdef_Action):
     def get_nr_decorrelation_steps(self):
         cdef steps = self.newptr.get_nr_decorrelation_steps()
         return steps
-    
-    def done(self):
-        cdef cbool res = self.newptr.done()
-        return res
 
-
+class FindNrDecorrelationSteps(_Cdef_FindNrDecorrelationSteps):
+    """This class is the python interface for the c++ FindNrDecorrelationSteps implementation.
+    """
 

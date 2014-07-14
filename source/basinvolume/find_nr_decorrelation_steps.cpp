@@ -26,13 +26,21 @@ bool FindNrDecorrelationSteps::done() const
 
 void FindNrDecorrelationSteps::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc)
 {
-    if (mc->get_iterations_count() < nr_iterations_start) {
-        return;
-    }
     if (done()) {
+        //this will trigger premature exit from the MC run loop
+        mc->_niter = std::numeric_limits<size_t>::max();
         return;
     }
-    compute_and_update_rmsd(coords);
+
+    if (mc->get_iterations_count() < nr_iterations_start - 1) {
+        return;
+    }
+    else if (mc->get_iterations_count() == nr_iterations_start - 1) {
+        rsmd_tracker.reset(coords);
+    }
+    else {
+        compute_and_update_rmsd(coords);
+    }
 }
 
 void FindNrDecorrelationSteps::compute_and_update_rmsd(pele::Array<double> coords)

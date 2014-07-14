@@ -28,6 +28,7 @@ class HSWCASystem(BaseSystem):
         nebparams.k = 100000
         nebparams.adaptive_nimages = True
         nebparams.adaptive_niter = True
+        nebparams.iter_density = 25
             
     def get_potential(self):
         return self.potential
@@ -103,7 +104,7 @@ class HSWCASystem(BaseSystem):
         from pele.systems._opengl_tools import draw_atomic_binary_polydisperse
 #        m = self.database.findMinimum(self.potential.getEnergy(coordslinear), coordslinear)
 #        rattlers = m.user_data["rattlers"]
-        put_in_box(coordslinear, self.boxv)
+        #put_in_box(coordslinear, self.boxv)
         draw_atomic_binary_polydisperse(coordslinear, index, bdim=self.bdim, subtract_com=True, 
                                         radii=self.radii, Batoms=self.find_rattlers(coordslinear))
         

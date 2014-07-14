@@ -7,7 +7,8 @@ from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
-from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk, CheckOverlap, RecordDisplacementTimeseries
+from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
+from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap, RecordDisplacementTimeseries
 import pylab as plt
 
 #for plotting histogram
@@ -81,28 +82,53 @@ class HS_MCrunner(_BaseMCRunner):
         #construct base class
         super(HS_MCrunner,self).__init__(potential, coords, temperature,
                                          stepsize, niter)
+        self.hs_radii = hs_radii
+        self.boxv = boxvec
+        self.bdim = len(boxvec)
+        self.nparticles = len(hs_radii)
         
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max), seed_metropolis=np.random.randint(i32max))
+            seeds = dict(seed_takestep=np.random.randint(i32max))
         self.seeds=seeds
                 
         #construct test/action classes  
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'])
-        self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         self.checkoverlap = CheckOverlap(hs_radii, boxvec)
         #set up pele:MC
         self.set_takestep(self.takestep)
-        self.add_accept_test(self.metropolis)
+        self.add_conf_test(self.checkoverlap)
         self.add_action(self.adjust_step)
-        self.add_late_conf_test(self.checkoverlap)
         
     def set_control(self, T):
         """set temperature, canonical control parameter"""
         self.temperature = T
         self.set_temperature(T)
+
+class HS_MCrunnerOptDiffusion(HS_MCrunner):
+    """HS_MCrunnerOptDiffusion
+    """
+    def __init__(self, potential, coords, temperature, stepsize, niter,
+                  hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2, 
+                  adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
+                  desired_mean_rsm_displ=None, seeds=None):
+        #construct base class
+        super(HS_MCrunnerOptDiffusion,self).__init__(potential, coords, temperature,
+                                         stepsize, niter, hs_radii, boxvec, acceptance=acceptance, 
+                                         adjustf=adjustf, adjustf_niter = adjustf_niter, 
+                                         adjustf_navg = adjustf_navg, seeds=seeds)
+        if not desired_mean_rsm_displ:
+            desired_mean_rsm_displ = np.amax(self.hs_radii) * 2
+        
+        self.diffusion = FindNrDecorrelationSteps(desired_mean_rsm_displ, adjustf_niter, nr_samples_avergage,
+                                                  coords, self.bdim)
+        self.add_action(self.diffusion)
+    
+    def get_nr_decorrelation_steps(self):
+        n = self.diffusion.get_nr_decorrelation_steps()
+        return n
         
     
 class BV_MCrunner(_BaseMCRunner):
