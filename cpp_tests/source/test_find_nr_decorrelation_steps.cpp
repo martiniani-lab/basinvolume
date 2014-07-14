@@ -69,7 +69,7 @@ public:
 
 TEST_F(FindNrDecorrelationSepsTest, BasicWorks){
     mcpele::MC mc(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>();
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
     mc.set_takestep(sampler_uniform);
     //add things to mc
     const size_t niter = 1e5;
@@ -92,7 +92,7 @@ TEST_F(FindNrDecorrelationSepsTest, BasicWorks){
 
 TEST_F(FindNrDecorrelationSepsTest, NullTargetWorks){
     mcpele::MC mc(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>();
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
     mc.set_takestep(sampler_uniform);
     //add things to mc
     const size_t niter = 1e5;
@@ -115,8 +115,8 @@ TEST_F(FindNrDecorrelationSepsTest, NullTargetWorks){
 TEST_F(FindNrDecorrelationSepsTest, MoreNeedsMoreWorks){
     mcpele::MC mc(pot, x, 1, stepsize);
     mcpele::MC mc2(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>();
-    shared_ptr<mcpele::TakeStep> sampler_uniform2 = std::make_shared<mcpele::RandomCoordsDisplacement>();
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
+    shared_ptr<mcpele::TakeStep> sampler_uniform2 = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
     mc.set_takestep(sampler_uniform);
     mc2.set_takestep(sampler_uniform2);
     //add things to mc
