@@ -25,8 +25,8 @@ class configure_bv_mcrunner(object):
     def __call__(self, fname, k=1.0, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=10, opt_dtmax=1, opt_maxstep=None, 
-                 opt_tol=1e-7, opt_nsteps=1e4, seeds=None,
-                 packings_dir='jammed_packings', base_dir=None, verbose = False):
+                 opt_tol=1e-7, opt_nsteps=1e4, perform_convergence_test=False, collect_minima_list=False, 
+                 seeds=None, packings_dir='jammed_packings', base_dir=None, verbose = False):
         
         self.fname = fname
         dname = fname
@@ -64,10 +64,12 @@ class configure_bv_mcrunner(object):
         
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.eps = eps
-        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':self.eps,'hmin':hmin,'hmax':hmax,
-                      'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
-                      'pt_eq_niter':pt_eq_niter,'ts_niter':ts_niter, 'ts_freq':ts_freq,
-                      'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
+        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':self.eps,
+                          'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,
+                          'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,'pt_eq_niter':pt_eq_niter,
+                          'ts_niter':ts_niter, 'ts_freq':ts_freq,'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
+                          'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,'perform_convergence_test':perform_convergence_test, 
+                          'collect_minima_list':collect_minima_list}
         
         #add seeds dictionary to mc_params
         try:
@@ -104,7 +106,8 @@ class configure_bv_mcrunner(object):
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
                                pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq,
                                opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
-                               perform_convergence_test=False, collect_minima_list=True, seeds=seeds)
+                               perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
+                               seeds=seeds)
         
         return mcrunner 
         

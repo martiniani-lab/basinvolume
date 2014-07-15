@@ -288,7 +288,8 @@ class Findk_MCrunner(_BaseMCRunner):
                   origin, hs_radii, boxv, sca,
                   rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, kfactor=0.9, 
                   knavg=500, ktol=0.05, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, 
-                  opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001, seeds=None):
+                  opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001, perform_convergence_test=False, 
+                  collect_minima_list=False, seeds=None):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -333,7 +334,9 @@ class Findk_MCrunner(_BaseMCRunner):
         self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'])
         self.conftest1 = CheckOverlap(self.hs_radii, self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, 
-                                          self.rattlers, self.dtol, bdim = self.bdim)
+                                          self.rattlers, self.dtol, bdim = self.bdim,
+                                          perform_convergence_test=perform_convergence_test, 
+                                          collect_minima_list=collect_minima_list)
         self.hmin = hmin
         self.hmax = hmax
         self.binsize = binsize
@@ -360,6 +363,22 @@ class Findk_MCrunner(_BaseMCRunner):
     
     def get_entries(self):
         return self.findk.get_entries()
+    
+    def dump_minima_list(self, fname):
+        """write minima list to pele database"""
+        db= Database(fname)
+        minima_dicts = []
+        #add origin to database, with _id == 0, to make post processing possible
+        #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
+        #distance should be zero because it is distance to itself
+        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.origin), coords=self.origin, user_data=dict(count=0, distance=0))
+        minima_dicts.append(mindict0)
+        #add neighboring minima to database
+        self.conftest2.dump_minima(minima_dicts)
+        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima()+1)
+        print(len(minima_dicts))
+        db.engine.execute(Minimum.__table__.insert(), minima_dicts)
+        db.session.commit()
     
     def show_histogram(self):
         """shows the histogram"""
