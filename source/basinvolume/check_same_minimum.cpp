@@ -28,7 +28,7 @@ CheckSameMinimum::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> opti
       _dist_policy(dist),
       _Nnoratt(0),
       _perform_convergence_test(perform_convergence_test),
-      _conv_test(30, 1e-10, _optimizer->get_tol(), 0.1, Array<double>(_origin.size(), 1), potential, ndim),
+      _conv_test(30, 1e-10, _optimizer->get_tol(), 0.1, _origin.size(), potential, ndim),
       _collect_minima_list(collect_minima_list),
       _minima_list(_dtol*sqrt(origin.size()), _optimizer->get_tol(), _dtol)
 {
