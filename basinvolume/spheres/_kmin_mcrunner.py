@@ -178,7 +178,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing1.xyzdr', seeds=seeds, verbose=True)
+    sim = _kmin_mcrunner('jammed_packing184.xydr', seeds=seeds, verbose=True)
     print 'simulation started'
     start=time.time()
     #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)

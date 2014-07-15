@@ -11,8 +11,8 @@ namespace bv{
 CheckSameMinimum::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
         std::shared_ptr<pele::BasePotential> potential, Array<double> origin, Array<double>
         hs_radii, Array<double> rattlers, double dtol, size_t ndim,
-        std::shared_ptr<pele::DistanceInterface> dist, const bool
-        perform_convergence_test, const bool collect_minima_list)
+        const size_t eqsteps, std::shared_ptr<pele::DistanceInterface> dist,
+        const bool perform_convergence_test, const bool collect_minima_list)
     : _ndim(ndim),
       _optimizer(optimizer),
       _potential(potential),
@@ -29,6 +29,7 @@ CheckSameMinimum::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> opti
       _Nnoratt(0),
       _perform_convergence_test(perform_convergence_test),
       _conv_test(30, 1e-10, _optimizer->get_tol(), 0.1, _origin, potential, ndim),
+      m_eqsteps(eqsteps),
       _collect_minima_list(collect_minima_list),
       _minima_list(_dtol*sqrt(origin.size()), _optimizer->get_tol(), _dtol)
 {
@@ -120,7 +121,7 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
 
     if (_rms > _dtol){
         //std::cout<<"failed quench rms "<<_rms<<std::endl;
-        if (_collect_minima_list){
+        if (_collect_minima_list && mc->get_iterations_count() > m_eqsteps){
             _minima_list.insert_minimum(_d, _optimizer->get_f(), _new_minimum, _rattlers);
         }
         return false;

@@ -14,12 +14,14 @@ class HSWCASystem(BaseSystem):
         super(HSWCASystem, self).__init__()
         self.potential = HS_WCA(eps, sca, hs_radii, boxvec=boxv)
         self.bdim=bdim
+        self.eps = eps
+        self.sca = sca
         self.boxv = boxv
-        self.radii = hs_radii * (1. + sca)
+        self.radii = hs_radii
         self.natoms = len(self.radii)
         self.etol=etol
         self.dtol = dtol
-    
+            
         self.set_params(self.params)
     
     def set_params(self, params):
@@ -29,6 +31,17 @@ class HSWCASystem(BaseSystem):
         nebparams.adaptive_nimages = True
         nebparams.adaptive_niter = True
         nebparams.iter_density = 25
+    
+    def get_system_properties(self):
+        return dict(potential = 'HS WCA smooth',
+                    bdim = self.bdim,
+                    eps = self.eps,
+                    sca = self.sca,
+                    boxv = self.boxv,
+                    radii = self.radii,
+                    etol = self.etol,
+                    dtol = self.dtol
+                    )
             
     def get_potential(self):
         return self.potential
@@ -106,7 +119,7 @@ class HSWCASystem(BaseSystem):
 #        rattlers = m.user_data["rattlers"]
         #put_in_box(coordslinear, self.boxv)
         draw_atomic_binary_polydisperse(coordslinear, index, bdim=self.bdim, subtract_com=True, 
-                                        radii=self.radii, Batoms=self.find_rattlers(coordslinear))
+                                        radii=self.radii*(1+self.sca), Batoms=self.find_rattlers(coordslinear))
         
     
 #    def draw(self, coordslinear, index):

@@ -36,7 +36,7 @@ cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
     cdef cppclass cppCheckSameMinimum "bv::CheckSameMinimum":
         cppCheckSameMinimum(shared_ptr[_pele.cBasePotential], _pele.Array[double], 
                             _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double] , double, cbool, cbool) except+
+                            _pele.Array[double] , double, size_t, cbool, cbool) except+
         size_t ml_nr_distinct_minima() except +
         _pele.Array[cppMinimum *] get_array_of_minima() except +
         double get_failed_quench_frac() except+
@@ -44,9 +44,9 @@ cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
     cdef cppclass cppCheckSameMinimumCartesian "bv::CheckSameMinimumCartesian"[ndim]:
         cppCheckSameMinimumCartesian(shared_ptr[_pele_opt.cGradientOptimizer], 
                                      shared_ptr[_pele.cBasePotential], _pele.Array[double], 
-                                     _pele.Array[double], _pele.Array[double] , double, cbool, cbool) except+
+                                     _pele.Array[double], _pele.Array[double] , double, size_t, cbool, cbool) except+
     cdef cppclass cppCheckSameMinimumPeriodic "bv::CheckSameMinimumPeriodic"[ndim]:
         cppCheckSameMinimumPeriodic(shared_ptr[_pele_opt.cGradientOptimizer], 
                                     shared_ptr[_pele.cBasePotential], _pele.Array[double], 
                                     _pele.Array[double], _pele.Array[double], _pele.Array[double], 
-                                    double, cbool, cbool) except+
+                                    double, size_t, cbool, cbool) except+

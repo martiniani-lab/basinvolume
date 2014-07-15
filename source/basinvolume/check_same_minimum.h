@@ -60,13 +60,14 @@ protected:
     bool _perform_convergence_test;
     convergence_test _conv_test;
     //minima list
+    size_t m_eqsteps;
     bool _collect_minima_list;
     MinimaList _minima_list;
 public:
     CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
             std::shared_ptr<pele::BasePotential> potential, Array<double> origin,
             Array<double> hs_radii, Array<double> rattlers, double dtol, 
-            size_t ndim, std::shared_ptr<pele::DistanceInterface> dist=NULL,
+            size_t ndim, const size_t eqsteps=0, std::shared_ptr<pele::DistanceInterface> dist=NULL,
             const bool perform_convergence_test=false, 
             const bool collect_minima_list=false);
     virtual bool test(Array<double> &trial_coords, mcpele::MC * mc);
@@ -105,10 +106,11 @@ class CheckSameMinimumCartesian:public CheckSameMinimum{
 public:
     CheckSameMinimumCartesian(std::shared_ptr<pele::GradientOptimizer> optimizer,
             std::shared_ptr<pele::BasePotential> potential, Array<double> origin,
-            Array<double> hs_radii, Array<double> rattlers, double dtol, bool
-            perform_convergence_test=false, bool collect_minima_list=false)
+            Array<double> hs_radii, Array<double> rattlers, double dtol,
+            size_t eqsteps=0, bool perform_convergence_test=false,
+            bool collect_minima_list=false)
         : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
-                dtol, ndim, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
+                dtol, ndim, eqsteps, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
                 perform_convergence_test, collect_minima_list)
     {}
 };
@@ -120,10 +122,10 @@ public:
             std::shared_ptr<pele::BasePotential> potential, Array<double> origin,
             Array<double> hs_radii, pele::Array<double> boxvec,
             Array<double> rattlers, double dtol, 
-            bool perform_convergence_test=false, 
+            size_t eqsteps=0, bool perform_convergence_test=false,
             bool collect_minima_list=false)
         : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
-                dtol, ndim,
+                dtol, ndim, eqsteps,
                 std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
                 perform_convergence_test, collect_minima_list)
     {}
