@@ -1,5 +1,3 @@
-from pele.optimize import ModifiedFireCPP
-from pele.potentials import Harmonic, HS_WCA
 from pele.systems import BaseSystem
 from pele.landscape import smoothPath
 from basinvolume.utils import put_in_box
