@@ -26,7 +26,8 @@ class _findk_mcrunner(object):
     
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9, 
                  kfactor=0.6, knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, 
-                 opt_nsteps=1e5, seeds=None, packings_dir='jammed_packings', verbose=False):
+                 opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False, 
+                 seeds=None, packings_dir='jammed_packings', verbose=False):
         
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -52,7 +53,8 @@ class _findk_mcrunner(object):
         
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':self.eps, 'ktarget':ktarget, 
                           'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
-                          'opt_tol':opt_tol,'opt_nsteps':opt_nsteps}
+                          'opt_tol':opt_tol,'opt_nsteps':opt_nsteps, 'perform_convergence_test':perform_convergence_test, 
+                          'collect_minima_list':collect_minima_list}
         
         #add seeds dictionary to mc_params
         try:
@@ -88,7 +90,8 @@ class _findk_mcrunner(object):
                                        self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, avgcount=avgcount, 
                                        dtol=dtol, eps=eps, ktarget=ktarget,kfactor=kfactor, knavg=knavg, ktol=ktol, 
                                        opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, 
-                                       opt_nsteps=opt_nsteps, seeds=seeds) 
+                                       opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test, 
+                                       collect_minima_list=collect_minima_list, seeds=seeds) 
         self._print_initialise()
     
     def run(self):
@@ -180,10 +183,12 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing184.xydr', seeds=seeds, verbose=True)
+    sim = _findk_mcrunner('jammed_packing185.xydr', seeds=seeds, verbose=True)
     print 'simulation started'
     start=time.time() 
     sim.run()
+    frac = sim.mcrunner.conftest2.get_failed_quench_frac()
+    print "failed quench frac",frac
     end=time.time()
     print 'time elapsed', end-start
     print "self.kmax: ", sim.kmax

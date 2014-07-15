@@ -100,11 +100,12 @@ bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
     }
 
     //add number of energy evaluations to mc eval count
-    size_t nfev = _optimizer->get_nfev();
+    const size_t nfev = _optimizer->get_nfev();
     mc->_neval += nfev;
 
     //first test: minimisation must have converged
-    bool quench_success = _optimizer->success();
+    const bool quench_success = _optimizer->success();
+    m_failed_quench_frac.update(!quench_success);
     if (! quench_success){
         return false;
     }
