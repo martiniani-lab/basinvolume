@@ -32,7 +32,6 @@ except:
 
 # need to pass cython the include directory so it can find the .pyx files
 cython_flags=["-I"] + [os.path.abspath(pelepath)+"/pele/potentials"] + ["-v"]
-print os.path.abspath(pelepath)+"pele/potentials"
 
 def generate_cython():
     cwd = os.path.abspath(os.path.dirname(__file__))

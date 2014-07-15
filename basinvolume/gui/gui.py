@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 from pele.storage import Database
-from basinvolume.spheres import HSWCASystem
+from basinvolume.gui import HSWCASystem
 from pele.gui.run import run_gui
 
 def create_system(dbname):
