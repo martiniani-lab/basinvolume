@@ -29,7 +29,7 @@ class HSWCASystem(BaseSystem):
         nebparams.k = 100000
         nebparams.adaptive_nimages = True
         nebparams.adaptive_niter = True
-        nebparams.iter_density = 25
+        nebparams.iter_density = 40
     
     def get_system_properties(self):
         return dict(potential = 'HS WCA smooth',
