@@ -63,12 +63,12 @@ cdef class _Cdef_Findk(_Cdef_Action):
     """This class is the python interface for the c++ bv::cppFindk action class implementation
     """
     cdef cppFindk* newptr
-    def __cinit__(self, origin, rattlers, bdim, avgcount, target, factor, navg, tol, min, max, bin):
+    def __cinit__(self, origin, rattlers, bdim, avgcount, target, navg, tol, min, max, bin):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         self.thisptr = shared_ptr[cppAction](<cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                 _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
-                                                bdim, avgcount, target, factor, navg, tol, min, max, bin)
+                                                bdim, avgcount, target, navg, tol, min, max, bin)
                                              )
         self.newptr = <cppFindk*> self.thisptr.get()
     
