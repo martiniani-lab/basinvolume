@@ -125,6 +125,10 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     def ml_nr_distinct_minima(self):
         cdef nr_distinct_minima = self.newptr.ml_nr_distinct_minima()
         return nr_distinct_minima
+    
+    def get_failed_quench_frac(self):
+        frac = self.newptr.get_failed_quench_frac()
+        return frac
         
 class CheckSameMinimum(_Cdef_CheckSameMinimum):
     """This class is the python interface for the c++ CheckSameMinimum implementation.

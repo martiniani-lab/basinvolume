@@ -178,9 +178,19 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 #            else:
 #                self.rattlers[i] = 1.
     
+    
     def _generate_packing_coords(self):
+        """
+        permorm two quenches and run tests twice
+        """
+        success = self._generate_packing_coords_iteration(tol=1e-8)
+        if success:
+            success = self._generate_packing_coords_iteration(tol=1e-9)
+        return success
+    
+    def _generate_packing_coords_iteration(self, tol=1e-9):
         """quenches the imported structure using FIRE"""
-        res = modifiedfire_cpp(self.coords,self.potential, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
+        res = modifiedfire_cpp(self.coords,self.potential, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=tol)
         if not res.success:
             print 'quench failed'
             return False

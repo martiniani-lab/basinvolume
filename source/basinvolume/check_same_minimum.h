@@ -15,6 +15,7 @@
 
 #include "mcpele/mc.h"
 #include "mcpele/conf_test.h"
+#include "mcpele/histogram.h"
 
 #include "convergence_test.h"
 #include "minima_list.h"
@@ -54,6 +55,7 @@ protected:
     size_t _nparticles;
     std::shared_ptr<pele::DistanceInterface> _dist_policy;
     size_t _Nnoratt, _inoratt;
+    mcpele::Moments m_failed_quench_frac;
     //convergence test classes
     bool _perform_convergence_test;
     convergence_test _conv_test;
@@ -79,6 +81,7 @@ public:
     bool collect_minima_list() const { return _collect_minima_list; }
     //forwarding minima database information to the outside
     size_t ml_nr_distinct_minima() const { return _minima_list.nr_distinct_minima(); }
+    double get_failed_quench_frac() const {return m_failed_quench_frac.mean();}
 
     /**
      * return and Array of the minima we've found
