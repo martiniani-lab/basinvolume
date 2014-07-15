@@ -180,7 +180,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing185.xydr', seeds=seeds, verbose=True)
+    sim = _findk_mcrunner('jammed_packing184.xydr', seeds=seeds, verbose=True)
     print 'simulation started'
     start=time.time() 
     sim.run()
