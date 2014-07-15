@@ -30,12 +30,16 @@ except:
     sys.stderr.write("WARNING: could't find path to mcpele\n")
     sys.exit()
 
+# need to pass cython the include directory so it can find the .pyx files
+cython_flags=["-I"] + [os.path.abspath(pelepath)+"/pele/potentials"] + ["-v"]
+print os.path.abspath(pelepath)+"pele/potentials"
+
 def generate_cython():
     cwd = os.path.abspath(os.path.dirname(__file__))
     print("Cythonizing sources")
     p = subprocess.call([sys.executable,
                           os.path.join(cwd, 'cythonize.py'),
-                          'basinvolume'],
+                          'basinvolume'] + cython_flags,
                          cwd=cwd)
     if p != 0:
         raise RuntimeError("Running cythonize failed!")
@@ -63,6 +67,7 @@ setup(name='basinvolume',
                 "basinvolume.monte_carlo",
                 "basinvolume.utils",
                 "basinvolume.spheres",
+                "basinvolume.gui",
                 # add the test directories
                 "basinvolume.monte_carlo.tests",
                 "basinvolume.spheres.tests",
@@ -121,6 +126,12 @@ cxx_modules = [
               ),
     Extension("basinvolume.monte_carlo._action_cpp", 
               ["basinvolume/monte_carlo/_action_cpp.cxx"] + include_sources_all,
+              include_dirs=include_dirs,
+              extra_compile_args=extra_compile_args,
+              language="c++", depends=depends_all,
+              ),
+    Extension("basinvolume.gui._hs_wca_smooth_cpp",
+              ["basinvolume/gui/_hs_wca_smooth_cpp.cxx"] + include_sources_all,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends_all,

@@ -9,7 +9,7 @@ from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, Metropol
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
 from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap, RecordDisplacementTimeseries
-from hs_system import HSWCASystem
+from basinvolume.gui import HSWCASystem
 import pylab as plt
 
 #for plotting histogram
@@ -374,7 +374,9 @@ class Findk_MCrunner(_BaseMCRunner):
     
     def dump_minima_list(self, fname):
         """write minima list to pele database"""
-        db= Database(fname)
+        system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, 
+                             bdim=self.bdim, dtol=self.dtol, etol=1)
+        db = system.create_database(fname)
         minima_dicts = []
         #add origin to database, with _id == 0, to make post processing possible
         #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
@@ -383,6 +385,9 @@ class Findk_MCrunner(_BaseMCRunner):
         minima_dicts.append(mindict0)
         #add neighboring minima to database
         self.conftest2.dump_minima(minima_dicts)
+        #add spring constant to user_data
+        for m in minima_dicts:
+            m['user_data'].update(k=self.k)
         assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima()+1)
         print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)

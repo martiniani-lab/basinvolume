@@ -5,7 +5,7 @@ import os
 from pele.potentials import HS_WCA
 from pele.storage import Minimum
 from basinvolume.utils import *
-from basinvolume.spheres import HSWCASystem
+from basinvolume.gui import HSWCASystem
 import ConfigParser
 import time
 import re
