@@ -6,12 +6,11 @@
 namespace bv{
 
 Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
-        double factor, size_t navg, double tol, double min, double max, double bin)
+        size_t navg, double tol, double min, double max, double bin)
 	:_origin(origin.copy())
 	,_rattlers(rattlers.copy())
 	,_distance(origin.size())
 	,_target(target)
-	,_factor(factor)
 	,_acceptedf(1)
 	,_k(1)
 	,_tol(tol)

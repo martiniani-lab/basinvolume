@@ -17,7 +17,6 @@ namespace bv{
  * Findk accept test, THIS IS A FICTIOUS ACTION (see note)
  * find k for an harmonic potential such that the acceptance is within some range
  * navg number of steps over which acceptance fraction is averaged
- * factor has to be in (0,1)
  * get_prob returns the probability (_acceptedf) associated with kmax
  * avg_count is the number of steps over which the displacement squared is averaged
  *
@@ -36,7 +35,6 @@ protected:
     pele::Array<double>_rattlers;
     pele::Array<double>_distance;
     double _target;
-    double _factor;
     double _acceptedf;
     double _k;
     double _tol;
@@ -53,7 +51,7 @@ private:
     mcpele::Histogram _hist;
 
 public:
-    Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target, double factor,
+    Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
             size_t navg, double tol, double min, double max, double bin);
     virtual ~Findk() {}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
