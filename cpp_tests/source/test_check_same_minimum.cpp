@@ -54,6 +54,9 @@ public:
         nr_dim = 3;
         nr_dof = nr_particles*nr_dim;
         origin = arr_t(nr_dof,0).copy();
+        for (size_t i = 0; i < origin.size(); ++i) {
+            origin[i] = sqrt(i);
+        }
         shifted_origin = arr_t(nr_dof,11).copy();
         x = arr_t(nr_dof,0).copy();
         k = 4242;
