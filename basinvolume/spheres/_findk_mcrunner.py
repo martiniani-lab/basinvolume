@@ -15,17 +15,14 @@ class _findk_mcrunner(object):
     this is a class that implements configure_findk_mcrunner class,
     *k: harmonic spring constant
     *ktarget: target acceptance associated to kmax
-    *kfactor: the factor by which k is decreased at each iteration, it must be in (0,1)
     *knavg: number of steps over findk averages the acceptance
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
     #niter=1e8   
     #avgcount=1e5
-    ####k=1e2, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.85, kfactor=0.6, knavg=1000, ktol=0.05,
-        ##opt_dtmax=1, opt_maxstep=None, opt_tol=1e-4, opt_nsteps=1e4, packings_dir='jammed_packings'
     
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9, 
-                 kfactor=0.6, knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, 
+                 knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, 
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False, 
                  seeds=None, packings_dir='jammed_packings', verbose=False):
         
@@ -51,8 +48,8 @@ class _findk_mcrunner(object):
         if opt_maxstep is None:
             opt_maxstep = self.boxv[0]*0.1
         
-        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':self.eps, 'ktarget':ktarget, 
-                          'kfactor':kfactor, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
+        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':self.eps,
+                          'ktarget':ktarget, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps, 'perform_convergence_test':perform_convergence_test, 
                           'collect_minima_list':collect_minima_list}
         
@@ -88,7 +85,7 @@ class _findk_mcrunner(object):
         #####       
         self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
                                        self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, avgcount=avgcount, 
-                                       dtol=dtol, eps=eps, ktarget=ktarget,kfactor=kfactor, knavg=knavg, ktol=ktol, 
+                                       dtol=dtol, eps=eps, ktarget=ktarget, knavg=knavg, ktol=ktol, 
                                        opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, 
                                        opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test, 
                                        collect_minima_list=collect_minima_list, seeds=seeds) 

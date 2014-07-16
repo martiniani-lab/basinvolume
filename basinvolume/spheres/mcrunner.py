@@ -288,13 +288,12 @@ class Findk_MCrunner(_BaseMCRunner):
     *dtol: tolerance on the rms displacement of the minimised structure
      with respect to the origin coordinates
     *ktarget: target acceptance associated to kmax
-    *kfactor: the factor by which k is decreased at each iteration, it must be in (0,1)
     *knavg: number of steps over findk averages the acceptance
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca,
-                  rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, kfactor=0.9, 
+                  rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, 
                   knavg=500, ktol=0.05, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, 
                   opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001, perform_convergence_test=False, 
                   collect_minima_list=False, seeds=None):
@@ -312,7 +311,6 @@ class Findk_MCrunner(_BaseMCRunner):
         #findk parameters
         self.avgcount = avgcount
         self.ktarget = ktarget
-        self.kfactor=kfactor 
         self.knavg=knavg 
         self.ktol=ktol
         
@@ -348,7 +346,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.hmin = hmin
         self.hmax = hmax
         self.binsize = binsize
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, 
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
                            self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
         
         #set up pele:MC

@@ -11,7 +11,7 @@ cdef extern from "basinvolume/record_disp2_histogram.h" namespace "bv":
 
 cdef extern from "basinvolume/findk.h" namespace "bv":    
     cdef cppclass cppFindk "bv::Findk":
-        cppFindk(_pele.Array[double], _pele.Array[double], size_t, size_t, double, double, size_t, double, double, double, double) except+
+        cppFindk(_pele.Array[double], _pele.Array[double], size_t, size_t, double, size_t, double, double, double, double) except+
         double get_prob() except+
         double get_mean() except+
         double get_variance() except+
