@@ -1,8 +1,7 @@
-from pele.optimize import ModifiedFireCPP
-from pele.potentials import Harmonic, HS_WCA
 from pele.systems import BaseSystem
 from pele.landscape import smoothPath
 from basinvolume.utils import put_in_box
+from _hs_wca_smooth_cpp import HS_WCA_Smooth
 import numpy as np
 
 class HSWCASystem(BaseSystem):
@@ -12,14 +11,16 @@ class HSWCASystem(BaseSystem):
     """    
     def __init__(self, eps, sca, hs_radii, boxv, dtol=1e-3, etol=1, bdim=3):
         super(HSWCASystem, self).__init__()
-        self.potential = HS_WCA(eps, sca, hs_radii, boxvec=boxv)
+        self.potential = HS_WCA_Smooth(eps, sca, hs_radii, boxvec=boxv)
         self.bdim=bdim
+        self.eps = eps
+        self.sca = sca
         self.boxv = boxv
-        self.radii = hs_radii * (1. + sca)
+        self.radii = hs_radii
         self.natoms = len(self.radii)
         self.etol=etol
         self.dtol = dtol
-    
+            
         self.set_params(self.params)
     
     def set_params(self, params):
@@ -28,7 +29,18 @@ class HSWCASystem(BaseSystem):
         nebparams.k = 100000
         nebparams.adaptive_nimages = True
         nebparams.adaptive_niter = True
-        nebparams.iter_density = 25
+        nebparams.iter_density = 40
+    
+    def get_system_properties(self):
+        return dict(potential = 'HS WCA smooth',
+                    bdim = self.bdim,
+                    eps = self.eps,
+                    sca = self.sca,
+                    boxv = self.boxv,
+                    radii = self.radii,
+                    etol = self.etol,
+                    dtol = self.dtol
+                    )
             
     def get_potential(self):
         return self.potential
@@ -106,7 +118,7 @@ class HSWCASystem(BaseSystem):
 #        rattlers = m.user_data["rattlers"]
         #put_in_box(coordslinear, self.boxv)
         draw_atomic_binary_polydisperse(coordslinear, index, bdim=self.bdim, subtract_com=True, 
-                                        radii=self.radii, Batoms=self.find_rattlers(coordslinear))
+                                        radii=self.radii*(1+self.sca), Batoms=self.find_rattlers(coordslinear))
         
     
 #    def draw(self, coordslinear, index):

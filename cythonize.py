@@ -5,7 +5,7 @@ Cythonize pyx files into C files as needed.
 
 Usage: cythonize [root_dir]
 
-Default [root_dir] is 'scipy'.
+Default [root_dir] is 'pele'.
 
 Checks pyx files to see if they have been changed relative to their
 corresponding C files.  If they have, then runs cython on these files to
@@ -39,13 +39,15 @@ import hashlib
 import subprocess
 
 HASH_FILE = 'cythonize.dat'
-DEFAULT_ROOT = 'basinvolume'
+DEFAULT_ROOT = 'pele'
 
 # WindowsError is not defined on unix systems
 try:
     WindowsError
 except NameError:
     WindowsError = None
+    
+_extra_flags = []
 
 #
 # Rules
@@ -54,8 +56,8 @@ def process_pyx(fromfile, tofile):
     try:
         from Cython.Compiler.Version import version as cython_version
         from distutils.version import LooseVersion
-        if LooseVersion(cython_version) < LooseVersion('0.19'):
-            raise Exception('Building SciPy requires Cython >= 0.19')
+        if LooseVersion(cython_version) < LooseVersion('0.16'):
+            raise Exception('Building pele requires Cython >= 0.16')
 
     except ImportError:
         pass
@@ -63,9 +65,14 @@ def process_pyx(fromfile, tofile):
     flags = ['--fast-fail']
     if tofile.endswith('.cxx'):
         flags += ['--cplus']
+        
+    if _extra_flags:
+        flags += _extra_flags
 
     try:
         try:
+#            print("in dir " + os.getcwd())
+            print(" ".join(['cython'] + flags + ["-o", tofile, fromfile]))
             r = subprocess.call(['cython'] + flags + ["-o", tofile, fromfile])
             if r != 0:
                 raise Exception('Cython failed')
@@ -182,8 +189,12 @@ def main():
         root_dir = sys.argv[1]
     except IndexError:
         root_dir = DEFAULT_ROOT
-    find_process_files(root_dir)
 
+    if len(sys.argv) > 2:
+        global _extra_flags
+        for f in sys.argv[2:]:
+            _extra_flags.append(f)
+    find_process_files(root_dir)
 
 if __name__ == '__main__':
     main()

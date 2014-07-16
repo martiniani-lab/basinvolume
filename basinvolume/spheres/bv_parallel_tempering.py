@@ -19,23 +19,27 @@ if __name__ == "__main__":
     fname = args.jammed_packing_fname
     
     #Parallel Tempering
-    tot_niter = 1e5
+    tot_niter = 2e4
     
     ptiter = int(tot_niter*0.1) #10% PT swaps
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
-    adjustf_niter = int(tot_niter*0.02) #equilibrate for the first 2/100th of total steps
+    adjustf_niter = int(tot_niter*0.1) #equilibrate for the first 5/100th of total steps
     nskip = int(adjustf_niter/niter) #don't swap while adjusting the step-size
     pt_eq_niter = int(tot_niter*0.1) #equilibrate pt for the following 1/10th of total steps
     pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 10 snapshots)
     ts_freq = 10
-    ts_niter = int(niter*pfreq/ts_freq) 
+    ts_niter = int(niter*pfreq/ts_freq)
+    perform_convergence_test=False
+    collect_minima_list=True
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
     
     sim = configure_bv_mcrunner()
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
-                 pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, seeds=seeds)
+                 pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, 
+                 perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
+                 seeds=seeds)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
@@ -45,7 +49,10 @@ if __name__ == "__main__":
                                      base_directory=path, verbose=True)
     start=time.time()
     ptrunner.run()
+    if collect_minima_list:
+        mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(ptrunner.rank))
     end=time.time()
     print 'tot_niter: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(tot_niter, ptiter, niter, adjustf_niter, nskip, pfreq)
     print 'elapsed time',end-start
+    
     
