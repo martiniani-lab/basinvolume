@@ -71,10 +71,17 @@ def run_gui_hswca(dbname=None):
     db = system.create_database(dbname)
     run_gui(system, db=db)
 
-def minimum_to_value(m):
+def minimum_to_value_count(m):
     try:
         count = m.user_data["count"]
         return count
+    except TypeError:
+        return None
+
+def minimum_to_value_k(m):
+    try:
+        k = m.user_data["k"]
+        return k
     except TypeError:
         return None  
 
@@ -91,16 +98,18 @@ def dgraph(dbname=None):
     
     app = QApplication(sys.argv) 
     kwargs["show_minima"] = True
+    kwargs["order_by_energy"] = True
+    kwargs["order_by_basin_size"] = False
     #kwargs["energy_function"] = get_energy
     md = DGraphDialog(db, params=kwargs)
     md.rebuild_disconnectivity_graph()
-    md.dgraph_widget.dg.color_by_value(minimum_to_value)
+    md.dgraph_widget.dg.color_by_value(minimum_to_value_k)
     md.dgraph_widget.redraw_disconnectivity_graph()
     md.show()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
-    merge_db(os.getcwd()+'/explore_bv_jammed_packing184',distinct=False)
+    #merge_db(os.getcwd()+'/explore_bv_jammed_packing184',distinct=False)
     run_gui_hswca(dbname='merged_minima_list.sqlite')
     #dgraph(dbname='merged_minima_list.sqlite')
     #run_gui_hswca()

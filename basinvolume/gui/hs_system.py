@@ -78,7 +78,7 @@ class HSWCASystem(BaseSystem):
             wlist, vlist = np.linalg.eig(hess_block)
             wlist = np.real(wlist)
             for j, w in enumerate(wlist):
-                if np.any(np.absolute(w) < self.etol):
+                if np.absolute(w) < self.etol:
                     vfull = np.zeros(coords.size).reshape([self.natoms,-1])
                     vfull[i,:] = vlist[:,j]
                     vall.append(vfull.reshape(-1))
