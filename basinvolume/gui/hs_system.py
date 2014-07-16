@@ -1,8 +1,11 @@
 from pele.systems import BaseSystem
 from pele.landscape import smoothPath
 from basinvolume.utils import put_in_box
+from pele.potentials import HS_WCA
 from _hs_wca_smooth_cpp import HS_WCA_Smooth
 import numpy as np
+
+from pele.transition_states._zeroev import orthogonalize
 
 class HSWCASystem(BaseSystem):
     """
@@ -30,6 +33,13 @@ class HSWCASystem(BaseSystem):
         nebparams.adaptive_nimages = True
         nebparams.adaptive_niter = True
         nebparams.iter_density = 40
+        
+        tsparams = params.double_ended_connect.local_connect_params.tsSearchParams
+        tsparams.lowestEigenvectorQuenchParams["iprint"] = 0
+        tsparams.tangentSpaceQuenchParams["iprint"] = 0
+        tsparams.hessian_diagonalization=True
+        tsparams.iprint=1
+        tsparams.verbosity=1
     
     def get_system_properties(self):
         return dict(potential = 'HS WCA smooth',
@@ -57,10 +67,28 @@ class HSWCASystem(BaseSystem):
         return None
     
     def get_nzero_modes(self):
-        return 3
+        return self.bdim
+    
+    def _find_zero_modes(self, coords):
+        hess = self.potential.getHessian(coords)
+        vall = []
+        for i in xrange(self.natoms):
+            i1 = self.bdim*i
+            hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
+            wlist, vlist = np.linalg.eig(hess_block)
+            wlist = np.real(wlist)
+            for j, w in enumerate(wlist):
+                if np.any(np.absolute(w) < self.etol):
+                    vfull = np.zeros(coords.size).reshape([self.natoms,-1])
+                    vfull[i,:] = vlist[:,j]
+                    vall.append(vfull.reshape(-1))
+        return vall
+
+    def _orthog_to_zero(self, v, coords):
+        return orthogonalize(v, self._find_zero_modes(coords))
     
     def get_orthogonalize_to_zero_eigenvectors(self):
-        return None
+        return self._orthog_to_zero
     
     def get_mindist(self):
         """
