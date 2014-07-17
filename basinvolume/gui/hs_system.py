@@ -1,7 +1,6 @@
 from pele.systems import BaseSystem
 from pele.landscape import smoothPath
 from basinvolume.utils import put_in_box
-from pele.potentials import HS_WCA
 from _hs_wca_smooth_cpp import HS_WCA_Smooth
 import numpy as np
 
@@ -35,11 +34,11 @@ class HSWCASystem(BaseSystem):
         nebparams.iter_density = 40
         
         tsparams = params.double_ended_connect.local_connect_params.tsSearchParams
+        tsparams.hessian_diagonalization=True
         tsparams.lowestEigenvectorQuenchParams["iprint"] = 0
         tsparams.tangentSpaceQuenchParams["iprint"] = 0
-        tsparams.hessian_diagonalization=True
-        tsparams.iprint=1
-        tsparams.verbosity=1
+        tsparams.iprint=0
+        tsparams.verbosity=0
     
     def get_system_properties(self):
         return dict(potential = 'HS WCA smooth',
