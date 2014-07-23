@@ -19,7 +19,7 @@ if __name__ == "__main__":
     fname = args.jammed_packing_fname
     
     #Parallel Tempering
-    tot_niter = 2e4
+    tot_niter = 1e5
     
     ptiter = int(tot_niter*0.1) #10% PT swaps
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
