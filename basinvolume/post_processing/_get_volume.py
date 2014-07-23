@@ -87,7 +87,7 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         #(self.dimension/2.0)*np.log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
         
         ##############################NO KINETIC TERM#########################################
-        F0 = -np.log(self.box_volume) - np.log(self.prob) - (self.nr_particles*self.dimension/2.0)*np.log(2.0*pi/self.k_max) - 0.5*self.integral_over_displacements
+        F0 = -0.5 * self.integral_over_displacements - np.log(self.box_volume) - ((self.nr_particles - 1.0) * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max) - np.log(self.prob) 
         
         sigF0, sigf = self._calculate_error_F0(displacements_variance)
         
