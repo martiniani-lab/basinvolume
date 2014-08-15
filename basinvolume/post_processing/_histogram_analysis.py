@@ -44,7 +44,14 @@ class Poly_HS_Fluid_3d(Poly_HS_Fluid):
     def Z(self, phi):
         return 1.0 + (self.ZOne(phi)-1.0)*self.m2/(2.0*self.m3**2)*(self.m2**2+self.m1*self.m3) + phi/(1.0-phi)*( 1.0-self.m2/self.m3**2*(2.0*self.m2**2-self.m1*self.m3) )
     def ZOne(self, phi):
-        return (1.0+phi+phi**2-phi**3)/(1.0-phi)**3
+        """
+        Use different monnodisperse eos for phi >=, < 0.5: see e.g. first year report, page 41 and
+        ref: http://dx.doi.org/10.1080/00268979909482932
+        """
+        if phi >= 0.5:
+            return (1.0 + phi + phi**2 - phi**3) / (1.0 - phi)**3
+        else:
+            return (1 + phi + phi**2 - 2 * phi**3 * (1 + phi) / 3) / (1 - phi)**3
 
 def F_acc_Gaussian_Poly_HS_Fluid(phiHD, V_box, nr_particles, box_dimension, diameter_mean, diameter_variance):
     """
