@@ -13,14 +13,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
     parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
     parser.add_argument("base_directory", type=str, help="directory in which to save results")
+    parser.add_argument("-n","--totniter", type=int, help="use cell lists, default: True",default=1e5)
     parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
+    parser.add_argument("-v","--verbose", type=bool, help="verbose",default=False)
+    parser.add_argument("--collectminima", type=bool, help="collect databse of minima",default=True)
     args = parser.parse_args()
     
     path = args.base_directory
     fname = args.jammed_packing_fname
     
     #Parallel Tempering
-    tot_niter = 1e5
+    tot_niter = args.totniter
     
     ptiter = int(tot_niter*0.1) #10% PT swaps
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
@@ -31,7 +34,7 @@ if __name__ == "__main__":
     ts_freq = 10
     ts_niter = int(niter*pfreq/ts_freq)
     perform_convergence_test=False
-    collect_minima_list=True
+    collect_minima_list=args.collectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
     
@@ -47,7 +50,7 @@ if __name__ == "__main__":
     kmax = sim.kmax
         
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip, 
-                                     base_directory=path, verbose=True)
+                                     base_directory=path, verbose=args.verbose)
     start=time.time()
     ptrunner.run()
     if collect_minima_list:
