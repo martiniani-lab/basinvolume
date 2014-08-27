@@ -24,7 +24,7 @@ if __name__ == "__main__":
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(),packings_dir)
     
-    findk_kwargs = dict(k=600, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9, kfactor=0.4,
+    findk_kwargs = dict(k=200, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
                         knavg=2000, ktol=0.025, opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4,
                         packings_dir=packings_dir, use_cell_lists=args.cell)
     
@@ -33,4 +33,4 @@ if __name__ == "__main__":
     seeds_dict = dict(seed_takestep=np.random.randint(i32max))
     seeds = dict(seeds=seeds_dict)
     findk_kwargs_s = copy.deepcopy(dict(findk_kwargs,**seeds)) 
-    worker_findk(fname,findk_kwargs_s,)
+    worker_findk(fname, findk_kwargs_s)

@@ -286,7 +286,7 @@ class HS_Generate_Packing(_Generate_Packing):
         if (self.iteration == 0):
             temperature = 1.0
             dif_mcrunner = HS_MCrunnerOptDiffusion(self.potential, self.coords, temperature, self.hsf_stepsize, 1e8,
-                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 50000,
+                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 50000,
                                         seeds = self.seeds)
             dif_mcrunner.run()
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
@@ -294,10 +294,10 @@ class HS_Generate_Packing(_Generate_Packing):
             print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
             self.coords, self.energy = dif_mcrunner.get_config()
             self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
-                                        self.hs_radii,self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 0,
+                                        self.hs_radii,self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 0,
                                         seeds = self.seeds)
         self.mcrunner.set_config(self.coords, self.energy)
-        self.mcrunner.run()        
+        self.mcrunner.run()
         self.coords, self.energy = self.mcrunner.get_config()
         
     def _initialise_coords_quench(self):
