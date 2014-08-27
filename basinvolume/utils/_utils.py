@@ -3,6 +3,7 @@ import numpy as np
 import os
 from scipy.special import gamma, gammaln
 import subprocess
+import platform
 
 def volume_nball(radius,n):
     volume = np.power(np.pi,n/2)*np.power(radius,n)/gamma(n/2+1)
@@ -100,7 +101,7 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
 # In turn, most of this is copied from pele.
 # 
 # Return the git revision as a string
-def git_version(repository = 'basinvolume'):
+def get_git_version(repository = 'basinvolume'):
     def _minimal_ext_cmd(cmd):
         # construct minimal environment
         env = {}
@@ -127,3 +128,10 @@ def git_version(repository = 'basinvolume'):
         GIT_REVISION = "Unknown"
 
     return GIT_REVISION
+
+def get_python_version():
+    return platform.python_version()
+
+def get_cython_version():
+    from Cython.Compiler.Version import version
+    return version
