@@ -2,6 +2,8 @@ from __future__ import division
 import numpy as np
 import os
 from scipy.special import gamma, gammaln
+import subprocess
+import platform
 
 def volume_nball(radius,n):
     volume = np.power(np.pi,n/2)*np.power(radius,n)/gamma(n/2+1)
@@ -93,3 +95,43 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
         for _ in xrange(bdim): 
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
+
+#
+# Make the git revision visible.  Most of this is copied from scipy
+# In turn, most of this is copied from pele.
+# 
+# Return the git revision as a string
+def get_git_version(repository = 'basinvolume'):
+    def _minimal_ext_cmd(cmd):
+        # construct minimal environment
+        env = {}
+        for k in ['SYSTEMROOT', 'PATH']:
+            v = os.environ.get(k)
+            if v is not None:
+                env[k] = v
+        # LANGUAGE is used on win32
+        env['LANGUAGE'] = 'C'
+        env['LANG'] = 'C'
+        env['LC_ALL'] = 'C'
+        pypath = os.environ.get('PYTHONPATH')
+        pypaths = pypath.split(":")
+        repo_path = [p for p in pypaths if ("/" + repository) in p]
+        repo_path = repo_path[0]
+        out = subprocess.Popen(cmd, stdout = subprocess.PIPE, env=env, cwd=repo_path).communicate()[0]
+        return out
+
+    try:
+        #out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        GIT_REVISION = out.strip().decode('ascii')
+    except OSError:
+        GIT_REVISION = "Unknown"
+
+    return GIT_REVISION
+
+def get_python_version():
+    return platform.python_version()
+
+def get_cython_version():
+    from Cython.Compiler.Version import version
+    return version

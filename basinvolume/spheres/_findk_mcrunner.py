@@ -153,6 +153,13 @@ class _findk_mcrunner(object):
         f.write('[FINDK_MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value)) 
+        #print software version
+        f.write('[CODEVERSION]\n')
+        f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
+        f.write('mcpele_version: {}\n'.format(get_git_version('mcpele')))
+        f.write('pele_version: {}\n'.format(get_git_version('pele')))
+        f.write('python_version: {}\n'.format(get_python_version()))
+        f.write('cython_version: {}\n'.format(get_cython_version()))
         f.close()
     
     def _print_results(self):
