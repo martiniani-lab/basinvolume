@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 import sys
-from pele.potentials import Harmonic, HS_WCA
+from pele.potentials import Harmonic, HS_WCA, HS_WCAPeriodicCellLists
 from pele.optimize import ModifiedFireCPP
 from pele.storage import Database
 from pele.storage.database import Minimum
@@ -158,7 +158,7 @@ class BV_MCrunner(_BaseMCRunner):
                   origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
                   hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
                   pt_eq_niter=0, ts_niter=None, ts_freq=10, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5,
-                  perform_convergence_test=False, collect_minima_list=False, seeds=None):
+                  perform_convergence_test=False, collect_minima_list=False, seeds=None, use_cell_lists=False):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -171,6 +171,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.dtol = dtol
         self.eps = eps
         self.nparticles = len(hs_radii)
+        self.use_cell_lists = use_cell_lists
         if ts_niter is None:
             ts_niter = niter
         
@@ -183,8 +184,16 @@ class BV_MCrunner(_BaseMCRunner):
             assert(len(self.rattlers) == self.ndim)
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
-        #construct gradient optimizer
-        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        #construct optimizer potential
+        if self.use_cell_lists:
+            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
+            #print 'rcut', rcut
+            self.pot_optimizer = HS_WCAPeriodicCellLists(self.eps, self.sca, self.hs_radii, self.boxv, self.origin, 
+                                                     rcut, ndim=self.bdim, ncellx_scale = 1.0, frozen_atoms = None)
+        else:
+            self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        
+        #construct gradient optimizer    
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
                                          tol=opt_tol, nsteps=opt_nsteps)
         
@@ -300,7 +309,7 @@ class Findk_MCrunner(_BaseMCRunner):
                   rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, 
                   knavg=500, ktol=0.05, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, 
                   opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001, perform_convergence_test=False, 
-                  collect_minima_list=False, seeds=None):
+                  collect_minima_list=False, seeds=None, use_cell_lists=False):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -311,6 +320,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.sca = sca
         self.dtol = dtol
         self.eps = eps
+        self.use_cell_lists = use_cell_lists
         
         #findk parameters
         self.avgcount = avgcount
@@ -328,8 +338,16 @@ class Findk_MCrunner(_BaseMCRunner):
             assert(len(self.rattlers) == self.ndim)
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
+        #construct optimizer potential
+        if self.use_cell_lists:
+            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
+            #print 'rcut', rcut
+            self.pot_optimizer = HS_WCAPeriodicCellLists(self.eps, self.sca, self.hs_radii, self.boxv, self.origin, 
+                                                     rcut, ndim=self.bdim, ncellx_scale = 1.0, frozen_atoms = None)
+        else:
+            self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        
         #construct gradient optimizer
-        self.pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
                                          tol=opt_tol, nsteps=opt_nsteps)
                 

@@ -25,7 +25,7 @@ class _kmin_mcrunner(object):
                  hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-3, opt_nsteps=1e4,
                  perform_convergence_test=False, collect_minima_list=False, 
-                 seeds=None, packings_dir='jammed_packings', verbose=False):
+                 seeds=None, use_cell_lists=False, packings_dir='jammed_packings', verbose=False):
         
         dname = fname
         if dname.endswith('.xyzdr'):
@@ -90,7 +90,7 @@ class _kmin_mcrunner(object):
                                     adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
-                                    seeds=seeds) 
+                                    seeds=seeds, use_cell_lists=use_cell_lists) 
         
         self._print_initialise()
         
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing184.xydr', seeds=seeds, verbose=True)
+    sim = _kmin_mcrunner('jammed_packing184.xydr', seeds=seeds, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time()
     #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)

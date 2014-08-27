@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.potentials import HS_WCA
+from pele.potentials import HS_WCA, HS_WCAPeriodicCellLists
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *
 import ConfigParser
@@ -23,7 +23,7 @@ class _Generate_Jammed_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
     
-    def __init__(self, packing_frac=0.65, packings_dir='packings'):
+    def __init__(self, packing_frac=0.65, packings_dir='packings', use_cell_lists=False):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'jammed_packings')
         if not os.path.isabs(packings_dir):
@@ -34,7 +34,7 @@ class _Generate_Jammed_Packing(object):
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
-            
+        self.use_cell_lists = use_cell_lists
         
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
@@ -48,7 +48,7 @@ class _Generate_Jammed_Packing(object):
         self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
     
     @abc.abstractmethod
-    def initialise(self):
+    def _initialise(self):
         """initialisation function"""
     
     @abc.abstractmethod
@@ -123,16 +123,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
-    def __init__(self, packing_frac=0.7, rattler_eval_tol=1.,packings_dir='packings'):
-        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
+    def __init__(self, packing_frac=0.7, rattler_eval_tol=1.,packings_dir='packings', use_cell_lists=False):
+        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir,
+                                                        use_cell_lists=use_cell_lists)
         
         ##constants#
         self.rattler_eval_tol = rattler_eval_tol 
         ############
     
-    def initialise(self):
+    def _initialise(self):
         self._compute_sca()
-        self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         self.rattlers = np.empty(self.nparticles,dtype='d')
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')
         self._print_initialise()
@@ -141,12 +141,24 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """perform one iteration
         """
         self._import_packing_configuration(fname)
+        
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii)*2*(1+self.sca) >= np.amin(self.boxv)/2:
             print "WARNING: max soft diameter >= 1/2 box side!"
+        
         #initialise needs to import at least one configuration to compute sca
         if self.iteration is 0:
-            self.initialise()
+            self._initialise()
+        
+        ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
+        if self.use_cell_lists:
+            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
+            #print 'rcut', rcut
+            self.potential = HS_WCAPeriodicCellLists(self.eps, self.sca, self.hs_radii, self.boxv, self.coords, 
+                                                     rcut, ndim=self.bdim, ncellx_scale = 1.0, frozen_atoms = None)
+        else:
+            self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        
         success = self._generate_packing_coords() #returns false if saddle
         
         if success:
@@ -181,7 +193,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _generate_packing_coords(self):
         """
-        permorm two quenches and run tests twice
+        perform two quenches and run tests twice
         """
         success = self._generate_packing_coords_iteration(tol=1e-8)
         if success:
@@ -339,11 +351,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
     parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
+    parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     args = parser.parse_args()
     print args
     
-    sim = HS_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir)
+    sim = HS_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
+                                     use_cell_lists=args.cell)
     sim.run()
     
     

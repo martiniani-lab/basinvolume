@@ -179,7 +179,7 @@ class HS_Generate_Packing(_Generate_Packing):
             self._initialise_coords_quench()
         if self.use_cell_lists:
             rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
-            print 'rcut', rcut
+            #print 'rcut', rcut
             self.potential = HS_WCAPeriodicCellLists(self.eps, self.sca, self.hs_radii, self.boxv, self.coords, 
                                                      rcut, ndim=self.bdim, ncellx_scale = 1.0, frozen_atoms = None)
         else:
@@ -446,12 +446,15 @@ if __name__ == "__main__":
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-4)
+    parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
     args = parser.parse_args()
     print args
     
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
-                              mu = args.rmean, sig = args.rsigma, hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings)
+                              mu = args.rmean, sig = args.rsigma, hsf_niter=args.hsfniter, 
+                              hsf_stepsize = args.hsfstep, max_iter =args.npackings,
+                              use_cell_lists=args.cell)
     sim.run()    
                 
             

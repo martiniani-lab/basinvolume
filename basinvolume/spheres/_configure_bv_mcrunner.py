@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.potentials import Harmonic, HS_WCA
+from pele.potentials import Harmonic, HS_WCA, HS_WCAPeriodicCellLists
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import BV_MCrunner
 from basinvolume.utils import *
@@ -26,7 +26,7 @@ class configure_bv_mcrunner(object):
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=10, opt_dtmax=1, opt_maxstep=None, 
                  opt_tol=1e-7, opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False, 
-                 seeds=None, packings_dir='jammed_packings', base_dir=None, verbose = False):
+                 seeds=None, use_cell_lists=False, packings_dir='jammed_packings', base_dir=None, verbose = False):
         
         self.fname = fname
         dname = fname
@@ -107,7 +107,7 @@ class configure_bv_mcrunner(object):
                                pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq,
                                opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
-                               seeds=seeds)
+                               seeds=seeds, use_cell_lists=use_cell_lists)
         
         return mcrunner 
         
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
     sim = configure_bv_mcrunner()
-    mcrunner = sim('jammed_packing1.xyzdr', seeds=seeds, verbose=True)
+    mcrunner = sim('jammed_packing0.xyzdr', seeds=seeds, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time()
     mcrunner.run()

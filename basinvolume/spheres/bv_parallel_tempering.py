@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
     parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
     parser.add_argument("base_directory", type=str, help="directory in which to save results")
+    parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
     args = parser.parse_args()
     
     path = args.base_directory
@@ -39,7 +40,7 @@ if __name__ == "__main__":
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
                  pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, 
                  perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
-                 seeds=seeds)
+                 seeds=seeds, use_cell_lists=args.cell)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
