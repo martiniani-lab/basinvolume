@@ -102,7 +102,7 @@ def get_origin(db):
         try:
             d = m.user_data["distance"]
             if d == 0.:
-                return [m]
+                return m
         except TypeError:
             pass
 
@@ -122,8 +122,9 @@ def dgraph(dbname=None):
     kwargs["show_minima"] = False
     kwargs["order_by_energy"] = False
     kwargs["center_gmin"] = False
+    kwargs["include_gmin"] = True
     kwargs["order_by_basin_size"] = True
-#    kwargs["linewidth"] = 2
+    #kwargs["center_minimum"] = get_origin(db)
     kwargs["Emax"] = 3800
     #kwargs["nlevels"] = 20
     #kwargs["energy_function"] = get_energy
@@ -143,7 +144,7 @@ def dgraph(dbname=None):
     dwargs['color']='red'
     dwargs['marker']='o'
     dwargs['zorder']=100
-    m_origin = get_origin(db)
+    m_origin = [get_origin(db)]
     md.dgraph_widget.dg.draw_minima(m_origin, **dwargs)
     
     md.dgraph_widget.canvas.draw()

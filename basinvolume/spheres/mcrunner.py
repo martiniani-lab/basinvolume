@@ -76,6 +76,7 @@ class HS_MCrunner(_BaseMCRunner):
      * NOTE: some of the modules (e.g. take step and acceptance tests) require to be seeded. Users are free to do this as they think
      * is best, here we generate a random integer in [0,i32max) where i32max is the largest signed integer, for each seed. Each module
      * has a separate rng engine, therefore it's best if each receives a different randomly sampled seed
+     * this class requires 1 seed for takestep
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
@@ -110,6 +111,7 @@ class HS_MCrunner(_BaseMCRunner):
 
 class HS_MCrunnerOptDiffusion(HS_MCrunner):
     """HS_MCrunnerOptDiffusion
+    * this class requires 1 seed for takestep
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2, 
@@ -150,6 +152,7 @@ class BV_MCrunner(_BaseMCRunner):
      with respect to the origin coordinates
      *ts_freq: time series "record" frequency
      *pt_eq_niter number of steps over which pt is equilibrated
+     * this class requires 2 seeds
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
@@ -290,6 +293,7 @@ class Findk_MCrunner(_BaseMCRunner):
     *ktarget: target acceptance associated to kmax
     *knavg: number of steps over findk averages the acceptance
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
+    * this class requires 1 seed
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   origin, hs_radii, boxv, sca,

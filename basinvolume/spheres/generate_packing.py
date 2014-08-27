@@ -2,11 +2,13 @@ from __future__ import division
 import numpy as np
 import abc
 import os
+import sys
 from scipy.special import gamma
 from mcrunner import HS_MCrunner, HS_MCrunnerOptDiffusion
-from pele.potentials import HS_WCA, WCA
+from pele.potentials import HS_WCA, WCA, HS_WCAPeriodicCellLists
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
+from numpy.random import RandomState
 import argparse
 
 class _Generate_Packing(object):
@@ -30,7 +32,8 @@ class _Generate_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
     
-    def __init__(self, method, nparticles, bdim=3, boxv = None, packing_frac=0.4, max_iter = 1):
+    def __init__(self, method, nparticles, bdim=3, boxv = None, packing_frac=0.4, max_iter = 1, use_cell_lists=False,
+                 seeds=None):
         self.method = method
         assert(bdim==2 or bdim==3) #currently PBC only implemented for 3d case
         self.nparticles = nparticles
@@ -43,16 +46,26 @@ class _Generate_Packing(object):
             self.boxv = np.array(boxv,dtype='d')
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'packings')
+        self.use_cell_lists = use_cell_lists
         self.iteration = 0
         self.max_iter = max_iter
         self.box_resized = False
         self.initialised = False
+        #give a random seed to random state or assign passed seed
+        self.rng = RandomState()
+        if seeds:
+            assert('seed_takestep' in seeds and 'seed_generate_packing' in seeds)
+            self.seeds = seeds
+        else:
+            self.seeds = dict(seed_takestep=np.random.randint(0, sys.maxint), 
+                              seed_generate_packing=np.random.randint(0, sys.maxint))
+        self.rng.seed(int(self.seeds['seed_generate_packing']))
         ##constants#
         self.eps = 1. #energy unit
         ############
         
     @abc.abstractmethod
-    def initialise(self):
+    def _initialise(self):
         """initialisation function"""
         
     @abc.abstractmethod
@@ -97,6 +110,8 @@ class _Generate_Packing(object):
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
         f.write('[PACKING]\n')
+        for key, value in self.seeds.iteritems() :
+            f.write('{}: {}\n'.format(key,value))
         f.write('method: {}\n'.format(self.method))
         f.write('nparticles: {}\n'.format(self.nparticles))
         f.write('packing_fraction: {}\n'.format(self.packing_frac))
@@ -118,7 +133,7 @@ class _Generate_Packing(object):
     def one_iteration(self):
         """perform one iteration"""
         if self.initialised is not True:
-            self.initialise()
+            self._initialise()
         self._generate_packing_coords()
         self._print()
         self.iteration+=1
@@ -139,11 +154,14 @@ class HS_Generate_Packing(_Generate_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential, here irrelevant because 'sca' is set to 0
     *hsf stands for hard sphere fluid
+    *set seed to something other than none to remove randomness between instances of the class
     """    
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, 
-                 mu = 1, sig = 0.2, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10):
+                 mu = 1, sig = 0.2, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10, use_cell_lists=False, 
+                 seeds=None):
         super(HS_Generate_Packing,self).__init__(method, nparticles, bdim=bdim, boxv = boxv, 
-                                                 packing_frac=packing_frac, max_iter = max_iter)
+                                                 packing_frac=packing_frac, max_iter = max_iter, 
+                                                 use_cell_lists = use_cell_lists, seeds = seeds)
         
         self.sca = 0. #this must be 0 for hard spheres
         self.mu = mu
@@ -151,14 +169,21 @@ class HS_Generate_Packing(_Generate_Packing):
         self.hsf_niter = hsf_niter #number of iteration for each hs fluid configuration
         self.hsf_stepsize = hsf_stepsize
         self.hs_radii = hs_radii
-        self._sample_hs_radii()
+        self._sample_hs_radii() #outcome of sample radii depends on hs_radii. hence if initialise is called twice, the second
+                                #time it will not resample the radii, hence it must be kept in __init__
         self._resize_box()
-        
-    def initialise(self):
+                                    
+    def _initialise(self):
         if self.method is 'quench':
             #this is necessary to initialise the radii if using the quench routine
             self._initialise_coords_quench()
-        self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        if self.use_cell_lists:
+            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
+            print 'rcut', rcut
+            self.potential = HS_WCAPeriodicCellLists(self.eps, self.sca, self.hs_radii, self.boxv, self.coords, 
+                                                     rcut, ndim=self.bdim, ncellx_scale = 1.0, frozen_atoms = None)
+        else:
+            self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         self._print_initialise()
         self.initialised = True     
     
@@ -182,14 +207,14 @@ class HS_Generate_Packing(_Generate_Packing):
     
     def _sample_hs_radii(self):
         if self.hs_radii is None:
-            self.hs_radii = np.random.normal(self.mu,self.sig,self.nparticles)
+            self.hs_radii = self.rng.normal(self.mu,self.sig,self.nparticles)
         else:
             self.hs_radii = np.array(self.hs_radii,dtype='d')
         assert(np.all(self.hs_radii > 0))
     
 #    def _sample_hs_radii_from_area(self):
 #        if self.hs_radii is None:
-#            areas = np.random.normal(self.mu,self.sig,self.nparticles)
+#            areas = self.rng.normal(self.mu,self.sig,self.nparticles)
 #            self.hs_radii = np.sqrt(areas)
 #        else:
 #            self.hs_radii = np.array(self.hs_radii,dtype='d')
@@ -225,7 +250,7 @@ class HS_Generate_Packing(_Generate_Packing):
         coords =  np.empty(self.ndim)
         for i in xrange(self.nparticles):
             for j in xrange(self.bdim):
-                coords[i*self.bdim+j] = (np.random.rand())*self.boxv[j]
+                coords[i*self.bdim+j] = (self.rng.rand())*self.boxv[j]
         return coords
     
     def _build_distance_matrix(self):
@@ -254,14 +279,16 @@ class HS_Generate_Packing(_Generate_Packing):
         if (self.iteration == 0):
             temperature = 1.0
             dif_mcrunner = HS_MCrunnerOptDiffusion(self.potential, self.coords, temperature, self.hsf_stepsize, 1e8,
-                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 50000)
+                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 50000,
+                                        seeds = self.seeds)
             dif_mcrunner.run()
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
             self.hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
             print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
             self.coords, self.energy = dif_mcrunner.get_config()
             self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
-                                        self.hs_radii,self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 0)
+                                        self.hs_radii,self.boxv, adjustf = 0.9, acceptance=0.2, adjustf_niter = 0,
+                                        seeds = self.seeds)
         self.mcrunner.set_config(self.coords, self.energy)
         self.mcrunner.run()        
         self.coords, self.energy = self.mcrunner.get_config()
@@ -391,6 +418,8 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
         f.write('[PACKING]\n')
+        for key, value in self.seeds.iteritems() :
+            f.write('{}: {}\n'.format(key,value))
         f.write('method: {}\n'.format(self.method))
         f.write('nparticles: {}\n'.format(self.nparticles))
         f.write('packing_fraction: {}\n'.format(self.packing_frac))
