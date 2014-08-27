@@ -91,6 +91,13 @@ class _Generate_Jammed_Packing(object):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('\n')
+        #print software version
+        f.write('[CODEVERSION]\n')
+        f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
+        f.write('mcpele_version: {}\n'.format(get_git_version('mcpele')))
+        f.write('pele_version: {}\n'.format(get_git_version('pele')))
+        f.write('python_version: {}\n'.format(get_python_version()))
+        f.write('cython_version: {}\n'.format(get_cython_version()))
         f.close()
         
     def _print(self, n):

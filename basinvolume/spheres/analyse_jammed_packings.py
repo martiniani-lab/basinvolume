@@ -192,6 +192,13 @@ class analyse_jammed_packings(object):
         f.write('\n')
         assert(self.sca >0)
         f.write('sca: {}\n'.format(self.sca))
+        #print software version
+        f.write('[CODEVERSION]\n')
+        f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
+        f.write('mcpele_version: {}\n'.format(get_git_version('mcpele')))
+        f.write('pele_version: {}\n'.format(get_git_version('pele')))
+        f.write('python_version: {}\n'.format(get_python_version()))
+        f.write('cython_version: {}\n'.format(get_cython_version()))
         f.close()
     
 if __name__ == "__main__":
