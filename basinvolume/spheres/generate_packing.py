@@ -108,6 +108,13 @@ class _Generate_Packing(object):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
+        #print software version
+        f.write('[CODEVERSION]\n')
+        f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
+        f.write('mcpele_version: {}\n'.format(get_git_version('mcpele')))
+        f.write('pele_version: {}\n'.format(get_git_version('pele')))
+        f.write('python_version: {}\n'.format(get_python_version()))
+        f.write('cython_version: {}\n'.format(get_cython_version()))
         f.close()
         
     def _print(self):
