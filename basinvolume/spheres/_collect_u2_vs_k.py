@@ -58,6 +58,10 @@ class _collect_u2_vs_k(object):
         """
         Volume compuation based on ingregral approximation with kmax and displ_k0 
         """
+        try:
+            self._compute_approx_volume()
+        except IOError as err:
+            print err
     
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
@@ -146,20 +150,30 @@ class _collect_u2_vs_k(object):
         
     def _compute_volume(self):
         """
-        numerical volume obtained 
+        numerical volume obtained by integrating over the PT data
         """
         
         self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, np.prod(self.boxv),\
-                                                                                self.prob_kmax,displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
         
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, np.prod(self.boxv),\
-                                                                                self.prob_kmax,displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
-        rF0 = self.F0 + self.nparticles*np.log(np.prod(self.boxv))
-        rF0unc = self.F0unc + self.nparticles*np.log(np.prod(self.boxv))
-        print 'rF0 {} rF0unc {}'.format(rF0, rF0unc)
+        self.unit_box_F0 = self.F0 + self.nparticles * np.log(np.prod(self.boxv))
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(np.prod(self.boxv))
+        print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
+        
+    def _compute_approx_volume(self):
+        """
+        numerical volume obtained by approximating from kmax, and displ_k0
+        """
+        self.F0_approx = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
+                                              self.u2_array, np.prod(self.boxv),\
+                                              self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0_approx_kmax_displ0(self.displ_k_min, np.amax(self.karray))
+        self.unit_box_F0_approx = self.F0_approx + self.nparticles * np.log(np.prod(self.boxv))
+        print 'unit_box_F0_approx {}'.format(self.unit_box_F0_approx)
 
     def _plot_data(self):
         lines = ["-","--","-."]
