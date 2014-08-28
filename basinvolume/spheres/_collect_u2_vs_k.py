@@ -7,7 +7,7 @@ from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 import ConfigParser
-from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
+from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas, F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0
 import argparse
 from itertools import cycle
 try:
@@ -169,9 +169,7 @@ class _collect_u2_vs_k(object):
         """
         numerical volume obtained by approximating from kmax, and displ_k0
         """
-        self.F0_approx = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
-                                              self.u2_array, np.prod(self.boxv),\
-                                              self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0_approx_kmax_displ0(self.displ_k_min, np.amax(self.karray))
+        self.F0_approx = F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(self.displ_k_min, self.kmax, np.prod(self.boxv), self.nparticles, self.bdim, self.prob_kmax)
         self.unit_box_F0_approx = self.F0_approx + self.nparticles * np.log(np.prod(self.boxv))
         print 'unit_box_F0_approx {}'.format(self.unit_box_F0_approx)
 
