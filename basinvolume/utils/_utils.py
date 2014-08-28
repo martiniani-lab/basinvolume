@@ -4,6 +4,9 @@ import os
 from scipy.special import gamma, gammaln
 import subprocess
 import platform
+import basinvolume
+import pele
+import mcpele
 
 def volume_nball(radius,n):
     volume = np.power(np.pi,n/2)*np.power(radius,n)/gamma(n/2+1)
@@ -113,15 +116,21 @@ def get_git_version(repository = 'basinvolume'):
         env['LANGUAGE'] = 'C'
         env['LANG'] = 'C'
         env['LC_ALL'] = 'C'
-        pypath = os.environ.get('PYTHONPATH')
-        pypaths = pypath.split(":")
-        repo_path = [p for p in pypaths if ("/" + repository) in p]
-        repo_path = repo_path[0]
+        repo_path = None
+        try:
+            if repository is "basinvolume":
+                repo_path = os.path.dirname(basinvolume.__file__)[:-12]
+            elif repository is "pele":
+                repo_path = os.path.dirname(pele.__file__)[:-5]
+            elif repository is "mcpele":
+                repo_path = os.path.dirname(mcpele.__file__)[:-7]
+        except:
+            sys.stderr.write("WARNING: could't find path to" + repository + "\n")
+            sys.exit()
         out = subprocess.Popen(cmd, stdout = subprocess.PIPE, env=env, cwd=repo_path).communicate()[0]
         return out
 
     try:
-        #out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
         out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
         GIT_REVISION = out.strip().decode('ascii')
     except OSError:
