@@ -93,6 +93,23 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         
         return F0, sigF0, self.f, sigf
     
+    def get_free_energy_F0_approx_kmax_displ0(self, displ2_k0, kmax):
+        """
+        Compute free energy F(0) = -log(v), by assuming that the approximation
+        used to make the integrand flat is the true integrand behavior.
+        """
+        self._compute_approx_integral_over_displacements()
+        F0 = -0.5 * self.approx_integral_over_displacements - np.log(self.box_volume) - ((self.nr_particles - 1.0) * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max) - np.log(self.prob)
+        return F0 
+    
+    def _compute_approx_integral_over_displacements(self, displ2_k0, kmax):
+        self.approx_integral_over_displacements = None
+        xi = (self.nr_particles - 1) * self.dimension / displ2_kmin
+        def _approx(k):
+            return (self.nr_particles - 1) * self.dimension / (k + xi)
+        from scipy.integrate import quad
+        self.approx_integral_over_displacements = quad(_approx, 0, kmax)
+    
 if __name__ == "__main__":
     """
     Read in MC data for spring constants, displacements, probability to be in basin;
