@@ -200,11 +200,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _generate_packing_coords(self):
         """
-        perform two quenches and run tests twice
+        perform quench and run tests
         """
-        success = self._generate_packing_coords_iteration(tol=1e-8)
-        if success:
-            success = self._generate_packing_coords_iteration(tol=1e-9)
+        success = self._generate_packing_coords_iteration(tol=1e-9)
         return success
     
     def _generate_packing_coords_iteration(self, tol=1e-9):
@@ -216,6 +214,12 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         
         self.coords = res.coords
         self.energy = res.energy
+        
+        #test that on ri-minimisation the structure does not change
+        res2 = modifiedfire_cpp(self.coords, self.potential, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=tol)
+        if res2.nfev > 1:
+            print 'quench failed (structure changed at second minimisation)'
+            return False
         
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_overlaps()
@@ -241,8 +245,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             return False
         
         #check that there isn't any significantly negative evalue
-        if np.any(w) < -0.1:
-            print 'eigevalue < -0.1'
+        if np.any(w) < -0.01:
+            print 'eigevalue < -0.01'
             return False
         
         return True

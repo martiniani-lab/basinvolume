@@ -14,9 +14,9 @@ if __name__ == "__main__":
     parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
     parser.add_argument("base_directory", type=str, help="directory in which to save results")
     parser.add_argument("-n","--totniter", type=int, help="use cell lists, default: True",default=1e5)
-    parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
-    parser.add_argument("-v","--verbose", type=bool, help="verbose",default=False)
-    parser.add_argument("--collectminima", type=bool, help="collect databse of minima",default=True)
+    parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
+    parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
+    parser.add_argument("--nocollectminima", action='store_false', help="don't collect databse of minima",default=True)
     args = parser.parse_args()
     
     path = args.base_directory
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     ts_freq = 10
     ts_niter = int(niter*pfreq/ts_freq)
     perform_convergence_test=False
-    collect_minima_list=args.collectminima
+    collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
     
@@ -43,7 +43,7 @@ if __name__ == "__main__":
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
                  pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, 
                  perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
-                 seeds=seeds, use_cell_lists=args.cell)
+                 seeds=seeds, use_cell_lists=args.nocell)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
