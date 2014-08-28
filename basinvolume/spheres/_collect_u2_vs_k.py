@@ -43,12 +43,21 @@ class _collect_u2_vs_k(object):
     def run(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        self._import_ks()
-        self._import_u2_reverse()
-        self._print_u2_vs_k()
-        self._compute_volume()
-        self._import_time_series()
-        self._plot_data()
+        """
+        Full volume computation, assuming that PT data is available
+        """
+        try:
+            self._import_ks()
+            self._import_u2_reverse()
+            self._print_u2_vs_k()
+            self._compute_volume()
+            self._import_time_series()
+            self._plot_data()
+        except IOError as err:
+            print err
+        """
+        Volume compuation based on ingregral approximation with kmax and displ_k0 
+        """
     
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
