@@ -4,12 +4,15 @@ from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement, CheckSphericalContainer
 from basinvolume.monte_carlo import RecordDisp2Histogram, CheckHyperSphericalContainer, Findk
-import pylab as plt
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
 from basinvolume.post_processing import spring_constants_variable_transform as vt
 from basinvolume.utils import log_volume_nball
 import copy
-
+try:
+    import pylab as plt
+except ImportError as err:
+    print err
+    
 """
 pele::MCrunner
 

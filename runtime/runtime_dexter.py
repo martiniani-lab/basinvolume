@@ -1,9 +1,12 @@
 from __future__ import division
 import numpy as np
 import argparse
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from matplotlib.backends.backend_pdf import PdfPages
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+except ImportError as err:
+    print err
 
 def save_pdf(plt, file_name):
     pdf = PdfPages(file_name)

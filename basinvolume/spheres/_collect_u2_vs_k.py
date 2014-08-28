@@ -8,9 +8,12 @@ from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
-import pylab as plt
 import argparse
 from itertools import cycle
+try:
+    import pylab as plt
+except ImportError as err:
+    print err
 
 class _collect_u2_vs_k(object):
     """

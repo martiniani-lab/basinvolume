@@ -10,31 +10,33 @@ from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
 from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap, RecordDisplacementTimeseries
 from basinvolume.gui import HSWCASystem
-import pylab as plt
 
 #for plotting histogram
 from itertools import cycle
-import matplotlib.pyplot as plt
 from scipy.integrate import quad
 
-#more stuff for plotting histogram and comparing to prediction
-#######################SET LATEX OPTIONS###################                            
-plt.rc('text', usetex=True)
-plt.rc('font',**{'family':'serif','serif':['Computer Modern']})
-#rc('text.latex',preamble=r'\usepackage{times}')                                       
-plt.rcParams.update({'font.size': 20})
-plt.rcParams['xtick.major.pad'] = 8
-plt.rcParams['ytick.major.pad'] = 8
-##########################################################                             
-####SET COLOUR MAP######                                                               
-cm = plt.get_cmap('Dark2')
-########################                                                               
-#####################LINE STYLE CYCLER####################                             
-lines = ["-","--","-."]
-linecycler = cycle(lines)
-color_cycle=[cm(1.*i/6) for i in xrange(6)]
-########################################################## 
-
+try:
+    import matplotlib.pyplot as plt
+    #more stuff for plotting histogram and comparing to prediction
+    #######################SET LATEX OPTIONS###################                            
+    plt.rc('text', usetex=True)
+    plt.rc('font',**{'family':'serif','serif':['Computer Modern']})
+    #rc('text.latex',preamble=r'\usepackage{times}')                                       
+    plt.rcParams.update({'font.size': 20})
+    plt.rcParams['xtick.major.pad'] = 8
+    plt.rcParams['ytick.major.pad'] = 8
+    ##########################################################                             
+    ####SET COLOUR MAP######                                                               
+    cm = plt.get_cmap('Dark2')
+    ########################                                                               
+    #####################LINE STYLE CYCLER####################                             
+    lines = ["-","--","-."]
+    linecycler = cycle(lines)
+    color_cycle=[cm(1.*i/6) for i in xrange(6)]
+    ##########################################################
+except ImportError as err:
+    print(err)
+    
 def analytical_d2(x,k,N,boxdim=3):
     f = float(k*x)/2
     g = float(boxdim*N-boxdim)/2 -1
