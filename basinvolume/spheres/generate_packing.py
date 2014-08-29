@@ -460,7 +460,7 @@ if __name__ == "__main__":
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-4)
-    parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
+    parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
     args = parser.parse_args()
     print args
@@ -468,7 +468,7 @@ if __name__ == "__main__":
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
                               mu = args.rmean, sig = args.rsigma, hsf_niter=args.hsfniter, 
                               hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                              use_cell_lists=args.cell)
+                              use_cell_lists=args.nocell)
     sim.run()    
                 
             

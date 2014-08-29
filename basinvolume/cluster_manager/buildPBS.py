@@ -53,19 +53,18 @@ class BuildPBSScript(object):
     
     def get_PBS_O_WORKDIR(self):
         (stdout, stderr) = Popen(["echo $PBS_O_WORKDIR"], shell=True, stdout=PIPE).communicate()
-        stdout.replace(" ","")
-        stdout.replace("\n","")
+        stdout=stdout.rstrip()
         return stdout
     
     def get_PBS_JOBID(self):
         (stdout, stderr) = Popen(["echo $PBS_JOBID"], shell=True, stdout=PIPE).communicate()
-        stdout.replace(" ","")
-        stdout.replace("\n","")
+        stdout=stdout.rstrip()
         return stdout
     
     def checkin_PBS_O_WORKDIR(self):
         pbs_wdir = self.get_PBS_O_WORKDIR()
-        return os.path.normpath(pbs_wdir) == os.path.normpath(os.getcwd())
+        cwd=os.getcwd()
+        return (pbs_wdir==cwd)
     
 class SubmitPBSscripts(object):
     """

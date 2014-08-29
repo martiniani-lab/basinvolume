@@ -362,13 +362,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
     parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
-    parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
+    parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     args = parser.parse_args()
     print args
     
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
-                                     use_cell_lists=args.cell)
+                                     use_cell_lists=args.nocell)
     sim.run()
     
     
