@@ -5,7 +5,7 @@ import os
 import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
-from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
+from basinvolume.utils import trymakedir, read_xyzdr, read_xydr, to_string
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas, F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0
 import argparse
@@ -14,7 +14,7 @@ try:
     import pylab as plt
 except ImportError as err:
     print err
-
+    
 class _collect_u2_vs_k(object):
     """
     this is a class that implements _collect_u2_vs_k class 
@@ -62,6 +62,10 @@ class _collect_u2_vs_k(object):
             self._compute_approx_volume()
         except IOError as err:
             print err
+        """
+        Print basin volumes for further processing
+        """
+        self._print_volumes()
     
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
@@ -208,9 +212,26 @@ class _collect_u2_vs_k(object):
         ax.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
-        plt.savefig(self.base_directory+'/u2_vs_k.eps')
+        plt.savefig(self.base_directory+'/u2_vs_k.eps') 
         plt.show()
         
+    def _print_volumes(self):
+        dname = 'volume_data'
+        fname = '{}/{}'.format(self.base_directory,dname)
+        f = open(fname,'w')
+        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        f.write('[VOLUME APPROXIMATED]\n')
+        def _to_file(name, value):
+            f.write((name + ": {}\n").format(to_string(value)))
+        if hasattr(self, "F0_approx"):
+            _to_file("F0_approx", self.F0_approx)
+            _to_file("unit_box_F0_approx", self.unit_box_F0_approx)
+        f.write('[VOLUME FULL PT]\n')
+        if hasattr(self, "F0"):
+            _to_file("F0", self.F0)
+            _to_file("sigF0", self.sigF0)
+            _to_file("unit_box_F0", self.unit_box_F0)
+        f.close()
         
 if __name__ == "__main__":
     
