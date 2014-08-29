@@ -1,5 +1,6 @@
 from __future__ import division
 from subprocess import Popen, PIPE
+from pipes import quote
 import os
 import time
 
@@ -52,11 +53,25 @@ class BuildPBSScript(object):
     
     def get_PBS_O_WORKDIR(self):
         (stdout, stderr) = Popen(["echo $PBS_O_WORKDIR"], shell=True, stdout=PIPE).communicate()
+        stdout.replace(" ","")
+        stdout.replace("\n","")
         return stdout
     
     def get_PBS_JOBID(self):
         (stdout, stderr) = Popen(["echo $PBS_JOBID"], shell=True, stdout=PIPE).communicate()
+        stdout.replace(" ","")
+        stdout.replace("\n","")
         return stdout
+    
+    def checkin_PBS_O_WORKDIR(self):
+        pbs_wdir = self.get_PBS_O_WORKDIR()
+        return os.path.normpath(pbs_wdir) == os.path.normpath(os.getcwd())
+    
+class SubmitPBSscripts(object):
+    """
+    this class is responsible of looping through a particular directory 
+    containing the jammed_packings subdir
+    """
     
 if __name__ == "__main__":
     pbs = BuildPBSScript('test', 1, 7, 6, 'python run_test.py args')
@@ -64,4 +79,5 @@ if __name__ == "__main__":
     pbs.writePBSscript('test_job', 'test_job')
     print pbs.get_PBS_O_WORKDIR()
     print pbs.get_PBS_JOBID()
+    print pbs.checkin_PBS_O_WORKDIR()
         
