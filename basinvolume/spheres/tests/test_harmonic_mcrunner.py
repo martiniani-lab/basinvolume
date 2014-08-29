@@ -6,8 +6,11 @@ import unittest
 import logging
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, RecordEnergyHistogram, CheckSphericalContainer
-import pylab as plt
 import copy
+try:
+    import pylab as plt
+except ImportError as err:
+    print err
 
 class Metropolis_MCrunner(_BaseMCRunner):
     """This class is derived from the _base_MCrunner abstract
