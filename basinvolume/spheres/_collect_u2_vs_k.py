@@ -5,23 +5,23 @@ import os
 import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
-from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
+from basinvolume.utils import trymakedir, read_xyzdr, read_xydr, to_string
 import ConfigParser
-from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
+from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas, F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0
 import argparse
 from itertools import cycle
 try:
     import pylab as plt
 except ImportError as err:
     print err
-
+    
 class _collect_u2_vs_k(object):
     """
     this is a class that implements _collect_u2_vs_k class 
     *ts_skip number of points skipped when printing time series (every ts_skip)
     """
         
-    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
+    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data = False):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):
@@ -37,18 +37,36 @@ class _collect_u2_vs_k(object):
         self.kmin_configpath = os.path.join(self.explore_dir,'kmin_'+fname+'.config')
         
         self.ts_skip = ts_skip
+        self.plot_ts_integrand_data = plot_ts_integrand_data
         self._import_config_files()
         self.run()
     
     def run(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        self._import_ks()
-        self._import_u2_reverse()
-        self._print_u2_vs_k()
-        self._compute_volume()
-        self._import_time_series()
-        self._plot_data()
+        """
+        Full volume computation, assuming that PT data is available
+        """
+        try:
+            self._import_ks()
+            self._import_u2_reverse()
+            self._print_u2_vs_k()
+            self._compute_volume()
+            self._import_time_series()
+            self._plot_data()
+        except IOError as err:
+            print err
+        """
+        Volume compuation based on ingregral approximation with kmax and displ_k0 
+        """
+        try:
+            self._compute_approx_volume()
+        except IOError as err:
+            print err
+        """
+        Print basin volumes for further processing
+        """
+        self._print_volumes()
     
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
@@ -137,22 +155,32 @@ class _collect_u2_vs_k(object):
         
     def _compute_volume(self):
         """
-        numerical volume obtained 
+        numerical volume obtained by integrating over the PT data
         """
         
         self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, np.prod(self.boxv),\
-                                                                                self.prob_kmax,displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
         
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, np.prod(self.boxv),\
-                                                                                self.prob_kmax,displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
-        rF0 = self.F0 + self.nparticles*np.log(np.prod(self.boxv))
-        rF0unc = self.F0unc + self.nparticles*np.log(np.prod(self.boxv))
-        print 'rF0 {} rF0unc {}'.format(rF0, rF0unc)
+        self.unit_box_F0 = self.F0 + self.nparticles * np.log(np.prod(self.boxv))
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(np.prod(self.boxv))
+        print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
+        
+    def _compute_approx_volume(self):
+        """
+        numerical volume obtained by approximating from kmax, and displ_k0
+        """
+        self.F0_approx = F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(self.displ_k_min, self.kmax, np.prod(self.boxv), self.nparticles, self.bdim, self.prob_kmax)
+        self.unit_box_F0_approx = self.F0_approx + self.nparticles * np.log(np.prod(self.boxv))
+        print 'unit_box_F0_approx {}'.format(self.unit_box_F0_approx)
 
     def _plot_data(self):
+        if self.plot_ts_integrand_data is False:
+            return
         lines = ["-","--","-."]
         linecycler = cycle(lines)
         
@@ -168,7 +196,7 @@ class _collect_u2_vs_k(object):
         #plt.yscale('symlog')
         ax.legend(frameon=False,loc=1)
         plt.savefig(self.base_directory+'/time_series.eps')
-        plt.show()
+        #plt.show()
         #integrand
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -176,7 +204,7 @@ class _collect_u2_vs_k(object):
         ax.set_xlabel('t')
         ax.set_ylabel('integrand')
         plt.savefig(self.base_directory+'/integrand.eps')
-        plt.show()
+        #plt.show()
         #plt.figure()
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -187,9 +215,26 @@ class _collect_u2_vs_k(object):
         ax.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
-        plt.savefig(self.base_directory+'/u2_vs_k.eps')
-        plt.show()
+        plt.savefig(self.base_directory+'/u2_vs_k.eps') 
+        #plt.show()
         
+    def _print_volumes(self):
+        dname = 'volume_data'
+        fname = '{}/{}'.format(self.base_directory,dname)
+        f = open(fname,'w')
+        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        f.write('[VOLUME_APPROXIMATED]\n')
+        def _to_file(name, value):
+            f.write((name + ": {}\n").format(to_string(value)))
+        if hasattr(self, "F0_approx"):
+            _to_file("F0_approx", self.F0_approx)
+            _to_file("unit_box_F0_approx", self.unit_box_F0_approx)
+        f.write('[VOLUME_FULL_PT]\n')
+        if hasattr(self, "F0"):
+            _to_file("F0", self.F0)
+            _to_file("sigF0", self.sigF0)
+            _to_file("unit_box_F0", self.unit_box_F0)
+        f.close()
         
 if __name__ == "__main__":
     

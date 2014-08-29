@@ -144,3 +144,9 @@ def get_python_version():
 def get_cython_version():
     from Cython.Compiler.Version import version
     return version
+
+def to_string(inp, digits_after_point = 16):
+    format_string = "{0:."
+    format_string += str(digits_after_point)
+    format_string += "f}"
+    return format_string.format(inp)
