@@ -21,7 +21,7 @@ class _collect_u2_vs_k(object):
     *ts_skip number of points skipped when printing time series (every ts_skip)
     """
         
-    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings'):
+    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data = False):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):
@@ -37,6 +37,7 @@ class _collect_u2_vs_k(object):
         self.kmin_configpath = os.path.join(self.explore_dir,'kmin_'+fname+'.config')
         
         self.ts_skip = ts_skip
+        self.plot_ts_integrand_data = plot_ts_integrand_data
         self._import_config_files()
         self.run()
     
@@ -178,6 +179,8 @@ class _collect_u2_vs_k(object):
         print 'unit_box_F0_approx {}'.format(self.unit_box_F0_approx)
 
     def _plot_data(self):
+        if self.plot_ts_integrand_data is False:
+            return
         lines = ["-","--","-."]
         linecycler = cycle(lines)
         
@@ -193,7 +196,7 @@ class _collect_u2_vs_k(object):
         #plt.yscale('symlog')
         ax.legend(frameon=False,loc=1)
         plt.savefig(self.base_directory+'/time_series.eps')
-        plt.show()
+        #plt.show()
         #integrand
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -201,7 +204,7 @@ class _collect_u2_vs_k(object):
         ax.set_xlabel('t')
         ax.set_ylabel('integrand')
         plt.savefig(self.base_directory+'/integrand.eps')
-        plt.show()
+        #plt.show()
         #plt.figure()
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -213,20 +216,20 @@ class _collect_u2_vs_k(object):
         #plt.xscale('symlog')
         #plt.yscale('log')
         plt.savefig(self.base_directory+'/u2_vs_k.eps') 
-        plt.show()
+        #plt.show()
         
     def _print_volumes(self):
         dname = 'volume_data'
         fname = '{}/{}'.format(self.base_directory,dname)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-        f.write('[VOLUME APPROXIMATED]\n')
+        f.write('[VOLUME_APPROXIMATED]\n')
         def _to_file(name, value):
             f.write((name + ": {}\n").format(to_string(value)))
         if hasattr(self, "F0_approx"):
             _to_file("F0_approx", self.F0_approx)
             _to_file("unit_box_F0_approx", self.unit_box_F0_approx)
-        f.write('[VOLUME FULL PT]\n')
+        f.write('[VOLUME_FULL_PT]\n')
         if hasattr(self, "F0"):
             _to_file("F0", self.F0)
             _to_file("sigF0", self.sigF0)
