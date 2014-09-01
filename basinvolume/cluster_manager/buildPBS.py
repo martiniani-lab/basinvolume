@@ -54,12 +54,12 @@ class BuildPBSScript(object):
         f.write('#PBS -l nodes={0}:ppn={1} \n'.format(self.nodes,self.cores))
         f.write('#PBS -l walltime={0} \n'.format(self.dhms_wtime))
         f.write('\n')
-        f.write('cd \${PBS_O_WORKDIR} \n')
+        f.write('cd ${PBS_O_WORKDIR} \n')
         f.write('\n')
         f.write('echo Starting job $PBS_JOBID \n')
         f.write('echo\n')
         f.write('echo PBS assigned me this node: \n')
-        f.write('cat \$PBS_NODEFILE \n')
+        f.write('cat $PBS_NODEFILE \n')
         f.write('echo \n')
         f.write('echo \"Running ${job_name}\" \n')
         f.write('echo \n')
@@ -67,7 +67,7 @@ class BuildPBSScript(object):
         f.write('echo \n')
         f.write('echo \"Job finished. PBS details are:\" \n')
         f.write('echo \n')
-        f.write('qstat -f \${PBS_JOBID} \n')
+        f.write('qstat -f ${PBS_JOBID} \n')
         f.write('echo \n')
         f.write('echo Finished at \`date\` \n')
         f.close()
@@ -88,8 +88,9 @@ class BuildPBSScript(object):
         pbs_wdir = self.get_PBS_O_WORKDIR()
         if not os.path.isabs(pbs_wdir):
             #this probably unnecessary, more of a safety check
-            print "PBS_O_WORKDIR is not absolute, making absolute"
+            print "PBS_O_WORKDIR is not absolute, making absolute: {}".format(pbs_wdir)
             pbs_wdir = os.path.abspath(pbs_wdir)
+            print "PBS_O_WORKDIR made absolute: {}".format(pbs_wdir)
         os.chdir(pbs_wdir)
     
     def checkin_PBS_O_WORKDIR(self):

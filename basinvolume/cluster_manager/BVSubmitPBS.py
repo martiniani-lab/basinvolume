@@ -179,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument("--pt", action='store_true', help="perform parallel tempering",default=False)        
     args = parser.parse_args()
     
-    assert((args.kmin is True or args.kmax is True) and args.pt is True)
+    assert(not ((args.kmin is True or args.kmax is True) and args.pt is True))
     
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label)
     if args.kmin:
