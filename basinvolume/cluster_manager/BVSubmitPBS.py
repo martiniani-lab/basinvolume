@@ -75,7 +75,7 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
-        command = 'mpirun python {0}.py {1} -p \${{PBS_O_WORKDIR}}/jammed_packings'.format(findk_script, packing)
+        command = 'python {0}.py {1} -p \${{PBS_O_WORKDIR}}/jammed_packings'.format(findk_script, packing)
         return command
     
     def submit_kmin_calculations(self, queue_type, nodes, cores, walltime, path_to_script):
@@ -133,7 +133,7 @@ class BVSubmitPBS(object):
         packing = self.packing_naming + noj + self.ext
         explore_dir = self.explore_dir + noj
         pt_script = os.path.join(path_to_script, script)
-        command = 'mpirun python {0}.py {1} \${{PBS_O_WORKDIR}}/{2}'.format(pt_script, packing, explore_dir)
+        command = 'python {0}.py {1} \${{PBS_O_WORKDIR}}/{2}'.format(pt_script, packing, explore_dir)
         return command
     
     def submit_pt_calculations(self, queue_type, nodes, cores, walltime, path_to_script):

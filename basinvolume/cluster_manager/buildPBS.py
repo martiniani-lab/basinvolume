@@ -88,9 +88,8 @@ class BuildPBSScript(object):
         pbs_wdir = self.get_PBS_O_WORKDIR()
         if not os.path.isabs(pbs_wdir):
             #this probably unnecessary, more of a safety check
-            print "PBS_O_WORKDIR is not absolute, making absolute: {}".format(pbs_wdir)
+            print "PBS_O_WORKDIR is not absolute, making absolute: {}".format(str(pbs_wdir))
             pbs_wdir = os.path.abspath(pbs_wdir)
-            print "PBS_O_WORKDIR made absolute: {}".format(pbs_wdir)
         os.chdir(pbs_wdir)
     
     def checkin_PBS_O_WORKDIR(self):
