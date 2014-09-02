@@ -211,12 +211,12 @@ class BVSubmitPBS(object):
                         pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
                         
                         kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                        kmax_command += ' && qsub {}'.format(pt_fname)
+                        kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
                         pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path)
                         pbs.writePBSscript(kmax_fname, 'bv_'+self.label+'_kmax'+noj)
                         
                         kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
-                        kmin_command += ' && qsub {}'.format(kmax_fname)
+                        kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmax_fname)
                         pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path)
                         pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
                     else:
