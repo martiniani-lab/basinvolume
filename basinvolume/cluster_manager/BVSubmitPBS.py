@@ -24,6 +24,8 @@ class BVSubmitPBS(object):
                  structures_dir='jammed_packings'):
         if not workdir:
             workdir = os.getcwd()
+        if not os.path.isabs(workdir):
+            workdir = os.path.abspath(workdir)
         self.workdir = workdir
         self.explore_dir = explore_dir
         self.kmax_config = kmax_config 
@@ -94,7 +96,7 @@ class BVSubmitPBS(object):
         """
         subdirs = get_immediate_subdirectories(self.workdir)
         assert(self.structures_dir in subdirs)
-        structures_dir_path = os.path.join(dir, self.structures_dir)
+        structures_dir_path = os.path.join(self.workdir, self.structures_dir)
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
@@ -123,7 +125,7 @@ class BVSubmitPBS(object):
         """
         subdirs = get_immediate_subdirectories(self.workdir)
         assert(self.structures_dir in subdirs)
-        structures_dir_path = os.path.join(dir, self.structures_dir)
+        structures_dir_path = os.path.join(self.workdir, self.structures_dir)
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
@@ -187,7 +189,7 @@ if __name__ == "__main__":
     parser.add_argument("queue_type", type=str, help="queue type")
     parser.add_argument("nodes", type=int, help="number of nodes to use")
     parser.add_argument("cores", type=int, help="number of processors per node to use")
-    parser.add_argument("walltime_hours", type=int, help="wall-time in hours")
+    parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
     parser.add_argument("path_to_script", type=str, help="path to the file to execute")
     parser.add_argument("--kmin", action='store_true', help="compute kmin",default=False)
     parser.add_argument("--kmax", action='store_true', help="compute kmax",default=False)
