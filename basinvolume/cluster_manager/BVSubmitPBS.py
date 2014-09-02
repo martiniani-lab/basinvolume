@@ -225,7 +225,7 @@ class BVSubmitPBS(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
     subparsers = parser.add_subparsers(help='Choose a subparser: single to submit jobs individually, \
-                                                                 chain to submit a bv jobs chain')
+                                                                 chain to submit a bv jobs chain', dest='mode')
     single_parser = subparsers.add_parser('single', help='submit individual jobs')
     chain_parser = subparsers.add_parser('chain', help='submit a bv chain')
     
@@ -255,21 +255,16 @@ if __name__ == "__main__":
     chain_parser.add_argument("pt_walltime_hours", type=float, help="wall-time in hours")
         
     args = parser.parse_args()
-    chain_args = chain_parser.args()
     print args
-    print chain_args
-    
-    assert(not (len(args) > 0 and len(chain_args) > 0))
-    assert(not ((args.kmin is True or args.kmax is True) and args.pt is True))
-    assert(not ((args.kmin is True or args.kmax is True or args.pt is True) and args.chain is True))
-           
+        
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label)
-    
-    if len(chain_args) > 0:
-        bvpbs.submit_chain_calculations(chain_args.k_queue_type, chain_args.k_nodes, chain_args.k_cores, 
-                                        chain_args.k_walltime_hours, chain_args.pt_queue_type, chain_args.pt_nodes, 
-                                        chain_args.pt_cores, chain_args.pt_walltime_hours, chain_args.path_to_script)
+       
+    if args.mode == 'chain':
+        bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores, 
+                                        args.k_walltime_hours, args.pt_queue_type, args.pt_nodes, 
+                                        args.pt_cores, args.pt_walltime_hours, args.path_to_script)
     else:
+        assert(not ((args.kmin is True or args.kmax is True) and args.pt is True))
         if args.kmin:
             bvpbs.submit_kmin_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script)
         if args.kmax:
