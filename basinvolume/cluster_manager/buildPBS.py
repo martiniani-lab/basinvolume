@@ -59,7 +59,7 @@ class BuildPBSScript(object):
         f.write('#PBS -l walltime={0} \n'.format(self.dhms_wtime))
         f.write('#PBS -j oe \n') # this directive merges output and error in the same file 
         if self.outdir:
-            f.write('#PBS -o {0} \n'.format(self.dhms_wtime))
+            f.write('#PBS -o {0} \n'.format(self.outdir))
         f.write('\n')
         f.write('cd ${PBS_O_WORKDIR} \n')
         f.write('\n')
