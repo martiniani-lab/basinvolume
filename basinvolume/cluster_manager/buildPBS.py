@@ -30,8 +30,9 @@ class BuildPBSScript(object):
     *core [int] processors per node
     *walltime [hours]
     *command [string]: command line to execute e.g. python parallel_tempering.py args
+    *outdir is the directory where to redirect the standard output
     """
-    def __init__(self, queue_type, nodes, cores, walltime, command):
+    def __init__(self, queue_type, nodes, cores, walltime, command, outdir=None):
         self.qtype = queue_type
         self.nodes = nodes
         self.cores = cores
@@ -39,6 +40,9 @@ class BuildPBSScript(object):
         self.dhms_wtime = sec_to_pbs_time(self.s_wtime) #DD:HH:MM:SS time
         self.command = command
         self.pbs_ready = False
+        if outdir and not os.path.isabs(outdir):
+            outdir = os.path.abspath(outdir)
+        self.outdir = outdir
             
     def writePBSscript(self, fname, job_name):
         """
@@ -53,6 +57,9 @@ class BuildPBSScript(object):
         f.write('#PBS -q {0} \n'.format(self.qtype))
         f.write('#PBS -l nodes={0}:ppn={1} \n'.format(self.nodes,self.cores))
         f.write('#PBS -l walltime={0} \n'.format(self.dhms_wtime))
+        f.write('#PBS -j oe \n') # this directive merges output and error in the same file 
+        if self.outdir:
+            f.write('#PBS -o {0} \n'.format(self.dhms_wtime))
         f.write('\n')
         f.write('cd ${PBS_O_WORKDIR} \n')
         f.write('\n')

@@ -109,7 +109,7 @@ class BVSubmitPBS(object):
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
-                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command)
+                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path)
                             pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
                         else:
                             pass
@@ -138,7 +138,7 @@ class BVSubmitPBS(object):
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command)
+                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path)
                             pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
                         else:
                             pass
@@ -176,7 +176,7 @@ class BVSubmitPBS(object):
                         if not os.path.isabs(path_to_script):
                             path_to_script = os.path.abspath(path_to_script)
                         command = self._get_pt_command(noj, path_to_script)
-                        pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command) 
+                        pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path) 
                         pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
                     else:
                         pass
