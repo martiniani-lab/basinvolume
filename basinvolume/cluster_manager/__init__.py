@@ -1,2 +1,2 @@
-from buildPBS import BuildPBSScript
+from _buildPBS import BuildPBSScript
 from BVSubmitPBS import BVSubmitPBS
