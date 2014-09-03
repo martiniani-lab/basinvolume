@@ -1,3 +1,4 @@
+##Example Torque script to submit job chains using BVSubmitPB
 #PBS -N submit_chain_jobs 
 #PBS -q test 
 #PBS -l nodes=1:ppn=1 

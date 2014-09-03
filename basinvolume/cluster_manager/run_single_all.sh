@@ -9,9 +9,11 @@ workdir=${PBS_O_WORKDIR}
 job_label="32_70_88_2D"
 queue_type="s16"
 nodes=1
-cores=1
+cores=7
 walltime=12
 path_to_script="/home/sm958/Work/basinvolume/basinvolume/spheres/"
+#options are --kmin and --kmax or --pt
+option="--pt"
 
 cd ${PBS_O_WORKDIR} 
 
@@ -23,7 +25,7 @@ echo
 echo "Running ${job_name}" 
 echo 
 python ~/Work/basinvolume/basinvolume/cluster_manager/BVSubmitPBS.py single $ndim $workdir $path_to_script $job_label $queue_type \
-$nodes $cores $walltime  
+$nodes $cores $walltime $option
 echo 
 echo "Job finished. PBS details are:" 
 echo 
