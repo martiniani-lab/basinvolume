@@ -137,8 +137,6 @@ class GenerateComparisonPlotPTApprox(object):
         try:
             self.F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'F0_approx'))
             self.unit_box_F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'unit_box_F0_approx'))
-            #self.volume_sanity_check.check(self.F0_approx[-1], "self.F0_approx", vf)
-            #self.volume_sanity_check.check(self.unit_box_F0_approx[-1], "unit_box_F0_approx", vf)
         except:
             print "no approx integral data available"
             print "location:", vf
@@ -146,8 +144,6 @@ class GenerateComparisonPlotPTApprox(object):
             self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
             self.unit_box_F0.append(volf.getfloat('VOLUME_FULL_PT', 'unit_box_F0'))
             self.sigF0.append(volf.getfloat('VOLUME_FULL_PT', 'sigF0'))
-            #self.volume_sanity_check.check(self.F0[-1], "F0", vf)
-            #self.volume_sanity_check.check(self.unit_box_F0[-1], "unit_box_F0", vf)
         except:
             print "no PT data availible"
             print "location:", vf
