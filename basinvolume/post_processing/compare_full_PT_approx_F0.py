@@ -71,14 +71,16 @@ class VolumeSanityCheck(object):
         self.ideal_gas_V_acc = self.V_box ** self.nr_particles
         self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, self.diameter_mean, self.diameter_variance) 
         self.V_acc = np.exp(- self.F0_acc)
-        if self.V_acc > self.ideal_gas_V_acc:
+        if np.log(self.V_acc) > np.log(self.ideal_gas_V_acc):
             raise Exception("VolumeSanityCheck: polyHS fluid failure")
         print "VolumeSanityCheck: "
         print "F0_acc, HS fluid", self.F0_acc
         print "F0_acc, ideal gas", - np.log(self.ideal_gas_V_acc)
     def check(self, F0, F0_name, vf_path):
-        if np.exp(- F0) > self.V_acc :
+        failure = False
+        if F0 < self.F0_acc :
             print "failed F0 value", F0
+            print "-log(V_acc)", self.F0_acc
             print "failed F0 name", F0_name
             print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
             raise Exception("VolumeSanityCheck: illegal free energy")
@@ -155,13 +157,13 @@ class GenerateComparisonPlotPTApprox(object):
             return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
         def _generalized_gauss(x, mu, alpha, zeta):
             return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(-np.abs(x - mu) ** zeta / alpha ** zeta)
-        opt, error = curve_fit(_gauss, bin_centres, hist, [20, 200])
+        opt, error = curve_fit(_gauss, bin_centres, hist, [np.var(data), np.mean(data)])
         gauss_fit_opt = opt
         gauss_fit_opt[0] = np.abs(gauss_fit_opt[0]) #make printed sigma positive
         gauss_fit_error = error
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
-        opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [200, 20, 1])
+        opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [np.mean(data), np.var(data), 1])
         gen_gauss_fit_opt = opt_gen
         gen_gauss_fit_error = error_gen
         gen_gauss_fit_names = ["mean", "alpha", "zeta"]
