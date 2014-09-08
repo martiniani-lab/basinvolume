@@ -8,6 +8,7 @@ try:
     from matplotlib.backends.backend_pdf import PdfPages
     from scipy.optimize import curve_fit
     from scipy.special import gamma
+    from basinvolume.utils import to_string
 except ImportError as err:
     print err
 
@@ -16,6 +17,36 @@ def save_pdf(plt, file_name):
     plt.savefig(pdf, format="pdf")
     pdf.close()
     plt.close()
+    
+class FitResultsFile(object):
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.f = open(self.file_name, "w")
+        self.f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        self.f.write("[FIT_RESULTS_F0_HISTOGRAMS]\n")
+    def to_file(self, name, value):
+        self.f.write((name + ": {}\n").format(to_string(value)))
+        
+class PackingFailureStatistics(object):
+    def __init__(self, total_nr):
+        self.total_nr = total_nr
+        self.total_count = 0
+        self.success_count = 0
+    def add_success(self):
+        self.add_any()
+        self.success_count += 1
+    def add_failure(self):
+        self.add_any()
+    def add_any(self):
+        self.total_count += 1
+    def get_nr_failures(self):
+        return self.total_count - self.success_count
+    def print_failure_info(self):
+        print self.get_nr_failures(), "out of", self.total_count, "failed"
+        print "corresponding failure ratio", self.get_nr_failures() / self.total_count
+        print 100 * self.get_nr_failures() / self.total_count, "per-cent"
+    def print_progress_info(self):
+        print "done", self.total_count, "out of", self.total_nr 
     
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False):
@@ -29,13 +60,18 @@ class GenerateComparisonPlotPTApprox(object):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
         sim = _collect_u2_vs_k()
+        self.packing_stat = PackingFailureStatistics(len(self.explore_dirs))
         for (path, fname) in zip(self.explore_dirs, self.packing_strings):
             try:
                 sim(fname = fname, explore_dir = path, packings_dir = os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data = self.plot_ts_integrand_data)
+                self.packing_stat.add_success()
             except:
                 print "failed packing!"
                 print "name: ", fname
                 print "path:", path
+                self.packing_stat.add_failure()
+            self.packing_stat.print_progress_info()
+        self.packing_stat.print_failure_info()
     def _gather_data(self):
         self.volume_files = [f + "/analysis/volume_data" for f in self.explore_dirs]
         self.F0 = []
@@ -77,9 +113,20 @@ class GenerateComparisonPlotPTApprox(object):
         def _generalized_gauss(x, mu, alpha, zeta):
             return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(-np.abs(x - mu) ** zeta / alpha ** zeta)
         opt, error = curve_fit(_gauss, bin_centres, hist, [20, 200])
+        gauss_fit_opt = opt
+        gauss_fit_error = error
+        gauss_fit_names = ["sigma", "mean"]
+        gauss_fit = [gauss_fit_opt, gauss_fit_names]
+        opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [200, 20, 1])
+        gen_gauss_fit_opt = opt_gen
+        gen_gauss_fit_error = error_gen
+        gen_gauss_fit_names = ["mean", "alpha", "zeta"]
+        gen_gauss_fit = [gen_gauss_fit_opt, gen_gauss_fit_names]
         def _set_hist_basics(plt):
             xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
-            plt.plot(xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g")
+            plt.plot(xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g", label = "Gaussian")
+            plt.plot(xp, [_generalized_gauss(xpi, opt_gen[0], opt_gen[1], opt_gen[2]) for xpi in xp], "r", label = "Generalised Gaussian")
+            plt.legend()
             plt.xlabel(r"Free energy $F$")
             plt.ylabel(r"Probability density")
         #plot in lin-lin scale
@@ -89,8 +136,17 @@ class GenerateComparisonPlotPTApprox(object):
         #plot in ylog scale
         _set_hist_basics(plt)
         plt.yscale('log', nonposy='clip')
-        plt.axis(ymin = 0.25 * 1 / len(data))
+        plt.axis(ymin = 0.25 / len(data))
         save_pdf(plt, self.packings_dir + name + "_ylog" + ".pdf")
+        self._print_fitting_results(name, gauss_fit, gen_gauss_fit)
+    def _print_fitting_results(self, name, gauss_fit, gen_gauss_fit):
+        self.fit_results_dir = self.packings_dir + name + ".fit_results"
+        f = FitResultsFile(self.fit_results_dir)
+        def _print_function_parameters(fit_info):
+            for parameter in xrange(len(fit_info[0])):
+                f.to_file(fit_info[1][parameter], fit_info[0][parameter])
+        _print_function_parameters(gauss_fit)
+        _print_function_parameters(gen_gauss_fit)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare F0 form full PT data with F0 from integral approximation")
