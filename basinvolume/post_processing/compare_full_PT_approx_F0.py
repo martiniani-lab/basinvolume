@@ -9,6 +9,7 @@ try:
     from scipy.optimize import curve_fit
     from scipy.special import gamma
     from basinvolume.utils import to_string
+    from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
 except ImportError as err:
     print err
 
@@ -27,6 +28,8 @@ class FitResultsFile(object):
         self.f.write("[" + title + "]\n")
     def to_file(self, name, value):
         self.f.write((name + ": {}\n").format(to_string(value)))
+    def close(self):
+        self.f.close()
         
 class PackingFailureStatistics(object):
     def __init__(self, total_nr):
@@ -50,11 +53,41 @@ class PackingFailureStatistics(object):
         print "done", self.total_count, "out of", self.total_nr 
         print to_string(self.total_count / self.total_nr * 100, 2), "per-cent"
         print "packing was", packing_string
+        
+class VolumeSanityCheck(object):
+    def __init__(self, v_acc_parameter_file):
+        self.v_acc_parameter_file = v_acc_parameter_file
+        configf = ConfigParser.ConfigParser()
+        configf.read(str(self.v_acc_parameter_file))
+        self.nr_particles = configf.getint("PACKING", "nparticles")
+        self.box_dimension = configf.getint("PACKING", "boxdim")
+        self.phiHD = configf.getfloat("PACKING", "packing_fraction")
+        boxv = configf.get("PACKING", "boxv")
+        boxv = np.array([float(x) for x in boxv.split()])
+        self.V_box = np.prod(boxv)
+        self.diameter_mean = 2 * configf.getfloat("PACKING", "radii_mean")
+        radii_stdev = configf.getfloat("PACKING", "radii_stdev")
+        self.diameter_variance = (2 * radii_stdev) ** 2
+        self.ideal_gas_V_acc = self.V_box ** self.nr_particles
+        self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, self.diameter_mean, self.diameter_variance) 
+        self.V_acc = np.exp(- self.F0_acc)
+        if self.V_acc > self.ideal_gas_V_acc:
+            raise Exception("VolumeSanityCheck: polyHS fluid failure")
+        print "VolumeSanityCheck: "
+        print "F0_acc, HS fluid", self.F0_acc
+        print "F0_acc, ideal gas", - np.log(self.ideal_gas_V_acc)
+    def check(self, F0, F0_name, vf_path):
+        if np.exp(- F0) > self.V_acc :
+            print "failed F0 value", F0
+            print "failed F0 name", F0_name
+            print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
+            raise Exception("VolumeSanityCheck: illegal free energy")
     
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False):
         self.packings_dir = packings_dir
         self.plot_ts_integrand_data = plot_ts_integrand_data
+        self._set_up_volume_check()
         self._compute_F0()
         self._gather_data()
         self._generate_plots()
@@ -75,6 +108,9 @@ class GenerateComparisonPlotPTApprox(object):
                 self.packing_stat.add_failure()
             self.packing_stat.print_progress_info(fname)
         self.packing_stat.print_failure_info()
+    def _set_up_volume_check(self):
+        self.v_acc_parameter_file = self.packings_dir + "/packings/packings.config"
+        self.volume_sanity_check = VolumeSanityCheck(self.v_acc_parameter_file)
     def _gather_data(self):
         self.volume_files = [f + "/analysis/volume_data" for f in self.explore_dirs]
         self.F0 = []
@@ -90,6 +126,8 @@ class GenerateComparisonPlotPTApprox(object):
         try:
             self.F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'F0_approx'))
             self.unit_box_F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'unit_box_F0_approx'))
+            self.volume_sanity_check.check(self.F0_approx[-1], "self.F0_approx" ,vf)
+            self.volume_sanity_check.check(self.unit_box_F0_approx[-1], "unit_box_F0_approx", vf)
         except:
             print "no approx integral data available"
             print "location:", vf
@@ -97,6 +135,8 @@ class GenerateComparisonPlotPTApprox(object):
             self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
             self.unit_box_F0.append(volf.getfloat('VOLUME_FULL_PT', 'unit_box_F0'))
             self.sigF0.append(volf.getfloat('VOLUME_FULL_PT', 'sigF0'))
+            self.volume_sanity_check.check(self.F0[-1], "F0", vf)
+            self.volume_sanity_check.check(self.unit_box_F0[-1], "unit_box_F0", vf)
         except:
             print "no PT data availible"
             print "location:", vf
@@ -153,6 +193,7 @@ class GenerateComparisonPlotPTApprox(object):
         _print_function_parameters(gauss_fit)
         f.set_heading("GENERALISED_GAUSS_FIT_PARAMETERS")
         _print_function_parameters(gen_gauss_fit)
+        f.close()
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare F0 form full PT data with F0 from integral approximation")

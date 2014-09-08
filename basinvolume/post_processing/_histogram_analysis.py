@@ -89,7 +89,7 @@ class Free_Energy_Histogram(object):
 """
 
 if __name__ == "__main__":
-    #test_HS_fluids()
+    test_HS_fluids()
     #TODO: get computed basin free energies F[0] and do something with them
     #TODO: print output in reasonable way
     
