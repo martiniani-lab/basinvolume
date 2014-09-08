@@ -46,8 +46,10 @@ class PackingFailureStatistics(object):
         print self.get_nr_failures(), "out of", self.total_count, "failed"
         print "corresponding failure ratio", self.get_nr_failures() / self.total_count
         print 100 * self.get_nr_failures() / self.total_count, "per-cent"
-    def print_progress_info(self):
+    def print_progress_info(self, packing_string):
         print "done", self.total_count, "out of", self.total_nr 
+        print to_string(self.total_count / self.total_nr * 100, 2), "per-cent"
+        print "packing was", packing_string
     
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False):
@@ -71,7 +73,7 @@ class GenerateComparisonPlotPTApprox(object):
                 print "name: ", fname
                 print "path:", path
                 self.packing_stat.add_failure()
-            self.packing_stat.print_progress_info()
+            self.packing_stat.print_progress_info(fname)
         self.packing_stat.print_failure_info()
     def _gather_data(self):
         self.volume_files = [f + "/analysis/volume_data" for f in self.explore_dirs]
