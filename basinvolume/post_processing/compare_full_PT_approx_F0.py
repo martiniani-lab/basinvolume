@@ -161,15 +161,17 @@ class GenerateComparisonPlotPTApprox(object):
         def _gauss(x, sig, mu):
             return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
         def _generalized_gauss(x, mu, alpha, zeta):
-            return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(-np.abs(x - mu) ** zeta / alpha ** zeta)
-        opt, error = curve_fit(_gauss, bin_centres, hist, [np.var(data), np.mean(data)])
+            return np.sqrt(zeta ** 2) / (2 * np.sqrt(alpha ** 2) * gamma(1 / np.sqrt(zeta ** 2))) * np.exp(-np.abs(x - mu) ** np.sqrt(zeta ** 2) / np.sqrt(alpha ** 2) ** np.sqrt(zeta ** 2))
+        opt, error = curve_fit(_gauss, bin_centres, hist, [np.sqrt(np.var(data)), np.mean(data)])
         gauss_fit_opt = opt
         gauss_fit_opt[0] = np.abs(gauss_fit_opt[0]) #make printed sigma positive
         gauss_fit_error = error
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
-        opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [np.mean(data), np.var(data), 1])
+        opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [np.mean(data), 2 * np.var(data), 1])
         gen_gauss_fit_opt = opt_gen
+        gen_gauss_fit_opt[1] = np.abs(gen_gauss_fit_opt[1]) #make printed parameters positive
+        gen_gauss_fit_opt[2] = np.abs(gen_gauss_fit_opt[2])
         gen_gauss_fit_error = error_gen
         gen_gauss_fit_names = ["mean", "alpha", "zeta"]
         gen_gauss_fit = [gen_gauss_fit_opt, gen_gauss_fit_names]
