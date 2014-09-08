@@ -23,7 +23,8 @@ class FitResultsFile(object):
         self.file_name = file_name
         self.f = open(self.file_name, "w")
         self.f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-        self.f.write("[FIT_RESULTS_F0_HISTOGRAMS]\n")
+    def set_heading(self, title):
+        self.f.write("[" + title + "]\n")
     def to_file(self, name, value):
         self.f.write((name + ": {}\n").format(to_string(value)))
         
@@ -114,6 +115,7 @@ class GenerateComparisonPlotPTApprox(object):
             return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(-np.abs(x - mu) ** zeta / alpha ** zeta)
         opt, error = curve_fit(_gauss, bin_centres, hist, [20, 200])
         gauss_fit_opt = opt
+        gauss_fit_opt[0] = np.abs(gauss_fit_opt[0]) #make printed sigma positive
         gauss_fit_error = error
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
@@ -124,7 +126,7 @@ class GenerateComparisonPlotPTApprox(object):
         gen_gauss_fit = [gen_gauss_fit_opt, gen_gauss_fit_names]
         def _set_hist_basics(plt):
             xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
-            plt.plot(xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g", label = "Gaussian")
+            plt.plot(xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g--", label = "Gaussian")
             plt.plot(xp, [_generalized_gauss(xpi, opt_gen[0], opt_gen[1], opt_gen[2]) for xpi in xp], "r", label = "Generalised Gaussian")
             plt.legend()
             plt.xlabel(r"Free energy $F$")
@@ -145,7 +147,9 @@ class GenerateComparisonPlotPTApprox(object):
         def _print_function_parameters(fit_info):
             for parameter in xrange(len(fit_info[0])):
                 f.to_file(fit_info[1][parameter], fit_info[0][parameter])
+        f.set_heading("GAUSS_FIT_PARAMETERS")
         _print_function_parameters(gauss_fit)
+        f.set_heading("GENERALISED_GAUSS_FIT_PARAMETERS")
         _print_function_parameters(gen_gauss_fit)
     
 if __name__ == "__main__":
