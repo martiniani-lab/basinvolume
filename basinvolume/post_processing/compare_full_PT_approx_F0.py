@@ -77,10 +77,15 @@ class VolumeSanityCheck(object):
         print "F0_acc, HS fluid", self.F0_acc
         print "F0_acc, ideal gas", - np.log(self.ideal_gas_V_acc)
     def check(self, F0, F0_name, vf_path):
-        failure = False
         if F0 < self.F0_acc :
             print "failed F0 value", F0
             print "-log(V_acc)", self.F0_acc
+            print "failed F0 name", F0_name
+            print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
+            raise Exception("VolumeSanityCheck: illegal free energy")
+        if F0 < - np.log(self.ideal_gas_V_acc):
+            print "failed F0 value -- failed ideal gas box test"
+            print "-log(V_acc, ideal)", - np.log(self.ideal_gas_V_acc)
             print "failed F0 name", F0_name
             print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
             raise Exception("VolumeSanityCheck: illegal free energy")
@@ -102,6 +107,10 @@ class GenerateComparisonPlotPTApprox(object):
         for (path, fname) in zip(self.explore_dirs, self.packing_strings):
             try:
                 sim(fname = fname, explore_dir = path, packings_dir = os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data = self.plot_ts_integrand_data)
+                volf = ConfigParser.ConfigParser()
+                volf.read(str(path + "/analysis/volume_data"))
+                F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
+                self.volume_sanity_check.check(F0, "F0", path)
                 self.packing_stat.add_success()
             except:
                 print "failed packing!"
@@ -128,8 +137,8 @@ class GenerateComparisonPlotPTApprox(object):
         try:
             self.F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'F0_approx'))
             self.unit_box_F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'unit_box_F0_approx'))
-            self.volume_sanity_check.check(self.F0_approx[-1], "self.F0_approx" ,vf)
-            self.volume_sanity_check.check(self.unit_box_F0_approx[-1], "unit_box_F0_approx", vf)
+            #self.volume_sanity_check.check(self.F0_approx[-1], "self.F0_approx", vf)
+            #self.volume_sanity_check.check(self.unit_box_F0_approx[-1], "unit_box_F0_approx", vf)
         except:
             print "no approx integral data available"
             print "location:", vf
@@ -137,8 +146,8 @@ class GenerateComparisonPlotPTApprox(object):
             self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
             self.unit_box_F0.append(volf.getfloat('VOLUME_FULL_PT', 'unit_box_F0'))
             self.sigF0.append(volf.getfloat('VOLUME_FULL_PT', 'sigF0'))
-            self.volume_sanity_check.check(self.F0[-1], "F0", vf)
-            self.volume_sanity_check.check(self.unit_box_F0[-1], "unit_box_F0", vf)
+            #self.volume_sanity_check.check(self.F0[-1], "F0", vf)
+            #self.volume_sanity_check.check(self.unit_box_F0[-1], "unit_box_F0", vf)
         except:
             print "no PT data availible"
             print "location:", vf
