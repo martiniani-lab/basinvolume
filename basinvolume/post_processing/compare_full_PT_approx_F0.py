@@ -76,8 +76,13 @@ class VolumeSanityCheck(object):
         print "VolumeSanityCheck: "
         print "F0_acc, HS fluid", self.F0_acc
         print "F0_acc, ideal gas", - np.log(self.ideal_gas_V_acc)
+    def is_insane(self, F0):
+        if F0 < self.F0_acc:
+            return True
+        else:
+            return False
     def check(self, F0, F0_name, vf_path):
-        if F0 < self.F0_acc :
+        if F0 < self.F0_acc:
             print "failed F0 value", F0
             print "-log(V_acc)", self.F0_acc
             print "failed F0 name", F0_name
@@ -139,10 +144,40 @@ class GeneralisedGauss(object):
 
 class BestIntegrationSelection(object):
     def __init__(self, max_relative_GL_error = 0.2):
+        if max_relative_GL_error < 0:
+            raise Exception("BestIntegrationSelection: illegal input: max_relative_GL_error")
         self.F0_final = []
-    def check_next_F0(self, volume_sanity_check, volume_data):
+        self.F0_error_final = []
+        self.bad_volumes_larger_than_Vacc = []
+        self.bad_volumes_failed_GL_integration = []
+        self.max_relative_GL_error = max_relative_GL_error
+    def check_next_F0(self, volume_sanity_check, volume_data, volume_file_path):
         F0 = volume_data.F0[-1]
-        #print "check_next_F0: F0", F0
+        F0_error = volume_data.sigF0[-1]
+        F0_approx_PTu2k0 = volume_data.F0_approx_PTu2k0[-1]
+        F0_approx_PTu2k0_error = volume_data.F0_approx_PTu2k0_error[-1]
+        fail_information = [F0, ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]]
+        if volume_sanity_check.is_insane(F0):
+            self.bad_volumes_larger_than_Vacc.append(fail_information)
+        if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
+            self.F0_final.append(F0_approx_PTu2k0)
+            self.F0_error_final.append(F0_approx_PTu2k0_error)
+            self.bad_volumes_failed_GL_integration.append(fail_information)
+        else:
+            self.F0_final.append(F0)
+            self.F0_error_final.append(F0_error)
+    def print_fail_information(self, packings_dir):
+        def failed_to_file(path, info):
+            f = open(path, "w")
+            for line in info:
+                f.write("failed packing:\n")
+                for word in line:
+                    f.write(str(word) + "\n")
+            f.close()
+        bad_volumes_larger_than_Vacc_path = packings_dir + "/bad_volumes_larger_than_Vacc"
+        failed_to_file(bad_volumes_larger_than_Vacc_path, self.bad_volumes_larger_than_Vacc)
+        bad_volumes_failed_GL_integration_path = packings_dir + "/bad_volumes_failed_GL_integration"
+        failed_to_file(bad_volumes_failed_GL_integration_path, self.bad_volumes_failed_GL_integration)
 
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2):
@@ -155,6 +190,7 @@ class GenerateComparisonPlotPTApprox(object):
             self._compute_F0()
         self._gather_data()
         self._generate_plots()
+        self.best_integration_selection.print_fail_information(self.packings_dir)
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
@@ -202,7 +238,7 @@ class GenerateComparisonPlotPTApprox(object):
             self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
             self.unit_box_F0.append(volf.getfloat('VOLUME_FULL_PT', 'unit_box_F0'))
             self.sigF0.append(volf.getfloat('VOLUME_FULL_PT', 'sigF0'))
-            self.best_integration_selection.check_next_F0(self.volume_sanity_check, self)
+            self.best_integration_selection.check_next_F0(self.volume_sanity_check, self, vf)
         except:
             print "unsufficient data available"
             print "location:", vf
@@ -225,7 +261,6 @@ class GenerateComparisonPlotPTApprox(object):
         gauss_fit_error = error
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
-        #opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [np.mean(data), 2 * np.var(data), 1])
         generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
         generalised_gauss.fit(bin_centres, hist)
         gen_gauss_fit_opt = [generalised_gauss.mu_fit, generalised_gauss.alpha_fit, generalised_gauss.zeta_fit]
@@ -266,7 +301,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--packings_dir", help = "top-level dir containing the packings, e.g. n32_phi88_2D")
     parser.add_argument("-plot_only", "--plot_only", default = False, help = "flag to switch off the actual volume computing and to only do the plotting part")
     # if the relative error of the GL integral over the PT data is estimatedto be larger than max_relative_GL_error, the approximated integral is used instead to compute F0
-    parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.2, help = "parameter that selects between GL integral from PT data and approx integral")
+    parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.1, help = "parameter that selects between GL integral from PT data and approx integral")
     args = parser.parse_args()
     packings_dir = os.path.abspath(args.packings_dir)
     GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error)
