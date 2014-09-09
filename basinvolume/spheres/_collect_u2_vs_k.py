@@ -61,6 +61,7 @@ class _collect_u2_vs_k(object):
         """
         try:
             self._compute_approx_volume()
+            self._compute_PTu2k0_approx_volume()
         except IOError as err:
             print err
         """
@@ -177,6 +178,17 @@ class _collect_u2_vs_k(object):
         self.F0_approx = F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(self.displ_k_min, self.kmax, np.prod(self.boxv), self.nparticles, self.bdim, self.prob_kmax)
         self.unit_box_F0_approx = self.F0_approx + self.nparticles * np.log(np.prod(self.boxv))
         print 'unit_box_F0_approx {}'.format(self.unit_box_F0_approx)
+        
+    def _compute_PTu2k0_approx_volume(self):
+        """
+        numerical volume obtained by approximating from kmax, and displ_k0, but using the displ_k0 as obtained from PT runs
+        """
+        self.PTu2k0 = self.u2_array[0]
+        if np.amax(self.u2_array) > self.u2_array[0]:
+            raise Exception("_compute_PTu2k0_approx_volume: displacement-squared array is messed up")
+        self.F0_approx_PTu2k0 = F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(self.PTu2k0, self.kmax, np.prod(self.boxv), self.nparticles, self.bdim, self.prob_kmax)
+        self.unit_box_F0_approx_PTu2k0 = self.F0_approx_PTu2k0 + self.nparticles * np.log(np.prod(self.boxv))
+        print "unit_box_F0_approx_PTu2k0 {}".format(self.unit_box_F0_approx_PTu2k0)
 
     def _plot_data(self):
         if self.plot_ts_integrand_data is False:
@@ -223,9 +235,9 @@ class _collect_u2_vs_k(object):
         fname = '{}/{}'.format(self.base_directory,dname)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-        f.write('[VOLUME_APPROXIMATED]\n')
         def _to_file(name, value):
             f.write((name + ": {}\n").format(to_string(value)))
+        f.write('[VOLUME_APPROXIMATED]\n')
         if hasattr(self, "F0_approx"):
             _to_file("F0_approx", self.F0_approx)
             _to_file("unit_box_F0_approx", self.unit_box_F0_approx)
@@ -234,6 +246,10 @@ class _collect_u2_vs_k(object):
             _to_file("F0", self.F0)
             _to_file("sigF0", self.sigF0)
             _to_file("unit_box_F0", self.unit_box_F0)
+        f.write('[VOLUME_PTU2_APPROXIMATED]\n')
+        if hasattr(self, "F0_approx_PTu2k0"):
+            _to_file("F0_approx_PTu2k0", self.F0_approx_PTu2k0)
+            _to_file("unit_box_F0_approx_PTu2k0", self.unit_box_F0_approx_PTu2k0)
         f.close()
         
 if __name__ == "__main__":
