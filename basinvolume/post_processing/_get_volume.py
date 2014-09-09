@@ -2,9 +2,6 @@ from __future__ import division
 from math import pi, log
 from basinvolume.post_processing import calculate_GL_integral_with_transform, calculate_GL_integral_with_transform_get_error
 import numpy as np
-#import argparse
-#import os
-#import sys
 
 class Base_Compute_Integral(object):
     def __init__(self, dimension, nr_particles, k_values, displacements, kappa_const=1.0, displ_k_min_trafo=None):
@@ -93,18 +90,26 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         
         return F0, sigF0, self.f, sigf
     
-def F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(displ2_k0, kmax, box_volume, nr_particles, dimension, prob_kmax):
+def F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(displ2_k0, error_displ_k0, kmax, box_volume, nr_particles, dimension, prob_kmax):
     """
     Compute free energy F(0) = -log(v), by assuming that the approximation
     used to make the integrand flat is the true integrand behavior.
     """
-    approx_integral_over_displacements = None
     xi = (nr_particles - 1) * dimension / displ2_k0
+    """
+    approx_integral_over_displacements = None
     def _approx(k):
         return (nr_particles - 1) * dimension / (k + xi)
     from scipy.integrate import quad
     approx_integral_over_displacements, err = quad(_approx, 0, kmax)
-    return -0.5 * approx_integral_over_displacements - np.log(box_volume) - ((nr_particles - 1.0) * dimension / 2.0) * np.log(2.0 * pi / kmax) - np.log(prob_kmax)
+    """
+    approx_integral_over_displacements = (nr_particles - 1) * dimension * (np.log(kmax + xi) - np.log(xi))
+    variance_on_displ2_k0 = error_displ_k0 ** 2
+    variance_on_xi = ((nr_particles - 1) * dimension / displ2_k0 ** 2) ** 2 * variance_on_displ2_k0
+    variance_on_integral = (((nr_particles - 1) * dimension * (1 - (kmax + xi) / xi)) / (kmax + xi)) ** 2 * variance_on_xi
+    error_on_F0 = 0.5 * np.sqrt(variance_on_integral)
+    value_of_F0 = -0.5 * approx_integral_over_displacements - np.log(box_volume) - ((nr_particles - 1.0) * dimension / 2.0) * np.log(2.0 * pi / kmax) - np.log(prob_kmax)
+    return value_of_F0, error_on_F0
     
 if __name__ == "__main__":
     """
