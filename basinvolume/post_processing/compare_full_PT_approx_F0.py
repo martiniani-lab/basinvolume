@@ -89,7 +89,13 @@ class VolumeSanityCheck(object):
             print "failed F0 name", F0_name
             print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
             raise Exception("VolumeSanityCheck: illegal free energy")
-    
+"""    
+class BestIntegrationSelection(object):
+    def __init__(self, F0, error_F0, F0_old_approx, F0_old_approx_error, F0_new_approx, F0_new_approx_error):
+        self.F0_final = []
+        for i in len(F0)
+"""
+
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False):
         self.packings_dir = packings_dir
@@ -128,15 +134,24 @@ class GenerateComparisonPlotPTApprox(object):
         self.unit_box_F0 = []
         self.sigF0 = []
         self.F0_approx = []
+        self.F0_approx_error = []
         self.unit_box_F0_approx = []
+        self.F0_approx_PTu2k0 = []
+        self.F0_approx_PTu2k0_error = []
+        self.unit_box_F0_approx_PTu2k0 = []
         for vf in self.volume_files:
             self._read_from_volume_file(vf)
+        #self.best_integration_selection = BestIntegrationSelection()
     def _read_from_volume_file(self, vf):
         volf = ConfigParser.ConfigParser()
         volf.read(str(vf))
         try:
             self.F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'F0_approx'))
+            self.F0_approx_error.append(volf.getfloat("VOLUME_APPROXIMATED", "F0_approx_error"))
             self.unit_box_F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'unit_box_F0_approx'))
+            self.F0_approx_PTu2k0.append(volf.getfloat('VOLUME_PTU2_APPROXIMATED', 'F0_approx_PTu2k0'))
+            self.F0_approx_PTu2k0_error.append(volf.getfloat("VOLUME_PTU2_APPROXIMATED", "F0_approx_PTu2k0_error"))
+            self.unit_box_F0_approx_PTu2k0.append(volf.getfloat('VOLUME_PTU2_APPROXIMATED', 'unit_box_F0_approx_PTu2k0'))
         except:
             print "no approx integral data available"
             print "location:", vf
@@ -161,15 +176,17 @@ class GenerateComparisonPlotPTApprox(object):
         def _gauss(x, sig, mu):
             return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
         def _generalized_gauss(x, mu, alpha, zeta):
-            return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(-np.abs(x - mu) ** zeta / alpha ** zeta)
-        opt, error = curve_fit(_gauss, bin_centres, hist, [np.var(data), np.mean(data)])
+            return np.sqrt(zeta ** 2) / (2 * np.sqrt(alpha ** 2) * gamma(1 / np.sqrt(zeta ** 2))) * np.exp(-np.abs(x - mu) ** np.sqrt(zeta ** 2) / np.sqrt(alpha ** 2) ** np.sqrt(zeta ** 2))
+        opt, error = curve_fit(_gauss, bin_centres, hist, [np.sqrt(np.var(data)), np.mean(data)])
         gauss_fit_opt = opt
         gauss_fit_opt[0] = np.abs(gauss_fit_opt[0]) #make printed sigma positive
         gauss_fit_error = error
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
-        opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [np.mean(data), np.var(data), 1])
+        opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [np.mean(data), 2 * np.var(data), 1])
         gen_gauss_fit_opt = opt_gen
+        gen_gauss_fit_opt[1] = np.abs(gen_gauss_fit_opt[1]) #make printed parameters positive
+        gen_gauss_fit_opt[2] = np.abs(gen_gauss_fit_opt[2])
         gen_gauss_fit_error = error_gen
         gen_gauss_fit_names = ["mean", "alpha", "zeta"]
         gen_gauss_fit = [gen_gauss_fit_opt, gen_gauss_fit_names]
