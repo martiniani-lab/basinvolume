@@ -285,8 +285,8 @@ class HS_Generate_Packing(_Generate_Packing):
         to be on the safe side."""
         if (self.iteration == 0):
             temperature = 1.0
-            dif_mcrunner = HS_MCrunnerOptDiffusion(self.potential, self.coords, temperature, self.hsf_stepsize, 1e8,
-                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 50000,
+            dif_mcrunner = HS_MCrunnerOptDiffusion(self.potential, self.coords, temperature, self.hsf_stepsize, 1e9,
+                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 1e6,
                                         seeds = self.seeds)
             dif_mcrunner.run()
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
