@@ -160,9 +160,13 @@ class BestIntegrationSelection(object):
         if volume_sanity_check.is_insane(F0):
             self.bad_volumes_larger_than_Vacc.append(fail_information)
         if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
-            self.F0_final.append(F0_approx_PTu2k0)
-            self.F0_error_final.append(F0_approx_PTu2k0_error)
-            self.bad_volumes_failed_GL_integration.append(fail_information)
+            if volume_sanity_check.is_insane(F0_approx_PTu2k0):
+                print "---WARNING: GL integration failed and approximation is also wrong!---"
+                raise Exception("GL integration failed and approximation is also wrong!")
+            else:
+                self.F0_final.append(F0_approx_PTu2k0)
+                self.F0_error_final.append(F0_approx_PTu2k0_error)
+                self.bad_volumes_failed_GL_integration.append(fail_information)
         else:
             self.F0_final.append(F0)
             self.F0_error_final.append(F0_error)
