@@ -89,6 +89,54 @@ class VolumeSanityCheck(object):
             print "failed F0 name", F0_name
             print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
             raise Exception("VolumeSanityCheck: illegal free energy")
+
+class GeneralisedGauss(object):
+    """
+    Implements the generalised gaussian distribution, see e.g.: http://en.wikipedia.org/wiki/Generalized_normal_distribution
+    Parameters are as follows:
+    PDF(mu, alpha, zeta; x) = zeta / (2 * alpha * gamma(1 / zeta)) * exp[-|x - mu|**zeta / alpha**zeta]
+    """
+    def __init__(self, mu_initial = 1, alpha_initial = 1, zeta_initial = 1, alpha_min = 1e-10, zeta_min = 1e-10):
+        if alpha_min < 0:
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: alpha_min")
+        if zeta_min < 0:
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: zeta_min")
+        self.alpha_min = alpha_min
+        self.zeta_min = zeta_min
+        self.mu = mu_initial
+        self.alpha_offset = alpha_initial - self.alpha_min
+        self.zeta_offset = zeta_initial - self.zeta_min
+    def set_mu(self, mu):
+        self.mu = mu
+    def set_alpha(self, alpha):
+        if alpha < self.alpha_min:
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: alpha")
+        self.alpha_offset = alpha - self.alpha_min
+    def set_zeta(self, zeta):
+        if zeta < self.zeta_min:
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: zeta")
+        self.zeta_offset = zeta - self.zeta_min
+    def get_alpha(self, alpha_offset):
+        return np.abs(alpha_offset) + self.alpha_min
+    def get_zeta(self, zeta_offset):
+        return np.abs(zeta_offset) + self.zeta_min
+    def get(self, x, mu, alpha_offset, zeta_offset):
+        return self.get_zeta(zeta_offset) / (2 * self.get_alpha(alpha_offset) * gamma(1 / self.get_zeta(zeta_offset))) * np.exp(-np.abs(x - mu) ** self.get_zeta(zeta_offset) / self.get_alpha(alpha_offset) ** self.get_zeta(zeta_offset))
+    def get_fitted(self, x):
+        return self.get(x, self.mu, self.alpha_offset, self.zeta_offset)
+    def fit(self, data_x, data_y):
+        opt_gen, error_gen = curve_fit(self.get, data_x, data_y, [np.mean(data_x), np.var(data_x), 3])
+        self.mu = opt_gen[0]
+        self.alpha_offset = opt_gen[1]
+        self.zeta_offset = opt_gen[2]
+        self.mu_fit = self.mu
+        self.alpha_fit = self.get_alpha(self.alpha_offset)
+        self.zeta_fit = self.get_zeta(self.zeta_offset)
+        self.fit_error = error_gen
+        print "self.mu", self.mu
+        print "self.alpha_offset", self.alpha_offset
+        print "self.zeta_offset", self.zeta_offset
+
 """    
 class BestIntegrationSelection(object):
     def __init__(self, F0, error_F0, F0_old_approx, F0_old_approx_error, F0_new_approx, F0_new_approx_error):
@@ -97,15 +145,16 @@ class BestIntegrationSelection(object):
 """
 
 class GenerateComparisonPlotPTApprox(object):
-    def __init__(self, packings_dir, plot_ts_integrand_data = False):
+    def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False):
         self.packings_dir = packings_dir
         self.plot_ts_integrand_data = plot_ts_integrand_data
         self._set_up_volume_check()
-        self._compute_F0()
+        self.explore_dirs = [self.packings_dir + "/" + f for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
+        if skip_volume_computation is False:
+            self._compute_F0()
         self._gather_data()
         self._generate_plots()
     def _compute_F0(self):
-        self.explore_dirs = [self.packings_dir + "/" + f for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
         sim = _collect_u2_vs_k()
@@ -175,25 +224,33 @@ class GenerateComparisonPlotPTApprox(object):
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
         def _gauss(x, sig, mu):
             return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
+        """
         def _generalized_gauss(x, mu, alpha, zeta):
+            alpha_min = 0.001
+            zeta_min = 0.001
+            def real_alpha(alpha):
+                return alpha_min + alpha
+            def real_zeta(zeta):
+                return zeta_min + zeta
             return np.sqrt(zeta ** 2) / (2 * np.sqrt(alpha ** 2) * gamma(1 / np.sqrt(zeta ** 2))) * np.exp(-np.abs(x - mu) ** np.sqrt(zeta ** 2) / np.sqrt(alpha ** 2) ** np.sqrt(zeta ** 2))
+        """
         opt, error = curve_fit(_gauss, bin_centres, hist, [np.sqrt(np.var(data)), np.mean(data)])
         gauss_fit_opt = opt
         gauss_fit_opt[0] = np.abs(gauss_fit_opt[0]) #make printed sigma positive
         gauss_fit_error = error
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
-        opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [np.mean(data), 2 * np.var(data), 1])
-        gen_gauss_fit_opt = opt_gen
-        gen_gauss_fit_opt[1] = np.abs(gen_gauss_fit_opt[1]) #make printed parameters positive
-        gen_gauss_fit_opt[2] = np.abs(gen_gauss_fit_opt[2])
-        gen_gauss_fit_error = error_gen
+        #opt_gen, error_gen = curve_fit(_generalized_gauss, bin_centres, hist, [np.mean(data), 2 * np.var(data), 1])
+        generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
+        generalised_gauss.fit(bin_centres, hist)
+        gen_gauss_fit_opt = [generalised_gauss.mu_fit, generalised_gauss.alpha_fit, generalised_gauss.zeta_fit]
+        gen_gauss_fit_error = generalised_gauss.fit_error
         gen_gauss_fit_names = ["mean", "alpha", "zeta"]
         gen_gauss_fit = [gen_gauss_fit_opt, gen_gauss_fit_names]
         def _set_hist_basics(plt):
             xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
             plt.plot(xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g--", label = "Gaussian")
-            plt.plot(xp, [_generalized_gauss(xpi, opt_gen[0], opt_gen[1], opt_gen[2]) for xpi in xp], "r", label = "Generalised Gaussian")
+            plt.plot(xp, [generalised_gauss.get_fitted(xpi) for xpi in xp], "r", label = "Generalised Gaussian")
             plt.legend()
             plt.xlabel(r"Free energy $F$")
             plt.ylabel(r"Probability density")
@@ -222,7 +279,7 @@ class GenerateComparisonPlotPTApprox(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare F0 form full PT data with F0 from integral approximation")
     parser.add_argument("-d", "--packings_dir", help = "top-level dir containing the packings, e.g. n32_phi88_2D")
+    parser.add_argument("-plot_only", "--plot_only", default = False, help = "flag to switch off the actual volume computing and to only do the plotting part")
     args = parser.parse_args()
-    print args
     packings_dir = os.path.abspath(args.packings_dir)
-    GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False)
+    GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only)

@@ -96,13 +96,6 @@ def F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(displ2_k0, error
     used to make the integrand flat is the true integrand behavior.
     """
     xi = (nr_particles - 1) * dimension / displ2_k0
-    """
-    approx_integral_over_displacements = None
-    def _approx(k):
-        return (nr_particles - 1) * dimension / (k + xi)
-    from scipy.integrate import quad
-    approx_integral_over_displacements, err = quad(_approx, 0, kmax)
-    """
     approx_integral_over_displacements = (nr_particles - 1) * dimension * (np.log(kmax + xi) - np.log(xi))
     variance_on_displ2_k0 = error_displ_k0 ** 2
     variance_on_xi = ((nr_particles - 1) * dimension / displ2_k0 ** 2) ** 2 * variance_on_displ2_k0
