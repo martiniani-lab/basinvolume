@@ -121,11 +121,11 @@ class GeneralisedGauss(object):
     def get_zeta(self, zeta_offset):
         return np.abs(zeta_offset) + self.zeta_min
     def get(self, x, mu, alpha_offset, zeta_offset):
-        return self.get_zeta(zeta_offset) / (2 * self.get_alpha(alpha_offset) * gamma(1 / self.get_zeta(zeta_offset))) * np.exp(-np.abs(x - mu) ** self.get_zeta(zeta_offset) / self.get_alpha(alpha_offset) ** self.get_zeta(zeta_offset))
+        return self.get_zeta(zeta_offset) / (2 * self.get_alpha(alpha_offset) * gamma(1 / self.get_zeta(zeta_offset))) * np.exp(- np.power((np.abs(x - mu) / self.get_alpha(alpha_offset)), self.get_zeta(zeta_offset)))
     def get_fitted(self, x):
         return self.get(x, self.mu, self.alpha_offset, self.zeta_offset)
     def fit(self, data_x, data_y):
-        opt_gen, error_gen = curve_fit(self.get, data_x, data_y, [np.mean(data_x), np.var(data_x), 3])
+        opt_gen, error_gen = curve_fit(self.get, data_x, data_y, [np.mean(data_x), 2 * np.var(data_x), 2])
         self.mu = opt_gen[0]
         self.alpha_offset = opt_gen[1]
         self.zeta_offset = opt_gen[2]
@@ -137,18 +137,19 @@ class GeneralisedGauss(object):
         print "self.alpha_offset", self.alpha_offset
         print "self.zeta_offset", self.zeta_offset
 
-"""    
 class BestIntegrationSelection(object):
-    def __init__(self, F0, error_F0, F0_old_approx, F0_old_approx_error, F0_new_approx, F0_new_approx_error):
+    def __init__(self, max_relative_GL_error = 0.2):
         self.F0_final = []
-        for i in len(F0)
-"""
+    def check_next_F0(self, volume_sanity_check, volume_data):
+        F0 = volume_data.F0[-1]
+        #print "check_next_F0: F0", F0
 
 class GenerateComparisonPlotPTApprox(object):
-    def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False):
+    def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2):
         self.packings_dir = packings_dir
         self.plot_ts_integrand_data = plot_ts_integrand_data
-        self._set_up_volume_check()
+        self.max_relative_GL_error = max_relative_GL_error
+        self.volume_sanity_check = VolumeSanityCheck(self.packings_dir + "/packings/packings.config")
         self.explore_dirs = [self.packings_dir + "/" + f for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
         if skip_volume_computation is False:
             self._compute_F0()
@@ -174,9 +175,6 @@ class GenerateComparisonPlotPTApprox(object):
                 self.packing_stat.add_failure()
             self.packing_stat.print_progress_info(fname)
         self.packing_stat.print_failure_info()
-    def _set_up_volume_check(self):
-        self.v_acc_parameter_file = self.packings_dir + "/packings/packings.config"
-        self.volume_sanity_check = VolumeSanityCheck(self.v_acc_parameter_file)
     def _gather_data(self):
         self.volume_files = [f + "/analysis/volume_data" for f in self.explore_dirs]
         self.F0 = []
@@ -188,9 +186,9 @@ class GenerateComparisonPlotPTApprox(object):
         self.F0_approx_PTu2k0 = []
         self.F0_approx_PTu2k0_error = []
         self.unit_box_F0_approx_PTu2k0 = []
+        self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error = self.max_relative_GL_error)
         for vf in self.volume_files:
             self._read_from_volume_file(vf)
-        #self.best_integration_selection = BestIntegrationSelection()
     def _read_from_volume_file(self, vf):
         volf = ConfigParser.ConfigParser()
         volf.read(str(vf))
@@ -201,15 +199,12 @@ class GenerateComparisonPlotPTApprox(object):
             self.F0_approx_PTu2k0.append(volf.getfloat('VOLUME_PTU2_APPROXIMATED', 'F0_approx_PTu2k0'))
             self.F0_approx_PTu2k0_error.append(volf.getfloat("VOLUME_PTU2_APPROXIMATED", "F0_approx_PTu2k0_error"))
             self.unit_box_F0_approx_PTu2k0.append(volf.getfloat('VOLUME_PTU2_APPROXIMATED', 'unit_box_F0_approx_PTu2k0'))
-        except:
-            print "no approx integral data available"
-            print "location:", vf
-        try:
             self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
             self.unit_box_F0.append(volf.getfloat('VOLUME_FULL_PT', 'unit_box_F0'))
             self.sigF0.append(volf.getfloat('VOLUME_FULL_PT', 'sigF0'))
+            self.best_integration_selection.check_next_F0(self.volume_sanity_check, self)
         except:
-            print "no PT data availible"
+            print "unsufficient data available"
             print "location:", vf
     def _generate_plots(self):
         self._print_histogram_and_data(self.F0, "/volume_histogram_F0")
@@ -224,16 +219,6 @@ class GenerateComparisonPlotPTApprox(object):
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
         def _gauss(x, sig, mu):
             return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
-        """
-        def _generalized_gauss(x, mu, alpha, zeta):
-            alpha_min = 0.001
-            zeta_min = 0.001
-            def real_alpha(alpha):
-                return alpha_min + alpha
-            def real_zeta(zeta):
-                return zeta_min + zeta
-            return np.sqrt(zeta ** 2) / (2 * np.sqrt(alpha ** 2) * gamma(1 / np.sqrt(zeta ** 2))) * np.exp(-np.abs(x - mu) ** np.sqrt(zeta ** 2) / np.sqrt(alpha ** 2) ** np.sqrt(zeta ** 2))
-        """
         opt, error = curve_fit(_gauss, bin_centres, hist, [np.sqrt(np.var(data)), np.mean(data)])
         gauss_fit_opt = opt
         gauss_fit_opt[0] = np.abs(gauss_fit_opt[0]) #make printed sigma positive
@@ -280,6 +265,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare F0 form full PT data with F0 from integral approximation")
     parser.add_argument("-d", "--packings_dir", help = "top-level dir containing the packings, e.g. n32_phi88_2D")
     parser.add_argument("-plot_only", "--plot_only", default = False, help = "flag to switch off the actual volume computing and to only do the plotting part")
+    # if the relative error of the GL integral over the PT data is estimatedto be larger than max_relative_GL_error, the approximated integral is used instead to compute F0
+    parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.2, help = "parameter that selects between GL integral from PT data and approx integral")
     args = parser.parse_args()
     packings_dir = os.path.abspath(args.packings_dir)
-    GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only)
+    GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error)
+    
+    
+    
