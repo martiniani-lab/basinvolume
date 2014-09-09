@@ -89,7 +89,13 @@ class VolumeSanityCheck(object):
             print "failed F0 name", F0_name
             print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
             raise Exception("VolumeSanityCheck: illegal free energy")
-    
+"""    
+class BestIntegrationSelection(object):
+    def __init__(self, F0, error_F0, F0_old_approx, F0_old_approx_error, F0_new_approx, F0_new_approx_error):
+        self.F0_final = []
+        for i in len(F0)
+"""
+
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False):
         self.packings_dir = packings_dir
@@ -128,15 +134,24 @@ class GenerateComparisonPlotPTApprox(object):
         self.unit_box_F0 = []
         self.sigF0 = []
         self.F0_approx = []
+        self.F0_approx_error = []
         self.unit_box_F0_approx = []
+        self.F0_approx_PTu2k0 = []
+        self.F0_approx_PTu2k0_error = []
+        self.unit_box_F0_approx_PTu2k0 = []
         for vf in self.volume_files:
             self._read_from_volume_file(vf)
+        #self.best_integration_selection = BestIntegrationSelection()
     def _read_from_volume_file(self, vf):
         volf = ConfigParser.ConfigParser()
         volf.read(str(vf))
         try:
             self.F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'F0_approx'))
+            self.F0_approx_error.append(volf.getfloat("VOLUME_APPROXIMATED", "F0_approx_error"))
             self.unit_box_F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'unit_box_F0_approx'))
+            self.F0_approx_PTu2k0.append(volf.getfloat('VOLUME_PTU2_APPROXIMATED', 'F0_approx_PTu2k0'))
+            self.F0_approx_PTu2k0_error.append(volf.getfloat("VOLUME_PTU2_APPROXIMATED", "F0_approx_PTu2k0_error"))
+            self.unit_box_F0_approx_PTu2k0.append(volf.getfloat('VOLUME_PTU2_APPROXIMATED', 'unit_box_F0_approx_PTu2k0'))
         except:
             print "no approx integral data available"
             print "location:", vf
