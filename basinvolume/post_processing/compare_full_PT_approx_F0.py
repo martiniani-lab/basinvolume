@@ -115,8 +115,12 @@ class GeneralisedGauss(object):
         return np.abs(zeta_offset) + self.zeta_min
     def get(self, x, mu, alpha_offset, zeta_offset):
         return self.get_zeta(zeta_offset) / (2 * self.get_alpha(alpha_offset) * gamma(1 / self.get_zeta(zeta_offset))) * np.exp(- np.power((np.abs(x - mu) / self.get_alpha(alpha_offset)), self.get_zeta(zeta_offset)))
+    def get_times_expx(self, x, mu, alpha_offset, zeta_offset):
+        return self.get_zeta(zeta_offset) / (2 * self.get_alpha(alpha_offset) * gamma(1 / self.get_zeta(zeta_offset))) * np.exp(- np.power((np.abs(x - mu) / self.get_alpha(alpha_offset)), self.get_zeta(zeta_offset)) + x)
     def get_fitted(self, x):
         return self.get(x, self.mu, self.alpha_offset, self.zeta_offset)
+    def get_fitted_times_expx(self, x):
+        return self.get_times_expx(x, self.mu, self.alpha_offset, self.zeta_offset)
     def fit(self, data_x, data_y):
         opt_gen, error_gen = curve_fit(self.get, data_x, data_y, [np.mean(data_x), 2 * np.var(data_x), 2])
         self.mu = opt_gen[0]
@@ -291,10 +295,41 @@ class APFEntropy(object):
         f.close()
 
 class OutlierRemovalUnbiasingEntropyLogOmega(object):
+    """
+    Fits generalised gaussian to histogram of F0 data.
+    Integrates that to get the unbiased mean basin volume.
+    Uses that to compute
+    S^\star = \log \Omega = \log(V_\text{acc}) - \log(unbiased_mean_volume)
+    and
+    S = S^\star - \log(N!)
+    """
     def __init__(self, F0):
         self.F0_full = F0
         self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 10, verbose = True)
         self.F0 = self.outlier_detection.non_outliers
+    def compute_log_omega_entropy(self, volume_sanity_check):
+        self.generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
+        desired_binsize = 0.8
+        bins = np.abs(np.amax(self.F0) - np.amin(self.F0)) / desired_binsize
+        hist, bin_edges = np.histogram(self.F0, density = True, bins = bins)
+        #plt.hist(self.F0, bins = bins, normed = True)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+        self.generalised_gauss.fit(bin_centres, hist)
+        self.compute_integral(volume_sanity_check)
+        self.S_star = - volume_sanity_check.F0_acc + np.log(self.integral)
+        self.S = self.S_star - log_factorial(volume_sanity_check.nr_particles)
+        self.error_S_star = None
+        self.error_S = None
+        self.write_to_file()
+        assert(self.S_star > 0)
+    def compute_integral(self, volume_sanity_check):
+        from scipy import integrate
+        self.integral = integrate.quad(self.generalised_gauss.get_fitted_times_expx, volume_sanity_check.F0_acc, np.inf)[0]
+        assert(self.integral > 0)
+    def write_to_file(self):
+        print "Log of Omega entropy:"
+        print "S_star:", self.S_star, "+/-", self.error_S_star 
+        print "S:", self.S, "+/-", self.error_S
 
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
@@ -310,6 +345,8 @@ class GenerateComparisonPlotPTApprox(object):
             self._compute_F0()
         self._gather_data()
         self.best_integration_selection.perform_sanity_check_on_final_F0(self.volume_sanity_check)
+        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final)
+        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
         self._generate_plots()
         self.best_integration_selection.print_fail_information(self.packings_dir)
         self.APF_entropy = APFEntropy(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
@@ -376,8 +413,7 @@ class GenerateComparisonPlotPTApprox(object):
         self._print_histogram_and_data(self.F0_approx, "/volume_histogram_F0_approx")
         self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx")
         self._print_histogram_and_data(self.best_integration_selection.F0_final, "/volume_histogram_F0_final")
-        self.F0_final_removed_outliers = OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final).F0
-        self._print_histogram_and_data(self.F0_final_removed_outliers, "/volume_histogram_F0_final_removed_outliers")
+        self._print_histogram_and_data(self.outlier_removal_unbiasing_entropy_log_omega.F0, "/volume_histogram_F0_final_removed_outliers")
     def _print_histogram_and_data(self, data, name):
         np.savetxt(self.packings_dir + name + ".data", data)
         desired_binsize = 1.5
