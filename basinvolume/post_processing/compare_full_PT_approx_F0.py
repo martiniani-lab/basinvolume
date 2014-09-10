@@ -8,7 +8,7 @@ try:
     from matplotlib.backends.backend_pdf import PdfPages
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string
+    from basinvolume.utils import to_string, log_factorial, ResultsFile
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
 except ImportError as err:
     print err
@@ -18,19 +18,7 @@ def save_pdf(plt, file_name):
     plt.savefig(pdf, format="pdf")
     pdf.close()
     plt.close()
-    
-class FitResultsFile(object):
-    def __init__(self, file_name):
-        self.file_name = file_name
-        self.f = open(self.file_name, "w")
-        self.f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-    def set_heading(self, title):
-        self.f.write("[" + title + "]\n")
-    def to_file(self, name, value):
-        self.f.write((name + ": {}\n").format(to_string(value)))
-    def close(self):
-        self.f.close()
-        
+            
 class PackingFailureStatistics(object):
     def __init__(self, total_nr):
         self.total_nr = total_nr
@@ -253,6 +241,55 @@ class BestIntegrationSelection(object):
         failed_to_file(packings_dir + "/bad_volumes_failed_GL_integration", self.bad_volumes_failed_GL_integration)
         failed_to_file(packings_dir + "/bad_volumes_huge_kmax", self.bad_volumes_huge_kmax)
 
+class F0MeanError(object):
+    """
+    The mean is not weithed by the error because we want to have the mean as
+    sampled with bias, see APFEntropy below.
+    """
+    def __init__(self, F0, error_F0):
+        if len(F0) is not len(error_F0):
+            raise Exception("F0MeanError: illegal shape of F0, F0_error arrays")
+        F0 = np.array(F0)
+        error_F0 = np.array(error_F0)
+        self.mean = np.mean(F0)
+        squared_errors = error_F0 ** 2
+        self.error = np.sqrt(np.sum(squared_errors)) / len(squared_errors)
+        self.sample_variance_error = np.sqrt(np.var(F0) / len(F0))
+
+class APFEntropy(object):
+    def __init__(self, F0, error_F0, volume_sanity_check):
+        self.F0 = F0
+        self.error_F0 = error_F0
+        self.F0_acc = volume_sanity_check.F0_acc
+        self.V_acc = volume_sanity_check.V_acc
+        self.nr_particles = volume_sanity_check.nr_particles
+    def compute_and_write_entropy(self, entropy_file_path):
+        """
+        Granular entropy according to Asenjo14: 10.1103/PhysRevLett.112.098002
+        S_\text{APF}^* = \langle F \rangle_\text{biased} + \log(V_\text{acc})
+        S_\text{APF} = S_\text{APF}^* - \log(N!)
+        """
+        F0_stat = F0MeanError(self.F0, self.error_F0)
+        self.S_star = F0_stat.mean - self.F0_acc
+        if self.S_star < 0:
+            raise Exception("APFEntropy: compute_and_write_entropy: entropy computation failed")
+        self.S = self.S_star - log_factorial(self.nr_particles)
+        #self.error_S_star = F0_stat.error
+        self.error_S_star = F0_stat.sample_variance_error
+        self.error_S = self.error_S_star
+        print "Granular entropy according to APF:"
+        print "S_star:", self.S_star, "+/-", self.error_S_star 
+        print "S:", self.S, "+/-", self.error_S
+        self.write_to_file(entropy_file_path)
+    def write_to_file(self, entropy_file_path):
+        f = ResultsFile(entropy_file_path)
+        f.set_heading("ENTROPY_APF")
+        f.to_file("S_star", self.S_star)
+        f.to_file("error_S_star", self.error_S_star)
+        f.to_file("S", self.S)
+        f.to_file("error_S", self.error_S)
+        f.close()
+
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
         self.packings_dir = packings_dir
@@ -269,6 +306,8 @@ class GenerateComparisonPlotPTApprox(object):
         self.best_integration_selection.perform_sanity_check_on_final_F0(self.volume_sanity_check)
         self._generate_plots()
         self.best_integration_selection.print_fail_information(self.packings_dir)
+        self.APF_entropy = APFEntropy(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
+        self.APF_entropy.compute_and_write_entropy(self.packings_dir + "/entropy_AFP")
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
@@ -370,7 +409,7 @@ class GenerateComparisonPlotPTApprox(object):
         self._print_fitting_results(name, gauss_fit, gen_gauss_fit)
     def _print_fitting_results(self, name, gauss_fit, gen_gauss_fit):
         self.fit_results_dir = self.packings_dir + name + ".fit_results"
-        f = FitResultsFile(self.fit_results_dir)
+        f = ResultsFile(self.fit_results_dir)
         def _print_function_parameters(fit_info):
             for parameter in xrange(len(fit_info[0])):
                 f.to_file(fit_info[1][parameter], fit_info[0][parameter])

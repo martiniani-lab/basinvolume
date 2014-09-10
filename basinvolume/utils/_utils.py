@@ -8,13 +8,16 @@ import basinvolume
 import pele
 import mcpele
 
-def volume_nball(radius,n):
-    volume = np.power(np.pi,n/2)*np.power(radius,n)/gamma(n/2+1)
+def volume_nball(radius, n):
+    volume = np.power(np.pi, n / 2) * np.power(radius, n) / gamma(n / 2 + 1)
     return volume
 
-def log_volume_nball(radius,n):
-    log_volume = n/2.0 * np.log(np.pi) + n * np.log(radius) - gammaln(n/2+1)
+def log_volume_nball(radius, n):
+    log_volume = n / 2.0 * np.log(np.pi) + n * np.log(radius) - gammaln(n / 2 + 1)
     return log_volume
+
+def log_factorial(x):
+    return gammaln(x + 1)
 
 def cround(r):
     if r > 0.0:
@@ -150,3 +153,15 @@ def to_string(inp, digits_after_point = 16):
     format_string += str(digits_after_point)
     format_string += "f}"
     return format_string.format(inp)
+
+class ResultsFile(object):
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.f = open(self.file_name, "w")
+        self.f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+    def set_heading(self, title):
+        self.f.write("[" + title + "]\n")
+    def to_file(self, name, value):
+        self.f.write((name + ": {}\n").format(to_string(value)))
+    def close(self):
+        self.f.close()
