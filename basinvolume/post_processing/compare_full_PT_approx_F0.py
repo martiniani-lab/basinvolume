@@ -8,7 +8,7 @@ try:
     from matplotlib.backends.backend_pdf import PdfPages
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string, log_factorial, ResultsFile
+    from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
 except ImportError as err:
     print err
@@ -290,6 +290,14 @@ class APFEntropy(object):
         f.to_file("error_S", self.error_S)
         f.close()
 
+class OutlierRemovalUnbiasingEntropyLogOmega(object):
+    def __init__(self, F0):
+        self.F0_full = F0
+        self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 10, verbose = True)
+        self.F0 = self.outlier_detection.non_outliers
+        #self.gen_gaussian_fit_unbias = GenGaussianFitUnbias(self.F0)
+        #self.gen_gaussian_fit_unbias.print_results(.....)
+
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
         self.packings_dir = packings_dir
@@ -370,6 +378,7 @@ class GenerateComparisonPlotPTApprox(object):
         self._print_histogram_and_data(self.F0_approx, "/volume_histogram_F0_approx")
         self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx")
         self._print_histogram_and_data(self.best_integration_selection.F0_final, "/volume_histogram_F0_final")
+        OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final)
     def _print_histogram_and_data(self, data, name):
         np.savetxt(self.packings_dir + name + ".data", data)
         bins = 100
@@ -427,7 +436,6 @@ if __name__ == "__main__":
     parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.1, type = float, help = "parameter that selects between GL integral from PT data and approx integral")
     parser.add_argument("-kmax_threshold", "--kmax_threshold", default = 1000, type = float, help = "largest kmax value that is not considered to be huge")
     args = parser.parse_args()
-    print args
     packings_dir = os.path.abspath(args.packings_dir)
     GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error, kmax_threshold = args.kmax_threshold)
     
