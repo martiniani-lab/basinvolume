@@ -295,8 +295,6 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         self.F0_full = F0
         self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 10, verbose = True)
         self.F0 = self.outlier_detection.non_outliers
-        #self.gen_gaussian_fit_unbias = GenGaussianFitUnbias(self.F0)
-        #self.gen_gaussian_fit_unbias.print_results(.....)
 
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
@@ -378,12 +376,14 @@ class GenerateComparisonPlotPTApprox(object):
         self._print_histogram_and_data(self.F0_approx, "/volume_histogram_F0_approx")
         self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx")
         self._print_histogram_and_data(self.best_integration_selection.F0_final, "/volume_histogram_F0_final")
-        OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final)
+        self.F0_final_removed_outliers = OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final).F0
+        self._print_histogram_and_data(self.F0_final_removed_outliers, "/volume_histogram_F0_final_removed_outliers")
     def _print_histogram_and_data(self, data, name):
         np.savetxt(self.packings_dir + name + ".data", data)
-        bins = 100
+        desired_binsize = 1.5
+        bins = np.abs(np.amax(data) - np.amin(data)) / desired_binsize
         hist, bin_edges = np.histogram(data, density = True, bins = bins)
-        plt.hist(data, bins = 100, normed = True)
+        plt.hist(data, bins = bins, normed = True)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
         def _gauss(x, sig, mu):
             return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
@@ -394,6 +394,7 @@ class GenerateComparisonPlotPTApprox(object):
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
         generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
+        print "name:", name
         generalised_gauss.fit(bin_centres, hist)
         gen_gauss_fit_opt = [generalised_gauss.mu_fit, generalised_gauss.alpha_fit, generalised_gauss.zeta_fit]
         gen_gauss_fit_error = generalised_gauss.fit_error
@@ -409,7 +410,7 @@ class GenerateComparisonPlotPTApprox(object):
         #plot in lin-lin scale
         _set_hist_basics(plt)
         save_pdf(plt, self.packings_dir + name + ".pdf")
-        plt.hist(data, bins = 100, normed = True)
+        plt.hist(data, bins = bins, normed = True)
         #plot in ylog scale
         _set_hist_basics(plt)
         plt.yscale('log', nonposy='clip')
