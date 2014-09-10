@@ -143,22 +143,39 @@ class GeneralisedGauss(object):
         print "self.zeta_offset", self.zeta_offset
 
 class BestIntegrationSelection(object):
-    def __init__(self, max_relative_GL_error = 0.2):
+    """
+    Handles part of the analysis of F0 values.
+    In case there is a huge kmax, we allow for the GL integration to fail and
+    use an analytic approximation instead.
+    In case there is no huge kmax and the GL integration still fails, something
+    went wrong and we throw a warning and exception.
+    In case the final F0, be it from GL integration or from the approximated
+    integral, fails the constraint given by the box size, we throw a warning
+    and exception.
+    """
+    def __init__(self, max_relative_GL_error = 0.2, kmax_threshold = 1000):
         if max_relative_GL_error < 0:
             raise Exception("BestIntegrationSelection: illegal input: max_relative_GL_error")
+        self.max_relative_GL_error = max_relative_GL_error
+        if kmax_threshold < 0:
+            raise Exception("BestIntegrationSelection: illegal input: kmax_threshold")
+        self.kmax_threshold = kmax_threshold
         self.F0_final = []
         self.F0_error_final = []
         self.bad_volumes_larger_than_Vacc = []
         self.bad_volumes_failed_GL_integration = []
-        self.max_relative_GL_error = max_relative_GL_error
+        self.bad_volumes_huge_kmax = []
     def check_next_F0(self, volume_sanity_check, volume_data, volume_file_path):
         F0 = volume_data.F0[-1]
         F0_error = volume_data.sigF0[-1]
         F0_approx_PTu2k0 = volume_data.F0_approx_PTu2k0[-1]
         F0_approx_PTu2k0_error = volume_data.F0_approx_PTu2k0_error[-1]
-        fail_information = [F0, ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]]
+        kmax = self.get_kmax(volume_file_path)
+        fail_information = "F0:", to_string(F0, 3), "kmax:", to_string(kmax, 3), "packing_label:", ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]
         if volume_sanity_check.is_insane(F0):
             self.bad_volumes_larger_than_Vacc.append(fail_information)
+        if self.kmax_is_huge(kmax):
+            self.bad_volumes_huge_kmax.append(fail_information)
         if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
             if volume_sanity_check.is_insane(F0_approx_PTu2k0):
                 print "---WARNING: GL integration failed and approximation is also wrong!---"
@@ -170,27 +187,41 @@ class BestIntegrationSelection(object):
         else:
             self.F0_final.append(F0)
             self.F0_error_final.append(F0_error)
+    def get_kmax(self, volume_file):
+        path_with_kmax_info_file = os.path.split(os.path.split(volume_file)[0])[0]
+        kmax_file = [path_with_kmax_info_file + "/" + f for f in os.listdir(path_with_kmax_info_file) if f.endswith(".config") and f.startswith("findk_jammed_packing")][0]
+        configf = ConfigParser.ConfigParser()
+        configf.read(str(kmax_file))
+        return configf.getfloat("FINDK", "kmax")
+    def kmax_is_huge(self, kmax):
+        if kmax > self.kmax_threshold:
+            return True
+        else:
+            return False
     def print_fail_information(self, packings_dir):
         def failed_to_file(path, info):
             f = open(path, "w")
             for line in info:
                 f.write("failed packing:\n")
                 for word in line:
-                    f.write(str(word) + "\n")
+                    f.write(str(word) + " ")
+                f.write("\n")
             f.close()
-        bad_volumes_larger_than_Vacc_path = packings_dir + "/bad_volumes_larger_than_Vacc"
-        failed_to_file(bad_volumes_larger_than_Vacc_path, self.bad_volumes_larger_than_Vacc)
-        bad_volumes_failed_GL_integration_path = packings_dir + "/bad_volumes_failed_GL_integration"
-        failed_to_file(bad_volumes_failed_GL_integration_path, self.bad_volumes_failed_GL_integration)
+        failed_to_file(packings_dir + "/bad_volumes_larger_than_Vacc", self.bad_volumes_larger_than_Vacc)
+        failed_to_file(packings_dir + "/bad_volumes_failed_GL_integration", self.bad_volumes_failed_GL_integration)
+        failed_to_file(packings_dir + "/bad_volumes_huge_kmax", self.bad_volumes_huge_kmax)
 
 class GenerateComparisonPlotPTApprox(object):
-    def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2):
+    def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
         self.packings_dir = packings_dir
         self.plot_ts_integrand_data = plot_ts_integrand_data
+        self.skip_volume_computation = skip_volume_computation
         self.max_relative_GL_error = max_relative_GL_error
+        self.kmax_threshold = kmax_threshold
+        self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error = self.max_relative_GL_error, kmax_threshold = self.kmax_threshold)
         self.volume_sanity_check = VolumeSanityCheck(self.packings_dir + "/packings/packings.config")
         self.explore_dirs = [self.packings_dir + "/" + f for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
-        if skip_volume_computation is False:
+        if not self.skip_volume_computation:
             self._compute_F0()
         self._gather_data()
         self._generate_plots()
@@ -226,7 +257,6 @@ class GenerateComparisonPlotPTApprox(object):
         self.F0_approx_PTu2k0 = []
         self.F0_approx_PTu2k0_error = []
         self.unit_box_F0_approx_PTu2k0 = []
-        self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error = self.max_relative_GL_error)
         for vf in self.volume_files:
             self._read_from_volume_file(vf)
     def _read_from_volume_file(self, vf):
@@ -242,9 +272,15 @@ class GenerateComparisonPlotPTApprox(object):
             self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
             self.unit_box_F0.append(volf.getfloat('VOLUME_FULL_PT', 'unit_box_F0'))
             self.sigF0.append(volf.getfloat('VOLUME_FULL_PT', 'sigF0'))
-            self.best_integration_selection.check_next_F0(self.volume_sanity_check, self, vf)
-        except:
-            print "unsufficient data available"
+            try:
+                self.best_integration_selection.check_next_F0(self.volume_sanity_check, self, vf)
+            except Exception, e:
+                print "Exception: ", e
+                print "integration selection failed"
+                print "location:", vf
+        except Exception, e:
+            print "Exception: ", e
+            print "insufficient data available"
             print "location:", vf
     def _generate_plots(self):
         self._print_histogram_and_data(self.F0, "/volume_histogram_F0")
@@ -302,13 +338,15 @@ class GenerateComparisonPlotPTApprox(object):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare F0 form full PT data with F0 from integral approximation")
-    parser.add_argument("-d", "--packings_dir", help = "top-level dir containing the packings, e.g. n32_phi88_2D")
-    parser.add_argument("-plot_only", "--plot_only", default = False, help = "flag to switch off the actual volume computing and to only do the plotting part")
+    parser.add_argument("-d", "--packings_dir", type = str, help = "top-level dir containing the packings, e.g. n32_phi88_2D")
+    parser.add_argument("-plot_only", "--plot_only", action='store_true', help = "flag to switch off the actual volume computing and to only do the plotting part")
     # if the relative error of the GL integral over the PT data is estimatedto be larger than max_relative_GL_error, the approximated integral is used instead to compute F0
-    parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.1, help = "parameter that selects between GL integral from PT data and approx integral")
+    parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.1, type = float, help = "parameter that selects between GL integral from PT data and approx integral")
+    parser.add_argument("-kmax_threshold", "--kmax_threshold", default = 1000, type = float, help = "largest kmax value that is not considered to be huge")
     args = parser.parse_args()
+    print args
     packings_dir = os.path.abspath(args.packings_dir)
-    GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error)
+    GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error, kmax_threshold = args.kmax_threshold)
     
     
     
