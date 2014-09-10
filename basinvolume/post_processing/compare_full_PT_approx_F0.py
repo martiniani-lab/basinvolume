@@ -142,9 +142,36 @@ class GeneralisedGauss(object):
         print "self.alpha_offset", self.alpha_offset
         print "self.zeta_offset", self.zeta_offset
 
+class GLPTNotUsedStatistics(object):
+    """
+    Collect statistics on how many times the GL (PT) result was not used due to
+    large integration error (for huge kmax).
+    In these cases the analytical intrgral approximation is used.
+    The number of these cases should be realtively low.
+    """
+    def __init__(self):
+        self.total_nr = 0
+        self.used_approx = 0
+    def add_PT_GL(self):
+        self.add_any()
+    def add_approx(self):
+        self.add_any()
+        self.used_approx += 1
+    def add_any(self):
+        self.total_nr += 1
+    def get_approx_use_fraction(self):
+        return self.used_approx / self.total_nr
+    def print_statistics(self):
+        print "GLPTNotUsedStatistics:"
+        print "total number of F0 values:", self.total_nr
+        print "number of times GL failed:", self.used_approx
+        print "GL failure (approx usage) fraction:", self.get_approx_use_fraction()
+
 class BestIntegrationSelection(object):
     """
     Handles part of the analysis of F0 values.
+    This version only considers packings where both, the kindk runs, and PT
+    completed successfully.
     In case there is a huge kmax, we allow for the GL integration to fail and
     use an analytic approximation instead.
     In case there is no huge kmax and the GL integration still fails, something
@@ -165,18 +192,22 @@ class BestIntegrationSelection(object):
         self.bad_volumes_larger_than_Vacc = []
         self.bad_volumes_failed_GL_integration = []
         self.bad_volumes_huge_kmax = []
+        self.GLPT_not_used_statistics = GLPTNotUsedStatistics()
     def check_next_F0(self, volume_sanity_check, volume_data, volume_file_path):
         F0 = volume_data.F0[-1]
         F0_error = volume_data.sigF0[-1]
         F0_approx_PTu2k0 = volume_data.F0_approx_PTu2k0[-1]
         F0_approx_PTu2k0_error = volume_data.F0_approx_PTu2k0_error[-1]
         kmax = self.get_kmax(volume_file_path)
-        fail_information = "F0:", to_string(F0, 3), "kmax:", to_string(kmax, 3), "packing_label:", ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]
+        fail_information = "F0 from PT:", to_string(F0, 3), "kmax:", to_string(kmax, 3), "packing_label:", ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]
         if volume_sanity_check.is_insane(F0):
             self.bad_volumes_larger_than_Vacc.append(fail_information)
         if self.kmax_is_huge(kmax):
             self.bad_volumes_huge_kmax.append(fail_information)
         if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
+            if self.kmax_is_huge(kmax) is False:
+                print "---WARNING: GL integration failed, even though kmax is not huge!---"
+                raise Exception("GL integration failed, even though kmax is not huge!")
             if volume_sanity_check.is_insane(F0_approx_PTu2k0):
                 print "---WARNING: GL integration failed and approximation is also wrong!---"
                 raise Exception("GL integration failed and approximation is also wrong!")
@@ -184,9 +215,11 @@ class BestIntegrationSelection(object):
                 self.F0_final.append(F0_approx_PTu2k0)
                 self.F0_error_final.append(F0_approx_PTu2k0_error)
                 self.bad_volumes_failed_GL_integration.append(fail_information)
+                self.GLPT_not_used_statistics.add_approx()
         else:
             self.F0_final.append(F0)
             self.F0_error_final.append(F0_error)
+            self.GLPT_not_used_statistics.add_PT_GL()
     def get_kmax(self, volume_file):
         path_with_kmax_info_file = os.path.split(os.path.split(volume_file)[0])[0]
         kmax_file = [path_with_kmax_info_file + "/" + f for f in os.listdir(path_with_kmax_info_file) if f.endswith(".config") and f.startswith("findk_jammed_packing")][0]
@@ -198,8 +231,17 @@ class BestIntegrationSelection(object):
             return True
         else:
             return False
+    def perform_sanity_check_on_final_F0(self, volume_sanity_check):
+        self.GLPT_not_used_statistics.print_statistics()
+        if len(self.F0_final) is not len(self.F0_error_final):
+            raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: error handling failed")
+        for F0_final in self.F0_final:
+            if volume_sanity_check.is_insane(F0_final):
+                raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: F0 is insane")
     def print_fail_information(self, packings_dir):
         def failed_to_file(path, info):
+            if len(info) is 0:
+                return
             f = open(path, "w")
             for line in info:
                 f.write("failed packing:\n")
@@ -224,6 +266,7 @@ class GenerateComparisonPlotPTApprox(object):
         if not self.skip_volume_computation:
             self._compute_F0()
         self._gather_data()
+        self.best_integration_selection.perform_sanity_check_on_final_F0(self.volume_sanity_check)
         self._generate_plots()
         self.best_integration_selection.print_fail_information(self.packings_dir)
     def _compute_F0(self):
@@ -237,7 +280,7 @@ class GenerateComparisonPlotPTApprox(object):
                 volf = ConfigParser.ConfigParser()
                 volf.read(str(path + "/analysis/volume_data"))
                 F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
-                self.volume_sanity_check.check(F0, "F0", path)
+                #self.volume_sanity_check.check(F0, "F0", path)
                 self.packing_stat.add_success()
             except:
                 print "failed packing!"
@@ -286,7 +329,8 @@ class GenerateComparisonPlotPTApprox(object):
         self._print_histogram_and_data(self.F0, "/volume_histogram_F0")
         self._print_histogram_and_data(self.unit_box_F0, "/volume_histogram_unit_box_F0")
         self._print_histogram_and_data(self.F0_approx, "/volume_histogram_F0_approx")
-        self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx") 
+        self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx")
+        self._print_histogram_and_data(self.best_integration_selection.F0_final, "/volume_histogram_F0_final")
     def _print_histogram_and_data(self, data, name):
         np.savetxt(self.packings_dir + name + ".data", data)
         bins = 100
