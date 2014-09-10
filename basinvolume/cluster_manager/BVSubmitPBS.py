@@ -7,6 +7,7 @@ import ConfigParser
 import numpy as np
 import argparse
 from basinvolume.cluster_manager import BuildPBSScript
+from basinvolume.utils import trymakedir
 
 def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
@@ -102,17 +103,19 @@ class BVSubmitPBS(object):
                 if self.ext in file:
                     noj = re.findall(r'\d+', file)[0]                   #extract packing number
                     explore_dir = self.explore_dir + noj                #build explore_dir name
-                    if (explore_dir) in subdirs:                        #check is explore_dir is a subfolder of self.workdir
-                        path = os.path.join(self.workdir,explore_dir)   #build a full path for explore dir
-                        kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
-                        if not self._check_kmin_config_file_ready(kmin_path):
-                            if not os.path.isabs(path_to_script):
-                                path_to_script = os.path.abspath(path_to_script)
-                            command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
-                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path)
-                            pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
-                        else:
-                            pass
+                    path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
+                    if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
+                        trymakedir(path)    
+                    kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
+                    if not self._check_kmin_config_file_ready(kmin_path):
+                        if not os.path.isabs(path_to_script):
+                            path_to_script = os.path.abspath(path_to_script)
+                        command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                        pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path)
+                        pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                    else:
+                        pass
+                            
                     
     def submit_kmax_calculations(self, queue_type, nodes, cores, walltime, path_to_script):
         """
@@ -131,17 +134,18 @@ class BVSubmitPBS(object):
                 if self.ext in file:
                     noj = re.findall(r'\d+', file)[0]                   #extract packing number
                     explore_dir = self.explore_dir + noj                #build explore_dir name
-                    if (explore_dir) in subdirs:                        #check is explore_dir is a subfolder of self.workdir
-                        path = os.path.join(self.workdir,explore_dir)   #build a full path for explore dir
-                        kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
-                        if not self._check_kmax_config_file_ready(kmax_path):
-                            if not os.path.isabs(path_to_script):
-                                path_to_script = os.path.abspath(path_to_script)
-                            command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path)
-                            pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
-                        else:
-                            pass
+                    path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
+                    if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
+                        trymakedir(path)
+                    kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
+                    if not self._check_kmax_config_file_ready(kmax_path):
+                        if not os.path.isabs(path_to_script):
+                            path_to_script = os.path.abspath(path_to_script)
+                        command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
+                        pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path)
+                        pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
+                    else:
+                        pass
     
     def _get_pt_command(self, noj, path_to_script, script='bv_parallel_tempering.py'):
         """
@@ -164,7 +168,7 @@ class BVSubmitPBS(object):
         """
         for root, dirs, files in os.walk(self.workdir):
             for dir in dirs:
-                if self.explore_dir in dir:
+                if self.explore_dir in dir:            #PT requires that the explore_dir has already been created
                     noj = re.findall(r'\d+', dir)[0]   #extract packing number from explor_dir string
                     path = os.path.join(root,dir)      #build a full path
                     kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
@@ -190,11 +194,17 @@ class BVSubmitPBS(object):
         *pbs object of type BuildPBSScript
         *path_to_script, excluding the filename with .py extension
         """
-        for root, dirs, files in os.walk(self.workdir):
-            for dir in dirs:
-                if self.explore_dir in dir:
-                    noj = re.findall(r'\d+', dir)[0]   #extract packing number from explor_dir string
-                    path = os.path.join(root,dir)      #build a full path
+        subdirs = get_immediate_subdirectories(self.workdir)
+        assert(self.structures_dir in subdirs)
+        structures_dir_path = os.path.join(self.workdir, self.structures_dir)
+        for root, dirs, files in os.walk(structures_dir_path):
+            for file in files:
+                if self.ext in file:
+                    noj = re.findall(r'\d+', file)[0]                   #extract packing number
+                    explore_dir = self.explore_dir + noj                #build explore_dir name
+                    path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
+                    if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
+                        trymakedir(path)
                     kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                     kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                     pt_path = os.path.join(path, self.pt_config + noj + '.config')

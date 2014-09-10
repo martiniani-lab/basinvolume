@@ -21,7 +21,8 @@ class _collect_u2_vs_k(object):
     *ts_skip number of points skipped when printing time series (every ts_skip)
     """
         
-    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data = False):
+    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', 
+                 explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data = False):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):
@@ -210,7 +211,7 @@ class _collect_u2_vs_k(object):
         #plt.yscale('symlog')
         ax.legend(frameon=False,loc=1)
         plt.savefig(self.base_directory+'/time_series.eps')
-        #plt.show()
+        plt.show()
         #integrand
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -218,7 +219,7 @@ class _collect_u2_vs_k(object):
         ax.set_xlabel('t')
         ax.set_ylabel('integrand')
         plt.savefig(self.base_directory+'/integrand.eps')
-        #plt.show()
+        plt.show()
         #plt.figure()
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -230,7 +231,7 @@ class _collect_u2_vs_k(object):
         #plt.xscale('symlog')
         #plt.yscale('log')
         plt.savefig(self.base_directory+'/u2_vs_k.eps') 
-        #plt.show()
+        plt.show()
         
     def _print_volumes(self):
         dname = 'volume_data'
