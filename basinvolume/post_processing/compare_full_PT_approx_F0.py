@@ -303,28 +303,43 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
     and
     S = S^\star - \log(N!)
     """
-    def __init__(self, F0):
+    def __init__(self, F0, packings_dir):
         self.F0_full = F0
         self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 10, verbose = True)
         self.F0 = self.outlier_detection.non_outliers
+        self.packings_dir =packings_dir
     def compute_log_omega_entropy(self, volume_sanity_check):
         self.generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
-        desired_binsize = 0.8
-        bins = np.abs(np.amax(self.F0) - np.amin(self.F0)) / desired_binsize
+        bins = self.compute_desired_nr_bins(10) 
         hist, bin_edges = np.histogram(self.F0, density = True, bins = bins)
-        #plt.hist(self.F0, bins = bins, normed = True)
+        plt.hist(self.F0, bins = bins, normed = True)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
         self.generalised_gauss.fit(bin_centres, hist)
+        xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
+        plt.plot(xp, [self.generalised_gauss.get_fitted(xpi) for xpi in xp], "r", label = "Generalised Gaussian")
+        plt.legend()
+        plt.xlabel(r"Free energy $F$")
+        plt.ylabel(r"Probability density")
+        save_pdf(plt, self.packings_dir + "/unbiasing_fit.pdf")
         self.compute_integral(volume_sanity_check)
         self.S_star = - volume_sanity_check.F0_acc + np.log(self.integral)
         self.S = self.S_star - log_factorial(volume_sanity_check.nr_particles)
         self.error_S_star = None
         self.error_S = None
         self.write_to_file()
+        assert(self.S > 0)
         assert(self.S_star > 0)
+    def compute_desired_nr_bins(self, maximum_av_number_per_bin):
+        bins = 1
+        while True:
+            hist, bin_edges = np.histogram(self.F0, bins = bins)
+            if (np.mean(hist) > maximum_av_number_per_bin):
+                bins += 1
+            else:
+                return bins
     def compute_integral(self, volume_sanity_check):
         from scipy import integrate
-        self.integral = integrate.quad(self.generalised_gauss.get_fitted_times_expx, volume_sanity_check.F0_acc, np.inf)[0]
+        self.integral, self.integral_error = integrate.quad(self.generalised_gauss.get_fitted_times_expx, volume_sanity_check.F0_acc, np.amax(self.F0) * 100, points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
         assert(self.integral > 0)
     def write_to_file(self):
         print "Log of Omega entropy:"
@@ -345,7 +360,7 @@ class GenerateComparisonPlotPTApprox(object):
             self._compute_F0()
         self._gather_data()
         self.best_integration_selection.perform_sanity_check_on_final_F0(self.volume_sanity_check)
-        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final)
+        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final, self.packings_dir)
         self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
         self._generate_plots()
         self.best_integration_selection.print_fail_information(self.packings_dir)
