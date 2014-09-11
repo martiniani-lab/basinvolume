@@ -89,7 +89,7 @@ class GeneralisedGauss(object):
     Parameters are as follows:
     PDF(mu, alpha, zeta; x) = zeta / (2 * alpha * gamma(1 / zeta)) * exp[-|x - mu|**zeta / alpha**zeta]
     """
-    def __init__(self, mu_initial = 1, alpha_initial = 1, zeta_initial = 1, alpha_min = 1e-10, zeta_min = 1e-10):
+    def __init__(self, mu_initial = 1, alpha_initial = 1, zeta_initial = 1, alpha_min = 1e-10, zeta_min = 1e-10, verbose = False):
         if alpha_min < 0:
             raise Exception("GeneralisedGauss: attempt to set illegal parameter value: alpha_min")
         if zeta_min < 0:
@@ -99,6 +99,7 @@ class GeneralisedGauss(object):
         self.mu = mu_initial
         self.alpha_offset = alpha_initial - self.alpha_min
         self.zeta_offset = zeta_initial - self.zeta_min
+        self.verbose = verbose
     def set_mu(self, mu):
         self.mu = mu
     def set_alpha(self, alpha):
@@ -130,9 +131,10 @@ class GeneralisedGauss(object):
         self.alpha_fit = self.get_alpha(self.alpha_offset)
         self.zeta_fit = self.get_zeta(self.zeta_offset)
         self.fit_error = error_gen
-        print "self.mu", self.mu
-        print "self.alpha_offset", self.alpha_offset
-        print "self.zeta_offset", self.zeta_offset
+        if self.verbose:
+            print "self.mu", self.mu
+            print "self.alpha_offset", self.alpha_offset
+            print "self.zeta_offset", self.zeta_offset
 
 class GLPTNotUsedStatistics(object):
     """
