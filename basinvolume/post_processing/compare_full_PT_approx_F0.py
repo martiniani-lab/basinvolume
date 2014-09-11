@@ -389,7 +389,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
     """
     def __init__(self, F0, packings_dir):
         self.F0_full = F0
-        self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 10, verbose = True)
+        self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 3*np.sqrt(np.var(self.F0_full)), verbose = True)
         self.F0 = self.outlier_detection.non_outliers
         self.packings_dir =packings_dir
         self.entropy_file_path = self.packings_dir + "/entropy_LogOmega"
