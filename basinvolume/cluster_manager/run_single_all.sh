@@ -11,6 +11,8 @@ queue_type="s16"
 nodes=1
 cores=7
 walltime=12
+nojmin=0
+nojmax=500
 path_to_script="/home/sm958/Work/basinvolume/basinvolume/spheres/"
 #options are --kmin and --kmax or --pt
 option="--pt"
@@ -25,7 +27,7 @@ echo
 echo "Running ${job_name}" 
 echo 
 python ~/Work/basinvolume/basinvolume/cluster_manager/BVSubmitPBS.py single $ndim $workdir $path_to_script $job_label $queue_type \
-$nodes $cores $walltime $option
+$nodes $cores $walltime $option --nojmin $nojmin --nojmax $nojmax 
 echo 
 echo "Job finished. PBS details are:" 
 echo 
