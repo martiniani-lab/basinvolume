@@ -205,31 +205,63 @@ class BestIntegrationSelection(object):
         self.GLPT_not_used_statistics = GLPTNotUsedStatistics()
     def check_next_F0(self, volume_sanity_check, volume_data, volume_file_path):
         F0 = volume_data.F0[-1]
+        assert(F0 == F0)
+        assert(np.isfinite(F0))
         F0_error = volume_data.sigF0[-1]
+        assert(F0_error == F0_error)
+        assert(np.isfinite(F0_error))
         F0_approx_PTu2k0 = volume_data.F0_approx_PTu2k0[-1]
+        assert(F0_approx_PTu2k0 == F0_approx_PTu2k0)
+        assert(np.isfinite(F0_approx_PTu2k0))
         F0_approx_PTu2k0_error = volume_data.F0_approx_PTu2k0_error[-1]
+        assert(F0_approx_PTu2k0_error == F0_approx_PTu2k0_error)
+        assert(np.isfinite(F0_approx_PTu2k0_error))
         kmax = self.get_kmax(volume_file_path)
         fail_information = "F0 from PT:", to_string(F0, 3), "kmax:", to_string(kmax, 3), "packing_label:", ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]
         if volume_sanity_check.is_insane(F0):
             self.bad_volumes_larger_than_Vacc.append(fail_information)
         if self.kmax_is_huge(kmax):
-            self.bad_volumes_huge_kmax.append(fail_information)
-        if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
-            if self.kmax_is_huge(kmax) is False:
-                print "---WARNING: GL integration failed, even though kmax is not huge!---"
-                raise Exception("GL integration failed, even though kmax is not huge!")
-            if volume_sanity_check.is_insane(F0_approx_PTu2k0):
-                print "---WARNING: GL integration failed and approximation is also wrong!---"
-                raise Exception("GL integration failed and approximation is also wrong!")
+            self.bad_volumes_huge_kmax.append(fail_information)     
+        
+        def record_approximation():
+            self.F0_final.append(F0_approx_PTu2k0)
+            self.F0_error_final.append(F0_approx_PTu2k0_error)
+            self.bad_volumes_failed_GL_integration.append(fail_information)
+            self.GLPT_not_used_statistics.add_approx()
+        
+        if volume_sanity_check.is_insane(F0):
+            if self.kmax_is_huge(kmax):
+                if volume_sanity_check.is_insane(F0_approx_PTu2k0) == False:
+                    record_approximation()
+                else:
+                    print("discarded packing: GL failed, approx failed, huge kmax")
             else:
-                self.F0_final.append(F0_approx_PTu2k0)
-                self.F0_error_final.append(F0_approx_PTu2k0_error)
-                self.bad_volumes_failed_GL_integration.append(fail_information)
-                self.GLPT_not_used_statistics.add_approx()
+                print "GL failed, with reasonable kmax!"
+                assert(False)
         else:
-            self.F0_final.append(F0)
-            self.F0_error_final.append(F0_error)
-            self.GLPT_not_used_statistics.add_PT_GL()
+            if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
+                if volume_sanity_check.is_insane(F0_approx_PTu2k0) == False:
+                    record_approximation()
+                else:
+                    print "GL failed, approx failed, with reasonable kmax!"
+                    assert(False)
+            else:
+                #this should be the default behaviour
+                self.F0_final.append(F0)
+                self.F0_error_final.append(F0_error)
+                self.GLPT_not_used_statistics.add_PT_GL()
+                
+        assert(len(self.F0_final) == len(self.F0_error_final))
+        if volume_sanity_check.is_insane(self.F0_final[-1]):
+            print "fail_information"
+            print fail_information
+            print "F0 ",F0
+            print "F0_error ",F0_error
+            print "kmax ",kmax
+            print "F0_approx_PTu2k0 ",F0_approx_PTu2k0
+            print "F0_approx_PTu2k0_error ",F0_approx_PTu2k0_error
+            assert(False)
+            
     def get_kmax(self, volume_file):
         path_with_kmax_info_file = os.path.split(os.path.split(volume_file)[0])[0]
         kmax_file = [path_with_kmax_info_file + "/" + f for f in os.listdir(path_with_kmax_info_file) if f.endswith(".config") and f.startswith("findk_jammed_packing")][0]
@@ -243,14 +275,16 @@ class BestIntegrationSelection(object):
             return False
     def perform_sanity_check_on_final_F0(self, volume_sanity_check):
         self.GLPT_not_used_statistics.print_statistics()
-        if len(self.F0_final) is not len(self.F0_error_final):
+        if len(self.F0_final) != len(self.F0_error_final):
             raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: error handling failed")
         for F0_final in self.F0_final:
             if volume_sanity_check.is_insane(F0_final):
+                print F0_final
                 raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: F0 is insane")
+            
     def print_fail_information(self, packings_dir):
         def failed_to_file(path, info):
-            if len(info) is 0:
+            if len(info) == 0:
                 return
             f = open(path, "w")
             for line in info:
@@ -269,7 +303,7 @@ class F0MeanError(object):
     sampled with bias, see APFEntropy below.
     """
     def __init__(self, F0, error_F0):
-        if len(F0) is not len(error_F0):
+        if len(F0) != len(error_F0):
             raise Exception("F0MeanError: illegal shape of F0, F0_error arrays")
         F0 = np.array(F0)
         error_F0 = np.array(error_F0)
@@ -332,7 +366,7 @@ class JackLogOmega(object):
         self.error_S_star = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc.get_variance())
     def get_S_star_excluding_index(self, excluded_index):
         reduced_F0 = np.delete(self.F0, excluded_index)
-        assert(len(reduced_F0) + 1 is len(self.F0))
+        assert(len(reduced_F0) + 1 == len(self.F0))
         generalised_gauss = GeneralisedGauss(alpha_min = self.alpha_min, zeta_min = self.zeta_min)
         bins = self.bins
         hist, bin_edges = np.histogram(reduced_F0, density = True, bins = bins)
