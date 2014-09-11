@@ -106,7 +106,7 @@ class BVSubmitPBS(object):
             for file in files:
                 if self.ext in file:
                     noj = re.findall(r'\d+', file)[0]                   #extract packing number
-                    if self.nojmin <= noj <= self.nojmax:
+                    if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
                         if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
@@ -138,7 +138,7 @@ class BVSubmitPBS(object):
             for file in files:
                 if self.ext in file:
                     noj = re.findall(r'\d+', file)[0]                   #extract packing number
-                    if self.nojmin <= noj <= self.nojmax:
+                    if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
                         if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
@@ -176,7 +176,7 @@ class BVSubmitPBS(object):
             for dir in dirs:
                 if self.explore_dir in dir:            #PT requires that the explore_dir has already been created
                     noj = re.findall(r'\d+', dir)[0]   #extract packing number from explor_dir string
-                    if self.nojmin <= noj <= self.nojmax:
+                    if self.nojmin <= int(noj) <= self.nojmax:
                         path = os.path.join(root,dir)      #build a full path
                         kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
@@ -208,7 +208,7 @@ class BVSubmitPBS(object):
             for file in files:
                 if self.ext in file:
                     noj = re.findall(r'\d+', file)[0]                   #extract packing number
-                    if self.nojmin <= noj <= self.nojmax:
+                    if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
                         if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
