@@ -8,7 +8,7 @@ try:
     from matplotlib.backends.backend_pdf import PdfPages
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string
+    from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
 except ImportError as err:
     print err
@@ -18,19 +18,7 @@ def save_pdf(plt, file_name):
     plt.savefig(pdf, format="pdf")
     pdf.close()
     plt.close()
-    
-class FitResultsFile(object):
-    def __init__(self, file_name):
-        self.file_name = file_name
-        self.f = open(self.file_name, "w")
-        self.f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-    def set_heading(self, title):
-        self.f.write("[" + title + "]\n")
-    def to_file(self, name, value):
-        self.f.write((name + ": {}\n").format(to_string(value)))
-    def close(self):
-        self.f.close()
-        
+            
 class PackingFailureStatistics(object):
     def __init__(self, total_nr):
         self.total_nr = total_nr
@@ -142,9 +130,36 @@ class GeneralisedGauss(object):
         print "self.alpha_offset", self.alpha_offset
         print "self.zeta_offset", self.zeta_offset
 
+class GLPTNotUsedStatistics(object):
+    """
+    Collect statistics on how many times the GL (PT) result was not used due to
+    large integration error (for huge kmax).
+    In these cases the analytical intrgral approximation is used.
+    The number of these cases should be realtively low.
+    """
+    def __init__(self):
+        self.total_nr = 0
+        self.used_approx = 0
+    def add_PT_GL(self):
+        self.add_any()
+    def add_approx(self):
+        self.add_any()
+        self.used_approx += 1
+    def add_any(self):
+        self.total_nr += 1
+    def get_approx_use_fraction(self):
+        return self.used_approx / self.total_nr
+    def print_statistics(self):
+        print "GLPTNotUsedStatistics:"
+        print "total number of F0 values:", self.total_nr
+        print "number of times GL failed:", self.used_approx
+        print "GL failure (approx usage) fraction:", self.get_approx_use_fraction()
+
 class BestIntegrationSelection(object):
     """
     Handles part of the analysis of F0 values.
+    This version only considers packings where both, the kindk runs, and PT
+    completed successfully.
     In case there is a huge kmax, we allow for the GL integration to fail and
     use an analytic approximation instead.
     In case there is no huge kmax and the GL integration still fails, something
@@ -165,18 +180,22 @@ class BestIntegrationSelection(object):
         self.bad_volumes_larger_than_Vacc = []
         self.bad_volumes_failed_GL_integration = []
         self.bad_volumes_huge_kmax = []
+        self.GLPT_not_used_statistics = GLPTNotUsedStatistics()
     def check_next_F0(self, volume_sanity_check, volume_data, volume_file_path):
         F0 = volume_data.F0[-1]
         F0_error = volume_data.sigF0[-1]
         F0_approx_PTu2k0 = volume_data.F0_approx_PTu2k0[-1]
         F0_approx_PTu2k0_error = volume_data.F0_approx_PTu2k0_error[-1]
         kmax = self.get_kmax(volume_file_path)
-        fail_information = "F0:", to_string(F0, 3), "kmax:", to_string(kmax, 3), "packing_label:", ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]
+        fail_information = "F0 from PT:", to_string(F0, 3), "kmax:", to_string(kmax, 3), "packing_label:", ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]
         if volume_sanity_check.is_insane(F0):
             self.bad_volumes_larger_than_Vacc.append(fail_information)
         if self.kmax_is_huge(kmax):
             self.bad_volumes_huge_kmax.append(fail_information)
         if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
+            if self.kmax_is_huge(kmax) is False:
+                print "---WARNING: GL integration failed, even though kmax is not huge!---"
+                raise Exception("GL integration failed, even though kmax is not huge!")
             if volume_sanity_check.is_insane(F0_approx_PTu2k0):
                 print "---WARNING: GL integration failed and approximation is also wrong!---"
                 raise Exception("GL integration failed and approximation is also wrong!")
@@ -184,9 +203,11 @@ class BestIntegrationSelection(object):
                 self.F0_final.append(F0_approx_PTu2k0)
                 self.F0_error_final.append(F0_approx_PTu2k0_error)
                 self.bad_volumes_failed_GL_integration.append(fail_information)
+                self.GLPT_not_used_statistics.add_approx()
         else:
             self.F0_final.append(F0)
             self.F0_error_final.append(F0_error)
+            self.GLPT_not_used_statistics.add_PT_GL()
     def get_kmax(self, volume_file):
         path_with_kmax_info_file = os.path.split(os.path.split(volume_file)[0])[0]
         kmax_file = [path_with_kmax_info_file + "/" + f for f in os.listdir(path_with_kmax_info_file) if f.endswith(".config") and f.startswith("findk_jammed_packing")][0]
@@ -198,8 +219,17 @@ class BestIntegrationSelection(object):
             return True
         else:
             return False
+    def perform_sanity_check_on_final_F0(self, volume_sanity_check):
+        self.GLPT_not_used_statistics.print_statistics()
+        if len(self.F0_final) is not len(self.F0_error_final):
+            raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: error handling failed")
+        for F0_final in self.F0_final:
+            if volume_sanity_check.is_insane(F0_final):
+                raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: F0 is insane")
     def print_fail_information(self, packings_dir):
         def failed_to_file(path, info):
+            if len(info) is 0:
+                return
             f = open(path, "w")
             for line in info:
                 f.write("failed packing:\n")
@@ -210,6 +240,61 @@ class BestIntegrationSelection(object):
         failed_to_file(packings_dir + "/bad_volumes_larger_than_Vacc", self.bad_volumes_larger_than_Vacc)
         failed_to_file(packings_dir + "/bad_volumes_failed_GL_integration", self.bad_volumes_failed_GL_integration)
         failed_to_file(packings_dir + "/bad_volumes_huge_kmax", self.bad_volumes_huge_kmax)
+
+class F0MeanError(object):
+    """
+    The mean is not weithed by the error because we want to have the mean as
+    sampled with bias, see APFEntropy below.
+    """
+    def __init__(self, F0, error_F0):
+        if len(F0) is not len(error_F0):
+            raise Exception("F0MeanError: illegal shape of F0, F0_error arrays")
+        F0 = np.array(F0)
+        error_F0 = np.array(error_F0)
+        self.mean = np.mean(F0)
+        squared_errors = error_F0 ** 2
+        self.error = np.sqrt(np.sum(squared_errors)) / len(squared_errors)
+        self.sample_variance_error = np.sqrt(np.var(F0) / len(F0))
+
+class APFEntropy(object):
+    def __init__(self, F0, error_F0, volume_sanity_check):
+        self.F0 = F0
+        self.error_F0 = error_F0
+        self.F0_acc = volume_sanity_check.F0_acc
+        self.V_acc = volume_sanity_check.V_acc
+        self.nr_particles = volume_sanity_check.nr_particles
+    def compute_and_write_entropy(self, entropy_file_path):
+        """
+        Granular entropy according to Asenjo14: 10.1103/PhysRevLett.112.098002
+        S_\text{APF}^* = \langle F \rangle_\text{biased} + \log(V_\text{acc})
+        S_\text{APF} = S_\text{APF}^* - \log(N!)
+        """
+        F0_stat = F0MeanError(self.F0, self.error_F0)
+        self.S_star = F0_stat.mean - self.F0_acc
+        if self.S_star < 0:
+            raise Exception("APFEntropy: compute_and_write_entropy: entropy computation failed")
+        self.S = self.S_star - log_factorial(self.nr_particles)
+        #self.error_S_star = F0_stat.error
+        self.error_S_star = F0_stat.sample_variance_error
+        self.error_S = self.error_S_star
+        print "Granular entropy according to APF:"
+        print "S_star:", self.S_star, "+/-", self.error_S_star 
+        print "S:", self.S, "+/-", self.error_S
+        self.write_to_file(entropy_file_path)
+    def write_to_file(self, entropy_file_path):
+        f = ResultsFile(entropy_file_path)
+        f.set_heading("ENTROPY_APF")
+        f.to_file("S_star", self.S_star)
+        f.to_file("error_S_star", self.error_S_star)
+        f.to_file("S", self.S)
+        f.to_file("error_S", self.error_S)
+        f.close()
+
+class OutlierRemovalUnbiasingEntropyLogOmega(object):
+    def __init__(self, F0):
+        self.F0_full = F0
+        self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 10, verbose = True)
+        self.F0 = self.outlier_detection.non_outliers
 
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
@@ -224,8 +309,11 @@ class GenerateComparisonPlotPTApprox(object):
         if not self.skip_volume_computation:
             self._compute_F0()
         self._gather_data()
+        self.best_integration_selection.perform_sanity_check_on_final_F0(self.volume_sanity_check)
         self._generate_plots()
         self.best_integration_selection.print_fail_information(self.packings_dir)
+        self.APF_entropy = APFEntropy(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
+        self.APF_entropy.compute_and_write_entropy(self.packings_dir + "/entropy_AFP")
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
@@ -237,7 +325,7 @@ class GenerateComparisonPlotPTApprox(object):
                 volf = ConfigParser.ConfigParser()
                 volf.read(str(path + "/analysis/volume_data"))
                 F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
-                self.volume_sanity_check.check(F0, "F0", path)
+                #self.volume_sanity_check.check(F0, "F0", path)
                 self.packing_stat.add_success()
             except:
                 print "failed packing!"
@@ -286,12 +374,16 @@ class GenerateComparisonPlotPTApprox(object):
         self._print_histogram_and_data(self.F0, "/volume_histogram_F0")
         self._print_histogram_and_data(self.unit_box_F0, "/volume_histogram_unit_box_F0")
         self._print_histogram_and_data(self.F0_approx, "/volume_histogram_F0_approx")
-        self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx") 
+        self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx")
+        self._print_histogram_and_data(self.best_integration_selection.F0_final, "/volume_histogram_F0_final")
+        self.F0_final_removed_outliers = OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final).F0
+        self._print_histogram_and_data(self.F0_final_removed_outliers, "/volume_histogram_F0_final_removed_outliers")
     def _print_histogram_and_data(self, data, name):
         np.savetxt(self.packings_dir + name + ".data", data)
-        bins = 100
+        desired_binsize = 1.5
+        bins = np.abs(np.amax(data) - np.amin(data)) / desired_binsize
         hist, bin_edges = np.histogram(data, density = True, bins = bins)
-        plt.hist(data, bins = 100, normed = True)
+        plt.hist(data, bins = bins, normed = True)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
         def _gauss(x, sig, mu):
             return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
@@ -302,6 +394,7 @@ class GenerateComparisonPlotPTApprox(object):
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
         generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
+        print "name:", name
         generalised_gauss.fit(bin_centres, hist)
         gen_gauss_fit_opt = [generalised_gauss.mu_fit, generalised_gauss.alpha_fit, generalised_gauss.zeta_fit]
         gen_gauss_fit_error = generalised_gauss.fit_error
@@ -317,7 +410,7 @@ class GenerateComparisonPlotPTApprox(object):
         #plot in lin-lin scale
         _set_hist_basics(plt)
         save_pdf(plt, self.packings_dir + name + ".pdf")
-        plt.hist(data, bins = 100, normed = True)
+        plt.hist(data, bins = bins, normed = True)
         #plot in ylog scale
         _set_hist_basics(plt)
         plt.yscale('log', nonposy='clip')
@@ -326,7 +419,7 @@ class GenerateComparisonPlotPTApprox(object):
         self._print_fitting_results(name, gauss_fit, gen_gauss_fit)
     def _print_fitting_results(self, name, gauss_fit, gen_gauss_fit):
         self.fit_results_dir = self.packings_dir + name + ".fit_results"
-        f = FitResultsFile(self.fit_results_dir)
+        f = ResultsFile(self.fit_results_dir)
         def _print_function_parameters(fit_info):
             for parameter in xrange(len(fit_info[0])):
                 f.to_file(fit_info[1][parameter], fit_info[0][parameter])
@@ -344,7 +437,6 @@ if __name__ == "__main__":
     parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.1, type = float, help = "parameter that selects between GL integral from PT data and approx integral")
     parser.add_argument("-kmax_threshold", "--kmax_threshold", default = 1000, type = float, help = "largest kmax value that is not considered to be huge")
     args = parser.parse_args()
-    print args
     packings_dir = os.path.abspath(args.packings_dir)
     GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error, kmax_threshold = args.kmax_threshold)
     

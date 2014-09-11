@@ -8,13 +8,16 @@ import basinvolume
 import pele
 import mcpele
 
-def volume_nball(radius,n):
-    volume = np.power(np.pi,n/2)*np.power(radius,n)/gamma(n/2+1)
+def volume_nball(radius, n):
+    volume = np.power(np.pi, n / 2) * np.power(radius, n) / gamma(n / 2 + 1)
     return volume
 
-def log_volume_nball(radius,n):
-    log_volume = n/2.0 * np.log(np.pi) + n * np.log(radius) - gammaln(n/2+1)
+def log_volume_nball(radius, n):
+    log_volume = n / 2.0 * np.log(np.pi) + n * np.log(radius) - gammaln(n / 2 + 1)
     return log_volume
+
+def log_factorial(x):
+    return gammaln(x + 1)
 
 def cround(r):
     if r > 0.0:
@@ -150,3 +153,66 @@ def to_string(inp, digits_after_point = 16):
     format_string += str(digits_after_point)
     format_string += "f}"
     return format_string.format(inp)
+
+class ResultsFile(object):
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.f = open(self.file_name, "w")
+        self.f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+    def set_heading(self, title):
+        self.f.write("[" + title + "]\n")
+    def to_file(self, name, value):
+        self.f.write((name + ": {}\n").format(to_string(value)))
+    def close(self):
+        self.f.close()
+        
+class OutlierDetection(object):
+    """
+    Classification of an array of numbers in outliers and non-outliers
+    according to the definition in Knorr98,
+    http://www.vldb.org/conf/1998/p392.pdf
+    An object O in a dataset T is a DB(p,D) outlier if at least fraction p of 
+    the obects in T lies greater than distance D from O.
+    Parameters are p and D.
+    """
+    def __init__(self, data, p = 0.1, D = 1, verbose = False):
+        if p < 0 or p > 1:
+            raise Exception("OutlierDetection: illegal input: p")
+        if D < 0:
+            raise Exception("OutlierDetection: illegal input: D")
+        self.data = data
+        self.p = p
+        self.D = D
+        self.verbose = verbose
+        self.distant_point_maximum = len(self.data) * self.p
+        self.find_outliers()
+    def find_outliers(self):
+        self.non_outliers = []
+        self.outliers = []
+        for datum in self.data:
+            if self.is_outlier(datum):
+                self.outliers.append(datum)
+            else:
+                self.non_outliers.append(datum)
+        if self.verbose:
+            self.print_parameters_statistics()
+    def is_outlier(self, central_datum):
+        distant_points = 0
+        for other_datum in self.data:
+            if self.is_distant_point(central_datum, other_datum):
+                distant_points += 1
+            if distant_points >= self.distant_point_maximum:
+                return True
+        return False
+    def is_distant_point(self, central_datum, other_datum):
+        return np.abs(central_datum - other_datum) > self.D
+    def print_parameters_statistics(self):
+        print "OutlierDetection:"
+        print "parameter p:", self.p
+        print "parameter D:", self.D
+        print "number of outliers:", len(self.outliers)
+        print "fraction of outliers:", len(self.outliers) / (len(self.outliers) + len(self.non_outliers))
+        print "mean of non_outliers:", np.mean(self.non_outliers)
+        print "mean of outliers:", np.mean(self.outliers)
+        print "outliers:", self.outliers
+        
