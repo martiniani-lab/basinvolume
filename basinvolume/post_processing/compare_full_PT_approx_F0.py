@@ -308,6 +308,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 10, verbose = True)
         self.F0 = self.outlier_detection.non_outliers
         self.packings_dir =packings_dir
+        self.entropy_file_path = self.packings_dir + "/entropy_LogOmega"
     def compute_log_omega_entropy(self, volume_sanity_check):
         self.generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
         bins = self.compute_desired_nr_bins(10) 
@@ -345,6 +346,13 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         print "Log of Omega entropy:"
         print "S_star:", self.S_star, "+/-", self.error_S_star 
         print "S:", self.S, "+/-", self.error_S
+        f = ResultsFile(self.entropy_file_path)
+        f.set_heading("ENTROPY_LOG_OMEGA")
+        f.to_file("S_star", self.S_star)
+        #f.to_file("error_S_star", self.error_S_star)
+        f.to_file("S", self.S)
+        #f.to_file("error_S", self.error_S)
+        f.close()
 
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
