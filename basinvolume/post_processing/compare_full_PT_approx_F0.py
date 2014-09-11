@@ -8,7 +8,7 @@ try:
     from matplotlib.backends.backend_pdf import PdfPages
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection
+    from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection, MomentsAcc
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
 except ImportError as err:
     print err
@@ -294,6 +294,38 @@ class APFEntropy(object):
         f.to_file("error_S", self.error_S)
         f.close()
 
+class JackLogOmega(object):
+    """
+    Compute Jackknife mean and error for the LogOmega entropy.
+    Used to get an error bar on LogOmega.
+    """
+    def __init__(self, F0, alpha_min, zeta_min, bins, volume_sanity_check):
+        self.F0 = F0
+        self.alpha_min = alpha_min
+        self.zeta_min = zeta_min
+        self.bins = bins
+        self.volume_sanity_check = volume_sanity_check
+        self.compute_jack_estimates()
+    def compute_jack_estimates(self):
+        self.jack_acc = MomentsAcc()
+        for idx in xrange(len(self.F0)):
+            self.jack_acc.update(self.get_S_star_excluding_index(idx))
+        self.S_star = self.jack_acc.mean
+        self.error_S_star = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc.get_variance())
+    def get_S_star_excluding_index(self, excluded_index):
+        reduced_F0 = np.delete(self.F0, excluded_index)
+        assert(len(reduced_F0) + 1 is len(self.F0))
+        generalised_gauss = GeneralisedGauss(alpha_min = self.alpha_min, zeta_min = self.zeta_min)
+        bins = self.bins
+        hist, bin_edges = np.histogram(reduced_F0, density = True, bins = bins)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+        generalised_gauss.fit(bin_centres, hist)
+        from scipy import integrate
+        integral, integral_error = integrate.quad(generalised_gauss.get_fitted_times_expx, self.volume_sanity_check.F0_acc, np.amax(reduced_F0) * 100, points = [np.amin(reduced_F0), np.amax(reduced_F0), np.mean(reduced_F0)])
+        assert(integral > 0)
+        S_star_red = - self.volume_sanity_check.F0_acc + np.log(integral)
+        return S_star_red
+
 class OutlierRemovalUnbiasingEntropyLogOmega(object):
     """
     Fits generalised gaussian to histogram of F0 data.
@@ -310,8 +342,11 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         self.packings_dir =packings_dir
         self.entropy_file_path = self.packings_dir + "/entropy_LogOmega"
     def compute_log_omega_entropy(self, volume_sanity_check):
-        self.generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
-        bins = self.compute_desired_nr_bins(10) 
+        self.alpha_min = 0.01
+        self.zeta_min = 0.01
+        self.maximum_av_number_per_bin = 10
+        self.generalised_gauss = GeneralisedGauss(alpha_min = self.alpha_min, zeta_min = self.zeta_min)
+        bins = self.compute_desired_nr_bins(self.maximum_av_number_per_bin) 
         hist, bin_edges = np.histogram(self.F0, density = True, bins = bins)
         plt.hist(self.F0, bins = bins, normed = True)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
@@ -323,10 +358,13 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         plt.ylabel(r"Probability density")
         save_pdf(plt, self.packings_dir + "/unbiasing_fit.pdf")
         self.compute_integral(volume_sanity_check)
-        self.S_star = - volume_sanity_check.F0_acc + np.log(self.integral)
+        self.S_star_no_jack = - volume_sanity_check.F0_acc + np.log(self.integral_no_jack)
+        self.S_no_jack = self.S_star_no_jack - log_factorial(volume_sanity_check.nr_particles)
+        self.jack_log_omega = JackLogOmega(self.F0, self.alpha_min, self.zeta_min, bins, volume_sanity_check)
+        self.S_star = self.jack_log_omega.S_star
+        self.error_S_star = self.jack_log_omega.error_S_star
         self.S = self.S_star - log_factorial(volume_sanity_check.nr_particles)
-        self.error_S_star = None
-        self.error_S = None
+        self.error_S = self.error_S_star
         self.write_to_file()
         assert(self.S > 0)
         assert(self.S_star > 0)
@@ -340,18 +378,18 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
                 return bins
     def compute_integral(self, volume_sanity_check):
         from scipy import integrate
-        self.integral, self.integral_error = integrate.quad(self.generalised_gauss.get_fitted_times_expx, volume_sanity_check.F0_acc, np.amax(self.F0) * 100, points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
-        assert(self.integral > 0)
+        self.integral_no_jack, self.integral_error = integrate.quad(self.generalised_gauss.get_fitted_times_expx, volume_sanity_check.F0_acc, np.amax(self.F0) * 100, points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
+        assert(self.integral_no_jack > 0)
     def write_to_file(self):
         print "Log of Omega entropy:"
-        print "S_star:", self.S_star, "+/-", self.error_S_star 
+        print "S_star:", self.S_star, "+/-", self.error_S_star
         print "S:", self.S, "+/-", self.error_S
         f = ResultsFile(self.entropy_file_path)
         f.set_heading("ENTROPY_LOG_OMEGA")
         f.to_file("S_star", self.S_star)
-        #f.to_file("error_S_star", self.error_S_star)
+        f.to_file("error_S_star", self.error_S_star)
         f.to_file("S", self.S)
-        #f.to_file("error_S", self.error_S)
+        f.to_file("error_S", self.error_S)
         f.close()
 
 class GenerateComparisonPlotPTApprox(object):

@@ -216,3 +216,17 @@ class OutlierDetection(object):
         print "mean of outliers:", np.mean(self.outliers)
         print "outliers:", self.outliers
         
+class MomentsAcc(object):
+    def __init__(self):
+        self.mean = 0
+        self.mean2 = 0
+        self.count = 0
+    def update(self, inp):
+        self.mean = (self.mean * self.count + inp) / (self.count + 1)
+        self.mean2 = (self.mean2 * self.count + (inp * inp)) / (self.count + 1)
+        self.count += 1
+    def get_variance(self):
+        return self.mean2 - self.mean * self.mean
+    def get_error(self):
+        return np.sqrt(self.get_variance() / self.count)
+        
