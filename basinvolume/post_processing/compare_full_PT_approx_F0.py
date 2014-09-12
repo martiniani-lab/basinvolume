@@ -26,6 +26,7 @@ try:
     from scipy.special import gamma
     from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection, MomentsAcc
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
+    from mcpele.utils import CDFAccumulator
 except ImportError as err:
     print err
 
@@ -131,7 +132,18 @@ class GeneralisedGauss(object):
     def get_zeta(self, zeta_offset):
         return np.abs(zeta_offset) + self.zeta_min
     def get(self, x, mu, alpha_offset, zeta_offset):
+        """
+        Return PDF
+        """
         return self.get_zeta(zeta_offset) / (2 * self.get_alpha(alpha_offset) * gamma(1 / self.get_zeta(zeta_offset))) * np.exp(- np.power((np.abs(x - mu) / self.get_alpha(alpha_offset)), self.get_zeta(zeta_offset)))
+    def get_cdf(self, x, mu, alpha_offset, zeta_offset):
+        """
+        Return CDF with the convention that for x = - \infty, CDF = 1
+        """
+        alpha = self.get_alpha(alpha_offset)
+        zeta = self.get_zeta(zeta_offset)
+        from scipy.special import gammainc
+        return 0.5 - np.sign(x - mu) * 0.5 * gammainc(1 / zeta, (np.abs(x - mu) / alpha) ** zeta) 
     def get_times_expx(self, x, mu, alpha_offset, zeta_offset):
         return self.get_zeta(zeta_offset) / (2 * self.get_alpha(alpha_offset) * gamma(1 / self.get_zeta(zeta_offset))) * np.exp(- np.power((np.abs(x - mu) / self.get_alpha(alpha_offset)), self.get_zeta(zeta_offset)) + x)
     def get_fitted(self, x):
@@ -151,6 +163,20 @@ class GeneralisedGauss(object):
             print "self.mu", self.mu
             print "self.alpha_offset", self.alpha_offset
             print "self.zeta_offset", self.zeta_offset
+    def fit_cdf(self, x, cdf_x):
+        opt_gen, error_gen = curve_fit(self.get_cdf, x, cdf_x, [np.mean(x), 2 * np.var(x), 2])
+        self.mu = opt_gen[0]
+        self.alpha_offset = opt_gen[1]
+        self.zeta_offset = opt_gen[2]
+        self.mu_fit = self.mu
+        self.alpha_fit = self.get_alpha(self.alpha_offset)
+        self.zeta_fit = self.get_zeta(self.zeta_offset)
+        self.fit_error = error_gen
+        if self.verbose:
+            print "self.mu", self.mu
+            print "self.alpha_offset", self.alpha_offset
+            print "self.zeta_offset", self.zeta_offset
+        
 
 class GLPTNotUsedStatistics(object):
     """
@@ -360,11 +386,47 @@ class JackLogOmega(object):
         self.compute_jack_estimates()
     def compute_jack_estimates(self):
         self.jack_acc = MomentsAcc()
+        self.jack_acc_mu = MomentsAcc()
+        self.jack_acc_alpha = MomentsAcc()
+        self.jack_acc_zeta = MomentsAcc()
         for idx in xrange(len(self.F0)):
-            self.jack_acc.update(self.get_S_star_excluding_index(idx))
+            S_star_red, mu_red, alpha_red, zeta_red = self.get_S_star_excluding_index(idx)
+            self.jack_acc.update(S_star_red)
+            self.jack_acc_mu.update(mu_red)
+            self.jack_acc_alpha.update(alpha_red)
+            self.jack_acc_zeta.update(zeta_red)
         self.S_star = self.jack_acc.mean
         self.error_S_star = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc.get_variance())
+        self.mu = self.jack_acc_mu.mean
+        self.mu_error = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc_mu.get_variance())
+        self.alpha = self.jack_acc_alpha.mean
+        self.alpha_error = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc_alpha.get_variance())
+        self.zeta = self.jack_acc_zeta.mean
+        self.zeta_error = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc_zeta.get_variance())
     def get_S_star_excluding_index(self, excluded_index):
+        reduced_F0 = np.delete(self.F0, excluded_index)
+        assert(len(reduced_F0) + 1 == len(self.F0))
+        generalised_gauss = GeneralisedGauss(alpha_min = self.alpha_min, zeta_min = self.zeta_min)
+        cdf = CDFAccumulator()
+        cdf.add_array(reduced_F0)
+        x, cdf_x = cdf.get_vecdata()
+        generalised_gauss.fit_cdf(x, cdf_x)
+        from scipy import integrate
+        integral, integral_error = integrate.quad(generalised_gauss.get_fitted_times_expx, self.volume_sanity_check.F0_acc, np.amax(reduced_F0) * 100, points = [np.amin(reduced_F0), np.amax(reduced_F0), np.mean(reduced_F0)])
+        assert(integral > 0)
+        S_star_red = - self.volume_sanity_check.F0_acc + np.log(integral)
+        return S_star_red, generalised_gauss.mu_fit, generalised_gauss.alpha_fit, generalised_gauss.zeta_fit
+    def compute_jack_estimates_from_pdf(self):
+        """
+        Old version of fits, uses pdf (histogram), has binning dependence
+        Does not include jack estimates for generalised gaussian parameters
+        """
+        self.jack_acc = MomentsAcc()
+        for idx in xrange(len(self.F0)):
+            self.jack_acc.update(self.get_S_star_excluding_index_from_pdf(idx))
+        self.S_star = self.jack_acc.mean
+        self.error_S_star = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc.get_variance())
+    def get_S_star_excluding_index_from_pdf(self, excluded_index):
         reduced_F0 = np.delete(self.F0, excluded_index)
         assert(len(reduced_F0) + 1 == len(self.F0))
         generalised_gauss = GeneralisedGauss(alpha_min = self.alpha_min, zeta_min = self.zeta_min)
@@ -417,6 +479,12 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         self.error_S_star = self.jack_log_omega.error_S_star
         self.S = self.S_star - log_factorial(volume_sanity_check.nr_particles)
         self.error_S = self.error_S_star
+        self.mu = self.jack_log_omega.mu
+        self.mu_error = self.jack_log_omega.mu_error
+        self.alpha = self.jack_log_omega.alpha
+        self.alpha_error = self.jack_log_omega.alpha_error
+        self.zeta = self.jack_log_omega.zeta
+        self.zeta_error = self.jack_log_omega.zeta_error
         self.write_to_file()
         assert(self.S > 0)
         assert(self.S_star > 0)
@@ -433,15 +501,27 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         self.integral_no_jack, self.integral_error = integrate.quad(self.generalised_gauss.get_fitted_times_expx, volume_sanity_check.F0_acc, np.amax(self.F0) * 100, points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
         assert(self.integral_no_jack > 0)
     def write_to_file(self):
+        def prnt(name, value, error):
+            print name + ":", value, "+/-", error
         print "Log of Omega entropy:"
-        print "S_star:", self.S_star, "+/-", self.error_S_star
-        print "S:", self.S, "+/-", self.error_S
+        prnt("S_star", self.S_star, self.error_S_star)
+        prnt("S", self.S, self.error_S)
+        print "Generalised Gaussian parameters:"
+        prnt("mu", self.mu, self.mu_error)
+        prnt("alpha", self.alpha, self.alpha_error)
+        prnt("zeta", self.zeta, self.zeta_error)
         f = ResultsFile(self.entropy_file_path)
         f.set_heading("ENTROPY_LOG_OMEGA")
         f.to_file("S_star", self.S_star)
         f.to_file("error_S_star", self.error_S_star)
         f.to_file("S", self.S)
         f.to_file("error_S", self.error_S)
+        f.to_file("mu", self.mu)
+        f.to_file("mu_error", self.mu_error)
+        f.to_file("alpha", self.alpha)
+        f.to_file("alpha_error", self.alpha_error)
+        f.to_file("zeta", self.zeta)
+        f.to_file("zeta_error", self.zeta_error)
         f.close()
 
 class GenerateComparisonPlotPTApprox(object):
