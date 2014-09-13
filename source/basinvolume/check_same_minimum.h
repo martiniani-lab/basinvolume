@@ -70,7 +70,7 @@ public:
             size_t ndim, const size_t eqsteps=0, std::shared_ptr<pele::DistanceInterface> dist=NULL,
             const bool perform_convergence_test=false, 
             const bool collect_minima_list=false);
-    virtual bool test(Array<double> &trial_coords, mcpele::MC * mc);
+    virtual bool conf_test(Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckSameMinimum() {}
 
     double get_distance() { return _d; }

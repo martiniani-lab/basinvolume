@@ -91,7 +91,7 @@ void CheckSameMinimum::_check_convergence(pele::Array<double> quenched_coords)
     _conv_test.check_convergence(quenched_coords, _optimizer);
 }
 
-bool CheckSameMinimum::test(Array<double> &trial_coords, MC * mc)
+bool CheckSameMinimum::conf_test(Array<double> &trial_coords, MC * mc)
 {
     _optimizer->reset(trial_coords);
     _optimizer->run();

@@ -37,7 +37,7 @@ public:
 
     virtual ~CheckOverlap() {};
 
-    bool test(Array<double> &trial_coords, mcpele::MC * mc)
+    bool conf_test(Array<double> &trial_coords, mcpele::MC * mc)
     {
         size_t i,j, i1, j1;
         double dr[_ndim];

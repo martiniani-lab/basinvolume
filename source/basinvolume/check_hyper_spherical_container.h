@@ -20,7 +20,7 @@ protected:
     size_t _ndim,_N;
 public:
     CheckHyperSphericalContainer(pele::Array<double> origin, double radius, size_t ndim);
-    virtual bool test(pele::Array<double> &trial_coords, mcpele::MC * mc);
+    virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckHyperSphericalContainer(){};
 };
 

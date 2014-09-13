@@ -33,7 +33,7 @@ void CheckHyperSphericalContainer::_get_vec_distance(const pele::Array<double>& 
     }
 }
 
-bool CheckHyperSphericalContainer::test(Array<double> &trial_coords, mcpele::MC * mc)
+bool CheckHyperSphericalContainer::conf_test(Array<double> &trial_coords, mcpele::MC * mc)
 {
     /*
     //debug
