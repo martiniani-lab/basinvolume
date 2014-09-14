@@ -27,6 +27,7 @@ try:
     from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection, MomentsAcc
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
     from mcpele.utils import CDFAccumulator
+    from scipy import integrate
 except ImportError as err:
     print err
 
@@ -146,6 +147,8 @@ class GeneralisedGauss(object):
         return 0.5 - np.sign(x - mu) * 0.5 * gammainc(1 / zeta, (np.abs(x - mu) / alpha) ** zeta) 
     def get_times_expx(self, x, mu, alpha_offset, zeta_offset):
         return self.get_zeta(zeta_offset) / (2 * self.get_alpha(alpha_offset) * gamma(1 / self.get_zeta(zeta_offset))) * np.exp(- np.power((np.abs(x - mu) / self.get_alpha(alpha_offset)), self.get_zeta(zeta_offset)) + x)
+    def get_times_expx_with_pars(self, x, mu, alpha, zeta):
+        return self.get_times_expx(x, mu, alpha - self.alpha_min, zeta - self.zeta_min)
     def get_fitted(self, x):
         return self.get(x, self.mu, self.alpha_offset, self.zeta_offset)
     def get_fitted_times_expx(self, x):
@@ -411,7 +414,6 @@ class JackLogOmega(object):
         cdf.add_array(reduced_F0)
         x, cdf_x = cdf.get_vecdata()
         generalised_gauss.fit_cdf(x, cdf_x)
-        from scipy import integrate
         integral, integral_error = integrate.quad(generalised_gauss.get_fitted_times_expx, self.volume_sanity_check.F0_acc, np.amax(reduced_F0) * 100, points = [np.amin(reduced_F0), np.amax(reduced_F0), np.mean(reduced_F0)])
         assert(integral > 0)
         S_star_red = - self.volume_sanity_check.F0_acc + np.log(integral)
@@ -434,7 +436,6 @@ class JackLogOmega(object):
         hist, bin_edges = np.histogram(reduced_F0, density = True, bins = bins)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
         generalised_gauss.fit(bin_centres, hist)
-        from scipy import integrate
         integral, integral_error = integrate.quad(generalised_gauss.get_fitted_times_expx, self.volume_sanity_check.F0_acc, np.amax(reduced_F0) * 100, points = [np.amin(reduced_F0), np.amax(reduced_F0), np.mean(reduced_F0)])
         assert(integral > 0)
         S_star_red = - self.volume_sanity_check.F0_acc + np.log(integral)
@@ -486,8 +487,22 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         self.zeta = self.jack_log_omega.zeta
         self.zeta_error = self.jack_log_omega.zeta_error
         self.write_to_file()
+        self.plot_unbiased_pdf_vs_data(volume_sanity_check)
         assert(self.S > 0)
         assert(self.S_star > 0)
+    def plot_unbiased_pdf_vs_data(self, volume_sanity_check):
+        plt.xlabel(r"Free energy $F$")
+        plt.ylabel(r"Un-biased PDF $\propto{P_\mathcal{B}(F)}\exp(F)$")
+        bins = 32
+        hist, bin_edges = np.histogram(self.F0, density = True, bins = bins)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+        xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
+        normalisation, error_norm = integrate.quad(self.generalised_gauss.get_times_expx_with_pars, volume_sanity_check.F0_acc, np.amax(self.F0) * 100, args = (self.mu, self.alpha, self.zeta, ), points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
+        plt.yscale('log')
+        plt.plot(bin_centres, [hist[i] * np.exp(bin_centres[i]) / normalisation for i in xrange(len(hist))], "o", label = "Data")
+        plt.plot(xp, [self.generalised_gauss.get_times_expx_with_pars(xi, self.mu, self.alpha, self.zeta) / normalisation for xi in xp], label = r"$P_\mathcal{U}(F)$")
+        plt.legend(loc = 2)
+        save_pdf(plt, self.packings_dir + "/unbiased_pdf_vs_data.pdf")
     def compute_desired_nr_bins(self, maximum_av_number_per_bin):
         bins = 1
         while True:
@@ -497,7 +512,6 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
             else:
                 return bins
     def compute_integral(self, volume_sanity_check):
-        from scipy import integrate
         self.integral_no_jack, self.integral_error = integrate.quad(self.generalised_gauss.get_fitted_times_expx, volume_sanity_check.F0_acc, np.amax(self.F0) * 100, points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
         assert(self.integral_no_jack > 0)
     def write_to_file(self):
