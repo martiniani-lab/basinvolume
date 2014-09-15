@@ -41,7 +41,6 @@ public:
     {
         size_t i,j, i1, j1;
         double dr[_ndim];
-        double dij;
 
         for (i=0;i<_nparticles;++i){
             i1 = _ndim*i;
