@@ -18,7 +18,7 @@ namespace bv{
  * Test for overlap of the hard sphere cores
  */
 template<typename DIST_POL>
-class CheckOverlap:public mcpele::ConfTest{
+class CheckOverlap:public mcpele::ConfTest {
 protected:
     const static size_t _ndim = DIST_POL::_ndim;
     Array<double> _hs_radii;
@@ -26,32 +26,32 @@ protected:
     std::shared_ptr<DIST_POL> _periodic_dist;
 
 public:
-    CheckOverlap(pele::Array<double> hs_radii, std::shared_ptr<DIST_POL> dist=NULL)
+    CheckOverlap(pele::Array<double> hs_radii, std::shared_ptr<DIST_POL> dist = NULL)
         : _hs_radii(hs_radii.copy()), 
         _nparticles(_hs_radii.size()),
         _periodic_dist(dist)
     {
-        if (_periodic_dist == NULL)
+        if (_periodic_dist == NULL) {
             throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
+        }
     }
 
     virtual ~CheckOverlap() {};
 
     bool conf_test(Array<double> &trial_coords, mcpele::MC * mc)
     {
-        size_t i,j, i1, j1;
+        size_t i, j, i1, j1;
         double dr[_ndim];
-
-        for (i=0;i<_nparticles;++i){
-            i1 = _ndim*i;
-            for (j= i + 1;j<_nparticles;++j){
-                j1 = _ndim*j;
+        for (i = 0; i < _nparticles; ++i) {
+            i1 = _ndim * i;
+            for (j = i + 1; j < _nparticles; ++j) {
+                j1 = _ndim * j;
                 _periodic_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
                 double dij2 = 0;
-                for (size_t k =0;k<_ndim;++k){
-                    dij2 += dr[k]*dr[k];
+                for (size_t k = 0; k < _ndim; ++k) {
+                    dij2 += dr[k] * dr[k];
                 }
-                double tmp = (_hs_radii[i] + _hs_radii[j]);
+                const double tmp = (_hs_radii[i] + _hs_radii[j]);
                 if (dij2 < tmp * tmp) {
                     return false;
                 }
