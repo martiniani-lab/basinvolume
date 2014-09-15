@@ -45,20 +45,16 @@ public:
 
         for (i=0;i<_nparticles;++i){
             i1 = _ndim*i;
-            for (j=0;j<_nparticles;++j){
-                if (i != j){
-                    j1 = _ndim*j;
-                    _periodic_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
-                    double dij2 = 0;
-                    for (size_t k =0;k<_ndim;++k){
-                        dij2 += dr[k]*dr[k];
-                    }
-                    dij = sqrt(dij2);
-                    dij -= (_hs_radii[i] + _hs_radii[j]);
-                    if (dij <= 0){
-                        //std::cout<<"rejected"<<std::endl;
-                        return false;
-                    }
+            for (j= i + 1;j<_nparticles;++j){
+                j1 = _ndim*j;
+                _periodic_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
+                double dij2 = 0;
+                for (size_t k =0;k<_ndim;++k){
+                    dij2 += dr[k]*dr[k];
+                }
+                double tmp = (_hs_radii[i] + _hs_radii[j]);
+                if (dij2 < tmp * tmp) {
+                    return false;
                 }
             }
         }
