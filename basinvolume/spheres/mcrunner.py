@@ -100,6 +100,8 @@ class HS_MCrunner(_BaseMCRunner):
         #construct test/action classes  
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'])
+        #NOTE
+        #should add an option to use cell lists, it shouldn't be the default behaviour
         rcut = np.amax(self.hs_radii)*2
         self.checkoverlap = CheckOverlapCellLists(coords, hs_radii, boxvec, rcut)
         #set up pele:MC
