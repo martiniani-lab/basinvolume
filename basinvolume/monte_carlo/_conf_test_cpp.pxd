@@ -19,6 +19,8 @@ cdef extern from *:
 cdef extern from "basinvolume/check_overlap.h" namespace "bv":
     cdef cppclass cppCheckOverlapPeriodic "bv::CheckOverlapPeriodic"[ndim]:
         cppCheckOverlapPeriodic(_pele.Array[double], _pele.Array[double]) except+
+    cdef cppclass cppCheckOverlapPeriodicCellLists "bv::CheckOverlapPeriodicCellLists"[ndim]:
+        cppCheckOverlapPeriodicCellLists(_pele.Array[double] coords, _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut, double ncellx_scale) except +
 
 
 

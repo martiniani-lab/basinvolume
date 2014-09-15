@@ -177,7 +177,7 @@ class HS_Generate_Packing(_Generate_Packing):
         self.hsf_stepsize = hsf_stepsize
         self.hs_radii = hs_radii
         self._sample_hs_radii() #outcome of sample radii depends on hs_radii. hence if initialise is called twice, the second
-                                #time it will not resample the radii, hence it must be kept in __init__
+                                    #time it will not resample the radii, hence it must be kept in __init__
         self._resize_box()
                                     
     def _initialise(self):
@@ -232,7 +232,7 @@ class HS_Generate_Packing(_Generate_Packing):
         no_overlap = True
         for i in xrange(self.nparticles):
             if no_overlap == True:
-                for j in xrange(self.nparticles):
+                for j in xrange(i, self.nparticles):
                     dij = 0
                     for k in xrange(self.bdim):
                         #use distances to nearest image convention
@@ -294,7 +294,7 @@ class HS_Generate_Packing(_Generate_Packing):
             print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
             self.coords, self.energy = dif_mcrunner.get_config()
             self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
-                                        self.hs_radii,self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 0,
+                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 0,
                                         seeds = self.seeds)
         self.mcrunner.set_config(self.coords, self.energy)
         self.mcrunner.run()

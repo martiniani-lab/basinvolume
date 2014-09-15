@@ -1,2 +1,2 @@
 from _action_cpp import RecordDisp2Histogram, Findk, RecordDisplacementTimeseries, FindNrDecorrelationSteps
-from _conf_test_cpp import CheckHyperSphericalContainer, CheckOverlap, CheckSameMinimum
+from _conf_test_cpp import CheckHyperSphericalContainer, CheckOverlap, CheckSameMinimum, CheckOverlapCellLists

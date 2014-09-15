@@ -8,7 +8,7 @@ from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
 from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
-from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap, RecordDisplacementTimeseries
+from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap, RecordDisplacementTimeseries, CheckOverlapCellLists
 from basinvolume.gui import HSWCASystem
 
 #for plotting histogram
@@ -100,7 +100,8 @@ class HS_MCrunner(_BaseMCRunner):
         #construct test/action classes  
         self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'])
-        self.checkoverlap = CheckOverlap(hs_radii, boxvec)
+        rcut = np.amax(self.hs_radii)*2
+        self.checkoverlap = CheckOverlapCellLists(coords, hs_radii, boxvec, rcut)
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.checkoverlap)
