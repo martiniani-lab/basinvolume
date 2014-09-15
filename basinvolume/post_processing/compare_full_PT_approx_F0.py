@@ -24,9 +24,8 @@ try:
     from matplotlib.backends.backend_pdf import PdfPages
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection, MomentsAcc
+    from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
-    from mcpele.utils import CDFAccumulator
     from scipy import integrate
 except ImportError as err:
     print err
