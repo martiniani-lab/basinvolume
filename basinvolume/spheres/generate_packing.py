@@ -5,7 +5,7 @@ import os
 import sys
 from scipy.special import gamma
 from mcrunner import HS_MCrunner, HS_MCrunnerOptDiffusion
-from pele.potentials import HS_WCA, WCA, HS_WCAPeriodicCellLists
+from pele.potentials import HS_WCA, WCA, HS_WCAPeriodicCellLists, InversePower
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
 from numpy.random import RandomState
@@ -299,7 +299,7 @@ class HS_Generate_Packing(_Generate_Packing):
         self.mcrunner.set_config(self.coords, self.energy)
         self.mcrunner.run()
         self.coords, self.energy = self.mcrunner.get_config()
-        
+    
     def _initialise_coords_quench(self):
         """
         it generates an initial set of coordinates from a LJ quench,
@@ -307,45 +307,54 @@ class HS_Generate_Packing(_Generate_Packing):
         the gap
         coordinates are generated until a valid configuration is foun
         """
-        no_overlap = False
-        sigma =  min(self.boxv) / np.power(2,1./6) #set sigma such that the the wca radius is the same as the box smallest side length
-        pot = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of sigma might have to be different
-                
-        while no_overlap == False:
-            no_overlap = True             
+        #sigma =  min(self.boxv) / np.power(2,1./6) #set sigma such that the the wca radius is the same as the box smallest side length
+        #pot = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of sigma might have to be different
+        pot = InversePower(10, self.eps, self.hs_radii * 2.2, ndim=self.bdim, boxvec=self.boxv)
+        
+        overlap = True    
+        while overlap == True:
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords,pot,nsteps=1000)
+            res = lbfgs_cpp(coords,pot,nsteps=10000)
             #assert(res.success is True) #checks that a minimum configuration has been found
             self.coords = np.array(res.coords)
-            print "generated new start coords "
-            #build a matrix with the distances between particles i and j        
-            distances = self._build_distance_matrix()
-            #build an array with the weighted distance to neighbours, the shortest distance is 10 times heavier than the largest
-            dmin = np.sort(distances,axis=1)
-            
-            if (self.nparticles > 8):
-                neighbours = 8
-            else:
-                neighbours = self.nparticles-2
-            
-            CTE = np.exp( np.log(12) / (neighbours-1))
-            weight = [CTE**i for i in xrange(neighbours)]
-            weight = weight[::-1]
-            weight.extend([0 for i in xrange(self.nparticles-neighbours)])
-            #print 'weights',weight
-            dmin = np.average(dmin,axis=1,weights=weight)
-            #sort and return a map of indices in descending order
-            dmap = np.argsort(dmin)[::-1]
-            #order particle sizes so that they are associated to coordinates with appropriate gaps
-            #print 'old radii',self.hs_radii
-            hs_radii = np.zeros(self.nparticles)
-            sorted_radii = np.sort(self.hs_radii)[::-1]
-            for i in xrange(self.nparticles):
-                hs_radii[dmap[i]] = sorted_radii[i]
-            self.hs_radii = hs_radii.copy()
-            #print 'new radii',self.hs_radii
+#            print "generated new start coords "
+#    sort radii in cavity
+#            self._sort_radii_in_cavities()
             #check that no two particles are overlapping (using nearest image convention)
-            no_overlap = self._check_overlaps()
+            overlap = not self._check_overlaps()
+            print "overlap",overlap
+    
+    def _sort_radii_in_cavities(self):
+        """
+        this function sorts the radii according to the cavity sizes
+        this is currently unused
+        """
+        #build a matrix with the distances between particles i and j        
+        distances = self._build_distance_matrix()
+        #build an array with the weighted distance to neighbours, the shortest distance is 10 times heavier than the largest
+        dmin = np.sort(distances,axis=1)
+        
+        if (self.nparticles > 8):
+            neighbours = 8
+        else:
+            neighbours = self.nparticles-2
+        
+        CTE = np.exp( np.log(12) / (neighbours-1))
+        weight = [CTE**i for i in xrange(neighbours)]
+        weight = weight[::-1]
+        weight.extend([0 for i in xrange(self.nparticles-neighbours)])
+        #print 'weights',weight
+        dmin = np.average(dmin,axis=1,weights=weight)
+        #sort and return a map of indices in descending order
+        dmap = np.argsort(dmin)[::-1]
+        #order particle sizes so that they are associated to coordinates with appropriate gaps
+        #print 'old radii',self.hs_radii
+        hs_radii = np.zeros(self.nparticles)
+        sorted_radii = np.sort(self.hs_radii)[::-1]
+        for i in xrange(self.nparticles):
+            hs_radii[dmap[i]] = sorted_radii[i]
+        self.hs_radii = hs_radii.copy()
+        #print 'new radii',self.hs_radii
              
     def _generate_packing_coords_direct(self):
         """
