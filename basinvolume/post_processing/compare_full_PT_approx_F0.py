@@ -21,20 +21,13 @@ try:
     import ConfigParser
     import os
     import matplotlib.pyplot as plt
-    from matplotlib.backends.backend_pdf import PdfPages
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
+    from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
     from scipy import integrate
 except ImportError as err:
     print err
-
-def save_pdf(plt, file_name):
-    pdf = PdfPages(file_name)
-    plt.savefig(pdf, format="pdf")
-    pdf.close()
-    plt.close()
             
 class PackingFailureStatistics(object):
     def __init__(self, total_nr):
@@ -536,7 +529,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         f.to_file("zeta", self.zeta)
         f.to_file("zeta_error", self.zeta_error)
         f.close()
-
+        
 class GenerateComparisonPlotPTApprox(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
         self.packings_dir = packings_dir

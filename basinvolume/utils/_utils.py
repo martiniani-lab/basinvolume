@@ -7,6 +7,10 @@ import platform
 import basinvolume
 import pele
 import mcpele
+try:
+    from matplotlib.backends.backend_pdf import PdfPages
+except ImportError as err:
+    print err
 
 def volume_nball(radius, n):
     volume = np.power(np.pi, n / 2) * np.power(radius, n) / gamma(n / 2 + 1)
@@ -153,6 +157,12 @@ def to_string(inp, digits_after_point = 16):
     format_string += str(digits_after_point)
     format_string += "f}"
     return format_string.format(inp)
+
+def save_pdf(plt, file_name):
+    pdf = PdfPages(file_name)
+    plt.savefig(pdf, format="pdf")
+    pdf.close()
+    plt.close()
 
 class ResultsFile(object):
     def __init__(self, file_name):
