@@ -530,7 +530,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         f.to_file("zeta_error", self.zeta_error)
         f.close()
         
-class GenerateComparisonPlotPTApprox(object):
+class ComputeEntropy(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
         self.packings_dir = packings_dir
         self.plot_ts_integrand_data = plot_ts_integrand_data
@@ -673,7 +673,7 @@ if __name__ == "__main__":
     parser.add_argument("-kmax_threshold", "--kmax_threshold", default = 1000, type = float, help = "largest kmax value that is not considered to be huge")
     args = parser.parse_args()
     packings_dir = os.path.abspath(args.packings_dir)
-    GenerateComparisonPlotPTApprox(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error, kmax_threshold = args.kmax_threshold)
+    ComputeEntropy(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error, kmax_threshold = args.kmax_threshold)
     
     
     
