@@ -24,11 +24,34 @@ try:
     from scipy.optimize import curve_fit
     from scipy.special import gamma
     from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
-    from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid, PackingFailureStatistics
+    from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
     from scipy import integrate
 except ImportError as err:
     print err
                     
+class PackingFailureStatistics(object):
+    def __init__(self, total_nr):
+        self.total_nr = total_nr
+        self.total_count = 0
+        self.success_count = 0
+    def add_success(self):
+        self.add_any()
+        self.success_count += 1
+    def add_failure(self):
+        self.add_any()
+    def add_any(self):
+        self.total_count += 1
+    def get_nr_failures(self):
+        return self.total_count - self.success_count
+    def print_failure_info(self):
+        print self.get_nr_failures(), "out of", self.total_count, "failed"
+        print "corresponding failure ratio", self.get_nr_failures() / self.total_count
+        print 100 * self.get_nr_failures() / self.total_count, "per-cent"
+    def print_progress_info(self, packing_string):
+        print "done", self.total_count, "out of", self.total_nr 
+        print to_string(self.total_count / self.total_nr * 100, 2), "per-cent"
+        print "packing was", packing_string
+
 class VolumeSanityCheck(object):
     def __init__(self, v_acc_parameter_file):
         self.v_acc_parameter_file = v_acc_parameter_file
@@ -148,7 +171,6 @@ class GeneralisedGauss(object):
             print "self.mu", self.mu
             print "self.alpha_offset", self.alpha_offset
             print "self.zeta_offset", self.zeta_offset
-        
 
 class GLPTNotUsedStatistics(object):
     """
