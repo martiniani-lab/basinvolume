@@ -1,3 +1,11 @@
 *.cxx
 *.so
 *.pyc
+*.zip
+*.log
+cpp_tests/build/
+cpp_tests/gtest/
+cythonize.dat
+.cproject
+.project
+.pydevproject
