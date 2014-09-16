@@ -1,9 +1,9 @@
 """
 To compute volumes and entropies for packings in a folder, say, ./n32_phi88_2D
 run
-python ~/PathToBasinvolume/basinvolume/post_processing/compare_full_PT_approx_F0.py -d n32_phi88_2D
+python ~/PathToBasinvolume/basinvolume/post_processing/compute_entropy.py -d n32_phi88_2D
 To skip the volume computation, run
-python ~/PathToBasinvolume/basinvolume/post_processing/compare_full_PT_approx_F0.py -d n32_phi88_2D -plot_only
+python ~/PathToBasinvolume/basinvolume/post_processing/compute_entropy.py -d n32_phi88_2D -plot_only
 Entropy results are written to file
 ./n32_phi88_2D/entropy_AFP
 and
