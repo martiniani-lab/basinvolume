@@ -24,13 +24,11 @@ try:
     from scipy.optimize import curve_fit
     from scipy.special import gamma
     from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
-    from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
+    from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid, PackingFailureStatistics
     from scipy import integrate
 except ImportError as err:
     print err
-            
-from packing_failure_statistics import PackingFailureStatistics
-        
+                    
 class VolumeSanityCheck(object):
     def __init__(self, v_acc_parameter_file):
         self.v_acc_parameter_file = v_acc_parameter_file
