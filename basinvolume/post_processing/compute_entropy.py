@@ -1,4 +1,5 @@
 """
+Usage:
 To compute volumes and entropies for packings in a folder, say, ./n32_phi88_2D
 run
 python ~/PathToBasinvolume/basinvolume/post_processing/compute_entropy.py -d n32_phi88_2D
@@ -12,6 +13,23 @@ The fit used for the histogram un-biasing is written to
 ./n32_phi88_2D/unbiasing_fit.pdf
 Other free energy histograms and data is written to
 ./n32_phi88_2D/volume_histogram_*
+
+The entropy is computed in different ways according to different definitions
+and techniques:
+1.) APFEntropy gives the p log p entropy according to Asenjo14:
+10.1103/PhysRevLett.112.098002
+2.) JackLogOmega gives the LogOmega entropy (log of number of basins), after
+unbiasing the distribution with fit to generalised gaussian CDF and numerical
+integration as in Asenjo14.
+TODO: 3.) MLLogOmega gives LogOmega from ML estimate for LogOmega, after maximum
+likelihood fit of generalised gaussian.
+TODO: 4.) BayesianLogOmega uses Bayesian inference to get the parameters of the
+generalised gaussian.
+TODO: 5.) NonParametricLogOmega constructs a non-parametric description of the
+biased distribution and integrates that with the un-biasing factor to get
+LogOmega without the assumption of the genealised gaussian.
+This needs some kernel density estimation or smoothing or similar to get the
+PDF description.
 """
 
 from __future__ import division
