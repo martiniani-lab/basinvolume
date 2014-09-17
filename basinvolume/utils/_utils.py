@@ -268,3 +268,8 @@ class CDFAccumulator(object):
             del self.data_x[xi]
         return x, cdf_x
         
+def gen_gauss(x, pars):
+    mu = pars[0]
+    alpha = pars[1]
+    zeta = pars[2]
+    return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(- np.power((np.abs(x - mu) / alpha), zeta))

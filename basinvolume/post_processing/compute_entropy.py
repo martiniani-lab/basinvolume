@@ -43,6 +43,7 @@ try:
     from scipy.special import gamma
     from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid, APFEntropy, BestIntegrationSelection, VolumeSanityCheck, PackingFailureStatistics, OutlierRemovalUnbiasingEntropyLogOmega, GeneralisedGauss
+    from basinvolume.post_processing import MLLogOmega
     from scipy import integrate
 except ImportError as err:
     print err
@@ -67,8 +68,8 @@ class ComputeEntropy(object):
         self.best_integration_selection.print_fail_information(self.packings_dir)
         self.APF_entropy = APFEntropy(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
         self.APF_entropy.compute_and_write_entropy(self.packings_dir + "/entropy_AFP")
-        #self.ML_log_omega = MLLogOmega(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
-        #self.ML_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_ML_LogOmega")
+        self.ML_log_omega = MLLogOmega(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
+        self.ML_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_ML_LogOmega")
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
