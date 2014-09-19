@@ -272,4 +272,10 @@ def gen_gauss(x, pars):
     mu = pars[0]
     alpha = pars[1]
     zeta = pars[2]
-    return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(- np.power((np.abs(x - mu) / alpha), zeta))
+    return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(-np.power((np.abs(x - mu) / alpha), zeta))
+
+def log_gen_gauss(x, pars):
+    mu = pars[0]
+    alpha = pars[1]
+    zeta = pars[2]
+    return -np.power((np.abs(x - mu) / alpha), zeta) + np.log(zeta) - np.log(2 * alpha) - gammaln(1 / zeta)

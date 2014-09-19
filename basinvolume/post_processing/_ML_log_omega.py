@@ -3,7 +3,7 @@ try:
     import numpy as np
     from scipy import integrate
     from pele.potentials import BasePotential
-    from basinvolume.utils import log_factorial, ResultsFile, save_pdf, gen_gauss, OutlierDetection
+    from basinvolume.utils import log_factorial, ResultsFile, save_pdf, gen_gauss, log_gen_gauss, OutlierDetection
     from pele.optimize import LBFGS_CPP
     from scipy.special import gamma
     import matplotlib.pyplot as plt
@@ -61,7 +61,7 @@ class MLMethodGenGauss(object):
         initial_zeta = 2
         self.x = np.array([initial_mu, initial_alpha, initial_zeta])
         print "xinitial", self.x
-        self.pot = MLCost(self.F0, probf=gen_gauss)
+        self.pot = MLCost(self.F0, log_probf=log_gen_gauss)
         optimizer = LBFGS_CPP(self.x, self.pot)
         result = optimizer.run()
         if result.success:
