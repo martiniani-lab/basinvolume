@@ -3,11 +3,10 @@ try:
     import numpy as np
     from scipy import integrate
     from pele.potentials import BasePotential
-    from basinvolume.utils import log_factorial, ResultsFile, save_pdf, gen_gauss, log_gen_gauss, OutlierDetection
+    from basinvolume.utils import log_factorial, ResultsFile, save_pdf, gen_gauss, log_gen_gauss, get_gauss_times_expx, OutlierDetection
     from pele.optimize import LBFGS_CPP
     from scipy.special import gamma
     import matplotlib.pyplot as plt
-    from basinvolume.post_processing import GeneralisedGauss
 except ImportError as err:
     print err
 
@@ -88,8 +87,7 @@ class LogOmegaBase(object):
     def compute_log_omega(self):
         if self.mu == None or self.alpha == None or self.zeta == None:
             raise Exception("LogOmegaBase: generalised gaussian parameters are not determined")
-        generalised_gauss = GeneralisedGauss()
-        integral, error_integral = integrate.quad(generalised_gauss.get_times_expx_with_pars, self.volume_sanity_check.F0_acc, np.amax(self.F0) * 100, args = (self.mu, self.alpha, self.zeta, ), points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
+        integral, error_integral = integrate.quad(get_gauss_times_expx, self.volume_sanity_check.F0_acc, np.amax(self.F0) * 100, args = ([self.mu, self.alpha, self.zeta], ), points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
         self.S_star = - self.volume_sanity_check.F0_acc + np.log(integral)
         self.S = self.S_star - log_factorial(self.volume_sanity_check.nr_particles)
     def write_to_file(self, file_name, title):
