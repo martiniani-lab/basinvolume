@@ -153,6 +153,8 @@ def get_cython_version():
     return version
 
 def to_string(inp, digits_after_point = 16):
+    if isinstance(inp, basestring):
+        return inp
     format_string = "{0:."
     format_string += str(digits_after_point)
     format_string += "f}"

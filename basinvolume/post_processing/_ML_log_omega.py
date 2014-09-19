@@ -52,8 +52,7 @@ class MLMethodGenGauss(object):
     """
     def __init__(self, F0_full):
         outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
-        self.F0 = outlier_detection.non_outliers
-        self.F0 = np.array(self.F0)
+        self.F0 = np.asarray(outlier_detection.non_outliers)
     def find_get_opt_pars(self):
         initial_mu = np.mean(self.F0)
         initial_alpha = np.sqrt(2) * np.std(self.F0)

@@ -21,7 +21,7 @@ and techniques:
 2.) JackLogOmega gives the LogOmega entropy (log of number of basins), after
 unbiasing the distribution with fit to generalised gaussian CDF and numerical
 integration as in Asenjo14.
-TODO: 3.) MLLogOmega gives LogOmega from ML estimate for LogOmega, after maximum
+3.) MLLogOmega gives LogOmega from ML estimate for LogOmega, after maximum
 likelihood fit of generalised gaussian.
 TODO: 4.) BayesianLogOmega uses Bayesian inference to get the parameters of the
 generalised gaussian.
@@ -43,7 +43,7 @@ try:
     from scipy.special import gamma
     from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid, APFEntropy, BestIntegrationSelection, VolumeSanityCheck, PackingFailureStatistics, OutlierRemovalUnbiasingEntropyLogOmega, GeneralisedGauss
-    from basinvolume.post_processing import MLLogOmega
+    from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmega
     from scipy import integrate
 except ImportError as err:
     print err
@@ -70,6 +70,8 @@ class ComputeEntropy(object):
         self.APF_entropy.compute_and_write_entropy(self.packings_dir + "/entropy_AFP")
         self.ML_log_omega = MLLogOmega(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
         self.ML_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_ML_LogOmega")
+        self.kernel_density_log_omega = KernelDensityLogOmega(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
+        self.kernel_density_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_kernel_density")
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
