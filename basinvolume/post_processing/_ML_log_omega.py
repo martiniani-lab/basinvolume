@@ -50,9 +50,8 @@ class MLMethodGenGauss(object):
     """
     Maximum likelihood estimate of parmeters in generalised gauss
     """
-    def __init__(self, F0_full):
-        outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
-        self.F0 = np.asarray(outlier_detection.non_outliers)
+    def __init__(self, F0):
+        self.F0 = F0
     def find_get_opt_pars(self):
         initial_mu = np.mean(self.F0)
         initial_alpha = np.sqrt(2) * np.std(self.F0)
@@ -76,9 +75,9 @@ class LogOmegaBase(object):
     Basically, everything after self.mu, self.alpha, self.zeta and erorrs on
     that are known. 
     """
-    def __init__(self, F0, error_F0, volume_sanity_check):
-        self.F0 = F0
-        self.error_F0 = error_F0
+    def __init__(self, F0_full, volume_sanity_check):
+        outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
+        self.F0 = np.asarray(outlier_detection.non_outliers)
         self.volume_sanity_check = volume_sanity_check
         self.mu = None
         self.alpha = None
@@ -118,7 +117,7 @@ class MLLogOmega(LogOmegaBase):
     un-biasing.
     """
     def __init__(self, F0, error_F0, volume_sanity_check):
-        super(MLLogOmega, self).__init__(F0, error_F0, volume_sanity_check)
+        super(MLLogOmega, self).__init__(F0, volume_sanity_check)
     def compute_and_write_entropy(self, file_name):
         self.get_generalised_gaussian_parameters()
         self.compute_log_omega()
