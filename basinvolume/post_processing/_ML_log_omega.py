@@ -115,6 +115,10 @@ class MLLogOmega(LogOmegaBase):
     """
     Compute LogOmega by ML fit of generalised gaussian to volumes and
     un-biasing.
+    
+    General ML references:
+    http://sites.stat.psu.edu/~sesa/stat504/Lecture/lec3_4up.pdf
+    http://www.maths.manchester.ac.uk/~peterf/CSI_ch4_part1.pdf
     """
     def __init__(self, F0, error_F0, volume_sanity_check):
         super(MLLogOmega, self).__init__(F0, volume_sanity_check)
