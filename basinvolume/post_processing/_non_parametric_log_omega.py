@@ -18,7 +18,7 @@ class KernelDensityLogOmega(object):
     http://scikit-learn.org/stable/modules/density.html
     http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KernelDensity.html#sklearn.neighbors.KernelDensity
     """
-    def __init__(self, F0_full, error_F0_full, volume_sanity_check, kernel="gaussian", bandwidth=0.75):
+    def __init__(self, F0_full, error_F0_full, volume_sanity_check, kernel="gaussian", bandwidth=None):
         outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
         self.F0 = np.asarray(outlier_detection.non_outliers)
         self.volume_sanity_check = volume_sanity_check
@@ -27,9 +27,12 @@ class KernelDensityLogOmega(object):
         if kernel not in self.possible_kernels:
             raise Exception("KernelDensityLogOmega: illegal kernel choice")
         self.kernel = kernel
-        if bandwidth <= 0:
+        if bandwidth == None:
+            self.bandwidth = self.get_bandwidth_estimate()
+        else:
+            self.bandwidth = bandwidth
+        if self.bandwidth <= 0:
             raise Exception("KernelDensityLogOmega: illegal bandwidth choice")
-        self.bandwidth = bandwidth
     def compute_and_write_entropy(self, file_name):
         self.compute_log_omega()
         self.write_to_file(file_name)
@@ -38,6 +41,10 @@ class KernelDensityLogOmega(object):
         n_integrate = 2**18 + 1
         x_integrate = np.linspace(self.volume_sanity_check.F0_acc, np.amax(self.F0) * 100, n_integrate)
         log_pdf = self.kde.score_samples(x_integrate[:, np.newaxis])
+        integrand_control = np.exp(log_pdf)
+        integral_control = integrate.romb(integrand_control, dx=x_integrate[1]-x_integrate[0])
+        if(np.abs(integral_control - 1) > 1e-10):
+            raise Exception("KernelDensityLogOmega: compute_log_omega: possible integration failure")
         integrand = np.exp(np.add(log_pdf, x_integrate))
         integral = integrate.romb(integrand, dx=x_integrate[1]-x_integrate[0])
         self.S_star = - self.volume_sanity_check.F0_acc + np.log(integral)
@@ -57,7 +64,23 @@ class KernelDensityLogOmega(object):
         self.pdf_x_1d = np.exp(self.kde.score_samples(self.x_plot_1d[:, np.newaxis]))
         plt.plot(self.x_plot_1d, self.pdf_x_1d, label="PDF estimate")
         plt.legend()
-        save_pdf(plt, plot_name)  
+        save_pdf(plt, plot_name)
+    def get_bandwidth_estimate(self, method="Silverman"):
+        opt_bandwidth = None
+        if method == "Silverman":
+            """
+            Use Silverman's rule of thumb to get bandwidth estimate.
+            See: http://en.wikipedia.org/wiki/Kernel_density_estimation
+            """
+            nr_samples = len(self.F0)
+            std_samples = np.std(self.F0)
+            opt_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
+        else:
+            raise Exception("KernelDensityLogOmega: get_bandwidth_estimate: illegal method input")
+        assert(opt_bandwidth != None)
+        print method, "used to estimate bandwidth"
+        print "estimated optimal bandwidth", opt_bandwidth
+        return opt_bandwidth
 
 
 

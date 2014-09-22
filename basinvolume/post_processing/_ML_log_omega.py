@@ -7,6 +7,7 @@ try:
     from pele.optimize import LBFGS_CPP
     from scipy.special import gamma
     import matplotlib.pyplot as plt
+    import copy
 except ImportError as err:
     print err
 
@@ -33,6 +34,10 @@ class MLCost(BasePotential):
         optimizer = LBFGS_CPP(parameters, pot)
         result = optimizer.run()
         opt_parameters = result.coords
+        
+    To get an estimate on the error on the optimum parameters, do e.g.:
+    
+        error = pot.get_error_estimate(result)
     """
     def __init__(self, data, log_probf=None, probf=None):
         self.log_probf = log_probf
@@ -45,6 +50,35 @@ class MLCost(BasePotential):
         if self.probf != None:
             return -np.sum(np.log(self.probf(self.data, np.asarray(parameters))))
         return -np.sum(self.log_probf(self.data, np.asarray(parameters)))
+    
+    def get_error_estimate(self, opt_parameters, log_l_variation=0.5):
+        self.opt_parameters = opt_parameters
+        self.log_l_variation = log_l_variation
+        self.minimum_cost = self.getEnergy(self.opt_parameters)
+        self.cost_interval_edge = self.minimum_cost + self.log_l_variation
+        return [self.get_interval(par_idx) for par_idx in xrange(len(self.opt_parameters))]
+    
+    def get_interval(self, par_idx):
+        opt_par = self.opt_parameters[par_idx]
+        step_size = opt_par / 1e5
+        left_interval_edge = opt_par
+        right_interval_edge = opt_par
+        while True:
+            trial_parameters = copy.copy(self.opt_parameters)
+            trial_parameters[par_idx] = left_interval_edge
+            if self.getEnergy(trial_parameters) < self.cost_interval_edge:
+                left_interval_edge -= step_size
+            else:
+                break
+        while True:
+            trial_parameters = copy.copy(self.opt_parameters)
+            trial_parameters[par_idx] = right_interval_edge
+            if self.getEnergy(trial_parameters) < self.cost_interval_edge:
+                right_interval_edge += step_size
+            else:
+                break
+        return [left_interval_edge, right_interval_edge]
+        
 
 class MLMethodGenGauss(object):
     """
@@ -64,6 +98,8 @@ class MLMethodGenGauss(object):
         if result.success:
             self.opt_x = result.coords
             print "xfinal", self.opt_x
+            self.error_opt_x = self.pot.get_error_estimate(self.opt_x)
+            print "xerror", self.error_opt_x
             return self.opt_x
         else:
             raise Exception("MLMethodGenGauss: optimization did not converge")
