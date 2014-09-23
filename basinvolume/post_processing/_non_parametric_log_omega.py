@@ -106,7 +106,9 @@ class CrossValidationBandwidthSelection(object):
     def __init__(self, data, kernel="gaussian", h_initial=2):
         pot = CrossValidationCost(data, kernel=kernel)
         optimizer = LBFGS(np.asarray([h_initial]), pot)
+        print "run bandwidth optimization"
         result = optimizer.run()
+        print "done"
         self.opt_bandwidth = result.coords
 
 
