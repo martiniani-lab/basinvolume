@@ -357,3 +357,57 @@ class MLCost(BasePotential):
             else:
                 break
         return [left_interval_edge, right_interval_edge]
+    
+class CrossValidationCost(BasePotential):
+    """
+    Use leave-one-out cross validation to estimate bandwidth for kernel density.
+    
+    Parameters
+    ----------
+    data : array of floats
+        The observed data.
+    kernel : string, optional
+        The used kernel type.
+    
+    Examples
+    --------
+    To get a bandwidth estimate, do e.g.:
+    
+        pot = CrossValidationCost(data)
+        optimizer = LBFGS_CPP(h_initial, pot)
+        result = optimizer.run()
+        opt_h = result.coords
+        
+    References
+    ----------
+    http://en.wikipedia.org/wiki/Kernel_density_estimation
+    http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/ebooks/html/spm/spmhtmlnode15.html
+    http://www.control.aau.dk/~tk/undervisning/PhDAdvSI/Litterature/MadsenAndHolst2006.pdf
+    http://www.jstor.org/stable/2336252
+    """
+    def __init__(self, data, kernel="gaussian"):
+        self.data = data
+        self.N = len(self.data)
+        self.kernel = kernel
+        if self.kernel != "gaussian":
+            raise Exception("CrossValidationCost: convolution only implemented for gaussian kernel")
+        from sklearn.neighbors import KernelDensity
+    def getEnergy(self, h):
+        """
+        See: http://www.jstor.org/stable/2336252
+        """
+        self.h = h
+        self.compute_sums()
+        return 1 / (self.N - 1) * self.term_A + (self.N - 2) / (self.N * (self.N - 1) ** 2) * self.term_B - 2 / (self.N * (self.N - 1)) * self.term_C
+    def compute_sums(self):
+        def nd(x, h2):
+            return np.exp(-0.5 * x**2 / h2) / np.sqrt(2 * np.pi * h2)
+        self.term_A = nd(0, 2 * self.h**2)
+        self.term_B = 0
+        self.term_C = 0
+        for ii in xrange(self.N):
+            for jj in xrange(self.N):
+                if ii != jj:
+                    self.term_B += nd(self.data[ii] - self.data[jj], 2 * self.h**2)
+                    self.term_C += nd(self.data[ii] - self.data[jj], self.h**2)
+            

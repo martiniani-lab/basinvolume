@@ -1,10 +1,11 @@
 from __future__ import division
 try:
     import numpy as np
-    from basinvolume.utils import ResultsFile, log_factorial, OutlierDetection, save_pdf
+    from basinvolume.utils import ResultsFile, log_factorial, OutlierDetection, save_pdf, CrossValidationCost
     from scipy import integrate
     import matplotlib.pyplot as plt
     from sklearn.neighbors import KernelDensity
+    from pele.optimize import LBFGS
 except ImportError as err:
     print err
     
@@ -29,7 +30,8 @@ class KernelDensityLogOmega(object):
             raise Exception("KernelDensityLogOmega: illegal kernel choice")
         self.kernel = kernel
         if bandwidth == None:
-            self.bandwidth = self.get_bandwidth_estimate()
+            self.bandwidth = self.get_bandwidth_estimate(method="cross_validation")
+            #self.bandwidth = self.get_bandwidth_estimate(method="Silverman")
         else:
             self.bandwidth = bandwidth
         if self.bandwidth <= 0:
@@ -81,13 +83,31 @@ class KernelDensityLogOmega(object):
             nr_samples = len(self.F0)
             std_samples = np.std(self.F0)
             opt_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
+        elif method == "cross_validation":
+            loocv = CrossValidationBandwidthSelection(self.F0, kernel=self.kernel)
+            opt_bandwidth = loocv.opt_bandwidth 
         else:
             raise Exception("KernelDensityLogOmega: get_bandwidth_estimate: illegal method input")
         assert(opt_bandwidth != None)
-        print method, "used to estimate bandwidth"
+        print method, "method used to estimate bandwidth"
         print "estimated optimal bandwidth", opt_bandwidth
         return opt_bandwidth
-
+    
+class CrossValidationBandwidthSelection(object):
+    """
+    Use leave-one-out cross validation to estimate bandwidth.
+    
+    References
+    ----------
+    http://en.wikipedia.org/wiki/Kernel_density_estimation
+    http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/ebooks/html/spm/spmhtmlnode15.html
+    http://www.control.aau.dk/~tk/undervisning/PhDAdvSI/Litterature/MadsenAndHolst2006.pdf
+    """
+    def __init__(self, data, kernel="gaussian", h_initial=2):
+        pot = CrossValidationCost(data, kernel=kernel)
+        optimizer = LBFGS(np.asarray([h_initial]), pot)
+        result = optimizer.run()
+        self.opt_bandwidth = result.coords
 
 
 
