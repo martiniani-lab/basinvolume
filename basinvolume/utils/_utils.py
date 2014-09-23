@@ -9,6 +9,8 @@ import pele
 import mcpele
 try:
     from matplotlib.backends.backend_pdf import PdfPages
+    from pele.potentials import BasePotential
+    import copy
 except ImportError as err:
     print err
 
@@ -287,3 +289,71 @@ def log_gen_gauss(x, pars):
     alpha = pars[1]
     zeta = pars[2]
     return -np.power((np.abs(x - mu) / alpha), zeta) + np.log(zeta) - np.log(2 * alpha) - gammaln(1 / zeta)
+
+class MLCost(BasePotential):
+    """
+    Cost function to be used for maximum likelihood optimization.
+    
+    Parameters
+    ----------
+    data : array of floats
+        The observed data.
+    log_probf : callable `log_probf(data, parameters)`
+        Log of probability function which takes an array of data and an array
+        of parameters and returns a float value
+    probf : callable `probf(data, parameters)`
+        Probability function which takes an array of data and an array
+        of parameters and returns a float value
+    
+    Examples
+    --------
+    To get maximum likelihood estimates of the parameters, do e.g.:
+    
+        pot = MLCost(observed, probf=gauss)
+        optimizer = LBFGS_CPP(parameters, pot)
+        result = optimizer.run()
+        opt_parameters = result.coords
+        
+    To get an estimate on the error on the optimum parameters, do e.g.:
+    
+        error = pot.get_error_estimate(result)
+    """
+    def __init__(self, data, log_probf=None, probf=None):
+        self.log_probf = log_probf
+        self.probf = probf
+        if self.log_probf == None and self.probf == None:
+            raise Exception("provide either log_probf or probf")
+        self.data = np.asarray(data)
+
+    def getEnergy(self, parameters):
+        if self.probf != None:
+            return -np.sum(np.log(self.probf(self.data, np.asarray(parameters))))
+        return -np.sum(self.log_probf(self.data, np.asarray(parameters)))
+    
+    def get_error_estimate(self, opt_parameters, log_l_variation=0.5):
+        self.opt_parameters = opt_parameters
+        self.log_l_variation = log_l_variation
+        self.minimum_cost = self.getEnergy(self.opt_parameters)
+        self.cost_interval_edge = self.minimum_cost + self.log_l_variation
+        return [self.get_interval(par_idx) for par_idx in xrange(len(self.opt_parameters))]
+    
+    def get_interval(self, par_idx):
+        opt_par = self.opt_parameters[par_idx]
+        step_size = opt_par / 1e5
+        left_interval_edge = opt_par
+        right_interval_edge = opt_par
+        while True:
+            trial_parameters = copy.copy(self.opt_parameters)
+            trial_parameters[par_idx] = left_interval_edge
+            if self.getEnergy(trial_parameters) < self.cost_interval_edge:
+                left_interval_edge -= step_size
+            else:
+                break
+        while True:
+            trial_parameters = copy.copy(self.opt_parameters)
+            trial_parameters[par_idx] = right_interval_edge
+            if self.getEnergy(trial_parameters) < self.cost_interval_edge:
+                right_interval_edge += step_size
+            else:
+                break
+        return [left_interval_edge, right_interval_edge]

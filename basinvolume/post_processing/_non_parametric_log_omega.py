@@ -12,7 +12,8 @@ class KernelDensityLogOmega(object):
     """
     Use kernel density estimate to get callable description of PDF.
     
-    See:
+    References
+    ----------
     http://en.wikipedia.org/wiki/Kernel_density_estimation
     http://scikit-learn.org/stable/_downloads/plot_kde_1d.py
     http://scikit-learn.org/stable/modules/density.html
@@ -66,12 +67,17 @@ class KernelDensityLogOmega(object):
         plt.legend()
         save_pdf(plt, plot_name)
     def get_bandwidth_estimate(self, method="Silverman"):
+        """
+        Use some rule to get bandwidth estimate from data.
+        
+        References
+        ----------
+        http://en.wikipedia.org/wiki/Kernel_density_estimation
+        http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/ebooks/html/spm/spmhtmlnode15.html
+        http://www.control.aau.dk/~tk/undervisning/PhDAdvSI/Litterature/MadsenAndHolst2006.pdf
+        """
         opt_bandwidth = None
         if method == "Silverman":
-            """
-            Use Silverman's rule of thumb to get bandwidth estimate.
-            See: http://en.wikipedia.org/wiki/Kernel_density_estimation
-            """
             nr_samples = len(self.F0)
             std_samples = np.std(self.F0)
             opt_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
