@@ -23,6 +23,7 @@ cdef extern from "basinvolume/record_displacement_timeseries.h" namespace "bv":
         cppRecordDisplacementTimeseries(_pele.Array[double], const size_t, const size_t, const size_t) except +
         _pele.Array[double] get_time_series() except +
         void clear() except +
+        cbool moving_average_is_stable(const size_t, const double) except +
         
 cdef extern from "basinvolume/find_nr_decorrelation_steps.h" namespace "bv":
     cdef cppclass cppFindNrDecorrelationSteps "bv::FindNrDecorrelationSteps": 

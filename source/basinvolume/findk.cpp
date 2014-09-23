@@ -73,7 +73,7 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
 
         //this will trigger premature exit from the MC run loop
         if (static_cast<size_t>(_hist.entries()) >= _avg_count){
-            mc->_niter = std::numeric_limits<size_t>::max();
+            mc->abort();
         }
     }
     else if(mc_count % _navg == 0)
