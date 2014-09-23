@@ -10,7 +10,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     u2meank0 is mean of histogram from simulation done at k=0
     Tmax and Tmin here correspond to kmin and kmax, they should be computed by bv_find_params 
     """
-    def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=False, 
+    def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, 
                  rel_std_threshold=0.05, base_directory=None, verbose=False):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter= max_ptiter, pfreq=pfreq, skip=skip, 
                                                    base_directory=base_directory, verbose=verbose)
@@ -31,19 +31,28 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             directory = "{0}/{1}".format(base_directory,self.rank)
             iteration = self.mcrunner.get_iterations_count()
             fname = "{0}/TimeSeries.{1}".format(directory,int(iteration))
-            length_ts = self.mcrunner.dump_timeseries(fname)
-            if self.test_convergence:
+            #don't clear, clear manually after convergence test
+            length_ts = self.mcrunner.dump_timeseries(fname, clear=False)
+            if self.test_convergence and self.ptiter > self.skip:
                 conv = self.mcrunner.check_convergence(nr_steps_to_check=length_ts, rel_std_threshold=self.rel_std_threshold)
-                send_boolarray = np.array([conv],dtype='bool')
-                recv_boolarray = self._gather_data(send_boolarray,dtype='bool')
+                print 'conv',conv
+                send_boolarray = np.array([conv], dtype='int32')
+                print 'send_boolarray', send_boolarray
+                recv_boolarray = self._gather_data(send_boolarray,dtype='int32')
                 if self.verbose and self.rank == 0:
                     print 'recv_boolarray ',recv_boolarray
-                test = [True if not False in recv_boolarray else False]
-                converged = self._broadcast_data(test, 1, dtype='bool')
+                if self.rank == 0:
+                    test = np.array([True if not False in recv_boolarray.astype('bool') else False],dtype='int32')
+                    print 'test',test
+                else:
+                    test = None
+                converged = self._broadcast_data(test, 1, dtype='int32')
+                print 'converged', converged
                 assert(len(converged)==1)
                 if converged[0]:
                     print 'time series converged'
                     self.mcrunner.abort()
+            self.mcrunner.time_series.clear()
             
 
     def _get_temps(self):

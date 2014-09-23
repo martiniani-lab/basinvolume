@@ -250,12 +250,13 @@ class BV_MCrunner(_BaseMCRunner):
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
     
-    def dump_timeseries(self, fname):
+    def dump_timeseries(self, fname, clear=True):
         """write time series to fname, returns length of the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
         length = len(timeseries)
         np.savetxt(fname, timeseries)
-        self.time_series.clear()
+        if clear:
+            self.time_series.clear()
         return length
     
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):

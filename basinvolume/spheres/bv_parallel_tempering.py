@@ -29,11 +29,14 @@ if __name__ == "__main__":
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
     adjustf_niter = int(tot_niter*0.1) #equilibrate for the first 1/10th of total steps
     nskip = int(adjustf_niter/niter) #don't swap while adjusting the step-size
-    pt_eq_niter = int(tot_niter*0.1) #equilibrate pt for the following 1/10th of total steps
-    pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 10 snapshots)
+    pt_eq_niter = int(tot_niter*0.4) #equilibrate pt for the following 4/10th of total steps ()
+    #the histogram starts recording the mean after adjustf_niter+pt_eq_niter steps
+    pfreq = int(ptiter*0.2) #print every 2/10th of ptiter (this will give 5 snapshots)
     ts_freq = 1
     ts_niter = int(niter*pfreq/ts_freq)
     perform_convergence_test=False
+    test_convergence_ts=True
+    rel_std_threshold= 0.05
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
@@ -49,7 +52,8 @@ if __name__ == "__main__":
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
         
-    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip, 
+    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip,
+                                     test_convergence=test_convergence_ts, rel_std_threshold=rel_std_threshold, 
                                      base_directory=path, verbose=args.verbose)
     start=time.time()
     ptrunner.run()
