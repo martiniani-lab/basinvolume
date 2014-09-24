@@ -78,7 +78,10 @@ class GeneralisedGauss(object):
             print "self.alpha_offset", self.alpha_offset
             print "self.zeta_offset", self.zeta_offset
     def fit_cdf(self, x, cdf_x):
-        opt_gen, error_gen = curve_fit(self.get_cdf, x, cdf_x, [np.mean(x), 2 * np.var(x), 2])
+        initial_mu = np.mean(x)
+        initial_zeta = 1.5
+        initial_alpha = np.sqrt(gamma(1 / initial_zeta) / gamma(3 / initial_zeta) * np.var(x))
+        opt_gen, error_gen = curve_fit(self.get_cdf, x, cdf_x, [initial_mu, initial_alpha, initial_zeta])
         self.mu = opt_gen[0]
         self.alpha_offset = opt_gen[1]
         self.zeta_offset = opt_gen[2]
