@@ -34,7 +34,7 @@ class APFEntropy(object):
         S_\text{APF}^* = \langle F \rangle_\text{biased} + \log(V_\text{acc})
         S_\text{APF} = S_\text{APF}^* - \log(N!)
         """
-        F0_stat = F0MeanError(self.F0, self.error_F0)
+        F0_stat = F0MeanError(self.F0)
         self.S_star = F0_stat.mean - self.F0_acc
         if self.S_star < 0:
             raise Exception("APFEntropy: compute_and_write_entropy: entropy computation failed")

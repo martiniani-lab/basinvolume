@@ -68,8 +68,8 @@ class ComputeEntropy(object):
         self.best_integration_selection.print_fail_information(self.packings_dir)
         # perform outlier removal
         self.F0_final_integration_selection = self.best_integration_selection.F0_final
-        self.outlier_detection = OutlierDetection(self.F0_final_integration_selection, p = 0.5, D = 3*np.sqrt(np.var(self.F0_final_integration_selection)), verbose = True)
-        self.F0_wo_outliers = self.outlier_detection.non_outliers
+        self.outlier_detection = OutlierDetection(self.F0_final_integration_selection, p=0.5, D=2*np.sqrt(np.var(self.F0_final_integration_selection)), verbose = True)
+        self.F0_wo_outliers = np.asarray(self.outlier_detection.non_outliers)
         # plot various datasets
         self._generate_plots()
         # compute different entropies

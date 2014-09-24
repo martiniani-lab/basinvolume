@@ -2,7 +2,7 @@ from __future__ import division
 try:
     import numpy as np
     from scipy import integrate
-    from basinvolume.utils import log_factorial, ResultsFile, save_pdf, gen_gauss, log_gen_gauss, get_gauss_times_expx, OutlierDetection, MLCost
+    from basinvolume.utils import log_factorial, ResultsFile, save_pdf, gen_gauss, log_gen_gauss, get_gauss_times_expx, MLCost
     from pele.optimize import LBFGS_CPP
     from scipy.special import gamma
     import matplotlib.pyplot as plt
@@ -41,8 +41,6 @@ class LogOmegaBase(object):
     that are known. 
     """
     def __init__(self, F0, volume_sanity_check):
-        #outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
-        #self.F0 = np.asarray(outlier_detection.non_outliers)
         self.F0 = F0
         self.volume_sanity_check = volume_sanity_check
         self.mu = None
