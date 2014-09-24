@@ -167,9 +167,10 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
     S = S^\star - \log(N!)
     """
     def __init__(self, F0, packings_dir):
-        self.F0_full = F0
-        self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 3*np.sqrt(np.var(self.F0_full)), verbose = True)
-        self.F0 = self.outlier_detection.non_outliers
+        #self.F0_full = F0
+        #self.outlier_detection = OutlierDetection(F0, p = 0.5, D = 3*np.sqrt(np.var(self.F0_full)), verbose = True)
+        #self.F0 = self.outlier_detection.non_outliers
+        self.F0 = F0
         self.packings_dir = packings_dir
         self.entropy_file_path = self.packings_dir + "/entropy_LogOmega"
     def compute_log_omega_entropy(self, volume_sanity_check):

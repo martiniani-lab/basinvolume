@@ -17,20 +17,14 @@ class F0MeanError(object):
     The mean is not weithed by the error because we want to have the mean as
     sampled with bias, see APFEntropy below.
     """
-    def __init__(self, F0, error_F0):
-        if len(F0) != len(error_F0):
-            raise Exception("F0MeanError: illegal shape of F0, F0_error arrays")
+    def __init__(self, F0):
         F0 = np.array(F0)
-        error_F0 = np.array(error_F0)
         self.mean = np.mean(F0)
-        squared_errors = error_F0 ** 2
-        self.error = np.sqrt(np.sum(squared_errors)) / len(squared_errors)
         self.sample_variance_error = np.sqrt(np.var(F0) / len(F0))
 
 class APFEntropy(object):
-    def __init__(self, F0, error_F0, volume_sanity_check):
+    def __init__(self, F0, volume_sanity_check):
         self.F0 = F0
-        self.error_F0 = error_F0
         self.F0_acc = volume_sanity_check.F0_acc
         self.V_acc = volume_sanity_check.V_acc
         self.nr_particles = volume_sanity_check.nr_particles
@@ -45,7 +39,6 @@ class APFEntropy(object):
         if self.S_star < 0:
             raise Exception("APFEntropy: compute_and_write_entropy: entropy computation failed")
         self.S = self.S_star - log_factorial(self.nr_particles)
-        #self.error_S_star = F0_stat.error
         self.error_S_star = F0_stat.sample_variance_error
         self.error_S = self.error_S_star
         print "Granular entropy according to APF:"

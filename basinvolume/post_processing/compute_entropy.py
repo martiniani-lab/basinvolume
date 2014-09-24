@@ -58,19 +58,32 @@ class ComputeEntropy(object):
         self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error = self.max_relative_GL_error, kmax_threshold = self.kmax_threshold)
         self.volume_sanity_check = VolumeSanityCheck(self.packings_dir + "/packings/packings.config")
         self.explore_dirs = [self.packings_dir + "/" + f for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
+        # compute F0 for all basins
         if not self.skip_volume_computation:
             self._compute_F0()
+        # collect computed F0 data
         self._gather_data()
+        # check that basins fit in box (w. HS constraints)
         self.best_integration_selection.perform_sanity_check_on_final_F0(self.volume_sanity_check)
-        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.best_integration_selection.F0_final, self.packings_dir)
-        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
-        self._generate_plots()
         self.best_integration_selection.print_fail_information(self.packings_dir)
-        self.APF_entropy = APFEntropy(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
+        # perform outlier removal
+        self.F0_final_integration_selection = self.best_integration_selection.F0_final
+        self.outlier_detection = OutlierDetection(self.F0_final_integration_selection, p = 0.5, D = 3*np.sqrt(np.var(self.F0_final_integration_selection)), verbose = True)
+        self.F0_wo_outliers = self.outlier_detection.non_outliers
+        # plot various datasets
+        self._generate_plots()
+        # compute different entropies
+        # fit to cdf, numerical integration for un-biasing
+        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.packings_dir)
+        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
+        # -p log g entropy
+        self.APF_entropy = APFEntropy(self.F0_wo_outliers, self.volume_sanity_check)
         self.APF_entropy.compute_and_write_entropy(self.packings_dir + "/entropy_AFP")
-        self.ML_log_omega = MLLogOmega(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
+        # fit to pdf with ML method
+        self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
         self.ML_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_ML_LogOmega")
-        self.kernel_density_log_omega = KernelDensityLogOmega(self.best_integration_selection.F0_final, self.best_integration_selection.F0_error_final, self.volume_sanity_check)
+        # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
+        self.kernel_density_log_omega = KernelDensityLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
         self.kernel_density_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_kernel_density")
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
@@ -129,12 +142,20 @@ class ComputeEntropy(object):
             print "insufficient data available"
             print "location:", vf
     def _generate_plots(self):
-        self._print_histogram_and_data(self.F0, "/volume_histogram_F0")
-        self._print_histogram_and_data(self.unit_box_F0, "/volume_histogram_unit_box_F0")
-        self._print_histogram_and_data(self.F0_approx, "/volume_histogram_F0_approx")
-        self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx")
-        self._print_histogram_and_data(self.best_integration_selection.F0_final, "/volume_histogram_F0_final")
-        self._print_histogram_and_data(self.outlier_removal_unbiasing_entropy_log_omega.F0, "/volume_histogram_F0_final_removed_outliers")
+        """
+        try:
+            self._print_histogram_and_data(self.F0, "/volume_histogram_F0")
+            self._print_histogram_and_data(self.unit_box_F0, "/volume_histogram_unit_box_F0")
+            self._print_histogram_and_data(self.F0_approx, "/volume_histogram_F0_approx")
+            self._print_histogram_and_data(self.unit_box_F0_approx, "/volume_histogram_unit_box_F0_approx")
+        except RuntimeError as err:
+            print err
+        """
+        try:
+            self._print_histogram_and_data(self.best_integration_selection.F0_final, "/volume_histogram_F0_final")
+            self._print_histogram_and_data(self.F0_wo_outliers, "/volume_histogram_F0_final_removed_outliers")
+        except RuntimeError as err:
+            print err
     def _print_histogram_and_data(self, data, name):
         np.savetxt(self.packings_dir + name + ".data", data)
         desired_binsize = 1.5

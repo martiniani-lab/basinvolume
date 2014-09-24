@@ -20,9 +20,10 @@ class KernelDensityLogOmega(object):
     http://scikit-learn.org/stable/modules/density.html
     http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KernelDensity.html#sklearn.neighbors.KernelDensity
     """
-    def __init__(self, F0_full, error_F0_full, volume_sanity_check, kernel="gaussian", bandwidth=None):
-        outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
-        self.F0 = np.asarray(outlier_detection.non_outliers)
+    def __init__(self, F0_full, volume_sanity_check, kernel="gaussian", bandwidth=None):
+        #outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
+        #self.F0 = np.asarray(outlier_detection.non_outliers)
+        self.F0 = np.asarray(F0_full)
         self.volume_sanity_check = volume_sanity_check
         self.out_file_heading = "LOG_OMEGA_KERNEL_DENSITY"
         self.possible_kernels = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
@@ -30,8 +31,8 @@ class KernelDensityLogOmega(object):
             raise Exception("KernelDensityLogOmega: illegal kernel choice")
         self.kernel = kernel
         if bandwidth == None:
-            self.bandwidth = self.get_bandwidth_estimate(method="cross_validation")
-            #self.bandwidth = self.get_bandwidth_estimate(method="Silverman")
+            #self.bandwidth = self.get_bandwidth_estimate(method="cross_validation")
+            self.bandwidth = self.get_bandwidth_estimate(method="Silverman")
         else:
             self.bandwidth = bandwidth
         if self.bandwidth <= 0:

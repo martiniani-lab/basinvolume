@@ -22,7 +22,7 @@ class MLMethodGenGauss(object):
         self.x = np.array([initial_mu, initial_alpha, initial_zeta])
         print "xinitial", self.x
         self.pot = MLCost(self.F0, log_probf=log_gen_gauss)
-        optimizer = LBFGS_CPP(self.x, self.pot)
+        optimizer = LBFGS_CPP(self.x, self.pot, nsteps=1e5, tol=1e-4)
         result = optimizer.run()
         if result.success:
             self.opt_x = result.coords
@@ -40,9 +40,10 @@ class LogOmegaBase(object):
     Basically, everything after self.mu, self.alpha, self.zeta and erorrs on
     that are known. 
     """
-    def __init__(self, F0_full, volume_sanity_check):
-        outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
-        self.F0 = np.asarray(outlier_detection.non_outliers)
+    def __init__(self, F0, volume_sanity_check):
+        #outlier_detection = OutlierDetection(F0_full, p=0.5, D=3 * np.sqrt(np.var(F0_full)), verbose=True)
+        #self.F0 = np.asarray(outlier_detection.non_outliers)
+        self.F0 = F0
         self.volume_sanity_check = volume_sanity_check
         self.mu = None
         self.alpha = None
@@ -50,7 +51,7 @@ class LogOmegaBase(object):
     def compute_log_omega(self):
         if self.mu == None or self.alpha == None or self.zeta == None:
             raise Exception("LogOmegaBase: generalised gaussian parameters are not determined")
-        integral, error_integral = integrate.quad(get_gauss_times_expx, self.volume_sanity_check.F0_acc, np.amax(self.F0) * 100, args = ([self.mu, self.alpha, self.zeta], ), points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
+        integral, error_integral = integrate.quad(get_gauss_times_expx, self.volume_sanity_check.F0_acc, np.amax(self.F0) * 100, args = ([self.mu, self.alpha, self.zeta], ), points = [np.amin(self.F0), self.mu, np.amax(self.F0)])
         self.S_star = - self.volume_sanity_check.F0_acc + np.log(integral)
         self.S = self.S_star - log_factorial(self.volume_sanity_check.nr_particles)
     def write_to_file(self, file_name, title):
@@ -85,7 +86,7 @@ class MLLogOmega(LogOmegaBase):
     http://sites.stat.psu.edu/~sesa/stat504/Lecture/lec3_4up.pdf
     http://www.maths.manchester.ac.uk/~peterf/CSI_ch4_part1.pdf
     """
-    def __init__(self, F0, error_F0, volume_sanity_check):
+    def __init__(self, F0, volume_sanity_check):
         super(MLLogOmega, self).__init__(F0, volume_sanity_check)
     def compute_and_write_entropy(self, file_name):
         self.get_generalised_gaussian_parameters()
