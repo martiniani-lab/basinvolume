@@ -17,12 +17,12 @@ class MLMethodGenGauss(object):
         self.F0 = F0
     def find_get_opt_pars(self):
         initial_mu = np.mean(self.F0)
-        initial_alpha = np.sqrt(2) * np.std(self.F0)
-        initial_zeta = 2
+        initial_zeta = 1.5
+        initial_alpha = np.sqrt(gamma(1 / initial_zeta) / gamma(3 / initial_zeta) * np.var(self.F0))
         self.x = np.array([initial_mu, initial_alpha, initial_zeta])
         print "xinitial", self.x
         self.pot = MLCost(self.F0, log_probf=log_gen_gauss)
-        optimizer = LBFGS_CPP(self.x, self.pot, nsteps=1e5, tol=1e-4)
+        optimizer = LBFGS_CPP(self.x, self.pot)
         result = optimizer.run()
         if result.success:
             self.opt_x = result.coords
