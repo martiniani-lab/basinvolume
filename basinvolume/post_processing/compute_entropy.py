@@ -68,23 +68,23 @@ class ComputeEntropy(object):
         self.best_integration_selection.print_fail_information(self.packings_dir)
         # perform outlier removal
         self.F0_final_integration_selection = self.best_integration_selection.F0_final
-        self.outlier_detection = OutlierDetection(self.F0_final_integration_selection, p=0.5, D=2*np.sqrt(np.var(self.F0_final_integration_selection)), verbose = True)
+        self.outlier_detection = OutlierDetection(self.F0_final_integration_selection, p=0.5, D=3*np.std(self.F0_final_integration_selection), verbose = True)
         self.F0_wo_outliers = np.asarray(self.outlier_detection.non_outliers)
         # plot various datasets
         self._generate_plots()
         # compute different entropies
-        # fit to cdf, numerical integration for un-biasing
-        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.packings_dir)
-        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
         # -p log g entropy
         self.APF_entropy = APFEntropy(self.F0_wo_outliers, self.volume_sanity_check)
         self.APF_entropy.compute_and_write_entropy(self.packings_dir + "/entropy_AFP")
-        # fit to pdf with ML method
-        self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
-        self.ML_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_ML_LogOmega")
         # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
         self.kernel_density_log_omega = KernelDensityLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
         self.kernel_density_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_kernel_density")
+        # fit to cdf, numerical integration for un-biasing
+        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.packings_dir)
+        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
+        # fit to pdf with ML method
+        self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
+        self.ML_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_ML_LogOmega")
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k

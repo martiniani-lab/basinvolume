@@ -22,7 +22,7 @@ class MLMethodGenGauss(object):
         self.x = np.array([initial_mu, initial_alpha, initial_zeta])
         print "xinitial", self.x
         self.pot = MLCost(self.F0, log_probf=log_gen_gauss)
-        optimizer = LBFGS_CPP(self.x, self.pot)
+        optimizer = LBFGS_CPP(self.x, self.pot, tol=1e-4)
         result = optimizer.run()
         if result.success:
             self.opt_x = result.coords
