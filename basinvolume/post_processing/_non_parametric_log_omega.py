@@ -29,8 +29,8 @@ class KernelDensityLogOmega(object):
             raise Exception("KernelDensityLogOmega: illegal kernel choice")
         self.kernel = kernel
         if bandwidth == None:
-            #self.bandwidth = self.get_bandwidth_estimate(method="cross_validation")
-            self.bandwidth = self.get_bandwidth_estimate(method="Silverman")
+            self.bandwidth = self.get_bandwidth_estimate(method="cross_validation")
+            #self.bandwidth = self.get_bandwidth_estimate(method="Silverman")
         else:
             self.bandwidth = bandwidth
         if self.bandwidth <= 0:
@@ -83,7 +83,9 @@ class KernelDensityLogOmega(object):
             std_samples = np.std(self.F0)
             opt_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
         elif method == "cross_validation":
-            loocv = CrossValidationBandwidthSelection(self.F0, kernel=self.kernel)
+            silv_initial = ((4 * np.std(self.F0) ** 5) / (3 * len(self.F0))) ** (1/5)
+            print "silv_initial", silv_initial
+            loocv = CrossValidationBandwidthSelection(self.F0, kernel=self.kernel, h_initial=silv_initial)
             opt_bandwidth = loocv.opt_bandwidth 
         else:
             raise Exception("KernelDensityLogOmega: get_bandwidth_estimate: illegal method input")
@@ -104,7 +106,7 @@ class CrossValidationBandwidthSelection(object):
     """
     def __init__(self, data, kernel="gaussian", h_initial=2):
         pot = CrossValidationCost(data, kernel=kernel)
-        optimizer = LBFGS(np.asarray([h_initial]), pot)
+        optimizer = LBFGS(np.asarray([h_initial]), pot, maxstep=1)
         print "run bandwidth optimization"
         result = optimizer.run()
         print "done"
