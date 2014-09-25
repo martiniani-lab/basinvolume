@@ -22,7 +22,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.autocorr = []
         self.timeseries = np.array([])
         self.ts_converged = False
-        self.rel_std_err = 0.05 #relative standard error
+        self.rel_std_err = 0.01 #relative standard error
         
     def _print_data(self):
         self._all_dump_timeseries() #convergence is tested in this function
@@ -50,14 +50,14 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         else:
             m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
         
-        new_max_ptiter = self.ptiter + int(m)
+        new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
         new_max_ptiter_array = self._gather_data([new_max_ptiter])
         if self.rank == 0:
             max_ptiter = np.amax(new_max_ptiter_array)
         else:
             max_ptiter = None
         max_ptiter = self._broadcast_data([max_ptiter], 1)[0]
-        return max_ptiter
+        return int(max_ptiter)
         
     def _test_ts_convergence(self, timeseries):
         if not self.ts_converged:

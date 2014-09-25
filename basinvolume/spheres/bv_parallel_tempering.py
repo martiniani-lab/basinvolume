@@ -31,7 +31,7 @@ if __name__ == "__main__":
     nskip = int(adjustf_niter/niter) #don't swap while adjusting the step-size
     pt_eq_niter = int(tot_niter*0.4) #equilibrate pt for the following 4/10th of total steps ()
     #the histogram starts recording the mean after adjustf_niter+pt_eq_niter steps
-    pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 5 snapshots)
+    pfreq = int(ptiter*0.2) #print every 1/10th of ptiter (this will give 5 snapshots) #this is also frequency of tests
     ts_freq = 1
     ts_niter = int(niter*pfreq/ts_freq)
     perform_minimisation_convergence_test=False
@@ -40,6 +40,7 @@ if __name__ == "__main__":
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
+    print seeds
     
     assert(ts_freq == 1) #must be 1 with current output implementation (all based on timeseries)
     sim = configure_bv_mcrunner()
