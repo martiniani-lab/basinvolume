@@ -31,11 +31,12 @@ if __name__ == "__main__":
     nskip = int(adjustf_niter/niter) #don't swap while adjusting the step-size
     pt_eq_niter = int(tot_niter*0.4) #equilibrate pt for the following 4/10th of total steps ()
     #the histogram starts recording the mean after adjustf_niter+pt_eq_niter steps
-    pfreq = int(ptiter*0.2) #print every 1/10th of ptiter (this will give 5 snapshots) #this is also frequency of tests
+    pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 5 snapshots) #this is also frequency of tests
     ts_freq = 1
     ts_niter = int(niter*pfreq/ts_freq)
     perform_minimisation_convergence_test=False
     test_convergence_ts=True
+    record_histogram=False
     rel_std_threshold= 0.1
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
@@ -48,7 +49,7 @@ if __name__ == "__main__":
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
                  pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, 
                  perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
-                 seeds=seeds, use_cell_lists=args.nocell)
+                 seeds=seeds, use_cell_lists=args.nocell, record_histogram=record_histogram)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min

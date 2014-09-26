@@ -163,7 +163,8 @@ class BV_MCrunner(_BaseMCRunner):
                   origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
                   hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
                   pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5,
-                  perform_convergence_test=False, collect_minima_list=False, seeds=None, use_cell_lists=False):
+                  perform_convergence_test=False, collect_minima_list=False, seeds=None, use_cell_lists=True,
+                  record_histogram=False):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
         
@@ -210,9 +211,12 @@ class BV_MCrunner(_BaseMCRunner):
         self.seeds=seeds
         
         #construct test/action classes
-        self.binsize = hbinsize
-        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,
-                                              self.binsize,(adjustf_niter+pt_eq_niter))
+        if record_histogram:
+            self.binsize = hbinsize
+            self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,
+                                                  self.binsize,(adjustf_niter+pt_eq_niter))
+            self.add_action(self.histogram)
+        
         self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
@@ -229,7 +233,6 @@ class BV_MCrunner(_BaseMCRunner):
         self.add_accept_test(self.metropolis)
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
-        self.add_action(self.histogram)
         self.add_action(self.time_series)
         self.add_action(self.adjust_step)
         
