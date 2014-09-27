@@ -8,7 +8,7 @@ namespace bv{
 
 class RSMDTracker{
 private:
-    mcpele::GetMeanRMSDisplacement* rsmd;
+    mcpele::GetDisplacementPerParticle* rsmd;
     const size_t boxdim;
     size_t nr_decorrelation_steps;
     bool sufficient_diffusion;
@@ -16,7 +16,7 @@ private:
 public:
     RSMDTracker(pele::Array<double> initial_, const size_t boxdim_,
             const double desired_mean_rsm_displ_)
-        : rsmd(new mcpele::GetMeanRMSDisplacement(initial_, boxdim_)),
+        : rsmd(new mcpele::GetDisplacementPerParticle(initial_, boxdim_)),
           boxdim(boxdim_),
           nr_decorrelation_steps(0),
           sufficient_diffusion(false),
@@ -29,13 +29,13 @@ public:
     void reset(pele::Array<double> initial)
     {
         delete rsmd;
-        rsmd = new mcpele::GetMeanRMSDisplacement(initial, boxdim);
+        rsmd = new mcpele::GetDisplacementPerParticle(initial, boxdim);
         nr_decorrelation_steps = 0;
         sufficient_diffusion = false;
     }
     void check_next(pele::Array<double> coords)
     {
-        const double this_rsmd = rsmd->compute_mean_rsm_displacement(coords);
+        const double this_rsmd = rsmd->compute_mean_particle_displacement(coords);
         if (this_rsmd > desired_mean_rsm_displ) {
             sufficient_diffusion = true;
         }
