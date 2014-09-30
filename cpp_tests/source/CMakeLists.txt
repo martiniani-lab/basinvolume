@@ -48,5 +48,6 @@ FILE(GLOB sources *.cpp)
 
 add_executable(test_main ${sources})
 #target_link_libraries(test_main basinvolume_lib gtest gtest_main pthread)
-target_link_libraries(test_main pele_lib mcpele_lib basinvolume_lib gtest gtest_main pthread)
+#target_link_libraries(test_main pele_lib mcpele_lib basinvolume_lib gtest gtest_main pthread)
 #target_link_libraries(test_main pele_lib gtest gtest_main pthread)
+target_link_libraries(test_main basinvolume_lib mcpele_lib pele_lib gtest gtest_main pthread)
