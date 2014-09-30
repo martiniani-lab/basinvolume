@@ -6,7 +6,7 @@ from pele.optimize import ModifiedFireCPP
 from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
-from mcpele.monte_carlo import GaussianCoordsDisplacement
+from mcpele.monte_carlo import GaussianCoordsDisplacement, ParticlePairSwap, TakeStepPattern
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
 from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap, RecordDisplacementTimeseries, CheckOverlapCellLists
 from basinvolume.gui import HSWCASystem
@@ -93,12 +93,21 @@ class HS_MCrunner(_BaseMCRunner):
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max))
+            seeds = dict(seed_takestep=np.random.randint(i32max), seed_swap=np.random.randint(i32max))
         self.seeds=seeds
                 
         #construct test/action classes  
         self.set_report_steps(adjustf_niter)
+        ##########################################
+        # NOTE: this should be replaced by the composite move, but then one has to be able to get the stepsize somehow (see mc)
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
+        ##########################################
+        #self.takestep_global_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
+        #self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
+        #self.takestep = TakeStepPattern()
+        #self.takestep.add_step(self.takestep_global_displacement, 99)
+        #self.takestep.add_step(self.takestep_particle_pair_swap, 1)
+        ##########################################
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour
         rcut = np.amax(self.hs_radii)*2
@@ -106,7 +115,6 @@ class HS_MCrunner(_BaseMCRunner):
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.checkoverlap)
-        #self.add_action(self.adjust_step)
         
     def set_control(self, T):
         """set temperature, canonical control parameter"""
