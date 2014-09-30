@@ -4,7 +4,7 @@
 #include "pele/array.h"
 
 #include "mcpele/histogram.h"
-#include "mcpele/actions.h"
+#include "mcpele/record_energy_histogram.h"
 
 namespace bv{
 

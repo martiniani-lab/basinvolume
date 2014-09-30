@@ -7,8 +7,6 @@
 #include "pele/distance.h"
 #include "mcpele/mc.h"
 #include "mcpele/histogram.h"
-#include "mcpele/actions.h"
-#include "mcpele/takestep.h"
 #include "pele/harmonic.h"
 
 namespace bv{

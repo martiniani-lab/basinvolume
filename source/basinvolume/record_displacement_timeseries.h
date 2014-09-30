@@ -6,7 +6,7 @@
 #include "pele/array.h"
 #include "pele/distance.h"
 
-#include "mcpele/actions.h"
+#include "mcpele/mc.h"
 
 namespace bv{
 

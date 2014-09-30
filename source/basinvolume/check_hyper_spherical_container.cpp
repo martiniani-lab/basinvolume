@@ -1,5 +1,7 @@
 #include "check_hyper_spherical_container.h"
 
+using pele::Array;
+
 namespace bv{
 
 CheckHyperSphericalContainer::CheckHyperSphericalContainer(pele::Array<double> origin, double radius, size_t ndim)
