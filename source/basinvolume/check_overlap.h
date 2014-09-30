@@ -9,7 +9,6 @@
 #include "pele/distance.h"
 
 #include "mcpele/mc.h"
-#include "mcpele/conf_test.h"
 #include "pele/neighbor_iterator.h"
 
 namespace bv{

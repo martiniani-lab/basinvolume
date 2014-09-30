@@ -14,10 +14,6 @@
 #include "pele/modified_fire.h"
 
 #include "mcpele/mc.h"
-#include "mcpele/takestep.h"
-#include "mcpele/accept_test.h"
-#include "mcpele/actions.h"
-#include "mcpele/conf_test.h"
 
 #include "basinvolume/check_same_minimum.h"
 #include "basinvolume/findk.h"
