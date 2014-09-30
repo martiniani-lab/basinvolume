@@ -120,7 +120,7 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
 
 TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     mcpele::MC mc(pot, x, 1);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42, stepsize);
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::GaussianCoordsDisplacement>(42, stepsize);
     mc.set_takestep(sampler_uniform);
     //add action findk
     const size_t findk__avg_count = 1e3;
