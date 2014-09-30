@@ -13,7 +13,10 @@
 #include "pele/lbfgs.h"
 #include "pele/modified_fire.h"
 
-#include "mcpele/mc.h"
+#include "mcpele/random_coords_displacement.h"
+#include "mcpele/gaussian_coords_displacement.h"
+#include "mcpele/metropolis_test.h"
+#include "mcpele/adaptive_takestep.h"
 
 #include "basinvolume/check_same_minimum.h"
 #include "basinvolume/findk.h"
@@ -88,13 +91,15 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
     const size_t adj_iter(max_iter/1e1);
     const size_t eqsteps = adj_iter;
     auto opt = std::make_shared<fire_t>(pot, origin, 1e-2, 1, 1);
-    mcpele::MC mc(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
+    mcpele::MC mc(pot, x, 1);
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42, stepsize);
+    auto sampler_uniform_adaptive = std::make_shared<mcpele::AdaptiveTakeStep>(sampler_uniform, adj_iter/1e1, 0.9, 0.2, 0.5);
     mc.set_takestep(sampler_uniform);
+    mc.set_report_steps(adj_iter);
     shared_ptr<mcpele::AcceptTest> metropolis = std::make_shared<mcpele::MetropolisTest>(42);
     mc.add_accept_test(metropolis);
-    shared_ptr<mcpele::Action> adjust_step = std::make_shared<mcpele::AdjustStep>(0.2, 0.5, adj_iter, adj_iter/1e1);
-    mc.add_action(adjust_step);
+    //shared_ptr<mcpele::Action> adjust_step = std::make_shared<mcpele::AdjustStep>(0.2, 0.5, adj_iter, adj_iter/1e1);
+    //mc.add_action(adjust_step);
     //add conf tests, check same minimum
     shared_ptr<mcpele::ConfTest> check_basic = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps);
     shared_ptr<mcpele::ConfTest> check_eigenvalues = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps, true, false);
@@ -114,8 +119,8 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
 }
 
 TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
-    mcpele::MC mc(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
+    mcpele::MC mc(pot, x, 1);
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42, stepsize);
     mc.set_takestep(sampler_uniform);
     //add action findk
     const size_t findk__avg_count = 1e3;
@@ -138,6 +143,6 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     //the precise final value depends on the inital value, the iteration, etc.
     EXPECT_NEAR(std::static_pointer_cast<bv::Findk>(findk)->get_k(), 0, 1);
     //check that stepsize of mc is correctly adapted to k as adjusted in findk
-    EXPECT_NEAR_RELATIVE(mc._stepsize, 1/sqrt( std::static_pointer_cast<bv::Findk>(findk)->get_k() ), 1e-15);
+    EXPECT_NEAR_RELATIVE(static_cast<mcpele::GaussianCoordsDisplacement*>(mc.get_takestep().get())->get_stepsize(), 1/sqrt( std::static_pointer_cast<bv::Findk>(findk)->get_k() ), 1e-15);
 }
 

@@ -34,6 +34,7 @@ message("mcpele include directory ${mcpele_include}")
 FILE(GLOB pele_sources ${pele_include}/*.cpp)
 add_library(pele_lib ${pele_sources})
 
+# This path needs fixing as soon as the mc cpp files have been moved.
 # build the mcpele library
 FILE(GLOB mcpele_sources ${mcpele_include}/mcpele/*.cpp)
 add_library(mcpele_lib ${mcpele_sources})

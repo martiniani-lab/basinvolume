@@ -13,7 +13,7 @@
 #include "pele/lbfgs.h"
 #include "pele/modified_fire.h"
 
-#include "mcpele/mc.h"
+#include "mcpele/random_coords_displacement.h"
 
 #include "basinvolume/find_nr_decorrelation_steps.h"
 
@@ -64,8 +64,8 @@ public:
 };
 
 TEST_F(FindNrDecorrelationSepsTest, BasicWorks){
-    mcpele::MC mc(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
+    mcpele::MC mc(pot, x, 1);
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42, stepsize);
     mc.set_takestep(sampler_uniform);
     //add things to mc
     const size_t niter = 1e5;
@@ -90,8 +90,8 @@ TEST_F(FindNrDecorrelationSepsTest, BasicWorks){
 }
 
 TEST_F(FindNrDecorrelationSepsTest, NullTargetWorks){
-    mcpele::MC mc(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
+    mcpele::MC mc(pot, x, 1);
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42, stepsize);
     mc.set_takestep(sampler_uniform);
     //add things to mc
     const size_t niter = 1e5;
@@ -117,18 +117,18 @@ TEST_F(FindNrDecorrelationSepsTest, NullTargetWorks){
 }
 
 TEST_F(FindNrDecorrelationSepsTest, MoreNeedsMoreWorks){
-    mcpele::MC mc(pot, x, 1, stepsize);
-    mcpele::MC mc2(pot, x, 1, stepsize);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
-    shared_ptr<mcpele::TakeStep> sampler_uniform2 = std::make_shared<mcpele::RandomCoordsDisplacement>(42);
+    mcpele::MC mc(pot, x, 1);
+    mcpele::MC mc2(pot, x, 1);
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42, stepsize);
+    shared_ptr<mcpele::TakeStep> sampler_uniform2 = std::make_shared<mcpele::RandomCoordsDisplacement>(42, stepsize);
     mc.set_takestep(sampler_uniform);
     mc2.set_takestep(sampler_uniform2);
 
     //add things to mc
     const size_t niter = 1e5;
-    const double desired_mean_rsm_displ_ = 1*stepsize;
-    const double desired_mean_rsm_displ_2 = 2*stepsize;
-    const size_t nr_iterations_start_ = niter/100;
+    const double desired_mean_rsm_displ_ = 1 * stepsize;
+    const double desired_mean_rsm_displ_2 = 2 * stepsize;
+    const size_t nr_iterations_start_ = niter / 100;
     const size_t nr_samples_avergage_ = 3;
     bv::FindNrDecorrelationSteps* finder = new bv::FindNrDecorrelationSteps(desired_mean_rsm_displ_,
             nr_iterations_start_, nr_samples_avergage_, x, nr_dim);
