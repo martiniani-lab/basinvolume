@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument("-n","--totniter", type=int, help="number of energy evaluation per replica, default: 3e5",default=3e5)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
-    parser.add_argument("--nocollectminima", action='store_false', help="don't collect databse of minima",default=True)
+    parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
     args = parser.parse_args()
     
     path = args.base_directory
@@ -29,7 +29,9 @@ if __name__ == "__main__":
     niter = int((tot_niter-ptiter)/ptiter) #90% MCMC walk
     adjustf_niter = int(tot_niter*0.1) #equilibrate for the first 1/10th of total steps
     nskip = int(adjustf_niter/niter) #don't swap while adjusting the step-size
-    pt_eq_niter = int(tot_niter*0.4) #equilibrate pt for the following 4/10th of total steps ()
+    # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
+    # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
+    pt_eq_niter = int(tot_niter*0.4) 
     #the histogram starts recording the mean after adjustf_niter+pt_eq_niter steps
     pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 5 snapshots) #this is also frequency of tests
     ts_freq = 1
@@ -37,7 +39,7 @@ if __name__ == "__main__":
     perform_minimisation_convergence_test=False
     test_convergence_ts=True
     record_histogram=False
-    rel_std_threshold= 0.1
+    rel_std_err= 0.02
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
@@ -56,7 +58,7 @@ if __name__ == "__main__":
     kmax = sim.kmax
         
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip,
-                                     test_convergence=test_convergence_ts, rel_std_threshold=rel_std_threshold, 
+                                     test_convergence=test_convergence_ts, rel_std_err=rel_std_err, 
                                      base_directory=path, verbose=args.verbose)
     start=time.time()
     ptrunner.run()
