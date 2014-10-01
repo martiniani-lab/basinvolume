@@ -12,14 +12,14 @@ def detectEquilibration(A_t, fast=True, nskip=1):
     T = A_t.size
 
     # Special case if timeseries is constant.
-    if A_t.std() == 0.0:
+    if A_t.var() == 0.0:
         return (0, 1, T)
 
     g_t = np.ones([T - 1], np.float32)
     Neff_t = np.ones([T - 1], np.float32)
-    for t in range(0, T - 1, nskip):
+    for t in xrange(0, T - 1, nskip):
         #if timeseries segment is constant set statistical efficiency to 1
-        if A_t[t:T].std() == 0:
+        if A_t[t:T].var() == 0:
             g_t[t] = 1
         else:
             g_t[t] = statisticalInefficiency(A_t[t:T], fast=fast)
@@ -48,9 +48,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.timeseries = np.array([])
         self.eq_time = 0 #time at which equilibration was reached
         self.rel_std_err = rel_std_err #relative standard error
-        self.eq_min_ptiter = int(self.max_ptiter*0.75) #int(1e5/self.mcrunner.niter)
+        self.eq_min_ptiter = int(self.max_ptiter*0.95) #int(1e5/self.mcrunner.niter)#
         self.eq_max_ptiter = int(1e7/self.mcrunner.niter)
         assert(self.eq_min_ptiter > self.skip)
+        assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
         
     def _print_data(self):
@@ -66,7 +67,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         estimate for the standard error (see Troyer Am. J. Phys. 78 (2)) from which one can easily find that
         M = sig^2*(1+2t)/(mu rel_std_err)^2
         """
-        tau = integratedAutocorrelationTime(timeseries)
+        tau = integratedAutocorrelationTime(timeseries, fast=True)
         self.autocorr.extend([tau])
         var = np.var(timeseries)
         mean = np.mean(timeseries)
@@ -76,10 +77,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         #compute by how much to extend the time series
         if rel_err < self.rel_std_err:
             m = 0
+            new_max_ptiter = self.ptiter
         else:
             m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
+            new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
         
-        new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
         new_max_ptiter_array = self._gather_data([new_max_ptiter])
         if self.rank == 0:
             max_ptiter = np.amax(new_max_ptiter_array)
@@ -94,8 +96,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.timeseries is the whole recorded timeseries
         """
         print "detecting equilibration point"
-        nskip = int(len(self.timeseries)*0.01)
-        self.eq_time = detectEquilibration(self.timeseries, fast=True, nskip=nskip)[0]
+        nskip = int(len(self.timeseries)*0.005)
+        if self.eq_time == 0:
+            self.eq_time = detectEquilibration(self.timeseries, fast=True, nskip=nskip)[0]
         #only keep time series from after the equilibration point, create a copy
         timeseries = copy.copy(self.timeseries[self.eq_time:])
         #do not replace this if with an else, it should be executed if in the previous test 
@@ -127,6 +130,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if not self.suppress_histogram:
             mean, variance = self.mcrunner.dump_histogram(fname)
         else:
+            #recompute a better estimate of self.eq_time
+            nskip = int(len(self.timeseries)*0.005)
+            self.eq_time = detectEquilibration(self.timeseries, fast=True, nskip=nskip)[0]
             mean = np.mean(self.timeseries[self.eq_time:])
             variance = np.var(self.timeseries[self.eq_time:])
         self.histogram_mean_stream.write('{:<15}\t{:>15.15e}\t{:>15.15e}\n'.format(iteration,mean,variance))

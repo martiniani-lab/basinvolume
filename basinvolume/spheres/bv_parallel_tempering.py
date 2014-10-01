@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
     parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
     parser.add_argument("base_directory", type=str, help="directory in which to save results")
-    parser.add_argument("-n","--totniter", type=int, help="number of energy evaluation per replica, default: 3e5",default=3e5)
+    parser.add_argument("-n","--totniter", type=int, help="number of energy evaluation per replica, default: 3e5. This sets a lower bound",default=3e5)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
@@ -31,9 +31,9 @@ if __name__ == "__main__":
     nskip = int(adjustf_niter/niter) #don't swap while adjusting the step-size
     # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
     # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
-    pt_eq_niter = int(tot_niter*0.4) 
+    pt_eq_niter = 0 #set to 0 
     #the histogram starts recording the mean after adjustf_niter+pt_eq_niter steps
-    pfreq = int(ptiter*0.1) #print every 1/10th of ptiter (this will give 5 snapshots) #this is also frequency of tests
+    pfreq = int((ptiter-1)*0.1) #print every 1/10th of ptiter (this will give 5 snapshots) #this is also frequency of tests
     ts_freq = 1
     ts_niter = int(niter*pfreq/ts_freq)
     perform_minimisation_convergence_test=False
