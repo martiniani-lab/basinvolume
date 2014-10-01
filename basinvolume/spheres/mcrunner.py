@@ -100,13 +100,13 @@ class HS_MCrunner(_BaseMCRunner):
         self.set_report_steps(adjustf_niter)
         ##########################################
         # NOTE: this should be replaced by the composite move, but then one has to be able to get the stepsize somehow (see mc)
-        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
+        #self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
         ##########################################
-        #self.takestep_global_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
-        #self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
-        #self.takestep = TakeStepPattern()
-        #self.takestep.add_step(self.takestep_global_displacement, 99)
-        #self.takestep.add_step(self.takestep_particle_pair_swap, 1)
+        self.takestep_global_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
+        self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
+        self.takestep = TakeStepPattern()
+        self.takestep.add_step(self.takestep_global_displacement, 99)
+        self.takestep.add_step(self.takestep_particle_pair_swap, 1)
         ##########################################
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour
@@ -146,7 +146,7 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
         return n
     
     def get_stepsize(self):
-        return self.takestep.get_stepsize()
+        return self.takestep_global_displacement.get_stepsize()
         
     
 class BV_MCrunner(_BaseMCRunner):
