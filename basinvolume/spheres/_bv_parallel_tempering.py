@@ -45,7 +45,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.u2meank0 = u2meank0
         self.test_convergence = test_convergence
         self.autocorr = []
-        self.timeseries = np.array([])
+        self.timeseries2 = np.array([])
         self.eq_time = 0 #time at which equilibration was reached
         self.rel_std_err = rel_std_err #relative standard error
         self.eq_min_ptiter = int(self.max_ptiter*0.95) #int(1e5/self.mcrunner.niter)#
@@ -60,18 +60,18 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if self.ptiter >= self.eq_min_ptiter:
             self._all_dump_histogram()
     
-    def _find_new_max_ptiter(self, timeseries):
+    def _find_new_max_ptiter(self, timeseries2):
         """
         resets max_ptiter based on desired relative standard error that one wants to achieve. The longest estimate 
         is chosen for the full pt. In order to estimate the number of extra steps to perform uses the correlated
         estimate for the standard error (see Troyer Am. J. Phys. 78 (2)) from which one can easily find that
         M = sig^2*(1+2t)/(mu rel_std_err)^2
         """
-        tau = integratedAutocorrelationTime(timeseries, fast=True)
+        tau = integratedAutocorrelationTime(timeseries2, fast=True)
         self.autocorr.extend([tau])
-        var = np.var(timeseries)
-        mean = np.mean(timeseries)
-        sample_size = len(timeseries)
+        var = np.var(timeseries2)
+        mean = np.mean(timeseries2)
+        sample_size = len(timeseries2)
         rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
         print "core {} relative standard error {}".format(self.rank, rel_err)
         #compute by how much to extend the time series
@@ -90,20 +90,20 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         max_ptiter = self._broadcast_data([max_ptiter], 1)[0]
         return min(int(max_ptiter),self.eq_max_ptiter)
         
-    def _test_ts_convergence(self, tail_timeseries):
+    def _test_ts_convergence(self):
         """
         in_timeseries is the last segment of the time series
         self.timeseries is the whole recorded timeseries
         """
-        print "detecting equilibration point"
-        nskip = int(len(self.timeseries)*0.005)
         if self.eq_time == 0:
-            self.eq_time = detectEquilibration(self.timeseries, fast=True, nskip=nskip)[0]
+            print "detecting equilibration point"
+            nskip = int(len(self.timeseries2)*0.005)
+            self.eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
         #only keep time series from after the equilibration point, create a copy
-        timeseries = copy.copy(self.timeseries[self.eq_time:])
+        timeseries2 = copy.copy(self.timeseries2[self.eq_time:])
         #do not replace this if with an else, it should be executed if in the previous test 
         #self.ts_converged is set to true
-        self.max_ptiter = self._find_new_max_ptiter(timeseries)
+        self.max_ptiter = self._find_new_max_ptiter(timeseries2)
         #if self.verbose:
         print "new max_ptiter {}".format(self.max_ptiter)
         print "core {} autocorrelation time {}".format(self.rank, self.autocorr)
@@ -116,9 +116,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         fname = "{0}/TimeSeries.{1}".format(directory,int(iteration))
         #don't clear, clear manually after convergence test
         tail_timeseries = self.mcrunner.dump_timeseries(fname, clear=False)
-        self.timeseries = np.append(self.timeseries, tail_timeseries)
+        tail_timeseries2 = np.power(tail_timeseries,2)
+        self.timeseries2 = np.append(self.timeseries2, tail_timeseries2)
         if self.test_convergence and self.ptiter > self.eq_min_ptiter:
-            self._test_ts_convergence(tail_timeseries)
+            self._test_ts_convergence()
         self.mcrunner.time_series.clear()
     
     def _all_dump_histogram(self):
@@ -130,11 +131,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if not self.suppress_histogram:
             mean, variance = self.mcrunner.dump_histogram(fname)
         else:
-            #recompute a better estimate of self.eq_time
-            nskip = int(len(self.timeseries)*0.005)
-            self.eq_time = detectEquilibration(self.timeseries, fast=True, nskip=nskip)[0]
-            mean = np.mean(self.timeseries[self.eq_time:])
-            variance = np.var(self.timeseries[self.eq_time:])
+#            #recompute a better estimate of self.eq_time
+#            nskip = int(len(self.timeseries2)*0.005)
+#            self.eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
+            mean = np.mean(self.timeseries2[self.eq_time:])
+            variance = np.var(self.timeseries2[self.eq_time:])
         self.histogram_mean_stream.write('{:<15}\t{:>15.15e}\t{:>15.15e}\n'.format(iteration,mean,variance))
         self.histogram_mean_stream.flush() #print every time not to lose data
     

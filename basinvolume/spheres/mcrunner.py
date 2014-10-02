@@ -176,7 +176,7 @@ class BV_MCrunner(_BaseMCRunner):
                   perform_convergence_test=False, collect_minima_list=False, seeds=None, use_cell_lists=True,
                   record_histogram=False):
         #construct base class
-        super(BV_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
+        super(BV_MCrunner,self).__init__(potential, coords, temperature, niter)
         
         self.origin = origin
         self.hs_radii = hs_radii
@@ -233,10 +233,12 @@ class BV_MCrunner(_BaseMCRunner):
                                           eqsteps=(adjustf_niter+pt_eq_niter),
                                           perform_convergence_test=perform_convergence_test, 
                                           collect_minima_list=collect_minima_list)
-        self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         self.time_series = RecordDisplacementTimeseries(self.origin,self.bdim, ts_niter, ts_freq)
-        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'])
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
+        
+        self.set_report_steps(adjustf_niter)
+        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
+                                                  factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance)
         
         #set up pele:MC
         self.set_takestep(self.takestep)
@@ -244,13 +246,15 @@ class BV_MCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.time_series)
-        self.add_action(self.adjust_step)
         
     def set_control(self, c):
         """set temperature, canonical control parameter"""
         self.k = c
         self.potential.set_k(c)
         self.reset_energy()
+    
+    def get_stepsize(self):
+        return self.takestep.get_stepsize()
     
     def dump_histogram(self, fname):
         """write histogram to fname"""
@@ -334,7 +338,7 @@ class Findk_MCrunner(_BaseMCRunner):
                   opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001, perform_convergence_test=False, 
                   collect_minima_list=False, seeds=None, use_cell_lists=False):
         #construct base class
-        super(Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
+        super(Findk_MCrunner,self).__init__(potential, coords, temperature, niter)
         
         self.origin = origin
         self.hs_radii = hs_radii
@@ -382,7 +386,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.seeds=seeds
         
         #construct test/action classes      
-        self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'])
+        self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'], stepsize)
         self.conftest1 = CheckOverlap(self.hs_radii, self.boxv)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
@@ -404,6 +408,9 @@ class Findk_MCrunner(_BaseMCRunner):
     def set_control(self, c):
         """set k"""
         print("WARNING: findk set control is not defined, spring constant is set through stepsize", file=sys.stderr)
+    
+    def get_stepsize(self):
+        return self.takestep.get_stepsize()
     
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""

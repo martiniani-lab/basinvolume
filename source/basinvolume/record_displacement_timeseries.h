@@ -7,6 +7,7 @@
 #include "pele/distance.h"
 
 #include "mcpele/mc.h"
+#include "mcpele/record_scalar_timeseries.h"
 
 namespace bv{
 
