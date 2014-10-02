@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 import sys
-from mcpele.parallel_tempering import MPI_PT_RLhandshake
+from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
 from basinvolume.utils import get_dist_com
@@ -39,7 +39,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     eq_max_ptiter: determines the maximum number of pt steps to perform if convergence is not reached before, O(1e7)
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, 
-                 rel_std_err=0.02, print_status = False, base_directory=None, verbose=False):
+                 rel_std_err=0.03, print_status = False, base_directory=None, verbose=False):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter= max_ptiter, pfreq=pfreq, skip=skip, 
                                                    print_status = print_status, base_directory=base_directory, verbose=verbose)
         self.u2meank0 = u2meank0
@@ -48,11 +48,25 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.timeseries2 = np.array([])
         self.eq_time = 0 #time at which equilibration was reached
         self.rel_std_err = rel_std_err #relative standard error
-        self.eq_min_ptiter = int(self.max_ptiter*0.95) #int(1e5/self.mcrunner.niter)#
-        self.eq_max_ptiter = int(1e7/self.mcrunner.niter)
+        self.rel_std_err_arr = [] #array of measured relative standard errors
+        self.eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
+        self.eq_max_ptiter = int(self.eq_min_ptiter*100)
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
+    
+    def _print_initialise(self):
+        base_directory = self.base_directory
+        trymakedir(base_directory)
+        directory = "{0}/{1}".format(base_directory,self.rank)
+        trymakedir(directory)
+        self._master_print_temperatures()
+        self._all_print_parameters()
+        self.status_stream = open('{0}/{1}'.format(directory,'status'),'w')
+        self.histogram_mean_stream = open('{0}/{1}'.format(directory,'hist_mean'),'w')
+        self.histogram_mean_stream.write('{:<15}\t{:<15}\t{:<15}\t{:<15}\n'.format('iteration','<(x-x0)**2>','variance','std_err'))
+        if self.rank == 0:
+            self.permutations_stream = open(r'{0}/rem_permutations'.format(base_directory),'w')
         
     def _print_data(self):
         self._all_dump_timeseries() #convergence is tested in this function
@@ -66,6 +80,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         is chosen for the full pt. In order to estimate the number of extra steps to perform uses the correlated
         estimate for the standard error (see Troyer Am. J. Phys. 78 (2)) from which one can easily find that
         M = sig^2*(1+2t)/(mu rel_std_err)^2
+        it returns an estimate of the new maxptiter only once the timeseries is about 10 times the mean autocorrelation length
         """
         tau = integratedAutocorrelationTime(timeseries2, fast=True)
         self.autocorr.extend([tau])
@@ -73,22 +88,27 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         mean = np.mean(timeseries2)
         sample_size = len(timeseries2)
         rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
+        self.rel_std_err_arr.extend([rel_err])
         print "core {} relative standard error {}".format(self.rank, rel_err)
-        #compute by how much to extend the time series
-        if rel_err < self.rel_std_err:
-            m = 0
-            new_max_ptiter = self.ptiter
+        #compute by how much to extend the time series, if has at least 10 tau
+        if sample_size < np.mean(self.autocorr)*10:
+            return self.eq_max_ptiter
         else:
-            m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
-            new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
-        
-        new_max_ptiter_array = self._gather_data([new_max_ptiter])
-        if self.rank == 0:
-            max_ptiter = np.amax(new_max_ptiter_array)
-        else:
-            max_ptiter = None
-        max_ptiter = self._broadcast_data([max_ptiter], 1)[0]
-        return min(int(max_ptiter),self.eq_max_ptiter)
+            if rel_err < self.rel_std_err:
+                m = 0
+                new_max_ptiter = self.ptiter
+            else:
+                m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
+                new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
+            
+            new_max_ptiter_array = self._gather_data([new_max_ptiter])
+            if self.rank == 0:
+                max_ptiter = np.amax(new_max_ptiter_array)
+            else:
+                max_ptiter = None
+            
+            max_ptiter = self._broadcast_data([max_ptiter], 1)[0]
+            return min(int(max_ptiter),self.eq_max_ptiter)
         
     def _test_ts_convergence(self):
         """
@@ -99,13 +119,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             print "detecting equilibration point"
             nskip = int(len(self.timeseries2)*0.005)
             self.eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
-        #only keep time series from after the equilibration point, create a copy
-        timeseries2 = copy.copy(self.timeseries2[self.eq_time:])
-        #do not replace this if with an else, it should be executed if in the previous test 
-        #self.ts_converged is set to true
+        #only keep time series from after the equilibration point, this references original data
+        timeseries2 = self.timeseries2[self.eq_time:]
         self.max_ptiter = self._find_new_max_ptiter(timeseries2)
         #if self.verbose:
-        print "new max_ptiter {}".format(self.max_ptiter)
+        print "new max_ptiter {}, current ptiter {}".format(self.max_ptiter, self.ptiter)
         print "core {} autocorrelation time {}".format(self.rank, self.autocorr)
                     
     def _all_dump_timeseries(self):
@@ -130,13 +148,15 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         fname = "{0}/Visits.his.{1}".format(directory,float(iteration))
         if not self.suppress_histogram:
             mean, variance = self.mcrunner.dump_histogram(fname)
+            self.histogram_mean_stream.write('{:<15}\t{:>15.15e}\t{:>15.15e}\n'.format(iteration,mean,variance))
         else:
 #            #recompute a better estimate of self.eq_time
 #            nskip = int(len(self.timeseries2)*0.005)
 #            self.eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
             mean = np.mean(self.timeseries2[self.eq_time:])
             variance = np.var(self.timeseries2[self.eq_time:])
-        self.histogram_mean_stream.write('{:<15}\t{:>15.15e}\t{:>15.15e}\n'.format(iteration,mean,variance))
+            std_err = self.rel_std_err_arr[-1]*mean
+            self.histogram_mean_stream.write('{:<15}\t{:>15.15e}\t{:>15.15e}\t{:>15.15e}\n'.format(iteration,mean,variance,std_err))
         self.histogram_mean_stream.flush() #print every time not to lose data
     
     def _get_temps(self):
