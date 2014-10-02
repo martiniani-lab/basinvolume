@@ -90,9 +90,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
         self.rel_std_err_arr.extend([rel_err])
         print "core {} relative standard error {}".format(self.rank, rel_err)
+        
         #compute by how much to extend the time series, if has at least 10 tau
-        if sample_size < np.mean(self.autocorr)*10:
-            return self.eq_max_ptiter
+        if sample_size < self.autocorr[-1]*10:
+            new_max_ptiter = self.eq_max_ptiter
         else:
             if rel_err < self.rel_std_err:
                 m = 0
@@ -101,14 +102,14 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
                 new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
             
-            new_max_ptiter_array = self._gather_data([new_max_ptiter])
-            if self.rank == 0:
-                max_ptiter = np.amax(new_max_ptiter_array)
-            else:
-                max_ptiter = None
-            
-            max_ptiter = self._broadcast_data([max_ptiter], 1)[0]
-            return min(int(max_ptiter),self.eq_max_ptiter)
+        new_max_ptiter_array = self._gather_data([new_max_ptiter])
+        if self.rank == 0:
+            max_ptiter = np.amax(new_max_ptiter_array)
+        else:
+            max_ptiter = None
+        
+        max_ptiter = self._broadcast_data([max_ptiter], 1)[0]
+        return min(int(max_ptiter),self.eq_max_ptiter)
         
     def _test_ts_convergence(self):
         """
@@ -119,6 +120,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             print "detecting equilibration point"
             nskip = int(len(self.timeseries2)*0.005)
             self.eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
+            print "core {} eq time {}".format(self.rank, self.eq_time)
         #only keep time series from after the equilibration point, this references original data
         timeseries2 = self.timeseries2[self.eq_time:]
         self.max_ptiter = self._find_new_max_ptiter(timeseries2)

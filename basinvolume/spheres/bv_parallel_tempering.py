@@ -39,7 +39,7 @@ if __name__ == "__main__":
     perform_minimisation_convergence_test=False
     test_convergence_ts=True
     record_histogram=False
-    rel_std_err= 0.03
+    rel_std_err= 0.05
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
