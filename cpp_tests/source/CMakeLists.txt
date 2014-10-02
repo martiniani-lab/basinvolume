@@ -34,8 +34,9 @@ message("mcpele include directory ${mcpele_include}")
 FILE(GLOB pele_sources ${pele_include}/*.cpp)
 add_library(pele_lib ${pele_sources})
 
+# This path needs fixing as soon as the mc cpp files have been moved.
 # build the mcpele library
-FILE(GLOB mcpele_sources ${mcpele_include}/mcpele/*.cpp)
+FILE(GLOB mcpele_sources ${mcpele_include}/*.cpp)
 add_library(mcpele_lib ${mcpele_sources})
 
 # build the basinvolume library
@@ -47,5 +48,6 @@ FILE(GLOB sources *.cpp)
 
 add_executable(test_main ${sources})
 #target_link_libraries(test_main basinvolume_lib gtest gtest_main pthread)
-target_link_libraries(test_main pele_lib mcpele_lib basinvolume_lib gtest gtest_main pthread)
+#target_link_libraries(test_main pele_lib mcpele_lib basinvolume_lib gtest gtest_main pthread)
 #target_link_libraries(test_main pele_lib gtest gtest_main pthread)
+target_link_libraries(test_main basinvolume_lib mcpele_lib pele_lib gtest gtest_main pthread)

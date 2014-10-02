@@ -7,7 +7,7 @@ import logging
 class Test_HS_Generate_Packing(unittest.TestCase):
     
     def setUp(self):
-        self.seeds = dict(seed_takestep=42, seed_generate_packing=43)
+        self.seeds = dict(seed_takestep=42, seed_generate_packing=43, seed_swap=44)
         self.nparticles = 10
         self.bdim = 3
         self.packing_frac=0.4

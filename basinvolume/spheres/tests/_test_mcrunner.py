@@ -2,7 +2,7 @@ import numpy as np
 import time
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
-from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement, CheckSphericalContainer
+from mcpele.monte_carlo import GaussianCoordsDisplacement, CheckSphericalContainer
 from basinvolume.monte_carlo import RecordDisp2Histogram, CheckHyperSphericalContainer, Findk
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
 from basinvolume.post_processing import spring_constants_variable_transform as vt
@@ -48,7 +48,7 @@ class ES_MCrunner(_BaseMCRunner):
                   adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5, 
                   opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
-        super(ES_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
+        super(ES_MCrunner,self).__init__(potential, coords, temperature, niter)
         
         self.origin = origin
         self.set_control(k)
@@ -64,8 +64,10 @@ class ES_MCrunner(_BaseMCRunner):
         self.binsize = hbinsize
         self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax, self.binsize, adjustf_niter)
         self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
-        self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
-        self.step = RandomCoordsDisplacement(np.random.randint(i32max))
+        #self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
+        #self.step = RandomCoordsDisplacement(np.random.randint(i32max))
+        self.set_report_steps(adjustf_niter)
+        self.step = RandomCoordsDisplacement(123, stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
         #self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.metropolis = MetropolisTest(np.random.randint(i32max))
         
@@ -75,7 +77,7 @@ class ES_MCrunner(_BaseMCRunner):
         #self.add_conf_test(self.conftest)
         self.add_conf_test(self.conftest)
         self.add_action(self.histogram)
-        self.add_action(self.adjust_step)
+        #self.add_action(self.adjust_step)
         
     def set_control(self, c):
         """set temperature, canonical control parameter"""
@@ -125,7 +127,7 @@ class ES_Findk_MCrunner(_BaseMCRunner):
                   origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.7, knavg=10000, ktol=0.05, 
                   opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
         #construct base class
-        super(ES_Findk_MCrunner,self).__init__(potential, coords, temperature, stepsize, niter)
+        super(ES_Findk_MCrunner,self).__init__(potential, coords, temperature, niter)
         
         self.origin = origin
         self.set_control(k)
@@ -144,12 +146,12 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         #construct test/action classes      
         i32max = np.iinfo(np.int32).max
         
-        self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
+        self.step = GaussianCoordsDisplacement(np.random.randint(i32max), stepsize)
         self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
         self.min = 0
         self.max = 10
         self.bin = 0.2
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.kfactor, self.knavg, self.ktol, self.min, self.max, self.bin)
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.knavg, self.ktol, self.min, self.max, self.bin)
                            
                 
         #set up pele:MC

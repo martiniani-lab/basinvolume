@@ -9,7 +9,6 @@
 #include "pele/distance.h"
 
 #include "mcpele/mc.h"
-#include "mcpele/conf_test.h"
 #include "pele/neighbor_iterator.h"
 
 namespace bv{
@@ -22,7 +21,7 @@ template<typename DIST_POL>
 class CheckOverlap:public mcpele::ConfTest{
 protected:
     const static size_t m_ndim = DIST_POL::_ndim;
-    Array<double> m_hs_radii;
+    pele::Array<double> m_hs_radii;
     size_t m_nparticles;
     std::shared_ptr<DIST_POL> m_periodic_dist;
 
@@ -38,7 +37,7 @@ public:
 
     virtual ~CheckOverlap() {};
 
-    bool conf_test(Array<double> &trial_coords, mcpele::MC * mc)
+    bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
     {
         double dr[m_ndim];
 
@@ -65,7 +64,7 @@ public:
 template<size_t ndim>
 class CheckOverlapPeriodic:public CheckOverlap<pele::periodic_distance<ndim> >{
 public:
-    CheckOverlapPeriodic(Array<double> hs_radii, pele::Array<double> boxvec)
+    CheckOverlapPeriodic(pele::Array<double> hs_radii, pele::Array<double> boxvec)
         : CheckOverlap< pele::periodic_distance<ndim> >(hs_radii,
                 std::make_shared<pele::periodic_distance<ndim> >(boxvec))
     {}
@@ -80,7 +79,7 @@ template<typename DIST_POL>
 class CellListCheckOverlap:public mcpele::ConfTest{
 protected:
     const static size_t m_ndim = DIST_POL::_ndim;
-    Array<double> m_hs_radii;
+    pele::Array<double> m_hs_radii;
     size_t m_nparticles;
     std::shared_ptr<DIST_POL> m_periodic_dist;
     std::shared_ptr<pele::CellIter<DIST_POL> > m_celliter;
@@ -99,7 +98,7 @@ public:
 
     virtual ~CellListCheckOverlap() {};
 
-    bool conf_test(Array<double> &trial_coords, mcpele::MC * mc)
+    bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
     {
         //refresh cell lists
         m_celliter->reset(trial_coords);

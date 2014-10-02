@@ -28,7 +28,7 @@ void FindNrDecorrelationSteps::action(pele::Array<double> &coords, double energy
 {
     if (done()) {
         //this will trigger premature exit from the MC run loop
-        mc->_niter = std::numeric_limits<size_t>::max();
+        mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when avaialbe, leave for now
         return;
     }
 

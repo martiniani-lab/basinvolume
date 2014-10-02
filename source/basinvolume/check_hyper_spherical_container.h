@@ -8,7 +8,6 @@
 #include "pele/distance.h"
 
 #include "mcpele/mc.h"
-#include "mcpele/conf_test.h"
 
 namespace bv{
 

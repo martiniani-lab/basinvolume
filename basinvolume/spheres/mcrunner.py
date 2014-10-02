@@ -6,7 +6,7 @@ from pele.optimize import ModifiedFireCPP
 from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
-from mcpele.monte_carlo import AdjustStep, GaussianCoordsDisplacement
+from mcpele.monte_carlo import GaussianCoordsDisplacement, ParticlePairSwap, TakeStepPattern
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
 from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap, RecordDisplacementTimeseries, CheckOverlapCellLists
 from basinvolume.gui import HSWCASystem
@@ -84,8 +84,7 @@ class HS_MCrunner(_BaseMCRunner):
                   hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
                   adjustf_navg = 100, seeds=None):
         #construct base class
-        super(HS_MCrunner,self).__init__(potential, coords, temperature,
-                                         stepsize, niter)
+        super(HS_MCrunner,self).__init__(potential, coords, temperature, niter)
         self.hs_radii = hs_radii
         self.boxv = boxvec
         self.bdim = len(boxvec)
@@ -94,12 +93,21 @@ class HS_MCrunner(_BaseMCRunner):
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max))
+            seeds = dict(seed_takestep=np.random.randint(i32max), seed_swap=np.random.randint(i32max))
         self.seeds=seeds
                 
         #construct test/action classes  
-        self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
-        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'])
+        self.set_report_steps(adjustf_niter)
+        ##########################################
+        # NOTE: this should be replaced by the composite move, but then one has to be able to get the stepsize somehow (see mc)
+        #self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
+        ##########################################
+        self.takestep_global_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
+        self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
+        self.takestep = TakeStepPattern()
+        self.takestep.add_step(self.takestep_global_displacement, 99)
+        self.takestep.add_step(self.takestep_particle_pair_swap, 1)
+        ##########################################
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour
         rcut = np.amax(self.hs_radii)*2
@@ -107,7 +115,6 @@ class HS_MCrunner(_BaseMCRunner):
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.checkoverlap)
-        self.add_action(self.adjust_step)
         
     def set_control(self, T):
         """set temperature, canonical control parameter"""
@@ -137,6 +144,9 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
     def get_nr_decorrelation_steps(self):
         n = self.diffusion.get_nr_decorrelation_steps()
         return n
+    
+    def get_stepsize(self):
+        return self.takestep_global_displacement.get_stepsize()
         
     
 class BV_MCrunner(_BaseMCRunner):

@@ -1,6 +1,8 @@
 #include <cmath>
 #include <algorithm>
 
+#include "mcpele/gaussian_coords_displacement.h"
+
 #include "findk.h"
 
 namespace bv{
@@ -73,7 +75,7 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
 
         //this will trigger premature exit from the MC run loop
         if (static_cast<size_t>(_hist.entries()) >= _avg_count){
-            mc->abort();
+            mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
         }
     }
     else if(mc_count % _navg == 0)
@@ -85,7 +87,8 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
         adjust_k(mc_count/_navg, mc);
 
         //adjust the standard deviation of the normal distribution
-        mc->_stepsize = std::sqrt(1.0/_k);
+        //mc->_stepsize = std::sqrt(1.0/_k);
+        static_cast<mcpele::GaussianCoordsDisplacement*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
         //std::cout << "mc->_stepsize: " << mc->_stepsize << std::endl;//debug
 
         //now reset to zero memory of acceptance and rejection
@@ -101,7 +104,8 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     // parameter: can be adapted for better convergence
     const size_t period = 3;
     //get k
-    const double ik = mc->_stepsize;
+    //const double ik = mc->_stepsize;
+    const double ik = static_cast<mcpele::GaussianCoordsDisplacement*>(mc->get_takestep().get())->get_stepsize();
     _k = 1/(ik*ik);
     //debug output
 

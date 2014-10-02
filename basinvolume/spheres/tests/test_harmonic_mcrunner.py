@@ -5,7 +5,7 @@ from pele.potentials import Harmonic
 import unittest
 import logging
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
-from mcpele.monte_carlo import AdjustStep, RecordEnergyHistogram, CheckSphericalContainer
+from mcpele.monte_carlo import RecordEnergyHistogram, CheckSphericalContainer
 import copy
 try:
     import pylab as plt
@@ -37,8 +37,7 @@ class Metropolis_MCrunner(_BaseMCRunner):
                  k=0, hEmin=0, hEmax=100, hbinsize=0.01, radius=2.5,
                  acceptance=0.5, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, bdim=3):
         #construct base class
-        super(Metropolis_MCrunner,self).__init__(potential, coords, temperature,
-                                                  stepsize, niter)
+        super(Metropolis_MCrunner,self).__init__(potential, coords, temperature, niter)
                                
         #construct test/action classes       
         i32max = np.iinfo(np.int32).max
@@ -46,8 +45,10 @@ class Metropolis_MCrunner(_BaseMCRunner):
         self.set_control(k)
         self.binsize = hbinsize
         self.histogram = RecordEnergyHistogram(hEmin,hEmax,self.binsize, adjustf_niter)
-        self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
-        self.step = RandomCoordsDisplacement(123)#np.random.randint(i32max)
+        #self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
+        #self.step = RandomCoordsDisplacement(123)#np.random.randint(i32max)
+        self.set_report_steps(adjustf_niter)
+        self.step = RandomCoordsDisplacement(123, stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
         self.metropolis = MetropolisTest(123)
         self.conftest = CheckSphericalContainer(radius, bdim)
         
@@ -56,7 +57,7 @@ class Metropolis_MCrunner(_BaseMCRunner):
         self.add_accept_test(self.metropolis)
         self.add_conf_test(self.conftest)
         self.add_action(self.histogram)
-        self.add_action(self.adjust_step)
+        #self.add_action(self.adjust_step)
         
     def set_control(self, c):
         """set temperature, canonical control parameter"""
