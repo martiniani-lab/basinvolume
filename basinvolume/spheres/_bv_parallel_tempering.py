@@ -35,8 +35,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """
     u2meank0 is mean of histogram from simulation done at k=0
     Tmax and Tmin here correspond to kmin and kmax, they should be computed by bv_find_params
-    eq_min_ptiter: determines the minimum number of pt steps to perform before checking convergence, O(1e5) 
-    eq_max_ptiter: determines the maximum number of pt steps to perform if convergence is not reached before, O(1e7)
+    eq_min_ptiter: determines the minimum number of pt steps to perform before checking convergence, 95% of initial assigned time 
+    eq_max_ptiter: determines the maximum number of pt steps to perform if convergence is not reached before, 20 times initial assigned time
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, 
                  rel_std_err=0.03, print_status = False, base_directory=None, verbose=False):
@@ -50,7 +50,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.rel_std_err = rel_std_err #relative standard error
         self.rel_std_err_arr = [] #array of measured relative standard errors
         self.eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
-        self.eq_max_ptiter = int(self.eq_min_ptiter*100)
+        self.eq_max_ptiter = int(self.eq_min_ptiter*20)
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
@@ -92,15 +92,14 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         print "core {} relative standard error {}".format(self.rank, rel_err)
         
         #compute by how much to extend the time series, if has at least 10 tau
-        if sample_size < self.autocorr[-1]*10:
+        if sample_size < 1e5: #self.autocorr[-1]*100
             new_max_ptiter = self.eq_max_ptiter
+        elif rel_err < self.rel_std_err:
+            m = 0
+            new_max_ptiter = self.ptiter
         else:
-            if rel_err < self.rel_std_err:
-                m = 0
-                new_max_ptiter = self.ptiter
-            else:
-                m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
-                new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
+            m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
+            new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
             
         new_max_ptiter_array = self._gather_data([new_max_ptiter])
         if self.rank == 0:

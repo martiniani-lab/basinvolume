@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
     parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
     parser.add_argument("base_directory", type=str, help="directory in which to save results")
-    parser.add_argument("-n","--totniter", type=int, help="number of energy evaluation per replica, default: 3e5. This sets a lower bound",default=3e5)
+    parser.add_argument("-n","--totniter", type=int, help="number of energy evaluation per replica, default: 5e5. This sets a lower bound",default=5e5)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
