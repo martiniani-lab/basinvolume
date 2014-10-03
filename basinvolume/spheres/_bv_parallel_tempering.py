@@ -51,9 +51,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.rel_std_err_arr = [] #array of measured relative standard errors
         self.eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
         self.eq_max_ptiter = int(self.eq_min_ptiter*20)
+        self.min_window = 1e5
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
+        assert((self.eq_max_ptiter-self.eq_min_ptiter)*self.mcrunner.niter > self.min_window) #condition on the minimal window size
     
     def _print_initialise(self):
         base_directory = self.base_directory
@@ -67,7 +69,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.histogram_mean_stream.write('{:<15}\t{:<15}\t{:<15}\t{:<15}\n'.format('iteration','<(x-x0)**2>','variance','std_err'))
         if self.rank == 0:
             self.permutations_stream = open(r'{0}/rem_permutations'.format(base_directory),'w')
-        
+    
     def _print_data(self):
         self._all_dump_timeseries() #convergence is tested in this function
         #the histogram depends on self.timeseries that is not empty only once the ts test is passed
@@ -82,7 +84,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         M = sig^2*(1+2t)/(mu rel_std_err)^2
         it returns an estimate of the new maxptiter only once the timeseries is about 10 times the mean autocorrelation length
         """
-        tau = integratedAutocorrelationTime(timeseries2, fast=True)
+        nskip = max(int(len(self.timeseries2)*0.0001),1) 
+        tau = integratedAutocorrelationTime(timeseries2[::nskip], fast=True) * nskip
         self.autocorr.extend([tau])
         var = np.var(timeseries2)
         mean = np.mean(timeseries2)
@@ -92,7 +95,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         print "core {} relative standard error {}".format(self.rank, rel_err)
         
         #compute by how much to extend the time series, if has at least 10 tau
-        if sample_size < 1e5: #self.autocorr[-1]*100
+        if sample_size < self.min_window: #self.autocorr[-1]*100
             new_max_ptiter = self.eq_max_ptiter
         elif rel_err < self.rel_std_err:
             m = 0
@@ -117,7 +120,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         """
         if self.eq_time == 0:
             print "detecting equilibration point"
-            nskip = int(len(self.timeseries2)*0.005)
+            nskip = max(int(len(self.timeseries2)*0.001),1)
             self.eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
             print "core {} eq time {}".format(self.rank, self.eq_time)
         #only keep time series from after the equilibration point, this references original data
@@ -253,6 +256,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                         self.permutation_pattern[i] = buddy+1 #to conform to fortran notation
                     else:
                         self.permutation_pattern[i] = i+1 #to conform to fortran notation
+                self._master_print_permutations()
         else:
             exchange_pattern = None
         

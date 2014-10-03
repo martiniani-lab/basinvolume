@@ -164,6 +164,10 @@ class _kmin_mcrunner(object):
         f.close()
     
     def _print_results(self):
+        """
+        note that self.displ_k_min *= 1.5 to account for the limited computation time, 
+        this is just an approximation 
+        """
         dname = 'kmin_' + self.fname
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
@@ -176,7 +180,7 @@ class _kmin_mcrunner(object):
         for key, value in status.iteritems() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
-        f.write('displ_k_min: {}\n'.format(self.displ_k_min))
+        f.write('displ_k_min: {}\n'.format(self.displ_k_min * 1.5)) #note 1.5
         f.write('var_displ_k_min: {}\n'.format(self.var_displ_k_min))
         f.close()
     

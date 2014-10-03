@@ -7,10 +7,10 @@ import platform
 import basinvolume
 import pele
 import mcpele
+from pele.potentials import BasePotential
+import copy
 try:
     from matplotlib.backends.backend_pdf import PdfPages
-    from pele.potentials import BasePotential
-    import copy
 except ImportError as err:
     print err
 
