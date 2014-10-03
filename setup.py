@@ -80,7 +80,7 @@ setup(name='basinvolume',
 include_sources_bv = ["source/basinvolume/" + f for f in os.listdir("source/basinvolume") 
                    if f.endswith(".cpp")]
 
-include_sources_mcpele = [mcpelepath+"/source/" + f for f in os.listdir(mcpelepath+"/source/") 
+include_sources_mcpele = [mcpelepath+"/source/" + f for f in os.listdir(mcpelepath+"/source") 
                    if f.endswith(".cpp")]
 
 include_sources_pele = [pelepath+"/source/" + f for f in os.listdir(pelepath+"/source") 

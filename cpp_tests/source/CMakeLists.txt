@@ -26,7 +26,7 @@ include_directories(${pele_include})
 message("pele include directory ${pele_include}")
 
 # set mcpele include directory
-set(mcpele_include ../../../mcpele/source)
+set(mcpele_include ../../../julian_fork/mcpele/source)
 include_directories(${mcpele_include})
 message("mcpele include directory ${mcpele_include}")
 

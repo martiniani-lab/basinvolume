@@ -141,6 +141,10 @@ cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
         """clears time series"""
         self.newptr.clear()
     
+    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
+        cdef cbool is_stable = self.newptr.moving_average_is_stable(nr_steps_to_check, rel_std_threshold)
+        return is_stable
+    
 class RecordDisplacementTimeseries(_Cdef_RecordDisplacementTimeseries):
     """This class is the python interface for the c++ RecordDisplacementTimeseries implementation.
     """

@@ -21,8 +21,8 @@ class _collect_u2_vs_k(object):
     *ts_skip number of points skipped when printing time series (every ts_skip)
     """
         
-    def __call__(self, ts_skip=500, fname='explore_bv_jammed_packing0', base_dir='analysis', 
-                 explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data = False):
+    def __call__(self, ts_skip=100, fname='explore_bv_jammed_packing0', base_dir='analysis', 
+                 explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data = True):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):
@@ -117,7 +117,7 @@ class _collect_u2_vs_k(object):
                     fileHandle = open (path,"r")
                     lineList = fileHandle.readlines()
                     fileHandle.close()
-                    niter, u2, var = lineList[-1].split()
+                    niter, u2, var, std_err = lineList[-1].split()
                     self.u2_array[int(dir)] = u2
                     self.var_array[int(dir)] = var
         #prepend u2 kmax
