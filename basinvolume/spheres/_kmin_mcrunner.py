@@ -90,7 +90,7 @@ class _kmin_mcrunner(object):
                                     adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
-                                    seeds=seeds, use_cell_lists=use_cell_lists) 
+                                    seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True) 
         
         self._print_initialise()
         
