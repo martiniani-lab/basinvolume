@@ -18,7 +18,10 @@ def sec_to_pbs_time(seconds):
     hours, minutes = divmod(minutes, 60)
     days, hours = divmod(hours, 24)
     weeks, days = divmod(days, 7)
-    return "{:02d}:{:02d}:{:02d}:{:02d}".format(int(days),int(hours),int(minutes),int(seconds))
+    if int(days) == 0:
+        return "{:02d}:{:02d}:{:02d}".format(int(hours),int(minutes),int(seconds))
+    else:
+        return "{:02d}:{:02d}:{:02d}:{:02d}".format(int(days),int(hours),int(minutes),int(seconds))
 
 class BuildPBSScript(object):
     """
