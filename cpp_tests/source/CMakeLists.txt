@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6.4)
 
 enable_language(CXX)
 SET(CMAKE_CXX_FLAGS "-Wall -ansi -pedantic -std=c++0x")
