@@ -136,6 +136,7 @@ def get_git_version(repository = 'basinvolume'):
         except:
             sys.stderr.write("WARNING: could't find path to" + repository + "\n")
             sys.exit()
+        repo_path = os.path.abspath(repo_path)
         out = subprocess.Popen(cmd, stdout = subprocess.PIPE, env=env, cwd=repo_path).communicate()[0]
         return out
 
