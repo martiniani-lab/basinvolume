@@ -82,7 +82,7 @@ class HS_MCrunner(_BaseMCRunner):
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
-                  adjustf_navg = 100, seeds=None):
+                  adjustf_navg = 100, single=False, seeds=None):
         #construct base class
         super(HS_MCrunner,self).__init__(potential, coords, temperature, niter)
         self.hs_radii = hs_radii
@@ -102,7 +102,11 @@ class HS_MCrunner(_BaseMCRunner):
         # NOTE: this should be replaced by the composite move, but then one has to be able to get the stepsize somehow (see mc)
         #self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
         ##########################################
-        self.takestep_global_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
+        self.takestep_global_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, 
+                                                                     report_interval=adjustf_navg, factor=adjustf, 
+                                                                     min_acc_ratio=0.2, max_acc_ratio=0.5,
+                                                                     single=single, nparticles=self.nparticles, 
+                                                                     bdim=self.bdim)
         self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
         self.takestep = TakeStepPattern()
         self.takestep.add_step(self.takestep_global_displacement, 99)
@@ -128,12 +132,12 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2, 
                   adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
-                  desired_mean_rsm_displ=None, seeds=None):
+                  desired_mean_rsm_displ=None, single=False, seeds=None):
         #construct base class
         super(HS_MCrunnerOptDiffusion,self).__init__(potential, coords, temperature,
                                          stepsize, niter, hs_radii, boxvec, acceptance=acceptance, 
                                          adjustf=adjustf, adjustf_niter = adjustf_niter, 
-                                         adjustf_navg = adjustf_navg, seeds=seeds)
+                                         adjustf_navg = adjustf_navg, single=single, seeds=seeds)
         if not desired_mean_rsm_displ:
             desired_mean_rsm_displ = np.amax(self.hs_radii) * 2
         
@@ -174,7 +178,7 @@ class BV_MCrunner(_BaseMCRunner):
                   hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
                   pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5,
                   perform_convergence_test=False, collect_minima_list=False, seeds=None, use_cell_lists=True,
-                  record_histogram=False):
+                  record_histogram=False, single=False):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, niter)
         
@@ -238,7 +242,8 @@ class BV_MCrunner(_BaseMCRunner):
         
         self.set_report_steps(adjustf_niter)
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
-                                                  factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance)
+                                                  factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
+                                                  single=single, nparticles=self.nparticles, bdim=self.bdim)
         
         #set up pele:MC
         self.set_takestep(self.takestep)
@@ -336,7 +341,7 @@ class Findk_MCrunner(_BaseMCRunner):
                   rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, 
                   knavg=500, ktol=0.05, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, 
                   opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001, perform_convergence_test=False, 
-                  collect_minima_list=False, seeds=None, use_cell_lists=False):
+                  collect_minima_list=False, seeds=None, use_cell_lists=False, single=False):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, niter)
         

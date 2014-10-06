@@ -24,7 +24,7 @@ class _kmin_mcrunner(object):
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-3, opt_nsteps=1e4,
-                 perform_convergence_test=False, collect_minima_list=False, 
+                 perform_convergence_test=False, collect_minima_list=False, single=False, 
                  seeds=None, use_cell_lists=False, packings_dir='jammed_packings', verbose=False):
         
         dname = fname
@@ -53,7 +53,8 @@ class _kmin_mcrunner(object):
                           'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,
                           'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
-                          'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list}
+                          'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
+                          'single':single, 'use_cell_lists':use_cell_lists}
         
         #add seeds dictionary to mc_params
         try:
@@ -90,7 +91,7 @@ class _kmin_mcrunner(object):
                                     adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
-                                    seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True) 
+                                    seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single) 
         
         self._print_initialise()
         
