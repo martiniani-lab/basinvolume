@@ -35,7 +35,8 @@ class Metropolis_MCrunner(_BaseMCRunner):
     """
     def __init__(self, potential, coords, temperature, stepsize, niter, 
                  k=0, hEmin=0, hEmax=100, hbinsize=0.01, radius=2.5,
-                 acceptance=0.5, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, bdim=3):
+                 acceptance=0.5, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, bdim=3,
+                 single=False):
         #construct base class
         super(Metropolis_MCrunner,self).__init__(potential, coords, temperature, niter)
                                
@@ -48,7 +49,9 @@ class Metropolis_MCrunner(_BaseMCRunner):
         #self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         #self.step = RandomCoordsDisplacement(123)#np.random.randint(i32max)
         self.set_report_steps(adjustf_niter)
-        self.step = RandomCoordsDisplacement(123, stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
+        self.step = RandomCoordsDisplacement(123, stepsize, report_interval=adjustf_navg, factor=adjustf, 
+                                             min_acc_ratio=0.2, max_acc_ratio=0.5, single=single, 
+                                             nparticles=int(len(coords)/bdim), bdim=bdim)
         self.metropolis = MetropolisTest(123)
         self.conftest = CheckSphericalContainer(radius, bdim)
         
@@ -118,7 +121,7 @@ class TestHarmonic(unittest.TestCase):
             potential = Harmonic(self.origin,0,bdim=bdim,com=True)
             #potential.set_k(0.0)
             mcrunner = Metropolis_MCrunner(potential, start_coords, temperature, stepsize, niter, hEmax = 100, adjustf = 0.9, 
-                                           k=1.0,adjustf_niter = 10000, radius=10000000)
+                                           k=1.0,adjustf_niter = 10000, radius=10000000, single=False)
             #mcrunner.potential.get_k()
             
             #MCMC 

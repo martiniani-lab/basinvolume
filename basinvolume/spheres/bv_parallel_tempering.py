@@ -15,13 +15,14 @@ if __name__ == "__main__":
     parser.add_argument("base_directory", type=str, help="directory in which to save results")
     parser.add_argument("-n","--totniter", type=int, help="number of energy evaluation per replica, default: 5e5. This sets a lower bound",default=5e5)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
+    parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
     args = parser.parse_args()
     
     path = args.base_directory
     fname = args.jammed_packing_fname
-    
+    single = not args.moveall
     #Parallel Tempering
     tot_niter = args.totniter
     
@@ -51,7 +52,7 @@ if __name__ == "__main__":
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
                  pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, 
                  perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
-                 seeds=seeds, use_cell_lists=args.nocell, record_histogram=record_histogram)
+                 seeds=seeds, use_cell_lists=args.nocell, single=single, record_histogram=record_histogram)
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
