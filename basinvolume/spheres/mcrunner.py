@@ -124,6 +124,9 @@ class HS_MCrunner(_BaseMCRunner):
         """set temperature, canonical control parameter"""
         self.temperature = T
         self.set_temperature(T)
+    
+    def get_stepsize(self):
+        return self.takestep_global_displacement.get_stepsize()
 
 class HS_MCrunnerOptDiffusion(HS_MCrunner):
     """HS_MCrunnerOptDiffusion
