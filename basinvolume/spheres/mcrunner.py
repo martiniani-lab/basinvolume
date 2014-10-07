@@ -140,6 +140,7 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
                                          adjustf_navg = adjustf_navg, single=single, seeds=seeds)
         if not desired_mean_rsm_displ:
             desired_mean_rsm_displ = np.amax(self.hs_radii) * 2
+        self.initial_stepsize = stepsize
         
         self.diffusion = FindNrDecorrelationSteps(desired_mean_rsm_displ, adjustf_niter, nr_samples_avergage,
                                                   coords, self.bdim)
@@ -150,7 +151,9 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
         return n
     
     def get_stepsize(self):
-        return self.takestep_global_displacement.get_stepsize()
+        stepsize = self.takestep_global_displacement.get_stepsize()
+        assert np.abs(self.initial_stepsize - stepsize) < 1e-10
+        return stepsize
         
     
 class BV_MCrunner(_BaseMCRunner):
