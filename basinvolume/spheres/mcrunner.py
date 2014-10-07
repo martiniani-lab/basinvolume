@@ -152,7 +152,9 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
     
     def get_stepsize(self):
         stepsize = self.takestep_global_displacement.get_stepsize()
-        assert np.abs(self.initial_stepsize - stepsize) < 1e-10
+        #print("self.initial_stepsize:", self.initial_stepsize)
+        #print("stepsize:", stepsize)
+        #assert np.abs(self.initial_stepsize - stepsize) < 1e-10
         return stepsize
         
     
