@@ -55,10 +55,11 @@ class _Generate_Packing(object):
         #give a random seed to random state or assign passed seed
         self.rng = RandomState()
         if seeds:
-            assert('seed_takestep' in seeds and 'seed_generate_packing' in seeds)
+            assert('seed_takestep' in seeds and 'seed_generate_packing' in seeds and 'seed_swap' in seeds)
             self.seeds = seeds
         else:
-            self.seeds = dict(seed_takestep=np.random.randint(0, sys.maxint), 
+            self.seeds = dict(seed_takestep=np.random.randint(0, sys.maxint),
+                              seed_swap=np.random.randint(0, sys.maxint),
                               seed_generate_packing=np.random.randint(0, sys.maxint))
         self.rng.seed(int(self.seeds['seed_generate_packing']))
         ##constants#
