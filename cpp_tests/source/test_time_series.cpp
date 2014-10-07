@@ -7,8 +7,9 @@
 
 #include "pele/array.h"
 #include "pele/harmonic.h"
-#include "mcpele/takestep.h"
-#include "mcpele/accept_test.h"
+
+#include "mcpele/metropolis_test.h"
+
 #include "basinvolume/record_displacement_timeseries.h"
 
 #define EXPECT_NEAR_RELATIVE(A, B, T)  EXPECT_NEAR(fabs(A)/(fabs(A)+fabs(B)+1), fabs(B)/(fabs(A)+fabs(B)+1), T)
@@ -40,12 +41,12 @@ TEST(TimeSeriesMoments, Works){
     std::shared_ptr<mcpele::MC> mc = std::make_shared<mcpele::MC>(potential, coords, 1, stepsize);
 
     mcpele::MetropolisTest* metropolis = new mcpele::MetropolisTest(43);
-    mcpele::AdjustStep* adjust_step = new mcpele::AdjustStep(0.2, 0.9, eq_steps, eq_steps/10);
+    //mcpele::AdjustStep* adjust_step = new mcpele::AdjustStep(0.2, 0.9, eq_steps, eq_steps/10);
     bv::RecordDisplacementTimeseries* ts = new bv::RecordDisplacementTimeseries(origin, boxdim, niter, record_every);
 
     mc->add_accept_test(std::shared_ptr<mcpele::MetropolisTest>(metropolis));
     mc->set_takestep(std::make_shared<mcpele::RandomCoordsDisplacement>(42));
-    mc->add_action(std::shared_ptr<mcpele::AdjustStep>(adjust_step));
+    //mc->add_action(std::shared_ptr<mcpele::AdjustStep>(adjust_step));
     mc->add_action(std::shared_ptr<bv::RecordDisplacementTimeseries>(ts));
     //mc->set_takestep(std::make_shared<TrivialTakestep>());
 
