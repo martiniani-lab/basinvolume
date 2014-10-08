@@ -6,7 +6,7 @@ import re
 import ConfigParser
 import numpy as np
 
-def sec_to_pbs_time(seconds):
+def sec_to_pbs_time(seconds, nodays=False):
     """
     clean solution from
     https://stackoverflow.com/questions/21323692/convert-seconds-to-weeks-days-hours-minutes-seconds-in-python
@@ -16,9 +16,10 @@ def sec_to_pbs_time(seconds):
     """
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
-    days, hours = divmod(hours, 24)
-    weeks, days = divmod(days, 7)
-    if int(days) == 0:
+    if not nodays:
+        days, hours = divmod(hours, 24)
+        weeks, days = divmod(days, 7)
+    if int(days) == 0 or nodays:
         return "{:02d}:{:02d}:{:02d}".format(int(hours),int(minutes),int(seconds))
     else:
         return "{:02d}:{:02d}:{:02d}:{:02d}".format(int(days),int(hours),int(minutes),int(seconds))
@@ -35,12 +36,12 @@ class BuildPBSScript(object):
     *command [string]: command line to execute e.g. python parallel_tempering.py args
     *outdir is the directory where to redirect the standard output
     """
-    def __init__(self, queue_type, nodes, cores, walltime, command, outdir=None):
+    def __init__(self, queue_type, nodes, cores, walltime, command, nodays=False, outdir=None):
         self.qtype = queue_type
         self.nodes = nodes
         self.cores = cores
         self.s_wtime = walltime*60*60 #convert hours to seconds
-        self.dhms_wtime = sec_to_pbs_time(self.s_wtime) #DD:HH:MM:SS time
+        self.dhms_wtime = sec_to_pbs_time(self.s_wtime, nodays=nodays) #DD:HH:MM:SS time
         self.command = command
         self.pbs_ready = False
         if outdir and not os.path.isabs(outdir):
