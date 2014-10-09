@@ -9,6 +9,7 @@ import pele
 import mcpele
 from pele.potentials import BasePotential
 import copy
+import sys
 try:
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
@@ -113,7 +114,7 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
 # In turn, most of this is copied from pele.
 # 
 # Return the git revision as a string
-def get_git_version(repository = 'basinvolume'):
+def get_git_version(repository='basinvolume'):
     def _minimal_ext_cmd(cmd):
         # construct minimal environment
         env = {}
@@ -147,6 +148,30 @@ def get_git_version(repository = 'basinvolume'):
         GIT_REVISION = "Unknown"
 
     return GIT_REVISION
+
+def get_git_version_from_build(repository="basinvolume"):
+    repo_path = None
+    try:
+        if repository is "basinvolume":
+            repo_path = os.path.dirname(basinvolume.__file__)[:-12]
+        elif repository is "pele":
+            repo_path = os.path.dirname(pele.__file__)[:-5]
+        elif repository is "mcpele":
+            repo_path = os.path.dirname(mcpele.__file__)[:-7]
+        repo_path = os.path.abspath(repo_path)
+    except:
+        sys.stderr.write("WARNING: could't find path to" + repository + "\n")
+        sys.exit()
+    result = "Unknown"
+    version_path = os.path.abspath(repo_path + "/" + repository + "/version.py")
+    try:
+        f = open(version_path, "r")
+        result = (f.readlines()[2].strip().split("=")[1]).split("'")[1]
+        f.close()
+    except (OSError, IOError) as e:
+        sys.stderr.write("WARNING: no version.py file found\n path: " + version_path + "\n")
+        print "error", e
+    return result
 
 def get_python_version():
     return platform.python_version()
