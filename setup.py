@@ -30,6 +30,48 @@ except:
     sys.stderr.write("WARNING: could't find path to mcpele\n")
     sys.exit()
 
+# print git version to version.py file, copied from pele
+#
+# Make the git revision visible.  Most of this is copied from scipy
+# 
+# Return the git revision as a string
+def git_version():
+    def _minimal_ext_cmd(cmd):
+        # construct minimal environment
+        env = {}
+        for k in ['SYSTEMROOT', 'PATH']:
+            v = os.environ.get(k)
+            if v is not None:
+                env[k] = v
+        # LANGUAGE is used on win32
+        env['LANGUAGE'] = 'C'
+        env['LANG'] = 'C'
+        env['LC_ALL'] = 'C'
+        out = subprocess.Popen(cmd, stdout = subprocess.PIPE, env=env).communicate()[0]
+        return out
+
+    try:
+        out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        GIT_REVISION = out.strip().decode('ascii')
+    except OSError:
+        GIT_REVISION = "Unknown"
+
+    return GIT_REVISION
+
+def write_version_py(filename='basinvolume/version.py'):
+    cnt = """
+# THIS FILE IS GENERATED FROM SCIPY SETUP.PY
+git_revision = '%(git_revision)s'
+"""
+    GIT_REVISION = git_version()
+
+    a = open(filename, 'w')
+    try:
+        a.write(cnt % dict(git_revision=GIT_REVISION))
+    finally:
+        a.close()
+write_version_py()
+
 # need to pass cython the include directory so it can find the .pyx files
 cython_flags=["-I"] + [os.path.abspath(pelepath)+"/pele/potentials"] + ["-v"]
 
