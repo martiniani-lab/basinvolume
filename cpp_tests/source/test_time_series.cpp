@@ -68,8 +68,8 @@ TEST(TimeSeriesMoments, Works){
 
     const double mean = moments.mean();
     const double var = moments.variance();
-    EXPECT_NEAR_RELATIVE(mean_true, mean, 1e-2);
-    EXPECT_NEAR_RELATIVE(var_true, var, 1e-2);
+    EXPECT_NEAR_RELATIVE(mean_true, mean, 5e-2);
+    EXPECT_NEAR_RELATIVE(var_true, var, 5e-2);
     std::cout<<"accept_f "<<mc->get_accepted_fraction()<<std::endl;
     std::cout<<"mean_true "<<mean_true<<" mean "<<mean<<std::endl;
     std::cout<<"var_true "<<var_true<<" var "<<var<<std::endl;
