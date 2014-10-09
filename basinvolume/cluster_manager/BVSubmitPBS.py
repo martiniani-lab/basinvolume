@@ -21,10 +21,11 @@ class BVSubmitPBS(object):
     *job_label should help distinguish between different densities and packing numbers
     *nojmin number of minimum job ID to submit (to selectively submit a range of jobs)
     *nojmax number of maximum job ID to submit (to selectively submit a range of jobs)
+    *nodays if true use walltime HH:MM:SS format (necessary for some clusters)
     """
     def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
                  kmin_config='kmin_jammed_packing', pt_config='explore_jammed_packing', packing_naming='jammed_packing',
-                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6):
+                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -39,6 +40,7 @@ class BVSubmitPBS(object):
         self.structures_dir = structures_dir
         self.nojmin = nojmin
         self.nojmax = nojmax
+        self.nodays=nodays
         if ndim == 2:
             self.ext = '.xydr'
         else:
@@ -116,7 +118,7 @@ class BVSubmitPBS(object):
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
-                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path)
+                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
                             pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
                         else:
                             pass
@@ -148,7 +150,7 @@ class BVSubmitPBS(object):
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path)
+                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
                             pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
                         else:
                             pass
@@ -187,7 +189,7 @@ class BVSubmitPBS(object):
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_pt_command(noj, path_to_script)
-                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path) 
+                            pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays) 
                             pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
                         else:
                             pass
@@ -225,17 +227,17 @@ class BVSubmitPBS(object):
                             pt_fname = 'bv_pt'+noj+'.sh'
                             
                             pt_command = self._get_pt_command(noj, path_to_script)
-                            pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path) 
+                            pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
                             pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
                             
                             kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
                             kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path)
+                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
                             pbs.writePBSscript(kmax_fname, 'bv_'+self.label+'_kmax'+noj)
                             
                             kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
                             kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmax_fname)
-                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path)
+                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
                             pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
                         else:
                             pass
@@ -260,6 +262,7 @@ if __name__ == "__main__":
     single_parser.add_argument("--pt", action='store_true', help="perform parallel tempering",default=False)        
     single_parser.add_argument("--nojmin", type=int, help="number of minimum job ID to submit (to selectively submit a range of jobs)",default=0)
     single_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
+    single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
@@ -275,11 +278,12 @@ if __name__ == "__main__":
     chain_parser.add_argument("pt_walltime_hours", type=float, help="wall-time in hours")
     chain_parser.add_argument("--nojmin", type=int, help="number of minimum job ID to submit (to selectively submit a range of jobs)",default=0)
     chain_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
-        
+    chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
+    
     args = parser.parse_args()
     print args
         
-    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, nojmax=args.nojmax)
+    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, nojmax=args.nojmax, nodays=args.nodays)
        
     if args.mode == 'chain':
         bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores, 
