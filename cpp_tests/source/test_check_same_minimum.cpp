@@ -92,14 +92,12 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
     const size_t eqsteps = adj_iter;
     auto opt = std::make_shared<fire_t>(pot, origin, 1e-2, 1, 1);
     mcpele::MC mc(pot, x, 1);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacement>(42, stepsize);
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::RandomCoordsDisplacementAll>(42);
     auto sampler_uniform_adaptive = std::make_shared<mcpele::AdaptiveTakeStep>(sampler_uniform, adj_iter/1e1, 0.9, 0.2, 0.5);
-    mc.set_takestep(sampler_uniform);
+    mc.set_takestep(sampler_uniform_adaptive);
     mc.set_report_steps(adj_iter);
     shared_ptr<mcpele::AcceptTest> metropolis = std::make_shared<mcpele::MetropolisTest>(42);
     mc.add_accept_test(metropolis);
-    //shared_ptr<mcpele::Action> adjust_step = std::make_shared<mcpele::AdjustStep>(0.2, 0.5, adj_iter, adj_iter/1e1);
-    //mc.add_action(adjust_step);
     //add conf tests, check same minimum
     shared_ptr<mcpele::ConfTest> check_basic = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps);
     shared_ptr<mcpele::ConfTest> check_eigenvalues = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps, true, false);

@@ -9,6 +9,9 @@
 #include "pele/harmonic.h"
 
 #include "mcpele/metropolis_test.h"
+#include "mcpele/random_coords_displacement.h"
+#include "mcpele/adaptive_takestep.h"
+#include "mcpele/histogram.h"
 
 #include "basinvolume/record_displacement_timeseries.h"
 
@@ -38,17 +41,16 @@ TEST(TimeSeriesMoments, Works){
 
     const double k = 20;
     std::shared_ptr<pele::Harmonic> potential = std::make_shared<pele::Harmonic>(origin, k, boxdim);
-    std::shared_ptr<mcpele::MC> mc = std::make_shared<mcpele::MC>(potential, coords, 1, stepsize);
+    std::shared_ptr<mcpele::MC> mc = std::make_shared<mcpele::MC>(potential, coords, 1);
 
     mcpele::MetropolisTest* metropolis = new mcpele::MetropolisTest(43);
-    //mcpele::AdjustStep* adjust_step = new mcpele::AdjustStep(0.2, 0.9, eq_steps, eq_steps/10);
     bv::RecordDisplacementTimeseries* ts = new bv::RecordDisplacementTimeseries(origin, boxdim, niter, record_every);
 
     mc->add_accept_test(std::shared_ptr<mcpele::MetropolisTest>(metropolis));
-    mc->set_takestep(std::make_shared<mcpele::RandomCoordsDisplacement>(42));
-    //mc->add_action(std::shared_ptr<mcpele::AdjustStep>(adjust_step));
+    auto step = std::make_shared<mcpele::RandomCoordsDisplacementAll>(42, stepsize);
+    mc->set_report_steps(eq_steps);
+    mc->set_takestep(std::make_shared<mcpele::AdaptiveTakeStep>(step));
     mc->add_action(std::shared_ptr<bv::RecordDisplacementTimeseries>(ts));
-    //mc->set_takestep(std::make_shared<TrivialTakestep>());
 
     mc->run(niter);
     EXPECT_EQ(mc->get_iterations_count(), niter);
@@ -69,7 +71,6 @@ TEST(TimeSeriesMoments, Works){
     EXPECT_NEAR_RELATIVE(mean_true, mean, 1e-2);
     EXPECT_NEAR_RELATIVE(var_true, var, 1e-2);
     std::cout<<"accept_f "<<mc->get_accepted_fraction()<<std::endl;
-    std::cout<<"stepsize "<<mc->get_stepsize()<<std::endl;
     std::cout<<"mean_true "<<mean_true<<" mean "<<mean<<std::endl;
     std::cout<<"var_true "<<var_true<<" var "<<var<<std::endl;
 
@@ -88,17 +89,16 @@ TEST(MovingAverageTest, Works) {
 
     const double k = 20;
     std::shared_ptr<pele::Harmonic> potential = std::make_shared<pele::Harmonic>(origin, k, boxdim);
-    std::shared_ptr<mcpele::MC> mc = std::make_shared<mcpele::MC>(potential, coords, 1, stepsize);
+    std::shared_ptr<mcpele::MC> mc = std::make_shared<mcpele::MC>(potential, coords, 1);
 
     mcpele::MetropolisTest* metropolis = new mcpele::MetropolisTest(43);
-    mcpele::AdjustStep* adjust_step = new mcpele::AdjustStep(0.2, 0.9, eq_steps, eq_steps/10);
     bv::RecordDisplacementTimeseries* ts = new bv::RecordDisplacementTimeseries(origin, boxdim, niter, record_every);
 
     mc->add_accept_test(std::shared_ptr<mcpele::MetropolisTest>(metropolis));
-    mc->set_takestep(std::make_shared<mcpele::RandomCoordsDisplacement>(42));
-    mc->add_action(std::shared_ptr<mcpele::AdjustStep>(adjust_step));
+    auto step = std::make_shared<mcpele::RandomCoordsDisplacementAll>(42, stepsize);
+    mc->set_report_steps(eq_steps);
+    mc->set_takestep(std::make_shared<mcpele::AdaptiveTakeStep>(step));
     mc->add_action(std::shared_ptr<bv::RecordDisplacementTimeseries>(ts));
-    //mc->set_takestep(std::make_shared<TrivialTakestep>());
 
     mc->run(niter);
     EXPECT_EQ(mc->get_iterations_count(), niter);
@@ -111,7 +111,6 @@ TEST(MovingAverageTest, Works) {
     const double mean = (ts->get_moving_average_mean(nr_steps_to_check)).first;
     const double var = (ts->get_moving_average_variance(nr_steps_to_check)).first;
     std::cout<<"accept_f "<<mc->get_accepted_fraction()<<std::endl;
-    std::cout<<"stepsize "<<mc->get_stepsize()<<std::endl;
     std::cout<<" mean "<<mean<<std::endl;
     std::cout<<" var "<<var<<std::endl;
 
