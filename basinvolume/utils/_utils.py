@@ -114,7 +114,7 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
 # In turn, most of this is copied from pele.
 # 
 # Return the git revision as a string
-def get_git_version(repository='basinvolume'):
+def get_git_version_direct(repository='basinvolume'):
     def _minimal_ext_cmd(cmd):
         # construct minimal environment
         env = {}
@@ -172,6 +172,12 @@ def get_git_version_from_build(repository="basinvolume"):
         sys.stderr.write("WARNING: no version.py file found\n path: " + version_path + "\n")
         print "error", e
     return result
+
+def get_git_version(repository="basinvolume", from_build=True):
+    if from_build:
+        return get_git_version_from_build(repository=repository)
+    else:
+        return get_git_version_direct(repository=repository)
 
 def get_python_version():
     return platform.python_version()

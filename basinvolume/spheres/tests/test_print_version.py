@@ -1,11 +1,11 @@
 from basinvolume.utils import *
 
 if __name__ == "__main__":
-    git_stamp_basinvolume = get_git_version('basinvolume')
+    git_stamp_basinvolume = get_git_version('basinvolume', False)
     bv_build = get_git_version_from_build("basinvolume")
-    git_stamp_mcpele = get_git_version('mcpele')
+    git_stamp_mcpele = get_git_version('mcpele', False)
     mcpele_build = get_git_version_from_build("mcpele")
-    git_stamp_pele = get_git_version('pele')
+    git_stamp_pele = get_git_version('pele', False)
     pele_build = get_git_version_from_build("pele")
     python_version = get_python_version()
     cython_version = get_cython_version()
