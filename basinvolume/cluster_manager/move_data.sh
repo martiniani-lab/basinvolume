@@ -50,7 +50,6 @@ fi
 data_size_=$(du -s $1)
 data_size=$(echo $data_size_ | awk '{split($0,a," "); print a[1]}')
 echo "data size "$data_size
-#echo $((data_size - 1))
 free_space_=$(df $2)
 free_space=$(echo $free_space_ | awk '{split($0,a," "); print a[11]}')
 echo "free space "$free_space
