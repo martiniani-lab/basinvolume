@@ -38,7 +38,11 @@ fi
 
 # Step 2.
 echo "destination is "$2
-if [ -d "$2" ];
+remote_computer=$(echo $2 | awk '{split($0,a,":"); print a[1]}')
+echo "remote computer "$remote_computer
+remote_folder=$(echo $2 | awk '{split($0,a,":"); print a[2]}')
+echo "remote folder "$remote_folder
+if (ssh $remote_computer '[ -d $remote_folder ]')
 then
     echo "destination exists"
 else 
@@ -79,6 +83,6 @@ fi
 # For now, this makes a tar.gz of the folder, leaves that in place, and erases the folder.
 # To save more space we should leave ot the tar generation step, but then we have no backup.
 tar -zcvf $1".tar.gz" $1
-rm -rf $1
+#rm -rf $1
 
 exit 0
