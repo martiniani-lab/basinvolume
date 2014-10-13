@@ -2,6 +2,8 @@
 # Moves output of BV computation from cluster to a defined remote location.
 #
 # Intended procedure:
+# -1.To set up ssh with public key, use something like ssh-copy-id -i ~/.ssh/id_rsa.pub bazinga
+# http://www.thegeekstuff.com/2008/11/3-steps-to-perform-ssh-login-without-password-using-ssh-keygen-ssh-copy-id/
 # 0. Check: Folder to move exists.
 # 1. Check: Computation terminated properly.
 # 2. Check: Destination can be rached / is a valid path / dir exists.
@@ -73,7 +75,9 @@ scp -BCvr "$1" "$2"
 # Step 5.
 # Reference for error collection: http://stackoverflow.com/questions/12738460/how-to-get-output-of-a-bash-command-in-a-variable
 # "running diff via ssh --> use rsync": http://serverfault.com/questions/16661/how-can-i-diff-two-redhat-linux-servers/16665#16665
-differences=$(rsync -ani --delete "$1" $remote_computer":""$2"/"$1" 2>&1)
+echo "differences local folder "$1
+echo "differences remote folder "$remote_computer":""$2"/"$1""/"
+differences=$(rsync -ani --delete "$1" $remote_computer":""$2"/"$1""/" 2>&1)
 diff_exit_status=$?
 echo "diff_exit_status "$diff_exit_status
 if [ "$diff_exit_status" -eq 0 ];
