@@ -92,8 +92,6 @@ else
     exit 42
 fi
 
-exit 42
-
 # Step 6.
 # For now, this makes a tar.gz of the folder, leaves that in place, and erases the folder.
 # To save more space we should leave ot the tar generation step, but then we have no backup.
