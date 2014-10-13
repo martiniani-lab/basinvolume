@@ -10,3 +10,4 @@ cythonize.dat
 .cproject
 .project
 .pydevproject
+basinvolume/version.py
