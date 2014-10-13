@@ -99,6 +99,6 @@ fi
 # For now, this makes a tar.gz of the folder, leaves that in place, and erases the folder.
 # To save more space we should leave ot the tar generation step, but then we have no backup.
 tar -zcvf $1".tar.gz" $1
-#rm -rf $1
+rm -rf $1
 
 exit 0
