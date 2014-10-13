@@ -321,7 +321,14 @@ class Cut_Out_Packings(object):
         for i in xrange(self.nr_of_packings):
             self._find_one_small_packing(i)
             print("found packing %d of %d" % (i+1, self.nr_of_packings))
-            
+    
+    def split_packings(self):
+        """
+        returns a list of Small_Packing_Information objects
+        """
+        self._split_packings()
+        return self.small_packings
+    
     def _find_one_small_packing(self, index):
         self.small_packings.append(self.all_particles.extract_small_packing(index))
     

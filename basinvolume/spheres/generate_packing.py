@@ -29,16 +29,15 @@ class _Generate_Packing(object):
     meeting the target packing fraction.
     **boxv: an array of size bdim that contains the vectors defining the box
     **boxl: box side length, this is converted by the the class to a boxv array
+    *single defines whether we should take single particle steps
     """
     __metaclass__ = abc.ABCMeta
     
-    def __init__(self, method, nparticles, bdim=3, boxv = None, packing_frac=0.4, max_iter = 1, use_cell_lists=False,
-                 single=False, seeds=None):
-        self.method = method
+    def __init__(self, nparticles, bdim=3, boxv = None, packing_frac=0.4, max_iter = 1, use_cell_lists=False):
         assert(bdim==2 or bdim==3) #currently PBC only implemented for 3d case
         self.nparticles = nparticles
         self.bdim = bdim
-        self.ndim = self.nparticles * self.bdim
+        self.ndof = self.nparticles * self.bdim
         if boxv is None:
             self.boxv = np.array([1.0 for _ in xrange(self.bdim)],dtype='d')
         else:
@@ -47,21 +46,11 @@ class _Generate_Packing(object):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'packings')
         self.use_cell_lists = use_cell_lists
-        self.single = single
         self.iteration = 0
         self.max_iter = max_iter
         self.box_resized = False
         self.initialised = False
-        #give a random seed to random state or assign passed seed
-        self.rng = RandomState()
-        if seeds:
-            assert('seed_takestep' in seeds and 'seed_generate_packing' in seeds and 'seed_swap' in seeds)
-            self.seeds = seeds
-        else:
-            self.seeds = dict(seed_takestep=np.random.randint(0, sys.maxint),
-                              seed_swap=np.random.randint(0, sys.maxint),
-                              seed_generate_packing=np.random.randint(0, sys.maxint))
-        self.rng.seed(int(self.seeds['seed_generate_packing']))
+        
         ##constants#
         self.eps = 1. #energy unit
         ############
@@ -118,7 +107,7 @@ class _Generate_Packing(object):
         f.write('nparticles: {}\n'.format(self.nparticles))
         f.write('packing_fraction: {}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
-        f.write('ndim: {}\n'.format(self.ndim))
+        f.write('ndim: {}\n'.format(self.ndof))
         f.write('max_iter: {}\n'.format(self.max_iter))
         assert(self.box_resized)
         f.write('boxv: ')
@@ -143,8 +132,9 @@ class _Generate_Packing(object):
         """perform one iteration"""
         if self.initialised is not True:
             self._initialise()
-        self._generate_packing_coords()
-        self._print()
+        success = self._generate_packing_coords()
+        if success:
+            self._print()
         self.iteration+=1
         print 'iteration ',self.iteration
         
@@ -168,11 +158,21 @@ class HS_Generate_Packing(_Generate_Packing):
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, 
                  mu = 1, sig = 0.2, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10, use_cell_lists=False, 
                  single=False, seeds=None):
-        super(HS_Generate_Packing,self).__init__(method, nparticles, bdim=bdim, boxv = boxv, 
+        super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv, 
                                                  packing_frac=packing_frac, max_iter = max_iter, 
-                                                 use_cell_lists = use_cell_lists, single=single, 
-                                                 seeds = seeds)
-        
+                                                 use_cell_lists = use_cell_lists)
+        self.method = method
+        #give a random seed to random state or assign passed seed
+        self.rng = RandomState()
+        if seeds:
+            assert('seed_takestep' in seeds and 'seed_generate_packing' in seeds and 'seed_swap' in seeds)
+            self.seeds = seeds
+        else:
+            self.seeds = dict(seed_takestep=np.random.randint(0, sys.maxint),
+                              seed_swap=np.random.randint(0, sys.maxint),
+                              seed_generate_packing=np.random.randint(0, sys.maxint))
+        self.rng.seed(int(self.seeds['seed_generate_packing']))
+        self.single = single
         self.sca = 0. #this must be 0 for hard spheres
         self.mu = mu
         self.sig = sig * mu
@@ -257,7 +257,7 @@ class HS_Generate_Packing(_Generate_Packing):
     
     def _sample_random_coords(self):
         """returns random coordinates for the particles uniformly distributed in the box"""
-        coords =  np.empty(self.ndim)
+        coords =  np.empty(self.ndof)
         for i in xrange(self.nparticles):
             for j in xrange(self.bdim):
                 coords[i*self.bdim+j] = (self.rng.rand())*self.boxv[j]
@@ -266,13 +266,15 @@ class HS_Generate_Packing(_Generate_Packing):
     def _build_distance_matrix(self):
         distances = np.empty([self.nparticles,self.nparticles])
         for i in xrange(self.nparticles):
-            for j in xrange(self.nparticles):
+            for j in xrange(i,self.nparticles):
                 dij = 0
                 for k in xrange(self.bdim):
                     #use distances to closest image
                     dij += np.square((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) -
                                       cround((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
                 distances[i,j] = np.sqrt(dij)
+                if i != j:
+                    distances[j,i] = distances[i,j]
         return distances
     
     def _generate_packing_coords(self):
@@ -280,6 +282,7 @@ class HS_Generate_Packing(_Generate_Packing):
             self._generate_packing_coords_quench()
         elif self.method is 'direct':
             self._generate_packing_coords_direct()
+        return True
     
     def _generate_packing_coords_quench(self):
         """do a MCMC walk using the quenched coordinates. Here we do not satisfy detailed balance and we set the number
@@ -443,7 +446,7 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write('nparticles: {}\n'.format(self.nparticles))
         f.write('packing_fraction: {}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
-        f.write('ndim: {}\n'.format(self.ndim))
+        f.write('ndim: {}\n'.format(self.ndof))
         f.write('radii_mean: {}\n'.format(self.mu))
         f.write('radii_stdev: {}\n'.format(self.sig))
         f.write('max_iter: {}\n'.format(self.max_iter))
