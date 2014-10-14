@@ -11,8 +11,7 @@ import time
 
 class _kmin_mcrunner(object):
     """
-    this is an abstract class that implements the basic components of a k0_mcrunner class,
-    and declares a number of abstract methods which should be implemented in all inheriting classes
+    this is an abstract class that implements the basic components of a k0_mcrunner class
     *nparticles: number of particles
     *bdim: dimensionality of the box
     *ndim: dimensionality of the problem (i.e. size of the coordinates array)
