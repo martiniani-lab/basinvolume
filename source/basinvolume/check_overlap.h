@@ -67,6 +67,15 @@ public:
     {}
 };
 
+template<size_t ndim>
+class CheckOverlapCartesian : public CheckOverlap<pele::cartesian_distance<ndim> > {
+public:
+    CheckOverlapCartesian(pele::Array<double> hs_radii)
+        : CheckOverlap<pele::cartesian_distance<ndim> >(hs_radii,
+                std::make_shared<pele::cartesian_distance<ndim> >())
+    {}
+};
+
 
 /*
  * Test for overlap of the hard sphere cores
