@@ -17,7 +17,7 @@ namespace bv {
 /**
  * Test for overlap of the hard sphere cores
  */
-template<typename DIST_POL>
+template <typename DIST_POL>
 class CheckOverlap : public mcpele::ConfTest {
 protected:
     const static size_t m_ndim = DIST_POL::_ndim;
@@ -58,7 +58,7 @@ public:
 
 };
 
-template<size_t ndim>
+template <size_t ndim>
 class CheckOverlapPeriodic : public CheckOverlap<pele::periodic_distance<ndim> > {
 public:
     CheckOverlapPeriodic(pele::Array<double> hs_radii, pele::Array<double> boxvec)
@@ -67,7 +67,7 @@ public:
     {}
 };
 
-template<size_t ndim>
+template <size_t ndim>
 class CheckOverlapCartesian : public CheckOverlap<pele::cartesian_distance<ndim> > {
 public:
     CheckOverlapCartesian(pele::Array<double> hs_radii)
@@ -81,7 +81,7 @@ public:
  * Test for overlap of the hard sphere cores
 */
 
-template<typename DIST_POL>
+template <typename DIST_POL>
 class CellListCheckOverlap : public mcpele::ConfTest {
 protected:
     const static size_t m_ndim = DIST_POL::_ndim;
@@ -127,7 +127,7 @@ public:
     }
 };
 
-template<size_t ndim>
+template <size_t ndim>
 class CheckOverlapPeriodicCellLists : public CellListCheckOverlap< pele::periodic_distance<ndim> > {
 public:
     CheckOverlapPeriodicCellLists(pele::Array<double> coords, pele::Array<double> hs_radii, pele::Array<double> boxvec, double rcut, double ncellx_scale = 1.0)
