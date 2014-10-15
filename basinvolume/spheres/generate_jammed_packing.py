@@ -23,19 +23,16 @@ class _Generate_Jammed_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
     
-    def __init__(self, packing_frac=0.65, packings_dir='packings', use_cell_lists=False):
+    def __init__(self, packing_frac=0.65, packings_dir='packings'):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'jammed_packings')
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
-        self.configpath = os.path.join(packings_dir,'packings.config')
-        self._import_packing_config_file()
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
-        self.use_cell_lists = use_cell_lists
-        
+                
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.configpath))
@@ -50,6 +47,8 @@ class _Generate_Jammed_Packing(object):
     @abc.abstractmethod
     def _initialise(self):
         """initialisation function"""
+        self.configpath = os.path.join(self.packings_dir,'packings.config')
+        self._import_packing_config_file()
     
     @abc.abstractmethod
     def _import_packing_configuration(self, fname):
@@ -131,14 +130,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
     def __init__(self, packing_frac=0.7, rattler_eval_tol=1.,packings_dir='packings', use_cell_lists=False):
-        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir,
-                                                        use_cell_lists=use_cell_lists)
+        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
         
+        self.use_cell_lists = use_cell_lists
         ##constants#
         self.rattler_eval_tol = rattler_eval_tol 
         ############
     
     def _initialise(self):
+        self.configpath = os.path.join(self.packings_dir,'packings.config')
+        self._import_packing_config_file()
         self._compute_sca()
         self.rattlers = np.empty(self.nparticles,dtype='d')
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')

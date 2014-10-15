@@ -63,6 +63,23 @@ def read_xyd(fname):
         radii.extend([float(d)])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d')
 
+def read_xydf(fname):
+    coords = []
+    radii = []
+    frozen = []
+    f = open(fname, "r")
+    i = 0
+    while True:
+        xydf = f.readline()
+        if not xydf: break
+        x, y, d, fr = xydf.split()
+        coords.extend([float(x),float(y)])
+        radii.extend([float(d)])
+        if bool(int(fr)):
+            frozen.extend([i])
+        i+=1
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int')
+
 def read_xyzd(fname):
     coords = []
     radii = []
@@ -74,6 +91,23 @@ def read_xyzd(fname):
         coords.extend([float(x),float(y),float(z)])
         radii.extend([float(d)])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d')
+
+def read_xyzdf(fname):
+    coords = []
+    radii = []
+    frozen = []
+    f = open(fname, "r")
+    i = 0
+    while True:
+        xyzdf = f.readline()
+        if not xyzdf: break
+        x, y, z, d, fr = xyzdf.split()
+        coords.extend([float(x),float(y),float(z)])
+        radii.extend([float(d)])
+        if bool(int(fr)):
+            frozen.extend([i])
+        ++i
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int')
 
 def read_xydr(fname, etol=1.0, bdim=2):
     coords = []
@@ -92,6 +126,28 @@ def read_xydr(fname, etol=1.0, bdim=2):
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
 
+def read_xydfr(fname, etol=1.0, bdim=2):
+    coords = []
+    radii = []
+    frozen = []
+    rattlers = []
+    f = open(fname, "r")
+    i=0
+    while True:
+        xydfr = f.readline()
+        if not xydfr: break
+        #print 'xydr ',xydr
+        x, y, d, fr, r = xydfr.split()
+        coords.extend([float(x),float(y)])
+        radii.extend([float(d)])
+        if bool(int(fr)):
+            frozen.extend([i])
+        rattler = float(float(r)>=etol)
+        for _ in xrange(bdim): 
+            rattlers.extend([rattler])
+        ++i
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
+
 def read_xyzdr(fname, etol=1.0, bdim=3):
     coords = []
     radii = []
@@ -107,6 +163,39 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
         for _ in xrange(bdim): 
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
+
+def read_xyzdfr(fname, etol=1.0, bdim=3):
+    coords = []
+    radii = []
+    frozen = []
+    rattlers = []
+    f = open(fname, "r")
+    i=0
+    while True:
+        xyzdfr = f.readline()
+        if not xyzdfr: break
+        x, y, z, d, fr, r = xyzdfr.split()
+        coords.extend([float(x),float(y),float(z)])
+        radii.extend([float(d)])
+        if bool(int(fr)):
+            frozen.extend([i])
+        rattler = float(float(r)>=etol)
+        for _ in xrange(bdim): 
+            rattlers.extend([rattler])
+        ++i
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
+
+def reduce_coordinates(mylist, indexes, bdim):
+    newlist = mylist.copy().tolist()
+    for index in sorted(indexes, reverse=True):
+        del newlist[index*bdim:index*bdim+bdim]
+    return np.array(newlist)
+
+def full_coordinates(reduced_list, old_full_list, indexes, bdim):
+    newlist = reduced_list.copy()
+    for index in sorted(indexes, reverse=False):
+        newlist = np.insert(newlist, index*bdim, old_full_list[index*bdim:index*bdim+bdim])
+    return np.array(newlist)
 
 #
 # Make the git revision visible.  Most of this is copied from scipy
