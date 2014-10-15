@@ -51,6 +51,32 @@ cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
 class CheckOverlap(_Cdef_CheckOverlap):
     """This class is the python interface for the c++ CheckOverlap implementation."""
 
+# Check overlap cartesian
+
+cdef class _Cdef_CheckOverlapCartesian(_Cdef_ConfTest):
+    """
+    Python interface for c++ CheckOverlapCartesian
+    """
+    def __cinit__(self, hs_radii, box_dimension):
+        cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
+        if (box_dimension == 2):
+            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
+                           cppCheckOverlapCartesian[INT2](_pele.Array[double](
+                           <double*> hs_radiic.data, hs_radiic.size))) 
+        elif (box_dimension == 3):
+            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
+                           cppCheckOverlapCartesian[INT3](_pele.Array[double](
+                           <double*> hs_radiic.data, hs_radiic.size)))
+        else:
+            raise Exception("CheckOverlapCartesian: illegal box_dimension")
+
+class CheckOverlapCartesian(_Cdef_CheckOverlapCartesian):
+    """
+    Python interface for c++ CheckOverlapCartesian
+    """
+
+# Check overlap cell lists
+
 cdef class _Cdef_CheckOverlapCellLists(_Cdef_ConfTest):
     """define the python interface to the c++ CheckOverlapCellLists implementation
     """
