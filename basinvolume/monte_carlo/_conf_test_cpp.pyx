@@ -80,7 +80,7 @@ class CheckOverlapCartesian(_Cdef_CheckOverlapCartesian):
 cdef class _Cdef_CheckOverlapCellLists(_Cdef_ConfTest):
     """define the python interface to the c++ CheckOverlapCellLists implementation
     """
-    def __cinit__(self, coords, hs_radii, boxvec, rcut, ncellx_scale = 1.0):
+    def __cinit__(self, coords, hs_radii, boxvec, rcut, ncellx_scale=1.0):
         cdef np.ndarray[double, ndim=1] coordsc = np.array(coords, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
         cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
@@ -102,6 +102,35 @@ cdef class _Cdef_CheckOverlapCellLists(_Cdef_ConfTest):
 class CheckOverlapCellLists(_Cdef_CheckOverlapCellLists):
     """This class is the python interface for the c++ CheckOverlapCellLists implementation."""
 
+#
+# CheckOverlapCartesianCellLists
+#
+
+cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
+    """
+    CheckOverlapCartesianCellLists
+    """
+    def __cinit__(self, coords, hs_radii, boxvec, rcut, ncellx_scale=1.0):
+        cdef np.ndarray[double, ndim=1] coordsc = np.array(coords, dtype=float)
+        cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
+        cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
+        if len(boxvec) == 2:
+            self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new
+                cppCheckOverlapCartesianCellLists[INT2](_pele.Array[double](<double*> coordsc.data, coordsc.size),
+                                                                         _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
+                                                                         _pele.Array[double](<double*> bv.data, bv.size),
+                                                                         rcut, ncellx_scale)
+                )
+        elif len(boxvec) == 3:
+            self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new
+                cppCheckOverlapCartesianCellLists[INT3](_pele.Array[double](<double*> coordsc.data, coordsc.size),
+                                                                         _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
+                                                                         _pele.Array[double](<double*> bv.data, bv.size),
+                                                                         rcut, ncellx_scale)
+                )
+        else:
+            raise Exception("illegal boxvector or boxdimension")
+        
 #===============================================================================
 # Check same minimum
 #===============================================================================

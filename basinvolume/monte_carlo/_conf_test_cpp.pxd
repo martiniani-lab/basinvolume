@@ -22,9 +22,13 @@ cdef extern from "basinvolume/check_overlap.h" namespace "bv":
     cdef cppclass cppCheckOverlapCartesian "bv::CheckOverlapCartesian"[ndim]:
         cppCheckOverlapCartesian(_pele.Array[double]) except + 
     cdef cppclass cppCheckOverlapPeriodicCellLists "bv::CheckOverlapPeriodicCellLists"[ndim]:
-        cppCheckOverlapPeriodicCellLists(_pele.Array[double] coords, _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut, double ncellx_scale) except +
-
-
+        cppCheckOverlapPeriodicCellLists(_pele.Array[double] coords,
+        _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut,
+        double ncellx_scale) except +
+    cdef cppclass cppCheckOverlapCartesianCellLists "bv::CheckOverlapCartesianCellLists"[ndim]:
+        cppCheckOverlapCartesianCellLists(_pele.Array[double] coords,
+        _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut,
+        double ncellx_scale) except +
 
 
 cdef extern from "basinvolume/minimum.h" namespace "bv":
