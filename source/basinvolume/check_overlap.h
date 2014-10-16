@@ -137,6 +137,16 @@ public:
     {}
 };
 
+template<size_t ndim>
+class CheckOverlapCartesianCellLists : public CellListCheckOverlap<pele::cartesian_distance<ndim> > {
+public:
+    CheckOverlapCartesianCellLists(pele::Array<double> coords, pele::Array<double> hs_radii, pele::Array<double> boxvec, double rcut, double ncellx_scale = 1.0)
+        : CellListCheckOverlap<pele::cartesian_distance<ndim> >(hs_radii,
+                std::make_shared<pele::cartesian_distance<ndim> >(),
+                std::make_shared<pele::CellIter<pele::cartesian_distance<ndim> > >(coords, std::make_shared<pele::cartesian_distance<ndim> >(), boxvec, rcut, ncellx_scale))
+    {}
+};
+
 } // namespace bv
 
 #endif // #ifndef _BV_CHECK_OVERLAP_H
