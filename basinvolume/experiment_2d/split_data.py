@@ -111,15 +111,15 @@ class Splitting_Grid(object):
     4) all of the above
     """
     def __init__(self, nr_of_mobile_particles, distance_from_boundary_x, distance_from_boundary_y, min_x, max_x, min_y, max_y, total_nr_of_particles, grid_version, get_all_packings):
-        info = Splitting_Grid_0(nr_of_mobile_particles, distance_from_boundary_x, distance_from_boundary_y, min_x, max_x, min_y, max_y, total_nr_of_particles)
-        self.delta_x = info.delta_x
-        self.delta_y = info.delta_y
-        self.nr_of_mobile_particles = info.nr_of_mobile_particles
-        self.number_density = info.number_density
-        self.min_x = info.min_x
-        self.max_x = info.max_x
-        self.min_y = info.min_y
-        self.max_y = info.max_y
+        self.info = Splitting_Grid_0(nr_of_mobile_particles, distance_from_boundary_x, distance_from_boundary_y, min_x, max_x, min_y, max_y, total_nr_of_particles)
+        self.delta_x = self.info.delta_x
+        self.delta_y = self.info.delta_y
+        self.nr_of_mobile_particles = self.info.nr_of_mobile_particles
+        self.number_density = self.info.number_density
+        self.min_x = self.info.min_x
+        self.max_x = self.info.max_x
+        self.min_y = self.info.min_y
+        self.max_y = self.info.max_y
         if (grid_version>3):
             raise Exception("Splitting_Grid: illegal grid type selected; possible are: 0, 1, 2, 3, --all")
         grids = []
@@ -209,6 +209,8 @@ class Experimental_Packing(object):
         center_x = self.grid.center_x[packing_index]
         center_y = self.grid.center_y[packing_index]
         nr_of_mobile_particles = self.grid.nr_of_mobile_particles
+        
+        #adaptively compute mobile particle radius starting from a guess
         mobile_particle_radius = sqrt(nr_of_mobile_particles/self.grid.number_density/pi) #initial guess, based on particle density
         nr_mobile_found = self._get_nr_particles_in_circle(center_x, center_y, mobile_particle_radius)
         nr_iterations = 0
@@ -219,12 +221,15 @@ class Experimental_Packing(object):
                 center_x, center_y = self._change_center_pathological_configuration(center_x, center_y)
             mobile_particle_radius = self._adapt_radius(mobile_particle_radius, nr_mobile_found, nr_of_mobile_particles, nr_iterations)
             nr_mobile_found = self._get_nr_particles_in_circle(center_x, center_y, mobile_particle_radius)
-        frozen_particle_radius = mobile_particle_radius + self.frozen_shell_thickness*(2*self.average_particle_radius)
+        
+        #note that self.mobile_particle_radius and self.frozen_particle_radius are instantiated as members
+        self.mobile_particle_radius = mobile_particle_radius
+        self.frozen_particle_radius = self.mobile_particle_radius + self.frozen_shell_thickness*(2*self.average_particle_radius)
         for i in xrange(self.total_nr_of_particles):
             dd = la.norm([self.x[i] - center_x, self.y[i] - center_y])
-            if dd <= frozen_particle_radius:
+            if dd <= self.frozen_particle_radius:
                 particle_indices.append(i)
-                if dd <= mobile_particle_radius:
+                if dd <= self.mobile_particle_radius:
                     particle_frozen.append(False)
                     self._check_distance_to_boundary(i)
                 else:
@@ -321,7 +326,14 @@ class Cut_Out_Packings(object):
         for i in xrange(self.nr_of_packings):
             self._find_one_small_packing(i)
             print("found packing %d of %d" % (i+1, self.nr_of_packings))
-            
+    
+    def split_packings(self):
+        """
+        returns a list of Small_Packing_Information objects
+        """
+        self._split_packings()
+        return self.small_packings
+    
     def _find_one_small_packing(self, index):
         self.small_packings.append(self.all_particles.extract_small_packing(index))
     
