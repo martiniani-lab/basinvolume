@@ -17,17 +17,19 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *in the equilibrium jammed structure. A .xyzdr file is produced that contains the 3 system coordinates, the particle 
     * diameter and if not it's a rattler (0 if a rattler, 1 otherwise)
     *PARAMETERS
+    *expand_sca: #amount by which scaling factor is multiplied to over-inflate
     *hs_radii: array with the radii of the particles, if none sample particle sizes from a normal distribution
     *mu: average particle size, passable to normal distribution
     *sig: standard deviaton of normal distribution from which to sample particles
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
-    def __init__(self, rattler_eval_tol=1.,packings_dir='packings'):
+    def __init__(self, rattler_eval_tol=1.,packings_dir='packings', expand_sca=1.15):
         super(HS_Exp_Generate_Jammed_Packing,self).__init__(packing_frac=0, packings_dir=packings_dir)                                                        
         
         ##constants#
-        self.rattler_eval_tol = rattler_eval_tol 
+        self.rattler_eval_tol = rattler_eval_tol
+        self.expand_sca = expand_sca
         ############
         #HACK
         self.configpath = os.path.join(self.packings_dir, 'packing1.config')
@@ -50,14 +52,9 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #initialise needs to import at least one configuration to compute sca
         if self.iteration == 0:
             self._initialise()
-#        print "coords", self.coords
-#        print "frozen", self.frozen
-#        print "hsradii", self.hs_radii
-#        print "sca", self.sca
-#        print "eps", self.eps
-#        print "ndim", self.bdim
+
         assert(len(self.coords)/self.bdim == len(self.hs_radii))
-        ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
+        
         self.potential = HS_WCAFrozen(self.coords, self.frozen, self.eps, self.sca, self.hs_radii, ndim=self.bdim)
         
         success = self._generate_packing_coords() #returns false if saddle
@@ -90,7 +87,6 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             self.rattlers = np.insert(self.rattlers, i, 0)
             self.rattlers_draw = np.insert(self.rattlers_draw, i, 0)
     
-    
     def _generate_packing_coords(self):
         """
         perform quench and run tests
@@ -103,7 +99,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         redcoords = reduce_coordinates(self.coords, self.frozen, self.bdim)
         assert(len(redcoords) == self.ndim)
         maxstep = np.amin(self.hs_radii)
-        res = modifiedfire_cpp(redcoords,self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
+        res = modifiedfire_cpp(redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
         if not res.success:
             print 'quench failed'
             return False
@@ -119,7 +115,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         
         self.coords = full_coordinates(redcoords, self.coords, self.frozen, self.bdim)
         #asserts that none of the hard sphere is overlapping
-        no_overlap = self._check_overlaps()
+        no_overlap = self._check_no_overlaps()
         if not no_overlap:
             print 'overlap found'
             return False 
@@ -149,7 +145,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         
         return True
     
-    def _check_overlaps(self):
+    def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
         for i in xrange(self.nparticles):
@@ -201,7 +197,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
-        self.sca = (configf.getfloat('PACKING','deflation') - 1)*1.1 #fudge
+        self.sca = (configf.getfloat('PACKING','deflation') - 1)*self.expand_sca
         
     def _dump_configuration(self,n):
         """write coordinates to file .xyzdr"""

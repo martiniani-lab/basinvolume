@@ -223,7 +223,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             return False
         
         #asserts that none of the hard sphere is overlapping
-        no_overlap = self._check_overlaps()
+        no_overlap = self._check_no_overlaps()
         if not no_overlap:
             print 'overlap found'
             return False 
@@ -276,7 +276,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         ###r_soft = r_hs*(1+sca)
         self.sca = np.power(self.packing_frac/self.imp_packing_frac,1./self.bdim) - 1
         
-    def _check_overlaps(self):
+    def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
         for i in xrange(self.nparticles):

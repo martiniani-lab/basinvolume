@@ -152,7 +152,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
 #        assert(phi - self.packing_frac < 1e-4)
 #        #endtest
     
-    def _check_overlaps(self):
+    def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
         for i in xrange(self.nparticles):
@@ -196,7 +196,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
                 self.coords.extend(particle)
         self.coords = np.array(self.coords)
         #raise warning if there's an overlap
-        if not self._check_overlaps():
+        if not self._check_no_overlaps():
             return False
         #compute packing fraction
         self._set_packing_fraction()
@@ -314,7 +314,7 @@ if __name__ == "__main__":
     parser.add_argument('--distance_from_boundary_y',type=float, nargs='?', default=0.04, help='discarded margins bottom and top, per-cent')
     parser.add_argument('--frozen_shell_thickness',type=float, nargs='?', default=2, help='number of average particle diameters in frozen shell')
     parser.add_argument('--grid_version',type=int, nargs='?', default=0, help='selects type of grid for splitting')
-    parser.add_argument('--all', action='store_true', help='extract maximum number of packings')
+    parser.add_argument('--all', action='store_true', default=False, help='extract maximum number of packings')
     parser.add_argument("--datafname", type=str, default="PackingsData_", help="protocol to generate packings")
     args = parser.parse_args()
     print args

@@ -230,7 +230,7 @@ class HS_Generate_Packing(_Generate_Packing):
 #            self.hs_radii = np.array(self.hs_radii,dtype='d')
 #        assert(self.hs_radii.all() > 0)
     
-    def _check_overlaps(self):
+    def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
         for i in xrange(self.nparticles):
@@ -327,7 +327,7 @@ class HS_Generate_Packing(_Generate_Packing):
 #    sort radii in cavity
 #            self._sort_radii_in_cavities()
             #check that no two particles are overlapping (using nearest image convention)
-            overlap = not self._check_overlaps()
+            overlap = not self._check_no_overlaps()
             print "overlap",overlap
     
     def _sort_radii_in_cavities(self):
@@ -374,7 +374,7 @@ class HS_Generate_Packing(_Generate_Packing):
             self.coords = self._sample_random_coords()
             print "generated new7 start coords "
             #check that no two particles are overlapping (using nearest image convention)
-            no_overlap = self._check_overlaps()
+            no_overlap = self._check_no_overlaps()
     
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
