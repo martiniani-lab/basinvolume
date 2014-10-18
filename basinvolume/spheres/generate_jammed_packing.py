@@ -155,7 +155,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             print "WARNING: max soft diameter >= 1/2 box side!"
         
         #initialise needs to import at least one configuration to compute sca
-        if self.iteration is 0:
+        if self.iteration == 0:
             self._initialise()
         
         ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
