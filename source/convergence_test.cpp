@@ -2,7 +2,7 @@
 #include "pele/lbfgs.h"
 #include "pele/lowest_eig_potential.h"
 
-#include "convergence_test.h"
+#include "basinvolume/convergence_test.h"
 
 namespace bv{
 

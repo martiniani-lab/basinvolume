@@ -3,7 +3,7 @@
 
 #include "mcpele/gaussian_coords_displacement.h"
 
-#include "findk.h"
+#include "basinvolume/findk.h"
 
 namespace bv{
 

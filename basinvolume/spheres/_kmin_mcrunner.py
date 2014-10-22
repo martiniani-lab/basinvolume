@@ -189,12 +189,9 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing184.xydr', seeds=seeds, use_cell_lists=True, verbose=True)
+    sim = _kmin_mcrunner('jammed_packing0.xydr', seeds=seeds, single=True, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time()
-    #pickle.dump(sim, open('testpickle.pickle',"wb"), pickle.HIGHEST_PROTOCOL)
-    #sim = pickle.load(open('testpickle.pickle', "rb"))
-    #mcrunner = sim('jammed_packing0.xyzdr')
     sim.run()
     end=time.time()
     print 'time elapsed', end-start
@@ -202,7 +199,7 @@ if __name__ == "__main__":
     print status
     print 'd2 kmin: ',sim.displ_k_min
     print 'var: ',sim.var_displ_k_min
-    sim.mcrunner.show_histogram()
+    #sim.mcrunner.show_histogram()
     
     
         

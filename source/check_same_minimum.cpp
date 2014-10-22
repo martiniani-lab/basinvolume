@@ -1,6 +1,6 @@
 #include <cmath>
 
-#include "check_same_minimum.h"
+#include "basinvolume/check_same_minimum.h"
 
 using pele::Array;
 using mcpele::MC;
