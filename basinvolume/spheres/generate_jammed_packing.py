@@ -88,6 +88,11 @@ class _Generate_Jammed_Packing(object):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
+        # This is just to get a value for sca; maybe it could be done nicer.
+        for fname in os.listdir(self.packings_dir):
+            if ('xyzd' in fname and self.bdim == 3) or ('xyd' in fname and self.bdim == 2):
+                self._import_packing_configuration(fname)
+                break
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('\n')
@@ -142,7 +147,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _initialise(self):
         self.configpath = os.path.join(self.packings_dir,'packings.config')
         self._import_packing_config_file()
-        self._compute_sca()
         self.rattlers = np.empty(self.nparticles,dtype='d')
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')
         self._print_initialise()
@@ -263,6 +267,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         else:
             self.coords, hs_diameters = read_xyzd(path)
         self.hs_radii = hs_diameters/2
+        self._compute_sca()
     
     def _compute_sca(self):
         ##test##
