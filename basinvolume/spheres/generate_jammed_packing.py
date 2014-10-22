@@ -142,7 +142,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _initialise(self):
         self.configpath = os.path.join(self.packings_dir,'packings.config')
         self._import_packing_config_file()
-        self._compute_sca()
         self.rattlers = np.empty(self.nparticles,dtype='d')
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')
         self._print_initialise()
@@ -151,6 +150,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """perform one iteration
         """
         self._import_packing_configuration(fname)
+        self._compute_sca()
         
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii)*2*(1+self.sca) >= np.amin(self.boxv)/2:
