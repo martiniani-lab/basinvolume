@@ -31,11 +31,12 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.rattler_eval_tol = rattler_eval_tol
         self.expand_sca = expand_sca
         ############
-        #HACK
-        self.configpath = os.path.join(self.packings_dir, 'packing1.config')
-        self._import_packing_config_file()
-        
+                
     def _initialise(self):
+        #HACK
+        self.configpath = os.path.join(self.packings_dir, 'packing1.config') #FUDGE
+        assert(os.path.isfile(self.configpath))
+        #ENDOFHACK
         self._print_initialise()
     
     def one_iteration(self,fname):

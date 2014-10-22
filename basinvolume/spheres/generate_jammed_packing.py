@@ -48,6 +48,7 @@ class _Generate_Jammed_Packing(object):
     def _initialise(self):
         """initialisation function"""
         self.configpath = os.path.join(self.packings_dir,'packings.config')
+        assert(os.path.isfile(self.configpath))
         self._import_packing_config_file()
     
     @abc.abstractmethod
@@ -112,6 +113,7 @@ class _Generate_Jammed_Packing(object):
         """
     def run(self):
         """run generate packings"""
+        self._initialise()
         for fname in os.listdir(self.packings_dir):
             if ('xyzd' in fname and self.bdim == 3) or ('xyd' in fname and self.bdim == 2):
                 print fname
@@ -153,10 +155,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii)*2*(1+self.sca) >= np.amin(self.boxv)/2:
             print "WARNING: max soft diameter >= 1/2 box side!"
-        
-        #initialise needs to import at least one configuration to compute sca
-        if self.iteration is 0:
-            self._initialise()
         
         ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
         if self.use_cell_lists:
@@ -259,7 +257,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         return vtot
     
     def _import_packing_configuration(self, fname):
-        path = os.path.join(self.packings_dir,fname)
+        path = os.path.join(self.packings_dir, fname)
         if self.bdim == 2:
             self.coords, hs_diameters = read_xyd(path)
         else:
