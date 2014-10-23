@@ -112,5 +112,22 @@ class CrossValidationBandwidthSelection(object):
         print "done"
         self.opt_bandwidth = result.coords
 
-
-
+class KernelDensityLogOmegaJackKnife(object):
+    """
+    Use kernel density estimate to get callable description of PDF, error bar from jack knife.
+    """
+    def __init__(self, F0_full, volume_sanity_check, kernel="gaussian", bandwidth=None):
+        self.F0 = np.asarray(F0_full)
+        self.volume_sanity_check = volume_sanity_check
+        self.out_file_heading = "LOG_OMEGA_KERNEL_DENSITY"
+        self.possible_kernels = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
+        if kernel not in self.possible_kernels:
+            raise Exception("KernelDensityLogOmega: illegal kernel choice")
+        self.kernel = kernel
+        if bandwidth == None:
+            bandwidth_estimator = KernelDensityLogOmega(F0_full, volume_sanity_check, kernel, bandwidth=None)
+            self.bandwidth = bandwidth_estimator.bandwidth
+        else:
+            self.bandwidth = bandwidth
+        if self.bandwidth <= 0:
+            raise Exception("KernelDensityLogOmega: illegal bandwidth choice")
