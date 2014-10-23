@@ -131,3 +131,24 @@ class KernelDensityLogOmegaJackKnife(object):
             self.bandwidth = bandwidth
         if self.bandwidth <= 0:
             raise Exception("KernelDensityLogOmega: illegal bandwidth choice")
+    def compute_and_write_entropy(self, file_name):
+        self.compute_log_omega()
+        self.write_to_file(file_name)
+    def write_to_file(self, file_name):
+        f = ResultsFile(file_name)
+        f.set_heading(self.out_file_heading)   
+        f.to_file("S_star", self.S_star)
+        f.to_file("error_S_star", self.error_S_star)
+        f.to_file("S", self.S)
+        f.to_file("error_S", self.error_S)
+        f.close()
+        print self.out_file_heading
+        print "S_star", self.S_star
+        print "S", self.S
+        plot_name = file_name + "_plot.pdf"
+        plt.hist(self.F0, bins=14, normed=True, label="Data")
+        self.x_plot_1d = np.linspace(np.amin(self.F0), np.amax(self.F0), 500)
+        self.pdf_x_1d = np.exp(self.kde.score_samples(self.x_plot_1d[:, np.newaxis]))
+        plt.plot(self.x_plot_1d, self.pdf_x_1d, label="PDF estimate")
+        plt.legend()
+        save_pdf(plt, plot_name)
