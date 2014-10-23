@@ -67,7 +67,7 @@ class KernelDensityLogOmega(object):
         plt.plot(self.x_plot_1d, self.pdf_x_1d, label="PDF estimate")
         plt.legend()
         save_pdf(plt, plot_name)
-    def get_bandwidth_estimate(self, method="Silverman"):
+    def get_bandwidth_estimate(self, method="cross_validation"):
         """
         Use some rule to get bandwidth estimate from data.
         
