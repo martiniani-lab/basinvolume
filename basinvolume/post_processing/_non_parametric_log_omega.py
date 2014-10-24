@@ -67,7 +67,7 @@ class KernelDensityLogOmega(object):
         plt.plot(self.x_plot_1d, self.pdf_x_1d, label="PDF estimate")
         plt.legend()
         save_pdf(plt, plot_name)
-    def get_bandwidth_estimate(self, method="Silverman"):
+    def get_bandwidth_estimate(self, method="cross_validation"):
         """
         Use some rule to get bandwidth estimate from data.
         
@@ -112,5 +112,43 @@ class CrossValidationBandwidthSelection(object):
         print "done"
         self.opt_bandwidth = result.coords
 
-
-
+class KernelDensityLogOmegaJackKnife(object):
+    """
+    Use kernel density estimate to get callable description of PDF, error bar from jack knife.
+    """
+    def __init__(self, F0_full, volume_sanity_check, kernel="gaussian", bandwidth=None):
+        self.F0 = np.asarray(F0_full)
+        self.volume_sanity_check = volume_sanity_check
+        self.out_file_heading = "LOG_OMEGA_KERNEL_DENSITY"
+        self.possible_kernels = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
+        if kernel not in self.possible_kernels:
+            raise Exception("KernelDensityLogOmega: illegal kernel choice")
+        self.kernel = kernel
+        if bandwidth == None:
+            bandwidth_estimator = KernelDensityLogOmega(F0_full, volume_sanity_check, kernel, bandwidth=None)
+            self.bandwidth = bandwidth_estimator.bandwidth
+        else:
+            self.bandwidth = bandwidth
+        if self.bandwidth <= 0:
+            raise Exception("KernelDensityLogOmega: illegal bandwidth choice")
+    def compute_and_write_entropy(self, file_name):
+        self.compute_log_omega()
+        self.write_to_file(file_name)
+    def write_to_file(self, file_name):
+        f = ResultsFile(file_name)
+        f.set_heading(self.out_file_heading)   
+        f.to_file("S_star", self.S_star)
+        f.to_file("error_S_star", self.error_S_star)
+        f.to_file("S", self.S)
+        f.to_file("error_S", self.error_S)
+        f.close()
+        print self.out_file_heading
+        print "S_star", self.S_star
+        print "S", self.S
+        plot_name = file_name + "_plot.pdf"
+        plt.hist(self.F0, bins=14, normed=True, label="Data")
+        self.x_plot_1d = np.linspace(np.amin(self.F0), np.amax(self.F0), 500)
+        self.pdf_x_1d = np.exp(self.kde.score_samples(self.x_plot_1d[:, np.newaxis]))
+        plt.plot(self.x_plot_1d, self.pdf_x_1d, label="PDF estimate")
+        plt.legend()
+        save_pdf(plt, plot_name)
