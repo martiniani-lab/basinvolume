@@ -84,8 +84,6 @@ class _findk_mcrunner(_configure_mcrunner):
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
         configfile = 'findk_' + dname 
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
-        configfile = 'kmin_' + dname
-        self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
     
     def _import_packing_config_files(self):
         configf = ConfigParser.ConfigParser()
@@ -148,7 +146,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing1.xyzdr', seeds=seeds, use_cell_lists=True, verbose=True)
+    sim = _findk_mcrunner('jammed_packing0.xydr', seeds=seeds, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time() 
     sim.run()
