@@ -40,7 +40,7 @@ FILE(GLOB mcpele_sources ${mcpele_include}/*.cpp)
 add_library(mcpele_lib ${mcpele_sources})
 
 # build the basinvolume library
-FILE(GLOB basinvolume_sources ${basinvolume_include}/basinvolume/*.cpp)
+FILE(GLOB basinvolume_sources ${basinvolume_include}/*.cpp)
 add_library(basinvolume_lib ${basinvolume_sources})
 
 # get all the source files
