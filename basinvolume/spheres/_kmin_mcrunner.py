@@ -4,12 +4,12 @@ import abc
 import os
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.spheres import BV_MCrunner
+from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import *
 import ConfigParser
 import time
 
-class _kmin_mcrunner(object):
+class _kmin_mcrunner(_configure_mcrunner):
     """
     this is an abstract class that implements the basic components of a k0_mcrunner class
     *nparticles: number of particles
@@ -22,67 +22,37 @@ class _kmin_mcrunner(object):
         
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
-                 adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-3, opt_nsteps=1e4,
+                 adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, opt_nsteps=1e4,
                  perform_convergence_test=False, collect_minima_list=False, single=False, 
                  seeds=None, use_cell_lists=False, packings_dir='jammed_packings', verbose=False):
-        
-        dname = fname
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
-        self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
-        if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
-        self.packings_dir = packings_dir
-        self.configpath = os.path.join(packings_dir,'jammed_packings.config')
+                
         self.fname = fname
-        #self.mc_params = dict(k=k, temperature=temperature, )
         self.temperature=1.0
         self.eps = eps
         
-        self._import_packing_config_file()
+        self._set_paths(packings_dir)
+        self._import_packing_config_files()
         self._import_packing_configuration()
+        opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         
-        #automatically set opt max step
-        if opt_maxstep is None:
-            opt_maxstep = self.boxv[0]*0.1
-            
+        #self.mc_params = dict(k=k, temperature=temperature, )    
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,
                           'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,
                           'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
                           'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
                           'single':single, 'use_cell_lists':use_cell_lists}
-        
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
         except:
             print "WARNING:seeds not passed"
         
-        #re-quench origin to avoid rounding errors
-        pot_optimizer = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv)
-        res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=1e-9)
-        if not res.success:
-            assert(False)
-        drms= np.sqrt(np.dot(self.coords,self.coords)/self.ndim) - np.sqrt(np.dot(res.coords, res.coords)/self.ndim)
-        assert(drms <= dtol)
-        self.coords = res.coords
-        
-        if verbose:
-            print 'results from quench \n'
-            print res
-            hess = pot_optimizer.getHessian(self.coords)
-            w, v = np.linalg.eig(hess)
-            w = np.real(w)
-            print 'eigenvalues'
-            print sorted(w)
+        self._requench_coords(dtol, opt_maxstep, verbose)
         
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
-        
         potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
         self.mcrunner = BV_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
                                     self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, k=k, dtol=dtol, 
@@ -92,14 +62,32 @@ class _kmin_mcrunner(object):
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single) 
         
-        self._print_initialise()
+        self._initialise()
         
     def run(self):
-        self.mcrunner.run()
-        self.displ_k_min, self.var_displ_k_min = self.mcrunner.histogram.get_mean_variance()
-        self._print_results()
-        
-    def _import_packing_config_file(self):
+        try:
+            self.mcrunner.run()
+            self.displ_k_min, self.var_displ_k_min = self.mcrunner.histogram.get_mean_variance()
+            self._print_results()
+            self._print_success(True)
+        except:
+            self._print_success(False)
+    
+    def _set_paths(self, packings_dir):
+        dname = self.fname
+        if dname.endswith('.xyzdr'):
+            dname = dname[:-6]
+        elif dname.endswith('.xydr'):
+            dname = dname[:-5]
+        self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+        if not os.path.isabs(packings_dir):
+            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        self.packings_dir = packings_dir
+        self.configpath = os.path.join(packings_dir,'jammed_packings.config')
+        configfile = 'kmin_' + dname
+        self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
+    
+    def _import_packing_config_files(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
@@ -110,34 +98,19 @@ class _kmin_mcrunner(object):
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
-        
-    def _import_packing_configuration(self):
-        """imports the coordinates, data relative to the shape of the particles and
-        whether the particles are rattlers or not. Note that self.rattlers returned 
-        here is of size self.ndim but in generate_jammed_packings is of size self.nparticles.
-        This should be run in initialise()
-        """
-        path = os.path.join(self.packings_dir,self.fname)
-        if self.bdim == 2:
-            self.coords, hs_diameters, self.rattlers = read_xydr(path)
-        else:
-            self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
-        self.hs_radii = hs_diameters/2
-        
+    
+    def _initialise(self):
+        self._print_initialise()
+         
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
         self._print_parameters()
     
-    def _print_parameters(self):
-        """writes the simulation parameters"""
-        dname = 'kmin_' + self.fname 
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
-        fname = '{}/{}.config'.format(self.base_directory,dname)
-        f = open(fname,'w')
+    def _write_sim_params(self, f):
+        """
+        write simulation parameters
+        """
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Explore_Jammed_Packings wrapper class input parameters\n')
         f.write('[KMIN_IMPORTED_JAMMED_PACKING]\n')
@@ -153,27 +126,14 @@ class _kmin_mcrunner(object):
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[KMIN_MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
-            f.write('{}: {}\n'.format(key,value)) 
-        #print software version
-        f.write('[CODEVERSION]\n')
-        f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
-        f.write('mcpele_version: {}\n'.format(get_git_version('mcpele')))
-        f.write('pele_version: {}\n'.format(get_git_version('pele')))
-        f.write('python_version: {}\n'.format(get_python_version()))
-        f.write('cython_version: {}\n'.format(get_cython_version()))
-        f.close()
+            f.write('{}: {}\n'.format(key,value))
     
     def _print_results(self):
         """
         note that self.displ_k_min *= 1.5 to account for the limited computation time, 
         this is just an approximation 
         """
-        dname = 'kmin_' + self.fname
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
-        fname = '{}/{}.config'.format(self.base_directory,dname)
+        fname = self.configfile
         f = open(fname,'a')
         f.write('[KMIN_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
@@ -189,7 +149,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing0.xydr', seeds=seeds, single=True, use_cell_lists=True, verbose=True)
+    sim = _kmin_mcrunner('jammed_packing0.xydr', opt_tol=1e-4, seeds=seeds, single=True, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time()
     sim.run()
