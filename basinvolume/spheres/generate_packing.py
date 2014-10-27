@@ -5,7 +5,7 @@ import os
 import sys
 from scipy.special import gamma
 from mcrunner import HS_MCrunner, HS_MCrunnerOptDiffusion
-from pele.potentials import HS_WCA, WCA, HS_WCAPeriodicCellLists, InversePower
+from pele.potentials import HS_WCA, WCA, InversePower
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
 from numpy.random import RandomState

@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.potentials import Harmonic, HS_WCA, HS_WCAPeriodicCellLists
+from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *
 import warnings

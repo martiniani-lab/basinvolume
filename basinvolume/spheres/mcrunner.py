@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 import sys
-from pele.potentials import Harmonic, HS_WCA, HS_WCAPeriodicCellLists
+from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
 from pele.storage import Database
 from pele.storage.database import Minimum
