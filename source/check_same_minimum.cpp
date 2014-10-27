@@ -154,7 +154,7 @@ bool CheckSameMinimum::conf_test(Array<double> &trial_coords, MC * mc)
     if (!same_minimum){
         //if quench has converged to different minimum then one might want to
         //save the new minimum
-        std::cout<<"failed quench rms "<<_rms<<"dtol"<<_dtol<<std::endl;
+        //std::cout<<"failed quench rms "<<_rms<<"dtol"<<_dtol<<std::endl;
         if (_collect_minima_list && mc->get_iterations_count() > m_eqsteps){
             _new_minimum.assign(this->_align_coords(_optimizer->get_x()));
             _minima_list.insert_minimum(_d, _optimizer->get_f(), _new_minimum, _rattlers);
