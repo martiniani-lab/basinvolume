@@ -48,7 +48,7 @@ class LogOmegaBase(object):
         self.alpha = None
         self.zeta = None
     def compute_log_omega(self):
-        if self.mu == None or self.alpha == None or self.zeta == None:
+        if self.mu is None or self.alpha is None or self.zeta is None:
             raise Exception("LogOmegaBase: generalised gaussian parameters are not determined")
         integral, error_integral = integrate.quad(get_gauss_times_expx, self.volume_sanity_check.F0_acc, np.amax(self.F0) * 100, args = ([self.mu, self.alpha, self.zeta], ), points = [np.amin(self.F0), self.mu, np.amax(self.F0)])
         self.S_star = - self.volume_sanity_check.F0_acc + np.log(integral)
