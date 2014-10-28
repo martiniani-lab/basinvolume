@@ -43,7 +43,7 @@ try:
     from scipy.special import gamma
     from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid, APFEntropy, BestIntegrationSelection, VolumeSanityCheck, PackingFailureStatistics, OutlierRemovalUnbiasingEntropyLogOmega, GeneralisedGauss
-    from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmega
+    from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
     from scipy import integrate
 except ImportError as err:
     print err
@@ -77,7 +77,7 @@ class ComputeEntropy(object):
         self.APF_entropy = APFEntropy(self.F0_wo_outliers, self.volume_sanity_check)
         self.APF_entropy.compute_and_write_entropy(self.packings_dir + "/entropy_AFP")
         # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
-        self.kernel_density_log_omega = KernelDensityLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
+        self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, self.volume_sanity_check)
         self.kernel_density_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_kernel_density")
         # fit to cdf, numerical integration for un-biasing
         self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.packings_dir)
