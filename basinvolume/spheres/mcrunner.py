@@ -457,13 +457,15 @@ class Findk_MCrunner(_BaseMCRunner):
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
         #construct optimizer potential
-        if self.use_cell_lists:
-            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
-            #print 'rcut', rcut
-            self.pot_optimizer = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.origin, 
-                                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
-        else:
-            self.pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        #rcut set to largest particle diameter
+        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        self.pot_optimizer = HS_WCA(use_pateriodic=use_periodic,
+                             use_cell_lists=use_cell_lists,
+                             use_frozen=use_frozen, eps=self.eps, sca=self.sca,
+                             radii=self.hs_radii, boxvec=self.boxv,
+                             reference_coords=self.origin, rcut=rcut,
+                             ndim=self.bdim, ncellx_scale=1.0,
+                             frozen_atoms=frozen_atoms)
         
         #construct gradient optimizer
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
