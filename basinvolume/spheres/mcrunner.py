@@ -167,24 +167,90 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
         
     
 class BV_MCrunner(_BaseMCRunner):
-    """Basin Volume MCrunner
-    *coords: initial coordinates, can be the same as origin
-    *origin: jammed minimised structure
-    *hs_radii: array of the radii of the particles
-    *boxv: array with the box size lengths
-    *rattlers: array of rattlers, if not rattler: 1 -> jammed dof
-                                                  0 -> rattler dof
-    *k: spring constant
-    *temperature
-    *niter: number of MC takesteps to perform
-    *stepsize
-    *Etol: tolerance with which a minimised structure is accepted
-     when compared to origin energy
-    *dtol: tolerance on the rms displacement of the minimised structure
-     with respect to the origin coordinates
-     *ts_freq: time series "record" frequency
-     *pt_eq_niter number of steps over which pt is equilibrated
-     * this class requires 2 seeds
+    """
+    Basin volume MC runner
+    
+    Parameters
+    ----------
+    potential : pele potential
+        Harmonic potential used in the thermodynamic integration.
+        These are the harmonic springs that tie each particle to its original
+        position during the walk.
+    coords : array
+        Initial coordinates, can be the same as origin.
+    temperature : double
+        Temperature is irrelevant here and probably set to unity.
+    stepsize : double
+        Initial stepsize of random_coords_displacement. This is adapted to
+        match a desired acceptance ratio of steps before data is recorded.
+    niter : integer
+        Total number of MC steps.
+    origin : array
+        Coordinates of the minimum.
+    hs_radii : array
+        Radii of particle hard core radii for HS-WCA potential.
+    boxvec : array
+        List of box edge lengths.
+    sca : double
+        The thickness of the wca shell is sca * R where R is the hard core
+        radius of the sphere.
+    rattlers : array of bool
+        Array of rattler status if degrees of freedom. If dof does not belong to
+        rattler, 1, if dof does belong to rattler, 0.
+    k : double
+        Sping constant for harmonic potential.
+    dtol : double
+        Tolerance on the rms distance of the minimised structure to the origin.
+    eps : double
+        WCA parameter
+    hmin : double
+        Initial value of displ2 histogram lower bound.
+    hmax : double
+        Initial value of displ2 histogram upper bound.
+    hbinsize : double
+        Displ2 histogram bin size.
+    acceptance : double
+        Target step acceptance ratio.
+    adjustf : double
+        Factor for step size adaptation.
+    adjustf_niter : integer
+        Number of steps for step size adaptation.
+    adjustf_navg : integer
+        Number of steps from which to compute the step acceptance ratio during
+        step size adaptation.
+    pt_eq_niter : integer
+        ?
+    ts_niter : inteteger
+        ?
+    ts_freq : integer
+        ?
+    opt_dtmax : double
+        DeltaT_max parameter of modified fire optimiser.
+    opt_maxstep : double
+        MaxStep parameter of modified fire optimiser.
+    opt_tol : double
+        Tolerance of modified fire optimiser.
+    opt_nsteps : integer
+        Numer of iterations of modified fire optimiser.
+    perform_convergence_test : bool
+        ?
+    collect_minima_list : bool
+        ?
+    seeds : dict
+        Seeds for random number generators.
+    use_cell_lists : bool
+        Flag indicating if cell lists are used.
+    record_histogram : bool
+        Flag indicating if Displ2 histogram is recorded and stored.
+    single : bool
+        Flag indicating if single particle moves are performed rather than global moves.
+    use_periodic : bool
+        Flag indicating if periodic boundary conditions are used.
+    use_frozen : bool
+        Flag indicating if there are frozen degrees of freedom.
+    frozen_atoms : array
+        List of labels of frozen (immobile) particles. Note: This is not the
+        list of frozen degrees of freedom.
     """
     def __init__(self, potential, coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
@@ -193,7 +259,8 @@ class BV_MCrunner(_BaseMCRunner):
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-4, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
-                 record_histogram=False, single=False):
+                 record_histogram=False, single=False, use_periodic=True,
+                 use_frozen=False, frozen_atoms=None):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, niter)
         
@@ -220,19 +287,21 @@ class BV_MCrunner(_BaseMCRunner):
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
         #construct optimizer potential
-        if self.use_cell_lists:
-            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
-            #print 'rcut', rcut
-            self.pot_optimizer = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.origin, 
-                                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
-        else:
-            self.pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        #rcut set to largest particle diameter
+        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        self.pot_optimizer = HS_WCA(use_pateriodic=use_periodic,
+                             use_cell_lists=use_cell_lists,
+                             use_frozen=use_frozen, eps=self.eps, sca=self.sca,
+                             radii=self.hs_radii, boxvec=self.boxv,
+                             reference_coords=self.origin, rcut=rcut,
+                             ndim=self.bdim, ncellx_scale=1.0,
+                             frozen_atoms=frozen_atoms)
         
         #construct gradient optimizer    
-        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
+        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
+                                         dtmax=opt_dtmax, maxstep=opt_maxstep,
                                          tol=opt_tol, nsteps=opt_nsteps)
         
-        #compute seeds
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
