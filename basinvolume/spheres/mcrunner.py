@@ -420,12 +420,14 @@ class Findk_MCrunner(_BaseMCRunner):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     * this class requires 1 seed
     """
-    def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, hs_radii, boxv, sca,
-                  rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, 
-                  knavg=500, ktol=0.05, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, 
-                  opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001, perform_convergence_test=False, 
-                  collect_minima_list=False, seeds=None, use_cell_lists=False, single=False):
+    def __init__(self, potential, coords, temperature, stepsize, niter, origin,
+                 hs_radii, boxv, sca, rattlers=None, avgcount=1e6, dtol=1e-3,
+                 eps=1., ktarget = 0.75, knavg=500, ktol=0.05, opt_dtmax=1,
+                 opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=1,
+                 binsize=0.001, perform_convergence_test=False,
+                 collect_minima_list=False, seeds=None, use_cell_lists=False,
+                 single=False, use_periodic=True, use_frozen=False,
+                 frozen_atoms=None):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, niter)
         
