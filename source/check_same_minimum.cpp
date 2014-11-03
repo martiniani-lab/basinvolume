@@ -49,85 +49,119 @@ CheckSameMinimum::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> opti
 
 }
 
-//compute distance from origin after aligning the centre of mass
-//this ignores the rattlers completely
-
-void CheckSameMinimum::_get_vec_distance(pele::Array<double> quenched_coords)
-{
-//    std::cout << quenched_coords << "\n";
-//    std::cout << _ndim << " " << quenched_coords.size() << " " << _nparticles << "\n";
-    assert(quenched_coords.size() == _origin.size());
-    assert(quenched_coords.size() == _ndim * _nparticles);
-    pele::Array<double> dr(_ndim);
-
-    //measure distance between two non rattlers
-    _dist_policy->get_rij(dr.data(), &quenched_coords[_inoratt], &_origin[_inoratt]);
-
-    //align structures
-    for(size_t i=0;i<_nparticles;++i) {
-        size_t i1 = i*_ndim;
-        for(size_t j=0;j<_ndim;++j){
-            quenched_coords[i1+j] -= dr[j];
-        }
-    }
-
-    if (_collect_minima_list){
-        _new_minimum.assign(quenched_coords);
-    }
-
-    //compute distance between aligned structures
-    for(size_t i=0;i<_nparticles;++i) {
-        size_t i1 = i*_ndim;
-        _dist_policy->get_rij(dr.data(), &quenched_coords[i1], &_origin[i1]);
-
-        for(size_t j=0;j<_ndim;++j){
-            _distance[i1+j] = dr[j] * _rattlers[i1+j];
-        }
-    }
-}
-
 void CheckSameMinimum::_check_convergence(pele::Array<double> quenched_coords)
 {
     _conv_test.check_convergence(quenched_coords, _optimizer);
 }
 
+
+/*aligns structures*/
+pele::Array<double> CheckSameMinimum::_align_coords(pele::Array<double> coords){
+    /*assert(coords.size() == _origin.size());
+    assert(coords.size() == _ndim * _nparticles);*/
+    pele::Array<double> dr(_ndim);
+
+    //measure distance between two non rattlers
+    _dist_policy->get_rij(dr.data(), &coords[_inoratt], &_origin[_inoratt]);
+
+    //align structures
+    for(size_t i=0;i<_nparticles;++i) {
+        size_t i1 = i*_ndim;
+        for(size_t j=0;j<_ndim;++j){
+            coords[i1+j] -= dr[j];
+        }
+    }
+
+    return coords;
+}
+
+/*compute distance from origin after aligning two particles
+this ignores the rattlers completely and returns rmsd squared*/
+double CheckSameMinimum::_get_d2(pele::Array<double> coords)
+{
+    pele::Array<double> dr(_ndim);
+    pele::Array<double> aligned_coords = this->_align_coords(coords);
+
+    //compute distance between aligned structures
+    for(size_t i=0;i<_nparticles;++i) {
+        size_t i1 = i*_ndim;
+        _dist_policy->get_rij(dr.data(), &aligned_coords[i1], &_origin[i1]);
+
+        for(size_t j=0;j<_ndim;++j){
+            _distance[i1+j] = dr[j] * _rattlers[i1+j];
+        }
+    }
+
+    //avoid taking square roots by return squared quantities
+    return dot(_distance,_distance);
+}
+
+/*quench configuration and add minimum to new minimum list*/
+bool CheckSameMinimum::_quench(pele::Array<double> &trial_coords){
+    _optimizer->reset(trial_coords);
+
+    bool success = true;
+    double d2 = this->_get_d2(_optimizer->get_x());
+    double rmsd2 = d2/_Nnoratt;
+    double dtol2 = _dtol*_dtol;
+    const size_t opt_maxiter = _optimizer->get_maxiter();
+
+    //this might become an infinite loop
+    //optimizer stop-criterion needs to be checked before calling one_iteration
+    while(rmsd2 > dtol2 && _optimizer->get_niter() < opt_maxiter){
+        if (_optimizer->stop_criterion_satisfied()){
+            //minimisation converged before satisfying distance criterion,
+            //save minimum and return false
+            success = false;
+            break;
+        }
+        _optimizer->one_iteration();
+        d2 = this->_get_d2(_optimizer->get_x());
+        rmsd2 = d2/_Nnoratt;
+    }
+
+    //assign attributes for rms displacement from origin
+    _d = sqrt(d2);
+    _rms = sqrt(rmsd2);
+
+    return success;
+}
+
 bool CheckSameMinimum::conf_test(Array<double> &trial_coords, MC * mc)
 {
-    _optimizer->reset(trial_coords);
-    _optimizer->run();
-
-    if (_perform_convergence_test){
-        this->_check_convergence(_optimizer->get_x());
-    }
+    bool quench_success = true;
+    bool same_minimum = this->_quench(trial_coords);
 
     //add number of energy evaluations to mc eval count
     const size_t nfev = _optimizer->get_nfev();
     mc->m_neval += nfev;
 
-    //first test: minimisation must have converged
-    const bool quench_success = _optimizer->success();
+    if (_perform_convergence_test){
+        this->_check_convergence(_optimizer->get_x());
+    }
+
+    //check if minimisation has converged
+    //if exited loop with rmsd>dtol2 and success == true
+    //then the quench has failed in the given no. of steps
+    if(_rms > _dtol && same_minimum){
+        quench_success = false;
+    }
     m_failed_quench_frac.update(!quench_success);
-    if (! quench_success){
+    if(!quench_success){
         return false;
     }
 
-    //compute distance between quenched coords and origin
-    //distance for rattlers is set to 0
-    this->_get_vec_distance(_optimizer->get_x());
-
-    //compute rms displacement from origin
-    _d = norm(_distance);
-    _rms = _d / sqrt(_Nnoratt);
-
-    if (_rms > _dtol){
-        //std::cout<<"failed quench rms "<<_rms<<std::endl;
+    if (!same_minimum){
+        //if quench has converged to different minimum then one might want to
+        //save the new minimum
+        //std::cout<<"failed quench rms "<<_rms<<"dtol"<<_dtol<<std::endl;
         if (_collect_minima_list && mc->get_iterations_count() > m_eqsteps){
+            _new_minimum.assign(this->_align_coords(_optimizer->get_x()));
             _minima_list.insert_minimum(_d, _optimizer->get_f(), _new_minimum, _rattlers);
         }
         return false;
     }
     else{
-        //std::cout<<"successfull quench rms "<<_rms<<std::endl;
         return true;
     }
 }
