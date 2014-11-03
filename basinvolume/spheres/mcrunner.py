@@ -5,10 +5,15 @@ from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
 from pele.storage import Database
 from pele.storage.database import Minimum
-from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest 
-from mcpele.monte_carlo import GaussianCoordsDisplacement, ParticlePairSwap, TakeStepPattern
-from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram, Findk
-from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap, RecordDisplacementTimeseries, CheckOverlapCellLists
+from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
+from mcpele.monte_carlo import MetropolisTest 
+from mcpele.monte_carlo import GaussianCoordsDisplacement
+from mcpele.monte_carlo import ParticlePairSwap, TakeStepPattern
+from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
+from basinvolume.monte_carlo import Findk
+from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap
+from basinvolume.monte_carlo import RecordDisplacementTimeseries
+from basinvolume.monte_carlo import CheckOverlapCellLists
 from basinvolume.gui import HSWCASystem
 
 #for plotting histogram
@@ -32,15 +37,15 @@ try:
     #####################LINE STYLE CYCLER####################                             
     lines = ["-","--","-."]
     linecycler = cycle(lines)
-    color_cycle=[cm(1.*i/6) for i in xrange(6)]
+    color_cycle=[cm(1. * i / 6) for i in xrange(6)]
     ##########################################################
 except ImportError as err:
     print(err)
     
-def analytical_d2(x,k,N,boxdim=3):
-    f = float(k*x)/2
-    g = float(boxdim*N-boxdim)/2 -1
-    return np.exp(-f)*np.power(f,g)
+def analytical_d2(x, k, N, boxdim=3):
+    f = float(k * x) / 2
+    g = float(boxdim * N - boxdim) / 2 -1
+    return np.exp(-f) * np.power(f, g)
 
 vec_analytical_d2 = np.vectorize(analytical_d2)
 #end: things for histogram
@@ -81,8 +86,8 @@ class HS_MCrunner(_BaseMCRunner):
      * this class requires 1 seed for takestep
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, 
-                  adjustf_navg = 100, single=False, seeds=None):
+                  hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter=1e4, 
+                  adjustf_navg=100, single=False, seeds=None):
         #construct base class
         super(HS_MCrunner,self).__init__(potential, coords, temperature, niter)
         self.hs_radii = hs_radii
@@ -134,13 +139,13 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2, 
-                  adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
+                  adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100, 
                   desired_mean_rsm_displ=None, single=False, seeds=None):
         #construct base class
         super(HS_MCrunnerOptDiffusion,self).__init__(potential, coords, temperature,
                                          stepsize, niter, hs_radii, boxvec, acceptance=acceptance, 
-                                         adjustf=adjustf, adjustf_niter = adjustf_niter, 
-                                         adjustf_navg = adjustf_navg, single=single, seeds=seeds)
+                                         adjustf=adjustf, adjustf_niter=adjustf_niter, 
+                                         adjustf_navg=adjustf_navg, single=single, seeds=seeds)
         if not desired_mean_rsm_displ:
             desired_mean_rsm_displ = np.amax(self.hs_radii) * 2
         self.initial_stepsize = stepsize
@@ -162,31 +167,100 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
         
     
 class BV_MCrunner(_BaseMCRunner):
-    """Basin Volume MCrunner
-    *coords: initial coordinates, can be the same as origin
-    *origin: jammed minimised structure
-    *hs_radii: array of the radii of the particles
-    *boxv: array with the box size lengths
-    *rattlers: array of rattlers, if not rattler: 1 -> jammed dof
-                                                  0 -> rattler dof
-    *k: spring constant
-    *temperature
-    *niter: number of MC takesteps to perform
-    *stepsize
-    *Etol: tolerance with which a minimised structure is accepted
-     when compared to origin energy
-    *dtol: tolerance on the rms displacement of the minimised structure
-     with respect to the origin coordinates
-     *ts_freq: time series "record" frequency
-     *pt_eq_niter number of steps over which pt is equilibrated
-     * this class requires 2 seeds
     """
-    def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1., hmin=0, 
-                  hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, 
-                  pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5,
-                  perform_convergence_test=False, collect_minima_list=False, seeds=None, use_cell_lists=True,
-                  record_histogram=False, single=False):
+    Basin volume MC runner
+    
+    Parameters
+    ----------
+    potential : pele potential
+        Harmonic potential used in the thermodynamic integration.
+        These are the harmonic springs that tie each particle to its original
+        position during the walk.
+    coords : array
+        Initial coordinates, can be the same as origin.
+    temperature : double
+        Temperature is irrelevant here and probably set to unity.
+    stepsize : double
+        Initial stepsize of random_coords_displacement. This is adapted to
+        match a desired acceptance ratio of steps before data is recorded.
+    niter : integer
+        Total number of MC steps.
+    origin : array
+        Coordinates of the minimum.
+    hs_radii : array
+        Radii of particle hard core radii for HS-WCA potential.
+    boxvec : array
+        List of box edge lengths.
+    sca : double
+        The thickness of the wca shell is sca * R where R is the hard core
+        radius of the sphere.
+    rattlers : array of bool
+        Array of rattler status if degrees of freedom. If dof does not belong to
+        rattler, 1, if dof does belong to rattler, 0.
+    k : double
+        Sping constant for harmonic potential.
+    dtol : double
+        Tolerance on the rms distance of the minimised structure to the origin.
+    eps : double
+        WCA parameter
+    hmin : double
+        Initial value of displ2 histogram lower bound.
+    hmax : double
+        Initial value of displ2 histogram upper bound.
+    hbinsize : double
+        Displ2 histogram bin size.
+    acceptance : double
+        Target step acceptance ratio.
+    adjustf : double
+        Factor for step size adaptation.
+    adjustf_niter : integer
+        Number of steps for step size adaptation.
+    adjustf_navg : integer
+        Number of steps from which to compute the step acceptance ratio during
+        step size adaptation.
+    pt_eq_niter : integer
+        ?
+    ts_niter : inteteger
+        ?
+    ts_freq : integer
+        ?
+    opt_dtmax : double
+        DeltaT_max parameter of modified fire optimiser.
+    opt_maxstep : double
+        MaxStep parameter of modified fire optimiser.
+    opt_tol : double
+        Tolerance of modified fire optimiser.
+    opt_nsteps : integer
+        Numer of iterations of modified fire optimiser.
+    perform_convergence_test : bool
+        ?
+    collect_minima_list : bool
+        ?
+    seeds : dict
+        Seeds for random number generators.
+    use_cell_lists : bool
+        Flag indicating if cell lists are used.
+    record_histogram : bool
+        Flag indicating if Displ2 histogram is recorded and stored.
+    single : bool
+        Flag indicating if single particle moves are performed rather than global moves.
+    use_periodic : bool
+        Flag indicating if periodic boundary conditions are used.
+    use_frozen : bool
+        Flag indicating if there are frozen degrees of freedom.
+    frozen_atoms : array
+        List of labels of frozen (immobile) particles. Note: This is not the
+        list of frozen degrees of freedom.
+    """
+    def __init__(self, potential, coords, temperature, stepsize, niter, origin,
+                 hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
+                 hmin=0, hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9,
+                 adjustf_niter = 1e4, adjustf_navg = 100, pt_eq_niter=0,
+                 ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
+                 opt_tol=1e-4, opt_nsteps=1e5, perform_convergence_test=False,
+                 collect_minima_list=False, seeds=None, use_cell_lists=True,
+                 record_histogram=False, single=False, use_periodic=True,
+                 use_frozen=False, frozen_atoms=None):
         #construct base class
         super(BV_MCrunner,self).__init__(potential, coords, temperature, niter)
         
@@ -213,19 +287,21 @@ class BV_MCrunner(_BaseMCRunner):
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
         #construct optimizer potential
-        if self.use_cell_lists:
-            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
-            #print 'rcut', rcut
-            self.pot_optimizer = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.origin, 
-                                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
-        else:
-            self.pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        #rcut set to largest particle diameter
+        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        self.pot_optimizer = HS_WCA(use_pateriodic=use_periodic,
+                             use_cell_lists=use_cell_lists,
+                             use_frozen=use_frozen, eps=self.eps, sca=self.sca,
+                             radii=self.hs_radii, boxvec=self.boxv,
+                             reference_coords=self.origin, rcut=rcut,
+                             ndim=self.bdim, ncellx_scale=1.0,
+                             frozen_atoms=frozen_atoms)
         
         #construct gradient optimizer    
-        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
+        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
+                                         dtmax=opt_dtmax, maxstep=opt_maxstep,
                                          tol=opt_tol, nsteps=opt_nsteps)
         
-        #compute seeds
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
@@ -274,8 +350,8 @@ class BV_MCrunner(_BaseMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(Emin,Emax,num=len(hist),endpoint=False,retstep=True)
-        assert(abs(step - self.binsize) < self.binsize/100)
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
+        assert(abs(step - self.binsize) < self.binsize / 100)
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
@@ -307,7 +383,7 @@ class BV_MCrunner(_BaseMCRunner):
         #add spring constant to user_data
         for m in minima_dicts:
             m['user_data'].update(k=self.k)
-        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima()+1)
+        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
         print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)
         db.session.commit()
@@ -316,8 +392,8 @@ class BV_MCrunner(_BaseMCRunner):
     def show_histogram(self):
         """shows the histogram"""
         hist = self.histogram.get_histogram()
-        val = [i*self.binsize for i in xrange(len(hist))]
-        plt.hist(val, weights=hist,bins=len(hist))
+        val = [i * self.binsize for i in xrange(len(hist))]
+        plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
         
 class Findk_MCrunner(_BaseMCRunner):
@@ -344,12 +420,14 @@ class Findk_MCrunner(_BaseMCRunner):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     * this class requires 1 seed
     """
-    def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, hs_radii, boxv, sca,
-                  rattlers=None, avgcount=1e6, dtol=1e-3, eps=1., ktarget = 0.75, 
-                  knavg=500, ktol=0.05, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, 
-                  opt_nsteps=1e5, hmin=0, hmax=1, binsize=0.001, perform_convergence_test=False, 
-                  collect_minima_list=False, seeds=None, use_cell_lists=False, single=False):
+    def __init__(self, potential, coords, temperature, stepsize, niter, origin,
+                 hs_radii, boxv, sca, rattlers=None, avgcount=1e6, dtol=1e-3,
+                 eps=1., ktarget = 0.75, knavg=500, ktol=0.05, opt_dtmax=1,
+                 opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=1,
+                 binsize=0.001, perform_convergence_test=False,
+                 collect_minima_list=False, seeds=None, use_cell_lists=False,
+                 single=False, use_periodic=True, use_frozen=False,
+                 frozen_atoms=None):
         #construct base class
         super(Findk_MCrunner,self).__init__(potential, coords, temperature, niter)
         
@@ -372,20 +450,22 @@ class Findk_MCrunner(_BaseMCRunner):
         #                                          0 -> rattler dof 
         if (rattlers == None):
             #assume no rattlers
-            self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
+            self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
         else:
-            self.rattlers = np.array(rattlers,dtype='d')
+            self.rattlers = np.array(rattlers, dtype='d')
             assert(len(self.rattlers) == self.ndim)
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
         #construct optimizer potential
-        if self.use_cell_lists:
-            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
-            #print 'rcut', rcut
-            self.pot_optimizer = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.origin, 
-                                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
-        else:
-            self.pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        #rcut set to largest particle diameter
+        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        self.pot_optimizer = HS_WCA(use_pateriodic=use_periodic,
+                             use_cell_lists=use_cell_lists,
+                             use_frozen=use_frozen, eps=self.eps, sca=self.sca,
+                             radii=self.hs_radii, boxvec=self.boxv,
+                             reference_coords=self.origin, rcut=rcut,
+                             ndim=self.bdim, ncellx_scale=1.0,
+                             frozen_atoms=frozen_atoms)
         
         #construct gradient optimizer
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
@@ -428,7 +508,7 @@ class Findk_MCrunner(_BaseMCRunner):
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
-        k = 1.0/(stepsize*stepsize)
+        k = 1.0 / (stepsize * stepsize)
         #k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
         return k
     
@@ -451,7 +531,7 @@ class Findk_MCrunner(_BaseMCRunner):
         #add spring constant to user_data
         for m in minima_dicts:
             m['user_data'].update(k=self.k)
-        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima()+1)
+        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
         print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)
         db.session.commit()
@@ -460,13 +540,13 @@ class Findk_MCrunner(_BaseMCRunner):
     def show_histogram(self):
         """shows the histogram"""
         hist = self.findk.get_histogram()
-        val = [i*self.binsize for i in xrange(len(hist))]
+        val = [i * self.binsize for i in xrange(len(hist))]
         n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
-        bincenters = 0.5*(bins[1:]+bins[:-1])
-        and2 = vec_analytical_d2(val,self.get_k(),len(self.hs_radii))/quad(vec_analytical_d2,bincenters[0],bincenters[-1],args=(self.get_k(),len(self.hs_radii)))[0]
-        plt.plot(bincenters, and2, linewidth=2.5, ls='--',color=color_cycle[-1])
+        bincenters = 0.5 * (bins[1:] + bins[:-1])
+        and2 = vec_analytical_d2(val,self.get_k(), len(self.hs_radii)) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), len(self.hs_radii)))[0]
+        plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
         plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
         plt.ylabel(r'frequency $\times 10$')
@@ -483,12 +563,12 @@ if __name__ == "__main__":
     
     nparticles = 1
     ndim = nparticles * 3
-    origin = np.array([0,0,0],dtype='d')
+    origin = np.array([0, 0, 0], dtype='d')
     #build start configuration
     Emax = 0.1
-    start_coords = vector_random_uniform_hypersphere(ndim) * np.sqrt(2*Emax) #coordinates sampled from Pow(ndim)
+    start_coords = vector_random_uniform_hypersphere(ndim) * np.sqrt(2 * Emax) #coordinates sampled from Pow(ndim)
     #Harmonic(origin,1)
-    res = modifiedfire_cpp(start_coords,Harmonic(origin,1))
+    res = modifiedfire_cpp(start_coords,Harmonic(origin, 1))
     print(res)
     
 #    print res.coords
@@ -497,9 +577,9 @@ if __name__ == "__main__":
 #   test = BV_MCrunner(start_coords, origin, temperature=1, k=1, niter=1e5, hEmin=0,hEmax=100,
 #                       stepsize=0.5, adjustf = 0.9, adjustf_niter = 5000, radius=100)
     #test.set_control(1)
-    start=time.time()
+    start = time.time()
     #test.run()
-    end=time.time()
-    print(end-start)
+    end = time.time()
+    print(end - start)
     #test.show_histogram()
     
