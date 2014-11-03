@@ -78,7 +78,7 @@ class _configure_mcrunner(object):
     
     def _requench_coords(self, dtol, opt_maxstep, verbose):
         """re-quench origin to avoid rounding errors"""
-        pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv)
+        pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, ndim=self.bdim, boxvec=self.boxv)
         res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=1e-9)
         if not res.success:
             assert(False)
