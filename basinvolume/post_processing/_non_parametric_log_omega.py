@@ -28,7 +28,7 @@ class KernelDensityLogOmega(object):
         if kernel not in self.possible_kernels:
             raise Exception("KernelDensityLogOmega: illegal kernel choice")
         self.kernel = kernel
-        if bandwidth == None:
+        if bandwidth is None:
             self.bandwidth = self.get_bandwidth_estimate(method="cross_validation")
             #self.bandwidth = self.get_bandwidth_estimate(method="Silverman")
         else:
@@ -89,7 +89,7 @@ class KernelDensityLogOmega(object):
             opt_bandwidth = loocv.opt_bandwidth 
         else:
             raise Exception("KernelDensityLogOmega: get_bandwidth_estimate: illegal method input")
-        assert(opt_bandwidth != None)
+        assert(opt_bandwidth is not None)
         print method, "method used to estimate bandwidth"
         print "estimated optimal bandwidth", opt_bandwidth
         return opt_bandwidth
@@ -124,7 +124,7 @@ class KernelDensityLogOmegaJackKnife(object):
         if kernel not in self.possible_kernels:
             raise Exception("KernelDensityLogOmega: illegal kernel choice")
         self.kernel = kernel
-        if bandwidth == None:
+        if bandwidth is None:
             bandwidth_estimator = KernelDensityLogOmega(F0_full, volume_sanity_check, kernel, bandwidth=None)
             self.bandwidth = bandwidth_estimator.bandwidth
         else:

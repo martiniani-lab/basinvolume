@@ -5,7 +5,7 @@ import os
 import sys
 from scipy.special import gamma
 from mcrunner import HS_MCrunner, HS_MCrunnerOptDiffusion
-from pele.potentials import HS_WCA, WCA, HS_WCAPeriodicCellLists, InversePower
+from pele.potentials import HS_WCA, WCA, InversePower
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
 from numpy.random import RandomState
@@ -190,10 +190,10 @@ class HS_Generate_Packing(_Generate_Packing):
         if self.use_cell_lists:
             rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
             #print 'rcut', rcut
-            self.potential = HS_WCAPeriodicCellLists(self.eps, self.sca, self.hs_radii, self.boxv, self.coords, 
-                                                     rcut, ndim=self.bdim, ncellx_scale = 1.0, frozen_atoms = None)
+            self.potential = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.coords, 
+                                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
         else:
-            self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+            self.potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         self._print_initialise()
         self.initialised = True     
     

@@ -37,7 +37,7 @@ def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension,
     """
     nr_points = len(u_sq_k)
     displ_k_min = 0
-    if displ_k_min_trafo == None:
+    if displ_k_min_trafo is None:
         displ_k_min = u_sq_k[0]
     else:
         displ_k_min = displ_k_min_trafo
@@ -57,7 +57,7 @@ def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr
     if nr_points != len(u_sq_k):
         raise Exception("calculate_GL_integral_with_transform_get_error: squared displacements and variances have different lengths")
     displ_k_min = 0
-    if displ_k_min_trafo == None:
+    if displ_k_min_trafo is None:
         displ_k_min = u_sq_k[0]
     else:
         displ_k_min = displ_k_min_trafo
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     nr_particles = 128
     dimension = 3
     k_min = 100
-    kappa_const=2
+    kappa_const = 2
     k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, k_min, kappa_const)
     print k
     t = test_variable_transform(k, displ_k0, nr_particles, dimension, kappa_const)

@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.potentials import HS_WCA, HS_WCAPeriodicCellLists
+from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *
 import ConfigParser
@@ -164,10 +164,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if self.use_cell_lists:
             rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
             #print 'rcut', rcut
-            self.potential = HS_WCAPeriodicCellLists(self.eps, self.sca, self.hs_radii, self.boxv, self.coords, 
-                                                     rcut, ndim=self.bdim, ncellx_scale = 1.0, frozen_atoms = None)
+            self.potential = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.coords, 
+                                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
         else:
-            self.potential = HS_WCA(self.eps, self.sca, self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+            self.potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         
         success = self._generate_packing_coords() #returns false if saddle
         
