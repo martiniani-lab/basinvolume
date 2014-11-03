@@ -44,8 +44,10 @@ namespace bv{
 
 class CheckSameMinimum:public mcpele::ConfTest{
 protected:
-    inline void _get_vec_distance(pele::Array<double> quenched_coords);
+    inline pele::Array<double> _align_coords(pele::Array<double> coords);
+    inline double _get_d2(pele::Array<double> coords);
     inline void _check_convergence(pele::Array<double> quenched_coords);
+    bool _quench(pele::Array<double> &trial_coords);
     size_t _ndim;
     std::shared_ptr<pele::GradientOptimizer> _optimizer;
     std::shared_ptr<pele::BasePotential> _potential;
