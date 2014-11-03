@@ -57,8 +57,8 @@ void CheckSameMinimum::_check_convergence(pele::Array<double> quenched_coords)
 
 /*aligns structures*/
 pele::Array<double> CheckSameMinimum::_align_coords(pele::Array<double> coords){
-    assert(coords.size() == _origin.size());
-    assert(coords.size() == _ndim * _nparticles);
+    /*assert(coords.size() == _origin.size());
+    assert(coords.size() == _ndim * _nparticles);*/
     pele::Array<double> dr(_ndim);
 
     //measure distance between two non rattlers
@@ -92,7 +92,7 @@ double CheckSameMinimum::_get_d2(pele::Array<double> coords)
         }
     }
 
-    //avoid taking square roots by return squared quntities
+    //avoid taking square roots by return squared quantities
     return dot(_distance,_distance);
 }
 
@@ -104,7 +104,7 @@ bool CheckSameMinimum::_quench(pele::Array<double> &trial_coords){
     double d2 = this->_get_d2(_optimizer->get_x());
     double rmsd2 = d2/_Nnoratt;
     double dtol2 = _dtol*_dtol;
-    size_t opt_maxiter = _optimizer->get_maxiter();
+    const size_t opt_maxiter = _optimizer->get_maxiter();
 
     //this might become an infinite loop
     //optimizer stop-criterion needs to be checked before calling one_iteration
