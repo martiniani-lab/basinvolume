@@ -36,9 +36,11 @@ class KernelDensityLogOmega(object):
             self.bandwidth = bandwidth
         if self.bandwidth <= 0:
             raise Exception("KernelDensityLogOmega: illegal bandwidth choice")
+        
     def compute_and_write_entropy(self, file_name):
         self.compute_log_omega()
         self.write_to_file(file_name)
+    
     def compute_log_omega(self):
         self.kde = KernelDensity(kernel=self.kernel, bandwidth=self.bandwidth).fit(self.F0[:, np.newaxis])
         n_integrate = 2**18 + 1
@@ -52,6 +54,7 @@ class KernelDensityLogOmega(object):
         integral = integrate.romb(integrand, dx=x_integrate[1]-x_integrate[0])
         self.S_star = - self.volume_sanity_check.F0_acc + np.log(integral)
         self.S = self.S_star - log_factorial(self.volume_sanity_check.nr_particles)
+        
     def write_to_file(self, file_name):
         f = ResultsFile(file_name)
         f.set_heading(self.out_file_heading)
@@ -68,6 +71,7 @@ class KernelDensityLogOmega(object):
         plt.plot(self.x_plot_1d, self.pdf_x_1d, label="PDF estimate")
         plt.legend()
         save_pdf(plt, plot_name)
+        
     def get_bandwidth_estimate(self, method="cross_validation"):
         """
         Use some rule to get bandwidth estimate from data.

@@ -170,10 +170,10 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
     and
     S = S^\star - \log(N!)
     """
-    def __init__(self, F0, packings_dir):
+    def __init__(self, F0, output_path):
         self.F0 = F0
-        self.packings_dir = packings_dir
-        self.entropy_file_path = self.packings_dir + "/entropy_LogOmega"
+        self.output_path = output_path
+        self.entropy_file_path = self.output_path + "/entropy_LogOmega"
     def compute_log_omega_entropy(self, volume_sanity_check):
         self.alpha_min = 0.01
         self.zeta_min = 0.01
@@ -189,7 +189,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         plt.legend()
         plt.xlabel(r"Free energy $F$")
         plt.ylabel(r"Probability density")
-        save_pdf(plt, self.packings_dir + "/unbiasing_fit.pdf")
+        save_pdf(plt, self.output_path + "/unbiasing_fit.pdf")
         self.compute_integral(volume_sanity_check)
         self.S_star_no_jack = - volume_sanity_check.F0_acc + np.log(self.integral_no_jack)
         self.S_no_jack = self.S_star_no_jack - log_factorial(volume_sanity_check.nr_particles)
@@ -220,7 +220,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         plt.plot(bin_centres, [hist[i] * np.exp(bin_centres[i]) / normalisation for i in xrange(len(hist))], "o", label = "Data")
         plt.plot(xp, [self.generalised_gauss.get_times_expx_with_pars(xi, self.mu, self.alpha, self.zeta) / normalisation for xi in xp], label = r"$P_\mathcal{U}(F)$")
         plt.legend(loc = 2)
-        save_pdf(plt, self.packings_dir + "/unbiased_pdf_vs_data.pdf")
+        save_pdf(plt, self.output_path + "/unbiased_pdf_vs_data.pdf")
     def compute_desired_nr_bins(self, maximum_av_number_per_bin):
         bins = 1
         while True:

@@ -52,7 +52,6 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         self.frozen_shell_thickness = frozen_shell_thickness
         self.grid_version = grid_version
         self.grid_all = grid_all
-        self.small_packings = []
         #read experimental data
         self.all_particles = Experimental_Packing(self.path_to_datafile, self.nparticles, 
                                                   self.distance_from_boundary_x, self.distance_from_boundary_y, 
@@ -64,25 +63,44 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         """
         this function needs to import the data and initialise the output
         """
-        self._split_packings()
         self._print_initialise()
-        self.initialised = True     
-    
-    def _split_packings(self):
+        self.initialised = True
+        
+    def _generate_packing_coords(self):
         """
-        build list of Small_Packing_Information objects
+        pick the next packing
         """
-        for i in xrange(self.max_iter):
-            self._find_one_small_packing(i)
-            print("found packing %d of %d" % (i+1, self.max_iter))
+        self.coords = []
+        packing = self._find_one_small_packing(self.iteration)
+        self.hs_radii = np.array(packing.d) / (2 * self.deflation);
+        self.frozen_idx = np.array(packing.f)
+        #align the cell centre to origin
+        packing.x -= np.mean(packing.x)
+        packing.y -= np.mean(packing.y)
+        if self.bdim == 2:
+            for particle in zip(packing.x, packing.y):
+                self.coords.extend(particle)
+        else:
+            packing.z -= np.mean(packing.z)
+            for particle in zip(packing.x, packing.y, packing.z):
+                self.coords.extend(particle)
+        self.coords = np.array(self.coords)
+        #raise warning if there's an overlap
+        if not self._check_no_overlaps():
+            return False
+        #compute packing fraction
+        self._set_packing_fraction()
+        return True
     
     def _find_one_small_packing(self, index):
-        self.small_packings.append(self.all_particles.extract_small_packing(index))
+        small_packing = self.all_particles.extract_small_packing(index)
+        print("found packing %d of %d" % (self.iteration+1, self.max_iter))
         self.mobile_particle_radius = self.all_particles.mobile_particle_radius
         self.frozen_particle_radius = self.all_particles.frozen_particle_radius
         for i in xrange(self.bdim):
-            self.boxv[i] = self.frozen_particle_radius*2.5 # extra 0.5 because the box must fit the whole particle for voro
+            self.boxv[i] = self.frozen_particle_radius*2.1 # extra 0.1 because the box must fit the whole particle for voro
         print "boxv", self.boxv
+        return small_packing
     
     def _set_packing_fraction(self):
         """
@@ -176,32 +194,6 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
                 break
         return no_overlap
     
-    def _generate_packing_coords(self):
-        """
-        pick the next packing
-        """
-        self.coords = []
-        packing = self.small_packings[self.iteration]
-        self.hs_radii = np.array(packing.d) / (2 * self.deflation);
-        self.frozen_idx = np.array(packing.f)
-        #align the cell centre to origin
-        packing.x -= np.mean(packing.x)
-        packing.y -= np.mean(packing.y)
-        if self.bdim == 2:
-            for particle in zip(packing.x, packing.y):
-                self.coords.extend(particle)
-        else:
-            packing.z -= np.mean(packing.z)
-            for particle in zip(packing.x, packing.y, packing.z):
-                self.coords.extend(particle)
-        self.coords = np.array(self.coords)
-        #raise warning if there's an overlap
-        if not self._check_no_overlaps():
-            return False
-        #compute packing fraction
-        self._set_packing_fraction()
-        return True
-    
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)    
@@ -290,6 +282,8 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         f.write('distance_from_boundary_x: {}\n'.format(self.distance_from_boundary_x))
         f.write('distance_from_boundary_y: {}\n'.format(self.distance_from_boundary_y))
         f.write('frozen_shell_thickness: {}\n'.format(self.frozen_shell_thickness))
+        f.write('mobile_particle_radius: {}\n'.format(self.mobile_particle_radius))
+        f.write('frozen_particle_radius: {}\n'.format(self.frozen_particle_radius))
         f.write('grid_version: {}\n'.format(self.grid_version))
         f.write('grid_all: {}\n'.format(self.grid_all))
         #print software version
@@ -299,7 +293,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         f.write('pele_version: {}\n'.format(get_git_version('pele')))
         f.write('python_version: {}\n'.format(get_python_version()))
         f.write('cython_version: {}\n'.format(get_cython_version()))
-        f.close()        
+        f.close()
 
 if __name__ == "__main__":
     
