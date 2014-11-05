@@ -16,18 +16,18 @@ Other free energy histograms and data is written to
 
 The entropy is computed in different ways according to different definitions
 and techniques:
-1.) APFEntropy gives the p log p entropy according to Asenjo14:
+1.) APF Entropy gives the p log p entropy according to Asenjo14:
 10.1103/PhysRevLett.112.098002
 2.) JackLogOmega gives the LogOmega entropy (log of number of basins), after
 unbiasing the distribution with fit to generalised gaussian CDF and numerical
 integration as in Asenjo14.
 3.) MLLogOmega gives LogOmega from ML estimate for LogOmega, after maximum
-likelihood fit of generalised gaussian.
+likelihood fit of generalised Gaussian.
 TODO: 4.) BayesianLogOmega uses Bayesian inference to get the parameters of the
-generalised gaussian.
+generalised Gaussian.
 TODO: 5.) NonParametricLogOmega constructs a non-parametric description of the
 biased distribution and integrates that with the un-biasing factor to get
-LogOmega without the assumption of the genealised gaussian.
+LogOmega without the assumption of the genealised Gaussian.
 This needs some kernel density estimation or smoothing or similar to get the
 PDF description.
 """
@@ -41,7 +41,7 @@ try:
     import matplotlib.pyplot as plt
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator
+    from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator, trymakedir
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid, APFEntropy, BestIntegrationSelection, VolumeSanityCheck, PackingFailureStatistics, OutlierRemovalUnbiasingEntropyLogOmega, GeneralisedGauss
     from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
     from scipy import integrate
@@ -49,8 +49,11 @@ except ImportError as err:
     print err
                     
 class ComputeEntropy(object):
-    def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, kmax_threshold = 1000):
+    def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, 
+                 kmax_threshold = 1000, nr_volume_points=125):
         self.packings_dir = packings_dir
+        self.output_path = os.path.join(self.packings_dir,'entropy_analysis_{}'.format('all' if nr_volume_points==-1 else str(nr_volume_points)))
+        trymakedir(self.output_path)
         self.plot_ts_integrand_data = plot_ts_integrand_data
         self.skip_volume_computation = skip_volume_computation
         self.max_relative_GL_error = max_relative_GL_error
@@ -58,6 +61,13 @@ class ComputeEntropy(object):
         self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error = self.max_relative_GL_error, kmax_threshold = self.kmax_threshold)
         self.volume_sanity_check = VolumeSanityCheck(self.packings_dir + "/packings/packings.config")
         self.explore_dirs = [self.packings_dir + "/" + f for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
+        #self.explore_dirs = self.explore_dirs[:-1]
+        if nr_volume_points != -1:
+            print "removing volume points"
+            nr_to_kill = len(self.explore_dirs) - nr_volume_points
+            for _ in xrange(nr_to_kill):
+                self.explore_dirs = np.delete(self.explore_dirs, np.random.randint(0, len(self.explore_dirs)))
+            assert(len(self.explore_dirs) == nr_volume_points)
         # compute F0 for all basins
         if not self.skip_volume_computation:
             self._compute_F0()
@@ -75,16 +85,17 @@ class ComputeEntropy(object):
         # compute different entropies
         # -p log g entropy
         self.APF_entropy = APFEntropy(self.F0_wo_outliers, self.volume_sanity_check)
-        self.APF_entropy.compute_and_write_entropy(self.packings_dir + "/entropy_AFP")
+        self.APF_entropy.compute_and_write_entropy(self.output_path + "/entropy_AFP")
         # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
         self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, self.volume_sanity_check)
-        self.kernel_density_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_kernel_density")
+        self.kernel_density_log_omega.compute_and_write_entropy(self.output_path + "/entropy_kernel_density")
         # fit to cdf, numerical integration for un-biasing
-        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.packings_dir)
+        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
         self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
         # fit to pdf with ML method
         self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
-        self.ML_log_omega.compute_and_write_entropy(self.packings_dir + "/entropy_ML_LogOmega")
+        self.ML_log_omega.compute_and_write_entropy(self.output_path + "/entropy_ML_LogOmega")
+        
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
@@ -105,6 +116,7 @@ class ComputeEntropy(object):
                 self.packing_stat.add_failure()
             self.packing_stat.print_progress_info(fname)
         self.packing_stat.print_failure_info()
+        
     def _gather_data(self):
         self.volume_files = [f + "/analysis/volume_data" for f in self.explore_dirs]
         self.F0 = []
@@ -118,6 +130,7 @@ class ComputeEntropy(object):
         self.unit_box_F0_approx_PTu2k0 = []
         for vf in self.volume_files:
             self._read_from_volume_file(vf)
+            
     def _read_from_volume_file(self, vf):
         volf = ConfigParser.ConfigParser()
         volf.read(str(vf))
@@ -141,6 +154,7 @@ class ComputeEntropy(object):
             print "Exception: ", e
             print "insufficient data available"
             print "location:", vf
+            
     def _generate_plots(self):
         """
         try:
@@ -156,15 +170,18 @@ class ComputeEntropy(object):
             self._print_histogram_and_data(self.F0_wo_outliers, "/volume_histogram_F0_final_removed_outliers")
         except RuntimeError as err:
             print err
+            
     def _print_histogram_and_data(self, data, name):
-        np.savetxt(self.packings_dir + name + ".data", data)
+        np.savetxt(self.output_path + name + ".data", data)
         desired_binsize = 1.5
         bins = np.abs(np.amax(data) - np.amin(data)) / desired_binsize
         hist, bin_edges = np.histogram(data, density = True, bins = bins)
         plt.hist(data, bins = bins, normed = True)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+        
         def _gauss(x, sig, mu):
             return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
+        
         opt, error = curve_fit(_gauss, bin_centres, hist, [np.sqrt(np.var(data)), np.mean(data)])
         gauss_fit_opt = opt
         gauss_fit_opt[0] = np.abs(gauss_fit_opt[0]) #make printed sigma positive
@@ -178,6 +195,7 @@ class ComputeEntropy(object):
         gen_gauss_fit_error = generalised_gauss.fit_error
         gen_gauss_fit_names = ["mean", "alpha", "zeta"]
         gen_gauss_fit = [gen_gauss_fit_opt, gen_gauss_fit_names]
+        
         def _set_hist_basics(plt):
             xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
             plt.plot(xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g--", label = "Gaussian")
@@ -187,16 +205,17 @@ class ComputeEntropy(object):
             plt.ylabel(r"Probability density")
         #plot in lin-lin scale
         _set_hist_basics(plt)
-        save_pdf(plt, self.packings_dir + name + ".pdf")
+        save_pdf(plt, self.output_path + name + ".pdf")
         plt.hist(data, bins = bins, normed = True)
         #plot in ylog scale
         _set_hist_basics(plt)
         plt.yscale('log', nonposy='clip')
         plt.axis(ymin = 0.25 / len(data))
-        save_pdf(plt, self.packings_dir + name + "_ylog" + ".pdf")
+        save_pdf(plt, self.output_path + name + "_ylog" + ".pdf")
         self._print_fitting_results(name, gauss_fit, gen_gauss_fit)
+    
     def _print_fitting_results(self, name, gauss_fit, gen_gauss_fit):
-        self.fit_results_dir = self.packings_dir + name + ".fit_results"
+        self.fit_results_dir = self.output_path + name + ".fit_results"
         f = ResultsFile(self.fit_results_dir)
         def _print_function_parameters(fit_info):
             for parameter in xrange(len(fit_info[0])):
