@@ -289,7 +289,7 @@ class BV_MCrunner(_BaseMCRunner):
         #construct optimizer potential
         #rcut set to largest particle diameter
         rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
-        self.pot_optimizer = HS_WCA(use_pateriodic=use_periodic,
+        self.pot_optimizer = HS_WCA(use_periodic=use_periodic,
                              use_cell_lists=use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
