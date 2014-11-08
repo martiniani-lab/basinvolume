@@ -50,7 +50,7 @@ except ImportError as err:
                     
 class ComputeEntropy(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, 
-                 kmax_threshold = 1000, nr_volume_points=125):
+                 kmax_threshold = 1000, nr_volume_points=-1):
         self.packings_dir = packings_dir
         self.output_path = os.path.join(self.packings_dir,'entropy_analysis_{}'.format('all' if nr_volume_points==-1 else str(nr_volume_points)))
         trymakedir(self.output_path)
@@ -91,11 +91,17 @@ class ComputeEntropy(object):
         self.kernel_density_log_omega.compute_and_write_entropy(self.output_path + "/entropy_kernel_density")
         # fit to cdf, numerical integration for un-biasing
         self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
-        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
+        try:
+            self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
+        except Exception, e:
+            print e
         # fit to pdf with ML method
         self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
-        self.ML_log_omega.compute_and_write_entropy(self.output_path + "/entropy_ML_LogOmega")
-        
+        try:
+            self.ML_log_omega.compute_and_write_entropy(self.output_path + "/entropy_ML_LogOmega")
+        except Exception, e:
+            print e
+    
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
         from basinvolume.spheres import _collect_u2_vs_k
@@ -168,7 +174,7 @@ class ComputeEntropy(object):
         try:
             self._print_histogram_and_data(self.best_integration_selection.F0_final, "/volume_histogram_F0_final")
             self._print_histogram_and_data(self.F0_wo_outliers, "/volume_histogram_F0_final_removed_outliers")
-        except RuntimeError as err:
+        except Exception as err:
             print err
             
     def _print_histogram_and_data(self, data, name):
@@ -229,12 +235,15 @@ class ComputeEntropy(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare F0 form full PT data with F0 from integral approximation")
     parser.add_argument("-d", "--packings_dir", type = str, help = "top-level dir containing the packings, e.g. n32_phi88_2D")
+    parser.add_argument("-n", "--nr_vpoints", type = int, default=-1, help = "number of volume points, by default all otherwise select n at random")
     parser.add_argument("-plot_only", "--plot_only", action='store_true', help = "flag to switch off the actual volume computing and to only do the plotting part")
     # if the relative error of the GL integral over the PT data is estimatedto be larger than max_relative_GL_error, the approximated integral is used instead to compute F0
     parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.1, type = float, help = "parameter that selects between GL integral from PT data and approx integral")
     parser.add_argument("-kmax_threshold", "--kmax_threshold", default = 1000, type = float, help = "largest kmax value that is not considered to be huge")
     args = parser.parse_args()
     packings_dir = os.path.abspath(args.packings_dir)
-    ComputeEntropy(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, max_relative_GL_error = args.max_relative_GL_error, kmax_threshold = args.kmax_threshold)
+    ComputeEntropy(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, 
+                   max_relative_GL_error = args.max_relative_GL_error, kmax_threshold = args.kmax_threshold,
+                   nr_volume_points=args.nr_vpoints)
     
     
