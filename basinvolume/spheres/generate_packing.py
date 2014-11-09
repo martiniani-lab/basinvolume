@@ -156,7 +156,7 @@ class HS_Generate_Packing(_Generate_Packing):
     *set seed to something other than none to remove randomness between instances of the class
     """    
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, 
-                 mu = 1, sig = 0.2, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10, use_cell_lists=False, 
+                 mu = 1, sig = 0.1, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10, use_cell_lists=False, 
                  single=False, seeds=None):
         super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv, 
                                                  packing_frac=packing_frac, max_iter = max_iter, 
@@ -475,6 +475,7 @@ if __name__ == "__main__":
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-4)
+    parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
@@ -482,8 +483,20 @@ if __name__ == "__main__":
     print args
     single = not args.moveall
     
+    #import radii from other configuration file
+    dpath = args.dpath
+    hs_radii = None
+    if dpath: 
+        if not os.path.isabs(args.dpath):
+            dpath = os.path.abspath(dpath)
+        if args.boxdim == 2:
+            coords, hs_diameters = read_xyd(dpath)
+        else:
+            coords, hs_diameters = read_xyzd(dpath)
+        hs_radii = hs_diameters/2
+    
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
-                              mu = args.rmean, sig = args.rsigma, hsf_niter=args.hsfniter, 
+                              hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, hsf_niter=args.hsfniter, 
                               hsf_stepsize = args.hsfstep, max_iter =args.npackings,
                               use_cell_lists=args.nocell, single=single)
     sim.run()    
