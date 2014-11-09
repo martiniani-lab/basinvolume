@@ -24,15 +24,12 @@ class RuntimeData(object):
     def __init__(self, N_new):
         if N_new is None:
             raise Exception("provide particle number with --N")
-        """
-        BEGIN: This data is an example only -- replace with true runtimes later!
-        """
-        self.N = [25, 50, 100, 200]
-        self.time = ["00:05:56", "00:25:27", "01:43:43", "07:13:27"]
-        """
-        END: This data is an example only -- replace with true runtimes later!
-        """
-        self.time = [self.get_seconds(t) for t in self.time]
+        self.N = []
+        self.time_samples = []
+        self.N.append(16)
+        self.time.append(np.mean([self.get_seconds("02:43:08"), self.get_seconds("01:43:33"), self.get_seconds("01:15:42"), self.get_seconds("04:14:14"), self.get_seconds("03:44:20")]))
+        if len(self.N) != len(self.time):
+            raise Exception("mismatch in time and particle number labels")
         plt.loglog(self.N, self.time, "o")
         plt.xlabel(r"Number of particles $N$")
         plt.ylabel(r"Runtime on dexter / seconds")
