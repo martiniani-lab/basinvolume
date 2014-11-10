@@ -80,10 +80,12 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         if self.bdim == 2:
             for particle in zip(packing.x, packing.y):
                 self.coords.extend(particle)
-        else:
+        elif self.bdim == 3:
             packing.z -= np.mean(packing.z)
             for particle in zip(packing.x, packing.y, packing.z):
                 self.coords.extend(particle)
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.coords = np.array(self.coords)
         #raise warning if there's an overlap
         if not self._check_no_overlaps():
@@ -143,7 +145,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         elif self.bdim == 3:
             cells = pyvoro.compute_voronoi(coords,limits, dispersion, radii=radii)
         else:
-            raise Exception('number of dimensions not allowed')
+            raise NotImplementedError("pyvoro bdim={} not implemented".format(self.bdim))
         assert(len(cells) == int(len(self.coords)/self.bdim))
         #compute free volume
         vcavity = 0.
@@ -215,12 +217,14 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
             for i in xrange(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                   self.hs_radii[i]*2, int(self.frozen_idx[i])))
-        else:
+        elif self.bdim == 3:
             fname = "{0}/packing{1}.xyzdf".format(directory,self.iteration)
             f = open(fname,'w')
             for i in xrange(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                coords[i*self.bdim+2],self.hs_radii[i]*2, int(self.frozen_idx[i])))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
     
     def _write_opengl_input(self):
@@ -245,7 +249,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
                 f.write('{}\t'.format(0))
                 f.write('{}\t'.format(self.hs_radii[i]*2))
                 f.write('{}\n'.format(colour-self.frozen_idx[i]))
-        else:
+        elif self.bdim == 3:
             f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
@@ -255,6 +259,8 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(self.hs_radii[i]*2))
                 f.write('{}\n'.format(colour-self.frozen_idx[i]))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
         
     def _print_parameters(self):
