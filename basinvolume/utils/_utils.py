@@ -187,12 +187,18 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
 
 def reduce_coordinates(mylist, indexes, bdim):
+    """
+    remove coordinates of frozen atoms
+    """
     newlist = mylist.copy().tolist()
     for index in sorted(indexes, reverse=True):
         del newlist[index*bdim:index*bdim+bdim]
     return np.array(newlist)
 
 def full_coordinates(reduced_list, old_full_list, indexes, bdim):
+    """
+    add coordinates of frozen atoms to reduced coordinates
+    """
     newlist = reduced_list.copy()
     for index in sorted(indexes, reverse=False):
         newlist = np.insert(newlist, index*bdim, old_full_list[index*bdim:index*bdim+bdim])

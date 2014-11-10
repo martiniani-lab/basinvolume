@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
-from pele.potentials import HS_WCAFrozen
+from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import trymakedir, volume_nball, get_git_version, get_cython_version
 from basinvolume.utils import get_python_version, read_xydf, read_xyzdf,reduce_coordinates, full_coordinates
@@ -24,7 +24,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
-    def __init__(self, rattler_eval_tol=1.,packings_dir='packings', expand_sca=1.15):
+    def __init__(self, rattler_eval_tol=1.,packings_dir='packings', expand_sca=1.175):
         super(HS_Exp_Generate_Jammed_Packing,self).__init__(packing_frac=0, packings_dir=packings_dir)                                                        
         
         ##constants#
@@ -36,6 +36,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #HACK
         self.configpath = os.path.join(self.packings_dir, 'packing1.config') #FUDGE
         assert(os.path.isfile(self.configpath))
+        self._import_packing_config_file()
         #ENDOFHACK
         self._print_initialise()
     
@@ -49,14 +50,14 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii)*2*(1+self.sca) >= np.amin(self.boxv)/2:
             print "WARNING: max soft diameter >= 1/2 box side!"
-        
-        #initialise needs to import at least one configuration to compute sca
-        if self.iteration == 0:
-            self._initialise()
 
         assert(len(self.coords)/self.bdim == len(self.hs_radii))
         
-        self.potential = HS_WCAFrozen(self.coords, self.frozen, self.eps, self.sca, self.hs_radii, ndim=self.bdim)
+        #rcut = np.amax(self.hs_radii)*2
+        #use_cell_lists=True, rcut=rcut, boxvec=self.boxv
+        self.potential = HS_WCA(reference_coords=self.coords, eps=self.eps, sca=self.sca, 
+                                radii=self.hs_radii, use_frozen=True, frozen_atoms=self.frozen, 
+                                ndim=self.bdim)
         
         success = self._generate_packing_coords() #returns false if saddle
         
@@ -105,16 +106,23 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             print 'quench failed'
             return False
         
-        redcoords = res.coords.copy()
+        new_redcoords = res.coords.copy()
         self.energy = res.energy
         
         #test that on re-minimisation the structure does not change
-        res2 = modifiedfire_cpp(redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
+        res2 = modifiedfire_cpp(new_redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
         if res2.nfev > 1:
             print 'quench failed (structure changed at second minimisation)'
             return False
         
-        self.coords = full_coordinates(redcoords, self.coords, self.frozen, self.bdim)
+        #check that no particle has moved more than its own diameter
+        dvec = np.power(new_redcoords - redcoords,2)
+        for i in xrange(0,np.size(dvec), self.bdim):
+            if np.sqrt(np.sum(dvec[i:i+self.bdim])) > self.hs_radii[i]:
+                print "quench rejected, particle has moved more than its own radius"
+                return False
+        
+        self.coords = full_coordinates(new_redcoords, self.coords, self.frozen, self.bdim)
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
@@ -174,8 +182,10 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         path = os.path.join(self.packings_dir,fname)
         if self.bdim == 2:
             self.coords, hs_diameters, self.frozen = read_xydf(path)
-        else:
+        elif self.bdim == 3:
             self.coords, hs_diameters, self.frozen = read_xyzdf(path)
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.hs_radii = hs_diameters/2
     
     def _import_exp_packing_config_file(self, fname):
@@ -193,7 +203,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         configf.read(self.configpath)
         self.nparticles = configf.getint('PACKING','nparticles')
         self.bdim = configf.getint('PACKING','boxdim')
-        assert(self.bdim==2 or self.bdim==3) #currently PBC only implemented for 3d case
+        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
@@ -211,13 +221,15 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             for i in xrange(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           self.hs_radii[i]*2, int(i in self.frozen), self.rattlers[i]))
-        else:
+        elif self.bdim == 3:
             fname = "{0}/jammed_packing{1}.xyzdfr".format(directory,n)
             f = open(fname,'w')
             for i in xrange(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           coords[i*self.bdim+2],self.hs_radii[i]*2,int(i in self.frozen),
                                                                           self.rattlers[i]))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
     
     def _print(self, n):
@@ -283,7 +295,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     f.write('{}\n'.format(colour + 2))
                 else:
                     f.write('{}\n'.format(colour))
-        else:
+        elif self.bdim == 3:
             f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
@@ -298,6 +310,8 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     f.write('{}\n'.format(colour + 2))
                 else:
                     f.write('{}\n'.format(colour))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
                     
 if __name__ == "__main__":
