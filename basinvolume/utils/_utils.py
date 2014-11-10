@@ -272,7 +272,11 @@ def get_python_version():
     return platform.python_version()
 
 def get_cython_version():
-    from Cython.Compiler.Version import version
+    try:
+        from Cython.Compiler.Version import version
+    except Exception,e:
+        print e
+        version="not known"
     return version
 
 def to_string(inp, digits_after_point = 16):
