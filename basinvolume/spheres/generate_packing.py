@@ -34,7 +34,7 @@ class _Generate_Packing(object):
     __metaclass__ = abc.ABCMeta
     
     def __init__(self, nparticles, bdim=3, boxv = None, packing_frac=0.4, max_iter = 1, use_cell_lists=False):
-        assert(bdim==2 or bdim==3) #currently PBC only implemented for 3d case
+        assert bdim==2 or bdim==3, "bdim={} not implemented".format(bdim)
         self.nparticles = nparticles
         self.bdim = bdim
         self.ndof = self.nparticles * self.bdim
@@ -392,12 +392,14 @@ class HS_Generate_Packing(_Generate_Packing):
             for i in xrange(self.nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                   self.hs_radii[i]*2))
-        else:
+        elif self.bdim == 3:
             fname = "{0}/packing{1}.xyzd".format(directory,self.iteration)
             f = open(fname,'w')
             for i in xrange(self.nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                coords[i*self.bdim+2],self.hs_radii[i]*2))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
     
     def _write_opengl_input(self):
@@ -421,7 +423,7 @@ class HS_Generate_Packing(_Generate_Packing):
                 f.write('{}\t'.format(0))
                 f.write('{}\t'.format(self.hs_radii[i]*2))
                 f.write('{}\n'.format(colour))
-        else:
+        elif self.bdim == 3:
             f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
@@ -431,6 +433,8 @@ class HS_Generate_Packing(_Generate_Packing):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(self.hs_radii[i]*2))
                 f.write('{}\n'.format(colour))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
         
     def _print_parameters(self):

@@ -51,7 +51,7 @@ class analyse_jammed_packings(object):
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert(self.bdim is 2 or self.bdim is 3) #currently PBC only implemented for 3d case
+        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get('JAMMED_PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
@@ -65,8 +65,10 @@ class analyse_jammed_packings(object):
         path = os.path.join(self.packings_dir,fname)
         if self.bdim == 2:
             self.coords, hs_diameters, self.rattlers = read_xydr(path)
-        else:
+        elif self.bdim == 3:
             self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.hs_radii = hs_diameters/2
       
     def analyse_hessian(self,fname):

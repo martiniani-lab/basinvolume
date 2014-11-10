@@ -75,7 +75,7 @@ class _collect_u2_vs_k(object):
         configf.read(str(self.packing_configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert(self.bdim==2 or self.bdim==3) #currently PBC only implemented for 3d case
+        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get('JAMMED_PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])

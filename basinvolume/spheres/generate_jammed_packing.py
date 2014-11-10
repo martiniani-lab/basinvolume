@@ -38,7 +38,7 @@ class _Generate_Jammed_Packing(object):
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('PACKING','nparticles')
         self.bdim = configf.getint('PACKING','boxdim')
-        assert(self.bdim==2 or self.bdim==3) #currently PBC only implemented for 3d case
+        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
@@ -264,8 +264,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         path = os.path.join(self.packings_dir, fname)
         if self.bdim == 2:
             self.coords, hs_diameters = read_xyd(path)
-        else:
+        elif self.bdim == 3:
             self.coords, hs_diameters = read_xyzd(path)
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.hs_radii = hs_diameters/2
         self._compute_sca()
     
@@ -320,12 +322,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             for i in xrange(self.nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           self.hs_radii[i]*2,self.rattlers[i]))
-        else:
+        elif self.bdim == 3:
             fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
             f = open(fname,'w')
             for i in xrange(self.nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
     
     def _write_opengl_input(self,n):
@@ -348,7 +352,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 f.write('{}\t'.format(0.0))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
                 f.write('{}\n'.format(colour-int(self.rattlers_draw[i])))
-        else:
+        elif self.bdim == 3:
             f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
@@ -358,6 +362,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
                 f.write('{}\n'.format(colour-int(self.rattlers_draw[i])))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
 
             

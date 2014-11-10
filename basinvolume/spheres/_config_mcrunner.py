@@ -111,8 +111,10 @@ class _configure_mcrunner(object):
         path = os.path.join(self.packings_dir,self.fname)
         if self.bdim == 2:
             self.coords, hs_diameters, self.rattlers = read_xydr(path)
-        else:
+        elif self.bdim == 3:
             self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.hs_radii = hs_diameters/2
                 
             
