@@ -165,7 +165,7 @@ class HS_Generate_Packing(_Generate_Packing):
         #give a random seed to random state or assign passed seed
         self.rng = RandomState()
         if seeds:
-            assert('seed_takestep' in seeds and 'seed_generate_packing' in seeds and 'seed_swap' in seeds)
+            assert('seed_takestep' in seeds and 'seed_generate_packing' in seeds and 'seed_swap' in seeds and 'seed_probability_step_pattern' in seeds)
             self.seeds = seeds
         else:
             self.seeds = dict(seed_takestep=np.random.randint(0, sys.maxint),

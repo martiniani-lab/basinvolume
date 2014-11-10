@@ -8,7 +8,7 @@ from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest 
 from mcpele.monte_carlo import GaussianCoordsDisplacement
-from mcpele.monte_carlo import ParticlePairSwap, TakeStepPattern
+from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap
@@ -98,7 +98,7 @@ class HS_MCrunner(_BaseMCRunner):
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max), seed_swap=np.random.randint(i32max))
+            seeds = dict(seed_takestep=np.random.randint(i32max), seed_swap=np.random.randint(i32max), seed_probability_step_pattern=np.random.randint(i32max))
         self.seeds=seeds
                 
         #construct test/action classes  
@@ -113,7 +113,7 @@ class HS_MCrunner(_BaseMCRunner):
                                                                      single=single, nparticles=self.nparticles, 
                                                                      bdim=self.bdim)
         self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
-        self.takestep = TakeStepPattern()
+        self.takestep = TakeStepProbabilities(self.seeds['seed_probability_step_pattern'])
         self.takestep.add_step(self.takestep_global_displacement, 99)
         self.takestep.add_step(self.takestep_particle_pair_swap, 1)
         ##########################################
