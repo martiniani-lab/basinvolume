@@ -170,7 +170,8 @@ class HS_Generate_Packing(_Generate_Packing):
         else:
             self.seeds = dict(seed_takestep=np.random.randint(0, sys.maxint),
                               seed_swap=np.random.randint(0, sys.maxint),
-                              seed_generate_packing=np.random.randint(0, sys.maxint))
+                              seed_generate_packing=np.random.randint(0, sys.maxint),
+                              seed_probability_step_pattern=np.random.randint(0, sys.maxint))
         self.rng.seed(int(self.seeds['seed_generate_packing']))
         self.single = single
         self.sca = 0. #this must be 0 for hard spheres
