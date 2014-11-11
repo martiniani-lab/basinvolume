@@ -43,7 +43,7 @@ try:
 except ImportError as err:
     print(err)
     
-def analytical_d2(x, k, N, boxdim=3):
+def analytical_d2(x, k, N, boxdim=2):
     f = float(k * x) / 2
     g = float(boxdim * N - boxdim) / 2 -1
     return np.exp(-f) * np.power(f, g)
@@ -445,25 +445,38 @@ class Findk_MCrunner(_BaseMCRunner):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     * this class requires 1 seed
     """
-    def __init__(self, potential, coords, temperature, stepsize, niter, origin,
+    def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, avgcount=1e6, dtol=1e-3,
                  eps=1., ktarget = 0.75, knavg=500, ktol=0.05, opt_dtmax=1,
                  opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=1,
                  binsize=0.001, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
-                 frozen_atoms=None):
+                 frozen_atoms=None, rcontainer=None):
         #construct base class
-        super(Findk_MCrunner,self).__init__(potential, coords, temperature, niter)
+        if use_frozen:
+            red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
+        super(Findk_MCrunner,self).__init__(potential, red_coords, temperature, niter)
         
-        self.origin = origin
-        self.hs_radii = hs_radii
         self.boxv = boxv
         self.bdim = len(boxv)
+        self.origin = np.array(origin)
+        self.red_origin = np.array(origin)
+        self.hs_radii = np.array(hs_radii)
+        self.red_radii = np.array(hs_radii)
+        if use_frozen:            
+            self.red_radii = np.delete(self.red_radii,frozen_atoms)
+            self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
+            assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
+            assert len(self.red_origin) == self.ndim
+            assert rcontainer is not None
         self.sca = sca
         self.dtol = dtol
         self.eps = eps
+        self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
+        self.use_frozen = use_frozen
+        self.rcontainer = rcontainer
         
         #findk parameters
         self.avgcount = avgcount
@@ -474,10 +487,11 @@ class Findk_MCrunner(_BaseMCRunner):
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof 
         if (rattlers == None):
-            #assume no rattlers
-            self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
+            self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
         else:
-            self.rattlers = np.array(rattlers, dtype='d')
+            self.rattlers = np.array(rattlers,dtype='d')
+            if self.use_frozen:
+                self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
             assert(len(self.rattlers) == self.ndim)
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
@@ -505,19 +519,23 @@ class Findk_MCrunner(_BaseMCRunner):
         
         #construct test/action classes      
         self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'], stepsize)
-        self.conftest1 = CheckOverlap(self.hs_radii, self.boxv)
-        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, 
+        self.conftest1 = CheckOverlap(self.red_radii, self.boxv)#FROZEN ISSUE: check overlap does not know about the frozen atoms
+                                                                # need to implement a frozen version
+        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           perform_convergence_test=perform_convergence_test, 
                                           collect_minima_list=collect_minima_list)
         self.hmin = hmin
         self.hmax = hmax
         self.binsize = binsize
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
+        self.findk = Findk(self.red_origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
                            self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
         
         #set up pele:MC
         self.set_takestep(self.takestep)
+        if self.use_frozen:
+            self.conftest3 = CheckSphericalContainer(self.rcontainer, self.bdim)
+            self.add_conf_test(self.conftest3)
         self.add_conf_test(self.conftest1)
         self.add_conf_test(self.conftest2)
         self.add_action(self.findk)
@@ -549,13 +567,16 @@ class Findk_MCrunner(_BaseMCRunner):
         #add origin to database, with _id == 0, to make post processing possible
         #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
         #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.origin), coords=self.origin, user_data=dict(count=0, distance=0))
+        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin), coords=self.origin, user_data=dict(count=0, distance=0))
         minima_dicts.append(mindict0)
         #add neighboring minima to database
         self.conftest2.dump_minima(minima_dicts)
         #add spring constant to user_data
         for m in minima_dicts:
             m['user_data'].update(k=self.k)
+            if self.use_frozen:
+                redcoords = m['coords']
+                m['coords'] = full_coordinates(redcoords, self.origin, self.frozen, self.bdim)
         assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
         print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)
@@ -570,7 +591,7 @@ class Findk_MCrunner(_BaseMCRunner):
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
-        and2 = vec_analytical_d2(val,self.get_k(), len(self.hs_radii)) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), len(self.hs_radii)))[0]
+        and2 = vec_analytical_d2(val,self.get_k(), self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), self.nparticles))[0]
         plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
         plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
