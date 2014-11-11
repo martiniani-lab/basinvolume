@@ -87,6 +87,8 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         else:
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.coords = np.array(self.coords)
+        #rescale box, radii and coordinates
+        self._rescale_packing()
         #raise warning if there's an overlap
         if not self._check_no_overlaps():
             return False
@@ -94,6 +96,14 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         self._set_packing_fraction()
         return True
     
+    def _rescale_packing(self):
+        rescale_factor = np.mean(self.hs_radii)
+        self.hs_radii /= rescale_factor #rescale radii so that mean radius is 1
+        self.coords /= rescale_factor #rescale coordinates accordingly to radii
+        self.boxv /= rescale_factor
+        self.mobile_particle_radius /= rescale_factor
+        self.frozen_particle_radius /= rescale_factor
+        
     def _find_one_small_packing(self, index):
         small_packing = self.all_particles.extract_small_packing(index)
         print("found packing %d of %d" % (self.iteration+1, self.max_iter))
