@@ -35,15 +35,15 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         self._import_packing_configuration(frozen=True)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         
-        #select rcontainer to correspond to frozen particle further away
+        #select rcontainer to correspond to frozen particle furthest away
         rcontainer = 0
         for i in xrange(len(self.hs_radii)):
             r2=0
             for j in xrange(self.bdim):
                 r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
-            if r2 > (rcontainer*rcontainer):
-                print rcontainer
-                rcontainer = np.sqrt(r2)
+                if r2 > (rcontainer*rcontainer):
+                    rcontainer = np.sqrt(r2)
+                    print rcontainer
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,
