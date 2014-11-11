@@ -11,7 +11,7 @@ import ConfigParser
 import time
 import copy
 
-class _findk_mcrunner(_configure_mcrunner):
+class _findk_exp_mcrunner(_configure_mcrunner):
     """
     this is a class that implements configure_findk_mcrunner class,
     *k: harmonic spring constant
