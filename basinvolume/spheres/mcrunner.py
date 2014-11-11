@@ -351,8 +351,8 @@ class BV_MCrunner(_BaseMCRunner):
         #set up pele:MC
         self.set_takestep(self.takestep)
         if self.use_frozen:
-            self.conftest3 = CheckSphericalContainer(self.rcontainer, self.bdim)
-            self.add_conf_test(self.conftest3)
+            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
+            self.add_conf_test(self.conftest0)
         self.add_accept_test(self.metropolis) #metropolis uses the harmonic potential
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
@@ -534,8 +534,8 @@ class Findk_MCrunner(_BaseMCRunner):
         #set up pele:MC
         self.set_takestep(self.takestep)
         if self.use_frozen:
-            self.conftest3 = CheckSphericalContainer(self.rcontainer, self.bdim)
-            self.add_conf_test(self.conftest3)
+            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
+            self.add_conf_test(self.conftest0)
         self.add_conf_test(self.conftest1)
         self.add_conf_test(self.conftest2)
         self.add_action(self.findk)
