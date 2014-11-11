@@ -4,10 +4,15 @@ import argparse
 import traceback
 import copy
 from _kmin_mcrunner import _kmin_mcrunner
+from basinvolume.experiment_2d import _kmin_exp_mcrunner
 
 def worker_kmin(fname, kwargs):
     try:
-        mcrunner = _kmin_mcrunner(fname, **kwargs)
+        if ".xydfr" in fname or ".xyzdfr" in fname:
+            print "found experimental packing"
+            mcrunner = _kmin_exp_mcrunner(fname, **kwargs)
+        else:
+            mcrunner = _kmin_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:
         print('kmin worker: %s' % (traceback.format_exc()))

@@ -4,10 +4,15 @@ import argparse
 import traceback
 import copy
 from _findk_mcrunner import _findk_mcrunner
+from basinvolume.experiment_2d import _findk_exp_mcrunner
 
 def worker_findk(fname, kwargs):
     try:
-        mcrunner = _findk_mcrunner(fname, **kwargs)
+        if ".xydfr" in fname or ".xyzdfr" in fname:
+            print "found experimental packing"
+            mcrunner = _findk_exp_mcrunner(fname, **kwargs)
+        else:
+            mcrunner = _findk_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:
         print('find_k worker: %s' % (traceback.format_exc()))
