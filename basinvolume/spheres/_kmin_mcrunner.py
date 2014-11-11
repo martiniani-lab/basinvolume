@@ -11,7 +11,7 @@ import time
 
 class _kmin_mcrunner(_configure_mcrunner):
     """
-    this is an abstract class that implements the basic components of a k0_mcrunner class
+    this is a class that implements a kmin_mcrunner class
     *nparticles: number of particles
     *bdim: dimensionality of the box
     *ndim: dimensionality of the problem (i.e. size of the coordinates array)

@@ -107,7 +107,7 @@ def read_xyzdf(fname):
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
-        ++i
+        i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int')
 
 def read_xydr(fname, etol=1.0, bdim=2):
@@ -146,7 +146,7 @@ def read_xydfr(fname, etol=1.0, bdim=2):
         rattler = float(float(r)>=etol)
         for _ in xrange(bdim): 
             rattlers.extend([rattler])
-        ++i
+        i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
 
 def read_xyzdr(fname, etol=1.0, bdim=3):
@@ -183,7 +183,7 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         rattler = float(float(r)>=etol)
         for _ in xrange(bdim): 
             rattlers.extend([rattler])
-        ++i
+        i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
 
 def reduce_coordinates(mylist, indexes, bdim):

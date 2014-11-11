@@ -5,7 +5,7 @@ import os
 import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
-from basinvolume.utils import trymakedir, read_xyzdr, read_xydr, to_string
+from basinvolume.utils import trymakedir, read_xyzdr, read_xydr, to_string, read_txt
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas, F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0
 import argparse
@@ -138,7 +138,7 @@ class _collect_u2_vs_k(object):
                     series_order.append(int(dir))
                     series = []
                     for series_path in file_list:
-                        series.extend(np.genfromtxt(series_path, delimiter='\t'))
+                        series.extend(np.read_txt(series_path))
                     timeseries.append(series)
         X = np.array(timeseries)
         Y = series_order

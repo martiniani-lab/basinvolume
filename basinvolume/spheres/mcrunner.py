@@ -6,7 +6,7 @@ from pele.optimize import ModifiedFireCPP
 from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
-from mcpele.monte_carlo import MetropolisTest 
+from mcpele.monte_carlo import MetropolisTest, CheckSphericalContainer 
 from mcpele.monte_carlo import GaussianCoordsDisplacement
 from mcpele.monte_carlo import ParticlePairSwap, TakeStepPattern
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
@@ -15,6 +15,7 @@ from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap
 from basinvolume.monte_carlo import RecordDisplacementTimeseries
 from basinvolume.monte_carlo import CheckOverlapCellLists
 from basinvolume.gui import HSWCASystem
+from basinvolume.utils import reduce_coordinates, full_coordinates
 
 #for plotting histogram
 from itertools import cycle
@@ -177,7 +178,7 @@ class BV_MCrunner(_BaseMCRunner):
         These are the harmonic springs that tie each particle to its original
         position during the walk.
     coords : array
-        Initial coordinates, can be the same as origin.
+        Initial coordinates, can be the same as origin. These must be the full coordinates
     temperature : double
         Temperature is irrelevant here and probably set to unity.
     stepsize : double
@@ -251,8 +252,11 @@ class BV_MCrunner(_BaseMCRunner):
     frozen_atoms : array
         List of labels of frozen (immobile) particles. Note: This is not the
         list of frozen degrees of freedom.
+    rcontainer : double
+        typically halfway between the outer and inner radius of the frozen shell
+        forbids jumps outside out the frozen shell
     """
-    def __init__(self, potential, coords, temperature, stepsize, niter, origin,
+    def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
                  hmin=0, hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9,
                  adjustf_niter = 1e4, adjustf_navg = 100, pt_eq_niter=0,
@@ -260,20 +264,32 @@ class BV_MCrunner(_BaseMCRunner):
                  opt_tol=1e-4, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, single=False, use_periodic=True,
-                 use_frozen=False, frozen_atoms=None):
+                 use_frozen=False, frozen_atoms=None, rcontainer=None):
         #construct base class
-        super(BV_MCrunner,self).__init__(potential, coords, temperature, niter)
+        if use_frozen:
+            red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
+        super(BV_MCrunner,self).__init__(potential, red_coords, temperature, niter)
         
-        self.origin = origin
-        self.hs_radii = hs_radii
         self.boxv = boxv
         self.bdim = len(boxv)
+        self.origin = np.array(origin)
+        self.red_origin = np.array(origin)
+        self.hs_radii = np.array(hs_radii)
+        self.red_radii = np.array(hs_radii)
+        if use_frozen:            
+            self.red_radii = np.delete(self.red_radii,frozen_atoms)
+            self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
+            assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
+            assert len(self.red_origin) == self.ndim
+            assert rcontainer is not None
         self.sca = sca
         self.set_control(k)
         self.dtol = dtol
         self.eps = eps
-        self.nparticles = len(hs_radii)
+        self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
+        self.use_frozen = use_frozen
+        self.rcontainer = rcontainer
         if ts_niter is None:
             ts_niter = niter
         
@@ -283,9 +299,11 @@ class BV_MCrunner(_BaseMCRunner):
             self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
         else:
             self.rattlers = np.array(rattlers,dtype='d')
+            if self.use_frozen:
+                self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
             assert(len(self.rattlers) == self.ndim)
             assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
-        
+                   
         #construct optimizer potential
         #rcut set to largest particle diameter
         rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
@@ -311,17 +329,18 @@ class BV_MCrunner(_BaseMCRunner):
         #construct test/action classes
         if record_histogram:
             self.binsize = hbinsize
-            self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,
+            self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
                                                   self.binsize,(adjustf_niter+pt_eq_niter))
             self.add_action(self.histogram)
         
-        self.conftest1 = CheckOverlap(self.hs_radii,self.boxv)
-        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.origin, self.hs_radii, 
+        self.conftest1 = CheckOverlap(self.red_radii,self.boxv) #FROZEN ISSUE: check overlap does not know about the frozen atoms
+                                                                # need to implement a frozen version
+        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           eqsteps=(adjustf_niter+pt_eq_niter),
                                           perform_convergence_test=perform_convergence_test, 
                                           collect_minima_list=collect_minima_list)
-        self.time_series = RecordDisplacementTimeseries(self.origin,self.bdim, ts_niter, ts_freq)
+        self.time_series = RecordDisplacementTimeseries(self.red_origin,self.bdim, ts_niter, ts_freq)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         
         self.set_report_steps(adjustf_niter)
@@ -331,7 +350,10 @@ class BV_MCrunner(_BaseMCRunner):
         
         #set up pele:MC
         self.set_takestep(self.takestep)
-        self.add_accept_test(self.metropolis)
+        if self.use_frozen:
+            self.conftest3 = CheckSphericalContainer(self.rcontainer, self.bdim)
+            self.add_conf_test(self.conftest3)
+        self.add_accept_test(self.metropolis) #metropolis uses the harmonic potential
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.time_series)
@@ -376,13 +398,16 @@ class BV_MCrunner(_BaseMCRunner):
         #add origin to database, with _id == 0, to make post processing possible
         #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
         #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.origin), coords=self.origin, user_data=dict(count=0, distance=0))
+        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin), coords=self.origin, user_data=dict(count=0, distance=0))
         minima_dicts.append(mindict0)
         #add neighboring minima to database
         self.conftest2.dump_minima(minima_dicts)
         #add spring constant to user_data
         for m in minima_dicts:
             m['user_data'].update(k=self.k)
+            if self.use_frozen:
+                redcoords = m['coords']
+                m['coords'] = full_coordinates(redcoords, self.origin, self.frozen, self.bdim)
         assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
         print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)

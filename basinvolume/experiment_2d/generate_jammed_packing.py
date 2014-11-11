@@ -209,6 +209,8 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
         self.sca = (configf.getfloat('PACKING','deflation') - 1)*self.expand_sca
+        self.mobile_particle_radius = configf.getfloat('EXPERIMENTAL_DATA_EXTRACTION','mobile_particle_radius')
+        self.frozen_particle_radius = configf.getfloat('EXPERIMENTAL_DATA_EXTRACTION','mobile_particle_radius')
         
     def _dump_configuration(self,n):
         """write coordinates to file .xyzdr"""
@@ -259,6 +261,8 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         f.write('\n')
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
+        f.write('mobile_particle_radius: {}\n'.format(self.mobile_particle_radius))
+        f.write('frozen_particle_radius: {}\n'.format(self.frozen_particle_radius))
         f.write('\n')
         #print software version
         f.write('[CODEVERSION]\n')
