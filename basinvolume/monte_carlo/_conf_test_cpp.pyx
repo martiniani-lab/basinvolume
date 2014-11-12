@@ -203,7 +203,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     
     cdef cppCheckSameMinimum* newptr
     def __cinit__(self, opt, pot, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3, eqsteps=0, cbool perform_convergence_test=False, 
-                  cbool collect_minima_list=False, cbool use_periodic=True):
+                  cbool collect_minima_list=False, cbool use_periodic=False):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)

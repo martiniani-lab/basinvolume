@@ -360,7 +360,7 @@ class BV_MCrunner(_BaseMCRunner):
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           eqsteps=(adjustf_niter+pt_eq_niter),
                                           perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list, use_periodic=self.use_periodic)
+                                          collect_minima_list=collect_minima_list, use_periodic=False)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         
@@ -566,7 +566,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list, use_periodic=self.use_periodic)
+                                          collect_minima_list=collect_minima_list, use_periodic=False)
         self.hmin = hmin
         self.hmax = hmax
         self.binsize = binsize
