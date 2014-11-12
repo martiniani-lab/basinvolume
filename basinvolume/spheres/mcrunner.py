@@ -120,7 +120,7 @@ class HS_MCrunner(_BaseMCRunner):
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour
         rcut = np.amax(self.hs_radii)*2
-        self.checkoverlap = CheckOverlapPeriodicCellLists(coords, hs_radii, boxvec, rcut)
+        self.checkoverlap = CheckOverlapPeriodicCellLists(coords, hs_radii, boxvec, rcut, use_frozen=False)
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.checkoverlap)
@@ -265,8 +265,9 @@ class BV_MCrunner(_BaseMCRunner):
                  record_histogram=False, single=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None):
         #construct base class
-        assert use_frozen and not use_periodic
+        assert not (use_frozen and use_periodic)
         if use_frozen:
+            assert not use_periodic and frozen_atoms is not None
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         super(BV_MCrunner,self).__init__(potential, red_coords, temperature, niter)
         
@@ -289,6 +290,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
+        self.frozen_atoms = frozen_atoms
         self.use_periodic = use_periodic
         self.rcontainer = rcontainer
         if ts_niter is None:
@@ -335,19 +337,23 @@ class BV_MCrunner(_BaseMCRunner):
                                                   self.binsize,(adjustf_niter+pt_eq_niter))
             self.add_action(self.histogram)
         
-        #CHECK OVERLAP FROZEN ISSUE: check overlap does not know about the frozen atoms
-        # need to implement a frozen version
         if use_periodic:
             if use_cell_lists:
-                self.conftest1 = CheckOverlapPeriodicCellLists(self.red_origin, self.red_radii, self.boxv, self.rcut, ncellx_scale=self.ncellx_scale) 
+                self.conftest1 = CheckOverlapPeriodicCellLists(self.origin, self.hs_radii, 
+                                                               self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                                               use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms) 
             
             else:
-                self.conftest1 = CheckOverlapPeriodic(self.red_radii, self.boxv)
+                self.conftest1 = CheckOverlapPeriodic(self.hs_radii, self.boxv, use_frozen=self.use_frozen,
+                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
         else: 
             if use_cell_lists:
-                self.conftest1 = CheckOverlapCartesianCellLists(self.red_origin, self.red_radii, self.boxv, self.rcut, ncellx_scale=self.ncellx_scale)
+                self.conftest1 = CheckOverlapCartesianCellLists(self.origin, self.hs_radii, 
+                                                                self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                                                use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms)
             else:
-                self.conftest1 = CheckOverlapCartesian(self.red_radii, self.bdim)
+                self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen,
+                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
             
         
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
@@ -469,8 +475,9 @@ class Findk_MCrunner(_BaseMCRunner):
                  single=False, use_periodic=True, use_frozen=False,
                  frozen_atoms=None, rcontainer=None):
         #construct base class
-        assert use_frozen and not use_periodic
+        assert not (use_frozen and use_periodic)
         if use_frozen:
+            assert not use_periodic and frozen_atoms is not None
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         super(Findk_MCrunner,self).__init__(potential, red_coords, temperature, niter)
         
@@ -492,6 +499,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
+        self.frozen_atoms = frozen_atoms
         self.use_periodic=use_periodic
         self.rcontainer = rcontainer
         
@@ -538,19 +546,23 @@ class Findk_MCrunner(_BaseMCRunner):
         #construct test/action classes      
         self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'], stepsize)
         
-        #CHECK OVERLAP FROZEN ISSUE: check overlap does not know about the frozen atoms
-        # need to implement a frozen version
         if use_periodic:
             if use_cell_lists:
-                self.conftest1 = CheckOverlapPeriodicCellLists(self.red_origin, self.red_radii, self.boxv, self.rcut, ncellx_scale=self.ncellx_scale) 
+                self.conftest1 = CheckOverlapPeriodicCellLists(self.origin, self.hs_radii, 
+                                                               self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                                               use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms) 
             
             else:
-                self.conftest1 = CheckOverlapPeriodic(self.red_radii, self.boxv)
+                self.conftest1 = CheckOverlapPeriodic(self.hs_radii, self.boxv, use_frozen=self.use_frozen,
+                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
         else: 
             if use_cell_lists:
-                self.conftest1 = CheckOverlapCartesianCellLists(self.red_origin, self.red_radii, self.boxv, self.rcut, ncellx_scale=self.ncellx_scale)
+                self.conftest1 = CheckOverlapCartesianCellLists(self.origin, self.hs_radii, 
+                                                                self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                                                use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms)
             else:
-                self.conftest1 = CheckOverlapCartesian(self.red_radii, self.bdim)
+                self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen,
+                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           perform_convergence_test=perform_convergence_test, 

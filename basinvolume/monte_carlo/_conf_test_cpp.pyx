@@ -10,6 +10,7 @@ from pele.storage import Database
 from pele.storage.database import Minimum
 from pele.potentials._pele cimport array_wrap_np
 from pele.potentials._pele cimport array_wrap_np_long, array_wrap_np_size_t
+from ctypes import c_size_t as size_t
     
 #===============================================================================
 # Check hyper spherical container
