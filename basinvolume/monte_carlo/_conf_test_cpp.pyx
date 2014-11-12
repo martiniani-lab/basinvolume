@@ -40,8 +40,8 @@ cdef class _Cdef_CheckOverlapPeriodic(_Cdef_ConfTest):
     def __cinit__(self, hs_radii, boxvec, use_frozen=False, reference_coords=None, frozen_atoms=None):
         cdef np.ndarray[size_t, ndim=1] frozen_dof
         cdef size_t ndim = len(boxvec)
-        cdef _pele.Array[double] rd_ = array_wrap_np(np.array(hs_radii))
-        cdef _pele.Array[double] bv_ = array_wrap_np(np.array(boxvec))
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
         cdef _pele.Array[double] rc_
         cdef _pele.Array[size_t] fd_ 
         if not use_frozen:
@@ -79,7 +79,7 @@ cdef class _Cdef_CheckOverlapCartesian(_Cdef_ConfTest):
     def __cinit__(self, hs_radii, boxdim, use_frozen=False, reference_coords=None, frozen_atoms=None):
         cdef np.ndarray[size_t, ndim=1] frozen_dof
         cdef size_t ndim = boxdim
-        cdef _pele.Array[double] rd_ = array_wrap_np(np.array(hs_radii))
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
         cdef _pele.Array[double] rc_
         cdef _pele.Array[size_t] fd_
         if not use_frozen:
@@ -119,10 +119,11 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
     def __cinit__(self, reference_coords, hs_radii, boxvec, rcut, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None):
         cdef np.ndarray[size_t, ndim=1] frozen_dof
         cdef size_t ndim = len(boxvec)
-        cdef _pele.Array[double] rd_ = array_wrap_np(np.array(hs_radii))
-        cdef _pele.Array[double] bv_ = array_wrap_np(np.array(boxvec))
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
         cdef _pele.Array[double] rc_
         cdef _pele.Array[size_t] fd_
+        
         if not use_frozen:
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT2]
@@ -160,8 +161,8 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
     def __cinit__(self, reference_coords, hs_radii, boxvec, rcut, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None):
         cdef np.ndarray[size_t, ndim=1] frozen_dof
         cdef size_t ndim = len(boxvec)
-        cdef _pele.Array[double] rd_ = array_wrap_np(np.array(hs_radii))
-        cdef _pele.Array[double] bv_ = array_wrap_np(np.array(boxvec))
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
         cdef _pele.Array[double] rc_
         cdef _pele.Array[size_t] fd_
         if not use_frozen:
@@ -203,7 +204,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     
     cdef cppCheckSameMinimum* newptr
     def __cinit__(self, opt, pot, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3, eqsteps=0, cbool perform_convergence_test=False, 
-                  cbool collect_minima_list=False, cbool use_periodic=False):
+                  cbool collect_minima_list=False, use_periodic=False):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)

@@ -138,7 +138,7 @@ class _collect_u2_vs_k(object):
                     series_order.append(int(dir))
                     series = []
                     for series_path in file_list:
-                        series.extend(np.read_txt(series_path))
+                        series.extend(read_txt(series_path))
                     timeseries.append(series)
         X = np.array(timeseries)
         Y = series_order

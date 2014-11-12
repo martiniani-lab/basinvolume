@@ -12,6 +12,7 @@ def worker_findk(fname, kwargs):
             print "found experimental packing"
             mcrunner = _findk_exp_mcrunner(fname, **kwargs)
         else:
+            print "found numerical packing"
             mcrunner = _findk_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:

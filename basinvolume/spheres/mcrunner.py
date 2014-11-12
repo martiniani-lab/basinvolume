@@ -269,6 +269,8 @@ class BV_MCrunner(_BaseMCRunner):
         if use_frozen:
             assert not use_periodic and frozen_atoms is not None
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
+        else:
+            red_coords = full_coords
         super(BV_MCrunner,self).__init__(potential, red_coords, temperature, niter)
         
         self.boxv = boxv
@@ -479,6 +481,8 @@ class Findk_MCrunner(_BaseMCRunner):
         if use_frozen:
             assert not use_periodic and frozen_atoms is not None
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
+        else:
+            red_coords = np.array(full_coords).copy()
         super(Findk_MCrunner,self).__init__(potential, red_coords, temperature, niter)
         
         self.boxv = boxv
@@ -545,23 +549,26 @@ class Findk_MCrunner(_BaseMCRunner):
         
         #construct test/action classes      
         self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'], stepsize)
+                
+#        if use_periodic:
+#            if use_cell_lists:
+#                self.conftest1 = CheckOverlapPeriodicCellLists(self.origin, self.hs_radii, 
+#                                                               self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+#                                                               use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms) 
+#            
+#            else:
+#                self.conftest1 = CheckOverlapPeriodic(self.hs_radii, self.boxv, use_frozen=self.use_frozen,
+#                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
+#        else: 
+#            if use_cell_lists:
+#                self.conftest1 = CheckOverlapCartesianCellLists(self.origin, self.hs_radii, 
+#                                                                self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+#                                                                use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms)
+#            else:
+#                self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen,
+#                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
         
-        if use_periodic:
-            if use_cell_lists:
-                self.conftest1 = CheckOverlapPeriodicCellLists(self.origin, self.hs_radii, 
-                                                               self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
-                                                               use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms) 
-            
-            else:
-                self.conftest1 = CheckOverlapPeriodic(self.hs_radii, self.boxv, use_frozen=self.use_frozen,
-                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
-        else: 
-            if use_cell_lists:
-                self.conftest1 = CheckOverlapCartesianCellLists(self.origin, self.hs_radii, 
-                                                                self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
-                                                                use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms)
-            else:
-                self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen,
+        self.conftest1 = CheckOverlapPeriodic(self.hs_radii, self.boxv, use_frozen=self.use_frozen,
                                                        reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
@@ -635,7 +642,7 @@ class Findk_MCrunner(_BaseMCRunner):
         bincenters = 0.5 * (bins[1:] + bins[:-1])
         and2 = vec_analytical_d2(val,self.get_k(), self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), self.nparticles))[0]
         plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
-        plt.xlim(0,1)
+        #plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
         plt.ylabel(r'frequency $\times 10$')
         plt.tight_layout()
