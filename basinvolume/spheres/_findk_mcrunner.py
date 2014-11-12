@@ -57,7 +57,8 @@ class _findk_mcrunner(_configure_mcrunner):
                                        dtol=dtol, eps=eps, ktarget=ktarget, knavg=knavg, ktol=ktol, 
                                        opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, 
                                        opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test, 
-                                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists) 
+                                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
+                                       use_periodic=True, use_frozen=False) 
         self._initialise()
     
     def run(self):

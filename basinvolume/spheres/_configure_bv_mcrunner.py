@@ -66,7 +66,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                                opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                perform_convergence_test=perform_convergence_test, record_histogram=record_histogram, 
                                collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                               single=single)
+                               single=single, use_periodic=True, use_frozen=False)
         
         return mcrunner 
     
