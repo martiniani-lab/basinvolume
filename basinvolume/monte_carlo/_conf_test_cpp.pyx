@@ -121,7 +121,7 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
         cdef size_t ndim = len(boxvec)
         cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
         cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
-        cdef _pele.Array[double] rc_
+        cdef _pele.Array[double] rc_ = array_wrap_np(reference_coords)
         cdef _pele.Array[size_t] fd_
         
         if not use_frozen:
@@ -137,7 +137,6 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
             assert frozen_atoms is not None, " warning: initialising frozen particle conf test without frozen particles"
             frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
             fd_ = array_wrap_np_size_t(frozen_dof)
-            rc_ = array_wrap_np(reference_coords)
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellListsFrozen[INT2]
                                                         (rc_, fd_, rd_, bv_, rcut, ncellx_scale)) 
@@ -163,7 +162,7 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
         cdef size_t ndim = len(boxvec)
         cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
         cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
-        cdef _pele.Array[double] rc_
+        cdef _pele.Array[double] rc_ = array_wrap_np(reference_coords)
         cdef _pele.Array[size_t] fd_
         if not use_frozen:
             if (ndim == 2):
@@ -178,7 +177,6 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
             assert frozen_atoms is not None, " warning: initialising frozen particle conf test without frozen particles"
             frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
             fd_ = array_wrap_np_size_t(frozen_dof)
-            rc_ = array_wrap_np(reference_coords)
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellListsFrozen[INT2]
                                                         (rc_, fd_, rd_, bv_, rcut, ncellx_scale)) 
