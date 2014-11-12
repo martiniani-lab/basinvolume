@@ -357,7 +357,7 @@ class BV_MCrunner(_BaseMCRunner):
                 self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen,
                                                        reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
             
-        
+        #CheckSameMinimum MUST have use_periodic=False
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           eqsteps=(adjustf_niter+pt_eq_niter),
@@ -567,7 +567,7 @@ class Findk_MCrunner(_BaseMCRunner):
             else:
                 self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen,
                                                        reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
-        
+        #CheckSameMinimum MUST have use_periodic=False
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           perform_convergence_test=perform_convergence_test, 
