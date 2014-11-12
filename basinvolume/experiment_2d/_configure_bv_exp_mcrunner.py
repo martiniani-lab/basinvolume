@@ -44,8 +44,10 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
                 r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
                 if r2 > (rcontainer*rcontainer):
                     rcontainer = np.sqrt(r2)
+                    index = i
                     if verbose:
                         print "new rcontainer",rcontainer
+        rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
         
         #set parameters
         #self.mc_params = dict(k=k, temperature=temperature, )

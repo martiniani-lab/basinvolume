@@ -43,8 +43,10 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
                 r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
                 if r2 > (rcontainer*rcontainer):
                     rcontainer = np.sqrt(r2)
+                    index = i
                     if verbose:
                         print "new rcontainer",rcontainer
+        rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,
@@ -163,7 +165,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_exp_mcrunner('jammed_packing0.xydfr', niter=5e4, opt_tol=1e-7, seeds=seeds, single=True, use_cell_lists=False, verbose=True)
+    sim = _kmin_exp_mcrunner('jammed_packing1.xydfr', niter=5e4, opt_tol=1e-7, seeds=seeds, single=True, use_cell_lists=False, verbose=True)
     print 'simulation started'
     start=time.time()
     sim.run()

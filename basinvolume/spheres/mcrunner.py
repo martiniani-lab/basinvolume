@@ -11,9 +11,8 @@ from mcpele.monte_carlo import GaussianCoordsDisplacement
 from mcpele.monte_carlo import ParticlePairSwap, TakeStepPattern
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
-from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlap
-from basinvolume.monte_carlo import RecordDisplacementTimeseries
-from basinvolume.monte_carlo import CheckOverlapCellLists
+from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlapPeriodic, CheckOverlapCartesian 
+from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckOverlapCartesianCellLists, CheckOverlapPeriodicCellLists
 from basinvolume.gui import HSWCASystem
 from basinvolume.utils import reduce_coordinates, full_coordinates
 
@@ -121,7 +120,7 @@ class HS_MCrunner(_BaseMCRunner):
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour
         rcut = np.amax(self.hs_radii)*2
-        self.checkoverlap = CheckOverlapCellLists(coords, hs_radii, boxvec, rcut)
+        self.checkoverlap = CheckOverlapPeriodicCellLists(coords, hs_radii, boxvec, rcut)
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.checkoverlap)
@@ -266,6 +265,7 @@ class BV_MCrunner(_BaseMCRunner):
                  record_histogram=False, single=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None):
         #construct base class
+        assert use_frozen and not use_periodic
         if use_frozen:
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         super(BV_MCrunner,self).__init__(potential, red_coords, temperature, niter)
@@ -289,6 +289,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
+        self.use_periodic = use_periodic
         self.rcontainer = rcontainer
         if ts_niter is None:
             ts_niter = niter
@@ -306,13 +307,14 @@ class BV_MCrunner(_BaseMCRunner):
                    
         #construct optimizer potential
         #rcut set to largest particle diameter
-        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
-        self.pot_optimizer = HS_WCA(use_periodic=use_periodic,
+        self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        self.ncellx_scale = 1.0
+        self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
                              use_cell_lists=use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
-                             reference_coords=self.origin, rcut=rcut,
-                             ndim=self.bdim, ncellx_scale=1.0,
+                             reference_coords=self.origin, rcut=self.rcut,
+                             ndim=self.bdim, ncellx_scale=self.ncellx_scale,
                              frozen_atoms=frozen_atoms)
         
         #construct gradient optimizer    
@@ -333,14 +335,27 @@ class BV_MCrunner(_BaseMCRunner):
                                                   self.binsize,(adjustf_niter+pt_eq_niter))
             self.add_action(self.histogram)
         
-        self.conftest1 = CheckOverlap(self.red_radii,self.boxv) #FROZEN ISSUE: check overlap does not know about the frozen atoms
-                                                                # need to implement a frozen version
+        #CHECK OVERLAP FROZEN ISSUE: check overlap does not know about the frozen atoms
+        # need to implement a frozen version
+        if use_periodic:
+            if use_cell_lists:
+                self.conftest1 = CheckOverlapPeriodicCellLists(self.red_origin, self.red_radii, self.boxv, self.rcut, ncellx_scale=self.ncellx_scale) 
+            
+            else:
+                self.conftest1 = CheckOverlapPeriodic(self.red_radii, self.boxv)
+        else: 
+            if use_cell_lists:
+                self.conftest1 = CheckOverlapCartesianCellLists(self.red_origin, self.red_radii, self.boxv, self.rcut, ncellx_scale=self.ncellx_scale)
+            else:
+                self.conftest1 = CheckOverlapCartesian(self.red_radii, self.bdim)
+            
+        
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           eqsteps=(adjustf_niter+pt_eq_niter),
                                           perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list)
-        self.time_series = RecordDisplacementTimeseries(self.red_origin,self.bdim, ts_niter, ts_freq)
+                                          collect_minima_list=collect_minima_list, use_periodic=self.use_periodic)
+        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         
         self.set_report_steps(adjustf_niter)
@@ -454,6 +469,7 @@ class Findk_MCrunner(_BaseMCRunner):
                  single=False, use_periodic=True, use_frozen=False,
                  frozen_atoms=None, rcontainer=None):
         #construct base class
+        assert use_frozen and not use_periodic
         if use_frozen:
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         super(Findk_MCrunner,self).__init__(potential, red_coords, temperature, niter)
@@ -476,6 +492,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
+        self.use_periodic=use_periodic
         self.rcontainer = rcontainer
         
         #findk parameters
@@ -497,13 +514,14 @@ class Findk_MCrunner(_BaseMCRunner):
         
         #construct optimizer potential
         #rcut set to largest particle diameter
-        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
-        self.pot_optimizer = HS_WCA(use_periodic=use_periodic,
+        self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        self.ncellx_scale = 1.0
+        self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
                              use_cell_lists=use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
-                             reference_coords=self.origin, rcut=rcut,
-                             ndim=self.bdim, ncellx_scale=1.0,
+                             reference_coords=self.origin, rcut=self.rcut,
+                             ndim=self.bdim, ncellx_scale=self.ncellx_scale,
                              frozen_atoms=frozen_atoms)
         
         #construct gradient optimizer
@@ -519,12 +537,24 @@ class Findk_MCrunner(_BaseMCRunner):
         
         #construct test/action classes      
         self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'], stepsize)
-        self.conftest1 = CheckOverlap(self.red_radii, self.boxv)#FROZEN ISSUE: check overlap does not know about the frozen atoms
-                                                                # need to implement a frozen version
+        
+        #CHECK OVERLAP FROZEN ISSUE: check overlap does not know about the frozen atoms
+        # need to implement a frozen version
+        if use_periodic:
+            if use_cell_lists:
+                self.conftest1 = CheckOverlapPeriodicCellLists(self.red_origin, self.red_radii, self.boxv, self.rcut, ncellx_scale=self.ncellx_scale) 
+            
+            else:
+                self.conftest1 = CheckOverlapPeriodic(self.red_radii, self.boxv)
+        else: 
+            if use_cell_lists:
+                self.conftest1 = CheckOverlapCartesianCellLists(self.red_origin, self.red_radii, self.boxv, self.rcut, ncellx_scale=self.ncellx_scale)
+            else:
+                self.conftest1 = CheckOverlapCartesian(self.red_radii, self.bdim)
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim = self.bdim,
                                           perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list)
+                                          collect_minima_list=collect_minima_list, use_periodic=self.use_periodic)
         self.hmin = hmin
         self.hmax = hmax
         self.binsize = binsize

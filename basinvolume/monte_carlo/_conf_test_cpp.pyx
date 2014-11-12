@@ -25,11 +25,12 @@ cdef class _Cdef_CheckHyperSphericalContainer(_Cdef_ConfTest):
 class CheckHyperSphericalContainer(_Cdef_CheckHyperSphericalContainer):
     """This class is the python interface for the c++ CheckHyperSphericalContainer implementation."""
 
+
 #===============================================================================
-# Check Overlap
+# Check Overlap Periodic
 #===============================================================================
 
-cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
+cdef class _Cdef_CheckOverlapPeriodic(_Cdef_ConfTest):
     """This class is the python interface for the c++ pele::CheckOverlap configuration test class implementation
     """
     #cdef cppCheckOverlap* newptr
@@ -48,7 +49,7 @@ cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
                 raise Exception("CheckOverlap: illegal boxdimension")
         #self.newptr = <cppCheckOverlap*> self.thisptr
         
-class CheckOverlap(_Cdef_CheckOverlap):
+class CheckOverlapPeriodic(_Cdef_CheckOverlapPeriodic):
     """This class is the python interface for the c++ CheckOverlap implementation."""
 
 # Check overlap cartesian
@@ -77,7 +78,7 @@ class CheckOverlapCartesian(_Cdef_CheckOverlapCartesian):
 
 # Check overlap cell lists
 
-cdef class _Cdef_CheckOverlapCellLists(_Cdef_ConfTest):
+cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
     """define the python interface to the c++ CheckOverlapCellLists implementation
     """
     def __cinit__(self, coords, hs_radii, boxvec, rcut, ncellx_scale=1.0):
@@ -99,7 +100,7 @@ cdef class _Cdef_CheckOverlapCellLists(_Cdef_ConfTest):
         else:
             raise Exception("CheckOverlapCellLists: illegal boxdimension")
 
-class CheckOverlapCellLists(_Cdef_CheckOverlapCellLists):
+class CheckOverlapPeriodicCellLists(_Cdef_CheckOverlapPeriodicCellLists):
     """This class is the python interface for the c++ CheckOverlapCellLists implementation."""
 
 #
@@ -130,6 +131,9 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
                 )
         else:
             raise Exception("illegal boxvector or boxdimension")
+
+class CheckOverlapCartesianCellLists(_Cdef_CheckOverlapCartesianCellLists):
+    """This class is the python interface for the c++ CheckOverlapCartesianCellLists implementation."""
         
 #===============================================================================
 # Check same minimum
@@ -144,7 +148,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     
     cdef cppCheckSameMinimum* newptr
     def __cinit__(self, opt, pot, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3, eqsteps=0, cbool perform_convergence_test=False, 
-                  cbool collect_minima_list=False):
+                  cbool collect_minima_list=False, cbool use_periodic=True):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
@@ -153,7 +157,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         self.potential = pot
         #print rattlers
         
-        if boxvec is None:
+        if boxvec is None or not use_periodic:
             if (bdim == 2):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
