@@ -12,6 +12,7 @@ def worker_kmin(fname, kwargs):
             print "found experimental packing"
             mcrunner = _kmin_exp_mcrunner(fname, **kwargs)
         else:
+            print "found numerical packing"
             mcrunner = _kmin_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:

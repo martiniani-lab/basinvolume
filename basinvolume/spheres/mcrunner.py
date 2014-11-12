@@ -482,7 +482,7 @@ class Findk_MCrunner(_BaseMCRunner):
             assert not use_periodic and frozen_atoms is not None
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         else:
-            red_coords = np.array(full_coords).copy()
+            red_coords = full_coords
         super(Findk_MCrunner,self).__init__(potential, red_coords, temperature, niter)
         
         self.boxv = boxv

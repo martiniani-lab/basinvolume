@@ -53,6 +53,7 @@ if __name__ == "__main__":
         print "found experimental packing"
         sim = configure_bv_exp_mcrunner()
     else:
+        print "found numerical packing"
         sim = configure_bv_mcrunner()
     
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
