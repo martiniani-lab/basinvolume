@@ -55,7 +55,7 @@ class _collect_u2_vs_k(object):
             self._compute_volume()
             self._import_time_series()
             self._plot_data()
-        except IOError as err:
+        except Exception as err:
             print err
         """
         Volume compuation based on ingregral approximation with kmax and displ_k0 
@@ -63,7 +63,7 @@ class _collect_u2_vs_k(object):
         try:
             self._compute_approx_volume()
             self._compute_PTu2k0_approx_volume()
-        except IOError as err:
+        except Exception as err:
             print err
         """
         Print basin volumes for further processing

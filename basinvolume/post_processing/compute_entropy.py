@@ -50,7 +50,7 @@ except ImportError as err:
                     
 class ComputeEntropy(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, 
-                 kmax_threshold = 1000, nr_volume_points=-1):
+                 kmax_threshold = 1000, nr_volume_points=-1, force_run=False):
         self.packings_dir = packings_dir
         self.output_path = os.path.join(self.packings_dir,'entropy_analysis_{}'.format('all' if nr_volume_points==-1 else str(nr_volume_points)))
         trymakedir(self.output_path)
@@ -61,6 +61,7 @@ class ComputeEntropy(object):
         self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error = self.max_relative_GL_error, kmax_threshold = self.kmax_threshold)
         self.volume_sanity_check = VolumeSanityCheck(self.packings_dir + "/packings/packings.config")
         self.explore_dirs = [self.packings_dir + "/" + f for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
+        self.force_run = force_run
         #self.explore_dirs = self.explore_dirs[:-1]
         if nr_volume_points != -1:
             print "removing volume points"
@@ -109,12 +110,19 @@ class ComputeEntropy(object):
         self.packing_stat = PackingFailureStatistics(len(self.explore_dirs))
         for (path, fname) in zip(self.explore_dirs, self.packing_strings):
             try:
-                sim(fname = fname, explore_dir = path, packings_dir = os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data = self.plot_ts_integrand_data)
-                volf = ConfigParser.ConfigParser()
-                volf.read(str(path + "/analysis/volume_data"))
-                F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
+                if not self.force_run and os.path.isfile(os.path.join(path,"analysis/volume_data")):
+                    try:
+                        volf = ConfigParser.ConfigParser()
+                        volf.read(str(path + "/analysis/volume_data"))
+                        F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
+                    except:
+                        sim(fname = fname, explore_dir = path, packings_dir = os.path.abspath(self.packings_dir + "/jammed_packings"), 
+                            plot_ts_integrand_data = self.plot_ts_integrand_data)
+                else:
+                    sim(fname = fname, explore_dir = path, packings_dir = os.path.abspath(self.packings_dir + "/jammed_packings"), 
+                            plot_ts_integrand_data = self.plot_ts_integrand_data)
                 #self.volume_sanity_check.check(F0, "F0", path)
-                self.packing_stat.add_success()
+                self.packing_stat.add_success() #consider success is already run
             except:
                 print "failed packing!"
                 print "name: ", fname
@@ -240,10 +248,11 @@ if __name__ == "__main__":
     # if the relative error of the GL integral over the PT data is estimatedto be larger than max_relative_GL_error, the approximated integral is used instead to compute F0
     parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default = 0.1, type = float, help = "parameter that selects between GL integral from PT data and approx integral")
     parser.add_argument("-kmax_threshold", "--kmax_threshold", default = 1000, type = float, help = "largest kmax value that is not considered to be huge")
+    parser.add_argument("--force", action='store_true', help="force to recompute volumes for already computed ones",default=False)
     args = parser.parse_args()
     packings_dir = os.path.abspath(args.packings_dir)
     ComputeEntropy(packings_dir, plot_ts_integrand_data = False, skip_volume_computation = args.plot_only, 
                    max_relative_GL_error = args.max_relative_GL_error, kmax_threshold = args.kmax_threshold,
-                   nr_volume_points=args.nr_vpoints)
+                   nr_volume_points=args.nr_vpoints, force_run=args.force)
     
     
