@@ -160,6 +160,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         #compute free volume
         vcavity = 0.
         vtot = 0.
+        assert(len(cells) == len(self.hs_radii))
         for i,cell in enumerate(cells):
             assert(cell['original'] == coords[i])
             vtot += cell['volume']

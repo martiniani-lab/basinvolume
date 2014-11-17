@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
+import pyvoro
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import trymakedir, volume_nball, get_git_version, get_cython_version
@@ -24,12 +25,11 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
-    def __init__(self, rattler_eval_tol=1.,packings_dir='packings', expand_sca=1.175):
-        super(HS_Exp_Generate_Jammed_Packing,self).__init__(packing_frac=0, packings_dir=packings_dir)                                                        
+    def __init__(self, packing_frac=0.65, rattler_eval_tol=1., packings_dir='packings'):
+        super(HS_Exp_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)                                                        
         
         ##constants#
         self.rattler_eval_tol = rattler_eval_tol
-        self.expand_sca = expand_sca
         ############
                 
     def _initialise(self):
@@ -46,6 +46,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #import configuration
         self._import_exp_packing_config_file(fname)
         self._import_packing_configuration(fname)
+        self._compute_sca()
                 
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii)*2*(1+self.sca) >= np.amin(self.boxv)/2:
@@ -57,7 +58,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #use_cell_lists=True, rcut=rcut, boxvec=self.boxv
         self.potential = HS_WCA(reference_coords=self.coords, eps=self.eps, sca=self.sca, 
                                 radii=self.hs_radii, use_frozen=True, frozen_atoms=self.frozen, 
-                                ndim=self.bdim)
+                                ndim=self.bdim, use_cell_lists=False, use_periodic=False)
         
         success = self._generate_packing_coords() #returns false if saddle
         
@@ -196,7 +197,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             dname = dname[:-5]
         self.configpath = os.path.join(self.packings_dir, dname+'.config')
         self._import_packing_config_file()
-        self.packing_frac = np.power(1+self.sca,self.bdim)*self.imp_packing_frac
+        #self.packing_frac = np.power(1+self.imp_sca,self.bdim)*self.imp_packing_frac
     
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
@@ -208,9 +209,65 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
-        self.sca = (configf.getfloat('PACKING','deflation') - 1)*self.expand_sca
+        self.imp_sca = (configf.getfloat('PACKING','deflation') - 1)
         self.mobile_particle_radius = configf.getfloat('EXPERIMENTAL_DATA_EXTRACTION','mobile_particle_radius')
         self.frozen_particle_radius = configf.getfloat('EXPERIMENTAL_DATA_EXTRACTION','mobile_particle_radius')
+    
+    def _compute_sca(self):
+        ##test##
+        vparticle = self._get_particles_volume()
+        vcavity = self._get_voronoi_mobile_area()
+        assert(0 < vparticle < vcavity)
+        phi = vparticle/vcavity
+        assert(phi - self.imp_packing_frac < 1e-4)
+        ##endtest##
+        ###r_soft = r_hs*(1+sca)
+        self.sca = np.power(self.packing_frac/self.imp_packing_frac,1./self.bdim) - 1
+    
+    def _get_particles_volume(self):
+        """returns volume of n=self.bdim dimensional sphere for mobile particles """
+        volume = 0.
+        for i in xrange(len(self.hs_radii)):
+            if i not in self.frozen:
+                volume += volume_nball(self.hs_radii[i],self.bdim)
+        return volume
+    
+    def _get_voronoi_mobile_area(self):
+        """
+        Voronoi tesselates the packing and adds up the areas of the mobile particles. This should
+        give some decent estimate of the volume fraction for the current packing
+        """
+        #get coordinates
+        coords = self.coords.reshape(-1,self.bdim).tolist()
+        #get box limits
+        limits = []
+        for i in xrange(self.bdim):
+            limits.append([-self.boxv[i]/2,self.boxv[i]/2])
+        #compute dispersion (max distance between two points that might be adjacent)
+        dispersion = np.amax(self.hs_radii) * 2
+        #get radii and compute mean and standard deviation
+        radii = self.hs_radii.tolist()
+        #tesselate packing
+        if self.bdim == 2:
+            cells = pyvoro.compute_2d_voronoi(coords,limits, dispersion, radii=radii)
+        elif self.bdim == 3:
+            cells = pyvoro.compute_voronoi(coords,limits, dispersion, radii=radii)
+        else:
+            raise NotImplementedError("pyvoro bdim={} not implemented".format(self.bdim))
+        assert(len(cells) == int(len(self.coords)/self.bdim))
+        #compute free volume
+        vcavity = 0.
+        vtot = 0.
+        assert(len(cells) == len(self.hs_radii))
+        for i,cell in enumerate(cells):
+            assert(cell['original'] == coords[i])
+            vtot += cell['volume']
+            if i not in self.frozen:
+                vcavity += cell['volume']
+        #test that sum of voronoi areas is within some precision from the exact area
+        assert(abs(vtot - np.product(self.boxv)) < 1e-3)
+        assert(0 < vcavity < vtot)
+        return vcavity
         
     def _dump_configuration(self,n):
         """write coordinates to file .xyzdr"""
@@ -321,12 +378,13 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
+    parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
     parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     args = parser.parse_args()
     print args
     
-    sim = HS_Exp_Generate_Jammed_Packing(rattler_eval_tol=args.etol, packings_dir=args.packingsdir)
+    sim = HS_Exp_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir)
     sim.run()
     
     
