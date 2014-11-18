@@ -184,11 +184,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         this function brings together all the functions necessary to attempt a configuration swap, it is structures as
         following:
         *root gathers the energies from the slaves
-        
+        *red_origin is just the origin for systems with pbc and is the reduced set of coordinates for systems with frozen coordinates 
         """
         #compute dx with com correction for each replica
         assert isinstance(self.mcrunner,BV_MCrunner)
-        dx = get_dist_com(np.array(self.config,dtype='d'),np.array(self.mcrunner.origin,dtype='d'),self.mcrunner.bdim)
+        dx = get_dist_com(np.array(self.config,dtype='d'),np.array(self.mcrunner.red_origin,dtype='d'),self.mcrunner.bdim)
         
         #gather dx, only root will do so
         dx_array = self._gather_energies(dx)
