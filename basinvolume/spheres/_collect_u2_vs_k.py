@@ -33,7 +33,7 @@ class _collect_u2_vs_k(object):
         self.explore_dir = explore_dir
         self.base_directory = self.explore_dir + '/' + base_dir
         
-        self.packing_configpath = os.path.join(packings_dir,'jammed_packings.config')
+        self.packing_configpath = os.path.join(packings_dir,'jammed_packing0.config')
         self.findk_configpath = os.path.join(self.explore_dir,'findk_'+fname+'.config')  
         self.kmin_configpath = os.path.join(self.explore_dir,'kmin_'+fname+'.config')
         
