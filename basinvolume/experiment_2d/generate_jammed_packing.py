@@ -100,8 +100,9 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _generate_packing_coords_iteration(self, tol=1e-9):
         """quenches the imported structure using FIRE"""
         redcoords = reduce_coordinates(self.coords, self.frozen, self.bdim)
+        red_radii = np.delete(self.hs_radii, self.frozen)
         assert(len(redcoords) == self.ndim)
-        maxstep = np.amin(self.hs_radii)
+        maxstep = np.amin(red_radii)
         res = modifiedfire_cpp(redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
         if not res.success:
             print 'quench failed'
@@ -119,7 +120,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #check that no particle has moved more than its own diameter
         dvec = np.power(new_redcoords - redcoords,2)
         for i in xrange(0,np.size(dvec), self.bdim):
-            if np.sqrt(np.sum(dvec[i:i+self.bdim])) > self.hs_radii[i]:
+            if np.sqrt(np.sum(dvec[i:i+self.bdim])) > red_radii[int(i/self.bdim)]:
                 print "quench rejected, particle has moved more than its own radius"
                 return False
         

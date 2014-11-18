@@ -47,7 +47,7 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
                     index = i
                     if verbose:
                         print "new rcontainer",rcontainer
-        rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
+        #rcontainer -= self.hs_radii[index] #subtract half radius of furthest most particle from rcontainer
         
         #set parameters
         #self.mc_params = dict(k=k, temperature=temperature, )

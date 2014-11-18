@@ -21,6 +21,7 @@ def worker_findk(fname, kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute kmax and minimum average displacement for kmin for all jammed packings")
     parser.add_argument("fname", type=str, help="packing file name")
+    parser.add_argument("-k","--kstart", type=float, help="initial guess for kmax, default: 500", default=500)
     parser.add_argument("-p","--packingsdir", type=str, help="protocol to generate packings, assume in cwd", default="jammed_packings")
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(),packings_dir)
     
-    findk_kwargs = dict(k=500, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
+    findk_kwargs = dict(k=args.kstart, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
                         knavg=2000, ktol=0.025, opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4,
                         packings_dir=packings_dir, use_cell_lists=args.nocell, verbose=args.verbose)
     

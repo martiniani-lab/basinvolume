@@ -44,7 +44,7 @@ class _findk_exp_mcrunner(_configure_mcrunner):
                     index = i
                     if verbose:
                         print "new rcontainer",rcontainer
-        rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
+        #rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
                     
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':self.eps,

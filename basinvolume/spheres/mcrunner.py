@@ -430,7 +430,7 @@ class BV_MCrunner(_BaseMCRunner):
             m['user_data'].update(k=self.k)
             if self.use_frozen:
                 redcoords = m['coords']
-                m['coords'] = full_coordinates(redcoords, self.origin, self.frozen, self.bdim)
+                m['coords'] = full_coordinates(redcoords, self.origin, self.frozen_atoms, self.bdim)
         assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
         print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)

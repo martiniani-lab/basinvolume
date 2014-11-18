@@ -326,7 +326,7 @@ if __name__ == "__main__":
     parser.add_argument('--frozen_shell_thickness',type=float, nargs='?', default=2, help='number of average particle diameters in frozen shell')
     parser.add_argument('--grid_version',type=int, nargs='?', default=0, help='selects type of grid for splitting')
     parser.add_argument('--all', action='store_true', default=False, help='extract maximum number of packings')
-    parser.add_argument("--datafname", type=str, default="PackingsData_", help="protocol to generate packings")
+    parser.add_argument("--datafname", type=str, default="PackingsData_", help="file name of experimental data")
     args = parser.parse_args()
     print args
         
