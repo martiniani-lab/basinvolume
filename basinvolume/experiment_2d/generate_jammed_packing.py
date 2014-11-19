@@ -219,6 +219,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         vparticle = self._get_particles_volume()
         vcavity = self._get_voronoi_mobile_area()
         assert(0 < vparticle < vcavity)
+        self.vcavity = vcavity
         phi = vparticle/vcavity
         assert(phi - self.imp_packing_frac < 1e-4)
         ##endtest##
@@ -319,6 +320,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         f.write('\n')
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
+        f.write('vcavity: {:.16f}\n'.format(self.vcavity))
         f.write('mobile_particle_radius: {}\n'.format(self.mobile_particle_radius))
         f.write('frozen_particle_radius: {}\n'.format(self.frozen_particle_radius))
         f.write('\n')
