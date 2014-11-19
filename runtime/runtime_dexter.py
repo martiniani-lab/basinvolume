@@ -20,6 +20,13 @@ def time_law(x, b, c):
     Will presumably fit OK; could be made more complicated.
     """
     return b * x ** c
+
+def time_law_linear(x, b, c):
+    """
+    There is no reason for a "c" here, but it could correct for
+    small-size effects.
+    """
+    return b * np.asarray(x) + c
     
 class MomentsInTime(object):
     def __init__(self):
@@ -72,16 +79,25 @@ class RuntimeData(object):
         plt.errorbar(self.N, self.time, fmt="o", yerr=self.time_std)
         plt.xlabel(r"Number of particles $N$")
         plt.ylabel(r"Runtime on dexter / seconds")
-        popt, pcov = curve_fit(time_law, self.N, self.time, sigma=self.time_std)
+        popt, pcov = curve_fit(time_law, self.N, self.time, [10000, 1], sigma=self.time_std)
+        popt_linear, pcov_linear = curve_fit(time_law_linear, self.N, self.time, [10000, 0], sigma=self.time_std)
         print "large-N exponent: N^", popt[1]
+        print "slope linear law:", popt_linear[0]
+        print "offset linear law:", popt_linear[1]
         xf = np.linspace(self.N[0], self.N[-1])
-        plt.plot(xf, time_law(xf, popt[0], popt[1]), "k")
+        plt.plot(xf, time_law(xf, popt[0], popt[1]), "k", label="Power law, no offset")
+        plt.plot(xf, time_law_linear(xf, popt_linear[0], popt_linear[1]), label="Linear law, with offset")
+        plt.legend(loc=2)
         save_pdf(plt, "runtime_scaling.pdf")
         print "prediced runtime for", N_new, "particles: "
-        new_seconds = time_law(N_new, popt[0], popt[1])
+        self.print_prediction("Power law", time_law(N_new, popt[0], popt[1]))
+        self.print_prediction("Linear law", time_law_linear(N_new, popt_linear[0], popt_linear[1]))
+    def print_prediction(self, name, new_seconds):
+        print "---begin prediction", name, "---"
         print new_seconds, "seconds"
         print "which is", new_seconds/60/60, "hours"
         print "or", new_seconds/60/60/24, "days"
+        print "---"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='basinvolume: runtime analysis')
