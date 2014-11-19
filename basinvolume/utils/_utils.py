@@ -370,8 +370,12 @@ class MomentsAcc(object):
         self.mean = (self.mean * self.count + inp) / (self.count + 1)
         self.mean2 = (self.mean2 * self.count + (inp * inp)) / (self.count + 1)
         self.count += 1
+    def get_mean(self):
+        return self.mean
     def get_variance(self):
         return self.mean2 - self.mean * self.mean
+    def get_std(self):
+        return np.sqrt(self.get_variance())
     def get_error(self):
         return np.sqrt(self.get_variance() / self.count)
     
