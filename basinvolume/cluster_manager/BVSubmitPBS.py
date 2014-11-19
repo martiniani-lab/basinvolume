@@ -270,7 +270,7 @@ if __name__ == "__main__":
     single_parser.add_argument("--nojmin", type=int, help="number of minimum job ID to submit (to selectively submit a range of jobs)",default=0)
     single_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
-    single_parser.add_argument("--exp", action='store_true', help="read experimental data format",default=True)
+    single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
     
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
@@ -287,13 +287,13 @@ if __name__ == "__main__":
     chain_parser.add_argument("--nojmin", type=int, help="number of minimum job ID to submit (to selectively submit a range of jobs)",default=0)
     chain_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
-    single_parser.add_argument("--exp", action='store_true', help="read experimental data format",default=True)
+    chain_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
     
     args = parser.parse_args()
     print args
         
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, 
-                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.exp)
+                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental)
        
     if args.mode == 'chain':
         bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores, 
