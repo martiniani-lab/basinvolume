@@ -25,7 +25,7 @@ class BVSubmitPBS(object):
     """
     def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
                  kmin_config='kmin_jammed_packing', pt_config='explore_jammed_packing', packing_naming='jammed_packing',
-                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False):
+                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, experimental=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -41,10 +41,17 @@ class BVSubmitPBS(object):
         self.nojmin = nojmin
         self.nojmax = nojmax
         self.nodays=nodays
+        self.experimental = experimental
         if ndim == 2:
-            self.ext = '.xydr'
+            if not self.experimental: 
+                self.ext = '.xydr'
+            else:
+                self.ext = '.xydfr'
         else:
-            self.ext = '.xyzdr'
+            if not self.experimental:
+                self.ext = '.xyzdr'
+            else:
+                self.ext = '.xyzdfr'
     
     def _check_kmax_config_file_ready(self, kmax_configpath):
         """
@@ -263,6 +270,7 @@ if __name__ == "__main__":
     single_parser.add_argument("--nojmin", type=int, help="number of minimum job ID to submit (to selectively submit a range of jobs)",default=0)
     single_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
+    single_parser.add_argument("--exp", action='store_true', help="read experimental data format",default=True)
     
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
@@ -279,11 +287,13 @@ if __name__ == "__main__":
     chain_parser.add_argument("--nojmin", type=int, help="number of minimum job ID to submit (to selectively submit a range of jobs)",default=0)
     chain_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
+    single_parser.add_argument("--exp", action='store_true', help="read experimental data format",default=True)
     
     args = parser.parse_args()
     print args
         
-    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, nojmax=args.nojmax, nodays=args.nodays)
+    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, 
+                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.exp)
        
     if args.mode == 'chain':
         bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores, 
