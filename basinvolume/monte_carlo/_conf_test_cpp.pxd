@@ -2,6 +2,7 @@ from libcpp cimport bool as cbool
 cimport pele.potentials._pele as _pele
 cimport pele.optimize._pele_opt as _pele_opt
 from mcpele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest,shared_ptr
+from ctypes import c_size_t as size_t
 
 cdef extern from "basinvolume/check_hyper_spherical_container.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
@@ -29,6 +30,16 @@ cdef extern from "basinvolume/check_overlap.h" namespace "bv":
         cppCheckOverlapCartesianCellLists(_pele.Array[double] coords,
         _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut,
         double ncellx_scale) except +
+    cdef cppclass cppCheckOverlapPeriodicFrozen "bv::CheckOverlapPeriodicFrozen"[ndim]:
+        cppCheckOverlapPeriodicFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except+
+    cdef cppclass cppCheckOverlapCartesianFrozen "bv::CheckOverlapCartesianFrozen"[ndim]:
+        cppCheckOverlapCartesianFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except + 
+    cdef cppclass cppCheckOverlapPeriodicCellListsFrozen "bv::CheckOverlapPeriodicCellListsFrozen"[ndim]:
+        cppCheckOverlapPeriodicCellListsFrozen(_pele.Array[double] reference_coords, _pele.Array[size_t] frozen_ndof,
+        _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut, double ncellx_scale) except +
+    cdef cppclass cppCheckOverlapCartesianCellListsFrozen "bv::CheckOverlapCartesianCellListsFrozen"[ndim]:
+        cppCheckOverlapCartesianCellListsFrozen(_pele.Array[double] reference_coords, _pele.Array[size_t] frozen_ndof,
+        _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut, double ncellx_scale) except +
 
 
 cdef extern from "basinvolume/minimum.h" namespace "bv":

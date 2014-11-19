@@ -76,23 +76,33 @@ class _configure_mcrunner(object):
         f.write('python_version: {}\n'.format(get_python_version()))
         f.write('cython_version: {}\n'.format(get_cython_version()))
     
-    def _requench_coords(self, dtol, opt_maxstep, verbose):
+    def _requench_coords(self, dtol, opt_maxstep, verbose, frozen=False):
         """re-quench origin to avoid rounding errors"""
-        pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, ndim=self.bdim, boxvec=self.boxv)
-        res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=1e-9)
+        if frozen:
+            pot_optimizer = HS_WCA(use_periodic=False, reference_coords=self.coords, eps=self.eps,
+                                   sca=self.sca, radii=self.hs_radii, use_frozen=True, 
+                                   frozen_atoms=self.frozen, ndim=self.bdim)
+            redcoords = reduce_coordinates(self.coords, self.frozen, self.bdim)
+            res = modifiedfire_cpp(redcoords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=1e-9)
+            new_coords = full_coordinates(res.coords, self.coords, self.frozen, self.bdim)
+        else:    
+            pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, 
+                                   ndim=self.bdim, boxvec=self.boxv)
+            res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=1e-9)
+            new_coords = res.coords
         if not res.success:
             assert(False)
         elif res.nfev > 1:
             warnings.warn('Configuration has moved on re-quenching, this should not happen')
              
-        drms= np.sqrt(np.dot(self.coords,self.coords)/self.ndim) - np.sqrt(np.dot(res.coords, res.coords)/self.ndim)
+        drms= np.sqrt(np.dot(self.coords - new_coords, self.coords - new_coords)/self.ndim)
         assert(drms <= dtol)
-        self.coords = res.coords
+        self.coords = new_coords
         
         if verbose:
             print 'results from quench \n'
             print res
-            hess = pot_optimizer.getHessian(self.coords)
+            hess = pot_optimizer.getHessian(res.coords)
             w, v = np.linalg.eig(hess)
             w = np.real(w)
             print 'eigenvalues'
@@ -102,18 +112,32 @@ class _configure_mcrunner(object):
     def _import_packing_config_files(self):
         """import packings configuration file"""
         
-    def _import_packing_configuration(self):
+    def _import_packing_configuration(self, frozen=False):
         """imports the coordinates, data relative to the shape of the particles and
         whether the particles are rattlers or not. Note that self.rattlers returned 
         here is of size self.ndim but in generate_jammed_packings is of size self.nparticles.
         This should be run in initialise()
         """
         path = os.path.join(self.packings_dir,self.fname)
-        if self.bdim == 2:
-            self.coords, hs_diameters, self.rattlers = read_xydr(path)
+        if frozen:
+            if self.bdim == 2:
+                self.coords, hs_diameters, self.frozen, self.rattlers = read_xydfr(path)
+            elif self.bdim == 3:
+                self.coords, hs_diameters, self.frozen, self.rattlers = read_xyzdfr(path)
+            else:
+                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            self.hs_radii = np.array(hs_diameters/2)
+            self.red_coords = reduce_coordinates(self.coords, self.frozen, self.bdim)
+            self.red_radii = np.delete(self.hs_radii.copy(), self.frozen)
+            self.red_rattlers = reduce_coordinates(self.rattlers, self.frozen, self.bdim)
         else:
-            self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
-        self.hs_radii = hs_diameters/2
+            if self.bdim == 2:
+                self.coords, hs_diameters, self.rattlers = read_xydr(path)
+            elif self.bdim == 3:
+                self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
+            else:
+                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            self.hs_radii = hs_diameters/2
                 
             
               

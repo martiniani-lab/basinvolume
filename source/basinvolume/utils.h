@@ -7,6 +7,7 @@
 #include <vector>
 #include "pele/array.h"
 #include "pele/distance.h"
+#include <fstream>
 
 using std::runtime_error;
 using pele::Array;
@@ -46,6 +47,14 @@ inline double get_distance_com(const pele::Array<double>& coords,
 
     double d = norm(distance);
     return d;
+}
+
+Array<double> cread_txt(const std::string fname){
+    std::ifstream input(fname,  std::ifstream::in);
+    std::vector<double> data;
+    double x;
+    while(input >> x){data.push_back(x);}
+    return Array<double>(data).copy();
 }
 
 }

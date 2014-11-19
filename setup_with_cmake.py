@@ -4,6 +4,7 @@ import sys
 import subprocess
 import shutil
 import argparse
+import shlex
 
 import numpy as np
 from distutils import sysconfig
@@ -34,17 +35,26 @@ except:
 # extract -c flag to set compiler
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("-j", type=int, default=4)
-parser.add_argument("-c", type=str, default="gnu")
+parser.add_argument("-c", "--compiler", type=str, default=None)
 jargs, remaining_args = parser.parse_known_args(sys.argv)
+
+# record c compiler choice. use unix (gcc) by default  
+# Add it back into remaining_args so distutils can see it also
+idcompiler = None
+if not jargs.compiler or jargs.compiler in ("unix", "gnu", "gcc"):
+    idcompiler = "unix"
+    remaining_args += ["-c", idcompiler]
+elif jargs.compiler in ("intel", "icc", "icpc"):
+    idcompiler = "intel"
+    remaining_args += ["-c", idcompiler]
+
+# set the remaining args back as sys.argv
 sys.argv = remaining_args
 print jargs, remaining_args
 if jargs.j is None:
     cmake_parallel_args = []
 else:
     cmake_parallel_args = ["-j" + str(jargs.j)]
-
-#record compiler choice
-idcompiler = jargs.c
 
 #extra compiler args
 cmake_compiler_extra_args=["-std=c++0x","-Wall", "-Wextra", "-pedantic", "-O3"]
@@ -153,6 +163,21 @@ cxx_files = ["basinvolume/monte_carlo/_conf_test_cpp.cxx",
              "basinvolume/utils/_utils_cpp.cxx",
              ]
 
+def get_ldflags(opt="--ldflags"):
+    """return the ldflags.  This was taken directly from python-config"""
+    getvar = sysconfig.get_config_var
+    pyver = sysconfig.get_config_var('VERSION')
+    libs = getvar('LIBS').split() + getvar('SYSLIBS').split()
+    libs.append('-lpython'+pyver)
+    # add the prefix/lib/pythonX.Y/config dir, but only if there is no
+    # shared library in prefix/lib/.
+    if opt == '--ldflags':
+        if not getvar('Py_ENABLE_SHARED'):
+            libs.insert(0, '-L' + getvar('LIBPL'))
+        if not getvar('PYTHONFRAMEWORK'):
+            libs.extend(getvar('LINKFORSHARED').split())
+    return ' '.join(libs)
+
 # create file CMakeLists.txt from CMakeLists.txt.in 
 with open("CMakeLists.txt.in", "r") as fin:
     cmake_txt = fin.read()
@@ -163,7 +188,10 @@ cmake_txt = cmake_txt.replace("__MCPELE_INCLUDE__", mcpelepath + "/source")
 python_includes = [sysconfig.get_python_inc(), 
                    sysconfig.get_python_inc(plat_specific=True)]
 cmake_txt = cmake_txt.replace("__PYTHON_INCLUDE__", " ".join(python_includes))
+if isinstance(numpy_include, basestring):
+    numpy_include = [numpy_include]
 cmake_txt = cmake_txt.replace("__NUMPY_INCLUDE__", " ".join(numpy_include))
+cmake_txt = cmake_txt.replace("__PYTHON_LDFLAGS__", get_ldflags())
 cmake_txt = cmake_txt.replace("__COMPILER_EXTRA_ARGS__", '\"{}\"'.format(" ".join(cmake_compiler_extra_args)))
 # Now we tell cmake which librarires to build 
 with open("CMakeLists.txt", "w") as fout:
@@ -173,25 +201,32 @@ with open("CMakeLists.txt", "w") as fout:
         fout.write("make_cython_lib(${CMAKE_SOURCE_DIR}/%s)\n" % fname)
 
 def set_compiler_env(compiler_id):
+    """
+    set environment variables for the C and C++ compiler:
+    set CC and CXX paths to `which` output because cmake
+    does not alway choose the right compiler
+    """
     env = os.environ.copy()
-    if compiler_id.lower() in ("gnu", "gcc", "g++"):
-        env["CC"] = "gcc"
-        env["CXX"] = "g++"
-    elif compiler_id.lower() in ("intel", "icc", "icpc"):
-        env["CC"] = "icc"
-        env["CXX"] = "icpc"
+    if compiler_id.lower() in ("unix"):
+        env["CC"] = subprocess.check_output(["which", "gcc"]).rstrip('\n')
+        env["CXX"] = subprocess.check_output(["which", "g++"]).rstrip('\n')
+    elif compiler_id.lower() in ("intel"):
+        env["CC"] = subprocess.check_output(["which", "icc"]).rstrip('\n')
+        env["CXX"] = subprocess.check_output(["which", "icpc"]).rstrip('\n')
     else:
         raise Exception("compiler_id not known")
-    return env
+    #this line only works is the build directory has been deleted
+    cmake_compiler_args =shlex.split("-D CMAKE_C_COMPILER={} -D CMAKE_CXX_COMPILER={}".format(env["CC"],env["CXX"]))
+    return env, cmake_compiler_args
 
-def run_cmake(compiler_id="GNU"):
+def run_cmake(compiler_id="unix"):
     if not os.path.isdir(cmake_build_dir):
         os.makedirs(cmake_build_dir)
     print "\nrunning cmake in directory", cmake_build_dir
     cwd = os.path.abspath(os.path.dirname(__file__))
-    env = set_compiler_env(compiler_id)
+    env, cmake_compiler_args = set_compiler_env(compiler_id)
     
-    p = subprocess.call(["cmake", cwd], cwd=cmake_build_dir, env=env)
+    p = subprocess.call(["cmake"] + cmake_compiler_args + [cwd], cwd=cmake_build_dir, env=env)
     if p != 0:
         raise Exception("running cmake failed")
     print "\nbuilding files in cmake directory"

@@ -9,9 +9,9 @@ from basinvolume.utils import *
 import ConfigParser
 import time
 
-class _kmin_mcrunner(_configure_mcrunner):
+class _kmin_exp_mcrunner(_configure_mcrunner):
     """
-    this is a class that implements a kmin_mcrunner class
+    this is an abstract class that implements the basic components of a k0_mcrunner class
     *nparticles: number of particles
     *bdim: dimensionality of the box
     *ndim: dimensionality of the problem (i.e. size of the coordinates array)
@@ -32,8 +32,21 @@ class _kmin_mcrunner(_configure_mcrunner):
         
         self._set_paths(packings_dir)
         self._import_packing_config_files()
-        self._import_packing_configuration()
+        self._import_packing_configuration(frozen=True)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
+        
+        #select rcontainer to correspond to frozen particle furthest away
+        rcontainer = 0
+        for i in xrange(len(self.hs_radii)):
+            r2=0
+            for j in xrange(self.bdim):
+                r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
+            if r2 > (rcontainer*rcontainer):
+                rcontainer = np.sqrt(r2)
+                index = i
+                if verbose:
+                    print "new rcontainer",rcontainer
+        #rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,
@@ -41,19 +54,19 @@ class _kmin_mcrunner(_configure_mcrunner):
                           'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
                           'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
-                          'single':single, 'use_cell_lists':use_cell_lists}
+                          'single':single, 'use_cell_lists':use_cell_lists, 'rcontainer':rcontainer}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
         except:
             print "WARNING:seeds not passed"
         
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, frozen=True)
         
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
+        potential = Harmonic(self.red_coords, k, bdim=self.bdim, com=True)
         self.mcrunner = BV_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
                                     self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, k=k, dtol=dtol, 
                                     eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize, acceptance=acceptance, 
@@ -61,7 +74,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
-                                    use_periodic=True, use_frozen=False) 
+                                    use_periodic=False, use_frozen=True, frozen_atoms=self.frozen, rcontainer=rcontainer) 
         
         self._initialise()
         
@@ -76,15 +89,15 @@ class _kmin_mcrunner(_configure_mcrunner):
     
     def _set_paths(self, packings_dir):
         dname = self.fname
-        if dname.endswith('.xyzdr'):
+        if dname.endswith('.xyzdfr'):
+            dname = dname[:-7]
+        elif dname.endswith('.xydfr'):
             dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
         self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
-        self.configpath = os.path.join(packings_dir,'jammed_packings.config')
+        self.configpath = os.path.join(packings_dir,'{}.config'.format(dname))
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
     
@@ -99,6 +112,8 @@ class _kmin_mcrunner(_configure_mcrunner):
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
+        self.mobile_particle_radius = configf.getfloat('JAMMED_PACKING','mobile_particle_radius')
+        self.frozen_particle_radius = configf.getfloat('JAMMED_PACKING','mobile_particle_radius')
     
     def _initialise(self):
         self._print_initialise()
@@ -150,7 +165,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing0.xydr', opt_tol=1e-7, seeds=seeds, single=True, use_cell_lists=True, verbose=True)
+    sim = _kmin_exp_mcrunner('jammed_packing1.xydfr', k=289.508273354, niter=5e4, opt_tol=1e-7, seeds=seeds, single=True, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time()
     sim.run()
@@ -160,7 +175,7 @@ if __name__ == "__main__":
     print status
     print 'd2 kmin: ',sim.displ_k_min
     print 'var: ',sim.var_displ_k_min
-    #sim.mcrunner.show_histogram()
+    sim.mcrunner.show_histogram()
     
     
         

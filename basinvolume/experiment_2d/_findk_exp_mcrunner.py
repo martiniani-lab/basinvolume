@@ -11,7 +11,7 @@ import ConfigParser
 import time
 import copy
 
-class _findk_mcrunner(_configure_mcrunner):
+class _findk_exp_mcrunner(_configure_mcrunner):
     """
     this is a class that implements configure_findk_mcrunner class,
     *k: harmonic spring constant
@@ -30,24 +30,37 @@ class _findk_mcrunner(_configure_mcrunner):
         
         self._set_paths(packings_dir)       
         self._import_packing_config_files()
-        self._import_packing_configuration()
+        self._import_packing_configuration(frozen=True)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
+        
+        #select rcontainer to correspond to frozen particle furthest away
+        rcontainer = 0
+        for i in xrange(len(self.hs_radii)):
+            r2=0
+            for j in xrange(self.bdim):
+                r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
+            if r2 > (rcontainer*rcontainer):
+                rcontainer = np.sqrt(r2)
+                index = i
+                if verbose:
+                    print "new rcontainer",rcontainer
+        #rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
                     
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':self.eps,
                           'ktarget':ktarget, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps, 'perform_convergence_test':perform_convergence_test, 
-                          'collect_minima_list':collect_minima_list}
+                          'collect_minima_list':collect_minima_list, 'rcontainer':rcontainer}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
         except:
             print "WARNING:seeds not passed"
         
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, frozen=True)
         
         #self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords,0,bdim=self.bdim,com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
+        potential = Harmonic(self.red_coords,0,bdim=self.bdim,com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
         #k is entirely controlled by the stepsize 
         stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation
         #stepsize = np.sqrt(self.ndim/k)  #####################
@@ -57,8 +70,8 @@ class _findk_mcrunner(_configure_mcrunner):
                                        dtol=dtol, eps=eps, ktarget=ktarget, knavg=knavg, ktol=ktol, 
                                        opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, 
                                        opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test, 
-                                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                                       use_periodic=True, use_frozen=False) 
+                                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists, 
+                                       use_periodic=False, use_frozen=True, frozen_atoms=self.frozen, rcontainer=rcontainer) 
         self._initialise()
     
     def run(self):
@@ -74,15 +87,15 @@ class _findk_mcrunner(_configure_mcrunner):
     
     def _set_paths(self, packings_dir):
         dname = self.fname
-        if dname.endswith('.xyzdr'):
+        if dname.endswith('.xyzdfr'):
+            dname = dname[:-7]
+        elif dname.endswith('.xydfr'):
             dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
         self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
-        self.configpath = os.path.join(packings_dir,'jammed_packings.config')
+        self.configpath = os.path.join(packings_dir,'{}.config'.format(dname))
         configfile = 'findk_' + dname 
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
     
@@ -97,6 +110,8 @@ class _findk_mcrunner(_configure_mcrunner):
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
+        self.mobile_particle_radius = configf.getfloat('JAMMED_PACKING','mobile_particle_radius')
+        self.frozen_particle_radius = configf.getfloat('JAMMED_PACKING','mobile_particle_radius')
     
     def _initialise(self):
         self._print_initialise()
@@ -147,7 +162,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing100.xyzdr', seeds=seeds, use_cell_lists=True, verbose=True)
+    sim = _findk_exp_mcrunner('jammed_packing1.xydfr', seeds=seeds, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time() 
     sim.run()

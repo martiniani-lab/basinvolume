@@ -235,16 +235,5 @@ public:
                 reference_coords, frozen_dof)
     {}
 };
-
-/**
- * Pairwise WCA potential with interaction lists
- */
-class HS_WCA_SmoothNeighborList : public pele::SimplePairwiseNeighborList< HS_WCA_Smooth_interaction > {
-public:
-    HS_WCA_SmoothNeighborList(pele::Array<long int> & ilist, double eps, double sca, pele::Array<double> radii)
-        :  pele::SimplePairwiseNeighborList< HS_WCA_Smooth_interaction > (
-                std::make_shared<HS_WCA_Smooth_interaction>(eps, sca, radii), ilist)
-    {}
-};
 }
 #endif

@@ -8,6 +8,9 @@ cimport numpy as np
 from pele.potentials import _pele
 from pele.storage import Database
 from pele.storage.database import Minimum
+from pele.potentials._pele cimport array_wrap_np
+from pele.potentials._pele cimport array_wrap_np_long, array_wrap_np_size_t
+from ctypes import c_size_t as size_t
     
 #===============================================================================
 # Check hyper spherical container
@@ -25,30 +28,46 @@ cdef class _Cdef_CheckHyperSphericalContainer(_Cdef_ConfTest):
 class CheckHyperSphericalContainer(_Cdef_CheckHyperSphericalContainer):
     """This class is the python interface for the c++ CheckHyperSphericalContainer implementation."""
 
+
 #===============================================================================
-# Check Overlap
+# Check Overlap Periodic
 #===============================================================================
 
-cdef class _Cdef_CheckOverlap(_Cdef_ConfTest):
+cdef class _Cdef_CheckOverlapPeriodic(_Cdef_ConfTest):
     """This class is the python interface for the c++ pele::CheckOverlap configuration test class implementation
     """
     #cdef cppCheckOverlap* newptr
-    def __cinit__(self, hs_radii, boxvec):
-        cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
-        cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
-        if (len(boxvec) == 2):
-            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT2](_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                             _pele.Array[double](<double*> bv.data, bv.size) )
-                                                   )
-        elif (len(boxvec) == 3):
-            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT3](_pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                             _pele.Array[double](<double*> bv.data, bv.size) )
-                                                   )
+    def __cinit__(self, hs_radii, boxvec, use_frozen=False, reference_coords=None, frozen_atoms=None):
+        cdef np.ndarray[size_t, ndim=1] frozen_dof
+        cdef size_t ndim = len(boxvec)
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
+        cdef _pele.Array[double] rc_
+        cdef _pele.Array[size_t] fd_ 
+        if not use_frozen:
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT2](rd_, bv_))
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT3](rd_, bv_))
+            else:
+                    raise Exception("CheckOverlap: illegal boxdimension")
         else:
-                raise Exception("CheckOverlap: illegal boxdimension")
+            assert reference_coords is not None and frozen_atoms is not None, " warning: initialising frozen particle conf test \
+                                                                                without frozen particles or reference coordinates"
+            frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
+            fd_ = array_wrap_np_size_t(frozen_dof)
+            rc_ = array_wrap_np(reference_coords)
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodicFrozen[INT2]
+                                                       (rd_, bv_, rc_, fd_))
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodicFrozen[INT3]
+                                                       (rd_, bv_, rc_, fd_))
+            else:
+                    raise Exception("CheckOverlap: illegal boxdimension")
         #self.newptr = <cppCheckOverlap*> self.thisptr
         
-class CheckOverlap(_Cdef_CheckOverlap):
+class CheckOverlapPeriodic(_Cdef_CheckOverlapPeriodic):
     """This class is the python interface for the c++ CheckOverlap implementation."""
 
 # Check overlap cartesian
@@ -57,18 +76,35 @@ cdef class _Cdef_CheckOverlapCartesian(_Cdef_ConfTest):
     """
     Python interface for c++ CheckOverlapCartesian
     """
-    def __cinit__(self, hs_radii, box_dimension):
-        cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
-        if (box_dimension == 2):
-            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
-                           cppCheckOverlapCartesian[INT2](_pele.Array[double](
-                           <double*> hs_radiic.data, hs_radiic.size))) 
-        elif (box_dimension == 3):
-            self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
-                           cppCheckOverlapCartesian[INT3](_pele.Array[double](
-                           <double*> hs_radiic.data, hs_radiic.size)))
+    def __cinit__(self, hs_radii, boxdim, use_frozen=False, reference_coords=None, frozen_atoms=None):
+        cdef np.ndarray[size_t, ndim=1] frozen_dof
+        cdef size_t ndim = boxdim
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] rc_
+        cdef _pele.Array[size_t] fd_
+        if not use_frozen:
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
+                               cppCheckOverlapCartesian[INT2](rd_)) 
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
+                               cppCheckOverlapCartesian[INT3](rd_))
+            else:
+                raise Exception("CheckOverlapCartesian: illegal box_dimension")
         else:
-            raise Exception("CheckOverlapCartesian: illegal box_dimension")
+            assert reference_coords is not None and frozen_atoms is not None, " warning: initialising frozen particle conf test \
+                                                                                without frozen particles or reference coordinates"
+            frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
+            fd_ = array_wrap_np_size_t(frozen_dof)
+            rc_ = array_wrap_np(reference_coords)
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapCartesianFrozen[INT2]
+                                                       (rd_, rc_, fd_))
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapCartesianFrozen[INT3]
+                                                       (rd_, rc_, fd_))
+            else:
+                    raise Exception("CheckOverlap: illegal boxdimension")
 
 class CheckOverlapCartesian(_Cdef_CheckOverlapCartesian):
     """
@@ -77,29 +113,40 @@ class CheckOverlapCartesian(_Cdef_CheckOverlapCartesian):
 
 # Check overlap cell lists
 
-cdef class _Cdef_CheckOverlapCellLists(_Cdef_ConfTest):
+cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
     """define the python interface to the c++ CheckOverlapCellLists implementation
     """
-    def __cinit__(self, coords, hs_radii, boxvec, rcut, ncellx_scale=1.0):
-        cdef np.ndarray[double, ndim=1] coordsc = np.array(coords, dtype=float)
-        cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
-        cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
-        if (len(boxvec) == 2):
-            self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT2](_pele.Array[double](<double*> coordsc.data, coordsc.size),
-                                                                                                             _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                                                                             _pele.Array[double](<double*> bv.data, bv.size),
-                                                                                                             rcut, ncellx_scale)                                  
-                                                                                                             ) 
-        elif (len(boxvec) == 3):
-            self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT3](_pele.Array[double](<double*> coordsc.data, coordsc.size),
-                                                                                                             _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                                                                             _pele.Array[double](<double*> bv.data, bv.size),
-                                                                                                             rcut, ncellx_scale)                                  
-                                                                                                             ) 
+    def __cinit__(self, reference_coords, hs_radii, boxvec, rcut, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None):
+        cdef np.ndarray[size_t, ndim=1] frozen_dof
+        cdef size_t ndim = len(boxvec)
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
+        cdef _pele.Array[double] rc_ = array_wrap_np(reference_coords)
+        cdef _pele.Array[size_t] fd_
+        
+        if not use_frozen:
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT2]
+                                                        (rc_, rd_, bv_, rcut, ncellx_scale)) 
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT3]
+                                                        (rc_, rd_, bv_, rcut, ncellx_scale)) 
+            else:
+                raise Exception("CheckOverlapCellLists: illegal boxdimension")
         else:
-            raise Exception("CheckOverlapCellLists: illegal boxdimension")
+            assert frozen_atoms is not None, " warning: initialising frozen particle conf test without frozen particles"
+            frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
+            fd_ = array_wrap_np_size_t(frozen_dof)
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellListsFrozen[INT2]
+                                                        (rc_, fd_, rd_, bv_, rcut, ncellx_scale)) 
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellListsFrozen[INT3]
+                                                        (rc_, fd_, rd_, bv_, rcut, ncellx_scale)) 
+            else:
+                raise Exception("CheckOverlapCellLists: illegal boxdimension")
 
-class CheckOverlapCellLists(_Cdef_CheckOverlapCellLists):
+class CheckOverlapPeriodicCellLists(_Cdef_CheckOverlapPeriodicCellLists):
     """This class is the python interface for the c++ CheckOverlapCellLists implementation."""
 
 #
@@ -110,26 +157,37 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
     """
     CheckOverlapCartesianCellLists
     """
-    def __cinit__(self, coords, hs_radii, boxvec, rcut, ncellx_scale=1.0):
-        cdef np.ndarray[double, ndim=1] coordsc = np.array(coords, dtype=float)
-        cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
-        cdef np.ndarray[double, ndim=1] bv = np.array(boxvec, dtype=float)
-        if len(boxvec) == 2:
-            self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new
-                cppCheckOverlapCartesianCellLists[INT2](_pele.Array[double](<double*> coordsc.data, coordsc.size),
-                                                                         _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                                         _pele.Array[double](<double*> bv.data, bv.size),
-                                                                         rcut, ncellx_scale)
-                )
-        elif len(boxvec) == 3:
-            self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new
-                cppCheckOverlapCartesianCellLists[INT3](_pele.Array[double](<double*> coordsc.data, coordsc.size),
-                                                                         _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),
-                                                                         _pele.Array[double](<double*> bv.data, bv.size),
-                                                                         rcut, ncellx_scale)
-                )
+    def __cinit__(self, reference_coords, hs_radii, boxvec, rcut, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None):
+        cdef np.ndarray[size_t, ndim=1] frozen_dof
+        cdef size_t ndim = len(boxvec)
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
+        cdef _pele.Array[double] rc_ = array_wrap_np(reference_coords)
+        cdef _pele.Array[size_t] fd_
+        if not use_frozen:
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellLists[INT2]
+                                                        (rc_, rd_, bv_, rcut, ncellx_scale)) 
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellLists[INT3]
+                                                        (rc_, rd_, bv_, rcut, ncellx_scale)) 
+            else:
+                raise Exception("CheckOverlapCellLists: illegal boxdimension")
         else:
-            raise Exception("illegal boxvector or boxdimension")
+            assert frozen_atoms is not None, " warning: initialising frozen particle conf test without frozen particles"
+            frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
+            fd_ = array_wrap_np_size_t(frozen_dof)
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellListsFrozen[INT2]
+                                                        (rc_, fd_, rd_, bv_, rcut, ncellx_scale)) 
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellListsFrozen[INT3]
+                                                        (rc_, fd_, rd_, bv_, rcut, ncellx_scale))
+            else:
+                raise Exception("CheckOverlapCellLists: illegal boxdimension")
+
+class CheckOverlapCartesianCellLists(_Cdef_CheckOverlapCartesianCellLists):
+    """This class is the python interface for the c++ CheckOverlapCartesianCellLists implementation."""
         
 #===============================================================================
 # Check same minimum
@@ -144,7 +202,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     
     cdef cppCheckSameMinimum* newptr
     def __cinit__(self, opt, pot, origin, hs_radii, rattlers, dtol, boxvec=None, bdim=3, eqsteps=0, cbool perform_convergence_test=False, 
-                  cbool collect_minima_list=False):
+                  cbool collect_minima_list=False, use_periodic=False):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] hs_radiic = np.array(hs_radii, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
@@ -153,7 +211,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         self.potential = pot
         #print rattlers
         
-        if boxvec is None:
+        if boxvec is None or not use_periodic:
             if (bdim == 2):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> hs_radiic.data, hs_radiic.size),

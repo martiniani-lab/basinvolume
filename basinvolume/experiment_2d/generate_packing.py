@@ -80,11 +80,15 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         if self.bdim == 2:
             for particle in zip(packing.x, packing.y):
                 self.coords.extend(particle)
-        else:
+        elif self.bdim == 3:
             packing.z -= np.mean(packing.z)
             for particle in zip(packing.x, packing.y, packing.z):
                 self.coords.extend(particle)
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.coords = np.array(self.coords)
+        #rescale box, radii and coordinates
+        self._rescale_packing()
         #raise warning if there's an overlap
         if not self._check_no_overlaps():
             return False
@@ -92,6 +96,14 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         self._set_packing_fraction()
         return True
     
+    def _rescale_packing(self):
+        rescale_factor = np.mean(self.hs_radii)
+        self.hs_radii /= rescale_factor #rescale radii so that mean radius is 1
+        self.coords /= rescale_factor #rescale coordinates accordingly to radii
+        self.boxv /= rescale_factor
+        self.mobile_particle_radius /= rescale_factor
+        self.frozen_particle_radius /= rescale_factor
+        
     def _find_one_small_packing(self, index):
         small_packing = self.all_particles.extract_small_packing(index)
         print("found packing %d of %d" % (self.iteration+1, self.max_iter))
@@ -143,11 +155,12 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         elif self.bdim == 3:
             cells = pyvoro.compute_voronoi(coords,limits, dispersion, radii=radii)
         else:
-            raise Exception('number of dimensions not allowed')
+            raise NotImplementedError("pyvoro bdim={} not implemented".format(self.bdim))
         assert(len(cells) == int(len(self.coords)/self.bdim))
         #compute free volume
         vcavity = 0.
         vtot = 0.
+        assert(len(cells) == len(self.hs_radii))
         for i,cell in enumerate(cells):
             assert(cell['original'] == coords[i])
             vtot += cell['volume']
@@ -215,12 +228,14 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
             for i in xrange(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                   self.hs_radii[i]*2, int(self.frozen_idx[i])))
-        else:
+        elif self.bdim == 3:
             fname = "{0}/packing{1}.xyzdf".format(directory,self.iteration)
             f = open(fname,'w')
             for i in xrange(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                coords[i*self.bdim+2],self.hs_radii[i]*2, int(self.frozen_idx[i])))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
     
     def _write_opengl_input(self):
@@ -245,7 +260,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
                 f.write('{}\t'.format(0))
                 f.write('{}\t'.format(self.hs_radii[i]*2))
                 f.write('{}\n'.format(colour-self.frozen_idx[i]))
-        else:
+        elif self.bdim == 3:
             f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2,-boxv[2]/2))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
@@ -255,6 +270,8 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(self.hs_radii[i]*2))
                 f.write('{}\n'.format(colour-self.frozen_idx[i]))
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
         
     def _print_parameters(self):
@@ -309,7 +326,7 @@ if __name__ == "__main__":
     parser.add_argument('--frozen_shell_thickness',type=float, nargs='?', default=2, help='number of average particle diameters in frozen shell')
     parser.add_argument('--grid_version',type=int, nargs='?', default=0, help='selects type of grid for splitting')
     parser.add_argument('--all', action='store_true', default=False, help='extract maximum number of packings')
-    parser.add_argument("--datafname", type=str, default="PackingsData_", help="protocol to generate packings")
+    parser.add_argument("--datafname", type=str, default="PackingsData_", help="file name of experimental data")
     args = parser.parse_args()
     print args
         

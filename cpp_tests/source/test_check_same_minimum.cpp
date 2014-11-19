@@ -143,4 +143,3 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     //check that stepsize of mc is correctly adapted to k as adjusted in findk
     EXPECT_NEAR_RELATIVE(static_cast<mcpele::GaussianCoordsDisplacement*>(mc.get_takestep().get())->get_stepsize(), 1/sqrt( std::static_pointer_cast<bv::Findk>(findk)->get_k() ), 1e-15);
 }
-

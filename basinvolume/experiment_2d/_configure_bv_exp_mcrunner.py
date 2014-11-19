@@ -10,7 +10,7 @@ import ConfigParser
 import time
 import cPickle as pickle
 
-class configure_bv_mcrunner(_configure_mcrunner):
+class configure_bv_exp_mcrunner(_configure_mcrunner):
     """
     this is an abstract class that implements the basic components of a configure bv_mcrunner class,
     and declares a number of abstract methods which should be implemented in all inheriting classes
@@ -32,10 +32,23 @@ class configure_bv_mcrunner(_configure_mcrunner):
         self.fname = fname
         self._set_paths(base_dir, packings_dir)
         self._import_packing_config_files()
-        self._import_packing_configuration()
+        self._import_packing_configuration(frozen=True)
         hbinsize = self._get_histogram_bin(k)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
-                
+        
+        #select rcontainer to correspond to frozen particle furthest away
+        rcontainer = 0
+        for i in xrange(len(self.hs_radii)):
+            r2=0
+            for j in xrange(self.bdim):
+                r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
+            if r2 > (rcontainer*rcontainer):
+                rcontainer = np.sqrt(r2)
+                index = i
+                if verbose:
+                    print "new rcontainer",rcontainer
+        #rcontainer -= self.hs_radii[index] #subtract half radius of furthest most particle from rcontainer
+        
         #set parameters
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.eps = eps
@@ -45,7 +58,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                           'ts_niter':ts_niter, 'ts_freq':ts_freq,'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,'perform_convergence_test':perform_convergence_test, 
                           'collect_minima_list':collect_minima_list, 'record_histogram':record_histogram,
-                          'single':single, 'use_cell_lists':use_cell_lists}
+                          'single':single, 'use_cell_lists':use_cell_lists, 'rcontainer':rcontainer}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -53,12 +66,12 @@ class configure_bv_mcrunner(_configure_mcrunner):
             print "WARNING:seeds not passed"
         
         self._initialise()
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, frozen=True)
         
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords, k, bdim=self.bdim,com=True)
+        potential = Harmonic(self.red_coords, k, bdim=self.bdim,com=True)
         mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
@@ -66,7 +79,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
                                opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                perform_convergence_test=perform_convergence_test, record_histogram=record_histogram, 
                                collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                               single=single, use_periodic=True, use_frozen=False)
+                               single=single, use_periodic=False, use_frozen=True, frozen_atoms=self.frozen, 
+                               rcontainer=rcontainer)
         
         return mcrunner 
     
@@ -75,10 +89,10 @@ class configure_bv_mcrunner(_configure_mcrunner):
         set base_directory, packings_directory and configpaths, configfile
         """
         dname = self.fname
-        if dname.endswith('.xyzdr'):
+        if dname.endswith('.xyzdfr'):
+            dname = dname[:-7]
+        elif dname.endswith('.xydfr'):
             dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
         
         if base_dir is None:
             base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
@@ -92,7 +106,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
         
-        self.packing_configpath = os.path.join(packings_dir,'jammed_packings.config')
+        self.packing_configpath = os.path.join(packings_dir,'{}.config'.format(dname))
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')  
         self.kmin_configpath = os.path.join(self.base_directory,'kmin_'+dname+'.config')
         self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
@@ -146,6 +160,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
+        self.mobile_particle_radius = configf.getfloat('JAMMED_PACKING','mobile_particle_radius')
+        self.frozen_particle_radius = configf.getfloat('JAMMED_PACKING','mobile_particle_radius')
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')
         self.prob_kmax = configf.getfloat('FINDK','prob')
@@ -161,8 +177,8 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = configure_bv_mcrunner()
-    mcrunner = sim('jammed_packing0.xyzdr', seeds=seeds, use_cell_lists=True, verbose=True)
+    sim = configure_bv_exp_mcrunner()
+    mcrunner = sim('jammed_packing0.xydfr', seeds=seeds, single=True, use_cell_lists=False, verbose=True)
     print 'simulation started'
     start=time.time()
     mcrunner.run()

@@ -78,13 +78,3 @@ cdef class HS_WCA_SmoothFrozen(BasePotential):
                                            _pele.Array[size_t](<size_t *> frozen_dof.data, frozen_dof.size) ) )
             else:
                 raise Exception("HS_WCA_SmoothFrozen: illegal ndim")
-
-cdef class HS_WCA_SmoothNeighborList(BasePotential):
-    """define the python interface to the c++ HS_WCA_Smooth implementation
-    """
-    def __cinit__(self, np.ndarray[long, ndim=1] ilist, eps, sca, np.ndarray[double, ndim=1] radii):
-        self.thisptr = shared_ptr[_pele.cBasePotential]( <_pele.cBasePotential*> new 
-             cHS_WCA_SmoothNeighborList( _pele.Array[long](<long*> ilist.data, <int> ilist.size), 
-                                  eps, sca, 
-                                  _pele.Array[double](<double*> radii.data, radii.size)) )
-
