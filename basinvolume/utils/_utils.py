@@ -204,6 +204,29 @@ def full_coordinates(reduced_list, old_full_list, indexes, bdim):
         newlist = np.insert(newlist, index*bdim, old_full_list[index*bdim:index*bdim+bdim])
     return np.array(newlist)
 
+def plot_disks(coords, radii, boxv, colors=None, sca=0):
+    import matplotlib 
+    from matplotlib.patches import Circle 
+    import pylab 
+    def myscatter(ax, colormap, x, y, radii, colors): 
+        for x1,y1,r,c in zip(x, y, radii, colormap(colors)): 
+            ax.add_patch(Circle((x1,y1), r, fc=c)) 
+    put_in_box(coords, boxv)
+    coords = np.reshape(coords, (len(radii),2))
+    fig=pylab.figure() 
+    ax=fig.add_subplot(111, aspect='equal') 
+    myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii*sca, np.ones(len(radii)))
+    myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii, np.ones(len(radii))*-1) 
+    ax.axis('equal')
+    if boxv is not None:
+        ax.axes.set_xlim([-boxv[0]/2,boxv[0]/2])
+        ax.axes.set_ylim([-boxv[1]/2,boxv[1]/2])
+        ax.plot([-boxv[0]/2, -boxv[0]/2], [-boxv[1]/2,boxv[1]/2], color='k', linestyle='-', linewidth=2)
+        ax.plot([boxv[0]/2, boxv[0]/2], [-boxv[1]/2,boxv[1]/2], color='k', linestyle='-', linewidth=2)
+        ax.plot([-boxv[0]/2, boxv[0]/2], [-boxv[1]/2,-boxv[1]/2], color='k', linestyle='-', linewidth=2)
+        ax.plot([-boxv[0]/2, boxv[0]/2], [boxv[1]/2,boxv[1]/2], color='k', linestyle='-', linewidth=2)
+    pylab.show()
+
 #
 # Make the git revision visible.  Most of this is copied from scipy
 # In turn, most of this is copied from pele.
