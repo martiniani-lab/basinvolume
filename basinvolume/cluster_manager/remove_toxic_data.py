@@ -44,20 +44,18 @@ class BVRemoveToxicData(object):
     
     def remove_kmax_toxic_data(self):
         self._find_kmax_toxic_data()
-        self._remove_toxic_data(self.kmax_toxic_list, self.kmax_config, output_signature="bv*kmax*.o*")
+        self._remove_toxic_data(self.kmax_toxic_list, self.kmax_config, output_signature="bv*kmax*.o*", pt=False)
     
     def remove_kmin_toxic_data(self):
         self._find_kmin_toxic_data()
-        self._remove_toxic_data(self.kmin_toxic_list, self.kmin_config, output_signature="bv*kmin*.o*")
+        self._remove_toxic_data(self.kmin_toxic_list, self.kmin_config, output_signature="bv*kmin*.o*", pt=False)
     
     def remove_pt_toxic_data(self):
         self._find_pt_toxic_data()
-        self._remove_toxic_data(self.pt_toxic_list, self.pt_config, output_signature="bv*pt*.o*")
+        self._remove_toxic_data(self.pt_toxic_list, self.pt_config, output_signature="bv*pt*.o*", pt=True)
     
     def _find_kmax_toxic_data(self):
         """
-        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
-        returns false if they are not
         """
         command = shlex.split("grep -r -i -l --include {}\*.config \"{}\" .".format(self.kmax_config, self.git_toxic_version))
         try:
@@ -70,8 +68,6 @@ class BVRemoveToxicData(object):
             
     def _find_kmin_toxic_data(self):
         """
-        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
-        returns false if they are not
         """
         command = shlex.split("grep -r -i -l --include {}\*.config \"{}\" .".format(self.kmin_config, self.git_toxic_version))
         try:
@@ -84,8 +80,6 @@ class BVRemoveToxicData(object):
     
     def _find_pt_toxic_data(self):
         """
-        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
-        returns false if they are not
         """
         command = shlex.split("grep -r -i -l --include {}\*.config \"{}\" .".format(self.pt_config, self.git_toxic_version))
         try:
@@ -96,26 +90,27 @@ class BVRemoveToxicData(object):
         except Exception,e:
             print "\n no pt data are toxic, \n",e
     
-    def _remove_toxic_data(self, toxic_list, config_fname, output_signature="bv\*kmax\*.o\*"):
+    def _remove_toxic_data(self, toxic_list, config_fname, output_signature="bv\*kmax\*.o\*", pt=False):
         subdirs = get_immediate_subdirectories(self.workdir)
         assert(self.structures_dir in subdirs)
         for toxic_folder in toxic_list:
             if self.explore_dir in toxic_folder:
                 toxic_dir_path = os.path.join(self.workdir, toxic_folder)
-                for root, dirs, files in os.walk(toxic_dir_path):
-                    for dir in dirs:
-                        if dir.isdigit():
-                            shutil.rmtree(os.path.join(root, dir))
-                    for file in files:
-                        if file in self.pt_output_files:
-                            os.remove(os.path.join(root, file))
-                    #remove pbs output
-                    p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(root, output_signature)))
-                    if p != 0:
-                        raise Exception("removing pbs output file failed")
-                    p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(root, config_fname+"*.config")))
-                    if p != 0:
-                        raise Exception("removing pbs output file failed")
+                if pt:
+                    for root, dirs, files in os.walk(toxic_dir_path):
+                        for dir in dirs:
+                            if dir.isdigit():
+                                shutil.rmtree(os.path.join(root, dir))
+                        for file in files:
+                            if file in self.pt_output_files:
+                                os.remove(os.path.join(root, file))
+                #remove config file and pbs output
+                p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(toxic_dir_path, output_signature)))
+                if p != 0:
+                    raise Exception("removing pbs output file failed")
+                p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(toxic_dir_path, config_fname+"*.config")))
+                if p != 0:
+                    raise Exception("removing pbs output file failed")
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
