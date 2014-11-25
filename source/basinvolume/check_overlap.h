@@ -147,8 +147,7 @@ public:
 template <size_t ndim>
 class CheckOverlapPeriodicCellLists : public CellListCheckOverlap< pele::periodic_distance<ndim> > {
 public:
-    CheckOverlapPeriodicCellLists(pele::Array<double> coords,
-            pele::Array<double> hs_radii, pele::Array<double> boxvec,
+    CheckOverlapPeriodicCellLists(pele::Array<double> hs_radii, pele::Array<double> boxvec,
             double rcut, double ncellx_scale=1.0)
     : CellListCheckOverlap< pele::periodic_distance<ndim> >(hs_radii,
             std::make_shared<pele::periodic_distance<ndim> >(boxvec),
@@ -172,8 +171,7 @@ public:
 template<size_t ndim>
 class CheckOverlapCartesianCellLists : public CellListCheckOverlap<pele::cartesian_distance<ndim> > {
 public:
-    CheckOverlapCartesianCellLists(pele::Array<double> coords,
-            pele::Array<double> hs_radii, pele::Array<double> boxvec,
+    CheckOverlapCartesianCellLists(pele::Array<double> hs_radii, pele::Array<double> boxvec,
             double rcut, double ncellx_scale=1.0)
         : CellListCheckOverlap<pele::cartesian_distance<ndim> >(hs_radii,
                 std::make_shared<pele::cartesian_distance<ndim> >(),
