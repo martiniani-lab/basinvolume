@@ -8,6 +8,9 @@ import numpy as np
 import argparse
 from basinvolume.cluster_manager import BuildPBSScript
 from basinvolume.utils import trymakedir
+import shutil
+import shlex
+import subprocess
 
 def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
@@ -42,6 +45,7 @@ class BVSubmitPBS(object):
         self.nojmax = nojmax
         self.nodays=nodays
         self.experimental = experimental
+        self.pt_output_files = ["exchanges","rem_permutations","temperatures"]
         if ndim == 2:
             if not self.experimental: 
                 self.ext = '.xydr'
@@ -67,9 +71,10 @@ class BVSubmitPBS(object):
             prob_kmax = configf.getfloat('FINDK','prob')
             displ_k_max = configf.getfloat('FINDK','displ_k_max')
             var_displ_k_max = configf.getfloat('FINDK','var_displ_k_max')
+            success = configf.getboolean('STATUS','success')
         except:
             return False
-        return True
+        return success
     
     def _check_kmin_config_file_ready(self, kmin_configpath):
         """
@@ -83,12 +88,51 @@ class BVSubmitPBS(object):
             configf.read(str(kmin_configpath))
             displ_k_min = configf.getfloat('KMIN','displ_k_min')
             var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')
+            success = configf.getboolean('STATUS','success')
         except:
             return False
+        return success
+    
+    def _check_pt_config_file_ready(self, pt_configpath):
+        """
+        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
+        returns false if they are not
+        """
+        if not self._check_config_file_exist(pt_configpath):
+            return False
+        configf = ConfigParser.ConfigParser()
+        try:
+            configf.read(str(pt_configpath))
+            success_dict = dict(configf.items('STATUS'))
+        except:
+            return False
+        for key, value in success_dict.iteritems():
+            if not (value == "True"):
+                return False
         return True
     
     def _check_config_file_exist(self, configpath):
         return os.path.isfile(configpath)
+    
+    def _remove_pbs_output(self, explore_dir_path, output_signature):
+        p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(explore_dir_path, 
+                                                                                                                output_signature)))
+        if p != 0:
+            raise Exception("removing pbs output file failed")
+    
+    def _remove_pt_old_data(self, explore_dir_path, config_fname, output_signature="bv*pt*.o*", pt=False):
+        for root, dirs, files in os.walk(explore_dir_path):
+            for dir in dirs:
+                if dir.isdigit():
+                    print "removing ", os.path.join(root,dir)
+                    shutil.rmtree(os.path.join(root, dir))
+            for file in files:
+                if file in self.pt_output_files:
+                    print "removing ", os.path.join(root,file)
+                    os.remove(os.path.join(root, file))
+        #remove config file and pbs output
+        self._remove_pbs_output(explore_dir_path, output_signature)
+        self._remove_pbs_output(explore_dir_path, config_fname+"*.config")
     
     def _get_findk_command(self, noj, path_to_script, script='bv_find_kmin.py'):
         """
@@ -99,7 +143,7 @@ class BVSubmitPBS(object):
         command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(findk_script, packing)
         return command
     
-    def submit_kmin_calculations(self, queue_type, nodes, cores, walltime, path_to_script):
+    def submit_kmin_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
         """
         launch kmin calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present, 
@@ -114,14 +158,17 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]                   #extract packing number
+                    noj = re.findall(r'\d+', file)[0]                       #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
                         if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
                             trymakedir(path)    
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
-                        if not self._check_kmin_config_file_ready(kmin_path):
+                        if not self._check_kmin_config_file_ready(kmin_path) or force:
+                            #########remove old pbs output#######
+                            self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
+                            #####################################
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
@@ -131,7 +178,7 @@ class BVSubmitPBS(object):
                             pass
                             
                     
-    def submit_kmax_calculations(self, queue_type, nodes, cores, walltime, path_to_script):
+    def submit_kmax_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
         """
         launch kmax calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present, 
@@ -146,14 +193,17 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]                   #extract packing number
+                    noj = re.findall(r'\d+', file)[0]                      #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
                         if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
                             trymakedir(path)
                         kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
-                        if not self._check_kmax_config_file_ready(kmax_path):
+                        if not self._check_kmax_config_file_ready(kmax_path) or force:
+                            #########remove old pbs output#######
+                            self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                            #####################################
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
@@ -172,7 +222,7 @@ class BVSubmitPBS(object):
         command = 'python {0} {1} ${{PBS_O_WORKDIR}}/{2}'.format(pt_script, packing, explore_dir)
         return command
     
-    def submit_pt_calculations(self, queue_type, nodes, cores, walltime, path_to_script):
+    def submit_pt_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
         """
         launch pt calculations manually if they have not been launched yet
         (this method only checks that the config files are not ready or present, 
@@ -190,9 +240,13 @@ class BVSubmitPBS(object):
                         kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                         pt_path = os.path.join(path, self.pt_config + noj + '.config')
-                        if self._check_kmax_config_file_ready(kmax_path) \
-                        and self._check_kmin_config_file_ready(kmin_path) \
-                        and not self._check_config_file_exist(pt_path):
+                        if (self._check_kmax_config_file_ready(kmax_path) \
+                        and self._check_kmin_config_file_ready(kmin_path)) \
+                        and (not self._check_pt_config_file_ready(pt_path) or force):
+                            #########remove old pt data#######
+                            self._remove_pt_old_data(dir, self.pt_config + noj,
+                                                     output_signature="bv_{}_pt{}.o*".format(self.label, noj))
+                            ##################################
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_pt_command(noj, path_to_script)
@@ -216,7 +270,7 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]                   #extract packing number
+                    noj = re.findall(r'\d+', file)[0]                       #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
@@ -225,27 +279,50 @@ class BVSubmitPBS(object):
                         kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                         pt_path = os.path.join(path, self.pt_config + noj + '.config')
-                        if (not self._check_kmax_config_file_ready(kmax_path) \
-                        or not self._check_kmin_config_file_ready(kmin_path)) \
-                        and not self._check_config_file_exist(pt_path):
+                        if not self._check_pt_config_file_ready(pt_path):
+                            #########remove old pt data#######
+                            self._remove_pt_old_data(explore_dir, self.pt_config + noj,
+                                                     output_signature="bv_{}_pt{}.o*".format(self.label, noj))
+                            ##################################
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             kmax_fname = 'bv_kmax'+noj+'.sh'
                             pt_fname = 'bv_pt'+noj+'.sh'
+                            kmax_ready = self._check_kmax_config_file_ready(kmax_path)
+                            kmin_ready = self._check_kmin_config_file_ready(kmin_path)
                             
+                            #prepare PT command
                             pt_command = self._get_pt_command(noj, path_to_script)
                             pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
-                            pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
-                            
-                            kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                            kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
-                            pbs.writePBSscript(kmax_fname, 'bv_'+self.label+'_kmax'+noj)
-                            
-                            kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
-                            kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmax_fname)
-                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
-                            pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                            #if kmin and kmax terminated
+                            if kmax_ready and kmin_ready:
+                                pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
+                            else:
+                                pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
+                                if not kmax_ready:
+                                    #########remove old pbs output#######
+                                    self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                    #####################################
+                                    kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
+                                    kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
+                                    pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
+                                    if kmin_ready:
+                                        pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
+                                    else:
+                                        #########remove old pbs output#######
+                                        self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
+                                        #####################################
+                                        pbs.writePBSscript(kmax_fname, 'bv_kmax'+self.label+'_kmax'+noj)
+                                        kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                                        kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmax_fname)
+                                        pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
+                                        pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                                else:
+                                    kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                                    kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
+                                    pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
+                                    pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                                    
                         else:
                             pass
     
@@ -271,6 +348,7 @@ if __name__ == "__main__":
     single_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
+    single_parser.add_argument("--force", action='store_true', help="force run",default=False)
     
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
@@ -291,7 +369,6 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     print args
-        
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, 
                         nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental)
        
@@ -302,9 +379,9 @@ if __name__ == "__main__":
     else:
         assert(not ((args.kmin is True or args.kmax is True) and args.pt is True))
         if args.kmin:
-            bvpbs.submit_kmin_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script)
+            bvpbs.submit_kmin_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script, args.force)
         if args.kmax:
-            bvpbs.submit_kmax_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script)
+            bvpbs.submit_kmax_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script, args.force)
         if args.pt:
-            bvpbs.submit_pt_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script)
+            bvpbs.submit_pt_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script, args.force)
         
