@@ -30,11 +30,23 @@ public:
     }
 };
 
-TEST_F(CheckOverlapTest, Works){
+TEST_F(CheckOverlapTest, Works)
+{
     bv::CheckOverlapPeriodic<nr_dim> check_overlap(hs_radii, boxvec);
     EXPECT_TRUE(check_overlap.conf_test(x, NULL));
     EXPECT_FALSE(check_overlap.conf_test(x_overlap, NULL));
     bv::CheckOverlapCartesian<nr_dim> check_overlap_non_periodic(hs_radii);
+    EXPECT_TRUE(check_overlap_non_periodic.conf_test(x, NULL));
+    EXPECT_FALSE(check_overlap_non_periodic.conf_test(x_overlap, NULL));
+}
+
+TEST_F(CheckOverlapTest, CellLists_Works)
+{
+    const double rcut = 2 * hs_radii.get_max();
+    bv::CheckOverlapPeriodicCellLists<nr_dim> check_overlap(hs_radii, boxvec, rcut, 1e-3);
+    EXPECT_TRUE(check_overlap.conf_test(x, NULL));
+    EXPECT_FALSE(check_overlap.conf_test(x_overlap, NULL));
+    bv::CheckOverlapCartesianCellLists<nr_dim> check_overlap_non_periodic(hs_radii, boxvec, rcut, 1e-3);
     EXPECT_TRUE(check_overlap_non_periodic.conf_test(x, NULL));
     EXPECT_FALSE(check_overlap_non_periodic.conf_test(x_overlap, NULL));
 }
