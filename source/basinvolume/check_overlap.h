@@ -162,7 +162,7 @@ public:
             pele::Array<size_t>& frozen_dof, pele::Array<double> hs_radii,
             pele::Array<double> boxvec, double rcut, double ncellx_scale=1.0)
         : ConfTestFrozenWrapper< CheckOverlapPeriodicCellLists<ndim> > (
-                std::make_shared<CheckOverlapPeriodicCellLists<ndim> >(reference_coords,
+                std::make_shared<CheckOverlapPeriodicCellLists<ndim> >(
                         hs_radii, boxvec, rcut, ncellx_scale),
                         reference_coords.copy(), frozen_dof.copy())
     {}
@@ -186,7 +186,7 @@ public:
             pele::Array<size_t>& frozen_dof, pele::Array<double> hs_radii,
             pele::Array<double> boxvec, double rcut, double ncellx_scale=1.0)
         : ConfTestFrozenWrapper< CheckOverlapCartesianCellLists<ndim> > (
-                std::make_shared<CheckOverlapCartesianCellLists<ndim> >(reference_coords,
+                std::make_shared<CheckOverlapCartesianCellLists<ndim> >(
                         hs_radii, boxvec, rcut, ncellx_scale),
                         reference_coords.copy(), frozen_dof.copy())
     {}
