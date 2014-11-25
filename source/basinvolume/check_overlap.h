@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 
 #include "pele/array.h"
@@ -44,12 +45,7 @@ public:
             for (size_t j = i + 1; j < m_nparticles; ++j) {
                 const size_t j1 = m_ndim * j;
                 m_periodic_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
-                ////////////////////
-                double dij2 = 0;
-                for (size_t k = 0; k < m_ndim; ++k) {
-                    dij2 += dr[k] * dr[k];
-                }
-                ////////////////////
+                const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
                 const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
                 if (dij2 < tmp * tmp) {
                     return false;
@@ -138,12 +134,7 @@ public:
             const size_t xj_off = m_ndim * j;
             double dr[m_ndim];
             m_periodic_dist->get_rij(dr, x + xi_off, x + xj_off);
-            double dij2 = 0;
-            ///////////////////
-            for (size_t k = 0; k < m_ndim; ++k) {
-                dij2 += dr[k] * dr[k];
-            }
-            //////////////////////
+            const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
             const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
             if (dij2 < tmp * tmp) {
                 return false;
