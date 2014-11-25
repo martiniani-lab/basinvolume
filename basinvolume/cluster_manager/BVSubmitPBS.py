@@ -67,9 +67,10 @@ class BVSubmitPBS(object):
             prob_kmax = configf.getfloat('FINDK','prob')
             displ_k_max = configf.getfloat('FINDK','displ_k_max')
             var_displ_k_max = configf.getfloat('FINDK','var_displ_k_max')
+            success = configf.getfloat('STATUS','success')
         except:
             return False
-        return True
+        return success
     
     def _check_kmin_config_file_ready(self, kmin_configpath):
         """
@@ -77,6 +78,23 @@ class BVSubmitPBS(object):
         returns false if they are not
         """
         if not self._check_config_file_exist(kmin_configpath):
+            return False
+        configf = ConfigParser.ConfigParser()
+        try:
+            configf.read(str(kmin_configpath))
+            displ_k_min = configf.getfloat('KMIN','displ_k_min')
+            var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')
+            success = configf.getfloat('STATUS','success')
+        except:
+            return False
+        return success
+    
+    def _check_pt_config_file_ready(self, pt_configpath):
+        """
+        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
+        returns false if they are not
+        """
+        if not self._check_config_file_exist(pt_configpath):
             return False
         configf = ConfigParser.ConfigParser()
         try:
@@ -146,7 +164,7 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]                   #extract packing number
+                    noj = re.findall(r'\d+', file)[0]                      #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir

@@ -21,7 +21,10 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
     *boxv: an array of size bdim that contains the vectors defining the box
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     """
-        
+    
+    def __init__(self, nprocs):
+        self.nprocs = nprocs
+       
     def __call__(self, fname, k=1.0, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=None, 
@@ -148,6 +151,9 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         f.write('[MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value))
+        f.write('[STATUS]\n')
+        for i in xrange(self.nprocs):
+            f.write('success_rank{}: {}\n'.format(str(i), "False"))
     
     def _import_packing_config_files(self):
         configf = ConfigParser.ConfigParser()
@@ -170,6 +176,15 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat('KMIN','displ_k_min')
         self.var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')
+    
+    def print_success(self, rank, success):
+        """
+        print whether calculation has completed successfully
+        """
+        assert(hasattr(self, 'configfile'))
+        configf = ConfigParser.ConfigParser()
+        configf.read(str(self.packing_configpath))
+        configf.set("STATUS", "success_rank{}".format(rank), success)
     
 if __name__ == "__main__":
         

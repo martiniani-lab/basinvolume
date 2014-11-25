@@ -4,7 +4,8 @@ import argparse
 from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
 from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 import time
-            
+from mpi4py import MPI
+
 if __name__ == "__main__":
     """
     set Tmax to k_max
@@ -49,32 +50,49 @@ if __name__ == "__main__":
     print seeds
     
     assert(ts_freq == 1) #must be 1 with current output implementation (all based on timeseries)
+    
+    #prepare MC runner
+    comm = MPI.COMM_WORLD   
+    nprocs = comm.Get_size()
+    rank = comm.Get_rank()
     if ".xydfr" in fname or ".xyzdfr" in fname:
         print "found experimental packing"
-        sim = configure_bv_exp_mcrunner()
+        sim = configure_bv_exp_mcrunner(nprocs)
     else:
         print "found numerical packing"
-        sim = configure_bv_mcrunner()
+        sim = configure_bv_mcrunner(nprocs)
     
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
                  pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, 
                  perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
                  seeds=seeds, use_cell_lists=args.nocell, single=single, record_histogram=record_histogram)
+    
+    #prepare PT runner
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
-        
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip,
                                      test_convergence=test_convergence_ts, rel_std_err=rel_std_err, 
                                      base_directory=path, verbose=args.verbose)
+    assert ptrunner.rank == rank, "rank id do not match"
+    assert ptrunner.nproc == nprocs, "number of cores do not match"
+    
+    #run simulation
     start=time.time()
-    ptrunner.run()
-    if collect_minima_list:
-        mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(ptrunner.rank))
+    try:
+        ptrunner.run()
+        if collect_minima_list:
+            mcrunner.dump_minima_list('{}/minima_list.sqlite'.format())
+        sim.print_success(rank, True)
+    except Exception,e:
+        print e
+        sim.print_success(rank, False)
     end=time.time()
-    print 'tot_niter: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(tot_niter, ptiter, niter, adjustf_niter, nskip, pfreq)
+    print 'core: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(rank, mcrunner.niter, 
+                                                                                       ptrunner.ptiter, mcrunner.adjustf_niter, 
+                                                                                       ptrunner.nskip, ptrunner.pfreq)
     print 'elapsed time',end-start
     
     
