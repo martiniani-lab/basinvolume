@@ -152,7 +152,7 @@ public:
             double rcut, double ncellx_scale=1.0)
     : CellListCheckOverlap< pele::periodic_distance<ndim> >(hs_radii,
             std::make_shared<pele::periodic_distance<ndim> >(boxvec),
-            std::make_shared<pele::CellIter<pele::periodic_distance<ndim> > >(coords, std::make_shared<pele::periodic_distance<ndim> >(boxvec), boxvec, rcut, ncellx_scale))
+            std::make_shared<pele::CellIter<pele::periodic_distance<ndim> > >(std::make_shared<pele::periodic_distance<ndim> >(boxvec), boxvec, rcut, ncellx_scale))
     {}
 };
 
@@ -177,7 +177,7 @@ public:
             double rcut, double ncellx_scale=1.0)
         : CellListCheckOverlap<pele::cartesian_distance<ndim> >(hs_radii,
                 std::make_shared<pele::cartesian_distance<ndim> >(),
-                std::make_shared<pele::CellIter<pele::cartesian_distance<ndim> > >(coords, std::make_shared<pele::cartesian_distance<ndim> >(), boxvec, rcut, ncellx_scale))
+                std::make_shared<pele::CellIter<pele::cartesian_distance<ndim> > >(std::make_shared<pele::cartesian_distance<ndim> >(), boxvec, rcut, ncellx_scale))
     {}
 };
 
