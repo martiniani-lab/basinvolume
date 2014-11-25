@@ -25,7 +25,7 @@ class BVSubmitPBS(object):
     """
     def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
                  kmin_config='kmin_jammed_packing', pt_config='explore_jammed_packing', packing_naming='jammed_packing',
-                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, experimental=False):
+                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, experimental=False, force=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -42,6 +42,7 @@ class BVSubmitPBS(object):
         self.nojmax = nojmax
         self.nodays=nodays
         self.experimental = experimental
+        self.force = force
         if ndim == 2:
             if not self.experimental: 
                 self.ext = '.xydr'
@@ -141,7 +142,7 @@ class BVSubmitPBS(object):
                         if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
                             trymakedir(path)    
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
-                        if not self._check_kmin_config_file_ready(kmin_path):
+                        if not self._check_kmin_config_file_ready(kmin_path) or self.force:
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
@@ -173,7 +174,7 @@ class BVSubmitPBS(object):
                         if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
                             trymakedir(path)
                         kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
-                        if not self._check_kmax_config_file_ready(kmax_path):
+                        if not self._check_kmax_config_file_ready(kmax_path) or self.force:
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
@@ -210,9 +211,9 @@ class BVSubmitPBS(object):
                         kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                         pt_path = os.path.join(path, self.pt_config + noj + '.config')
-                        if self._check_kmax_config_file_ready(kmax_path) \
-                        and self._check_kmin_config_file_ready(kmin_path) \
-                        and not self._check_pt_config_file_ready(pt_path):
+                        if (self._check_kmax_config_file_ready(kmax_path) \
+                        and self._check_kmin_config_file_ready(kmin_path)) \
+                        and (not self._check_pt_config_file_ready(pt_path) or self.force):
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_pt_command(noj, path_to_script)
@@ -304,6 +305,7 @@ if __name__ == "__main__":
     single_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
+    single_parser.add_argument("--force", action='store_true', help="force run",default=False)
     
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
@@ -326,7 +328,7 @@ if __name__ == "__main__":
     print args
         
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, 
-                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental)
+                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, force=args.force)
        
     if args.mode == 'chain':
         bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores, 
