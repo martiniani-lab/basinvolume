@@ -22,7 +22,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     """
     
-    def __init__(self, nprocs):
+    def __init__(self, rank, nprocs):
+        self.rank = rank
         self.nprocs = nprocs
     
     def __call__(self, fname, k=1.0, temperature=1.0, stepsize=1e-1, niter=2e4, dtol=1e-4, eps=1., hmin=0, 
@@ -115,7 +116,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        self._print_parameters()
+        if self.rank == 0:
+            self._print_parameters()
     
     def _write_sim_params(self, f):
         """
@@ -161,15 +163,17 @@ class configure_bv_mcrunner(_configure_mcrunner):
         self.displ_k_min = configf.getfloat('KMIN','displ_k_min')
         self.var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')
     
-    def print_success(self, rank, success):
+    def print_success_all(self, success):
         """
         print whether calculation has completed successfully
         """
         assert(hasattr(self, 'configfile'))
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(self.packing_configpath))
-        configf.set("STATUS", "success_rank{}".format(rank), success)
-        
+        if self.rank == 0:
+            configf = ConfigParser.ConfigParser()
+            configf.read(str(self.configfile))
+            for i in xrange(self.nprocs):
+                configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
+            configf.write(open(str(self.configfile),'w'))        
     
 if __name__ == "__main__":
         

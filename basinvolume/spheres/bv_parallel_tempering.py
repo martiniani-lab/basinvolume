@@ -57,10 +57,10 @@ if __name__ == "__main__":
     rank = comm.Get_rank()
     if ".xydfr" in fname or ".xyzdfr" in fname:
         print "found experimental packing"
-        sim = configure_bv_exp_mcrunner(nprocs)
+        sim = configure_bv_exp_mcrunner(rank, nprocs)
     else:
         print "found numerical packing"
-        sim = configure_bv_mcrunner(nprocs)
+        sim = configure_bv_mcrunner(rank, nprocs)
     
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
                  hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
@@ -85,10 +85,10 @@ if __name__ == "__main__":
         ptrunner.run()
         if collect_minima_list:
             mcrunner.dump_minima_list('{}/minima_list.sqlite'.format())
-        sim.print_success(rank, True)
+        sim.print_success_all(True)
     except Exception,e:
         print e
-        sim.print_success(rank, False)
+        sim.print_success_all(False)
     end=time.time()
     print 'core: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(rank, mcrunner.niter, 
                                                                                        ptrunner.ptiter, mcrunner.adjustf_niter, 

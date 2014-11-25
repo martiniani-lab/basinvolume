@@ -67,7 +67,7 @@ class BVSubmitPBS(object):
             prob_kmax = configf.getfloat('FINDK','prob')
             displ_k_max = configf.getfloat('FINDK','displ_k_max')
             var_displ_k_max = configf.getfloat('FINDK','var_displ_k_max')
-            success = configf.getfloat('STATUS','success')
+            success = configf.getboolean('STATUS','success')
         except:
             return False
         return success
@@ -84,7 +84,7 @@ class BVSubmitPBS(object):
             configf.read(str(kmin_configpath))
             displ_k_min = configf.getfloat('KMIN','displ_k_min')
             var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')
-            success = configf.getfloat('STATUS','success')
+            success = configf.getboolean('STATUS','success')
         except:
             return False
         return success
@@ -98,9 +98,11 @@ class BVSubmitPBS(object):
             return False
         configf = ConfigParser.ConfigParser()
         try:
-            configf.read(str(kmin_configpath))
-            displ_k_min = configf.getfloat('KMIN','displ_k_min')
-            var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')
+            configf.read(str(pt_configpath))
+            succes_dict = dict(configf.items('STATUS'))
+            for key, value in self.succes_dict.iteritems() :
+                if not value:
+                    return False
         except:
             return False
         return True
@@ -132,7 +134,7 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]                   #extract packing number
+                    noj = re.findall(r'\d+', file)[0]                       #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
@@ -210,7 +212,7 @@ class BVSubmitPBS(object):
                         pt_path = os.path.join(path, self.pt_config + noj + '.config')
                         if self._check_kmax_config_file_ready(kmax_path) \
                         and self._check_kmin_config_file_ready(kmin_path) \
-                        and not self._check_config_file_exist(pt_path):
+                        and not self._check_pt_config_file_ready(pt_path):
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_pt_command(noj, path_to_script)
@@ -234,7 +236,7 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]                   #extract packing number
+                    noj = re.findall(r'\d+', file)[0]                       #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
                         path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
@@ -243,27 +245,40 @@ class BVSubmitPBS(object):
                         kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                         pt_path = os.path.join(path, self.pt_config + noj + '.config')
-                        if (not self._check_kmax_config_file_ready(kmax_path) \
-                        or not self._check_kmin_config_file_ready(kmin_path)) \
-                        and not self._check_config_file_exist(pt_path):
+                        if not self._check_pt_config_file_ready(pt_path):
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             kmax_fname = 'bv_kmax'+noj+'.sh'
                             pt_fname = 'bv_pt'+noj+'.sh'
+                            kmax_ready = self._check_kmax_config_file_ready(kmax_path)
+                            kmin_ready = self._check_kmin_config_file_ready(kmin_path)
                             
+                            #prepare PT command
                             pt_command = self._get_pt_command(noj, path_to_script)
                             pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
-                            pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
-                            
-                            kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                            kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
-                            pbs.writePBSscript(kmax_fname, 'bv_'+self.label+'_kmax'+noj)
-                            
-                            kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
-                            kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmax_fname)
-                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
-                            pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                            #if kmin and kmax terminated
+                            if kmax_ready and kmin_ready:
+                                pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
+                            else:
+                                pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
+                                if not kmax_ready:
+                                    kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
+                                    kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
+                                    pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
+                                    if kmin_ready:
+                                        pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
+                                    else:
+                                        pbs.writePBSscript(kmax_fname, 'bv_kmax'+self.label+'_kmax'+noj)
+                                        kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                                        kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmax_fname)
+                                        pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
+                                        pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                                else:
+                                    kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                                    kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
+                                    pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
+                                    pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                                    
                         else:
                             pass
     
