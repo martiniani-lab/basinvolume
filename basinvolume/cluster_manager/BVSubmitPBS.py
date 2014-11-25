@@ -8,6 +8,9 @@ import numpy as np
 import argparse
 from basinvolume.cluster_manager import BuildPBSScript
 from basinvolume.utils import trymakedir
+import shutil
+import shlex
+import subprocess
 
 def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
@@ -43,6 +46,7 @@ class BVSubmitPBS(object):
         self.nodays=nodays
         self.experimental = experimental
         self.force = force
+        self.pt_output_files = ["exchanges","rem_permutations","temperatures"]
         if ndim == 2:
             if not self.experimental: 
                 self.ext = '.xydr'
@@ -111,6 +115,24 @@ class BVSubmitPBS(object):
     def _check_config_file_exist(self, configpath):
         return os.path.isfile(configpath)
     
+    def _remove_pbs_output(self, explore_dir_path, output_signature):
+        p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(explore_dir_path, 
+                                                                                                                output_signature)))
+        if p != 0:
+            raise Exception("removing pbs output file failed")
+    
+    def _remove_pt_old_data(self, explore_dir_path, config_fname, output_signature="bv*pt*.o*", pt=False):
+        for root, dirs, files in os.walk(explore_dir_path):
+            for dir in dirs:
+                if dir.isdigit():
+                    shutil.rmtree(os.path.join(root, dir))
+            for file in files:
+                if file in self.pt_output_files:
+                    os.remove(os.path.join(root, file))
+        #remove config file and pbs output
+        self._remove_pbs_output(output_signature)
+        self._remove_pbs_output(config_fname+"*.config")
+    
     def _get_findk_command(self, noj, path_to_script, script='bv_find_kmin.py'):
         """
         this function returns the correct command line
@@ -143,6 +165,9 @@ class BVSubmitPBS(object):
                             trymakedir(path)    
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                         if not self._check_kmin_config_file_ready(kmin_path) or self.force:
+                            #########remove old pbs output#######
+                            self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
+                            #####################################
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
@@ -175,6 +200,9 @@ class BVSubmitPBS(object):
                             trymakedir(path)
                         kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                         if not self._check_kmax_config_file_ready(kmax_path) or self.force:
+                            #########remove old pbs output#######
+                            self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                            #####################################
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
@@ -214,6 +242,10 @@ class BVSubmitPBS(object):
                         if (self._check_kmax_config_file_ready(kmax_path) \
                         and self._check_kmin_config_file_ready(kmin_path)) \
                         and (not self._check_pt_config_file_ready(pt_path) or self.force):
+                            #########remove old pt data#######
+                            self._remove_pt_old_data(dir, self.pt_config + noj,
+                                                     ouput_signature="bv_{}_pt{}.o*".format(self.label, noj))
+                            ##################################
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             command = self._get_pt_command(noj, path_to_script)
@@ -247,6 +279,10 @@ class BVSubmitPBS(object):
                         kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                         pt_path = os.path.join(path, self.pt_config + noj + '.config')
                         if not self._check_pt_config_file_ready(pt_path):
+                            #########remove old pt data#######
+                            self._remove_pt_old_data(explore_dir, self.pt_config + noj,
+                                                     ouput_signature="bv_{}_pt{}.o*".format(self.label, noj))
+                            ##################################
                             if not os.path.isabs(path_to_script):
                                 path_to_script = os.path.abspath(path_to_script)
                             kmax_fname = 'bv_kmax'+noj+'.sh'
@@ -263,12 +299,18 @@ class BVSubmitPBS(object):
                             else:
                                 pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
                                 if not kmax_ready:
+                                    #########remove old pbs output#######
+                                    self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                    #####################################
                                     kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
                                     kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
                                     pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
                                     if kmin_ready:
                                         pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
                                     else:
+                                        #########remove old pbs output#######
+                                        self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
+                                        #####################################
                                         pbs.writePBSscript(kmax_fname, 'bv_kmax'+self.label+'_kmax'+noj)
                                         kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
                                         kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmax_fname)
