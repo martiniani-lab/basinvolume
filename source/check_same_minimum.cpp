@@ -1,4 +1,4 @@
-#include <cmath>
+    #include <cmath>
 
 #include "basinvolume/check_same_minimum.h"
 
@@ -108,7 +108,7 @@ bool CheckSameMinimum::_quench(pele::Array<double> &trial_coords){
 
     //this might become an infinite loop
     //optimizer stop-criterion needs to be checked before calling one_iteration
-    while(rmsd2 > dtol2 && _optimizer->get_niter() < opt_maxiter){
+    while(rmsd2 > dtol2 && static_cast<size_t>(_optimizer->get_niter()) < opt_maxiter){
         if (_optimizer->stop_criterion_satisfied()){
             //minimisation converged before satisfying distance criterion,
             //save minimum and return false
