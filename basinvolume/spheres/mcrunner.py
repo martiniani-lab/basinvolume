@@ -341,21 +341,25 @@ class BV_MCrunner(_BaseMCRunner):
         
         if use_periodic:
             if use_cell_lists:
-                self.conftest1 = CheckOverlapPeriodicCellLists(self.origin, self.hs_radii, 
-                                                               self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
-                                                               use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms) 
+                self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
+                                 self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                 use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
+                                 reference_coords=self.origin) 
             
             else:
-                self.conftest1 = CheckOverlapPeriodic(self.hs_radii, self.boxv, use_frozen=self.use_frozen,
-                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
+                self.conftest1 = CheckOverlapPeriodic(self.hs_radii,
+                                 self.boxv, use_frozen=self.use_frozen,
+                                 reference_coords=self.origin,
+                                 frozen_atoms=self.frozen_atoms)
         else: 
             if use_cell_lists:
-                self.conftest1 = CheckOverlapCartesianCellLists(self.origin, self.hs_radii, 
-                                                                self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
-                                                                use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms)
+                self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
+                                 self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                 use_frozen=self.use_frozen,
+                                 frozen_atoms=self.frozen_atoms,
+                                 reference_coords=self.origin)
             else:
-                self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen,
-                                                       reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
+                self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen, reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
             
         #CheckSameMinimum MUST have use_periodic=False
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
