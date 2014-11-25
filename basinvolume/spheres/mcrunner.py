@@ -11,8 +11,11 @@ from mcpele.monte_carlo import GaussianCoordsDisplacement
 from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
-from basinvolume.monte_carlo import FindNrDecorrelationSteps, CheckOverlapPeriodic, CheckOverlapCartesian 
-from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckOverlapCartesianCellLists, CheckOverlapPeriodicCellLists
+from basinvolume.monte_carlo import FindNrDecorrelationSteps
+from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian 
+from basinvolume.monte_carlo import RecordDisplacementTimeseries
+from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
+from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.gui import HSWCASystem
 from basinvolume.utils import reduce_coordinates, full_coordinates
 
@@ -98,15 +101,13 @@ class HS_MCrunner(_BaseMCRunner):
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max), seed_swap=np.random.randint(i32max), seed_probability_step_pattern=np.random.randint(i32max))
+            seeds = dict(seed_takestep=np.random.randint(i32max),
+                    seed_swap=np.random.randint(i32max),
+                    seed_probability_step_pattern=np.random.randint(i32max))
         self.seeds=seeds
                 
         #construct test/action classes  
         self.set_report_steps(adjustf_niter)
-        ##########################################
-        # NOTE: this should be replaced by the composite move, but then one has to be able to get the stepsize somehow (see mc)
-        #self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
-        ##########################################
         self.takestep_global_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, 
                                                                      report_interval=adjustf_navg, factor=adjustf, 
                                                                      min_acc_ratio=0.2, max_acc_ratio=0.5,
@@ -329,7 +330,8 @@ class BV_MCrunner(_BaseMCRunner):
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max), seed_metropolis=np.random.randint(i32max))
+            seeds = dict(seed_takestep=np.random.randint(i32max),
+                    seed_metropolis=np.random.randint(i32max))
         self.seeds=seeds
         
         #construct test/action classes
@@ -359,7 +361,10 @@ class BV_MCrunner(_BaseMCRunner):
                                  frozen_atoms=self.frozen_atoms,
                                  reference_coords=self.origin)
             else:
-                self.conftest1 = CheckOverlapCartesian(self.hs_radii, self.bdim, use_frozen=self.use_frozen, reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
+                self.conftest1 = CheckOverlapCartesian(self.hs_radii,
+                                 self.bdim, use_frozen=self.use_frozen,
+                                 reference_coords=self.origin,
+                                 frozen_atoms=self.frozen_atoms)
             
         #CheckSameMinimum MUST have use_periodic=False
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
@@ -414,7 +419,8 @@ class BV_MCrunner(_BaseMCRunner):
         return timeseries
     
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
-        return self.time_series.check_convergence(nr_steps_to_check=nr_steps_to_check, rel_std_threshold=rel_std_threshold)
+        return self.time_series.check_convergence(nr_steps_to_check=nr_steps_to_check,
+                                                   rel_std_threshold=rel_std_threshold)
         
     def dump_minima_list(self, fname):
         """write minima list to pele database"""
@@ -425,7 +431,8 @@ class BV_MCrunner(_BaseMCRunner):
         #add origin to database, with _id == 0, to make post processing possible
         #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
         #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin), coords=self.origin, user_data=dict(count=0, distance=0))
+        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin),
+                   coords=self.origin, user_data=dict(count=0, distance=0))
         minima_dicts.append(mindict0)
         #add neighboring minima to database
         self.conftest2.dump_minima(minima_dicts)
@@ -434,7 +441,8 @@ class BV_MCrunner(_BaseMCRunner):
             m['user_data'].update(k=self.k)
             if self.use_frozen:
                 redcoords = m['coords']
-                m['coords'] = full_coordinates(redcoords, self.origin, self.frozen_atoms, self.bdim)
+                m['coords'] = full_coordinates(redcoords, self.origin,
+                              self.frozen_atoms, self.bdim)
         assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
         print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)
@@ -541,8 +549,9 @@ class Findk_MCrunner(_BaseMCRunner):
                              frozen_atoms=frozen_atoms)
         
         #construct gradient optimizer
-        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer, dtmax=opt_dtmax, maxstep=opt_maxstep, 
-                                         tol=opt_tol, nsteps=opt_nsteps)
+        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
+                         dtmax=opt_dtmax, maxstep=opt_maxstep, tol=opt_tol,
+                         nsteps=opt_nsteps)
                 
         #compute seeds
         #compute seeds
@@ -618,7 +627,8 @@ class Findk_MCrunner(_BaseMCRunner):
         #add origin to database, with _id == 0, to make post processing possible
         #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
         #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin), coords=self.origin, user_data=dict(count=0, distance=0))
+        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin),
+                   coords=self.origin, user_data=dict(count=0, distance=0))
         minima_dicts.append(mindict0)
         #add neighboring minima to database
         self.conftest2.dump_minima(minima_dicts)
