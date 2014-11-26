@@ -312,7 +312,7 @@ class BVSubmitPBS(object):
                                         #########remove old pbs output#######
                                         self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
                                         #####################################
-                                        pbs.writePBSscript(kmax_fname, 'bv_kmax'+self.label+'_kmax'+noj)
+                                        pbs.writePBSscript(kmax_fname, 'bv_'+self.label+'_kmax'+noj)
                                         kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
                                         kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmax_fname)
                                         pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
