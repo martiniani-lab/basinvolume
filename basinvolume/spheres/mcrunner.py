@@ -301,7 +301,7 @@ class BV_MCrunner(_BaseMCRunner):
         
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof 
-        if (rattlers == None):
+        if (rattlers is None):
             self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
         else:
             self.rattlers = np.array(rattlers,dtype='d')
@@ -320,7 +320,7 @@ class BV_MCrunner(_BaseMCRunner):
                              radii=self.hs_radii, boxvec=self.boxv,
                              reference_coords=self.origin, rcut=self.rcut,
                              ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                             frozen_atoms=frozen_atoms)
+                             frozen_atoms=self.frozen_atoms)
         
         #construct gradient optimizer    
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
@@ -527,7 +527,7 @@ class Findk_MCrunner(_BaseMCRunner):
         
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof 
-        if (rattlers == None):
+        if (rattlers is None):
             self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
         else:
             self.rattlers = np.array(rattlers,dtype='d')
@@ -546,7 +546,7 @@ class Findk_MCrunner(_BaseMCRunner):
                              radii=self.hs_radii, boxvec=self.boxv,
                              reference_coords=self.origin, rcut=self.rcut,
                              ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                             frozen_atoms=frozen_atoms)
+                             frozen_atoms=self.frozen_atoms)
         
         #construct gradient optimizer
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
