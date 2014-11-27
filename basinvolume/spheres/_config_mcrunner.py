@@ -82,8 +82,7 @@ class _configure_mcrunner(object):
             pot_optimizer = HS_WCA(use_periodic=False, reference_coords=self.coords, eps=self.eps,
                                    sca=self.sca, radii=self.hs_radii, use_frozen=True, 
                                    frozen_atoms=self.frozen, ndim=self.bdim)
-            redcoords = reduce_coordinates(self.coords, self.frozen, self.bdim)
-            res = modifiedfire_cpp(redcoords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=1e-9)
+            res = modifiedfire_cpp(self.red_coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=1e-9)
             new_coords = full_coordinates(res.coords, self.coords, self.frozen, self.bdim)
         else:    
             pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, 
@@ -97,7 +96,8 @@ class _configure_mcrunner(object):
              
         drms= np.sqrt(np.dot(self.coords - new_coords, self.coords - new_coords)/self.ndim)
         assert(drms <= dtol)
-        self.coords = new_coords
+        self.coords = np.array(new_coords)
+        self.red_coords = reduce_coordinates(res.coords, self.frozen, self.bdim)
         
         if verbose:
             print 'results from quench \n'
