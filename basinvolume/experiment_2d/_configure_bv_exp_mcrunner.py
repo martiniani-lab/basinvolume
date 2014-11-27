@@ -183,12 +183,13 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         """
         print whether calculation has completed successfully
         """
-        assert(hasattr(self, 'configfile'))
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(self.configfile))
-        for i in xrange(self.nprocs):
-            configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
-        configf.write(open(str(self.configfile),'w'))
+        if self.rank == 0:
+            assert(hasattr(self, 'configfile'))
+            configf = ConfigParser.ConfigParser()
+            configf.read(str(self.configfile))
+            for i in xrange(self.nprocs):
+                configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
+            configf.write(open(str(self.configfile),'w'))
     
 if __name__ == "__main__":
         
