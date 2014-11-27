@@ -156,16 +156,17 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         for key, value in status.iteritems() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
-        f.write('displ_k_min: {}\n'.format(self.displ_k_min * 1.5)) #note 1.5
+        f.write('displ_k_min: {}\n'.format(self.displ_k_min))
         f.write('var_displ_k_min: {}\n'.format(self.var_displ_k_min))
         f.close()
     
 if __name__ == "__main__":
     
-    pppn = [2,6,42,1806,47058,2214502422,52495396602]
+    pppn = [2,6, 42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_exp_mcrunner('jammed_packing1.xydfr', k=289.508273354, niter=5e4, opt_tol=1e-7, seeds=seeds, single=True, use_cell_lists=False, verbose=True)
+    sim = _kmin_exp_mcrunner('jammed_packing1.xydfr', k=289.508273354, niter=5e5, opt_tol=1e-7, 
+                             seeds=seeds, single=True, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time()
     sim.run()
