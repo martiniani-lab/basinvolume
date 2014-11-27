@@ -90,9 +90,9 @@ if __name__ == "__main__":
         print e
         sim.print_success_all(False)
     end=time.time()
-    print 'core: {} ptiter: {} niter: {} adjustf_niter: {} nskip: {} pfreq: {}'.format(rank, mcrunner.niter, 
+    print 'core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter, 
                                                                                        ptrunner.ptiter, adjustf_niter, 
-                                                                                       ptrunner.nskip, ptrunner.pfreq)
+                                                                                       ptrunner.skip, ptrunner.pfreq)
     print 'elapsed time',end-start
     
     
