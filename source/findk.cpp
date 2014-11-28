@@ -28,25 +28,22 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
 {}
 
 void Findk::_get_vec_distance(const pele::Array<double>& x){
-        pele::Array<double> delta_com(_ndim,0);
-
-        for(size_t i=0;i<_nparticles;++i)
-        {
-            size_t i1 = i*_ndim;
-            for(size_t j=0;j<_ndim;++j){
-                double d = (x[i1+j] - _origin[i1+j]);
-                _distance[i1+j] = d;
+        pele::Array<double> delta_com(_ndim, 0);
+        for(size_t i = 0; i < _nparticles; ++i) {
+            const size_t i1 = i * _ndim;
+            for(size_t j = 0; j < _ndim; ++j){
+                double d = (x[i1 + j] - _origin[i1 + j]);
+                _distance[i1 + j] = d;
                 delta_com[j] += d;
             }
         }
-
+        
         delta_com /= _nparticles;
 
-        for(size_t i=0;i<_nparticles;++i)
-        {
-            size_t i1 = i*_ndim;
-            for(size_t j=0;j<_ndim;++j)
-                _distance[i1+j] -= delta_com[j];
+        for(size_t i = 0; i < _nparticles; ++i) {
+            const size_t i1 = i * _ndim;
+            for(size_t j = 0; j < _ndim; ++j)
+                _distance[i1 + j] -= delta_com[j];
         }
     }
 
@@ -54,37 +51,39 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
 
     size_t mc_count = mc->get_iterations_count();
 
-    if (accepted == true)
+    if (accepted == true) {
         ++_naccepted;
-    else
+    }
+    else {
         ++_nrejected;
+    }
 
     //if (_converged&&accepted)
-    if (_converged)
-    {
+    if (_converged) {
         //compute distances subtracting the origin's coordinates
         //this->_get_vec_distance(coords); //update distance in any case, also if new configuration is illegal
-        if (accepted) this->_get_vec_distance(coords); //update distance only if new configuration is legal
+        if (accepted) {
+            this->_get_vec_distance(coords); //update distance only if new configuration is legal
+        }
 
         //compute square displacement from origin
-        double norm2 = dot(_distance, _distance);
+        const double norm2 = dot(_distance, _distance);
 
         //if search for kmax has converged, push displacement into histogram
         _hist.add_entry(norm2);
         //RecordEnergyHistogram::action(coords,energy,accepted,mc);
 
         //this will trigger premature exit from the MC run loop
-        if (static_cast<size_t>(_hist.entries()) >= _avg_count){
+        if (static_cast<size_t>(_hist.entries()) >= _avg_count) {
             mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
         }
     }
-    else if(mc_count % _navg == 0)
-    {
+    else if(mc_count % _navg == 0) {
         //_acceptedf = static_cast<double>(_naccepted) / static_cast<double>(_naccepted + _nrejected);
-        _acceptedf = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted)+static_cast<double>(_nrejected));
+        _acceptedf = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected));
 
         //adjust step if last two step oscillated around the target, uses a lower bound
-        adjust_k(mc_count/_navg, mc);
+        adjust_k(mc_count / _navg, mc);
 
         //adjust the standard deviation of the normal distribution
         //mc->_stepsize = std::sqrt(1.0/_k);
@@ -106,23 +105,23 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     //get k
     //const double ik = mc->_stepsize;
     const double ik = static_cast<mcpele::GaussianCoordsDisplacement*>(mc->get_takestep().get())->get_stepsize();
-    _k = 1/(ik*ik);
+    _k = 1 / (ik * ik);
     //debug output
 
-    std::cout<<"_acceptedf "<<_acceptedf<<std::endl; //debug
-    std::cout<<"_k "<<_k<<std::endl; //debug
-    std::cout<<"iterations "<< iterations << std::endl;//debug
+    std::cout << "_acceptedf " << _acceptedf << std::endl; //debug
+    std::cout << "_k "<< _k << std::endl; //debug
+    std::cout << "iterations "<< iterations << std::endl; //debug
 
     //check for convergence
-    if (fabs(_target - _acceptedf) < _tol){
+    if (fabs(_target - _acceptedf) < _tol) {
         _converged = true;
         return;
     }
     //adapt k size
-    const double tmp1 = 1.0/(iterations%period+1);
-    const double tmp2 = 1 + (_target-_acceptedf)/(_target+_acceptedf);
-    const double tmp = (1-tmp1) + tmp1*tmp2;
-    _k *= tmp*tmp;
+    const double tmp1 = 1.0 / (iterations % period + 1);
+    const double tmp2 = 1 + (_target - _acceptedf) / (_target + _acceptedf);
+    const double tmp = (1 - tmp1) + tmp1 * tmp2;
+    _k *= tmp * tmp;
 }
 
 } // namespace bv
