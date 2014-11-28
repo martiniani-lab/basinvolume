@@ -28,7 +28,7 @@ protected:
     std::shared_ptr<DIST_POL> m_dist;
 public:
     virtual ~CheckOverlap() {};
-    CheckOverlap(pele::Array<double> hs_radii, std::shared_ptr<DIST_POL> dist=NULL)
+    CheckOverlap(pele::Array<double> hs_radii, std::shared_ptr<DIST_POL> dist)
         : m_hs_radii(hs_radii.copy()),
           m_nparticles(m_hs_radii.size()),
           m_dist(dist)
@@ -112,7 +112,7 @@ protected:
 public:
     virtual ~CellListCheckOverlap() {};
     CellListCheckOverlap(pele::Array<double> hs_radii,
-            std::shared_ptr<DIST_POL> dist=NULL, std::shared_ptr<pele::CellIter<DIST_POL> > celliter=NULL)
+            std::shared_ptr<DIST_POL> dist, std::shared_ptr<pele::CellIter<DIST_POL> > celliter)
         :   m_hs_radii(hs_radii.copy()),
             m_nparticles(m_hs_radii.size()),
             m_dist(dist),
