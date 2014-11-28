@@ -1,31 +1,31 @@
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #include "mcpele/gaussian_coords_displacement.h"
 
 #include "basinvolume/findk.h"
 
-namespace bv{
+namespace bv {
 
 Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
         size_t navg, double tol, double min, double max, double bin)
-	:_origin(origin.copy())
-	,_rattlers(rattlers.copy())
-	,_distance(origin.size())
-	,_target(target)
-	,_acceptedf(1)
-	,_k(1)
-	,_tol(tol)
-	,_ndim(ndim)
-	,_nparticles(_origin.size()/_ndim)
-	,_avg_count(avg_count)
-	,_navg(navg)
-	,_naccepted(0)
-	,_nrejected(0)
-	,_start(0)
-	,_converged(false)
-    ,_hist(min, max, bin)
-	{}
+	: _origin(origin.copy()),
+      _rattlers(rattlers.copy()),
+      _distance(origin.size()),
+      _target(target),
+      _acceptedf(1),
+      _k(1),
+      _tol(tol),
+      _ndim(ndim),
+      _nparticles(_origin.size() / _ndim),
+      _avg_count(avg_count),
+      _navg(navg),
+      _naccepted(0),
+      _nrejected(0),
+      _start(0),
+      _converged(false),
+      _hist(min, max, bin)
+{}
 
 void Findk::_get_vec_distance(const pele::Array<double>& x){
         pele::Array<double> delta_com(_ndim,0);
@@ -125,4 +125,4 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     _k *= tmp*tmp;
 }
 
-}//namespace bv
+} // namespace bv
