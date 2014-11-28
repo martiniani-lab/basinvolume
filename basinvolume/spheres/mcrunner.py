@@ -281,7 +281,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.hs_radii = np.array(hs_radii)
         self.red_radii = np.array(hs_radii)
         if use_frozen:            
-            self.red_radii = np.delete(self.red_radii,frozen_atoms)
+            self.red_radii = np.delete(self.red_radii, frozen_atoms)
             self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
             assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
             assert len(self.red_origin) == self.ndim
