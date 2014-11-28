@@ -21,7 +21,7 @@ class _kmin_mcrunner(_configure_mcrunner):
     """
         
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
-                 hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
+                 hmax=0.01, hbinsize=0.0005, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, opt_nsteps=1e4,
                  perform_convergence_test=False, collect_minima_list=False, single=False, 
                  seeds=None, use_cell_lists=False, packings_dir='jammed_packings', verbose=False):
@@ -150,7 +150,8 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing0.xydr', opt_tol=1e-7, seeds=seeds, single=True, use_cell_lists=True, verbose=True)
+    sim = _kmin_mcrunner('jammed_packing101.xyzdr', k=1000, opt_tol=1e-7, seeds=seeds, 
+                         single=True, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time()
     sim.run()
@@ -160,7 +161,7 @@ if __name__ == "__main__":
     print status
     print 'd2 kmin: ',sim.displ_k_min
     print 'var: ',sim.var_displ_k_min
-    #sim.mcrunner.show_histogram()
+    sim.mcrunner.show_histogram_kmax()
     
     
         

@@ -45,7 +45,7 @@ try:
 except ImportError as err:
     print(err)
     
-def analytical_d2(x, k, N, boxdim=2):
+def analytical_d2(x, k, N, boxdim=3):
     f = float(k * x) / 2
     g = float(boxdim * N - boxdim) / 2 -1
     return np.exp(-f) * np.power(f, g)
@@ -258,7 +258,7 @@ class BV_MCrunner(_BaseMCRunner):
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
-                 hmin=0, hmax=10, hbinsize=0.1, acceptance=0.2, adjustf=0.9,
+                 hmin=0, hmax=1, hbinsize=0.001, acceptance=0.2, adjustf=0.9,
                  adjustf_niter = 1e4, adjustf_navg = 100, pt_eq_niter=0,
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-4, opt_nsteps=1e5, perform_convergence_test=False,
@@ -305,10 +305,10 @@ class BV_MCrunner(_BaseMCRunner):
             self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
         else:
             self.rattlers = np.array(rattlers,dtype='d')
-            if self.use_frozen:
-                self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
-            assert(len(self.rattlers) == self.ndim)
-            assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
+        if self.use_frozen:
+            self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
+        assert(len(self.rattlers) == self.ndim)
+        assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
                    
         #construct optimizer potential
         #rcut set to largest particle diameter
@@ -405,6 +405,7 @@ class BV_MCrunner(_BaseMCRunner):
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
         Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
+        Energies += 0.5*step
         assert(abs(step - self.binsize) < self.binsize / 100)
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
@@ -448,12 +449,30 @@ class BV_MCrunner(_BaseMCRunner):
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)
         db.session.commit()
         
-    
     def show_histogram(self):
-        """shows the histogram"""
         hist = self.histogram.get_histogram()
-        val = [i * self.binsize for i in xrange(len(hist))]
+        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5*self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
+        plt.show()
+    
+    def show_histogram_kmax(self):
+        """
+        shows the histogram against the analytical curve when k=kmax
+        this function is useful for testing
+        """
+        hist = self.histogram.get_histogram()
+        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5*self.binsize
+        n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
+                                    alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
+        ###analytical
+        bincenters = 0.5 * (bins[1:] + bins[:-1])
+        and2 = vec_analytical_d2(val,self.k, self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.k, self.nparticles))[0]
+        plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
+        #plt.xlim(0,1)
+        plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
+        plt.ylabel(r'frequency $\times 10$')
+        plt.tight_layout()
+        plt.savefig('kmax_histogram.eps')
         plt.show()
         
 class Findk_MCrunner(_BaseMCRunner):
@@ -484,7 +503,7 @@ class Findk_MCrunner(_BaseMCRunner):
                  hs_radii, boxv, sca, rattlers=None, avgcount=1e6, dtol=1e-3,
                  eps=1., ktarget = 0.75, knavg=500, ktol=0.05, opt_dtmax=1,
                  opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=1,
-                 binsize=0.001, perform_convergence_test=False,
+                 binsize=0.005, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
                  frozen_atoms=None, rcontainer=None):
@@ -531,10 +550,10 @@ class Findk_MCrunner(_BaseMCRunner):
             self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
         else:
             self.rattlers = np.array(rattlers,dtype='d')
-            if self.use_frozen:
-                self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
-            assert(len(self.rattlers) == self.ndim)
-            assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
+        if self.use_frozen:
+            self.rattlers = reduce_coordinates(self.rattlers, self.frozen_atoms, self.bdim)
+        assert(len(self.rattlers) == self.ndim)
+        assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
         
         #construct optimizer potential
         #rcut set to largest particle diameter
@@ -655,7 +674,7 @@ class Findk_MCrunner(_BaseMCRunner):
     def show_histogram(self):
         """shows the histogram"""
         hist = self.findk.get_histogram()
-        val = [i * self.binsize for i in xrange(len(hist))]
+        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5*self.binsize
         n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
