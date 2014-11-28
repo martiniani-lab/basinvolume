@@ -14,7 +14,7 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
       _distance(origin.size()),
       _target(target),
       _acceptedf(1),
-      _k(1),
+      _k(42424242),
       _tol(tol),
       _ndim(ndim),
       _nparticles(_origin.size() / _ndim),
@@ -49,52 +49,38 @@ void Findk::_get_vec_distance(const pele::Array<double>& x){
 
 void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc){
 
-    size_t mc_count = mc->get_iterations_count();
+    const size_t mc_count = mc->get_iterations_count();
 
-    if (accepted == true) {
+    if (accepted) {
         ++_naccepted;
     }
     else {
         ++_nrejected;
     }
 
-    //if (_converged&&accepted)
-    if (_converged) {
-        //compute distances subtracting the origin's coordinates
-        //this->_get_vec_distance(coords); //update distance in any case, also if new configuration is illegal
+    if (_converged) { // kmax search converged
         if (accepted) {
-            this->_get_vec_distance(coords); //update distance only if new configuration is legal
+            this->_get_vec_distance(coords);
+            //compute square displacement from origin
+            const double norm2 = dot(_distance, _distance);
+            _hist.add_entry(norm2);
         }
-
-        //compute square displacement from origin
-        const double norm2 = dot(_distance, _distance);
-
-        //if search for kmax has converged, push displacement into histogram
-        _hist.add_entry(norm2);
-        //RecordEnergyHistogram::action(coords,energy,accepted,mc);
-
         //this will trigger premature exit from the MC run loop
         if (static_cast<size_t>(_hist.entries()) >= _avg_count) {
             mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
         }
     }
-    else if(mc_count % _navg == 0) {
-        //_acceptedf = static_cast<double>(_naccepted) / static_cast<double>(_naccepted + _nrejected);
+    else if (mc_count % _navg == 0) { // kmax seach not yet converged
         _acceptedf = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected));
-
         //adjust step if last two step oscillated around the target, uses a lower bound
         adjust_k(mc_count / _navg, mc);
-
         //adjust the standard deviation of the normal distribution
-        //mc->_stepsize = std::sqrt(1.0/_k);
         static_cast<mcpele::GaussianCoordsDisplacement*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
-        //std::cout << "mc->_stepsize: " << mc->_stepsize << std::endl;//debug
-
+        //std::cout << "mc->_stepsize: " << mc->_stepsize << std::endl; //debug
         //now reset to zero memory of acceptance and rejection
         _naccepted = 0;
         _nrejected = 0;
     }
-
     //reset coordinates to origin
     coords.assign(_origin);
 }
@@ -109,8 +95,8 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     //debug output
 
     std::cout << "_acceptedf " << _acceptedf << std::endl; //debug
-    std::cout << "_k "<< _k << std::endl; //debug
-    std::cout << "iterations "<< iterations << std::endl; //debug
+    std::cout << "_k " << _k << std::endl; //debug
+    std::cout << "iterations " << iterations << std::endl; //debug
 
     //check for convergence
     if (fabs(_target - _acceptedf) < _tol) {
