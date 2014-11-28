@@ -47,9 +47,9 @@ class _findk_mcrunner(_configure_mcrunner):
         self._requench_coords(dtol, opt_maxstep, verbose)
         
         #self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords,0,bdim=self.bdim,com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
+        potential = Harmonic(self.coords, 0, bdim=self.bdim, com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
         #k is entirely controlled by the stepsize 
-        stepsize = np.sqrt(1.0/k) #stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(1.0 / k) #stepsize plays the role of the standard deviation
         #stepsize = np.sqrt(self.ndim/k)  #####################
         #####       
         self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
@@ -78,25 +78,25 @@ class _findk_mcrunner(_configure_mcrunner):
             dname = dname[:-6]
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
-        self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+        self.base_directory = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
         if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
-        self.configpath = os.path.join(packings_dir,'jammed_packings.config')
+        self.configpath = os.path.join(packings_dir, 'jammed_packings.config')
         configfile = 'findk_' + dname 
-        self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
+        self.configfile = '{}/{}.config'.format(self.base_directory, configfile)
     
     def _import_packing_config_files(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING','boxdim')
+        self.nparticles = configf.getint('JAMMED_PACKING', 'nparticles')
+        self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
         assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING','boxv')
+        boxv = configf.get('JAMMED_PACKING', 'boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING','sca')
+        self.imp_packing_frac = configf.getfloat('JAMMED_PACKING', 'packing_fraction')
+        self.sca = configf.getfloat('JAMMED_PACKING', 'sca')
     
     def _initialise(self):
         self._print_initialise()
@@ -121,19 +121,19 @@ class _findk_mcrunner(_configure_mcrunner):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        assert(self.sca >0)
+        assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[FINDK_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in self.mc_params.iteritems():
             f.write('{}: {}\n'.format(key,value))
     
     def _print_results(self):
         fname = self.configfile
-        f = open(fname,'a')
+        f = open(fname, 'a')
         f.write('[FINDK_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
-            f.write('{}: {}\n'.format(key,value))
+        for key, value in status.iteritems():
+            f.write('{}: {}\n'.format(key, value))
         f.write('[FINDK]\n')
         f.write('kmax: {}\n'.format(self.kmax))
         f.write('prob: {}\n'.format(self.prob))
@@ -144,7 +144,7 @@ class _findk_mcrunner(_configure_mcrunner):
 if __name__ == "__main__":
     
     #sim = _findk_mcrunner('jammed_packing0.xydr')
-    pppn = [2,6,42,1806,47058,2214502422,52495396602]
+    pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
     sim = _findk_mcrunner('jammed_packing101.xyzdr', avgcount=5e4, k=1000, opt_tol=1e-7, ktarget=0.99, knavg=5e4,
@@ -153,17 +153,17 @@ if __name__ == "__main__":
     start=time.time() 
     sim.run()
     frac = sim.mcrunner.conftest2.get_failed_quench_frac()
-    print "failed quench frac",frac
+    print "failed quench frac", frac
     end=time.time()
     print 'time elapsed', end-start
     status = sim.mcrunner.get_status()
     print status
-    print "self.kmax: ", sim.kmax
-    print "self.prob: ", sim.prob
-    print "self.displ_k_max: ", sim.displ_k_max
-    print "self.var_displ_k_max: ", sim.var_displ_k_max
-    #print "Nd/k: ", sim.nparticles*sim.bdim/sim.kmax
-    print "(N-1)d/k", (sim.nparticles-1)*sim.bdim/sim.kmax
+    print "self.kmax:", sim.kmax
+    print "self.prob:", sim.prob
+    print "self.displ_k_max:", sim.displ_k_max
+    print "self.var_displ_k_max:", sim.var_displ_k_max
+    #print "Nd/k: ", sim.nparticles * sim.bdim / sim.kmax
+    print "(N-1)d/k", (sim.nparticles - 1) * sim.bdim / sim.kmax
     sim.mcrunner.show_histogram()
-    print "entries in histogram: ",sim.mcrunner.get_entries()
+    print "entries in histogram:", sim.mcrunner.get_entries()
     
