@@ -19,7 +19,7 @@ def worker_findk(fname, kwargs):
         print('find_k worker: %s' % (traceback.format_exc()))
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="compute kmax and minimum average displacement for kmin for all jammed packings")
+    parser = argparse.ArgumentParser(description="compute kmax and average displacement for kmax for all jammed packings")
     parser.add_argument("fname", type=str, help="packing file name")
     parser.add_argument("-k","--kstart", type=float, help="initial guess for kmax, default: 500", default=500)
     parser.add_argument("-p","--packingsdir", type=str, help="protocol to generate packings, assume in cwd", default="jammed_packings")
