@@ -36,9 +36,19 @@ public:
         if (m_dist == NULL) {
             throw std::runtime_error("CheckOverlap: distance uninitialised");
         }
+        if (hs_radii.size() == 0) {
+            throw std::runtime_error("CheckOverlap: illegal input: hs_radii");
+        }
+        static_assert(DIST_POL::_ndim > 0, "CheckOverlap: illegal input: distance policy");
     }
     bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
     {
+        if (trial_coords.size() % m_ndim) {
+            throw std::runtime_error("CheckOverlap::conf_test: illegal input");
+        }
+        if (trial_coords.size() / m_ndim != m_nparticles) {
+            throw std::runtime_error("CheckOverlap::conf_test: illegal input");
+        }
         double dr[m_ndim];
         for (size_t i = 0; i < m_nparticles; ++i) {
             const size_t i1 = m_ndim * i;
@@ -54,7 +64,6 @@ public:
         }
         return true;
     }
-
 };
 
 template <size_t ndim>
@@ -119,11 +128,24 @@ public:
             m_celliter(celliter)
     {
         if (m_dist == NULL || m_celliter == NULL) {
-            throw std::runtime_error("CheckOverlap: distance uninitialised");
+            throw std::runtime_error("CellListCheckOverlap: distance or celliter uninitialised");
         }
+        if (m_dist == NULL) {
+            throw std::runtime_error("CellListCheckOverlap: distance uninitialised");
+        }
+        if (hs_radii.size() == 0) {
+            throw std::runtime_error("CellListCheckOverlap: illegal input: hs_radii");
+        }
+        static_assert(DIST_POL::_ndim > 0, "CellListCheckOverlap: illegal input: distance policy");
     }
     bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
     {
+        if (trial_coords.size() % m_ndim) {
+            throw std::runtime_error("CellListCheckOverlap::conf_test: illegal input");
+        }
+        if (trial_coords.size() / m_ndim != m_nparticles) {
+            throw std::runtime_error("CellListCheckOverlap::conf_test: illegal input");
+        }
         //refresh cell lists
         m_celliter->reset(trial_coords);
         const double* x = trial_coords.data();
