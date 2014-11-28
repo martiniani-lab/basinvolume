@@ -76,7 +76,6 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
         adjust_k(mc_count / _navg, mc);
         //adjust the standard deviation of the normal distribution
         static_cast<mcpele::GaussianCoordsDisplacement*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
-        //std::cout << "mc->_stepsize: " << mc->_stepsize << std::endl; //debug
         //now reset to zero memory of acceptance and rejection
         _naccepted = 0;
         _nrejected = 0;
@@ -89,7 +88,6 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     // parameter: can be adapted for better convergence
     const size_t period = 3;
     //get k
-    //const double ik = mc->_stepsize;
     const double ik = static_cast<mcpele::GaussianCoordsDisplacement*>(mc->get_takestep().get())->get_stepsize();
     _k = 1 / (ik * ik);
     //debug output
