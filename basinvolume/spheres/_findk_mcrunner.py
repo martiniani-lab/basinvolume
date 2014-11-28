@@ -147,7 +147,8 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing100.xyzdr', seeds=seeds, use_cell_lists=True, verbose=True)
+    sim = _findk_mcrunner('jammed_packing101.xyzdr', avgcount=5e4, k=1000, opt_tol=1e-7, ktarget=0.99, knavg=5e4,
+                          seeds=seeds, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time() 
     sim.run()
@@ -155,6 +156,8 @@ if __name__ == "__main__":
     print "failed quench frac",frac
     end=time.time()
     print 'time elapsed', end-start
+    status = sim.mcrunner.get_status()
+    print status
     print "self.kmax: ", sim.kmax
     print "self.prob: ", sim.prob
     print "self.displ_k_max: ", sim.displ_k_max
