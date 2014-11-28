@@ -25,16 +25,16 @@ protected:
     const static size_t m_ndim = DIST_POL::_ndim;
     pele::Array<double> m_hs_radii;
     const size_t m_nparticles;
-    std::shared_ptr<DIST_POL> m_periodic_dist;
+    std::shared_ptr<DIST_POL> m_dist;
 public:
     virtual ~CheckOverlap() {};
     CheckOverlap(pele::Array<double> hs_radii, std::shared_ptr<DIST_POL> dist=NULL)
         : m_hs_radii(hs_radii.copy()),
           m_nparticles(m_hs_radii.size()),
-          m_periodic_dist(dist)
+          m_dist(dist)
     {
-        if (m_periodic_dist == NULL) {
-            throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
+        if (m_dist == NULL) {
+            throw std::runtime_error("CheckOverlap: distance uninitialised");
         }
     }
     bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
@@ -44,7 +44,7 @@ public:
             const size_t i1 = m_ndim * i;
             for (size_t j = i + 1; j < m_nparticles; ++j) {
                 const size_t j1 = m_ndim * j;
-                m_periodic_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
+                m_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
                 const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
                 const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
                 if (dij2 < tmp * tmp) {
@@ -107,7 +107,7 @@ protected:
     const static size_t m_ndim = DIST_POL::_ndim;
     pele::Array<double> m_hs_radii;
     const size_t m_nparticles;
-    std::shared_ptr<DIST_POL> m_periodic_dist;
+    std::shared_ptr<DIST_POL> m_dist;
     std::shared_ptr<pele::CellIter<DIST_POL> > m_celliter;
 public:
     virtual ~CellListCheckOverlap() {};
@@ -115,11 +115,11 @@ public:
             std::shared_ptr<DIST_POL> dist=NULL, std::shared_ptr<pele::CellIter<DIST_POL> > celliter=NULL)
         :   m_hs_radii(hs_radii.copy()),
             m_nparticles(m_hs_radii.size()),
-            m_periodic_dist(dist),
+            m_dist(dist),
             m_celliter(celliter)
     {
-        if (m_periodic_dist == NULL || m_celliter == NULL) {
-            throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
+        if (m_dist == NULL || m_celliter == NULL) {
+            throw std::runtime_error("CheckOverlap: distance uninitialised");
         }
     }
     bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
@@ -133,7 +133,7 @@ public:
             const size_t xi_off = m_ndim * i;
             const size_t xj_off = m_ndim * j;
             double dr[m_ndim];
-            m_periodic_dist->get_rij(dr, x + xi_off, x + xj_off);
+            m_dist->get_rij(dr, x + xi_off, x + xj_off);
             const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
             const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
             if (dij2 < tmp * tmp) {
