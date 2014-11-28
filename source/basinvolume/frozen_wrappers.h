@@ -7,13 +7,12 @@
 
 #include "pele/array.h"
 #include "pele/distance.h"
+#include "pele/frozen_atoms.h"
+#include "pele/neighbor_iterator.h"
 
 #include "mcpele/mc.h"
-#include "pele/neighbor_iterator.h"
-#include "pele/frozen_atoms.h"
 
 namespace bv {
-
 
 /**
  * ConfTest frozen wrapper
@@ -26,10 +25,10 @@ protected:
     virtual ~ConfTestFrozenWrapper() {}
     std::shared_ptr<ConfTestType> _underlying_conftest;
     ConfTestFrozenWrapper(std::shared_ptr<ConfTestType> conftest,
-            pele::Array<double> const &reference_coords,
-            pele::Array<size_t> const & frozen_dof) :
-        coords_converter(reference_coords, frozen_dof),
-        _underlying_conftest(conftest)
+            pele::Array<double> const& reference_coords,
+            pele::Array<size_t> const& frozen_dof)
+        : coords_converter(reference_coords, frozen_dof),
+          _underlying_conftest(conftest)
     {}
     inline bool conf_test(pele::Array<double> &reduced_coords, mcpele::MC * mc)
     {
@@ -43,4 +42,4 @@ protected:
 
 } // namespace bv
 
-#endif // #ifndef _BV_CHECK_OVERLAP_H
+#endif // #ifndef _BV_FROZEN_WRAPPERS_H

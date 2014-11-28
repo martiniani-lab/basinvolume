@@ -16,6 +16,10 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     """
     cdef cppRecordEnergyHistogram* newptr
     def __cinit__(self, origin, rattlers, ndim, min, max, bin, eqsteps):
+        if len(origin) != ndim * len(rattlers):
+            raise Exception("_Cdef_RecordDisp2Histogram: illegal input: origin, ndim, rattlers")
+        if len(origin) % ndim:
+            raise Exception("_Cdef_RecordDisp2Histogram: illegal input: origin, ndim")
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         
@@ -64,6 +68,10 @@ cdef class _Cdef_Findk(_Cdef_Action):
     """
     cdef cppFindk* newptr
     def __cinit__(self, origin, rattlers, bdim, avgcount, target, navg, tol, min, max, bin):
+        if len(origin) != len(rattlers) * bdim:
+            raise Exception("_Cdef_Findk: illegal input: origin, rattlers, bdim")
+        if len(origin) % bdim:
+            raise Exception("_Cdef_Findk: illegal input: origin, bdim")
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         self.thisptr = shared_ptr[cppAction](<cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size),
@@ -160,6 +168,8 @@ cdef class _Cdef_FindNrDecorrelationSteps(_Cdef_Action):
     
     def __cinit__(self, desired_mean_rsm_displ, nr_iterations_start, nr_samples_avergage,
                   initial_coords, boxdim):
+        if len(initial_coords) % boxdim:
+            raise Exception("_Cdef_FindNrDecorrelationSteps: illegal input: initial_coords, boxdim")
         cdef np.ndarray[double, ndim=1] initial_coordsc = np.array(initial_coords, dtype=float)
         self.thisptr = shared_ptr[cppAction](<cppAction*>new
                          cppFindNrDecorrelationSteps(desired_mean_rsm_displ, nr_iterations_start,

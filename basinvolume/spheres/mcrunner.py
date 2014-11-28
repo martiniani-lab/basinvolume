@@ -47,7 +47,7 @@ except ImportError as err:
     
 def analytical_d2(x, k, N, boxdim=3):
     f = float(k * x) / 2
-    g = float(boxdim * N - boxdim) / 2 -1
+    g = float(boxdim * N - boxdim) / 2 - 1
     return np.exp(-f) * np.power(f, g)
 
 vec_analytical_d2 = np.vectorize(analytical_d2)
@@ -272,7 +272,7 @@ class BV_MCrunner(_BaseMCRunner):
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         else:
             red_coords = full_coords
-        super(BV_MCrunner,self).__init__(potential, red_coords, temperature, niter)
+        super(BV_MCrunner, self).__init__(potential, red_coords, temperature, niter)
         
         self.boxv = boxv
         self.bdim = len(boxv)
@@ -281,7 +281,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.hs_radii = np.array(hs_radii)
         self.red_radii = np.array(hs_radii)
         if use_frozen:            
-            self.red_radii = np.delete(self.red_radii,frozen_atoms)
+            self.red_radii = np.delete(self.red_radii, frozen_atoms)
             self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
             assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
             assert len(self.red_origin) == self.ndim
@@ -302,9 +302,9 @@ class BV_MCrunner(_BaseMCRunner):
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof 
         if (rattlers is None):
-            self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
+            self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
         else:
-            self.rattlers = np.array(rattlers,dtype='d')
+            self.rattlers = np.array(rattlers, dtype='d')
         if self.use_frozen:
             self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
         assert(len(self.rattlers) == self.ndim)
@@ -332,13 +332,13 @@ class BV_MCrunner(_BaseMCRunner):
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max),
                     seed_metropolis=np.random.randint(i32max))
-        self.seeds=seeds
+        self.seeds = seeds
         
         #construct test/action classes
         if record_histogram:
             self.binsize = hbinsize
             self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
-                                                  self.binsize,(adjustf_niter+pt_eq_niter))
+                                                  self.binsize, (adjustf_niter + pt_eq_niter))
             self.add_action(self.histogram)
         
         if use_periodic:
@@ -368,8 +368,8 @@ class BV_MCrunner(_BaseMCRunner):
             
         #CheckSameMinimum MUST have use_periodic=False
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
-                                          self.rattlers, self.dtol, bdim = self.bdim,
-                                          eqsteps=(adjustf_niter+pt_eq_niter),
+                                          self.rattlers, self.dtol, bdim=self.bdim,
+                                          eqsteps=(adjustf_niter + pt_eq_niter),
                                           perform_convergence_test=perform_convergence_test, 
                                           collect_minima_list=collect_minima_list, use_periodic=False)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
@@ -405,7 +405,7 @@ class BV_MCrunner(_BaseMCRunner):
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
         Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
-        Energies += 0.5*step
+        Energies += 0.5 * step
         assert(abs(step - self.binsize) < self.binsize / 100)
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
@@ -451,7 +451,7 @@ class BV_MCrunner(_BaseMCRunner):
         
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5*self.binsize
+        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
     
@@ -461,7 +461,7 @@ class BV_MCrunner(_BaseMCRunner):
         this function is useful for testing
         """
         hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5*self.binsize
+        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
         n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical

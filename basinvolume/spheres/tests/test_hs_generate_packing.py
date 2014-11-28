@@ -7,10 +7,11 @@ import logging
 class Test_HS_Generate_Packing(unittest.TestCase):
     
     def setUp(self):
+        print "setUp"
         self.seeds = dict(seed_takestep=42, seed_generate_packing=43, seed_swap=44, seed_probability_step_pattern=46)
-        self.nparticles = 10
+        self.nparticles = 16
         self.bdim = 3
-        self.packing_frac=0.4
+        self.packing_frac = 0.4
         self.sig = 0.2
         self.hsf_niter = 1e5
         self.hs_radii = None #np.random.normal(1,self.sig,self.nparticles)
@@ -27,7 +28,8 @@ class Test_HS_Generate_Packing(unittest.TestCase):
     def test_seed_initialise_nocell(self):
         """
         test that seeding works correctly and gives identical results up to initialisation without cell lists
-        """    
+        """
+        #print "test_seed_initialise_nocell"    
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None, 
                                          packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, 
                                          hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3, 
@@ -46,6 +48,7 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         test that seeding works correctly and gives identical results up to initialisation with cell lists
         """
+        #print "test_seed_initialise_cell"
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None, 
                                          packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, 
                                          hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3, 
@@ -64,6 +67,7 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         test that seeding works correctly and gives identical results up to initialisation without and without cell lists
         """
+        #print "test_seed_initialise"
         self.gp_nocell._initialise()
         self.gp_cell._initialise()
         self.assertTrue(np.array_equal(self.gp_nocell.coords, self.gp_cell.coords))
@@ -72,6 +76,7 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         test that seeding works correctly and HS_Generate_Packings gives identical packings without cell lists
         """
+        #print "test_seed_generate_packing_nocell"
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None, 
                                          packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, 
                                          hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3, 
@@ -92,6 +97,7 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         test that seeding works correctly and HS_Generate_Packings gives identical packings with cell lists
         """  
+        #print "test_seed_generate_packing_cell"
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None, 
                                          packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, 
                                          hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3, 
@@ -112,6 +118,7 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         test that HS_Generate_Packings gives identical packings with and without cell lists
         """
+        #print "test_cell_iter"
         self.gp_nocell._initialise()
         self.gp_nocell._generate_packing_coords()
         
@@ -124,6 +131,7 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         test that HS_Generate_Packings run gives identical packings with and without cell lists
         """
+        #print "test_cell_run"
         self.gp_cell.run()
         self.gp_nocell.run()
         self.assertTrue(np.array_equal(self.gp_nocell.coords, self.gp_cell.coords))

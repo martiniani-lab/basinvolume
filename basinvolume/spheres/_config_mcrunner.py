@@ -23,7 +23,7 @@ class _configure_mcrunner(object):
     def _get_opt_maxstep(self, opt_maxstep):
         """returns opt max step"""
         if opt_maxstep is None:
-            opt_maxstep = self.boxv[0]*0.01
+            opt_maxstep = self.boxv[0] * 0.01
         return opt_maxstep
     
     @abc.abstractmethod
@@ -40,7 +40,7 @@ class _configure_mcrunner(object):
         """
         assert(hasattr(self, 'configfile'))
         fname = self.configfile
-        f = open(fname,'a')
+        f = open(fname, 'a')
         f.write('[STATUS]\n')
         f.write('success: {}\n'.format(str(success)))
         f.close()
@@ -58,7 +58,7 @@ class _configure_mcrunner(object):
         """
         assert(hasattr(self, 'configfile'))
         fname = self.configfile
-        f = open(fname,'w')
+        f = open(fname, 'w')
         return f
     
     @abc.abstractmethod
@@ -95,7 +95,7 @@ class _configure_mcrunner(object):
         elif res.nfev > 1:
             warnings.warn('Configuration has moved on re-quenching, this should not happen')
              
-        drms= np.sqrt(np.dot(self.coords - new_coords, self.coords - new_coords)/self.ndim)
+        drms = np.sqrt(np.dot(self.coords - new_coords, self.coords - new_coords) / self.ndim)
         assert(drms <= dtol)
         self.coords = np.array(new_coords)
         
@@ -126,7 +126,7 @@ class _configure_mcrunner(object):
                 self.coords, hs_diameters, self.frozen, self.rattlers = read_xyzdfr(path)
             else:
                 raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-            self.hs_radii = np.array(hs_diameters/2)
+            self.hs_radii = np.array(hs_diameters / 2)
             self.red_coords = reduce_coordinates(self.coords, self.frozen, self.bdim)
             self.red_radii = np.delete(self.hs_radii.copy(), self.frozen)
             self.red_rattlers = reduce_coordinates(self.rattlers, self.frozen, self.bdim)
@@ -137,7 +137,7 @@ class _configure_mcrunner(object):
                 self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
             else:
                 raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-            self.hs_radii = hs_diameters/2
+            self.hs_radii = hs_diameters / 2
                 
             
               

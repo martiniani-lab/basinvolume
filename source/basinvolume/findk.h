@@ -3,13 +3,15 @@
 
 #include <list>
 #include <vector>
+
 #include "pele/array.h"
 #include "pele/distance.h"
-#include "mcpele/mc.h"
-#include "mcpele/histogram.h"
 #include "pele/harmonic.h"
 
-namespace bv{
+#include "mcpele/histogram.h"
+#include "mcpele/mc.h"
+
+namespace bv {
 
 /*
  * Findk accept test, THIS IS A FICTIOUS ACTION (see note)
@@ -24,7 +26,7 @@ namespace bv{
  * set MC->_niter to the largest unsigned inter so that the calculation must terminate
  * */
 
-class Findk : public mcpele::Action{
+class Findk : public mcpele::Action {
 
 protected:
     void _get_vec_distance(const pele::Array<double>& x);
@@ -32,14 +34,14 @@ protected:
     pele::Array<double> _origin;
     pele::Array<double>_rattlers;
     pele::Array<double>_distance;
-    double _target;
+    const double _target;
     double _acceptedf;
     double _k;
-    double _tol;
-    size_t _ndim;
-    size_t _nparticles;
-    size_t _avg_count;
-    size_t _navg;
+    const double _tol;
+    const size_t _ndim;
+    const size_t _nparticles;
+    const size_t _avg_count;
+    const size_t _navg;
     size_t _naccepted;
     size_t _nrejected;
     size_t _start;
@@ -49,22 +51,24 @@ private:
     mcpele::Histogram _hist;
 
 public:
-    Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
+    Findk(pele::Array<double> origin, pele::Array<double> rattlers,
+            size_t ndim, size_t avg_count, double target,
             size_t navg, double tol, double min, double max, double bin);
     virtual ~Findk() {}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
-    double get_prob(){return _acceptedf;}
-    double get_k(){return _k;}
-    int get_entries() const {return _hist.entries();}
-    double get_mean() const {return _hist.get_mean();}
-    double get_variance() const {return _hist.get_variance();}
-    pele::Array<double> get_histogram() const {
+    double get_prob() const { return _acceptedf; }
+    double get_k() const { return _k; }
+    int get_entries() const { return _hist.entries(); }
+    double get_mean() const { return _hist.get_mean(); }
+    double get_variance() const { return _hist.get_variance(); }
+    pele::Array<double> get_histogram() const
+    {
         std::vector<double> vecdata(_hist.get_vecdata());
         pele::Array<double> histogram(vecdata);
         return histogram.copy();
     }
 };
 
-}//namespace bv
+} // namespace bv
 
-#endif//#ifndef _BV_FINDK_H
+#endif // #ifndef _BV_FINDK_H

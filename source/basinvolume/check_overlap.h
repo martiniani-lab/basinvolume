@@ -25,26 +25,36 @@ protected:
     const static size_t m_ndim = DIST_POL::_ndim;
     pele::Array<double> m_hs_radii;
     const size_t m_nparticles;
-    std::shared_ptr<DIST_POL> m_periodic_dist;
+    std::shared_ptr<DIST_POL> m_dist;
 public:
     virtual ~CheckOverlap() {};
-    CheckOverlap(pele::Array<double> hs_radii, std::shared_ptr<DIST_POL> dist=NULL)
+    CheckOverlap(pele::Array<double> hs_radii, std::shared_ptr<DIST_POL> dist)
         : m_hs_radii(hs_radii.copy()),
           m_nparticles(m_hs_radii.size()),
-          m_periodic_dist(dist)
+          m_dist(dist)
     {
-        if (m_periodic_dist == NULL) {
-            throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
+        if (m_dist == NULL) {
+            throw std::runtime_error("CheckOverlap: distance uninitialised");
         }
+        if (hs_radii.size() == 0) {
+            throw std::runtime_error("CheckOverlap: illegal input: hs_radii");
+        }
+        static_assert(DIST_POL::_ndim > 0, "CheckOverlap: illegal input: distance policy");
     }
     bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
     {
+        if (trial_coords.size() % m_ndim) {
+            throw std::runtime_error("CheckOverlap::conf_test: illegal input");
+        }
+        if (trial_coords.size() / m_ndim != m_nparticles) {
+            throw std::runtime_error("CheckOverlap::conf_test: illegal input");
+        }
         double dr[m_ndim];
         for (size_t i = 0; i < m_nparticles; ++i) {
             const size_t i1 = m_ndim * i;
             for (size_t j = i + 1; j < m_nparticles; ++j) {
                 const size_t j1 = m_ndim * j;
-                m_periodic_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
+                m_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
                 const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
                 const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
                 if (dij2 < tmp * tmp) {
@@ -54,7 +64,6 @@ public:
         }
         return true;
     }
-
 };
 
 template <size_t ndim>
@@ -107,23 +116,36 @@ protected:
     const static size_t m_ndim = DIST_POL::_ndim;
     pele::Array<double> m_hs_radii;
     const size_t m_nparticles;
-    std::shared_ptr<DIST_POL> m_periodic_dist;
+    std::shared_ptr<DIST_POL> m_dist;
     std::shared_ptr<pele::CellIter<DIST_POL> > m_celliter;
 public:
     virtual ~CellListCheckOverlap() {};
     CellListCheckOverlap(pele::Array<double> hs_radii,
-            std::shared_ptr<DIST_POL> dist=NULL, std::shared_ptr<pele::CellIter<DIST_POL> > celliter=NULL)
+            std::shared_ptr<DIST_POL> dist, std::shared_ptr<pele::CellIter<DIST_POL> > celliter)
         :   m_hs_radii(hs_radii.copy()),
             m_nparticles(m_hs_radii.size()),
-            m_periodic_dist(dist),
+            m_dist(dist),
             m_celliter(celliter)
     {
-        if (m_periodic_dist == NULL || m_celliter == NULL) {
-            throw std::runtime_error("CheckOverlap::periodic distance uninitialised");
+        if (m_dist == NULL || m_celliter == NULL) {
+            throw std::runtime_error("CellListCheckOverlap: distance or celliter uninitialised");
         }
+        if (m_dist == NULL) {
+            throw std::runtime_error("CellListCheckOverlap: distance uninitialised");
+        }
+        if (hs_radii.size() == 0) {
+            throw std::runtime_error("CellListCheckOverlap: illegal input: hs_radii");
+        }
+        static_assert(DIST_POL::_ndim > 0, "CellListCheckOverlap: illegal input: distance policy");
     }
     bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
     {
+        if (trial_coords.size() % m_ndim) {
+            throw std::runtime_error("CellListCheckOverlap::conf_test: illegal input");
+        }
+        if (trial_coords.size() / m_ndim != m_nparticles) {
+            throw std::runtime_error("CellListCheckOverlap::conf_test: illegal input");
+        }
         //refresh cell lists
         m_celliter->reset(trial_coords);
         const double* x = trial_coords.data();
@@ -133,7 +155,7 @@ public:
             const size_t xi_off = m_ndim * i;
             const size_t xj_off = m_ndim * j;
             double dr[m_ndim];
-            m_periodic_dist->get_rij(dr, x + xi_off, x + xj_off);
+            m_dist->get_rij(dr, x + xi_off, x + xj_off);
             const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
             const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
             if (dij2 < tmp * tmp) {
