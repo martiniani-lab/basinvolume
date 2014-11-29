@@ -28,24 +28,23 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
 {}
 
 void Findk::_get_vec_distance(const pele::Array<double>& x){
-        pele::Array<double> delta_com(_ndim, 0);
-        for(size_t i = 0; i < _nparticles; ++i) {
-            const size_t i1 = i * _ndim;
-            for(size_t j = 0; j < _ndim; ++j){
-                double d = (x[i1 + j] - _origin[i1 + j]);
-                _distance[i1 + j] = d;
-                delta_com[j] += d;
-            }
-        }
-        
-        delta_com /= _nparticles;
-
-        for(size_t i = 0; i < _nparticles; ++i) {
-            const size_t i1 = i * _ndim;
-            for(size_t j = 0; j < _ndim; ++j)
-                _distance[i1 + j] -= delta_com[j];
+    pele::Array<double> delta_com(_ndim, 0);
+    for(size_t i = 0; i < _nparticles; ++i) {
+        const size_t i1 = i * _ndim;
+        for(size_t j = 0; j < _ndim; ++j){
+            const double d = (x[i1 + j] - _origin[i1 + j]);
+            _distance[i1 + j] = d;
+            delta_com[j] += d;
         }
     }
+
+    delta_com /= _nparticles;
+    for(size_t i = 0; i < _nparticles; ++i) {
+        const size_t i1 = i * _ndim;
+        for(size_t j = 0; j < _ndim; ++j)
+            _distance[i1 + j] -= delta_com[j];
+    }
+}
 
 void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc){
 
