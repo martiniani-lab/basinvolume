@@ -147,7 +147,7 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing101.xyzdr', avgcount=1e4, k=1000, opt_tol=1e-7, ktarget=0.99, knavg=5e3,
+    sim = _findk_mcrunner('jammed_packing101.xyzdr', avgcount=5e4, k=1000, opt_tol=1e-7, ktarget=0.99, knavg=5e3,
                           seeds=seeds, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time() 

@@ -16,7 +16,7 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     """
     cdef cppRecordEnergyHistogram* newptr
     def __cinit__(self, origin, rattlers, ndim, min, max, bin, eqsteps):
-        if len(origin) != ndim * len(rattlers):
+        if len(origin) != len(rattlers):
             raise Exception("_Cdef_RecordDisp2Histogram: illegal input: origin, ndim, rattlers")
         if len(origin) % ndim:
             raise Exception("_Cdef_RecordDisp2Histogram: illegal input: origin, ndim")
@@ -68,7 +68,7 @@ cdef class _Cdef_Findk(_Cdef_Action):
     """
     cdef cppFindk* newptr
     def __cinit__(self, origin, rattlers, bdim, avgcount, target, navg, tol, min, max, bin):
-        if len(origin) != len(rattlers) * bdim:
+        if len(origin) != len(rattlers):
             raise Exception("_Cdef_Findk: illegal input: origin, rattlers, bdim")
         if len(origin) % bdim:
             raise Exception("_Cdef_Findk: illegal input: origin, bdim")
