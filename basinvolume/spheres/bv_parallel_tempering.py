@@ -83,7 +83,7 @@ if __name__ == "__main__":
     try:
         ptrunner.run()
         if collect_minima_list:
-            mcrunner.dump_minima_list('{}/minima_list.sqlite'.format())
+            mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(rank))
         sim.print_success_all(True)
     except:
         view_traceback()
