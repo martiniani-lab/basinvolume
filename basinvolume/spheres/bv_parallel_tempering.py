@@ -85,11 +85,11 @@ if __name__ == "__main__":
         if collect_minima_list:
             mcrunner.dump_minima_list('{}/minima_list.sqlite'.format())
         sim.print_success_all(True)
-    except Exception:
+    except:
         view_traceback()
         try:
             sim.print_success_all(False)
-        except Exception:
+        except:
             view_traceback()
             
     end=time.time()
