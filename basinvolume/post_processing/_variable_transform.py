@@ -70,15 +70,20 @@ def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr
 
 if __name__ == "__main__":
     nr_points = 6
-    k_max = 1042
+    k_max = 300000
     displ_k0 = 22
-    nr_particles = 128
-    dimension = 3
-    k_min = 100
-    kappa_const = 2
+    nr_particles = 64
+    dimension = 2
+    k_min = 0
+    kappa_const = 1
     k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, k_min, kappa_const)
     print k
+    delta_k = [k[i + 1] - k[i] for i in xrange(len(k) - 1)]
+    print delta_k
     t = test_variable_transform(k, displ_k0, nr_particles, dimension, kappa_const)
     print t
     print Gauss_Lobatto_abscissas(nr_points)()
+    import matplotlib.pyplot as plt
+    plt.plot(k, k, "o")
+    plt.show()
     
