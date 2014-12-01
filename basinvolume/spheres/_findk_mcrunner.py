@@ -135,10 +135,10 @@ class _findk_mcrunner(_configure_mcrunner):
         for key, value in status.iteritems():
             f.write('{}: {}\n'.format(key, value))
         f.write('[FINDK]\n')
-        f.write('kmax: {}\n'.format(self.kmax))
-        f.write('prob: {}\n'.format(self.prob))
-        f.write('displ_k_max: {}\n'.format(self.displ_k_max))
-        f.write('var_displ_k_max: {}\n'.format(self.var_displ_k_max))
+        f.write('kmax: {:.16f}\n'.format(self.kmax))
+        f.write('prob: {:.16f}\n'.format(self.prob))
+        f.write('displ_k_max: {:.16f}\n'.format(self.displ_k_max))
+        f.write('var_displ_k_max: {:.16f}\n'.format(self.var_displ_k_max))
         f.close()
     
 if __name__ == "__main__":
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing101.xyzdr', avgcount=5e4, k=1000, opt_tol=1e-7, ktarget=0.99, knavg=5e4,
+    sim = _findk_mcrunner('jammed_packing101.xyzdr', avgcount=5e4, k=1000, opt_tol=1e-7, ktarget=0.99, knavg=5e3,
                           seeds=seeds, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time() 
