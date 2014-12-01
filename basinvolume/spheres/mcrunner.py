@@ -259,7 +259,7 @@ class BV_MCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
                  hmin=0, hmax=1, hbinsize=0.001, acceptance=0.2, adjustf=0.9,
-                 adjustf_niter = 1e4, adjustf_navg = 100, pt_eq_niter=0,
+                 adjustf_niter=1e4, adjustf_navg=100, pt_eq_niter=0,
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-4, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
@@ -296,6 +296,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.frozen_atoms = frozen_atoms
         self.use_periodic = use_periodic
         self.rcontainer = rcontainer
+        self.equilibration_steps = adjustf_niter + pt_eq_niter
         if ts_niter is None:
             ts_niter = niter
         
@@ -338,7 +339,7 @@ class BV_MCrunner(_BaseMCRunner):
         if record_histogram:
             self.binsize = hbinsize
             self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
-                                                  self.binsize, (adjustf_niter + pt_eq_niter))
+                                                  self.binsize, self.equilibration_steps)
             self.add_action(self.histogram)
         
         if use_periodic:
@@ -369,7 +370,7 @@ class BV_MCrunner(_BaseMCRunner):
         #CheckSameMinimum MUST have use_periodic=False
         self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, self.red_radii, 
                                           self.rattlers, self.dtol, bdim=self.bdim,
-                                          eqsteps=(adjustf_niter + pt_eq_niter),
+                                          eqsteps=self.equilibration_steps,
                                           perform_convergence_test=perform_convergence_test, 
                                           collect_minima_list=collect_minima_list, use_periodic=False)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)

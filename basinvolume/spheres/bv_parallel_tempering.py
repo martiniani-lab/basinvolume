@@ -43,14 +43,12 @@ if __name__ == "__main__":
     perform_minimisation_convergence_test=False
     test_convergence_ts=True
     record_histogram=False
-    assert(record_histogram == False and pt_eq_niter == 0)
+    assert(record_histogram == False and pt_eq_niter == 0 and ts_freq == 1) #ts_freq must be 1 with current output implementation (all based on timeseries)
     rel_std_err= 0.05 #relative standard error in the mean used by convergence test
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
     print seeds
-    
-    assert(ts_freq == 1) #must be 1 with current output implementation (all based on timeseries)
     
     #prepare MC runner
     comm = MPI.COMM_WORLD   
@@ -64,7 +62,7 @@ if __name__ == "__main__":
         sim = configure_bv_mcrunner(rank, nprocs)
     
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0, 
-                 hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter = adjustf_niter, adjustf_navg = 100,
+                 hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
                  pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, 
                  perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
                  seeds=seeds, use_cell_lists=args.nocell, single=single, record_histogram=record_histogram)

@@ -39,10 +39,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     eq_max_ptiter: determines the maximum number of pt steps to perform if convergence is not reached before, 20 times initial assigned time
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, 
-                 rel_std_err=0.03, print_status = False, base_directory=None, verbose=False):
-        super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter= max_ptiter, pfreq=pfreq, skip=skip, 
-                                                   print_status = print_status, base_directory=base_directory, verbose=verbose)
+                 rel_std_err=0.03, print_status=False, base_directory=None, verbose=False):
+        super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip, 
+                                                   print_status=print_status, base_directory=base_directory, verbose=verbose)
         self.u2meank0 = u2meank0
+        self.mcrunner_eqsteps = mcrunner.equilibration_steps
         self.test_convergence = test_convergence
         self.autocorr = []
         self.timeseries2 = np.array([])
@@ -56,6 +57,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
         assert((self.eq_max_ptiter-self.eq_min_ptiter)*self.mcrunner.niter > self.min_window) #condition on the minimal window size
+        assert(self.min_window > self.mcrunner_eqsteps)
     
     def _print_initialise(self):
         base_directory = self.base_directory
@@ -94,7 +96,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.rel_std_err_arr.extend([rel_err])
         print "core {} relative standard error {}".format(self.rank, rel_err)
         
-        #compute by how much to extend the time series, if has at least 10 tau
+        #compute by how much to extend the time series, if has at least 1e5
         if sample_size < self.min_window: #self.autocorr[-1]*100
             new_max_ptiter = self.eq_max_ptiter
         elif rel_err < self.rel_std_err:
@@ -118,17 +120,24 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         in_timeseries is the last segment of the time series
         self.timeseries is the whole recorded timeseries
         """
-        if self.eq_time == 0:
-            print "detecting equilibration point"
-            nskip = max(int(len(self.timeseries2)*0.001),1)
-            self.eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
-            print "core {} eq time {}".format(self.rank, self.eq_time)
-        #only keep time series from after the equilibration point, this references original data
-        timeseries2 = self.timeseries2[self.eq_time:]
-        self.max_ptiter = self._find_new_max_ptiter(timeseries2)
-        #if self.verbose:
-        print "new max_ptiter {}, current ptiter {}".format(self.max_ptiter, self.ptiter)
-        print "core {} autocorrelation time {}".format(self.rank, self.autocorr)
+        if len(self.timeseries2) > self.mcrunner_eqsteps:
+            if self.eq_time == 0:
+                print "detecting equilibration point"
+                nskip = max(int(len(self.timeseries2)*0.001),1)
+                eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
+                self.eq_time = np.amax([eq_time,self.mcrunner_eqsteps])
+                print "core {} set_eq_time: {} comp_eq_time: {} mcrunner_eqsteps: {} len(timeseseries2): {}".format(self.rank, self.eq_time, 
+                                                                                                                    eq_time, self.mcrunner_eqsteps, 
+                                                                                                                    len(self.timeseries2))
+            #only keep time series from after the equilibration point, this references original data
+            timeseries2 = self.timeseries2[self.eq_time:]
+            self.max_ptiter = self._find_new_max_ptiter(timeseries2)
+            #if self.verbose:
+            print "new max_ptiter {}, current ptiter {}".format(self.max_ptiter, self.ptiter)
+            print "core {} autocorrelation time {}".format(self.rank, self.autocorr)
+        else:
+            #if self.verbose:
+            print "core {} tested convergence before the mcrunner equilibration steps had terminated".format(self.rank)
                     
     def _all_dump_timeseries(self):
         """for this to work the directory must have been initialised in _print_initialise"""
