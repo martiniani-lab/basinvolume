@@ -138,7 +138,10 @@ class _configure_mcrunner(object):
                 self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
             else:
                 raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-            self.hs_radii = hs_diameters / 2
+            self.hs_radii = hs_diameters / 2.0
+            self.red_coords = self.coords
+            self.red_radii = self.hs_radii
+            self.red_rattlers = self.rattlers
                 
             
               
