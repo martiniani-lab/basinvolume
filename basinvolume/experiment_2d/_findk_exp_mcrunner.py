@@ -150,10 +150,10 @@ class _findk_exp_mcrunner(_configure_mcrunner):
         for key, value in status.iteritems() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[FINDK]\n')
-        f.write('kmax: {}\n'.format(self.kmax))
-        f.write('prob: {}\n'.format(self.prob))
-        f.write('displ_k_max: {}\n'.format(self.displ_k_max))
-        f.write('var_displ_k_max: {}\n'.format(self.var_displ_k_max))
+        f.write('kmax: {:.16f}\n'.format(self.kmax))
+        f.write('prob: {:.16f}\n'.format(self.prob))
+        f.write('displ_k_max: {:.16f}\n'.format(self.displ_k_max))
+        f.write('var_displ_k_max: {:.16f}\n'.format(self.var_displ_k_max))
         f.close()
     
 if __name__ == "__main__":

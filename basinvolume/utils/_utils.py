@@ -9,7 +9,7 @@ import pele
 import mcpele
 from pele.potentials import BasePotential
 import copy
-import sys
+import sys, traceback
 try:
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
@@ -47,6 +47,11 @@ def trymakedir(path):
                 pass
         else:
             break
+
+def view_traceback():
+    ex_type, ex, tb = sys.exc_info()
+    traceback.print_tb(tb)
+    del tb
 
 def put_in_box(x, boxvec):
     x = x.reshape(-1, len(boxvec))

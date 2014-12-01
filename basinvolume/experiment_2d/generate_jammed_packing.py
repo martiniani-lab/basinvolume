@@ -321,8 +321,8 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('vcavity: {:.16f}\n'.format(self.vcavity))
-        f.write('mobile_particle_radius: {}\n'.format(self.mobile_particle_radius))
-        f.write('frozen_particle_radius: {}\n'.format(self.frozen_particle_radius))
+        f.write('mobile_particle_radius: {:.16f}\n'.format(self.mobile_particle_radius))
+        f.write('frozen_particle_radius: {:.16f}\n'.format(self.frozen_particle_radius))
         f.write('\n')
         #print software version
         f.write('[CODEVERSION]\n')

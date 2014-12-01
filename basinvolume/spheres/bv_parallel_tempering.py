@@ -5,6 +5,7 @@ from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
 from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 import time
 from mpi4py import MPI
+from basinvolume.utils import view_traceback
 
 if __name__ == "__main__":
     """
@@ -86,9 +87,13 @@ if __name__ == "__main__":
         if collect_minima_list:
             mcrunner.dump_minima_list('{}/minima_list.sqlite'.format())
         sim.print_success_all(True)
-    except Exception,e:
-        print e
-        sim.print_success_all(False)
+    except Exception:
+        view_traceback()
+        try:
+            sim.print_success_all(False)
+        except Exception:
+            view_traceback()
+            
     end=time.time()
     print 'core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter, 
                                                                                        ptrunner.ptiter, adjustf_niter, 

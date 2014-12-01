@@ -156,8 +156,8 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         for key, value in status.iteritems() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
-        f.write('displ_k_min: {}\n'.format(self.displ_k_min))
-        f.write('var_displ_k_min: {}\n'.format(self.var_displ_k_min))
+        f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min))
+        f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
         f.close()
     
 if __name__ == "__main__":
