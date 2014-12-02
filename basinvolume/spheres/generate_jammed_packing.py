@@ -210,7 +210,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _generate_packing_coords_iteration(self, tol=1e-9):
         """quenches the imported structure using FIRE"""
-        res = modifiedfire_cpp(self.coords,self.potential, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=tol)
+        fire_maxstep = np.amin(self.hs_radii)*self.sca
+        res = modifiedfire_cpp(self.coords,self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
         if not res.success:
             print 'quench failed'
             return False
@@ -219,7 +220,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.energy = res.energy
         
         #test that on ri-minimisation the structure does not change
-        res2 = modifiedfire_cpp(self.coords, self.potential, maxstep=(self.boxv[0]*0.1), nsteps=1e6, tol=tol)
+        res2 = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
         if res2.nfev > 1:
             print 'quench failed (structure changed at second minimisation)'
             return False

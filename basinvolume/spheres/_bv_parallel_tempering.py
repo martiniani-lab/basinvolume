@@ -2,34 +2,10 @@ from __future__ import division
 import numpy as np
 import sys
 from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
+from basinvolume.utils import get_dist_com, detectEquilibration, integratedAutocorrelationTime
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
-from basinvolume.utils import get_dist_com
-from pymbar.timeseries import integratedAutocorrelationTime, statisticalInefficiency
-import copy
-
-def detectEquilibration(A_t, fast=True, nskip=1):
-    T = A_t.size
-
-    # Special case if timeseries is constant.
-    if A_t.var() == 0.0:
-        return (0, 1, T)
-
-    g_t = np.ones([T - 1], np.float32)
-    Neff_t = np.ones([T - 1], np.float32)
-    for t in xrange(0, T - 1, nskip):
-        #if timeseries segment is constant set statistical efficiency to 1
-        if A_t[t:T].var() == 0:
-            g_t[t] = 1
-        else:
-            g_t[t] = statisticalInefficiency(A_t[t:T], fast=fast)
-        Neff_t[t] = (T - t + 1) / g_t[t]
-
-    Neff_max = Neff_t.max()
-    t = Neff_t.argmax()
-    g = g_t[t]
-
-    return (t, g, Neff_max)
+import copy, warnings, time
 
 class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """
@@ -75,7 +51,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     def _print_data(self):
         self._all_dump_timeseries() #convergence is tested in this function
         #the histogram depends on self.timeseries that is not empty only once the ts test is passed
-        if self.ptiter >= self.eq_min_ptiter:
+        if self.ptiter >= self.eq_min_ptiter and len(self.timeseries2) > self.mcrunner_eqsteps:
             self._all_dump_histogram()
     
     def _find_new_max_ptiter(self, timeseries2):
@@ -86,7 +62,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         M = sig^2*(1+2t)/(mu rel_std_err)^2
         it returns an estimate of the new maxptiter only once the timeseries is about 10 times the mean autocorrelation length
         """
-        nskip = max(int(len(self.timeseries2)*0.0001),1) 
+        #to reduce nskip (use more points) make the factor by which timeseries.size is multiplied smaller
+        nskip = max(int(len(self.timeseries2)*0.00001),1) 
         tau = integratedAutocorrelationTime(timeseries2[::nskip], fast=True) * nskip
         self.autocorr.extend([tau])
         var = np.var(timeseries2)
@@ -120,15 +97,29 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         in_timeseries is the last segment of the time series
         self.timeseries is the whole recorded timeseries
         """
-        if len(self.timeseries2) > self.mcrunner_eqsteps:
+        if self.timeseries2.size > self.mcrunner_eqsteps:
             if self.eq_time == 0:
                 print "detecting equilibration point"
-                nskip = max(int(len(self.timeseries2)*0.001),1)
+                #to reduce nskip (use more points) make the factor by which timeseries.size is multiplied smaller
+                nskip = max(int(len(self.timeseries2)*0.0001),1)
+                print "nskip", nskip
+                print "timeseries size", self.timeseries2.size
+                start=time.time()
                 eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
-                self.eq_time = np.amax([eq_time,self.mcrunner_eqsteps])
-                print "core {} set_eq_time: {} comp_eq_time: {} mcrunner_eqsteps: {} len(timeseseries2): {}".format(self.rank, self.eq_time, 
-                                                                                                                    eq_time, self.mcrunner_eqsteps, 
-                                                                                                                    len(self.timeseries2))
+                new_eq_time = np.amax([eq_time, self.mcrunner_eqsteps])
+                #gather values, find largest, then broadcast it
+                new_eq_time_array = self._gather_data([new_eq_time])
+                if self.rank == 0:
+                    new_eq_time = np.amax(new_eq_time_array)
+                else:
+                    new_eq_time = None
+                self.eq_time = self._broadcast_data([new_eq_time], 1)[0]
+                self.eq_time = int(self.eq_time)
+                end=time.time()
+                print "core {} set_eq_time: {} comp_eq_time: {} \
+                mcrunner_eqsteps: {} len(timeseseries2): {} \
+                time detect equilibration: {}".format(self.rank, self.eq_time, eq_time, 
+                                                      self.mcrunner_eqsteps, len(self.timeseries2), end-start)
             #only keep time series from after the equilibration point, this references original data
             timeseries2 = self.timeseries2[self.eq_time:]
             self.max_ptiter = self._find_new_max_ptiter(timeseries2)
@@ -137,7 +128,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             print "core {} autocorrelation time {}".format(self.rank, self.autocorr)
         else:
             #if self.verbose:
-            print "core {} tested convergence before the mcrunner equilibration steps had terminated".format(self.rank)
+            print "core {} attempted to test convergence before the mcrunner equilibration steps had terminated".format(self.rank)
                     
     def _all_dump_timeseries(self):
         """for this to work the directory must have been initialised in _print_initialise"""

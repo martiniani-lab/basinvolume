@@ -10,6 +10,7 @@ import mcpele
 from pele.potentials import BasePotential
 import copy
 import sys, traceback
+from bisect import bisect_left
 try:
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
@@ -505,4 +506,3 @@ class CrossValidationCost(BasePotential):
                 if ii != jj:
                     self.term_B += nd(self.data[ii] - self.data[jj], 2 * self.h**2)
                     self.term_C += nd(self.data[ii] - self.data[jj], self.h**2)
-            

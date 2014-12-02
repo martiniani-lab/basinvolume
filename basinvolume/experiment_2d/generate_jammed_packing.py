@@ -102,7 +102,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         redcoords = reduce_coordinates(self.coords, self.frozen, self.bdim)
         red_radii = np.delete(self.hs_radii, self.frozen)
         assert(len(redcoords) == self.ndim)
-        maxstep = np.amin(red_radii)
+        maxstep = np.amin(red_radii) * self.sca
         res = modifiedfire_cpp(redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
         if not res.success:
             print 'quench failed'
