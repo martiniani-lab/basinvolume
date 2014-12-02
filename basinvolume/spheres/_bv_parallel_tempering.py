@@ -51,7 +51,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     def _print_data(self):
         self._all_dump_timeseries() #convergence is tested in this function
         #the histogram depends on self.timeseries that is not empty only once the ts test is passed
-        if self.ptiter >= self.eq_min_ptiter and len(self.timeseries2) > self.mcrunner_eqsteps:
+        if self.ptiter >= self.eq_min_ptiter and self.timeseries2.size > self.mcrunner_eqsteps:
             self._all_dump_histogram()
     
     def _find_new_max_ptiter(self, timeseries2):
@@ -63,12 +63,12 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         it returns an estimate of the new maxptiter only once the timeseries is about 10 times the mean autocorrelation length
         """
         #to reduce nskip (use more points) make the factor by which timeseries.size is multiplied smaller
-        nskip = max(int(len(self.timeseries2)*0.00001),1) 
+        nskip = max(int(self.timeseries2.size*0.00001),1) 
         tau = integratedAutocorrelationTime(timeseries2[::nskip], fast=True) * nskip
         self.autocorr.extend([tau])
         var = np.var(timeseries2)
         mean = np.mean(timeseries2)
-        sample_size = len(timeseries2)
+        sample_size = timeseries2.size
         rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
         self.rel_std_err_arr.extend([rel_err])
         print "core {} relative standard error {}".format(self.rank, rel_err)
@@ -101,7 +101,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             if self.eq_time == 0:
                 print "detecting equilibration point"
                 #to reduce nskip (use more points) make the factor by which timeseries.size is multiplied smaller
-                nskip = max(int(len(self.timeseries2)*0.0001),1)
+                nskip = max(int(self.timeseries2.size*0.00001),1)
                 print "nskip", nskip
                 print "timeseries size", self.timeseries2.size
                 start=time.time()
@@ -119,7 +119,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 print "core {} set_eq_time: {} comp_eq_time: {} \
                 mcrunner_eqsteps: {} len(timeseseries2): {} \
                 time detect equilibration: {}".format(self.rank, self.eq_time, eq_time, 
-                                                      self.mcrunner_eqsteps, len(self.timeseries2), end-start)
+                                                      self.mcrunner_eqsteps, self.timeseries2.size, end-start)
             #only keep time series from after the equilibration point, this references original data
             timeseries2 = self.timeseries2[self.eq_time:]
             self.max_ptiter = self._find_new_max_ptiter(timeseries2)
