@@ -10,6 +10,7 @@
 #include "pele/distance.h"
 #include <fstream>
 #include <exception>
+#include <limits>
 
 using std::runtime_error;
 using pele::Array;
@@ -63,8 +64,8 @@ inline double statistical_inefficiency(const pele::Array<double>& tsA, const pel
         const bool fast, const size_t mintime=10)
 {
     // Create copies of input arguments.
-    pele::Array<double> A_n = tsA.copy();
-    pele::Array<double> B_n = tsB.copy();
+    pele::Array<double> A_n(tsA.copy());
+    pele::Array<double> B_n(tsB.copy());
     // Be sure A_n and B_n have the same dimensions.
     assert(A_n.size() == B_n.size());
     // Get the length of the timeseries.
@@ -75,17 +76,16 @@ inline double statistical_inefficiency(const pele::Array<double>& tsA, const pel
     double meanA = std::accumulate(A_n.begin(), A_n.end(), 0.0) / static_cast<double>(N);
     double meanB = std::accumulate(B_n.begin(), B_n.end(), 0.0) / static_cast<double>(N);
     // Use temporary copies to make arrays of fluctuation from mean (wrap, do not copy so we're just renaming the arrays).
-    pele::Array<double> dA_n = A_n;
-    pele::Array<double> dB_n = B_n;
-    dA_n -= meanA;
-    dB_n -= meanB;
+    A_n -= meanA;
+    B_n -= meanB;
     //Compute estimator of covariance of (A,B) using estimator that will ensure C(0) = 1.
-    pele::Array<double> dAB = dA_n.copy();
-    dAB *= dB_n;
-    double sigma2_AB = std::accumulate(dAB.begin(), dAB.end(), 0.0) / static_cast<double>(N); //standard estimator to ensure C(0) = 1
+    //pele::Array<double> dAB(A_n.copy());
+    //dAB *= B_n;
+    double sigma2_AB = dot(A_n, B_n) / static_cast<double>(N); //standard estimator to ensure C(0) = 1
 
     // Trap the case where this covariance is zero, and we cannot proceed.
-    if(sigma2_AB == 0){
+    double macheps2 = 2 * std::numeric_limits<double>::epsilon();
+    if(std::fabs(sigma2_AB) <= macheps2){//sigma2_AB==0.0
         throw std::runtime_error("Sample covariance sigma_AB^2 = 0 -- cannot compute statistical inefficiency");
     }
     /*
@@ -97,9 +97,9 @@ inline double statistical_inefficiency(const pele::Array<double>& tsA, const pel
     size_t t = 1;
     size_t increment = 1;
     while(t < N-1){
-        double C = 0;
+        double C = 0.0;
         for (size_t i=0; i<N-t; ++i){
-            C += dA_n[i] * dB_n[i+t] + dB_n[i] * dA_n[i+t];
+            C += A_n[i] * B_n[i+t] + B_n[i] * A_n[i+t];
         }
         C /= (2.0 * static_cast<double>(N - t) * sigma2_AB);
 
@@ -136,7 +136,7 @@ inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, 
     std::vector<double> A(tsA_n.begin(), tsA_n.end());
     size_t T = A.size();
     double meanA = std::accumulate(A.begin(), A.end(), 0.0) / static_cast<double>(T);
-    double varA = 0;
+    double varA = 0.0;
     for (size_t j=0; j<A.size(); ++j){varA += (A[j]-meanA)*(A[j]-meanA);}
     varA /= static_cast<double>(T);
 
@@ -152,15 +152,16 @@ inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, 
     pele::Array<double> g_t(T-1, 1.0);
     pele::Array<double> Neff_t(T-1, 1.0);
 
+    double macheps2 = 2 * std::numeric_limits<double>::epsilon();
     for(size_t i=0; i<T-1; i+=nskip)
     {
         std::vector<double> At(A.begin()+i, A.end());
-        //if timeseries segment is constant set statistical efficiency to 1
         double meanAt = std::accumulate(At.begin(), At.end(), 0.0) / static_cast<double>(At.size());
-        double varAt = 0;
+        double varAt = 0.0;
         for (size_t j=0; j<At.size(); ++j){varAt += (At[j]-meanAt)*(At[j]-meanAt);}
         varAt /= static_cast<double>(At.size());
-        if (varAt == 0.0){
+        //if timeseries segment is constant set statistical efficiency to 1
+        if (std::fabs(varAt) <= macheps2){//varAt==0.0
             g_t[i] = 1.0;
         }
         else{
@@ -169,6 +170,10 @@ inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, 
             }
             catch (std::exception& e){
                 std::cout << "Standard exception: " << e.what() << std::endl;
+                std::cout << "varAt: " << varAt << std::endl;
+                std::cout << "At: " << pele::Array<double>(At) << std::endl;
+                //this should not be necessary as the previous statement should have catched this
+                g_t[i] = 1.0;
             }
         }
         Neff_t[i] = (T - i + 1) / g_t[i];
