@@ -159,7 +159,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
             print "WARNING: max soft diameter >= 1/2 box side!"
-        if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv)
+        if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
         
         ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
