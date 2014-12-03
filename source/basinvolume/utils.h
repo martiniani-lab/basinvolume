@@ -132,7 +132,7 @@ inline double statistical_inefficiency(const pele::Array<double>& tsA, const pel
 
 inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, const bool fast, const size_t nskip=1)
 {
-    pele::Array<double> tsA_n = tsA.copy();
+    pele::Array<double> tsA_n(tsA.copy());
     std::vector<double> A(tsA_n.begin(), tsA_n.end());
     size_t T = A.size();
     double meanA = std::accumulate(A.begin(), A.end(), 0.0) / static_cast<double>(T);
