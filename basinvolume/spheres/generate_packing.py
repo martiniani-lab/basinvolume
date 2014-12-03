@@ -188,13 +188,22 @@ class HS_Generate_Packing(_Generate_Packing):
         if self.method is 'quench':
             #this is necessary to initialise the radii if using the quench routine
             self._initialise_coords_quench()
+        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
         if self.use_cell_lists:
-            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
+            if rcut > 0.5 * np.amin(self.boxv):
+                self.use_cell_lists = False
+        if self.use_cell_lists:
             #print 'rcut', rcut
-            self.potential = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.coords, 
-                                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
+            self.potential = HS_WCA(use_periodic=True,
+                             use_cell_lists=True, eps=self.eps,
+                             sca=self.sca, radii=self.hs_radii,
+                             boxvec=self.boxv,
+                             reference_coords=self.coords, 
+                             rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
         else:
-            self.potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+            self.potential = HS_WCA(use_periodic=True, eps=self.eps,
+                             sca=self.sca, radii=self.hs_radii,
+                             boxvec=self.boxv, ndim=self.bdim)
         self._print_initialise()
         self.initialised = True     
     

@@ -163,8 +163,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             raise Exception("WARNING: particle does not fit the box")
         
         ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
+        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
         if self.use_cell_lists:
-            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
+            if rcut > 0.5 * np.amin(self.boxv):
+                self.use_cell_lists = False
+        if self.use_cell_lists:
             #print 'rcut', rcut
             self.potential = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.coords, 
                                                      rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
