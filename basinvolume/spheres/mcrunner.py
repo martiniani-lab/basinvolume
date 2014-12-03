@@ -121,7 +121,10 @@ class HS_MCrunner(_BaseMCRunner):
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour
         rcut = np.amax(self.hs_radii) * 2
-        self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, rcut, use_frozen=False)
+        if rcut < 0.5 * np.amin(boxvec):
+            self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, rcut, use_frozen=False)
+        else:
+            self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.checkoverlap)
@@ -314,6 +317,11 @@ class BV_MCrunner(_BaseMCRunner):
         #construct optimizer potential
         #rcut set to largest particle diameter
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        if self.use_cell_lists:
+            if self.rcut > 0.5 * np.amin(self.boxv):
+                print ("warning: use_cell_lists flag was set, rcut is too large though")
+                print ("setting use_cell_lists to False")
+                self.use_cell_lists = False
         self.ncellx_scale = 1.0
         self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
                              use_cell_lists=use_cell_lists,
@@ -536,7 +544,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
         self.frozen_atoms = frozen_atoms
-        self.use_periodic=use_periodic
+        self.use_periodic = use_periodic
         self.rcontainer = rcontainer
         
         #findk parameters
@@ -559,6 +567,11 @@ class Findk_MCrunner(_BaseMCRunner):
         #construct optimizer potential
         #rcut set to largest particle diameter
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        if self.use_cell_lists:
+            if self.rcut > 0.5 * np.amin(self.boxv):
+                print ("warning: use_cell_lists flag was set, but rcut is too large")
+                print ("setting use_cell_lists to False")
+                self.use_cell_lists = False
         self.ncellx_scale = 1.0
         self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
                              use_cell_lists=use_cell_lists,
