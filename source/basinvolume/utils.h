@@ -145,7 +145,7 @@ inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, 
         std::vector<double> v;
         v.push_back(0);
         v.push_back(1);
-        v.push_back(T); //{0, 1, T}
+        v.push_back(1); //{0, 1, 1} see pymbar/issues/122
         return pele::Array<double>(v).copy();
     }
 
@@ -162,7 +162,7 @@ inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, 
         varAt /= static_cast<double>(At.size());
         //if timeseries segment is constant set statistical efficiency to 1
         if (std::fabs(varAt) <= macheps2){//varAt==0.0
-            g_t[i] = 1.0;
+            g_t[i] = T-i+1; //see pymbar/issues/122
         }
         else{
             try{
@@ -173,7 +173,7 @@ inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, 
                 std::cout << "varAt: " << varAt << std::endl;
                 std::cout << "At: " << pele::Array<double>(At) << std::endl;
                 //this should not be necessary as the previous statement should have catched this
-                g_t[i] = 1.0;
+                g_t[i] = T-i+1; //see pymbar/issues/122
             }
         }
         Neff_t[i] = (T - i + 1) / g_t[i];
