@@ -319,8 +319,8 @@ class BV_MCrunner(_BaseMCRunner):
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
         if self.use_cell_lists:
             if self.rcut > 0.5 * np.amin(self.boxv):
-                print "warning: use_cell_lists flag was set, rcut is too large though"
-                print "setting use_cell_lists to False"
+                print ("warning: use_cell_lists flag was set, rcut is too large though")
+                print ("setting use_cell_lists to False")
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
         self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
@@ -569,8 +569,8 @@ class Findk_MCrunner(_BaseMCRunner):
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
         if self.use_cell_lists:
             if self.rcut > 0.5 * np.amin(self.boxv):
-                print "warning: use_cell_lists flag was set, but rcut is too large"
-                print "setting use_cell_lists to False"
+                print ("warning: use_cell_lists flag was set, but rcut is too large")
+                print ("setting use_cell_lists to False")
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
         self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
