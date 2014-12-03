@@ -104,7 +104,7 @@ inline double statistical_inefficiency(const pele::Array<double>& tsA, const pel
         C /= (2.0 * static_cast<double>(N - t) * sigma2_AB);
 
         /*Terminate if the correlation function has crossed zero and we've computed the correlation
-        function at least out to 'mintime'.*/
+        function at least up to 'mintime'.*/
 
         if (C <= 0.0 && t > mintime){
             break;

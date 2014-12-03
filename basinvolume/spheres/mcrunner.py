@@ -108,14 +108,14 @@ class HS_MCrunner(_BaseMCRunner):
                 
         #construct test/action classes  
         self.set_report_steps(adjustf_niter)
-        self.takestep_global_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, 
+        self.takestep_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, 
                                                                      report_interval=adjustf_navg, factor=adjustf, 
                                                                      min_acc_ratio=0.2, max_acc_ratio=0.5,
                                                                      single=single, nparticles=self.nparticles, 
                                                                      bdim=self.bdim)
         self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
         self.takestep = TakeStepProbabilities(self.seeds['seed_probability_step_pattern'])
-        self.takestep.add_step(self.takestep_global_displacement, 99)
+        self.takestep.add_step(self.takestep_displacement, 99)
         self.takestep.add_step(self.takestep_particle_pair_swap, 1)
         ##########################################
         #NOTE
@@ -132,7 +132,7 @@ class HS_MCrunner(_BaseMCRunner):
         self.set_temperature(T)
     
     def get_stepsize(self):
-        return self.takestep_global_displacement.get_stepsize()
+        return self.takestep_displacement.get_stepsize()
 
 class HS_MCrunnerOptDiffusion(HS_MCrunner):
     """HS_MCrunnerOptDiffusion
@@ -160,7 +160,7 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
         return n
     
     def get_stepsize(self):
-        stepsize = self.takestep_global_displacement.get_stepsize()
+        stepsize = self.takestep_displacement.get_stepsize()
         #print("self.initial_stepsize:", self.initial_stepsize)
         #print("stepsize:", stepsize)
         #assert np.abs(self.initial_stepsize - stepsize) < 1e-10

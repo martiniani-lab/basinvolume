@@ -62,8 +62,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         M = sig^2*(1+2t)/(mu rel_std_err)^2
         it returns an estimate of the new maxptiter only once the timeseries is about 10 times the mean autocorrelation length
         """
-        #to reduce nskip (use more points) make the factor by which timeseries.size is multiplied smaller
-        nskip = max(int(self.timeseries2.size*0.00001),1) 
+        #to reduce nskip (use more points) make the factor by which timeseries.size is divided by smaller
+        nskip = max(int(np.round(self.timeseries2.size/1e5)),1) 
         tau = integratedAutocorrelationTime(timeseries2[::nskip], fast=True) * nskip
         self.autocorr.extend([tau])
         var = np.var(timeseries2)
@@ -100,8 +100,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if self.timeseries2.size > self.mcrunner_eqsteps:
             if self.eq_time == 0:
                 print "detecting equilibration point"
-                #to reduce nskip (use more points) make the factor by which timeseries.size is multiplied smaller
-                nskip = max(int(self.timeseries2.size*0.00001),1)
+                #to reduce nskip (use more points) make the factor by which timeseries.size is divided by smaller
+                nskip = max(int(np.round(self.timeseries2.size/1e5)),1)
                 print "nskip", nskip
                 print "timeseries size", self.timeseries2.size
                 start=time.time()
