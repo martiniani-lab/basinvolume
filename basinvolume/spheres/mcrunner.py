@@ -318,7 +318,7 @@ class BV_MCrunner(_BaseMCRunner):
         #rcut set to largest particle diameter
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
         if self.use_cell_lists:
-            if self.rcut > np.amin(self.boxv):
+            if self.rcut > 0.5 * np.amin(self.boxv):
                 print "warning: use_cell_lists flag was set, rcut is too large though"
                 print "setting use_cell_lists to False"
                 self.use_cell_lists = False
@@ -568,7 +568,7 @@ class Findk_MCrunner(_BaseMCRunner):
         #rcut set to largest particle diameter
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
         if self.use_cell_lists:
-            if self.rcut > np.amin(self.boxv):
+            if self.rcut > 0.5 * np.amin(self.boxv):
                 print "warning: use_cell_lists flag was set, but rcut is too large"
                 print "setting use_cell_lists to False"
                 self.use_cell_lists = False
