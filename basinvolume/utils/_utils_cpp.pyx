@@ -72,9 +72,12 @@ def statisticalInefficiency(A, B=None, cbool fast=True, size_t mintime=10):
     >>> A_n = correlated_timeseries_example(N=100000, tau=5.0)
     >>> g = statisticalInefficiency(A_n, fast=True)
     """
-    if B is None:
-        B = A
     cdef np.ndarray[double, ndim=1] Ac = np.array(A, dtype=float)
+    if B is None:
+        g = auto_statistical_inefficiency(_pele.Array[double](<double*> Ac.data, Ac.size),
+                                          fast, mintime)
+        return g
+    
     cdef np.ndarray[double, ndim=1] Bc = np.array(B, dtype=float)
     g = statistical_inefficiency(_pele.Array[double](<double*> Ac.data, Ac.size),
                                  _pele.Array[double](<double*> Bc.data, Bc.size),
