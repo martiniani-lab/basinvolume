@@ -15,7 +15,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     eq_max_ptiter: determines the maximum number of pt steps to perform if convergence is not reached before, 20 times initial assigned time
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, 
-                 rel_std_err=0.03, print_status=False, base_directory=None, verbose=False):
+                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, print_status=False, base_directory=None, verbose=False):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip, 
                                                    print_status=print_status, base_directory=base_directory, verbose=verbose)
         self.u2meank0 = u2meank0
@@ -28,7 +28,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.rel_std_err_arr = [] #array of measured relative standard errors
         self.eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
         self.eq_max_ptiter = int(self.eq_min_ptiter*20)
-        self.min_window = 1e5
+        self.min_window = min_window
+        self.max_eq_time = max_eq_time
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
@@ -105,8 +106,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 print "nskip", nskip
                 print "timeseries size", self.timeseries2.size
                 start=time.time()
-                eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip)[0]
-                new_eq_time = np.amax([eq_time, self.mcrunner_eqsteps])
+                eq_time = detectEquilibration(self.timeseries2, fast=True, nskip=nskip, 
+                                              cprint=True, fname="{0}/detect_equilibration{0}".format(self.rank))[0]
+                eq_time = np.amin([self.max_eq_time, eq_time]) #this should avoid detecting artifacts near the end of the series
+                new_eq_time = np.amax([eq_time, self.mcrunner_eqsteps]) #guarantees that eq_time is larger than the mcrunner adapted number of steps
                 #gather values, find largest, then broadcast it
                 new_eq_time_array = self._gather_data([new_eq_time])
                 if self.rank == 0:
