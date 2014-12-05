@@ -7,4 +7,4 @@ cdef extern from "basinvolume/utils.h" namespace "bv":
     _pele.Array[double] cread_txt(string) except+
     double statistical_inefficiency(_pele.Array[double] tsA, _pele.Array[double] tsB, cbool fast, size_t mintime) except+
     double auto_statistical_inefficiency(_pele.Array[double] tsA, cbool fast, size_t mintime) except+
-    _pele.Array[double] detect_equilibration(_pele.Array[double] tsA, cbool fast, size_t nskip) except+
+    _pele.Array[double] detect_equilibration(_pele.Array[double] tsA, cbool fast, size_t nskip, cbool cprint, string fname) except+

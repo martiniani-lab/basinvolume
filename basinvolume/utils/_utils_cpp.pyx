@@ -94,7 +94,7 @@ def integratedAutocorrelationTime(A_n, B_n=None, fast=True, mintime=10):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def detectEquilibration(A, cbool fast=True, size_t nskip=1):
+def detectEquilibration(A, cbool fast=True, size_t nskip=1, cbool cprint=False, string fname="detect_equilibration.txt"):
     """Automatically detect equilibrated region of a dataset using a heuristic that maximizes number of effectively uncorrelated samples.
     c++ implementation adapted from <`pymbar`, https://github.com/choderalab/pymbar>_
     
@@ -128,7 +128,8 @@ def detectEquilibration(A, cbool fast=True, size_t nskip=1):
     >>> [t, g, Neff_max] = detectEquilibration(C_t, nskip=50) # compute indices of uncorrelated timeseries
     """
     cdef np.ndarray[double, ndim=1] Ac = np.array(A, dtype=float)
-    cdef _pele.Array[double] cseries = detect_equilibration(_pele.Array[double](<double*> Ac.data, Ac.size), fast, nskip)
+    cdef _pele.Array[double] cseries = detect_equilibration(_pele.Array[double](<double*> Ac.data, Ac.size), 
+                                                            fast, nskip, cprint, fname)
     cdef double *seriesdata = cseries.data()
     cdef size_t ndof = cseries.size()
     cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(ndof)

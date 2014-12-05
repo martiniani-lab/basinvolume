@@ -11,6 +11,7 @@
 #include <fstream>
 #include <exception>
 #include <limits>
+#include <iostream>
 
 using std::runtime_error;
 using pele::Array;
@@ -194,7 +195,8 @@ inline double auto_statistical_inefficiency(const pele::Array<double>& tsA, cons
     return g;
 }
 
-inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, const bool fast, const size_t nskip=1)
+inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, const bool fast,
+        const size_t nskip=1, const bool print=false, const std::string fname="detect_equilibration.txt")
 {
     pele::Array<double> tsA_n(tsA.copy());
     std::vector<double> A(tsA_n.begin(), tsA_n.end());
@@ -251,6 +253,19 @@ inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, 
     v.push_back((double) t);
     v.push_back(g);
     v.push_back(Neff_max);
+
+    if (print){
+        std::ofstream ofile(fname);
+        if (ofile.is_open())
+        {
+            for(size_t j=0;j<Neff_t.size();++j){
+                ofile << Neff_t[j] << "\n";
+            }
+            ofile.close();
+        }
+        else std::cout << "Unable to open "<<fname<<"";
+    }
+
     return pele::Array<double>(v).copy();
 }
 
