@@ -1,7 +1,10 @@
 from __future__ import division
 import numpy as np
 import argparse
+import os
+import subprocess
 from scipy.optimize import curve_fit
+import basinvolume
 from basinvolume.utils import MomentsAcc
 try:
     import matplotlib.pyplot as plt
@@ -58,6 +61,8 @@ class RuntimeData(object):
         self.N = []
         self.time = []
         self.time_std = []
+        self.repo_path = os.path.dirname(basinvolume.__file__)
+        self.data_script_path = os.path.join(os.path.split(self.repo_path)[0], "runtime/collect_runtime_data.sh")
         self.get_time_data()
         if len(self.N) != len(self.time):
             raise Exception("mismatch in time and particle number labels")
@@ -84,6 +89,11 @@ class RuntimeData(object):
         print "or", new_seconds/60/60/24, "days"
         print "---"
     def get_time_data(self):
+        print ("collect time data")
+        print self.data_script_path
+        collect_input = 42 # This is not needed for now.
+        subprocess.call([self.data_script_path, str(collect_input)])
+    def get_time_data_manual(self):
         self.N.append(16)
         tmp = TimeStatistics(["08:20:09", "03:28:26", "02:01:36", "01:32:11", "01:16:41", "05:47:54", "03:56:56", "04:28:51", "01:20:07"])
         self.time.append(tmp.mean)
