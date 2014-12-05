@@ -58,22 +58,7 @@ class RuntimeData(object):
         self.N = []
         self.time = []
         self.time_std = []
-        self.N.append(16)
-        tmp = TimeStatistics(["08:20:09", "03:28:26", "02:01:36", "01:32:11", "01:16:41", "05:47:54", "03:56:56", "04:28:51", "01:20:07"])
-        self.time.append(tmp.mean)
-        self.time_std.append(tmp.std)
-        self.N.append(20)
-        tmp = TimeStatistics(["10:34:40", "01:42:41", "12:25:42", "02:42:58", "02:32:31", "03:07:56", "03:38:09", "08:58:46", "02:52:39"])
-        self.time.append(tmp.mean)
-        self.time_std.append(tmp.std)
-        self.N.append(24)
-        tmp = TimeStatistics(["08:11:51", "31:35:17", "05:01:53", "12:35:26", "04:02:25", "07:13:05", "04:59:09", "19:45:56", "21:49:32"])
-        self.time.append(tmp.mean)
-        self.time_std.append(tmp.std)
-        self.N.append(32)
-        tmp = TimeStatistics(["05:25:18", "28:07:44", "18:03:35", "13:58:00", "16:56:07", "43:00:49", "44:06:29", "19:08:42", "08:21:22", "07:17:09", "22:29:50", "06:54:43", "24:29:44", "40:43:31"])
-        self.time.append(tmp.mean)
-        self.time_std.append(tmp.std)
+        self.get_time_data()
         if len(self.N) != len(self.time):
             raise Exception("mismatch in time and particle number labels")
         plt.errorbar(self.N, self.time, fmt="o", yerr=self.time_std)
@@ -98,6 +83,23 @@ class RuntimeData(object):
         print "which is", new_seconds/60/60, "hours"
         print "or", new_seconds/60/60/24, "days"
         print "---"
+    def get_time_data(self):
+        self.N.append(16)
+        tmp = TimeStatistics(["08:20:09", "03:28:26", "02:01:36", "01:32:11", "01:16:41", "05:47:54", "03:56:56", "04:28:51", "01:20:07"])
+        self.time.append(tmp.mean)
+        self.time_std.append(tmp.std)
+        self.N.append(20)
+        tmp = TimeStatistics(["10:34:40", "01:42:41", "12:25:42", "02:42:58", "02:32:31", "03:07:56", "03:38:09", "08:58:46", "02:52:39"])
+        self.time.append(tmp.mean)
+        self.time_std.append(tmp.std)
+        self.N.append(24)
+        tmp = TimeStatistics(["08:11:51", "31:35:17", "05:01:53", "12:35:26", "04:02:25", "07:13:05", "04:59:09", "19:45:56", "21:49:32"])
+        self.time.append(tmp.mean)
+        self.time_std.append(tmp.std)
+        self.N.append(32)
+        tmp = TimeStatistics(["05:25:18", "28:07:44", "18:03:35", "13:58:00", "16:56:07", "43:00:49", "44:06:29", "19:08:42", "08:21:22", "07:17:09", "22:29:50", "06:54:43", "24:29:44", "40:43:31"])
+        self.time.append(tmp.mean)
+        self.time_std.append(tmp.std)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='basinvolume: runtime analysis')
