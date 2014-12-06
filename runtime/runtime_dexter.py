@@ -55,9 +55,10 @@ class TimeStatistics(object):
         self.std = tmp.get_std()
 
 class RuntimeData(object):
-    def __init__(self, N_new):
+    def __init__(self, N_new, collect_new_data=True):
         if N_new is None:
             raise Exception("provide particle number with --N")
+        self.collect_new_data = collect_new_data
         self.N = []
         self.time = []
         self.time_std = []
@@ -89,10 +90,11 @@ class RuntimeData(object):
         print "or", new_seconds/60/60/24, "days"
         print "---"
     def get_time_data(self):
-        print ("collect time data")
-        print self.data_script_path
-        collect_input = 42 # This is not needed for now.
-        subprocess.call([self.data_script_path, str(collect_input)])
+        if self.collect_new_data:
+            print ("collect time data")
+            print self.data_script_path
+            collect_input = 42 # This is not needed for now.
+            subprocess.call([self.data_script_path, str(collect_input)])
     def get_time_data_manual(self):
         self.N.append(16)
         tmp = TimeStatistics(["08:20:09", "03:28:26", "02:01:36", "01:32:11", "01:16:41", "05:47:54", "03:56:56", "04:28:51", "01:20:07"])
