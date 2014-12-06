@@ -3,6 +3,7 @@ import numpy as np
 import argparse
 import os
 import subprocess
+import collections
 from scipy.optimize import curve_fit
 import basinvolume
 from basinvolume.utils import MomentsAcc
@@ -49,8 +50,10 @@ class MomentsInTime(object):
 class TimeStatistics(object):
     def __init__(self, time_strings):
         tmp = MomentsInTime()
+        self.nr_samples = 0
         for s in time_strings:
             tmp.add(s)
+            self.nr_samples += 1
         self.mean = tmp.get_mean()
         self.std = tmp.get_std()
 
@@ -59,6 +62,7 @@ class RuntimeData(object):
         if N_new is None:
             raise Exception("provide particle number with --N")
         self.collect_new_data = collect_new_data
+        self.runtime_folder = os.path.abspath("runtime_data")
         self.N = []
         self.time = []
         self.time_std = []
@@ -67,6 +71,8 @@ class RuntimeData(object):
         self.get_time_data()
         if len(self.N) != len(self.time):
             raise Exception("mismatch in time and particle number labels")
+        if len(self.N) < 2:
+            raise Exception("insufficient data to fit line")
         plt.errorbar(self.N, self.time, fmt="o", yerr=self.time_std)
         plt.xlabel(r"Number of particles $N$")
         plt.ylabel(r"Runtime on dexter / seconds")
@@ -91,10 +97,57 @@ class RuntimeData(object):
         print "---"
     def get_time_data(self):
         if self.collect_new_data:
-            print ("collect time data")
-            print self.data_script_path
-            collect_input = 42 # This is not needed for now.
-            subprocess.call([self.data_script_path, str(collect_input)])
+            self.fetch_new_data()
+        self.push_data_into_time_prediction()
+    def fetch_new_data(self):
+        print ("collect time data")
+        print self.data_script_path
+        collect_input = 42 # This is not needed for now.
+        subprocess.call([self.data_script_path, str(collect_input)])
+    def push_data_into_time_prediction(self):
+        n_folders = os.listdir(self.runtime_folder)
+        print ("all runtime folders")
+        print n_folders
+        n_3d_folders = [f for f in n_folders if "_phi50_phi70_3D" in f]
+        n_2d_experimental_folders = [f for f in n_folders if "_exp_88_2D" in f]
+        print ("3D extensivity runtime folders")
+        print n_3d_folders
+        def extract_N(f):
+            return (f.split("_")[0])[1:]
+        n_of_n_3d_folders = [extract_N(f) for f in n_3d_folders]
+        print ("extensivity system sizes")
+        print n_of_n_3d_folders
+        # This is kind of ugly.
+        # http://stackoverflow.com/questions/9001509/python-dictionary-sort-by-key
+        d = dict()
+        for (n, nf) in zip(n_of_n_3d_folders, n_3d_folders):
+           d[int(n)] = nf
+        od = collections.OrderedDict(sorted(d.items()))
+        print od
+        def extract_time_string(time_file):
+            f = open(time_file)
+            res = None
+            res = f.readlines(1)[0]
+            f.close()
+            if "=" not in res:
+                return "unknown"
+            else:
+                return (res.split("=")[1]).strip()
+        for n in sorted(n_of_n_3d_folders):
+            actual_n = int(n)
+            f = os.path.join(self.runtime_folder, od[int(n)])
+            print actual_n
+            print f
+            time_strings = [extract_time_string(os.path.join(f, time_file)) for time_file in os.listdir(f)]
+            while "unknown" in time_strings:
+                time_strings.remove("unknown")
+            if time_strings:
+                print actual_n
+                print time_strings
+                self.N.append(actual_n)
+                tmp = TimeStatistics(time_strings)
+                self.time.append(tmp.mean)
+                self.time_std.append(tmp.std / np.sqrt(tmp.nr_samples))
     def get_time_data_manual(self):
         self.N.append(16)
         tmp = TimeStatistics(["08:20:09", "03:28:26", "02:01:36", "01:32:11", "01:16:41", "05:47:54", "03:56:56", "04:28:51", "01:20:07"])
