@@ -41,15 +41,21 @@ try:
     import matplotlib.pyplot as plt
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string, save_pdf, log_factorial, ResultsFile, OutlierDetection, MomentsAcc, CDFAccumulator, trymakedir
-    from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid, APFEntropy, BestIntegrationSelection, VolumeSanityCheck, PackingFailureStatistics, OutlierRemovalUnbiasingEntropyLogOmega, GeneralisedGauss
+    from basinvolume.utils import to_string, save_pdf, log_factorial
+    from basinvolume.utils import ResultsFile, OutlierDetection
+    from basinvolume.utils import MomentsAcc, CDFAccumulator, trymakedir
+    from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
+    from basinvolume.post_processing import APFEntropy, BestIntegrationSelection
+    from basinvolume.post_processing import VolumeSanityCheck, PackingFailureStatistics
+    from basinvolume.post_processing import OutlierRemovalUnbiasingEntropyLogOmega, GeneralisedGauss
     from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
     from scipy import integrate
 except ImportError as err:
     print err
                     
 class ComputeEntropy(object):
-    def __init__(self, packings_dir, plot_ts_integrand_data = False, skip_volume_computation = False, max_relative_GL_error = 0.2, 
+    def __init__(self, packings_dir, plot_ts_integrand_data = False,
+                 skip_volume_computation = False, max_relative_GL_error = 0.2, 
                  kmax_threshold = 1000, nr_volume_points=-1, force_run=False):
         self.packings_dir = packings_dir
         self.output_path = os.path.join(self.packings_dir,'entropy_analysis_{}'.format('all' if nr_volume_points==-1 else str(nr_volume_points)))
