@@ -68,16 +68,17 @@ class ComputeEntropy(object):
             print("processing numerical packings")
             self.packing_configpath = os.path.join(self.packings_dir, "packings/packings.config")
             self.volume_sanity_check = VolumeSanityCheck(self.packing_configpath)
-        self.output_path = os.path.join(self.packings_dir,'entropy_analysis_{}'.format('all' if nr_volume_points==-1 else str(nr_volume_points)))
+        self.output_path = os.path.join(self.packings_dir,
+                           'entropy_analysis_{}'.format('all' if nr_volume_points==-1 else str(nr_volume_points)))
         trymakedir(self.output_path)
         self.plot_ts_integrand_data = plot_ts_integrand_data
         self.skip_volume_computation = skip_volume_computation
         self.max_relative_GL_error = max_relative_GL_error
         self.kmax_threshold = kmax_threshold
-        self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error = self.max_relative_GL_error, kmax_threshold = self.kmax_threshold)
-        self.explore_dirs = [self.packings_dir + "/" + f for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
+        self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error=self.max_relative_GL_error,
+                                          kmax_threshold=self.kmax_threshold)
+        self.explore_dirs = [os.path.join(self.packings_dir, f) for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
         self.force_run = force_run
-        #self.explore_dirs = self.explore_dirs[:-1]
         if nr_volume_points != -1:
             print "removing volume points"
             nr_to_kill = len(self.explore_dirs) - nr_volume_points
@@ -94,29 +95,30 @@ class ComputeEntropy(object):
         self.best_integration_selection.print_fail_information(self.packings_dir)
         # perform outlier removal
         self.F0_final_integration_selection = self.best_integration_selection.F0_final
-        self.outlier_detection = OutlierDetection(self.F0_final_integration_selection, p=0.5, D=3*np.std(self.F0_final_integration_selection), verbose = True)
+        self.outlier_detection = OutlierDetection(self.F0_final_integration_selection, p=0.5, D=3*np.std(self.F0_final_integration_selection), verbose=True)
         self.F0_wo_outliers = np.asarray(self.outlier_detection.non_outliers)
         # plot various datasets
         self._generate_plots()
         # compute different entropies
-        # -p log g entropy
-        self.APF_entropy = APFEntropy(self.F0_wo_outliers, self.volume_sanity_check)
-        self.APF_entropy.compute_and_write_entropy(self.output_path + "/entropy_AFP")
-        # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
-        self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, self.volume_sanity_check)
-        self.kernel_density_log_omega.compute_and_write_entropy(self.output_path + "/entropy_kernel_density")
-        # fit to cdf, numerical integration for un-biasing
-        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
-        try:
-            self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
-        except Exception, e:
-            print e
-        # fit to pdf with ML method
-        self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
-        try:
-            self.ML_log_omega.compute_and_write_entropy(self.output_path + "/entropy_ML_LogOmega")
-        except Exception, e:
-            print e
+        if not self.experimental:
+            # -p log g entropy
+            self.APF_entropy = APFEntropy(self.F0_wo_outliers, self.volume_sanity_check)
+            self.APF_entropy.compute_and_write_entropy(os.path.join(self.output_path, "entropy_AFP"))
+            # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
+            self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, self.volume_sanity_check)
+            self.kernel_density_log_omega.compute_and_write_entropy(os.path.join(self.output_path + "entropy_kernel_density"))
+            # fit to cdf, numerical integration for un-biasing
+            self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
+            try:
+                self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(self.volume_sanity_check)
+            except Exception, e:
+                print e
+            # fit to pdf with ML method
+            self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, self.volume_sanity_check)
+            try:
+                self.ML_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "/entropy_ML_LogOmega"))
+            except Exception, e:
+                print e
     
     def _compute_F0(self):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
@@ -132,7 +134,7 @@ class ComputeEntropy(object):
                 # PT runs finished with success.
                 self.pt_failures.add_success()
                 try:
-                    if not self.force_run and os.path.isfile(os.path.join(path,"analysis/volume_data")):
+                    if not self.force_run and os.path.isfile(os.path.join(path, "analysis/volume_data")):
                         try:
                             volf = ConfigParser.ConfigParser()
                             volf.read(str(path + "/analysis/volume_data"))
@@ -155,7 +157,7 @@ class ComputeEntropy(object):
         self.packing_stat.print_failure_info()
     
     def _gather_data(self):
-        self.volume_files = [f + "/analysis/volume_data" for f in self.explore_dirs]
+        self.volume_files = [os.path.join(f, "analysis/volume_data") for f in self.explore_dirs]
         self.F0 = []
         self.unit_box_F0 = []
         self.sigF0 = []
