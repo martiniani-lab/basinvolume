@@ -8,7 +8,7 @@ from _get_volume import F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_dis
 from _histogram_analysis import F_acc_Gaussian_Poly_HS_Fluid
 from _volume_processing_utils import PackingFailureStatistics, VolumeSanityCheck
 from _volume_processing_utils import GLPTNotUsedStatistics, BestIntegrationSelection
-from _volume_processing_utils import PTFailures
+from _volume_processing_utils import PTFailures, assert_pt_success
 from _p_log_p import F0MeanError, APFEntropy
 from _log_omega_cdf_fit import GeneralisedGauss, JackLogOmega
 from _log_omega_cdf_fit import OutlierRemovalUnbiasingEntropyLogOmega

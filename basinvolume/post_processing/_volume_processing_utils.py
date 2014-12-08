@@ -245,3 +245,18 @@ class BestIntegrationSelection(object):
         failed_to_file(packings_dir + "/bad_volumes_failed_GL_integration", self.bad_volumes_failed_GL_integration)
         failed_to_file(packings_dir + "/bad_volumes_huge_kmax", self.bad_volumes_huge_kmax)
 
+
+def assert_pt_success(path, fname):
+    pt_path = os.path.join(path, "explore_" + fname + ".config")
+    if not os.path.isfile(pt_path):
+        return False
+    configf = ConfigParser.ConfigParser()
+    try:
+        configf.read(str(pt_path))
+        success_dict = dict(configf.items('STATUS'))
+    except:
+        return False
+    for key, value in success_dict.iteritems():
+        if not (value == "True"):
+            return False
+    return True
