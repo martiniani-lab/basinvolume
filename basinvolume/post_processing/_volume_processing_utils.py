@@ -23,6 +23,9 @@ class PackingFailureStatistics(object):
     def get_nr_failures(self):
         return self.total_count - self.success_count
     def print_failure_info(self):
+        if self.total_nr == 0:
+            return
+        print "Packing failure statistics"
         print self.get_nr_failures(), "out of", self.total_count, "failed"
         print "corresponding failure ratio", self.get_nr_failures() / self.total_count
         print 100 * self.get_nr_failures() / self.total_count, "per-cent"
@@ -30,6 +33,31 @@ class PackingFailureStatistics(object):
         print "done", self.total_count, "out of", self.total_nr 
         print to_string(self.total_count / self.total_nr * 100, 2), "per-cent"
         print "packing was", packing_string
+        
+class PTFailures(object):
+    def __init__(self):
+        self.total_nr = 0
+        self.success_nr = 0
+        self.failed = []
+    def add_success(self):
+        self.add_any()
+        self.success_nr += 1
+    def add_any(self):
+        self.total_nr += 1
+    def add_failure(self, name):
+        self.add_any()
+        self.failed.append(name)
+    def get_nr_failures(self):
+        return self.total_nr - self.success_nr
+    def print_failure_info(self):
+        if self.total_nr == 0:
+            return
+        print "PT failure statistics"
+        print self.get_nr_failures(), "out of", self.total_nr, "failed"
+        print "corresponding failure ratio", self.get_nr_failures() / self.total_nr
+        print 100 * self.get_nr_failures() / self.total_nr, "per-cent"
+        print "packings with failed PT"
+        print self.failed
 
 class VolumeSanityCheck(object):
     def __init__(self, v_acc_parameter_file):

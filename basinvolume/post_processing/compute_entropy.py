@@ -49,9 +49,25 @@ try:
     from basinvolume.post_processing import VolumeSanityCheck, PackingFailureStatistics
     from basinvolume.post_processing import OutlierRemovalUnbiasingEntropyLogOmega, GeneralisedGauss
     from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
+    from basinvolume.post_processing import PTFailures
     from scipy import integrate
 except ImportError as err:
     print err
+    
+def assert_pt_success(path, fname):
+    pt_path = os.path.join(path, "explore_" + fname + ".config")
+    if not os.path.isfile(pt_path):
+        return False
+    configf = ConfigParser.ConfigParser()
+    try:
+        configf.read(str(pt_path))
+        success_dict = dict(configf.items('STATUS'))
+    except:
+        return False
+    for key, value in success_dict.iteritems():
+        if not (value == "True"):
+            return False
+    return True
                     
 class ComputeEntropy(object):
     def __init__(self, packings_dir, plot_ts_integrand_data = False,
@@ -114,29 +130,37 @@ class ComputeEntropy(object):
         from basinvolume.spheres import _collect_u2_vs_k
         sim = _collect_u2_vs_k()
         self.packing_stat = PackingFailureStatistics(len(self.explore_dirs))
+        self.pt_failures = PTFailures()
         for (path, fname) in zip(self.explore_dirs, self.packing_strings):
-            try:
-                if not self.force_run and os.path.isfile(os.path.join(path,"analysis/volume_data")):
-                    try:
-                        volf = ConfigParser.ConfigParser()
-                        volf.read(str(path + "/analysis/volume_data"))
-                        F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
-                    except:
+            if not (assert_pt_success(path, fname)):
+                # PT runs failed.
+                self.pt_failures.add_failure(fname)
+            else:
+                # PT runs finished with success.
+                self.pt_failures.add_success()
+                try:
+                    if not self.force_run and os.path.isfile(os.path.join(path,"analysis/volume_data")):
+                        try:
+                            volf = ConfigParser.ConfigParser()
+                            volf.read(str(path + "/analysis/volume_data"))
+                            F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
+                        except:
+                            sim(fname = fname, explore_dir = path, packings_dir = os.path.abspath(self.packings_dir + "/jammed_packings"), 
+                                plot_ts_integrand_data = self.plot_ts_integrand_data)
+                    else:
                         sim(fname = fname, explore_dir = path, packings_dir = os.path.abspath(self.packings_dir + "/jammed_packings"), 
-                            plot_ts_integrand_data = self.plot_ts_integrand_data)
-                else:
-                    sim(fname = fname, explore_dir = path, packings_dir = os.path.abspath(self.packings_dir + "/jammed_packings"), 
-                            plot_ts_integrand_data = self.plot_ts_integrand_data)
-                #self.volume_sanity_check.check(F0, "F0", path)
-                self.packing_stat.add_success() #consider success is already run
-            except:
-                print "failed packing!"
-                print "name: ", fname
-                print "path:", path
-                self.packing_stat.add_failure()
-            self.packing_stat.print_progress_info(fname)
+                                plot_ts_integrand_data = self.plot_ts_integrand_data)
+                    #self.volume_sanity_check.check(F0, "F0", path)
+                    self.packing_stat.add_success() #consider success is already run
+                except:
+                    print "failed packing!"
+                    print "name: ", fname
+                    print "path:", path
+                    self.packing_stat.add_failure()
+                self.packing_stat.print_progress_info(fname)
+        self.pt_failures.print_failure_info()
         self.packing_stat.print_failure_info()
-        
+    
     def _gather_data(self):
         self.volume_files = [f + "/analysis/volume_data" for f in self.explore_dirs]
         self.F0 = []
