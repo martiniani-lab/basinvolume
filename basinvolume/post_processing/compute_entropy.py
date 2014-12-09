@@ -52,7 +52,7 @@ try:
     from basinvolume.post_processing import GeneralisedGauss
     from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
     from basinvolume.post_processing import PTFailures, assert_pt_success
-    from basinvolume.post_processing import determine_if_experimental_packing
+    from basinvolume.spheres import _collect_u2_vs_k
 except ImportError as err:
     print err
 
@@ -92,7 +92,6 @@ class ComputeEntropyCommon(object):
             assert(len(self.explore_dirs) == self.nr_volume_points)
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
     def compute_integrals_for_F0(self):
-        from basinvolume.spheres import _collect_u2_vs_k
         series_collector = _collect_u2_vs_k()
         self.packing_stat = PackingFailureStatistics(len(self.explore_dirs))
         self.pt_failures = PTFailures()
