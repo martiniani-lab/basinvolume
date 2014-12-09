@@ -153,6 +153,7 @@ class ComputeEntropyCommon(object):
             self.F0_actually_imported_files.append(vf)
             try:
                 packing_configpath = self.get_packing_configpath(vf)
+                print "packing_configpath", packing_configpath
                 volume_sanity_check = VolumeSanityCheck(packing_configpath)
                 self.best_integration_selection.check_next_F0(volume_sanity_check, self, vf)
             except Exception, e:
@@ -269,10 +270,16 @@ class ComputeEntropyExperimental(ComputeEntropyCommon):
     def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run):
         super(ComputeEntropyExperimental, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run)
     def get_packing_configpath(self, volume_file):
-        # n32_exp_88_2D/explore_bv_jammed_packing56/explore_jammed_packing56.config
-        tmp = os.path.split(os.path.split(vf)[0])[0]
-        tmp2 = os.path.split(tmp)[1]
-        return os.path.join(tmp, tmp2 + ".config")
+        # The data naming format of experimental packings MC is something like the following.
+        # /scratch/kjs73/test/n32_exp_88_2D/explore_bv_jammed_packing73/explore_jammed_packing73.config
+        #
+        #
+        #
+        #  cat /scratch/kjs73/test/n32_exp_88_2D/jammed_packings/jammed_packing224.config
+        tmp = os.path.split(os.path.split(volume_file)[0])[0]
+        only_number = ((os.path.split(tmp)[1]).split("_")[3])[7:]
+        return os.path.join(self.packings_dir, "packings", "packing" + only_number + ".config")
+        #return os.path.join(tmp,  "explore_jammed_packing" + only_number + ".config")
     def compute_entropy_etc(self):
         print("---experimental packing---")
 
