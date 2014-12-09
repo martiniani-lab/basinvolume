@@ -47,7 +47,8 @@ try:
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
     from basinvolume.post_processing import APFEntropy, BestIntegrationSelection
     from basinvolume.post_processing import VolumeSanityCheck, PackingFailureStatistics
-    from basinvolume.post_processing import OutlierRemovalUnbiasingEntropyLogOmega, GeneralisedGauss
+    from basinvolume.post_processing import OutlierRemovalUnbiasingEntropyLogOmega
+    from basinvolume.post_processing import GeneralisedGauss
     from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
     from basinvolume.post_processing import PTFailures, assert_pt_success
     from basinvolume.post_processing import determine_if_experimental_packing
@@ -63,7 +64,8 @@ class ComputeEntropy(object):
         self.experimental = "exp" in packings_dir
         if self.experimental:
             print("processing experimental packings")
-            #self.packing_configpath = os.path.join(self.packings_dir, )
+            print("This will not work with the current version of the script.")
+            assert(0)
         else:
             print("processing numerical packings")
             self.packing_configpath = os.path.join(self.packings_dir, "packings/packings.config")
@@ -75,6 +77,7 @@ class ComputeEntropy(object):
         self.skip_volume_computation = skip_volume_computation
         self.max_relative_GL_error = max_relative_GL_error
         self.kmax_threshold = kmax_threshold
+        
         self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error=self.max_relative_GL_error,
                                           kmax_threshold=self.kmax_threshold)
         self.explore_dirs = [os.path.join(self.packings_dir, f) for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
@@ -91,7 +94,11 @@ class ComputeEntropy(object):
         # collect computed F0 data
         self._gather_data()
         # check that basins fit in box (w. HS constraints)
-        self.best_integration_selection.perform_sanity_check_on_final_F0(self.volume_sanity_check)
+        if not self.experimental:
+            self.best_integration_selection.perform_sanity_check_on_final_F0(self.volume_sanity_check)
+        else:
+            assert(0)
+            #self.best_integration_selection.perform_experimental_sanity_check_on_final_F0(self.packings_dir)
         self.best_integration_selection.print_fail_information(self.packings_dir)
         # perform outlier removal
         self.F0_final_integration_selection = self.best_integration_selection.F0_final
