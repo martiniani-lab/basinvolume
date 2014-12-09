@@ -128,7 +128,7 @@ class GLPTNotUsedStatistics(object):
 class BestIntegrationSelection(object):
     """
     Handles part of the analysis of F0 values.
-    This version only considers packings where both, the kindk runs, and PT
+    This version only considers packings where both, the findk runs, and PT
     completed successfully.
     In case there is a huge kmax, we allow for the GL integration to fail and
     use an analytic approximation instead.
