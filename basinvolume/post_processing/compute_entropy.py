@@ -71,6 +71,7 @@ class ComputeEntropyCommon(object):
         self.nr_volume_points = nr_volume_points
         self.force_run = force_run
         # End: store input parameters.
+        self.experimental = "exp" in packings_dir
         self.set_up_directories()
         self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error=self.max_relative_GL_error, kmax_threshold=self.kmax_threshold)
     def run_analysis(self):
@@ -109,11 +110,12 @@ class ComputeEntropyCommon(object):
                             volf.read(str(path + "/analysis/volume_data"))
                             F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
                         except:
-                            series_collector(fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
+                            series_collector(frozen=self.experimental, fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
                     else:
-                        series_collector(fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
+                        series_collector(frozen=self.experimental, fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
                     self.packing_stat.add_success()
-                except:
+                except Exception, e:
+                    print "Exception: ", e
                     print "failed packing!"
                     print "name: ", fname
                     print "path:", path
