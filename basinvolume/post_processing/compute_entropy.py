@@ -55,7 +55,8 @@ try:
     from scipy import integrate
 except ImportError as err:
     print err
-    
+
+
 class ComputeEntropyCommon(object):
     """
     Contains common functionality of entropy computation which is
@@ -83,7 +84,9 @@ class ComputeEntropy(object):
     def __init__(self, packings_dir, plot_ts_integrand_data=False,
                  skip_volume_computation=False, max_relative_GL_error=0.2, 
                  kmax_threshold=1000, nr_volume_points=-1, force_run=False):
-
+        self.__super
+                             
+########################################################################################################   
 ########################################################################################################                
 class ComputeEntropyOld(object):
     def __init__(self, packings_dir, plot_ts_integrand_data=False,
