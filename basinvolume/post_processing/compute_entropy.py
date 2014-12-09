@@ -55,8 +55,37 @@ try:
     from scipy import integrate
 except ImportError as err:
     print err
-                    
+    
+class ComputeEntropyCommon(object):
+    """
+    Contains common functionality of entropy computation which is
+    independent on config file layout.
+    """
+
+class ComputeEntropyNumerical(ComputeEntropyCommon):
+    """
+    Used for numerical packings wich have one and only one config file
+    for all basins.
+    """
+
+class ComputeEntropyExperimental(ComputeEntropyCommon):
+    """
+    Used for experimental packings, wich have different configuration
+    files for each basin.
+    """
+
 class ComputeEntropy(object):
+    """
+    Use either ComputeEntropyNumerical or ComputeEntropyExperimental,
+    based on the name of the folder containing the MC data
+    ("packings_dir").
+    """
+    def __init__(self, packings_dir, plot_ts_integrand_data=False,
+                 skip_volume_computation=False, max_relative_GL_error=0.2, 
+                 kmax_threshold=1000, nr_volume_points=-1, force_run=False):
+
+########################################################################################################                
+class ComputeEntropyOld(object):
     def __init__(self, packings_dir, plot_ts_integrand_data=False,
                  skip_volume_computation=False, max_relative_GL_error=0.2, 
                  kmax_threshold=1000, nr_volume_points=-1, force_run=False):
