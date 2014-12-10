@@ -7,7 +7,6 @@
 #include <stdexcept>
 
 #include "pele/array.h"
-#include "pele/cell_lists.h"
 #include "pele/distance.h"
 
 #include "mcpele/mc.h"

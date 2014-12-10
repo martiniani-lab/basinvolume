@@ -1,13 +1,39 @@
 #ifndef _BV_CHECK_OVERLAP_CELL_LISTS_H
 #define _BV_CHECK_OVERLAP_CELL_LISTS_H
 
+#include "pele/cell_lists.h"
+
 #include "cell_loop_break.h"
 
 namespace bv {
 
-/**
- * Test for overlap of the hard sphere cores
- */
+template <class distance_policy>
+class OverlapAccumulator {
+    const static size_t m_ndim = distance_policy::_ndim;
+    std::shared_ptr<distance_policy> m_dist;
+    const double* m_x;
+    const double* m_h;
+    bool legal;
+public:
+    OverlapAccumulator(std::shared_ptr<distance_policy> dist, pele::Array<double> x, pele::Array<double> hs_radii)
+        : m_dist(dist),
+          m_x(x.data()),
+          m_h(hs_radii.data()),
+          legal(true)
+    {}
+    bool configuration_is_legal() const { return legal; }
+    bool insert_atom_pair(const size_t atom_i, const size_t atom_j)
+    {
+        const size_t xi_off = m_ndim * atom_i;
+        const size_t xj_off = m_ndim * atom_j;
+        double dr[m_ndim];
+        m_dist->get_rij(dr, m_x + xi_off, m_x + xj_off);
+        const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
+        const double tmp = (m_h[atom_i] + m_h[atom_j]);
+        legal = (dij2 >= tmp * tmp);
+        return !legal;
+    }
+};
 
 template <typename DIST_POL>
 class CellListCheckOverlap : public mcpele::ConfTest {
@@ -16,17 +42,17 @@ protected:
     pele::Array<double> m_hs_radii;
     const size_t m_nparticles;
     std::shared_ptr<DIST_POL> m_dist;
-    std::shared_ptr<pele::CellLists<DIST_POL> > m_celliter;
+    std::shared_ptr<pele::CellLists<DIST_POL> > m_cell_lists;
 public:
     virtual ~CellListCheckOverlap() {};
     CellListCheckOverlap(pele::Array<double> hs_radii,
-            std::shared_ptr<DIST_POL> dist, std::shared_ptr<pele::CellLists<DIST_POL> > celliter)
+            std::shared_ptr<DIST_POL> dist, std::shared_ptr<pele::CellLists<DIST_POL> > cell_lists)
         :   m_hs_radii(hs_radii.copy()),
             m_nparticles(m_hs_radii.size()),
             m_dist(dist),
-            m_celliter(celliter)
+            m_cell_lists(cell_lists)
     {
-        if (m_dist == NULL || m_celliter == NULL) {
+        if (m_dist == NULL || m_cell_lists == NULL) {
             throw std::runtime_error("CellListCheckOverlap: distance or celliter uninitialised");
         }
         if (m_dist == NULL) {
@@ -45,6 +71,14 @@ public:
         if (trial_coords.size() / m_ndim != m_nparticles) {
             throw std::runtime_error("CellListCheckOverlap::conf_test: illegal input");
         }
+        m_cell_lists->reset(trial_coords);
+        OverlapAccumulator<DIST_POL> acc(m_dist, trial_coords, m_hs_radii);
+        ////////////////
+        pele::CellListsLoop<OverlapAccumulator<DIST_POL> > joe_the_looper = m_cell_lists->get_atom_pair_looper(acc);
+        ////////////////
+        joe_the_looper.loop_through_atom_pairs();
+        return acc.configuration_is_legal();
+        /*
         //refresh cell lists
         m_celliter->reset(trial_coords);
         const double* x = trial_coords.data();
@@ -62,6 +96,7 @@ public:
             }
         }
         return true;
+        */
     }
 };
 
