@@ -1,3 +1,5 @@
+#include <random>
+
 #include <gtest/gtest.h>
 
 #include "pele/array.h"
@@ -5,11 +7,10 @@
 #include "basinvolume/check_overlap.h"
 #include "basinvolume/check_overlap_cell_lists.h"
 
-class CheckOverlapTest: public ::testing::Test{
+class CheckOverlapTest : public ::testing::Test {
 public:
     static const size_t nr_dim = 3;
     size_t nr_particles;
-    //size_t nr_dim;
     size_t nr_dof;
     pele::Array<double> x;
     pele::Array<double> x_overlap;
@@ -18,7 +19,6 @@ public:
     virtual void SetUp()
     {
         nr_particles = 42;
-        //nr_dim = 3;
         nr_dof = nr_particles * nr_dim;
         x = pele::Array<double>(nr_dof, 0);
         x_overlap = pele::Array<double>(nr_dof, 0);
@@ -51,3 +51,40 @@ TEST_F(CheckOverlapTest, CellLists_Works)
     EXPECT_TRUE(check_overlap_non_periodic.conf_test(x, NULL));
     EXPECT_FALSE(check_overlap_non_periodic.conf_test(x_overlap, NULL));
 }
+
+class CheckOverlapManyParticlesTest : public ::testing::Test {
+public:
+    static const size_t nr_dim = 3;
+    size_t nr_particles;
+    size_t nr_dof;
+    pele::Array<double> x_initial;
+    pele::Array<double> x_minimized;
+    pele::Array<double> hs_radii;
+    pele::Array<double> hs_radii_inflated;
+    pele::Array<double> boxvec;
+    std::mt19937 rng;
+    std::uniform_real_distribution<double> uniL;
+    std::uniform_real_distribution<double> uniR;
+    virtual void SetUp()
+    {
+        nr_particles = 1000;
+        nr_dof = nr_particles * nr_dim;
+        x_initial = pele::Array<double>(nr_dof, 0);
+        x_minimized = pele::Array<double>(nr_dof, 0);
+        hs_radii = pele::Array<double>(nr_particles, 0);
+        hs_radii_inflated = pele::Array<double>(nr_particles, 0);
+        rng.seed(42);
+        const double L = std::sqrt(nr_particles);
+        boxvec = pele::Array<double>(nr_dim, L);
+        uniL = std::uniform_real_distribution<double>(-0.5 * L, 0.5 * L);
+        uniR = std::uniform_real_distribution<double>(0.9, 1.1);
+        for (size_t i = 0; i < nr_dof; ++i) {
+            x_initial[i] = uniL(rng);
+        }
+        const double scale = 1.3;
+        for (size_t i = 0; i < nr_particles; ++i) {
+            hs_radii[i] = uniR(rng);
+            hs_radii_inflated[i] = scale * hs_radii[i];
+        }
+    }
+};
