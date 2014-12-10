@@ -12,6 +12,7 @@
 
 #include "mcpele/mc.h"
 
+#include "cell_loop_break.h"
 #include "frozen_wrappers.h"
 
 namespace bv {
