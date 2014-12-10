@@ -78,25 +78,6 @@ public:
         ////////////////
         joe_the_looper.loop_through_atom_pairs();
         return acc.configuration_is_legal();
-        /*
-        //refresh cell lists
-        m_celliter->reset(trial_coords);
-        const double* x = trial_coords.data();
-        for (auto ijpair = m_celliter->begin(); ijpair != m_celliter->end(); ++ijpair) {
-            const size_t i = ijpair->first;
-            const size_t j = ijpair->second;
-            const size_t xi_off = m_ndim * i;
-            const size_t xj_off = m_ndim * j;
-            double dr[m_ndim];
-            m_dist->get_rij(dr, x + xi_off, x + xj_off);
-            const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
-            const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
-            if (dij2 < tmp * tmp) {
-                return false;
-            }
-        }
-        return true;
-        */
     }
 };
 
