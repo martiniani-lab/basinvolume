@@ -3,6 +3,7 @@
 #include "pele/array.h"
 
 #include "basinvolume/check_overlap.h"
+#include "basinvolume/check_overlap_cell_lists.h"
 
 class CheckOverlapTest: public ::testing::Test{
 public:

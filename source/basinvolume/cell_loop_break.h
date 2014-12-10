@@ -1,6 +1,8 @@
 #ifndef _BV_CELL_LOOP_BREAK_H
 #define _BV_CELL_LOOP_BREAK_H
 
+#include "pele/cell_lists.h"
+
 namespace pele {
 
 /**

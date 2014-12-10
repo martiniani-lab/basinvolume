@@ -22,23 +22,24 @@ cdef extern from "basinvolume/check_overlap.h" namespace "bv":
         cppCheckOverlapPeriodic(_pele.Array[double], _pele.Array[double]) except+
     cdef cppclass cppCheckOverlapCartesian "bv::CheckOverlapCartesian"[ndim]:
         cppCheckOverlapCartesian(_pele.Array[double]) except + 
+    cdef cppclass cppCheckOverlapPeriodicFrozen "bv::CheckOverlapPeriodicFrozen"[ndim]:
+        cppCheckOverlapPeriodicFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except+
+    cdef cppclass cppCheckOverlapCartesianFrozen "bv::CheckOverlapCartesianFrozen"[ndim]:
+        cppCheckOverlapCartesianFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except + 
+
+cdef extern from "basinvolume/check_overlap_cell_lists.h" namespace "bv":
     cdef cppclass cppCheckOverlapPeriodicCellLists "bv::CheckOverlapPeriodicCellLists"[ndim]:
         cppCheckOverlapPeriodicCellLists(_pele.Array[double] radii, _pele.Array[double] boxvec, double rcut,
         double ncellx_scale) except +
     cdef cppclass cppCheckOverlapCartesianCellLists "bv::CheckOverlapCartesianCellLists"[ndim]:
         cppCheckOverlapCartesianCellLists(_pele.Array[double] radii, _pele.Array[double] boxvec, double rcut,
         double ncellx_scale) except +
-    cdef cppclass cppCheckOverlapPeriodicFrozen "bv::CheckOverlapPeriodicFrozen"[ndim]:
-        cppCheckOverlapPeriodicFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except+
-    cdef cppclass cppCheckOverlapCartesianFrozen "bv::CheckOverlapCartesianFrozen"[ndim]:
-        cppCheckOverlapCartesianFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except + 
     cdef cppclass cppCheckOverlapPeriodicCellListsFrozen "bv::CheckOverlapPeriodicCellListsFrozen"[ndim]:
         cppCheckOverlapPeriodicCellListsFrozen(_pele.Array[double] reference_coords, _pele.Array[size_t] frozen_ndof,
         _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut, double ncellx_scale) except +
     cdef cppclass cppCheckOverlapCartesianCellListsFrozen "bv::CheckOverlapCartesianCellListsFrozen"[ndim]:
         cppCheckOverlapCartesianCellListsFrozen(_pele.Array[double] reference_coords, _pele.Array[size_t] frozen_ndof,
         _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut, double ncellx_scale) except +
-
 
 cdef extern from "basinvolume/minimum.h" namespace "bv":
     cdef cppclass cppMinimum "bv::Minimum":
