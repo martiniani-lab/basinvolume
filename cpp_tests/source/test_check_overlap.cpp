@@ -2,7 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "pele/array.h"
+#include "pele/hs_wca.h"
+#include "pele/lbfgs.h"
 
 #include "basinvolume/check_overlap.h"
 #include "basinvolume/check_overlap_cell_lists.h"
@@ -81,10 +82,26 @@ public:
         for (size_t i = 0; i < nr_dof; ++i) {
             x_initial[i] = uniL(rng);
         }
-        const double scale = 1.3;
+        const double scale = 1.8;
         for (size_t i = 0; i < nr_particles; ++i) {
             hs_radii[i] = uniR(rng);
             hs_radii_inflated[i] = scale * hs_radii[i];
         }
     }
 };
+
+TEST_F(CheckOverlapManyParticlesTest, CellListsOverlap_Works)
+{
+    const double eps = 1;
+    const double sca = 0.8;
+    const double rcut = 2 * (1 + sca) * hs_radii.get_max();
+    std::shared_ptr<pele::HS_WCAPeriodicCellLists<nr_dim> > potential = std::make_shared<pele::HS_WCAPeriodicCellLists<nr_dim> >(eps, sca, hs_radii, boxvec, rcut);
+    pele::LBFGS optimizer(potential, x_initial);
+    optimizer.run();
+    x_minimized = optimizer.get_x();
+    std::cout << "energy before: " << potential->get_energy(x_initial) << "\n";
+    std::cout << "energy after: " << potential->get_energy(x_minimized) << std::endl;
+    EXPECT_FALSE(bv::CheckOverlapPeriodicCellLists<nr_dim>(hs_radii, boxvec, rcut).conf_test(x_initial, NULL));
+    EXPECT_TRUE(bv::CheckOverlapPeriodicCellLists<nr_dim>(hs_radii, boxvec, rcut).conf_test(x_minimized, NULL));
+    EXPECT_FALSE(bv::CheckOverlapPeriodicCellLists<nr_dim>(hs_radii_inflated, boxvec, rcut).conf_test(x_minimized, NULL));
+}
