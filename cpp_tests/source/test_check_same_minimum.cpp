@@ -73,16 +73,16 @@ public:
 TEST_F(CheckSameMinimumTest, BasicFunctionality){
     const size_t eqsteps = 0;
     auto opt = std::make_shared<opt_t>(pot, origin, _lbfgstol, _lbfgsM);
-    bv::CheckSameMinimumCartesian<3>  check_basic(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps);
+    bv::CheckSameMinimumCartesian<3>  check_basic(opt, pot, origin, rattlers, dtol, eqsteps);
     EXPECT_TRUE(check_basic.perform_convergence_test()==false);
     EXPECT_TRUE(check_basic.collect_minima_list()==false);
-    bv::CheckSameMinimumCartesian<3>  check_eigenvalues(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps, true, false);
+    bv::CheckSameMinimumCartesian<3>  check_eigenvalues(opt, pot, origin, rattlers, dtol, eqsteps, true, false);
     EXPECT_TRUE(check_eigenvalues.perform_convergence_test()==true);
     EXPECT_TRUE(check_eigenvalues.collect_minima_list()==false);
-    bv::CheckSameMinimumCartesian<3>  check_minima(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps, false, true);
+    bv::CheckSameMinimumCartesian<3>  check_minima(opt, pot, origin, rattlers, dtol, eqsteps, false, true);
     EXPECT_TRUE(check_minima.perform_convergence_test()==false);
     EXPECT_TRUE(check_minima.collect_minima_list()==true);
-    bv::CheckSameMinimumCartesian<3>  check_both(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps, true, true);
+    bv::CheckSameMinimumCartesian<3>  check_both(opt, pot, origin, rattlers, dtol, eqsteps, true, true);
     EXPECT_TRUE(check_both.perform_convergence_test()==true);
     EXPECT_TRUE(check_both.collect_minima_list()==true);
 }
@@ -99,10 +99,10 @@ TEST_F(CheckSameMinimumTest, MCInteraction){
     shared_ptr<mcpele::AcceptTest> metropolis = std::make_shared<mcpele::MetropolisTest>(42);
     mc.add_accept_test(metropolis);
     //add conf tests, check same minimum
-    shared_ptr<mcpele::ConfTest> check_basic = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps);
-    shared_ptr<mcpele::ConfTest> check_eigenvalues = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps, true, false);
-    shared_ptr<mcpele::ConfTest> check_minima = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps, false, true);
-    shared_ptr<mcpele::ConfTest> check_both = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, hs_radii, rattlers, dtol, eqsteps, true, true);
+    shared_ptr<mcpele::ConfTest> check_basic = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, rattlers, dtol, eqsteps);
+    shared_ptr<mcpele::ConfTest> check_eigenvalues = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, rattlers, dtol, eqsteps, true, false);
+    shared_ptr<mcpele::ConfTest> check_minima = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, rattlers, dtol, eqsteps, false, true);
+    shared_ptr<mcpele::ConfTest> check_both = std::make_shared<bv::CheckSameMinimumCartesian<3> >(opt, pot, origin, rattlers, dtol, eqsteps, true, true);
     mc.add_conf_test(check_basic);
     mc.add_conf_test(check_eigenvalues);
     mc.add_late_conf_test(check_minima);
@@ -141,5 +141,5 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     //the precise final value depends on the inital value, the iteration, etc.
     EXPECT_NEAR(std::static_pointer_cast<bv::Findk>(findk)->get_k(), 0, 1);
     //check that stepsize of mc is correctly adapted to k as adjusted in findk
-    EXPECT_NEAR_RELATIVE(static_cast<mcpele::GaussianCoordsDisplacement*>(mc.get_takestep().get())->get_stepsize(), 1/sqrt( std::static_pointer_cast<bv::Findk>(findk)->get_k() ), 1e-15);
+    EXPECT_NEAR_RELATIVE(static_cast<mcpele::GaussianCoordsDisplacement*>(mc.get_takestep().get())->get_stepsize(), 1 / sqrt(std::static_pointer_cast<bv::Findk>(findk)->get_k()), 1e-15);
 }

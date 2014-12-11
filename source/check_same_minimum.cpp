@@ -6,22 +6,21 @@ using mcpele::MC;
 namespace bv {
 
 CheckSameMinimum::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
-        std::shared_ptr<pele::BasePotential> potential, Array<double> origin, Array<double>
-        hs_radii, Array<double> rattlers, double dtol, size_t ndim,
+        std::shared_ptr<pele::BasePotential> potential, Array<double> origin,
+        Array<double> rattlers, double dtol, size_t ndim,
         const size_t eqsteps, std::shared_ptr<pele::DistanceInterface> dist,
         const bool perform_convergence_test, const bool collect_minima_list)
     : _ndim(ndim),
       _optimizer(optimizer),
       _potential(potential),
       _origin(origin.copy()),
-      _hs_radii(hs_radii.copy()),
       _rattlers(rattlers.copy()),
       _distance(origin.size(), 0),
       _new_minimum(origin.size()),
       _dtol(dtol),
       _d(0),
       _rms(0),
-      _nparticles(_hs_radii.size()),
+      _nparticles(origin.size() / ndim),
       _dist_policy(dist),
       _Nnoratt(0),
       _perform_convergence_test(perform_convergence_test),
@@ -31,7 +30,13 @@ CheckSameMinimum::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> opti
       _minima_list(_dtol * sqrt(origin.size()), _optimizer->get_tol(), _dtol)
 {
     if (_dist_policy == NULL) {
-        throw std::runtime_error("CheckSameMinimum::CheckSameMinimum distance policy uninitialised");
+        throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: distance policy uninitialised");
+    }
+    if (_origin.size() != _rattlers.size()) {
+        throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: illegal input: origin vs rattlers");
+    }
+    if (_origin.size() % _ndim) {
+        throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: illegal input: origin vs boxdimension");
     }
     for (size_t i = 0; i < _origin.size(); i +=_ndim) {
         if (_rattlers[i] != 0){

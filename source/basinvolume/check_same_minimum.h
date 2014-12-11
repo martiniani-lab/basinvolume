@@ -49,7 +49,6 @@ protected:
     std::shared_ptr<pele::GradientOptimizer> _optimizer;
     std::shared_ptr<pele::BasePotential> _potential;
     pele::Array<double> _origin;
-    pele::Array<double> _hs_radii;
     pele::Array<double> _rattlers;
     pele::Array<double> _distance;
     pele::Array<double> _new_minimum;
@@ -70,8 +69,8 @@ protected:
     MinimaList _minima_list;
 public:
     CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
-            std::shared_ptr<pele::BasePotential> potential, pele::Array<double> origin,
-            pele::Array<double> hs_radii, pele::Array<double> rattlers, double dtol,
+            std::shared_ptr<pele::BasePotential> potential,
+            pele::Array<double> origin, pele::Array<double> rattlers, double dtol,
             size_t ndim, const size_t eqsteps=0, std::shared_ptr<pele::DistanceInterface> dist=NULL,
             const bool perform_convergence_test=false, 
             const bool collect_minima_list=false);
@@ -97,11 +96,11 @@ template<size_t ndim>
 class CheckSameMinimumCartesian : public CheckSameMinimum {
 public:
     CheckSameMinimumCartesian(std::shared_ptr<pele::GradientOptimizer> optimizer,
-            std::shared_ptr<pele::BasePotential> potential, pele::Array<double> origin,
-            pele::Array<double> hs_radii, pele::Array<double> rattlers, double dtol,
+            std::shared_ptr<pele::BasePotential> potential,
+            pele::Array<double> origin, pele::Array<double> rattlers, double dtol,
             size_t eqsteps=0, bool perform_convergence_test=false,
             bool collect_minima_list=false)
-        : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
+        : CheckSameMinimum(optimizer, potential, origin, rattlers,
                 dtol, ndim, eqsteps, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
                 perform_convergence_test, collect_minima_list)
     {}
@@ -111,12 +110,12 @@ template<size_t ndim>
 class CheckSameMinimumPeriodic : public CheckSameMinimum {
 public:
     CheckSameMinimumPeriodic(std::shared_ptr<pele::GradientOptimizer> optimizer,
-            std::shared_ptr<pele::BasePotential> potential, pele::Array<double> origin,
-            pele::Array<double> hs_radii, pele::Array<double> boxvec,
+            std::shared_ptr<pele::BasePotential> potential,
+            pele::Array<double> origin, pele::Array<double> boxvec,
             pele::Array<double> rattlers, double dtol,
             size_t eqsteps=0, bool perform_convergence_test=false,
             bool collect_minima_list=false)
-        : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
+        : CheckSameMinimum(optimizer, potential, origin, rattlers,
                 dtol, ndim, eqsteps,
                 std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
                 perform_convergence_test, collect_minima_list)
