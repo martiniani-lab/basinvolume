@@ -376,7 +376,7 @@ class BV_MCrunner(_BaseMCRunner):
                                  frozen_atoms=self.frozen_atoms)
             
         #CheckSameMinimum MUST have use_periodic=False
-        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin 
+        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin,
                                           self.rattlers, self.dtol, bdim=self.bdim,
                                           eqsteps=self.equilibration_steps,
                                           perform_convergence_test=perform_convergence_test, 

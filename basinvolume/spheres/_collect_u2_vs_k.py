@@ -9,7 +9,7 @@ from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
 from basinvolume.utils import to_string, read_txt
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data
-from basinvolume.port_processing import F_Basin_From_MC_Data_Free_COM
+from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0
 import argparse
