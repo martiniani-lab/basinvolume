@@ -1,17 +1,15 @@
 #ifndef _BV_CHECK_SAME_MINIMUM_H
 #define _BV_CHECK_SAME_MINIMUM_H
 
-#include <iostream>
-#include <cmath>
 #include <algorithm>
-#include <random>
 #include <chrono>
+#include <cmath>
+#include <iostream>
 #include <memory>
+#include <random>
 
-#include "pele/array.h"
-#include "pele/optimizer.h"
 #include "pele/distance.h"
-#include "pele/harmonic.h" //debug
+#include "pele/optimizer.h"
 
 #include "mcpele/mc.h"
 #include "mcpele/histogram.h"
@@ -19,7 +17,7 @@
 #include "convergence_test.h"
 #include "minima_list.h"
 
-namespace bv{
+namespace bv {
 
 
 /*check same minimum class
@@ -132,6 +130,6 @@ public:
     {}
 };
 
-}//namespace bv
+} // namespace bv
 
-#endif//#ifndef _BV_CHECK_SAME_MINIMUM_H
+#endif // #ifndef _BV_CHECK_SAME_MINIMUM_H
