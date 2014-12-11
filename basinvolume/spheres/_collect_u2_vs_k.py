@@ -26,7 +26,7 @@ class _collect_u2_vs_k(object):
     """
         
     def __call__(self, ts_skip=1000, fname='jammed_packing0', base_dir='analysis',
-                 explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data = True,
+                 explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data=True,
                  frozen=False, show=True):
                
         self.fname = fname
@@ -39,11 +39,11 @@ class _collect_u2_vs_k(object):
         self.base_directory = self.explore_dir + '/' + base_dir
         self.frozen = frozen
         if not frozen:
-            self.packing_configpath = os.path.join(packings_dir,'jammed_packings.config')
+            self.packing_configpath = os.path.join(packings_dir, 'jammed_packings.config')
         else:
-            self.packing_configpath = os.path.join(packings_dir,fname+'.config')
-        self.findk_configpath = os.path.join(self.explore_dir,'findk_'+fname+'.config')  
-        self.kmin_configpath = os.path.join(self.explore_dir,'kmin_'+fname+'.config')
+            self.packing_configpath = os.path.join(packings_dir, fname + '.config')
+        self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')  
+        self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
         
         self.ts_skip = ts_skip
         self.plot_ts_integrand_data = plot_ts_integrand_data
@@ -82,42 +82,42 @@ class _collect_u2_vs_k(object):
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.packing_configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING','boxdim')
+        self.nparticles = configf.getint('JAMMED_PACKING', 'nparticles')
+        self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
         assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING','boxv')
+        boxv = configf.get('JAMMED_PACKING', 'boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING','sca')
+        self.imp_packing_frac = configf.getfloat('JAMMED_PACKING', 'packing_fraction')
+        self.sca = configf.getfloat('JAMMED_PACKING', 'sca')
         if self.frozen:
-            self.vcavity = configf.getfloat('JAMMED_PACKING','vcavity')
+            self.vcavity = configf.getfloat('JAMMED_PACKING', 'vcavity')
         else:
             self.vcavity = np.prod(self.boxv)
         configf.read(str(self.findk_configpath))
-        self.kmax = configf.getfloat('FINDK','kmax')
-        self.prob_kmax = configf.getfloat('FINDK','prob')
-        self.displ_k_max = configf.getfloat('FINDK','displ_k_max')
-        self.var_displ_k_max = configf.getfloat('FINDK','var_displ_k_max')
+        self.kmax = configf.getfloat('FINDK', 'kmax')
+        self.prob_kmax = configf.getfloat('FINDK', 'prob')
+        self.displ_k_max = configf.getfloat('FINDK', 'displ_k_max')
+        self.var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max')
         configf.read(str(self.kmin_configpath))
-        self.kmin = configf.getfloat('KMIN_MCRUNNER','k')
-        self.displ_k_min = configf.getfloat('KMIN','displ_k_min')
-        self.var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')
+        self.kmin = configf.getfloat('KMIN_MCRUNNER', 'k')
+        self.displ_k_min = configf.getfloat('KMIN', 'displ_k_min')
+        self.var_displ_k_min = configf.getfloat('KMIN', 'var_displ_k_min')
     
     def _import_ks(self):
         """
         must run before import u2
         """
         karray = [] 
-        path = os.path.join(self.explore_dir,'temperatures')
+        path = os.path.join(self.explore_dir, 'temperatures')
         f = open(path, "r")
         while True:
             k = f.readline()
             if not k: break
             karray.extend([float(k)])
         #prepend kmax
-        karray.insert(0,self.kmax)
-        self.karray = np.array(karray[::-1],dtype='d')
+        karray.insert(0, self.kmax)
+        self.karray = np.array(karray[::-1], dtype='d')
 
     def _import_u2_reverse(self):
         n = len(self.karray)-1
@@ -126,18 +126,18 @@ class _collect_u2_vs_k(object):
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
-                    path = os.path.join(self.explore_dir,dir+'/hist_mean')
-                    fileHandle = open (path,"r")
+                    path = os.path.join(self.explore_dir, dir + '/hist_mean')
+                    fileHandle = open (path, "r")
                     lineList = fileHandle.readlines()
                     fileHandle.close()
                     niter, u2, var, std_err = lineList[-1].split()
                     self.u2_array[int(dir)] = u2
                     self.var_array[int(dir)] = var
         #prepend u2 kmax
-        self.u2_array.insert(0,self.displ_k_max)
-        self.var_array.insert(0,self.var_displ_k_max)
-        self.u2_array = np.array(self.u2_array[::-1],dtype='d')
-        self.var_array = np.array(self.var_array[::-1],dtype='d')
+        self.u2_array.insert(0, self.displ_k_max)
+        self.var_array.insert(0, self.var_displ_k_max)
+        self.u2_array = np.array(self.u2_array[::-1], dtype='d')
+        self.var_array = np.array(self.var_array[::-1], dtype='d')
         
     def _import_time_series(self):
         timeseries = []
@@ -145,7 +145,7 @@ class _collect_u2_vs_k(object):
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
-                    path = os.path.join(self.explore_dir,dir)
+                    path = os.path.join(self.explore_dir, dir)
                     file_list = glob.glob(path + '/TimeSeries*')
                     file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
                     series_order.append(int(dir))
@@ -155,7 +155,7 @@ class _collect_u2_vs_k(object):
                     timeseries.append(series)
         X = np.array(timeseries)
         Y = series_order
-        self.timeseries = np.array([x for (y,x) in sorted(zip(Y,X))])
+        self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
                     
     def _print_u2_vs_k(self):
         """writes <u2> and variance vs """
@@ -163,9 +163,9 @@ class _collect_u2_vs_k(object):
         fname = '{}/{}'.format(self.base_directory,dname)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-        f.write('#{:>15}\t{:>15}\n'.format('<u2>','var(<u2>)'))
+        f.write('#{:>15}\t{:>15}\n'.format('<u2>', 'var(<u2>)'))
         for i in xrange(len(self.u2_array)):
-            f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i],self.var_array[i])) 
+            f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i])) 
         f.close()
         
     def _compute_volume(self):
@@ -209,50 +209,50 @@ class _collect_u2_vs_k(object):
     def _plot_data(self):
         if self.plot_ts_integrand_data is False:
             return
-        lines = ["-","--","-."]
+        lines = ["-", "--", "-."]
         linecycler = cycle(lines)
         
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
         u2_array_app = (cont_karray + (self.nparticles*self.bdim)/self.displ_k_min) / (self.nparticles*self.bdim)
-        u2_array_app = 1.0/u2_array_app
+        u2_array_app = 1.0 / u2_array_app
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
         #timeseries
         for i,series in enumerate(self.timeseries):
-            ax.plot(series[::self.ts_skip],ls=next(linecycler),linewidth=1,label=str(i))
+            ax.plot(series[::self.ts_skip], ls=next(linecycler), linewidth=1, label=str(i))
         #plt.yscale('symlog')
-        ax.legend(frameon=False,loc=1)
-        plt.savefig(self.base_directory+'/time_series.eps')
+        ax.legend(frameon=False, loc=1)
+        plt.savefig(self.base_directory + '/time_series.eps')
         if self.show:
             plt.show()
         #integrand
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.errorbar(self.tarray,self.farray,yerr=self.sigfarray)
+        ax.errorbar(self.tarray, self.farray, yerr=self.sigfarray)
         ax.set_xlabel('t')
         ax.set_ylabel('integrand')
-        plt.savefig(self.base_directory+'/integrand.eps')
+        plt.savefig(self.base_directory + '/integrand.eps')
         if self.show:
             plt.show()
         #plt.figure()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(cont_karray,u2_array_app,'-')
-        ax.errorbar(self.karray,self.u2_array,yerr=np.sqrt(self.var_array),marker='s',linestyle='')
+        ax.plot(cont_karray, u2_array_app, '-')
+        ax.errorbar(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), marker='s', linestyle='')
         ax.set_xlabel('k')
         ax.set_ylabel('<u2>')
         ax.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
-        plt.savefig(self.base_directory+'/u2_vs_k.eps') 
+        plt.savefig(self.base_directory + '/u2_vs_k.eps') 
         if self.show:
             plt.show()
         
     def _print_volumes(self):
         dname = 'volume_data'
         fname = '{}/{}'.format(self.base_directory,dname)
-        f = open(fname,'w')
+        f = open(fname, 'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         def _to_file(name, value):
             f.write((name + ": {}\n").format(to_string(value)))
@@ -278,9 +278,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     #parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument("-f","--fname", type=str, help="specify packing to analyze",default=None)
-    parser.add_argument("-d","--fdir", type=str, help="directory containing file, if not absolute path by default: fdir+fname",default='explore_bv_')
-    parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir",default=os.getcwd())
-    parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False",default=False)
+    parser.add_argument("-d","--fdir", type=str, help="directory containing file, if not absolute path by default: fdir+fname", default='explore_bv_')
+    parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir", default=os.getcwd())
+    parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
     args = parser.parse_args()
     print args
     
@@ -290,18 +290,18 @@ if __name__ == "__main__":
     assert(os.path.isabs(wdir))
     
     if not os.path.isabs(fdir):
-        fdir = os.path.join(wdir,fdir+fname)
+        fdir = os.path.join(wdir,fdir + fname)
     
     sim = _collect_u2_vs_k()
     
     if (fname != None):
-        sim(fname=fname,explore_dir=fdir,frozen=args.frozen)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:
                 if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
-                    path = os.path.join(wdir,dir)
-                    sim(explore_dir=path,frozen=args.frozen)
+                    path = os.path.join(wdir, dir)
+                    sim(explore_dir=path, frozen=args.frozen)
                     
             
     
