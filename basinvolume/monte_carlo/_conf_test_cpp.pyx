@@ -209,6 +209,12 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     cdef cppCheckSameMinimum* newptr
     def __cinit__(self, opt, pot, origin, rattlers, dtol, boxvec=None, bdim=3, eqsteps=0, cbool perform_convergence_test=False, 
                   cbool collect_minima_list=False, use_periodic=False):
+        if len(boxvec) != bdim:
+            raise Exception("_Cdef_CheckSameMinimum: illegal input: boxvec vs bdim")
+        if len(origin) != len(rattlers):
+            raise Exception("_Cdef_CheckSameMinimum: illegal input: origin vs rattlers")
+        if len(origin) % bdim != 0:
+            raise Exception("_Cdef_CheckSameMinimum: illegal input: origin vs bdim")
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         cdef np.ndarray[double, ndim=1] bv
