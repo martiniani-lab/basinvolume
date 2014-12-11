@@ -1,17 +1,15 @@
 #ifndef _BV_CHECK_SAME_MINIMUM_H
 #define _BV_CHECK_SAME_MINIMUM_H
 
-#include <iostream>
-#include <cmath>
 #include <algorithm>
-#include <random>
 #include <chrono>
+#include <cmath>
+#include <iostream>
 #include <memory>
+#include <random>
 
-#include "pele/array.h"
-#include "pele/optimizer.h"
 #include "pele/distance.h"
-#include "pele/harmonic.h" //debug
+#include "pele/optimizer.h"
 
 #include "mcpele/mc.h"
 #include "mcpele/histogram.h"
@@ -19,8 +17,7 @@
 #include "convergence_test.h"
 #include "minima_list.h"
 
-namespace bv{
-
+namespace bv {
 
 /*check same minimum class
  * _optimizer: pointer to object of class GradientOptimizer performing minimisation according to some potential
@@ -42,7 +39,7 @@ namespace bv{
  * _Nnoratt: number of non-rattlers
  * */
 
-class CheckSameMinimum:public mcpele::ConfTest{
+class CheckSameMinimum : public mcpele::ConfTest {
 protected:
     inline pele::Array<double> _align_coords(pele::Array<double> coords);
     inline double _get_d2(pele::Array<double> coords);
@@ -51,11 +48,17 @@ protected:
     size_t _ndim;
     std::shared_ptr<pele::GradientOptimizer> _optimizer;
     std::shared_ptr<pele::BasePotential> _potential;
-    pele::Array<double> _origin, _hs_radii, _rattlers, _distance, _new_minimum;
-    double _dtol, _d, _rms;
+    pele::Array<double> _origin;
+    pele::Array<double> _rattlers;
+    pele::Array<double> _distance;
+    pele::Array<double> _new_minimum;
+    double _dtol;
+    double _d;
+    double _rms;
     size_t _nparticles;
     std::shared_ptr<pele::DistanceInterface> _dist_policy;
-    size_t _Nnoratt, _inoratt;
+    size_t _Nnoratt;
+    size_t _inoratt;
     mcpele::Moments m_failed_quench_frac;
     //convergence test classes
     bool _perform_convergence_test;
@@ -66,72 +69,59 @@ protected:
     MinimaList _minima_list;
 public:
     CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
-            std::shared_ptr<pele::BasePotential> potential, pele::Array<double> origin,
-            pele::Array<double> hs_radii, pele::Array<double> rattlers, double dtol,
+            std::shared_ptr<pele::BasePotential> potential,
+            pele::Array<double> origin, pele::Array<double> rattlers, double dtol,
             size_t ndim, const size_t eqsteps=0, std::shared_ptr<pele::DistanceInterface> dist=NULL,
             const bool perform_convergence_test=false, 
             const bool collect_minima_list=false);
     virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckSameMinimum() {}
-
-    double get_distance() { return _d; }
-    pele::Array<double> get_distance_array()
-    {
-        return _distance.copy();
-    }
+    double get_distance() const { return _d; }
+    pele::Array<double> get_distance_array() const { return _distance.copy(); }
     bool perform_convergence_test() const { return _perform_convergence_test; }
     bool collect_minima_list() const { return _collect_minima_list; }
     //forwarding minima database information to the outside
     size_t ml_nr_distinct_minima() const { return _minima_list.nr_distinct_minima(); }
-    double get_failed_quench_frac() const {return m_failed_quench_frac.mean();}
-
+    double get_failed_quench_frac() const { return m_failed_quench_frac.mean(); }
     /**
      * return and Array of the minima we've found
      *
      * This is primarily for easy access in cython.  C++ code should probably
      * use the iterator syntax
      */
-    pele::Array<Minimum *> get_array_of_minima()
-    {
-        pele::Array<Minimum *> minima(_minima_list.nr_distinct_minima());
-        size_t i = 0;
-        for (auto & m : _minima_list) {
-            minima[i++] = &m;
-        }
-        return minima;
-    }
+    pele::Array<Minimum*> get_array_of_minima();
 };
 
 template<size_t ndim>
-class CheckSameMinimumCartesian:public CheckSameMinimum{
+class CheckSameMinimumCartesian : public CheckSameMinimum {
 public:
     CheckSameMinimumCartesian(std::shared_ptr<pele::GradientOptimizer> optimizer,
-            std::shared_ptr<pele::BasePotential> potential, pele::Array<double> origin,
-            pele::Array<double> hs_radii, pele::Array<double> rattlers, double dtol,
+            std::shared_ptr<pele::BasePotential> potential,
+            pele::Array<double> origin, pele::Array<double> rattlers, double dtol,
             size_t eqsteps=0, bool perform_convergence_test=false,
             bool collect_minima_list=false)
-        : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
+        : CheckSameMinimum(optimizer, potential, origin, rattlers,
                 dtol, ndim, eqsteps, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
                 perform_convergence_test, collect_minima_list)
     {}
 };
 
 template<size_t ndim>
-class CheckSameMinimumPeriodic:public CheckSameMinimum{
+class CheckSameMinimumPeriodic : public CheckSameMinimum {
 public:
     CheckSameMinimumPeriodic(std::shared_ptr<pele::GradientOptimizer> optimizer,
-            std::shared_ptr<pele::BasePotential> potential, pele::Array<double> origin,
-            pele::Array<double> hs_radii, pele::Array<double> boxvec,
+            std::shared_ptr<pele::BasePotential> potential,
+            pele::Array<double> origin, pele::Array<double> boxvec,
             pele::Array<double> rattlers, double dtol,
             size_t eqsteps=0, bool perform_convergence_test=false,
             bool collect_minima_list=false)
-        : CheckSameMinimum(optimizer, potential, origin, hs_radii, rattlers,
+        : CheckSameMinimum(optimizer, potential, origin, rattlers,
                 dtol, ndim, eqsteps,
                 std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
                 perform_convergence_test, collect_minima_list)
     {}
 };
 
-}//namespace bv
+} // namespace bv
 
-#endif//#ifndef _BV_CHECK_SAME_MINIMUM_H
+#endif // #ifndef _BV_CHECK_SAME_MINIMUM_H

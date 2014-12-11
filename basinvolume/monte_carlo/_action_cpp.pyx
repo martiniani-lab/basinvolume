@@ -42,8 +42,8 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
               
         return hist
         
-    def print_terminal(self, ntot):
-        self.newptr.print_terminal(ntot)
+    def print_terminal(self):
+        self.newptr.print_terminal()
     
     def get_bounds_val(self):
         dmin = self.newptr.get_min()

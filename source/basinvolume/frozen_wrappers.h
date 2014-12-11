@@ -6,9 +6,9 @@
 #include <stdexcept>
 
 #include "pele/array.h"
+#include "pele/cell_lists.h"
 #include "pele/distance.h"
 #include "pele/frozen_atoms.h"
-#include "pele/neighbor_iterator.h"
 
 #include "mcpele/mc.h"
 

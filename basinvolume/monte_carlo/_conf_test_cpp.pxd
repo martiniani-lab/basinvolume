@@ -22,23 +22,24 @@ cdef extern from "basinvolume/check_overlap.h" namespace "bv":
         cppCheckOverlapPeriodic(_pele.Array[double], _pele.Array[double]) except+
     cdef cppclass cppCheckOverlapCartesian "bv::CheckOverlapCartesian"[ndim]:
         cppCheckOverlapCartesian(_pele.Array[double]) except + 
+    cdef cppclass cppCheckOverlapPeriodicFrozen "bv::CheckOverlapPeriodicFrozen"[ndim]:
+        cppCheckOverlapPeriodicFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except+
+    cdef cppclass cppCheckOverlapCartesianFrozen "bv::CheckOverlapCartesianFrozen"[ndim]:
+        cppCheckOverlapCartesianFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except + 
+
+cdef extern from "basinvolume/check_overlap_cell_lists.h" namespace "bv":
     cdef cppclass cppCheckOverlapPeriodicCellLists "bv::CheckOverlapPeriodicCellLists"[ndim]:
         cppCheckOverlapPeriodicCellLists(_pele.Array[double] radii, _pele.Array[double] boxvec, double rcut,
         double ncellx_scale) except +
     cdef cppclass cppCheckOverlapCartesianCellLists "bv::CheckOverlapCartesianCellLists"[ndim]:
         cppCheckOverlapCartesianCellLists(_pele.Array[double] radii, _pele.Array[double] boxvec, double rcut,
         double ncellx_scale) except +
-    cdef cppclass cppCheckOverlapPeriodicFrozen "bv::CheckOverlapPeriodicFrozen"[ndim]:
-        cppCheckOverlapPeriodicFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except+
-    cdef cppclass cppCheckOverlapCartesianFrozen "bv::CheckOverlapCartesianFrozen"[ndim]:
-        cppCheckOverlapCartesianFrozen(_pele.Array[double], _pele.Array[double], _pele.Array[size_t]) except + 
     cdef cppclass cppCheckOverlapPeriodicCellListsFrozen "bv::CheckOverlapPeriodicCellListsFrozen"[ndim]:
         cppCheckOverlapPeriodicCellListsFrozen(_pele.Array[double] reference_coords, _pele.Array[size_t] frozen_ndof,
         _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut, double ncellx_scale) except +
     cdef cppclass cppCheckOverlapCartesianCellListsFrozen "bv::CheckOverlapCartesianCellListsFrozen"[ndim]:
         cppCheckOverlapCartesianCellListsFrozen(_pele.Array[double] reference_coords, _pele.Array[size_t] frozen_ndof,
         _pele.Array[double] radii, _pele.Array[double] boxvec, double rcut, double ncellx_scale) except +
-
 
 cdef extern from "basinvolume/minimum.h" namespace "bv":
     cdef cppclass cppMinimum "bv::Minimum":
@@ -52,8 +53,7 @@ cdef extern from "basinvolume/minimum.h" namespace "bv":
 cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
     cdef cppclass cppCheckSameMinimum "bv::CheckSameMinimum":
         cppCheckSameMinimum(shared_ptr[_pele.cBasePotential], _pele.Array[double], 
-                            _pele.Array[double], _pele.Array[double],
-                            _pele.Array[double] , double, size_t, cbool, cbool) except+
+                            _pele.Array[double], _pele.Array[double], double, size_t, cbool, cbool) except+
         size_t ml_nr_distinct_minima() except +
         _pele.Array[cppMinimum *] get_array_of_minima() except +
         double get_failed_quench_frac() except+
@@ -61,9 +61,9 @@ cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
     cdef cppclass cppCheckSameMinimumCartesian "bv::CheckSameMinimumCartesian"[ndim]:
         cppCheckSameMinimumCartesian(shared_ptr[_pele_opt.cGradientOptimizer], 
                                      shared_ptr[_pele.cBasePotential], _pele.Array[double], 
-                                     _pele.Array[double], _pele.Array[double] , double, size_t, cbool, cbool) except+
+                                     _pele.Array[double], double, size_t, cbool, cbool) except+
     cdef cppclass cppCheckSameMinimumPeriodic "bv::CheckSameMinimumPeriodic"[ndim]:
         cppCheckSameMinimumPeriodic(shared_ptr[_pele_opt.cGradientOptimizer], 
                                     shared_ptr[_pele.cBasePotential], _pele.Array[double], 
-                                    _pele.Array[double], _pele.Array[double], _pele.Array[double], 
+                                    _pele.Array[double], _pele.Array[double], 
                                     double, size_t, cbool, cbool) except+
