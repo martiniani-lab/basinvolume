@@ -213,7 +213,7 @@ class _collect_u2_vs_k(object):
         linecycler = cycle(lines)
         
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
-        u2_array_app = (cont_karray + (self.nparticles*self.bdim)/self.displ_k_min) / (self.nparticles*self.bdim)
+        u2_array_app = (cont_karray + (self.nparticles * self.bdim) / self.displ_k_min) / (self.nparticles * self.bdim)
         u2_array_app = 1.0 / u2_array_app
         
         fig = plt.figure()
