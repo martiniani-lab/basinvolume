@@ -19,7 +19,6 @@
 
 namespace bv {
 
-
 /*check same minimum class
  * _optimizer: pointer to object of class GradientOptimizer performing minimisation according to some potential
  *                 passed to the object during its construction
@@ -91,15 +90,7 @@ public:
      * This is primarily for easy access in cython.  C++ code should probably
      * use the iterator syntax
      */
-    pele::Array<Minimum *> get_array_of_minima()
-    {
-        pele::Array<Minimum *> minima(_minima_list.nr_distinct_minima());
-        size_t i = 0;
-        for (auto & m : _minima_list) {
-            minima[i++] = &m;
-        }
-        return minima;
-    }
+    pele::Array<Minimum*> get_array_of_minima();
 };
 
 template<size_t ndim>
