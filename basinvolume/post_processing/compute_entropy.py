@@ -254,7 +254,7 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
         # fit to pdf with ML method
         self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, volume_sanity_check)
         try:
-            self.ML_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "/entropy_ML_LogOmega"))
+            self.ML_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_ML_LogOmega"))
         except Exception, e:
             print e
 
