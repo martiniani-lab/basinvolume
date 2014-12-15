@@ -1,6 +1,9 @@
 from __future__ import division
 import numpy as np
 import agrparse as ap
+from radii_sampler import RadiiSampler
+from throw_and_quench import ThrowAndQuench
+from eq_fluid_snapshots import EqFluidSnapshots
 
 class HSExpReferenceGeneratePacking(object):
     """
@@ -42,13 +45,8 @@ class HSExpReferenceGeneratePacking(object):
         self.exp_data_set_index = exp_data_set_index
         self.exp_data_set_name_begin = exp_data_set_name_begin
         # end: store input
-        # 1 read radii etc
-        # 2 do kernel density estimate of radii distribution, optimize bandwidth
-        # 3 sample radii from that distribution
         self.radii_sampler = RadiiSampler(self.exp_data_set_index)
-        # 4 throw particles with these radii into a box uniformly and minimize with LBFGS
         self.initial_condition = ThrowAndQuench(self.nr_particles, self.hard_phi)
-        # 5 run fluid and print images
         self.fluid = EqFluidSnapshots(self.radii_sampler.radii, self.initial_condition.coordinates, self.initial_condition.boxvec)
         self.fluid.run()
         
