@@ -1,123 +1,48 @@
 from __future__ import division
 import numpy as np
+import os
+import matplotlib.pyplot as plt
 from exp_file_handler import ExpFileHandler
-from cross_validation_bandwidth_selection import CrossValidationBandwidthSelection
-
-from __future__ import division
-import numpy as np
-import copy
-from basinvolume.utils import CrossValidationCost
-from pele.potentials import BasePotential
-from pele.optimize import LBFGS
-from sklearn.neighbors import KernelDensity
-                    
-class CrossValidationBandwidthSelection(object):
-    """
-    Use leave-one-out cross validation to estimate bandwidth.
-    
-    References
-    ----------
-    http://en.wikipedia.org/wiki/Kernel_density_estimation
-    http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/ebooks/html/spm/spmhtmlnode15.html
-    http://www.control.aau.dk/~tk/undervisning/PhDAdvSI/Litterature/MadsenAndHolst2006.pdf
-    """
-    def __init__(self, data, kernel="gaussian", h_initial=2):
-        pot = CrossValidationCost(data, kernel=kernel)
-        optimizer = LBFGS(np.asarray([h_initial]), pot, maxstep=1)
-        print "run bandwidth optimization"
-        result = optimizer.run()
-        print "done"
-        self.opt_bandwidth = result.coords
-
-def get_bandwidth_estimate(data, method="cross_validation"):
-    nr_samples = len(data)
-    std_samples = np.std(data)
-    silverman_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
-    if method == "Silverman":
-        return silverman_bandwidth
-    loocv = CrossValidationBandwidthSelection(data, kernel="gaussian", h_initial=silverman_bandwidth)
-    return loocv.opt_bandwidth
-
-def get_pdf(data, x_sample_positions, bandwidth=2, kernel="gaussian"):
-    kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
-    log_pdf = kde.score_samples(x_sample_positions[:, np.newaxis])
-    return np.exp(log_pdf)
-
-def compute_raw_moment(pdf_x, pdf_pdf, exponent=0):
-    if len(pdf_x) != len(pdf_pdf):
-        raise Exception("illegal input")
-    return integrate.romb([pdf_pdfi * xi ** exponent for (pdf_pdfi, xi) in zip(pdf_pdf, pdf_x)], dx=pdf_x[1]-pdf_x[0])
-
-def compute_central_moment(pdf_x, pdf_pdf, exponent=0):
-    if len(pdf_x) != len(pdf_pdf):
-        raise Exception("illegal input")
-    mu = compute_raw_moment(pdf_x, pdf_pdf, exponent=1)
-    return integrate.romb([pdf_pdfi * (xi - mu) ** exponent for (pdf_pdfi, xi) in zip(pdf_pdf, pdf_x)], dx=pdf_x[1]-pdf_x[0])
-    
-if __name__ == "__main__":
-    np.random.seed(42)
-    data = np.random.randn(100)
-    print "mean data", np.mean(data)
-    print "var data", np.var(data)
-    silverman_bw = get_bandwidth_estimate(data, method="Silverman")
-    bandwidth = get_bandwidth_estimate(data)
-    print "Silverman bw", silverman_bw
-    print "cv bw", bandwidth
-    n_integrate = 2**18 + 1
-    pdf_x = np.linspace(-13, 13, n_integrate)
-    pdf_pdf = get_pdf(data, pdf_x, bandwidth=bandwidth)
-    plt.xlabel(r"Value $x$")
-    plt.ylabel(r"PDF($x$)")
-    plt.plot(pdf_x, pdf_pdf)
-    def nd(x, h2):
-        return np.exp(-0.5 * x**2 / h2) / np.sqrt(2 * np.pi * h2)
-    plt.plot(pdf_x, nd(pdf_x, 1))
-    plt.show()
-    max_order = 4
-    numerical_raw_moments = [compute_raw_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in xrange(max_order + 1)]
-    numerical_central_moments = [compute_central_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in xrange(max_order + 1)]
-    for n in xrange(max_order + 1):
-        print "order", n
-        print numerical_raw_moments[n]
-        print numerical_central_moments[n]
-    
-            
-
-###
-
-class ExpRadiiDistribution(object):
-    """
-    Takes the experimental radii and leanrs their distribution.
-    Then it samples from this distribution the requested number of new
-    radii for the equilibrium reference packing.
-    """
-    def __ini__(self, input_radii):
-        self.input_radii = input_radii
-        #
-    def learn_distribution(self):
-        
-    def sample_radii(self, nr_particles):
-        
+from exp_radii_distribution import ExpRadiiDistribution
+from cross_validation_bandwidth_selection import get_pdf
 
 class RadiiSampler(object):
     """
     Reads in experimental radii distribution and uses that to sample
     radii for the reference fluid.
+    
+    Procedure:
+    1) Read radii from file.
+    2) Learn radii distribution.
+    3) Sample radii from that distribution.
     """
-    def __init__(self, exp_data_set_index, exp_data_set_name_begin, data_dir, nr_particles):
+    def __init__(self, exp_data_set_index, exp_data_set_name_begin, data_dir, nr_particles, show_distribution=False):
+        print("radii sampler")
         self.exp_data_set_index = exp_data_set_index
         self.exp_data_set_name_begin = exp_data_set_name_begin
         self.data_dir = data_dir
         self.nr_particles = nr_particles
+        self.show_distribution = show_distribution
         #
-        self.data_file_name = self.exp_data_set_name_begin + str(self.data_set_index) + ".dat"
+        self.data_file_name = self.exp_data_set_name_begin + str(self.exp_data_set_index) + ".dat"
         self.data_dir = os.path.abspath(self.data_dir)
         self.data_file_path = os.path.join(self.data_dir, self.data_file_name)
+        print("self.data_file_path")
+        print(self.data_file_path)
         self.exp_data = ExpFileHandler(self.data_file_path)
         self.full_exp_radii = self.exp_data.radii
         self.exp_distribution = ExpRadiiDistribution(self.full_exp_radii)
-        self.exp_distribution.learn_distribution()
         self.radii = self.exp_distribution.sample_radii(self.nr_particles)
-        # 1 read radii etc
-        # 2 do kernel density estimate of radii distribution, optimize bandwidth
-        # 3 sample radii from that distribution
+        if self.show_distribution:
+            self.show_radii_distribution()
+    def show_radii_distribution(self):
+        plt.hist(self.full_exp_radii, bins=14, normed=True, label="Experimental")
+        plt.xlabel(r"Radius $r$")
+        plt.ylabel(r"PDF($r$)")
+        nr_points = 1000
+        k_pdf_x = np.linspace(np.amin(self.full_exp_radii), np.amax(self.full_exp_radii), nr_points)
+        k_pdf_y = get_pdf(self.full_exp_radii, k_pdf_x, bandwidth=self.exp_distribution.bandwidth)
+        plt.plot(k_pdf_x, k_pdf_y, label="KDE")
+        plt.plot(self.radii, np.zeros(len(self.radii)), "o", label="Sampled")
+        plt.legend(loc=1)
+        plt.show()

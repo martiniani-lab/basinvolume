@@ -9,4 +9,5 @@ class EqFluidSnapshots(object):
     """
     def __init__(self):
         # 5 run fluid and print images
+        print("run fluid, print snapshots")
 

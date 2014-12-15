@@ -15,10 +15,11 @@ class CrossValidationBandwidthSelection(object):
     http://en.wikipedia.org/wiki/Kernel_density_estimation
     http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/ebooks/html/spm/spmhtmlnode15.html
     http://www.control.aau.dk/~tk/undervisning/PhDAdvSI/Litterature/MadsenAndHolst2006.pdf
+    http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KernelDensity.html
     """
     def __init__(self, data, kernel="gaussian", h_initial=2):
         pot = CrossValidationCost(data, kernel=kernel)
-        optimizer = LBFGS(np.asarray([h_initial]), pot, maxstep=1)
+        optimizer = LBFGS(np.asarray([h_initial]), pot)
         print "run bandwidth optimization"
         result = optimizer.run()
         print "done"
@@ -37,6 +38,10 @@ def get_pdf(data, x_sample_positions, bandwidth=2, kernel="gaussian"):
     kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
     log_pdf = kde.score_samples(x_sample_positions[:, np.newaxis])
     return np.exp(log_pdf)
+    
+def sample_from_pdf(data, nr_samples, bandwidth=2, kernel="gaussian"):
+    kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
+    return kde.sample(nr_samples)
 
 def compute_raw_moment(pdf_x, pdf_pdf, exponent=0):
     if len(pdf_x) != len(pdf_pdf):

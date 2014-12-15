@@ -70,7 +70,7 @@ class LogOmegaBase(object):
         print "alpha", self.alpha
         print "zeta", self.zeta
         plot_name = file_name + "_plot.pdf"
-        plt.hist(self.F0, bins=42, normed=True, label="Data")
+        plt.hist(self.F0, bins=14, normed=True, label="Data")
         xr = np.linspace(np.amin(self.F0), np.amax(self.F0), 500)
         pars = [self.mu, self.alpha, self.zeta]
         plt.plot(xr, gen_gauss(xr, pars))

@@ -8,7 +8,7 @@ class ExpFileHandler(object):
     def __init__(self, data_file_path):
         self.data_file_path = data_file_path
         #
-        input_file = open(self.data_file_name, "r")
+        input_file = open(self.data_file_path, "r")
         self.x = []
         self.y = []
         self.radii = []
