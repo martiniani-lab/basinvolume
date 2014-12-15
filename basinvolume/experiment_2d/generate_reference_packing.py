@@ -38,16 +38,20 @@ class HSExpReferenceGeneratePacking(object):
         Beginning of the experimental data set name.
         This is something like "PackingsData_".
     """
-    def __init__(self, nr_particles=1000, nr_images=1, exp_data_set_index=1, exp_data_set_name_begin="PackingsData_"):
+    def __init__(self, nr_particles=1000, nr_images=1, exp_data_set_index=1, exp_data_set_name_begin="PackingsData_", data_dir=None):
         # begin: store input
         self.nr_particles = nr_particles
         self.nr_images = nr_images
         self.exp_data_set_index = exp_data_set_index
         self.exp_data_set_name_begin = exp_data_set_name_begin
+        self.data_dir = data_dir
         # end: store input
-        self.radii_sampler = RadiiSampler(self.exp_data_set_index)
-        self.initial_condition = ThrowAndQuench(self.nr_particles, self.hard_phi)
-        self.fluid = EqFluidSnapshots(self.radii_sampler.radii, self.initial_condition.coordinates, self.initial_condition.boxvec)
+        self.radii_sampler = RadiiSampler(self.exp_data_set_index, self.exp_data_set_name_begin, self.data_dir, self.nr_particles)
+        self.radii = self.radii_sampler.radii
+        self.initial_condition = ThrowAndQuench(self.nr_particles, self.hard_phi, self.radii)
+        self.initial_coordinates = self.initial_condition.coordinates
+        self.boxvec = self.initial_condition.boxvec
+        self.fluid = EqFluidSnapshots(self.radii, self.coordinates, self.boxvec)
         self.fluid.run()
         
 if __name__ == "__main__":
