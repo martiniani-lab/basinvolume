@@ -16,5 +16,18 @@ class HSExpReferenceGeneratePacking(object):
     
     Parameters
     ----------
-    
+    nr_particles : integer
+        The number of particles in the "experimental image" that is
+        being generated.
+    nr_images : integer
+        The number of "experimental images" that is generated.
+        These are the fluid snapshots that should have the same format
+        as the experimental data sets and which will be split into
+        smaller, circular packings later.
+    exp_data_set_index: integer
+        Selects the experimental image / data set from which we are
+        importing the radii and the volume fraction.
+    exp_data_set_name_begin: string
+        Beginning of the experimental data set name.
+        This is something like "PackingsData_".
     """
