@@ -407,6 +407,14 @@ class MomentsAcc(object):
         return np.sqrt(self.get_variance())
     def get_error(self):
         return np.sqrt(self.get_variance() / self.count)
+
+class MedianAcc(object):
+    def __init__(self):
+        self.data = []
+    def update(self, inp):
+        self.data.append(inp)
+    def get_median(self):
+        return np.median(np.asarray(self.data))
     
 class CDFAccumulator(object):
     """

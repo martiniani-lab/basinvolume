@@ -6,7 +6,7 @@ import subprocess
 import collections
 from scipy.optimize import curve_fit
 import basinvolume
-from basinvolume.utils import MomentsAcc
+from basinvolume.utils import MomentsAcc, MedianAcc
 try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
@@ -35,12 +35,17 @@ def time_law_linear(x, b, c):
 class MomentsInTime(object):
     def __init__(self):
         self.mom = MomentsAcc()
+        self.med = MedianAcc()
     def add(self, time_string):
-        self.mom.update(self.get_seconds(time_string))
+        seconds = self.get_seconds(time_string)
+        self.mom.update(seconds)
+        self.med.update(seconds)
     def get_mean(self):
         return self.mom.get_mean()
     def get_std(self):
         return self.mom.get_std()
+    def get_median(self):
+        return self.med.get_median()
     def get_seconds(self, time_str):
         hours = float(time_str.split(":")[0].strip())
         minutes = float(time_str.split(":")[1].strip())
@@ -48,13 +53,16 @@ class MomentsInTime(object):
         return seconds + 60 * minutes + 60 * 60 * hours
 
 class TimeStatistics(object):
-    def __init__(self, time_strings):
+    def __init__(self, time_strings, use_median=False):
         tmp = MomentsInTime()
         self.nr_samples = 0
         for s in time_strings:
             tmp.add(s)
             self.nr_samples += 1
-        self.mean = tmp.get_mean()
+        if use_median:
+            self.mean = tmp.get_median()
+        else:
+            self.mean = tmp.get_mean()
         self.std = tmp.get_std()
 
 class RuntimeData(object):
@@ -145,7 +153,7 @@ class RuntimeData(object):
                 print actual_n
                 print time_strings
                 self.N.append(actual_n)
-                tmp = TimeStatistics(time_strings)
+                tmp = TimeStatistics(time_strings, use_median=True)
                 self.time.append(tmp.mean)
                 self.time_std.append(tmp.std / np.sqrt(tmp.nr_samples))
     def get_time_data_manual(self):
