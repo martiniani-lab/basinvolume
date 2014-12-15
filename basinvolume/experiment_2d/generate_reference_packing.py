@@ -1,3 +1,7 @@
+from __future__ import division
+import numpy as np
+import agrparse as ap
+
 class HSExpReferenceGeneratePacking(object):
     """
     Runs equilibrium HS fluid with same parameters as an experimental
@@ -31,3 +35,30 @@ class HSExpReferenceGeneratePacking(object):
         Beginning of the experimental data set name.
         This is something like "PackingsData_".
     """
+    def __init__(self, nr_particles=1000, nr_images=1, exp_data_set_index=1, exp_data_set_name_begin="PackingsData_"):
+        # begin: store input
+        self.nr_particles = nr_particles
+        self.nr_images = nr_images
+        self.exp_data_set_index = exp_data_set_index
+        self.exp_data_set_name_begin = exp_data_set_name_begin
+        # end: store input
+        # 1 read radii etc
+        # 2 do kernel density estimate of radii distribution, optimize bandwidth
+        # 3 sample radii from that distribution
+        self.radii_sampler = RadiiSampler(self.exp_data_set_index)
+        # 4 throw particles with these radii into a box uniformly and minimize with LBFGS
+        self.initial_condition = ThrowAndQuench(self.nr_particles, self.hard_phi)
+        # 5 run fluid and print images
+        self.fluid = EqFluidSnapshots(self.radii_sampler.radii, self.initial_condition.coordinates, self.initial_condition.boxvec)
+        self.fluid.run()
+        
+if __name__ == "__main__":
+    parser = ap.ArgumentParser(description="Generate reference equilibrium fluid snapshot from experimental radii distribution")
+    parser.add_argument("nr_particles", type=int, help="number of particles")
+    parser.add_argument("--nr_images", type=int, default=1, help="number of printed snapshots")
+    parser.add_argument("--exp_data_set_index", type=int, default=1, help="index of underlying experimental image")
+    parser.add_argument("--exp_data_set_name_begin", type=str, default="PackingsData_")
+    pars = parser.parse_args()
+    print("input parameters:")
+    print(pars)
+    HSExpReferenceGeneratePacking(nr_particles=pars.nr_particles, nr_images=pars.nr_images, exp_data_set_index=pars.exp_data_set_index, exp_data_set_name_begin=self.exp_data_set_name_begin)
