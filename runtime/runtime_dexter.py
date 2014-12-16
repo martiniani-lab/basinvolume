@@ -152,10 +152,13 @@ class RuntimeData(object):
             if time_strings:
                 print actual_n
                 print time_strings
-                self.N.append(actual_n)
                 tmp = TimeStatistics(time_strings, use_median=True)
-                self.time.append(tmp.mean)
-                self.time_std.append(tmp.std / np.sqrt(tmp.nr_samples))
+                print("mean time", tmp.mean)
+                print("nr time samples", tmp.nr_samples)
+                if tmp.nr_samples > 1:
+                    self.N.append(actual_n)
+                    self.time.append(tmp.mean)
+                    self.time_std.append(tmp.std / np.sqrt(tmp.nr_samples))
     def get_time_data_manual(self):
         self.N.append(16)
         tmp = TimeStatistics(["08:20:09", "03:28:26", "02:01:36", "01:32:11", "01:16:41", "05:47:54", "03:56:56", "04:28:51", "01:20:07"])
