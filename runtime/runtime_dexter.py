@@ -5,19 +5,10 @@ import os
 import subprocess
 import collections
 from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 import basinvolume
 from basinvolume.utils import MomentsAcc, MedianAcc
-try:
-    import matplotlib.pyplot as plt
-    from matplotlib.backends.backend_pdf import PdfPages
-except ImportError as err:
-    print err
-
-def save_pdf(plt, file_name):
-    pdf = PdfPages(file_name)
-    plt.savefig(pdf, format="pdf")
-    pdf.close()
-    plt.close()
+from basinvolume.utils import save_pdf
 
 def time_law(x, b, c):
     """

@@ -12,6 +12,7 @@ import copy
 import sys, traceback
 from bisect import bisect_left
 try:
+    import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
     print err
@@ -322,11 +323,10 @@ def to_string(inp, digits_after_point = 16):
     format_string += "f}"
     return format_string.format(inp)
 
-def save_pdf(plt, file_name):
+def save_pdf(fig, file_name):
     pdf = PdfPages(file_name)
-    plt.savefig(pdf, format="pdf")
+    fig.savefig(pdf, format="pdf")
     pdf.close()
-    plt.close()
 
 class ResultsFile(object):
     def __init__(self, file_name):

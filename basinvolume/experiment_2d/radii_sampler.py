@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from exp_file_handler import ExpFileHandler
 from exp_radii_distribution import ExpRadiiDistribution
 from cross_validation_bandwidth_selection import get_pdf
+from basinvolume.utils import save_pdf
 
 class RadiiSampler(object):
     """
@@ -45,4 +46,7 @@ class RadiiSampler(object):
         plt.plot(k_pdf_x, k_pdf_y, label="KDE")
         plt.plot(self.radii, np.zeros(len(self.radii)), "o", label="Sampled")
         plt.legend(loc=1)
+        # http://stackoverflow.com/questions/21875356/saving-a-figure-after-invoking-pyplot-show-results-in-an-empty-file
+        fig = plt.gcf()
         plt.show()
+        save_pdf(fig, "radii_distribution.pdf")
