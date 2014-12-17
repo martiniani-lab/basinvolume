@@ -39,9 +39,9 @@ def get_pdf(data, x_sample_positions, bandwidth=2, kernel="gaussian"):
     log_pdf = kde.score_samples(x_sample_positions[:, np.newaxis])
     return np.exp(log_pdf)
     
-def sample_from_pdf(data, nr_samples, bandwidth=2, kernel="gaussian"):
+def sample_from_pdf(data, nr_samples, bandwidth=2, kernel="gaussian", random_state=None):
     kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
-    return kde.sample(nr_samples)
+    return kde.sample(nr_samples, random_state=random_state)[:, 0]
 
 def compute_raw_moment(pdf_x, pdf_pdf, exponent=0):
     if len(pdf_x) != len(pdf_pdf):

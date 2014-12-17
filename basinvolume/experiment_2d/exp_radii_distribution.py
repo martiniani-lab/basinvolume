@@ -10,7 +10,7 @@ class ExpRadiiDistribution(object):
     """
     def __init__(self, input_radii):
         self.input_radii = input_radii
-    def sample_radii(self, nr_particles):
+    def sample_radii(self, nr_particles, random_state=None):
         self.bandwidth = get_bandwidth_estimate(self.input_radii[::20])
         print("bandwidth:", self.bandwidth)
-        return sample_from_pdf(self.input_radii, nr_particles, self.bandwidth)
+        return sample_from_pdf(self.input_radii, nr_particles, self.bandwidth, random_state=random_state)

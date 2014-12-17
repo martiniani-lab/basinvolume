@@ -17,13 +17,14 @@ class RadiiSampler(object):
     2) Learn radii distribution.
     3) Sample radii from that distribution.
     """
-    def __init__(self, exp_data_set_index, exp_data_set_name_begin, data_dir, nr_particles, show_distribution=False):
+    def __init__(self, exp_data_set_index, exp_data_set_name_begin, data_dir, nr_particles, show_distribution=False, seed=None):
         print("radii sampler")
         self.exp_data_set_index = exp_data_set_index
         self.exp_data_set_name_begin = exp_data_set_name_begin
         self.data_dir = data_dir
         self.nr_particles = nr_particles
         self.show_distribution = show_distribution
+        self.seed = seed
         #
         self.data_file_name = self.exp_data_set_name_begin + str(self.exp_data_set_index) + ".dat"
         self.data_dir = os.path.abspath(self.data_dir)
@@ -33,7 +34,7 @@ class RadiiSampler(object):
         self.exp_data = ExpFileHandler(self.data_file_path)
         self.full_exp_radii = self.exp_data.radii
         self.exp_distribution = ExpRadiiDistribution(self.full_exp_radii)
-        self.radii = self.exp_distribution.sample_radii(self.nr_particles)
+        self.radii = self.exp_distribution.sample_radii(self.nr_particles, self.seed)
         if self.show_distribution:
             self.show_radii_distribution()
     def show_radii_distribution(self):
