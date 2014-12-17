@@ -35,15 +35,14 @@ class ThrowAndQuench(object):
         while illegal:
             iteration += 1
             print("iteration", iteration)
-            self.sample_and_minimize(illegal)
+            illegal = self.sample_and_minimize()
         print("done")
-    def sample_and_minimize(self, illegal):
-        illegal = True
+    def sample_and_minimize(self):
         self.coordinates = np.random.uniform(-0.5 * self.box_length, 0.5 * self.box_length, self.nr_dof)
         optimizer = LBFGS_CPP(self.coordinates, self.potential)
         optimizer.run(1e7)
         if not optimizer.get_result().success:
             print("minimization failed")
-            return
+            return True
         self.coordinates = optimizer.get_result().coords.copy()
-        illegal = simple_overlap_check(self.coordinates, self.radii, self.box_length)
+        return simple_overlap_check(self.coordinates, self.radii, self.box_length)
