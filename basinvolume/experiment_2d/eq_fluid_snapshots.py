@@ -7,7 +7,10 @@ class EqFluidSnapshots(object):
     and initial conditions.
     This should also print snapshots at equal and specified intervals.
     """
-    def __init__(self):
-        # 5 run fluid and print images
-        print("run fluid, print snapshots")
-
+    def __init__(self, radii, coordinates, boxvec):
+        self.radii = radii
+        self.coordinates = coordinates
+        self.boxvec = boxvec
+        #
+        
+        
