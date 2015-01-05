@@ -75,8 +75,8 @@ class RuntimeData(object):
         plt.errorbar(self.N, self.time, fmt="o", yerr=self.time_std)
         plt.xlabel(r"Number of particles $N$")
         plt.ylabel(r"Runtime on dexter / seconds")
-        popt, pcov = curve_fit(time_law, self.N, self.time, [10000, 1], sigma=self.time_std)
-        popt_linear, pcov_linear = curve_fit(time_law_linear, self.N, self.time, [10000, 0], sigma=self.time_std)
+        popt, pcov = curve_fit(time_law, self.N, self.time, [10000, 1])
+        popt_linear, pcov_linear = curve_fit(time_law_linear, self.N, self.time, [10000, 0])
         print "large-N exponent: N^", popt[1]
         print "slope linear law:", popt_linear[0]
         print "offset linear law:", popt_linear[1]
