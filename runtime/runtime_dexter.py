@@ -1,4 +1,6 @@
 from __future__ import division
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
 import argparse
 import os
@@ -8,7 +10,7 @@ from scipy.optimize import curve_fit
 import basinvolume
 from basinvolume.utils import MomentsAcc
 try:
-    import matplotlib.pyplot as plt
+    from  matplotlib import pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
     print err
