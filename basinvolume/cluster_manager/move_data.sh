@@ -6,6 +6,7 @@
 # http://www.thegeekstuff.com/2008/11/3-steps-to-perform-ssh-login-without-password-using-ssh-keygen-ssh-copy-id/
 # 0. Check: Folder to move exists.
 # 1. Check: Computation terminated properly.
+# 1.1. Check: Output files indicate that the time series have converged.
 # 2. Check: Destination can be rached / is a valid path / dir exists.
 # 3. Check: Enough disc space available at destination.
 # 4. Do: At the end of PT, or manually, scp the data in batch mode, roughly with
@@ -32,11 +33,32 @@ fi
 # Assumption: job has finished properly if there is a file like bv_32_50_70_3D_pt4.o372227 in folder $1.
 if [ -f $1/bv_*_pt*.o* ];
 then
-    echo "job terminated correctly"
+    echo ".o file of PT run exists"
 else
-    echo "job failed"
+    echo ".o file of PT run does not exist -- terminating"
     exit 42
 fi
+
+# Step 1.1
+# Checks, in addition to above step 1, that the output files have the success flags inicating that kmax, kmin, and PT have finished properly.
+# Assumption: there is only one file of the type $1/explore_jammed_packing*.config 
+pt_success_file=$(find $1/explore_jammed_packing*.config)
+if [ -f $pt_success_file ];
+then
+    echo "pt_success_file exists"
+else
+    echo "pt_success_file does not exist -- terminating"
+    exit 42
+fi
+rank_success_lines=$(grep "success_rank" $pt_success_file)
+for l in $rank_success_lines
+do
+    if [ "$l" = "False" ];
+    then
+        echo "PT time series convergence failed -- terminating"
+        exit 42
+    fi
+done
 
 # Step 2.
 echo "destination is "$2
