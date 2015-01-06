@@ -23,14 +23,12 @@ class BVRemoveToxicData(object):
     *job_label should help distinguish between different densities and packing numbers
     """
     def __init__(self, git_toxic_version, workdir=None, explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
-                 kmin_config='kmin_jammed_packing', pt_config='explore_jammed_packing', packing_naming='jammed_packing', 
-                 structures_dir='jammed_packings'):
+                 kmin_config='kmin_jammed_packing', pt_config='explore_jammed_packing', packing_naming='jammed_packing'):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
             workdir = os.path.abspath(workdir)
         self.workdir = workdir
-        self.structures_dir = structures_dir
         self.explore_dir = explore_dir
         self.kmax_config = kmax_config 
         self.kmin_config = kmin_config
@@ -42,57 +40,108 @@ class BVRemoveToxicData(object):
         self.pt_toxic_list = []
         self.pt_output_files = ["exchanges","rem_permutations","temperatures"]
     
-    def remove_kmax_toxic_data(self):
-        self._find_kmax_toxic_data()
+    def remove_kmax_toxic_data(self, where='at', gitrepo_path=None):
+        self._find_kmax_toxic_data(where=where, gitrepo_path=gitrepo_path)
+        print "kmax toxic list", self.kmax_toxic_list
         self._remove_toxic_data(self.kmax_toxic_list, self.kmax_config, output_signature="bv*kmax*.o*", pt=False)
     
-    def remove_kmin_toxic_data(self):
-        self._find_kmin_toxic_data()
+    def remove_kmin_toxic_data(self, where='at', gitrepo_path=None):
+        self._find_kmin_toxic_data(where=where, gitrepo_path=gitrepo_path)
+        print "kmin toxic list", self.kmin_toxic_list
         self._remove_toxic_data(self.kmin_toxic_list, self.kmin_config, output_signature="bv*kmin*.o*", pt=False)
     
-    def remove_pt_toxic_data(self):
-        self._find_pt_toxic_data()
+    def remove_pt_toxic_data(self, where='at', gitrepo_path=None):
+        self._find_pt_toxic_data(where=where, gitrepo_path=gitrepo_path)
+        print "pt toxic list", self.pt_toxic_list
         self._remove_toxic_data(self.pt_toxic_list, self.pt_config, output_signature="bv*pt*.o*", pt=True)
     
-    def _find_kmax_toxic_data(self):
+    def _find_kmax_toxic_data(self, where='at', gitrepo_path=None):
         """
+        where: {'at', 'older', later'}
+            older and later are strictly less and greater than a particular hash, respectively
+            in other words later is "strictly more recent than"
         """
-        command = shlex.split("grep -r -i -l --include {}\*.config \"{}\" .".format(self.kmax_config, self.git_toxic_version))
-        try:
-            list = subprocess.check_output(command).rstrip('\n').split('\n')
-            for i,path in enumerate(list):
-                list[i] = os.path.basename(os.path.dirname(path))
-                self.kmax_toxic_list = list
-        except Exception,e:
-            print "\n no kmax data are toxic, \n",e
+        if where == 'at':
+            self.kmax_toxic_list = self._find_toxic_data(self.kmax_config)
+        else:
+            assert(gitrepo_path is not None)
+            hash_table = self._get_hash_history(gitrepo_path)
+            if where == 'later':
+                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index < hash_table[self.git_toxic_version]]
+            elif where == 'older':
+                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index > hash_table[self.git_toxic_version]]
+            else:
+                raise NotImplementedError('option \"{}\" not known')
+            self.kmax_toxic_list = []
+            for item in hash_list:
+                self.kmax_toxic_list.extend(self._find_toxic_data(self.kmax_config, git_hash=item))
             
-    def _find_kmin_toxic_data(self):
+    def _find_kmin_toxic_data(self, where='at', gitrepo_path=None):
         """
+        where: {'at', 'older', later'}
+            older and later are strictly less and greater than a particular hash, respectively
+            in other words later is "strictly more recent than"
         """
-        command = shlex.split("grep -r -i -l --include {}\*.config \"{}\" .".format(self.kmin_config, self.git_toxic_version))
-        try:
-            list = subprocess.check_output(command).rstrip('\n').split('\n')
-            for i,path in enumerate(list):
-                list[i] = os.path.basename(os.path.dirname(path))
-            self.kmin_toxic_list = list
-        except Exception,e:
-            print "\n no kmin data are toxic, \n",e
+        if where == 'at':
+            self.kmin_toxic_list = self._find_toxic_data(self.kmin_config)
+        else:
+            assert(gitrepo_path is not None)
+            hash_table = self._get_hash_history(gitrepo_path)
+            if where == 'later':
+                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index < hash_table[self.git_toxic_version]]
+            elif where == 'older':
+                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index > hash_table[self.git_toxic_version]]
+            else:
+                raise NotImplementedError('option \"{}\" not known')
+            self.kmin_toxic_list = []
+            for item in hash_list:
+                self.kmin_toxic_list.extend(self._find_toxic_data(self.kmin_config, git_hash=item))
     
-    def _find_pt_toxic_data(self):
+    def _find_pt_toxic_data(self, where='at', gitrepo_path=None):
         """
+        where: {'at', 'older', later'}
+            older and later are strictly less and greater than a particular hash, respectively
+            in other words later is "strictly more recent than"
         """
-        command = shlex.split("grep -r -i -l --include {}\*.config \"{}\" .".format(self.pt_config, self.git_toxic_version))
+        if where == 'at':
+            self.pt_toxic_list = self._find_toxic_data(self.pt_config)
+        else:
+            assert(gitrepo_path is not None)
+            hash_table = self._get_hash_history(gitrepo_path)
+            if where == 'later':
+                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index < hash_table[self.git_toxic_version]]
+            elif where == 'older':
+                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index > hash_table[self.git_toxic_version]]
+            else:
+                raise NotImplementedError('option \"{}\" not known')
+            self.pt_toxic_list = []
+            for item in hash_list:
+                self.pt_toxic_list.extend(self._find_toxic_data(self.pt_config, git_hash=item))
+    
+    def _find_toxic_data(self, config_file, git_hash=None):
+        if git_hash is None:
+            git_hash = self.git_toxic_version
+        command = shlex.split("grep -r -i -l --include {}\*.config \"{}\" .".format(config_file, git_hash))
         try:
             list = subprocess.check_output(command).rstrip('\n').split('\n')
             for i,path in enumerate(list):
                 list[i] = os.path.basename(os.path.dirname(path))
-            self.pt_toxic_list = list
-        except Exception,e:
-            print "\n no pt data are toxic, \n",e
+        except Exception:
+            list = []
+        return list
+    
+    def _get_hash_history(self, gitrepo_path):
+        command = shlex.split("git --git-dir {}/.git log --pretty=oneline".format(gitrepo_path))
+        try:
+            raw_list = subprocess.check_output(command).split()
+            raw_list = [word for word in raw_list if len(word) == 40]
+            hash_table = dict(zip(raw_list, range(len(raw_list))))
+        except Exception:
+            raise RuntimeError("\n could not build hash history \n")
+        return hash_table
     
     def _remove_toxic_data(self, toxic_list, config_fname, output_signature="bv\*kmax\*.o\*", pt=False):
         subdirs = get_immediate_subdirectories(self.workdir)
-        assert(self.structures_dir in subdirs)
         for toxic_folder in toxic_list:
             if self.explore_dir in toxic_folder:
                 toxic_dir_path = os.path.join(self.workdir, toxic_folder)
@@ -111,12 +160,14 @@ class BVRemoveToxicData(object):
                 p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(toxic_dir_path, config_fname+"*.config")))
                 if p != 0:
                     raise Exception("removing pbs output file failed")
-    
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
         
     parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
     parser.add_argument("toxic_git_version", type=str, help="toxic git version")
+    parser.add_argument("--repopath", type=str, help="path to git repository", default=None)
+    parser.add_argument("--where", type=str, help="range (all strictly): at (default), older, later", default='at')
     parser.add_argument("--kmin", action='store_true', help="compute kmin",default=False)
     parser.add_argument("--kmax", action='store_true', help="compute kmax",default=False)
     parser.add_argument("--pt", action='store_true', help="perform parallel tempering",default=False)
@@ -128,9 +179,9 @@ if __name__ == "__main__":
     bvrm = BVRemoveToxicData(args.toxic_git_version, workdir=args.workdir)
        
     if args.kmin or args.all:
-        bvrm.remove_kmin_toxic_data()
+        bvrm.remove_kmin_toxic_data(where=args.where, gitrepo_path=args.repopath)
     if args.kmax or args.all:
-        bvrm.remove_kmax_toxic_data()
+        bvrm.remove_kmax_toxic_data(where=args.where, gitrepo_path=args.repopath)
     if args.pt or args.all:
-        bvrm.remove_pt_toxic_data()
+        bvrm.remove_pt_toxic_data(where=args.where, gitrepo_path=args.repopath)
         

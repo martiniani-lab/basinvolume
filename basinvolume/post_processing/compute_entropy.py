@@ -244,7 +244,7 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
         self.APF_entropy.compute_and_write_entropy(os.path.join(self.output_path, "entropy_AFP"))
         # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
         self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, volume_sanity_check)
-        self.kernel_density_log_omega.compute_and_write_entropy(os.path.join(self.output_path + "entropy_kernel_density"))
+        self.kernel_density_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_kernel_density"))
         # fit to cdf, numerical integration for un-biasing
         self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
         try:

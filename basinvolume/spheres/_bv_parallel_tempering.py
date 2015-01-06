@@ -61,7 +61,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         is chosen for the full pt. In order to estimate the number of extra steps to perform uses the correlated
         estimate for the standard error (see Troyer Am. J. Phys. 78 (2)) from which one can easily find that
         M = sig^2*(1+2t)/(mu rel_std_err)^2
-        it returns an estimate of the new maxptiter only once the timeseries is about 10 times the mean autocorrelation length
+        it returns an estimate of the new maxptiter only once the timeseries is longer than min_window
         """
         #to reduce nskip (use more points) make the factor by which timeseries.size is divided by smaller
         nskip = max(int(np.round(self.timeseries2.size/1e5)),1) 
