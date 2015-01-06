@@ -100,7 +100,12 @@ fi
 remote_folder_expl="$remote_folder"/$1
 echo "remote_folder_expl "$remote_folder_expl
 erase_remote=0
-if (ssh $remote_computer '[ -d $remote_folder_expl ]')
+x=`ssh  -f $remote_computer ls -l $remote_folder_expl` 2>&1
+folder_find_status=$?
+echo $folder_find_status
+echo $x
+#if (ssh $remote_computer '[ -d $remote_folder_expl ]') # This gave the wrong answer, but I don't see why.
+if [ "$x" ];
 then
     echo "remote expl folder of same name exists for "$1
     # If contents is identical, terminate whole script without data transfer.
@@ -138,7 +143,7 @@ then
     if [ "$response" = "y" ];
     then
         echo "erasing remote folder "$remote_folder_expl
-        ssh $remote_computer 'rm -rf $remote_folder_expl'
+        ssh $remote_computer rm -rf $remote_folder_expl
     else
         echo "erasing remote folder aborted -- check folder by hand "$1
         echo $remote_folder_expl
