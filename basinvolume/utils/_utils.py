@@ -12,6 +12,7 @@ import copy
 import sys, traceback
 from bisect import bisect_left
 try:
+    import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
     print err
@@ -64,9 +65,10 @@ def read_xyd(fname):
     f = open(fname, "r")
     while True:
         xyd = f.readline()
-        if not xyd: break
+        if not xyd:
+            break
         x, y, d = xyd.split()
-        coords.extend([float(x),float(y)])
+        coords.extend([float(x), float(y)])
         radii.extend([float(d)])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d')
 
@@ -78,9 +80,10 @@ def read_xydf(fname):
     i = 0
     while True:
         xydf = f.readline()
-        if not xydf: break
+        if not xydf:
+            break
         x, y, d, fr = xydf.split()
-        coords.extend([float(x),float(y)])
+        coords.extend([float(x), float(y)])
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
@@ -93,9 +96,10 @@ def read_xyzd(fname):
     f = open(fname, "r")
     while True:
         xyzd = f.readline()
-        if not xyzd: break
+        if not xyzd:
+            break
         x, y, z, d = xyzd.split()
-        coords.extend([float(x),float(y),float(z)])
+        coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d')
 
@@ -107,9 +111,10 @@ def read_xyzdf(fname):
     i = 0
     while True:
         xyzdf = f.readline()
-        if not xyzdf: break
+        if not xyzdf:
+            break
         x, y, z, d, fr = xyzdf.split()
-        coords.extend([float(x),float(y),float(z)])
+        coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
@@ -123,12 +128,13 @@ def read_xydr(fname, etol=1.0, bdim=2):
     f = open(fname, "r")
     while True:
         xydr = f.readline()
-        if not xydr: break
+        if not xydr:
+            break
         #print 'xydr ',xydr
         x, y, d, r = xydr.split()
-        coords.extend([float(x),float(y)])
+        coords.extend([float(x), float(y)])
         radii.extend([float(d)])
-        rattler = float(float(r)>=etol)
+        rattler = float(float(r) >= etol)
         for _ in xrange(bdim): 
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
@@ -142,14 +148,15 @@ def read_xydfr(fname, etol=1.0, bdim=2):
     i=0
     while True:
         xydfr = f.readline()
-        if not xydfr: break
+        if not xydfr:
+            break
         #print 'xydr ',xydr
         x, y, d, fr, r = xydfr.split()
-        coords.extend([float(x),float(y)])
+        coords.extend([float(x), float(y)])
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
-        rattler = float(float(r)>=etol)
+        rattler = float(float(r) >= etol)
         for _ in xrange(bdim): 
             rattlers.extend([rattler])
         i+=1
@@ -162,11 +169,12 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
     f = open(fname, "r")
     while True:
         xyzdr = f.readline()
-        if not xyzdr: break
+        if not xyzdr:
+            break
         x, y, z, d, r = xyzdr.split()
-        coords.extend([float(x),float(y),float(z)])
+        coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
-        rattler = float(float(r)>=etol)
+        rattler = float(float(r) >= etol)
         for _ in xrange(bdim): 
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
@@ -180,13 +188,14 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
     i=0
     while True:
         xyzdfr = f.readline()
-        if not xyzdfr: break
+        if not xyzdfr:
+            break
         x, y, z, d, fr, r = xyzdfr.split()
-        coords.extend([float(x),float(y),float(z)])
+        coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
-        rattler = float(float(r)>=etol)
+        rattler = float(float(r) >= etol)
         for _ in xrange(bdim): 
             rattlers.extend([rattler])
         i+=1
@@ -198,7 +207,7 @@ def reduce_coordinates(mylist, indexes, bdim):
     """
     newlist = mylist.copy().tolist()
     for index in sorted(indexes, reverse=True):
-        del newlist[index*bdim:index*bdim+bdim]
+        del newlist[index * bdim : index * bdim + bdim]
     return np.array(newlist)
 
 def full_coordinates(reduced_list, old_full_list, indexes, bdim):
@@ -207,7 +216,7 @@ def full_coordinates(reduced_list, old_full_list, indexes, bdim):
     """
     newlist = reduced_list.copy()
     for index in sorted(indexes, reverse=False):
-        newlist = np.insert(newlist, index*bdim, old_full_list[index*bdim:index*bdim+bdim])
+        newlist = np.insert(newlist, index * bdim, old_full_list[index * bdim : index * bdim + bdim])
     return np.array(newlist)
 
 def plot_disks(coords, radii, boxv, colors=None, sca=0):
@@ -218,19 +227,19 @@ def plot_disks(coords, radii, boxv, colors=None, sca=0):
         for x1,y1,r,c in zip(x, y, radii, colormap(colors)): 
             ax.add_patch(Circle((x1,y1), r, fc=c)) 
     put_in_box(coords, boxv)
-    coords = np.reshape(coords, (len(radii),2))
+    coords = np.reshape(coords, (len(radii), 2))
     fig=pylab.figure() 
     ax=fig.add_subplot(111, aspect='equal') 
-    myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii*sca, np.ones(len(radii)))
-    myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii, np.ones(len(radii))*-1) 
+    myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii * sca, np.ones(len(radii)))
+    myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii, np.ones(len(radii)) * -1) 
     ax.axis('equal')
     if boxv is not None:
-        ax.axes.set_xlim([-boxv[0]/2,boxv[0]/2])
-        ax.axes.set_ylim([-boxv[1]/2,boxv[1]/2])
-        ax.plot([-boxv[0]/2, -boxv[0]/2], [-boxv[1]/2,boxv[1]/2], color='k', linestyle='-', linewidth=2)
-        ax.plot([boxv[0]/2, boxv[0]/2], [-boxv[1]/2,boxv[1]/2], color='k', linestyle='-', linewidth=2)
-        ax.plot([-boxv[0]/2, boxv[0]/2], [-boxv[1]/2,-boxv[1]/2], color='k', linestyle='-', linewidth=2)
-        ax.plot([-boxv[0]/2, boxv[0]/2], [boxv[1]/2,boxv[1]/2], color='k', linestyle='-', linewidth=2)
+        ax.axes.set_xlim([-boxv[0] / 2, boxv[0] / 2])
+        ax.axes.set_ylim([-boxv[1] / 2, boxv[1] / 2])
+        ax.plot([-boxv[0] / 2, -boxv[0] / 2], [-boxv[1] / 2, boxv[1] / 2], color='k', linestyle='-', linewidth=2)
+        ax.plot([boxv[0] / 2, boxv[0] / 2], [-boxv[1] / 2,boxv[1] / 2], color='k', linestyle='-', linewidth=2)
+        ax.plot([-boxv[0] / 2, boxv[0] / 2], [-boxv[1] / 2, -boxv[1] / 2], color='k', linestyle='-', linewidth=2)
+        ax.plot([-boxv[0] / 2, boxv[0] / 2], [boxv[1] / 2,boxv[1] / 2], color='k', linestyle='-', linewidth=2)
     pylab.show()
 
 #
@@ -309,12 +318,12 @@ def get_python_version():
 def get_cython_version():
     try:
         from Cython.Compiler.Version import version
-    except Exception,e:
+    except Exception, e:
         print e
         version="not known"
     return version
 
-def to_string(inp, digits_after_point = 16):
+def to_string(inp, digits_after_point=16):
     if isinstance(inp, basestring):
         return inp
     format_string = "{0:."
@@ -322,11 +331,10 @@ def to_string(inp, digits_after_point = 16):
     format_string += "f}"
     return format_string.format(inp)
 
-def save_pdf(plt, file_name):
+def save_pdf(fig, file_name):
     pdf = PdfPages(file_name)
-    plt.savefig(pdf, format="pdf")
+    fig.savefig(pdf, format="pdf")
     pdf.close()
-    plt.close()
 
 class ResultsFile(object):
     def __init__(self, file_name):
@@ -349,7 +357,7 @@ class OutlierDetection(object):
     the obects in T lies greater than distance D from O.
     Parameters are p and D.
     """
-    def __init__(self, data, p = 0.1, D = 1, verbose = False):
+    def __init__(self, data, p=0.1, D=1, verbose=False):
         if p < 0 or p > 1:
             raise Exception("OutlierDetection: illegal input: p")
         if D < 0:
@@ -407,6 +415,14 @@ class MomentsAcc(object):
         return np.sqrt(self.get_variance())
     def get_error(self):
         return np.sqrt(self.get_variance() / self.count)
+
+class MedianAcc(object):
+    def __init__(self):
+        self.data = []
+    def update(self, inp):
+        self.data.append(inp)
+    def get_median(self):
+        return np.median(np.asarray(self.data))
     
 class CDFAccumulator(object):
     """
@@ -506,3 +522,45 @@ class CrossValidationCost(BasePotential):
                 if ii != jj:
                     self.term_B += nd(self.data[ii] - self.data[jj], 2 * self.h**2)
                     self.term_C += nd(self.data[ii] - self.data[jj], self.h**2)
+
+def simple_overlap_check(coords, radii, boxlength):
+    """
+    Perform overlap check.
+    
+    This is not very efficient, it is just a direct implementation of a
+    double loop.
+    Returns True if there is at least one overlap.
+    Returns False if there is no overlap.
+    Assums periodic boundary conditions in box of length boxlength
+    
+    Parameters
+    ----------
+    coords : array
+        The coordinates of the centers of the considerd spheres.
+    radii : array
+        The considered sphere radii.
+    boxlength: real
+        The side length of the periodic cubic box.
+    """
+    nr_dof = len(coords)
+    nr_particles = len(radii)
+    boxdim = int(nr_dof / nr_particles)
+    if nr_dof != boxdim * nr_particles:
+        raise Exception("simple_overlap_check: illegal input: coords vs radii")
+    def get_dist2(a, b):
+        def box(input):
+            boxed = np.fmod(input, boxlength)
+            if boxed < 0:
+                boxed += boxlength
+            if boxed > 0.5 * boxlength:
+                return boxed - boxlength
+            return boxed
+        return np.sum(np.array([np.square(box(coords[a * boxdim + ii] - coords[b * boxdim + ii])) for ii in xrange(boxdim)]))
+    def pair_is_overlapping(a, b):
+        radii_sum = radii[a] + radii[b]
+        return get_dist2(a, b) < radii_sum**2
+    for ii in xrange(nr_particles - 1):
+        for jj in xrange(ii + 1, nr_particles):
+            if pair_is_overlapping(ii, jj):
+                return True # At least one overlap.
+    return False # No overlap.

@@ -1,25 +1,14 @@
 from __future__ import division
-import matplotlib
-matplotlib.use('Agg')
 import numpy as np
 import argparse
 import os
 import subprocess
 import collections
 from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 import basinvolume
-from basinvolume.utils import MomentsAcc
-try:
-    from  matplotlib import pyplot as plt
-    from matplotlib.backends.backend_pdf import PdfPages
-except ImportError as err:
-    print err
-
-def save_pdf(plt, file_name):
-    pdf = PdfPages(file_name)
-    plt.savefig(pdf, format="pdf")
-    pdf.close()
-    plt.close()
+from basinvolume.utils import MomentsAcc, MedianAcc
+from basinvolume.utils import save_pdf
 
 def time_law(x, b, c):
     """
@@ -37,12 +26,17 @@ def time_law_linear(x, b, c):
 class MomentsInTime(object):
     def __init__(self):
         self.mom = MomentsAcc()
+        self.med = MedianAcc()
     def add(self, time_string):
-        self.mom.update(self.get_seconds(time_string))
+        seconds = self.get_seconds(time_string)
+        self.mom.update(seconds)
+        self.med.update(seconds)
     def get_mean(self):
         return self.mom.get_mean()
     def get_std(self):
         return self.mom.get_std()
+    def get_median(self):
+        return self.med.get_median()
     def get_seconds(self, time_str):
         hours = float(time_str.split(":")[0].strip())
         minutes = float(time_str.split(":")[1].strip())
@@ -50,13 +44,16 @@ class MomentsInTime(object):
         return seconds + 60 * minutes + 60 * 60 * hours
 
 class TimeStatistics(object):
-    def __init__(self, time_strings):
+    def __init__(self, time_strings, use_median=False):
         tmp = MomentsInTime()
         self.nr_samples = 0
         for s in time_strings:
             tmp.add(s)
             self.nr_samples += 1
-        self.mean = tmp.get_mean()
+        if use_median:
+            self.mean = tmp.get_median()
+        else:
+            self.mean = tmp.get_mean()
         self.std = tmp.get_std()
 
 class RuntimeData(object):
@@ -78,8 +75,8 @@ class RuntimeData(object):
         plt.errorbar(self.N, self.time, fmt="o", yerr=self.time_std)
         plt.xlabel(r"Number of particles $N$")
         plt.ylabel(r"Runtime on dexter / seconds")
-        popt, pcov = curve_fit(time_law, self.N, self.time, [10000, 1], sigma=self.time_std)
-        popt_linear, pcov_linear = curve_fit(time_law_linear, self.N, self.time, [10000, 0], sigma=self.time_std)
+        popt, pcov = curve_fit(time_law, self.N, self.time, [10000, 1])
+        popt_linear, pcov_linear = curve_fit(time_law_linear, self.N, self.time, [10000, 0])
         print "large-N exponent: N^", popt[1]
         print "slope linear law:", popt_linear[0]
         print "offset linear law:", popt_linear[1]
@@ -146,10 +143,13 @@ class RuntimeData(object):
             if time_strings:
                 print actual_n
                 print time_strings
-                self.N.append(actual_n)
-                tmp = TimeStatistics(time_strings)
-                self.time.append(tmp.mean)
-                self.time_std.append(tmp.std / np.sqrt(tmp.nr_samples))
+                tmp = TimeStatistics(time_strings, use_median=True)
+                print("mean time", tmp.mean)
+                print("nr time samples", tmp.nr_samples)
+                if tmp.nr_samples > 1:
+                    self.N.append(actual_n)
+                    self.time.append(tmp.mean)
+                    self.time_std.append(tmp.std / np.sqrt(tmp.nr_samples))
     def get_time_data_manual(self):
         self.N.append(16)
         tmp = TimeStatistics(["08:20:09", "03:28:26", "02:01:36", "01:32:11", "01:16:41", "05:47:54", "03:56:56", "04:28:51", "01:20:07"])
