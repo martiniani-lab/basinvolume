@@ -9,6 +9,9 @@
 # 1.1. Check: Output files indicate that the time series have converged.
 # 2. Check: Destination can be rached / is a valid path / dir exists.
 # 3. Check: Enough disc space available at destination.
+# 3.1. Check: If there exists remote folder of the same name and that folder has the same contents as the local folder, do nothing.
+#             If that remote folder has different content than the local folder (Assumption: local folder contains successfully terminated run output),
+#             then the remote folder is erased and then the local folder copied to the remote location.
 # 4. Do: At the end of PT, or manually, scp the data in batch mode, roughly with
 #    scp -BCvr explore_bv_jammed_packing500 bazinga:/scratch/kjs73/link_to_disk/n32_phi50_phi88_3D
 # 5. Check that the transfer was successful, i.e. that data at origin and destination is identical.
@@ -89,6 +92,61 @@ if [ "$free_space" -lt "$double_data_size" ];
 then
     echo "not enough disk space at destination"
     exit 42
+fi
+
+# Step 3.1
+# Check if remote folder with (probably corruped data) exists and leave it, or erase it.
+# Check whether remote folder exists, otherwise goto next step.
+remote_folder_expl="$remote_folder"/$1
+echo "remote_folder_expl "$remote_folder_expl
+erase_remote=0
+if (ssh $remote_computer '[ -d $remote_folder_expl ]')
+then
+    echo "remote expl folder of same name exists for "$1
+    # If contents is identical, terminate whole script without data transfer.
+    # If there is an error in comparing the contents or the contents is different,
+    # erase the remote folder and proceed with data transfer from local to remote folder.
+    differences_=$(rsync -rni --delete --checksum "$1""/" "$2"/"$1""/" 2>&1)
+    diff_exit_status_=$?
+    if [ "$diff_exit_status_" -eq 0 ];
+    then
+        if [ -z "$differences_" ];
+        then
+            echo "remote folder is identical to local folder for "$1 " -- terminating"
+            exit 42
+        else
+            echo "remote folder is not identical to local folder for "$1
+            echo "differences "$differences_
+            erase_remote=1
+        fi
+    else
+        erase_remote=1
+    fi
+else
+    echo "no remote expl folder of same name exists for "$1
+fi
+echo "erase_remote "$erase_remote
+if [ "$erase_remote" -eq 1 ];
+then
+    echo "erasing remote folder "$1
+    # http://unix.stackexchange.com/questions/17466/how-to-delete-a-file-on-remote-machine-via-ssh-by-using-a-shell-script
+    echo "about to erase "$remote_folder_expl" on "$remote_computer
+    # http://stackoverflow.com/questions/1885525/how-do-i-prompt-a-user-for-confirmation-in-bash-script
+    # http://stackoverflow.com/questions/3231804/in-bash-how-to-add-are-you-sure-y-n-to-any-command-or-alias
+    read -r -p "Are you sure? [y/N] " response
+    echo    # (optional) move to a new line
+    if [ "$response" = "y" ];
+    then
+        echo "erasing remote folder "$remote_folder_expl
+        ssh $remote_computer 'rm -rf $remote_folder_expl'
+    else
+        echo "erasing remote folder aborted -- check folder by hand "$1
+        echo $remote_folder_expl
+        echo "terminating"
+        exit 42
+    fi
+else
+    echo "do not erase remote folder for "$1
 fi
 
 # Step 4.
