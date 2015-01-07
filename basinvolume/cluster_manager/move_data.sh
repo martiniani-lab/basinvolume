@@ -70,7 +70,9 @@ echo "remote computer "$remote_computer
 remote_folder=$(echo $2 | awk '{split($0,a,":"); print a[2]}')
 remote_folder="$remote_folder"
 echo "remote folder "$remote_folder
-if (ssh $remote_computer '[ -d $remote_folder ]')
+#if (ssh $remote_computer '[ -d $remote_folder ]')
+y=`ssh  -f $remote_computer ls -l $remote_folder`
+if [ "$y" ];
 then
     echo "destination exists"
 else 
