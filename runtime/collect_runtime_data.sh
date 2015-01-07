@@ -5,7 +5,7 @@
 
 # Set parameters.
 remote_computer=nemesis.ch.private.cam.ac.uk
-remote_folder=/media/exhhd/new_data
+remote_folder=/media/bvDisk
 runtime_folder=runtime_data
 #
 echo "This is collect_runtime_data.sh."
