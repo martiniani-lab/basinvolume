@@ -70,15 +70,7 @@ echo "remote computer "$remote_computer
 remote_folder=$(echo $2 | awk '{split($0,a,":"); print a[2]}')
 remote_folder="$remote_folder"
 echo "remote folder "$remote_folder
-#if (ssh $remote_computer '[ -d $remote_folder ]')
-y=`ssh  -f $remote_computer ls -l $remote_folder`
-if [ "$y" ];
-then
-    echo "destination exists"
-else 
-    echo "destination does not exist"
-    exit 42
-fi
+ssh  -f $remote_computer mkdir -p $remote_folder
 
 # Step 3.
 data_size_=$(du -s $1)
