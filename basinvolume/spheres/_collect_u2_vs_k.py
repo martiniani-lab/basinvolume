@@ -62,7 +62,6 @@ class _collect_u2_vs_k(object):
             self._import_u2_reverse()
             self._print_u2_vs_k()
             self._compute_volume()
-            self._import_time_series()
             self._plot_data()
         except Exception as err:
             print err
@@ -219,6 +218,7 @@ class _collect_u2_vs_k(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         #timeseries
+        self._import_time_series()
         for i,series in enumerate(self.timeseries):
             ax.plot(series[::self.ts_skip], ls=next(linecycler), linewidth=1, label=str(i))
         #plt.yscale('symlog')
