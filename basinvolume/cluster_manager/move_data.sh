@@ -9,7 +9,7 @@
 # 1.1. Check: Output files indicate that the time series have converged.
 # 2. Check: Destination can be rached / is a valid path / dir exists.
 # 3. Check: Enough disc space available at destination.
-# 3.1. Check: If there exists remote folder of the same name and that folder has the same contents as the local folder, do nothing.
+# 3.1. Check: If there exists remote folder of the same name and that folder has the same contents as the local folder, then compress the local folder and terminate with status 0.
 #             If that remote folder has different content than the local folder (Assumption: local folder contains successfully terminated run output),
 #             then the remote folder is erased and then the local folder copied to the remote location.
 # 4. Do: At the end of PT, or manually, scp the data in batch mode, roughly with
@@ -111,8 +111,18 @@ then
     then
         if [ -z "$differences_" ];
         then
-            echo "remote folder is identical to local folder for "$1 " -- terminating"
-            exit 42
+            echo "remote folder is identical to local folder for "$1
+            echo "compressing local folder"
+            tar -zcvf $1".tar.gz" $1 2>&1
+            tar_exit_status=$?
+            if [ "$tar_exit_status" -eq 0 ];
+            then
+                rm -rf $1
+                exit 0
+            else
+                echo "compression failed"
+                exit 42
+            fi
         else
             echo "remote folder is not identical to local folder for "$1
             echo "differences "$differences_
