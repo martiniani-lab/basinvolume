@@ -60,8 +60,11 @@ class PTFailures(object):
         print self.failed
 
 class VolumeSanityCheck(object):
-    def __init__(self, v_acc_parameter_file):
+    def __init__(self, v_acc_parameter_file, numerical_moments=False):
+        # begin input
         self.v_acc_parameter_file = v_acc_parameter_file
+        self.numerical_moments = numerical_moments
+        # end input
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.v_acc_parameter_file))
         self.nr_particles = configf.getint("PACKING", "nparticles")
@@ -74,7 +77,12 @@ class VolumeSanityCheck(object):
         radii_stdev = configf.getfloat("PACKING", "radii_stdev")
         self.diameter_variance = (2 * radii_stdev) ** 2
         self.ideal_gas_V_acc = self.V_box ** self.nr_particles
-        self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, self.diameter_mean, self.diameter_variance) 
+        if not numerical_moments:
+            self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, self.diameter_mean, self.diameter_variance) 
+        else:
+            diameter_mean_numerical = self.get_diameter_mean_numerical()
+            diameter_variance_numerical = self.get_diameter_variance_numerical()
+            self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, diameter_mean_numerical, diameter_variance_numerical)
         self.V_acc = np.exp(- self.F0_acc)
         if np.log(self.V_acc) > np.log(self.ideal_gas_V_acc):
             raise Exception("VolumeSanityCheck: polyHS fluid failure")
