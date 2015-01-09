@@ -45,7 +45,6 @@ try:
     from basinvolume.utils import to_string, save_pdf, log_factorial
     from basinvolume.utils import ResultsFile, OutlierDetection
     from basinvolume.utils import MomentsAcc, CDFAccumulator, trymakedir
-    from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
     from basinvolume.post_processing import APFEntropy, BestIntegrationSelection
     from basinvolume.post_processing import VolumeSanityCheck, PackingFailureStatistics
     from basinvolume.post_processing import OutlierRemovalUnbiasingEntropyLogOmega
