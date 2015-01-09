@@ -69,6 +69,7 @@ class ComputeEntropyCommon(object):
         self.kmax_threshold = kmax_threshold
         self.nr_volume_points = nr_volume_points
         self.force_run = force_run
+        self.numerical_moments = numerical_moments
         # End: store input parameters.
         self.experimental = "exp" in packings_dir
         self.set_up_directories()
@@ -153,7 +154,7 @@ class ComputeEntropyCommon(object):
             try:
                 packing_configpath = self.get_packing_configpath(vf)
                 print "packing_configpath", packing_configpath
-                volume_sanity_check = VolumeSanityCheck(packing_configpath)
+                volume_sanity_check = VolumeSanityCheck(packing_configpath, numerical_moments=self.numerical_moments)
                 self.best_integration_selection.check_next_F0(volume_sanity_check, self, vf)
             except Exception, e:
                 print "Exception: ", e
@@ -230,14 +231,14 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
     Used for numerical packings wich have one and only one config file
     for all basins.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run):
-        super(ComputeEntropyNumerical, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run)
+    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments):
+        super(ComputeEntropyNumerical, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments)
     def get_packing_configpath(self, volume_file):
         return os.path.join(self.packings_dir, "packings/packings.config")
     def compute_entropy_etc(self):
         print("---numerical packing---")
         packing_configpath = self.get_packing_configpath(42)
-        volume_sanity_check = VolumeSanityCheck(packing_configpath)
+        volume_sanity_check = VolumeSanityCheck(packing_configpath, numerical_moments=self.numerical_moments)
         # -p log g entropy
         self.APF_entropy = APFEntropy(self.F0_wo_outliers, volume_sanity_check)
         self.APF_entropy.compute_and_write_entropy(os.path.join(self.output_path, "entropy_AFP"))
@@ -266,8 +267,8 @@ class ComputeEntropyExperimental(ComputeEntropyCommon):
     because the entropy computation part is probably ill-defined for
     experimental packings.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run):
-        super(ComputeEntropyExperimental, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run)
+    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments):
+        super(ComputeEntropyExperimental, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments)
     def get_packing_configpath(self, volume_file):
         # The data naming format of experimental packings MC is something like the following.
         # /scratch/kjs73/test/n32_exp_88_2D/explore_bv_jammed_packing73/explore_jammed_packing73.config
@@ -290,18 +291,19 @@ class ComputeEntropy(object):
     """
     def __init__(self, packings_dir, plot_ts_integrand_data=False,
                  skip_volume_computation=False, max_relative_GL_error=0.2, 
-                 kmax_threshold=1000, nr_volume_points=-1, force_run=False):
+                 kmax_threshold=1000, nr_volume_points=-1, force_run=False,
+                 numerical_moments=False):
         self.experimental = "exp" in packings_dir
         if self.experimental:
             self.computer = ComputeEntropyExperimental(packings_dir,
                             plot_ts_integrand_data, skip_volume_computation,
                             max_relative_GL_error, kmax_threshold,
-                            nr_volume_points, force_run)
+                            nr_volume_points, force_run, numerical_moments)
         else:
             self.computer = ComputeEntropyNumerical(packings_dir,
                             plot_ts_integrand_data, skip_volume_computation,
                             max_relative_GL_error, kmax_threshold,
-                            nr_volume_points, force_run)
+                            nr_volume_points, force_run, numerical_moments)
         self.computer.run_analysis()
         
 if __name__ == "__main__":
@@ -313,9 +315,10 @@ if __name__ == "__main__":
     parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default=0.1, type=float, help="parameter that selects between GL integral from PT data and approx integral")
     parser.add_argument("-kmax_threshold", "--kmax_threshold", default=1000, type=float, help="largest kmax value that is not considered to be huge")
     parser.add_argument("--force", action='store_true', help="force to recompute volumes for already computed ones", default=False)
+    parser.add_argument("--numerical_moments", action="store_strue", help="compute moments of radii distribution numerically from the sample of radii instead of analytically from the parameters of the distribution", default=False)
     args = parser.parse_args()
     packings_dir = os.path.abspath(args.packings_dir)
     ComputeEntropy(packings_dir, plot_ts_integrand_data=False, skip_volume_computation=args.plot_only, 
                    max_relative_GL_error=args.max_relative_GL_error, kmax_threshold=args.kmax_threshold,
-                   nr_volume_points=args.nr_vpoints, force_run=args.force)
+                   nr_volume_points=args.nr_vpoints, force_run=args.force, numerical_moments=args.numerical_moments)
 
