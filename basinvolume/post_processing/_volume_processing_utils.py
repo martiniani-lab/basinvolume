@@ -80,8 +80,10 @@ class VolumeSanityCheck(object):
         if not numerical_moments:
             self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, self.diameter_mean, self.diameter_variance) 
         else:
-            diameter_mean_numerical = self.get_diameter_mean_numerical()
-            diameter_variance_numerical = self.get_diameter_variance_numerical()
+            self.get_diameter_file_0_path()
+            self.read_diameters()
+            diameter_mean_numerical = np.mean(self.diameters)
+            diameter_variance_numerical = np.var(self.diameters)
             self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, diameter_mean_numerical, diameter_variance_numerical)
         self.V_acc = np.exp(- self.F0_acc)
         if np.log(self.V_acc) > np.log(self.ideal_gas_V_acc):
@@ -89,6 +91,15 @@ class VolumeSanityCheck(object):
         print "VolumeSanityCheck: "
         print "F0_acc, HS fluid", self.F0_acc
         print "F0_acc, ideal gas", - np.log(self.ideal_gas_V_acc)
+    def get_diameter_file_0_path(self):
+        packings_dir = os.path.split(v_acc_parameter_file)[0]
+        self.diameter_file_0_path = os.join(packings_dir, os.listdir(packings_dir)[0])
+        print("diameter file path", self.diameter_file_0_path)
+    def read_diameters(self):
+        f = open(self.diameter_file_0_path)
+        packing_info = f.readlines()
+        f.close()
+        self.diameters = np.asarray([float(line.split()[-1]) for line in packing_info])
     def is_insane(self, F0):
         if F0 < self.F0_acc:
             return True
