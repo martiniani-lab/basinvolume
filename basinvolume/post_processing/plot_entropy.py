@@ -105,6 +105,7 @@ class plot_entropy(object):
                         self.lo_entropy.append(n)
                         self.lo_entropy.append(configf.getfloat(self.lo_file[1],'S_star'))
                         self.lo_entropy.append(configf.getfloat(self.lo_file[1],'error_S_star'))
+                        self.lo_parameters.append(n)
                         self.lo_parameters.append(configf.getfloat(self.lo_file[1],'mu'))
                         self.lo_parameters.append(configf.getfloat(self.lo_file[1],'mu_error'))
                         self.lo_parameters.append(configf.getfloat(self.lo_file[1],'alpha'))
@@ -117,6 +118,7 @@ class plot_entropy(object):
                         configf.read(fpath)
                         self.loml_entropy.append(n)
                         self.loml_entropy.append(configf.getfloat(self.loml_file[1],'S_star'))
+                        self.loml_parameters.append(n)
                         self.loml_parameters.append(configf.getfloat(self.loml_file[1],'mu'))
                         self.loml_parameters.append(configf.getfloat(self.loml_file[1],'alpha'))
                         self.loml_parameters.append(configf.getfloat(self.loml_file[1],'zeta'))
@@ -124,7 +126,7 @@ class plot_entropy(object):
         self.all_entropies_err = [(self.apf_entropy,r"\sum p \ln p"), (self.kd_entropy,r"\ln \Omega_{KDE}"), 
                              (self.lo_entropy,r"\ln \Omega_G")]
         self.all_entropies = [(self.loml_entropy,r"\ln \Omega_GML")]
-    
+        
     def _ploterr(self, entropy_array, xlabel="N", ylabel="S", title=None, show=False):
         nparticles = np.array(entropy_array[0::3])
         nmax = np.amax(nparticles)
@@ -194,7 +196,6 @@ class plot_entropy(object):
     def plot_all(self, xlabel="N", ylabel="S-logN", title=None, show=False):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        m = next(self.markercycler)
         for item in self.all_entropies_err:
             entropy_array, label = item
             nparticles = np.array(entropy_array[0::3])
@@ -207,6 +208,7 @@ class plot_entropy(object):
             x, yerr = _sort_pair(nparticles,yerr)
             fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
             ynew = trialx * fit[0] + fit[1]
+            m = next(self.markercycler)
             ax.errorbar(x, y, yerr=yerr, fmt=m, ms=8, label=label)
             ax.plot(trialx,ynew,m[0]+'--', linewidth=2)
         #loop over entropies without an associated error
@@ -220,6 +222,7 @@ class plot_entropy(object):
             xa,y = _sort_pair(nparticles,y)
             fit = np.polyfit(x, y, 1)
             ynew = trialx * fit[0] + fit[1]
+            m = next(self.markercycler)
             ax.errorbar(x, y, fmt=m, ms=8, mew=2, label=label)
             ax.plot(trialx,ynew,m[0]+'--', linewidth=2)
         plt.xlabel(xlabel)
@@ -230,26 +233,89 @@ class plot_entropy(object):
         if show:
             plt.show()
     
-#    def _plot_lo_parameters(show=False):
-#        nparticles = np.array(entropy_array[0::3])
-#        nmax = np.amax(nparticles)
-#        trialx = np.linspace(0,nmax,1000)
-#        fig = plt.figure()
-#        #extensive
-#        ax = fig.add_subplot(111)
-#        y = np.array(entropy_array[1::3]) - log_factorial(np.array(nparticles))
-#        yerr = np.array(entropy_array[2::3])
-#        xa,y = _sort_pair(nparticles,y)
-#        x, yerr = _sort_pair(nparticles,yerr)
-#        fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
-#        ynew = trialx * fit[0] + fit[1] 
-#        ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=8, label=r"S-logN")
-#        ax.plot(trialx,ynew,'b--', linewidth=2)                    
+    def plot_lo_param(self, xlabel="N", show=False):
+        nparticles = np.array(self.lo_parameters[::7])
+        nparticlesml = np.array(self.loml_parameters[::4])
+        nmax = np.amax(nparticles)
+        nmin = np.amin(nparticles)
+        trialx = np.linspace(0,nmax,1000)
+        #mu
+        mu = np.array(self.lo_parameters[1::7])
+        mu_err = np.array(self.lo_parameters[2::7])
+        xa,mu = _sort_pair(nparticles,mu)
+        x, mu_err = _sort_pair(nparticles,mu_err)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(x, mu, yerr=mu_err, fmt='bo', ms=8, label=r"$\mu$")        
+        fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'b--', linewidth=2)
+        #muML
+        mu = np.array(self.loml_parameters[1::4])
+        xa,mu = _sort_pair(nparticlesml,mu)
+        ax.errorbar(x, mu, fmt='r^', ms=8, label=r"$\mu_{ML}$")        
+        fit = np.polyfit(x, mu, 1)
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'r--', linewidth=2)
+        ax.legend(frameon=False, loc=2)
+        plt.xlabel(xlabel) #plot
+        plt.ylabel(r"$\mu$")
+        #alpha
+        alpha = np.array(self.lo_parameters[3::7])
+        alpha_err = np.array(self.lo_parameters[4::7])
+        xa,alpha = _sort_pair(nparticles,alpha)
+        x, alpha_err = _sort_pair(nparticles,alpha_err)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(x, alpha, yerr=alpha_err, fmt='bo', ms=8, label=r"$\alpha$")        
+        fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'b--', linewidth=2)
+        #alphaML
+        alpha = np.array(self.loml_parameters[2::4])
+        xa,alpha = _sort_pair(nparticlesml,alpha)
+        ax.errorbar(x, alpha, fmt='r^', ms=8, label=r"$\alpha_{ML}$")        
+        fit = np.polyfit(x, alpha, 1)
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'r--', linewidth=2)
+        ax.legend(frameon=False, loc=2)
+        plt.xlabel(xlabel)
+        plt.ylabel(r"$\alpha$")
+        #zeta
+        trialx = np.linspace(0,1/nmin,1000)
+        zeta = np.array(self.lo_parameters[5::7])
+        zeta_err = np.array(self.lo_parameters[6::7])
+        xa,zeta = _sort_pair(nparticles,alpha)
+        x, zeta = _sort_pair(nparticles,alpha_err)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)        
+        ax.errorbar(1./x, 2-zeta, yerr=zeta_err, fmt='bo', ms=8, label=r"$2-\zeta$")
+        fit = np.polyfit(1./x, 2-zeta, 1, w=1./np.array(zeta_err))
+        ynew = trialx * fit[0] + fit[1]
+        ax.plot(trialx,ynew,'b--', linewidth=2)
+        #zetaML
+        zeta = np.array(self.loml_parameters[3::4])
+        xa,zeta = _sort_pair(nparticlesml,zeta)
+        ax.errorbar(1./x, 2-zeta, fmt='r^', ms=8, label=r"$2-\zeta_{ML}$")        
+        fit = np.polyfit(1./x, 2-zeta, 1)
+        ynew = trialx * fit[0] + fit[1] 
+        plt.xlabel(xlabel)
+        plt.ylabel(r"$\zeta_{ML}$")
+        ax.legend(frameon=False, loc=2)
+        ax.plot(trialx,ynew,'r--', linewidth=2)
+        plt.xlabel(r"1/N")
+        plt.ylabel(r"$2-\zeta$")
+        ax.legend(frameon=False, loc=2)
+        if show:
+            plt.show()
+                            
                 
                 
                 
 if __name__ == "__main__":
     pe = plot_entropy()
     pe.plot_single(show=True)
+    #pe.plot_all(show=True)
+    #pe.plot_lo_param(show=True)
 
 
