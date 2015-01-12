@@ -39,6 +39,10 @@ try:
     import ConfigParser
     import os
     import matplotlib.pyplot as plt
+    import traceback
+    import copy
+    import multiprocessing as mp
+    import pele.utils.fix_multiprocessing
     from scipy import integrate
     from scipy.optimize import curve_fit
     from scipy.special import gamma
@@ -60,7 +64,8 @@ class ComputeEntropyCommon(object):
     Contains common functionality of entropy computation which is
     independent on config file layout.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run):
+    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, 
+                 kmax_threshold, nr_volume_points, force_run, numerical_moments):
         # Begin: store input parameters.
         self.packings_dir = packings_dir
         self.plot_ts_integrand_data = plot_ts_integrand_data
@@ -231,8 +236,11 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
     Used for numerical packings wich have one and only one config file
     for all basins.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments):
-        super(ComputeEntropyNumerical, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments)
+    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, 
+                 max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments):
+        super(ComputeEntropyNumerical, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, 
+                                                      max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, 
+                                                      numerical_moments)
     def get_packing_configpath(self, volume_file):
         return os.path.join(self.packings_dir, "packings/packings.config")
     def compute_entropy_etc(self):
@@ -305,20 +313,51 @@ class ComputeEntropy(object):
                             max_relative_GL_error, kmax_threshold,
                             nr_volume_points, force_run, numerical_moments)
         self.computer.run_analysis()
+
+def worker(packings_dir, kwargs):
+    try:
+        ComputeEntropy(packings_dir, **kwargs)
+    except:
+        print('find_k worker: %s' % (traceback.format_exc()))
+
+def get_immediate_subdirectories(dir):
+    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare F0 form full PT data with F0 from integral approximation")
     parser.add_argument("-d", "--packings_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
-    parser.add_argument("-n", "--nr_vpoints", type=int, default=-1, help="number of volume points, by default all otherwise select n at random")
+    parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
+    parser.add_argument("--nr_vpoints", type=int, default=-1, help="number of volume points, by default all otherwise select n at random")
     parser.add_argument("-plot_only", "--plot_only", action='store_true', help="flag to switch off the actual volume computing and to only do the plotting part")
     # if the relative error of the GL integral over the PT data is estimatedto be larger than max_relative_GL_error, the approximated integral is used instead to compute F0
     parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default=0.1, type=float, help="parameter that selects between GL integral from PT data and approx integral")
     parser.add_argument("-kmax_threshold", "--kmax_threshold", default=1000, type=float, help="largest kmax value that is not considered to be huge")
     parser.add_argument("--force", action='store_true', help="force to recompute volumes for already computed ones", default=False)
-    parser.add_argument("--numerical_moments", action="store_strue", help="compute moments of radii distribution numerically from the sample of radii instead of analytically from the parameters of the distribution", default=False)
+    parser.add_argument("--numerical_moments", action="store_true", help="compute moments of radii distribution numerically from the sample of radii instead of analytically from the parameters of the distribution", default=False)
+    parser.add_argument("-j","--ncores", type=int, help="number of packings to produce",default=4)
     args = parser.parse_args()
-    packings_dir = os.path.abspath(args.packings_dir)
-    ComputeEntropy(packings_dir, plot_ts_integrand_data=False, skip_volume_computation=args.plot_only, 
-                   max_relative_GL_error=args.max_relative_GL_error, kmax_threshold=args.kmax_threshold,
-                   nr_volume_points=args.nr_vpoints, force_run=args.force, numerical_moments=args.numerical_moments)
+    
+    ncores = args.ncores
+    kwargs = dict(plot_ts_integrand_data=False, skip_volume_computation=args.plot_only,
+                  max_relative_GL_error=args.max_relative_GL_error, kmax_threshold=args.kmax_threshold,
+                  nr_volume_points=args.nr_vpoints, force_run=args.force, numerical_moments=args.numerical_moments)
+    
+    if not args.all:
+        packings_dir = os.path.abspath(args.packings_dir)
+        worker(packings_dir, kwargs)
+    else:
+        mypool = mp.Pool(ncores)
+        subdirs = get_immediate_subdirectories(os.getcwd())
+        try:
+            for folder in subdirs:
+                if folder[1].isdigit() and folder[-1] == "D":
+                    #construct mcrunners in place and append them to pool
+                    mypool.apply_async(worker, args=(os.path.abspath(folder),kwargs,))
+        except:
+            mypool.terminate()
+            mypool.join()
+            raise
+                    
+        mypool.close()
+        mypool.join()
 

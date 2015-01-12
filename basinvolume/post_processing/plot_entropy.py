@@ -62,7 +62,7 @@ class plot_entropy(object):
         if not os.path.isabs(workdir):
             workdir = os.path.abspath(workdir)
         self.workdir = workdir
-    
+        
         self.analysis_folder = "entropy_analysis_all"
         self.apf_file = ["entropy_AFP", "ENTROPY_APF"]
         self.kd_file = ["entropy_kernel_density", "LOG_OMEGA_KERNEL_DENSITY"]
@@ -140,7 +140,7 @@ class plot_entropy(object):
         x, yerr = _sort_pair(nparticles,yerr)
         fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
         ynew = trialx * fit[0] + fit[1] 
-        ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=8, label=r"S-logN")
+        ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=8, label=r"S-logN!")
         ax.plot(trialx,ynew,'b--', linewidth=2)
         #raw
         y = np.array(entropy_array[1::3])
@@ -167,7 +167,7 @@ class plot_entropy(object):
         y = np.array(entropy_array[1::2]) - log_factorial(np.array(nparticles))
         fit = np.polyfit(nparticles, y, 1)
         ynew = trialx * fit[0] + fit[1] 
-        ax.errorbar(nparticles, y, fmt='bo', ms=8, label=r"S-logN")
+        ax.errorbar(nparticles, y, fmt='bo', ms=8, label=r"S-logN!")
         ax.plot(trialx,ynew,'b--', linewidth=2)
         #raw
         y = np.array(entropy_array[1::2])
@@ -193,7 +193,7 @@ class plot_entropy(object):
         if show:
             plt.show()
     
-    def plot_all(self, xlabel="N", ylabel="S-logN", title=None, show=False):
+    def plot_all(self, xlabel="N", ylabel="S-logN!", title=None, show=False):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for item in self.all_entropies_err:
@@ -232,6 +232,7 @@ class plot_entropy(object):
             plt.title(title)
         if show:
             plt.show()
+        return ax
     
     def plot_lo_param(self, xlabel="N", show=False):
         nparticles = np.array(self.lo_parameters[::7])
@@ -308,14 +309,44 @@ class plot_entropy(object):
         ax.legend(frameon=False, loc=2)
         if show:
             plt.show()
-                            
-                
-                
+            
+    def plot_compare_apf2D(self, ax=None, show=False, savefig=True):
+        """
+        plot a comparison to the data provided by D. Asenjo for 2D packings
+        for data with soft to hard ration 1.12
+        """
+        fpath = os.path.join(self.workdir, 'apf_prl_data/N_mean_alpha_beta_dense.dat')
+        if not os.path.isfile(fpath):
+            raise Exception("{} not a file".format(fpath))
+        dat_dense = np.loadtxt(fpath)
+        f_ex_dense = 3.39558433477
+        kmax_dense = np.array([40000.0, 50000.0, 90000.0, 180000.0, 400000.0])
+        f0_dense = dat_dense[-1,1] / 128. - f_ex_dense
+        #plot all
+        ax = self.plot_all(title="comparison to PRL 2D data", show=False)
+        #plot apf_prl
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        x = dat_dense[:,0]
+        y_apf = dat_dense[:,1] - dat_dense[:,0] * f_ex_dense - dat_dense[:,0] * np.log(dat_dense[:,0]) + \
+        dat_dense[:,0] - np.log(dat_dense[:,0]) + np.log(2.*np.pi/kmax_dense)
+        y_lo = dat_dense[:,7] + dat_dense[:,1] - dat_dense[:,0] * f_ex_dense - (dat_dense[:,0] * np.log(dat_dense[:,0])) + \
+        dat_dense[:,0] - np.log(dat_dense[:,0]) + np.log(2.*np.pi/kmax_dense)
+        ax.plot(x, y_apf, 'b*', markersize=15, label=r"PRL(\sum p \ln p)_{2D}")
+        ax.plot(x, y_lo, 'g*', markersize=15, label=r"PRL(\ln \Omega_G)_{2D}")
+        ax.legend(frameon=False, loc=2)
+        if show:
+            plt.show()
+        if savefig:
+            plt.savefig('compare_apf_prl.pdf')
+            
                 
 if __name__ == "__main__":
     pe = plot_entropy()
-    pe.plot_single(show=True)
-    #pe.plot_all(show=True)
+    #pe.plot_single(show=True)
+    #pe.plot_compare_apf2D()
+    pe.plot_all(show=True)
     #pe.plot_lo_param(show=True)
 
 
