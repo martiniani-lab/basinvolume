@@ -212,12 +212,14 @@ class ComputeEntropyCommon(object):
         #plot in lin-lin scale
         _set_hist_basics(plt)
         save_pdf(plt, self.output_path + name + ".pdf")
-        plt.hist(data, bins = bins, normed = True)
+        plt.close()
+        plt.hist(data, bins=bins, normed=True)
         #plot in ylog scale
         _set_hist_basics(plt)
         plt.yscale('log', nonposy='clip')
         plt.axis(ymin = 0.25 / len(data))
         save_pdf(plt, self.output_path + name + "_ylog" + ".pdf")
+        plt.close()
         self.print_fitting_results(name, gauss_fit, gen_gauss_fit)
     def print_fitting_results(self, name, gauss_fit, gen_gauss_fit):
         self.fit_results_dir = self.output_path + name + ".fit_results"

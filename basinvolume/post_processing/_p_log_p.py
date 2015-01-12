@@ -7,7 +7,7 @@ try:
     import matplotlib.pyplot as plt
     from scipy.optimize import curve_fit
     from scipy.special import gamma
-    from basinvolume.utils import to_string, save_pdf, log_factorial
+    from basinvolume.utils import to_string, log_factorial
     from basinvolume.utils import ResultsFile, OutlierDetection
     from basinvolume.utils import MomentsAcc, CDFAccumulator
     from scipy import integrate
