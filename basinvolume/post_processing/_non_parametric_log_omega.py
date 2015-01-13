@@ -71,6 +71,7 @@ class KernelDensityLogOmega(object):
         plt.plot(self.x_plot_1d, self.pdf_x_1d, label="PDF estimate")
         plt.legend()
         save_pdf(plt, plot_name)
+        plt.close()
         
     def get_bandwidth_estimate(self, method="cross_validation"):
         """
@@ -184,3 +185,4 @@ class KernelDensityLogOmegaJackKnife(object):
         plt.plot(self.x_plot_1d, self.pdf_x_1d, label="PDF estimate")
         plt.legend()
         save_pdf(plt, plot_name)
+        plt.close()

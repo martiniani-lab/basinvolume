@@ -190,6 +190,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         plt.xlabel(r"Free energy $F$")
         plt.ylabel(r"Probability density")
         save_pdf(plt, self.output_path + "/unbiasing_fit.pdf")
+        plt.close()
         self.compute_integral(volume_sanity_check)
         self.S_star_no_jack = - volume_sanity_check.F0_acc + np.log(self.integral_no_jack)
         self.S_no_jack = self.S_star_no_jack - log_factorial(volume_sanity_check.nr_particles)
@@ -221,6 +222,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         plt.plot(xp, [self.generalised_gauss.get_times_expx_with_pars(xi, self.mu, self.alpha, self.zeta) / normalisation for xi in xp], label = r"$P_\mathcal{U}(F)$")
         plt.legend(loc = 2)
         save_pdf(plt, self.output_path + "/unbiased_pdf_vs_data.pdf")
+        plt.close()
     def compute_desired_nr_bins(self, maximum_av_number_per_bin):
         bins = 1
         while True:

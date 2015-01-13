@@ -192,48 +192,7 @@ public:
     {}
 };
 
-/**
- * Frozen particle HS_WCA_Smooth potential
- */
-class HS_WCA_SmoothFrozen : public pele::FrozenPotentialWrapper<HS_WCA_Smooth> {
-public:
-    HS_WCA_SmoothFrozen(double eps, double sca, pele::Array<double> radii, pele::Array<double>& reference_coords, pele::Array<size_t>& frozen_dof)
-        : pele::FrozenPotentialWrapper< HS_WCA_Smooth > ( std::make_shared<HS_WCA_Smooth>(eps, sca,
-                    radii), reference_coords, frozen_dof)
-    {}
-};
+} // namespace bv
 
-class HS_WCA_Smooth2DFrozen : public pele::FrozenPotentialWrapper<HS_WCA_Smooth2D> {
-public:
-    HS_WCA_Smooth2DFrozen(double eps, double sca, pele::Array<double> radii, pele::Array<double>& reference_coords, pele::Array<size_t>& frozen_dof)
-        : pele::FrozenPotentialWrapper< HS_WCA_Smooth2D > ( std::make_shared<HS_WCA_Smooth2D>(eps,
-                    sca, radii), reference_coords, frozen_dof)
-    {}
-};
+#endif // #ifndef _BV_HS_WCA_Smooth_H
 
-/**
- * Frozen particle HS_WCA_SmoothPeriodic potential
- */
-class HS_WCA_SmoothPeriodicFrozen : public pele::FrozenPotentialWrapper<HS_WCA_SmoothPeriodic> {
-public:
-    HS_WCA_SmoothPeriodicFrozen(double eps, double sca, pele::Array<double> radii,
-            pele::Array<double> const boxvec, pele::Array<double>& reference_coords,
-            pele::Array<size_t>& frozen_dof)
-        : pele::FrozenPotentialWrapper< HS_WCA_SmoothPeriodic > (
-                std::make_shared<HS_WCA_SmoothPeriodic>(eps, sca, radii, boxvec),
-                reference_coords, frozen_dof)
-    {}
-};
-
-class HS_WCA_SmoothPeriodic2DFrozen : public pele::FrozenPotentialWrapper<HS_WCA_SmoothPeriodic2D> {
-public:
-    HS_WCA_SmoothPeriodic2DFrozen(double eps, double sca, pele::Array<double> radii,
-            pele::Array<double> const boxvec, pele::Array<double>& reference_coords, pele::Array<size_t>&
-            frozen_dof)
-        : pele::FrozenPotentialWrapper< HS_WCA_SmoothPeriodic2D > (
-                std::make_shared<HS_WCA_SmoothPeriodic2D>(eps, sca, radii, boxvec),
-                reference_coords, frozen_dof)
-    {}
-};
-}
-#endif

@@ -2,7 +2,9 @@ from __future__ import division
 try:
     import numpy as np
     from scipy import integrate
-    from basinvolume.utils import log_factorial, ResultsFile, save_pdf, gen_gauss, log_gen_gauss, get_gauss_times_expx
+    from basinvolume.utils import log_factorial, ResultsFile, save_pdf
+    from basinvolume.utils import gen_gauss, log_gen_gauss
+    from basinvolume,utils import get_gauss_times_expx
     from pele.potentials import MLCost
     from pele.optimize import LBFGS_CPP
     from scipy.special import gamma
@@ -75,6 +77,7 @@ class LogOmegaBase(object):
         pars = [self.mu, self.alpha, self.zeta]
         plt.plot(xr, gen_gauss(xr, pars))
         save_pdf(plt, plot_name)
+        plt.close()
 
 class MLLogOmega(LogOmegaBase):
     """
