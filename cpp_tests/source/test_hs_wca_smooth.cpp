@@ -1,4 +1,4 @@
-#include "pele/array.h"
+/*#include "pele/array.h"
 #include "basinvolume/hs_wca_smooth.h"
 
 #include <iostream>
@@ -9,9 +9,9 @@ using pele::Array;
 using bv::HS_WCA_Smooth;
 
 
-/*
+
  * HS_WCA tests
- */
+
 
 class HS_WCA_SmoothTest :  public ::testing::Test
 {
@@ -75,4 +75,4 @@ TEST_F(HS_WCA_SmoothTest, EnergyGradientHessian_AgreesWithNumerical){
     for (size_t i=0; i<h.size(); ++i){
         ASSERT_NEAR(h[i], hnum[i], 1e-3);
     }
-}
+}*/

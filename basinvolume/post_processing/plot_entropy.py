@@ -8,6 +8,7 @@ try:
     from matplotlib import rc
     from itertools import cycle
     from basinvolume.utils import log_factorial
+    import scipy
     from scipy.stats import t
     from scipy.interpolate import spline
 except ImportError as err:
@@ -21,7 +22,9 @@ plt.rcParams.update({'font.size': 16})
 plt.rcParams['xtick.major.pad'] = 8
 plt.rcParams['ytick.major.pad'] = 8
 ##########################################################
-
+"""
+for plotting a linear fit with intervals of confidence see http://nbviewer.ipython.org/url/bagrow.com/dsv/LEC10_notes_2014-02-13.ipynb
+"""
 def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
@@ -139,7 +142,7 @@ class plot_entropy(object):
         xa,y = _sort_pair(nparticles,y)
         x, yerr = _sort_pair(nparticles,yerr)
         fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
-        ynew = trialx * fit[0] + fit[1] 
+        ynew = trialx * fit[0] + fit[1]        
         ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=8, label=r"S-logN!")
         ax.plot(trialx,ynew,'b--', linewidth=2)
         #raw
@@ -232,6 +235,11 @@ class plot_entropy(object):
             plt.title(title)
         if show:
             plt.show()
+        trialx = np.linspace(0,128,1000)
+        ynew = trialx * 1./2 
+        ax.plot(trialx, ynew,'y--', linewidth=2)
+        ynew = trialx * 1./3 
+        ax.plot(trialx, ynew,'y--', linewidth=2)
         return ax
     
     def plot_lo_param(self, xlabel="N", show=False):
@@ -345,8 +353,8 @@ class plot_entropy(object):
 if __name__ == "__main__":
     pe = plot_entropy()
     #pe.plot_single(show=True)
-    #pe.plot_compare_apf2D()
-    pe.plot_all(show=True)
+    pe.plot_compare_apf2D(show=False,savefig=True)
+    #pe.plot_all(show=True)
     #pe.plot_lo_param(show=True)
 
 
