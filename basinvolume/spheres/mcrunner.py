@@ -324,7 +324,7 @@ class BV_MCrunner(_BaseMCRunner):
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
         self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
-                             use_cell_lists=use_cell_lists,
+                             use_cell_lists=self.use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
                              reference_coords=self.origin, rcut=self.rcut,
@@ -350,8 +350,8 @@ class BV_MCrunner(_BaseMCRunner):
                                                   self.binsize, self.equilibration_steps)
             self.add_action(self.histogram)
         
-        if use_periodic:
-            if use_cell_lists:
+        if self.use_periodic:
+            if self.use_cell_lists:
                 self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
                                  self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
@@ -363,7 +363,7 @@ class BV_MCrunner(_BaseMCRunner):
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
         else: 
-            if use_cell_lists:
+            if self.use_cell_lists:
                 self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
                                  self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen,
@@ -574,7 +574,7 @@ class Findk_MCrunner(_BaseMCRunner):
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
         self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
-                             use_cell_lists=use_cell_lists,
+                             use_cell_lists=self.use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
                              reference_coords=self.origin, rcut=self.rcut,
@@ -597,7 +597,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'], stepsize)
         
         if use_periodic:
-            if use_cell_lists:
+            if self.use_cell_lists:
                 self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
                                  self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
@@ -609,7 +609,7 @@ class Findk_MCrunner(_BaseMCRunner):
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
         else: 
-            if use_cell_lists:
+            if self.use_cell_lists:
                 self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
                                  self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen,
