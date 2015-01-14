@@ -1,5 +1,12 @@
 from __future__ import division
 import numpy as np
+from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
+from pele.potentials import Harmonic
+from mcpele.monte_carlo import RandomCoordsDisplacement
+
+class MC(_BaseMCRunner):
+    def set_control(self, temp):
+        self.set_temperature(temp)
 
 class EqFluidSnapshots(object):
     """
@@ -8,9 +15,21 @@ class EqFluidSnapshots(object):
     This should also print snapshots at equal and specified intervals.
     """
     def __init__(self, radii, coordinates, boxvec):
-        self.radii = radii
-        self.coordinates = coordinates
-        self.boxvec = boxvec
+        self.radii = np.array(radii)
+        self.coordinates = np.array(coordinates)
+        self.boxvec = np.array(boxvec)
         #
+        self.rcut_hard_overlap = 2 * np.amax(self.radii)
+        self.overlap_check = CheckOverlapPeriodicCellLists(self.radii, self.boxvec, self.rcut_hard_overlap)
+        self.temperature = 1
+        self.mock_potential = Harmonic(self.coordinates, 42, bdim=2) # This is not used.
+        self.mc = MC(self.mock_potential, self.coordinates, self.temperature, self.nr_steps)
+        self.step = RandomCoordsDisplacement(self.step_seed, 1, single=True, nparticles=1, bdim=2)
+        self.mc.set_report_steps(self.eq_steps)
+        self.mc.set_takestep(self.step)
+        self.mc.add_config_test(self.overlap_check)
+    def run(self):
+        print("running reference fluid")
         
+        print("running reference fluid -- done")
         
