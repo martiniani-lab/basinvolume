@@ -191,10 +191,9 @@ class HS_Generate_Packing(_Generate_Packing):
             self._initialise_coords_quench()
         rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
         if self.use_cell_lists:
-            if rcut > 0.5 * np.amin(self.boxv):
+            if np.amin(self.boxv) // rcut <= 3:
                 self.use_cell_lists = False
         if self.use_cell_lists:
-            #print 'rcut', rcut
             self.potential = HS_WCA(use_periodic=True,
                              use_cell_lists=True, eps=self.eps,
                              sca=self.sca, radii=self.hs_radii,
