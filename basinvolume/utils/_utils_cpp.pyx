@@ -5,6 +5,7 @@ import sys
 import numpy as np
 cimport numpy as np
 from pele.potentials import _pele
+from pymbar.timeseries import statisticalInefficiency_fft
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -89,6 +90,14 @@ def statisticalInefficiency(A, B=None, cbool fast=True, size_t mintime=10):
 def integratedAutocorrelationTime(A_n, B_n=None, fast=True, mintime=10):
     """Estimate the integrated autocorrelation time."""
     g = statisticalInefficiency(A_n, B_n, fast=fast, mintime=mintime)
+    tau = (g - 1.0) / 2.0
+    return tau
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def integratedAutocorrelationTime_fft(A_n, mintime=10):
+    """Estimate the integrated autocorrelation time."""
+    g = statisticalInefficiency_fft(A_n, mintime=mintime)
     tau = (g - 1.0) / 2.0
     return tau
 

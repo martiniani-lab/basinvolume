@@ -46,7 +46,8 @@ if __name__ == "__main__":
     assert(record_histogram == False and pt_eq_niter == 0 and ts_freq == 1) #ts_freq must be 1 with current output implementation (all based on timeseries)
     rel_std_err= 0.05 #relative standard error in the mean used by convergence test
     min_window=2.5e5 #minimum amount of data before trying to check convergence
-    max_eq_time=2.5e5 #maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
+    max_eq_time=2.5e5# #maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
+    fast_ct=False #if false skip euristic search for equilibration point
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
@@ -75,8 +76,8 @@ if __name__ == "__main__":
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip,
-                                     test_convergence=test_convergence_ts, rel_std_err=rel_std_err, min_window=min_window, 
-                                     max_eq_time=max_eq_time, base_directory=path, verbose=args.verbose)
+                                     test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err, 
+                                     min_window=min_window, max_eq_time=max_eq_time, base_directory=path, verbose=args.verbose)
     assert ptrunner.rank == rank, "rank id do not match"
     assert ptrunner.nproc == nprocs, "number of cores do not match"
     

@@ -62,7 +62,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords, k, bdim=self.bdim,com=True)
+        potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
         mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
                                rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 

@@ -270,8 +270,5 @@ inline pele::Array<double> detect_equilibration(const pele::Array<double>& tsA, 
 }
 
 
-
-
-
 }
 #endif
