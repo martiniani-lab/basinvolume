@@ -1,7 +1,7 @@
 from pele.systems import BaseSystem
 from pele.landscape import smoothPath
 from basinvolume.utils import put_in_box
-from _hs_wca_smooth_cpp import HS_WCA_Smooth
+from pele.potentials import HS_WCA
 import numpy as np
 
 from pele.transition_states._zeroev import orthogonalize
@@ -13,7 +13,7 @@ class HSWCASystem(BaseSystem):
     """    
     def __init__(self, eps, sca, hs_radii, boxv, dtol=1e-3, etol=1, bdim=3):
         super(HSWCASystem, self).__init__()
-        self.potential = HS_WCA_Smooth(eps, sca, hs_radii, boxvec=boxv)
+        self.potential = HS_WCA(eps, sca, hs_radii, boxvec=boxv)
         self.bdim=bdim
         self.eps = eps
         self.sca = sca
