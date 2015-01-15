@@ -126,11 +126,11 @@ class plot_entropy(object):
                         self.loml_parameters.append(configf.getfloat(self.loml_file[1],'alpha'))
                         self.loml_parameters.append(configf.getfloat(self.loml_file[1],'zeta'))
         
-        self.all_entropies_err = [(self.apf_entropy,r"\sum p \ln p"), (self.kd_entropy,r"\ln \Omega_{KDE}"), 
-                             (self.lo_entropy,r"\ln \Omega_G")]
-        self.all_entropies = [(self.loml_entropy,r"\ln \Omega_GML")]
+        self.all_entropies_err = [(self.apf_entropy,r"$\sum p \ln p$","apf"), (self.kd_entropy,r"$\log \Omega_{KDE}$","kde"), 
+                             (self.lo_entropy,r"$\log \Omega_G$", "logomega")]
+        self.all_entropies = [(self.loml_entropy,r"$\log \Omega_{GML}$","logomegaml")]
         
-    def _ploterr(self, entropy_array, xlabel="N", ylabel="S", title=None, show=False):
+    def _ploterr(self, entropy_array, xlabel=r"$N$", ylabel=r"$S$", title=None, show=False):
         nparticles = np.array(entropy_array[0::3])
         nmax = np.amax(nparticles)
         trialx = np.linspace(0,nmax,1000)
@@ -143,14 +143,14 @@ class plot_entropy(object):
         x, yerr = _sort_pair(nparticles,yerr)
         fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
         ynew = trialx * fit[0] + fit[1]        
-        ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=8, label=r"S-logN!")
+        ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=8, label=r"$S^\star -\log N!$")
         ax.plot(trialx,ynew,'b--', linewidth=2)
         #raw
         y = np.array(entropy_array[1::3])
         x,y = _sort_pair(nparticles,y)
         fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
         ynew = trialx * fit[0] + fit[1] 
-        ax.errorbar(x, y, yerr=yerr, fmt='r^', ms=8, label=r"S")
+        ax.errorbar(x, y, yerr=yerr, fmt='r^', ms=8, label=r"$S^\star$")
         ax.plot(trialx,ynew,'r--', linewidth=2)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -160,7 +160,7 @@ class plot_entropy(object):
         if show:
             plt.show()
             
-    def _plot(self, entropy_array, xlabel="N", ylabel="S", title=None, show=False):
+    def _plot(self, entropy_array, xlabel=r"$N$", ylabel=r"$S$", title=None, show=False):
         nparticles = entropy_array[::2]
         nmax = np.amax(nparticles)
         trialx = np.linspace(0,nmax,1000)
@@ -170,13 +170,13 @@ class plot_entropy(object):
         y = np.array(entropy_array[1::2]) - log_factorial(np.array(nparticles))
         fit = np.polyfit(nparticles, y, 1)
         ynew = trialx * fit[0] + fit[1] 
-        ax.errorbar(nparticles, y, fmt='bo', ms=8, label=r"S-logN!")
+        ax.errorbar(nparticles, y, fmt='bo', ms=8, label=r"$S^\star -\log N!$")
         ax.plot(trialx,ynew,'b--', linewidth=2)
         #raw
         y = np.array(entropy_array[1::2])
         fit = np.polyfit(nparticles, y, 1)
         ynew = trialx * fit[0] + fit[1] 
-        ax.errorbar(nparticles, y, fmt='r^', ms=8, label=r"S")
+        ax.errorbar(nparticles, y, fmt='r^', ms=8, label=r"$S^\star$")
         ax.plot(trialx,ynew,'r--', linewidth=2)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -186,21 +186,25 @@ class plot_entropy(object):
         if show:
             plt.show()
     
-    def plot_single(self, show=False):
+    def plot_single(self, show=False, savefig=True):
         for item in self.all_entropies_err:
-            entropy_array, label = item
+            entropy_array, label, plot_label = item
             self._ploterr(entropy_array, ylabel=label)
+            if savefig:
+                plt.savefig('plot_{}.pdf'.format(plot_label))
         for item in self.all_entropies:
-            entropy_array, label = item
+            entropy_array, label, plot_label = item
             self._plot(entropy_array, ylabel=label)
+            if savefig:
+                plt.savefig('plot_{}.pdf'.format(plot_label))
         if show:
             plt.show()
     
-    def plot_all(self, xlabel="N", ylabel="S-logN!", title=None, show=False):
+    def plot_all(self, xlabel=r"$N$", ylabel=r"$S^\star -\log N!$", title=None, show=False, savefig=True):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for item in self.all_entropies_err:
-            entropy_array, label = item
+            entropy_array, label, plot_label = item
             nparticles = np.array(entropy_array[0::3])
             nmax = np.amax(nparticles)
             trialx = np.linspace(0,nmax,1000)
@@ -235,14 +239,16 @@ class plot_entropy(object):
             plt.title(title)
         if show:
             plt.show()
-        trialx = np.linspace(0,128,1000)
-        ynew = trialx * 1./2 
-        ax.plot(trialx, ynew,'y--', linewidth=2)
-        ynew = trialx * 1./3 
-        ax.plot(trialx, ynew,'y--', linewidth=2)
+        if savefig:
+            plt.savefig('compare_all.pdf')
+#        trialx = np.linspace(0,128,1000)
+#        ynew = trialx * 1./2 
+#        ax.plot(trialx, ynew,'y--', linewidth=2)
+#        ynew = trialx * 1./3 
+#        ax.plot(trialx, ynew,'y--', linewidth=2)
         return ax
     
-    def plot_lo_param(self, xlabel="N", show=False):
+    def plot_lo_param(self, xlabel=r"$N$", show=False, savefig=True):
         nparticles = np.array(self.lo_parameters[::7])
         nparticlesml = np.array(self.loml_parameters[::4])
         nmax = np.amax(nparticles)
@@ -317,6 +323,8 @@ class plot_entropy(object):
         ax.legend(frameon=False, loc=2)
         if show:
             plt.show()
+        if savefig:
+            plt.savefig('lo_param.pdf')
             
     def plot_compare_apf2D(self, ax=None, show=False, savefig=True):
         """
@@ -352,8 +360,8 @@ class plot_entropy(object):
                 
 if __name__ == "__main__":
     pe = plot_entropy()
-    #pe.plot_single(show=True)
-    pe.plot_compare_apf2D(show=False,savefig=True)
+    pe.plot_single(show=True, savefig=True)
+    #pe.plot_compare_apf2D(show=False,savefig=True)
     #pe.plot_all(show=True)
     #pe.plot_lo_param(show=True)
 
