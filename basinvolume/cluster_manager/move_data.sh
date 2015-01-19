@@ -46,7 +46,7 @@ fi
 # Checks, in addition to above step 1, that the output files have the success flags inicating that kmax, kmin, and PT have finished properly.
 # Assumption: there is only one file of the type $1/explore_jammed_packing*.config 
 pt_success_file=$(find $1/explore_jammed_packing*.config)
-if [ -f $pt_success_file ];
+if [ "$pt_success_file" ];
 then
     echo "pt_success_file exists"
 else
