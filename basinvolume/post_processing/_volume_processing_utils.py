@@ -92,8 +92,8 @@ class VolumeSanityCheck(object):
         print "F0_acc, HS fluid", self.F0_acc
         print "F0_acc, ideal gas", - np.log(self.ideal_gas_V_acc)
     def get_diameter_file_0_path(self):
-        packings_dir = os.path.split(v_acc_parameter_file)[0]
-        self.diameter_file_0_path = os.join(packings_dir, os.listdir(packings_dir)[0])
+        packings_dir = os.path.split(self.v_acc_parameter_file)[0]
+        self.diameter_file_0_path = os.path.join(packings_dir, os.listdir(packings_dir)[0])
         print("diameter file path", self.diameter_file_0_path)
     def read_diameters(self):
         f = open(self.diameter_file_0_path)
