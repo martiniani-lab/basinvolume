@@ -393,7 +393,8 @@ class OutlierDetection(object):
         print "parameter p:", self.p
         print "parameter D:", self.D
         print "number of outliers:", len(self.outliers)
-        print "fraction of outliers:", len(self.outliers) / (len(self.outliers) + len(self.non_outliers))
+        if len(self.outliers) + len(self.non_outliers) > 0:
+            print "fraction of outliers:", len(self.outliers) / (len(self.outliers) + len(self.non_outliers))
         print "mean of non_outliers:", np.mean(self.non_outliers)
         print "mean of outliers:", np.mean(self.outliers)
         print "outliers:", self.outliers
