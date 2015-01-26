@@ -203,7 +203,8 @@ class HS_Generate_Packing(_Generate_Packing):
         else:
             self.potential = HS_WCA(use_periodic=True, eps=self.eps,
                              sca=self.sca, radii=self.hs_radii,
-                             boxvec=self.boxv, ndim=self.bdim)
+                             boxvec=self.boxv, ndim=self.bdim, 
+                             use_cell_lists=False)
         self._print_initialise()
         self.initialised = True     
     
