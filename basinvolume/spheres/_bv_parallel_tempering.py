@@ -85,7 +85,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             else:
                 print "detecting equilibration point"
                 print "timeseries size", self.timeseries2.size
-                eq_time = detectEquilibration_binary_search(self.timeseries2, bs_nodes=30)[0]
+                eq_time = detectEquilibration_binary_search(self.timeseries2, bs_nodes=100)[0]
                 eq_time = np.amin([self.max_eq_time, eq_time]) #this should avoid detecting artifacts near the end of the series
                 new_eq_time = np.amax([eq_time, self.mcrunner_eqsteps]) #guarantees that eq_time is larger than the mcrunner adapted number of steps
                 #gather values, find largest, then broadcast it
