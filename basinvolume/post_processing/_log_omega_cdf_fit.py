@@ -183,10 +183,13 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         hist, bin_edges = np.histogram(self.F0, density = True, bins = bins)
         plt.hist(self.F0, bins = bins, normed = True)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-        self.generalised_gauss.fit(bin_centres, hist)
+        cdf = CDFAccumulator()
+        cdf.add_array(self.F0)
+        x, cdf_x = cdf.get_vecdata()
+        self.generalised_gauss.fit_cdf(x, cdf_x)
         xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
         plt.plot(xp, [self.generalised_gauss.get_fitted(xpi) for xpi in xp], "r", label = "Generalised Gaussian")
-        plt.legend()
+        plt.legend(loc='best', fancybox=True, framealpha=0.5)
         plt.xlabel(r"Free energy $F$")
         plt.ylabel(r"Probability density")
         save_pdf(plt, self.output_path + "/unbiasing_fit.pdf")
@@ -215,12 +218,15 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         bins = 32
         hist, bin_edges = np.histogram(self.F0, density = True, bins = bins)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-        xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
-        normalisation, error_norm = integrate.quad(self.generalised_gauss.get_times_expx_with_pars, volume_sanity_check.F0_acc, np.amax(self.F0) * 100, args = (self.mu, self.alpha, self.zeta, ), points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
+        normalisation, error_norm = integrate.quad(self.generalised_gauss.get_times_expx_with_pars, volume_sanity_check.F0_acc, 
+                                                   np.amax(self.F0) * 100, args = (self.mu, self.alpha, self.zeta, ), 
+                                                   points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
         plt.yscale('log')
         plt.plot(bin_centres, [hist[i] * np.exp(bin_centres[i]) / normalisation for i in xrange(len(hist))], "o", label = "Data")
-        plt.plot(xp, [self.generalised_gauss.get_times_expx_with_pars(xi, self.mu, self.alpha, self.zeta) / normalisation for xi in xp], label = r"$P_\mathcal{U}(F)$")
-        plt.legend(loc = 2)
+        xp = np.linspace(bin_centres[0], bin_centres[-1], num = 1000)
+        plt.plot(xp, [self.generalised_gauss.get_times_expx_with_pars(xi, self.mu, self.alpha, self.zeta) / normalisation for xi in xp], 
+                 label = r"$P_\mathcal{U}(F)$")
+        plt.legend(loc='best', fancybox=True, framealpha=0.5)
         save_pdf(plt, self.output_path + "/unbiased_pdf_vs_data.pdf")
         plt.close()
     def compute_desired_nr_bins(self, maximum_av_number_per_bin):

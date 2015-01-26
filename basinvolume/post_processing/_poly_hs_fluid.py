@@ -58,6 +58,7 @@ def F_acc_Gaussian_Poly_HS_Fluid(phiHD, V_box, nr_particles, box_dimension, diam
     m1 = diameter_mean
     m2 = diameter_mean**2 + diameter_variance
     m3 = diameter_mean * (diameter_mean**2 + 3.0 * diameter_variance)
+    print "nr_particles",nr_particles,"m1",diameter_mean,"m2",m2,"m3",m3
     if box_dimension == 2:
         return Poly_HS_Fluid_2d(m1,m2).get_F_acc(phiHD, V_box, nr_particles)
     elif box_dimension == 3:

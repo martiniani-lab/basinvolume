@@ -206,7 +206,7 @@ class ComputeEntropyCommon(object):
             xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
             plt.plot(xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g--", label = "Gaussian")
             plt.plot(xp, [generalised_gauss.get_fitted(xpi) for xpi in xp], "r", label = "Generalised Gaussian")
-            plt.legend()
+            plt.legend(loc='best', fancybox=True, framealpha=0.5)
             plt.xlabel(r"Free energy $F$")
             plt.ylabel(r"Probability density")
         #plot in lin-lin scale
