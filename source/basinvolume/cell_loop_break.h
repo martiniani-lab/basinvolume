@@ -35,29 +35,6 @@ public:
             }
         }
     }
-    /*
-    void loop_through_atom_pairs()
-    {
-        for (auto const & ijpair : CellListsLoop<visitor_t, ndim>::m_cell_neighbor_pairs) {
-            const size_t icell = ijpair.first;
-            const size_t jcell = ijpair.second;
-            // do double loop through atoms, avoiding duplicate pairs
-            for (auto iiter = AtomInCellIterator<ndim>(CellListsLoop<visitor_t, ndim>::m_ll.data(), CellListsLoop<visitor_t, ndim>::m_hoc[icell]); !iiter.done(); ++iiter) {
-                size_t const atomi = *iiter;
-                // if icell==jcell we need to avoid duplicate atom pairs
-                long const loop_end = (icell == jcell) ? atomi : CELL_END;
-                for (auto jiter = AtomInCellIterator<ndim>(CellListsLoop<visitor_t, ndim>::m_ll.data(), CellListsLoop<visitor_t, ndim>::m_hoc[jcell], loop_end); !jiter.done(); ++jiter) {
-                    size_t const atomj = *jiter;
-                    const bool break_loop = CellListsLoop<visitor_t, ndim>::m_visitor.insert_atom_pair(atomi, atomj);
-                    if (break_loop) {
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    */
-
 };
 
 } // namespace pele
