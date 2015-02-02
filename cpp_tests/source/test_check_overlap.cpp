@@ -55,7 +55,7 @@ TEST_F(CheckOverlapTest, CellLists_Works)
 
 class CheckOverlapManyParticlesTest : public ::testing::Test {
 public:
-    static const size_t nr_dim = 3;
+    static const size_t nr_dim = 2;
     size_t nr_particles;
     size_t nr_dof;
     pele::Array<double> x_initial;
@@ -68,7 +68,7 @@ public:
     std::uniform_real_distribution<double> uniR;
     virtual void SetUp()
     {
-        nr_particles = 1000;
+        nr_particles = 200;
         nr_dof = nr_particles * nr_dim;
         x_initial = pele::Array<double>(nr_dof, 0);
         x_minimized = pele::Array<double>(nr_dof, 0);
