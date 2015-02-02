@@ -120,7 +120,7 @@ class HS_MCrunner(_BaseMCRunner):
         ##########################################
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour
-        if np.amin(boxvec) // rcut <= 3:
+        if np.amin(boxvec) // (2 * np.amax(hs_radii)) <= 3:
             self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, use_frozen=False)
         else:
             self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
@@ -326,7 +326,7 @@ class BV_MCrunner(_BaseMCRunner):
                              use_cell_lists=self.use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
-                             reference_coords=self.origin, rcut=self.rcut,
+                             reference_coords=self.origin,
                              ndim=self.bdim, ncellx_scale=self.ncellx_scale,
                              frozen_atoms=self.frozen_atoms)
         
@@ -571,7 +571,6 @@ class Findk_MCrunner(_BaseMCRunner):
         #construct optimizer potential
         #rcut set to largest particle diameter
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
-        
         if self.use_cell_lists:
             if np.amin(self.boxv) // self.rcut <= 3:
                 print ("warning: use_cell_lists flag was set, but rcut is too large")
@@ -582,7 +581,7 @@ class Findk_MCrunner(_BaseMCRunner):
                              use_cell_lists=self.use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
-                             reference_coords=self.origin, rcut=self.rcut,
+                             reference_coords=self.origin,
                              ndim=self.bdim, ncellx_scale=self.ncellx_scale,
                              frozen_atoms=self.frozen_atoms)
         
