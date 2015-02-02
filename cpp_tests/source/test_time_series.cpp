@@ -105,20 +105,4 @@ TEST(MovingAverageTest, Works) {
 
     pele::Array<double> series = ts->get_time_series();
     EXPECT_EQ(series.size(), niter / record_every);
-
-    const size_t nr_steps_to_check = (niter - eq_steps) / record_every;
-
-    const double mean = (ts->get_moving_average_mean(nr_steps_to_check)).first;
-    const double var = (ts->get_moving_average_variance(nr_steps_to_check)).first;
-    std::cout<<"accept_f "<<mc->get_accepted_fraction()<<std::endl;
-    std::cout<<" mean "<<mean<<std::endl;
-    std::cout<<" var "<<var<<std::endl;
-
-    const double rel_std_threshold = 0.5;
-    EXPECT_TRUE(ts->moving_average_is_stable(nr_steps_to_check, rel_std_threshold));
-    EXPECT_TRUE(ts->moving_average_is_stable(nr_steps_to_check, 5e-2));
-    EXPECT_FALSE(ts->moving_average_is_stable(nr_steps_to_check, 1e-5));
-    EXPECT_FALSE(ts->moving_average_is_stable(nr_steps_to_check, 1e-10));
-    EXPECT_FALSE(ts->moving_average_is_stable(nr_steps_to_check, 1e-20));
-    EXPECT_FALSE(ts->moving_average_is_stable(nr_steps_to_check, 0));
 }
