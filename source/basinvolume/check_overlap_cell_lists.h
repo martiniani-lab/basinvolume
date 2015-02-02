@@ -14,14 +14,12 @@ public:
     typedef pele::AtomPosition<m_ndim> atom_position;
 private:
     std::shared_ptr<distance_policy> m_dist;
-    const double* m_x;
-    const double* m_h;
+    pele::Array<double> m_h;
     bool legal;
 public:
-    OverlapAccumulator(std::shared_ptr<distance_policy> dist, pele::Array<double> x, pele::Array<double> hs_radii)
+    OverlapAccumulator(std::shared_ptr<distance_policy> dist, pele::Array<double> hs_radii)
         : m_dist(dist),
-          m_x(x.data()),
-          m_h(hs_radii.data()),
+          m_h(hs_radii),
           legal(true)
     {}
     bool configuration_is_legal() const { return legal; }
@@ -76,7 +74,7 @@ public:
             throw std::runtime_error("CellListCheckOverlap::conf_test: illegal input");
         }
         m_cell_lists->reset(trial_coords);
-        OverlapAccumulator<DIST_POL> acc(m_dist, trial_coords, m_hs_radii);
+        OverlapAccumulator<DIST_POL> acc(m_dist, m_hs_radii);
         pele::CellListsLoopBreak<OverlapAccumulator<DIST_POL>, m_ndim> joe_the_looper = m_cell_lists->get_atom_pair_looper_break(acc);
         joe_the_looper.loop_through_atom_pairs();
         return acc.configuration_is_legal();
@@ -86,10 +84,10 @@ public:
 template <size_t ndim>
 class CheckOverlapPeriodicCellLists : public CellListCheckOverlap<pele::periodic_distance<ndim> > {
 public:
-    CheckOverlapPeriodicCellLists(pele::Array<double> hs_radii, pele::Array<double> boxvec, double rcut, double ncellx_scale=1.0)
+    CheckOverlapPeriodicCellLists(pele::Array<double> hs_radii, pele::Array<double> boxvec, double ncellx_scale=1.0)
         : CellListCheckOverlap<pele::periodic_distance<ndim> >(hs_radii,
             std::make_shared<pele::periodic_distance<ndim> >(boxvec),
-            std::make_shared<pele::CellListsWithBreak<pele::periodic_distance<ndim> > >(std::make_shared<pele::periodic_distance<ndim> >(boxvec), boxvec, rcut, ncellx_scale))
+            std::make_shared<pele::CellListsWithBreak<pele::periodic_distance<ndim> > >(std::make_shared<pele::periodic_distance<ndim> >(boxvec), boxvec, 2 * hs_radii.get_max(), ncellx_scale))
     {}
 };
 
@@ -98,10 +96,10 @@ class CheckOverlapPeriodicCellListsFrozen : public ConfTestFrozenWrapper<CheckOv
 public:
     CheckOverlapPeriodicCellListsFrozen(pele::Array<double> reference_coords,
             pele::Array<size_t>& frozen_dof, pele::Array<double> hs_radii,
-            pele::Array<double> boxvec, double rcut, double ncellx_scale=1.0)
+            pele::Array<double> boxvec, double ncellx_scale=1.0)
         : ConfTestFrozenWrapper< CheckOverlapPeriodicCellLists<ndim> > (
                 std::make_shared<CheckOverlapPeriodicCellLists<ndim> >(
-                        hs_radii, boxvec, rcut, ncellx_scale),
+                        hs_radii, boxvec, ncellx_scale),
                         reference_coords.copy(), frozen_dof.copy())
     {}
 };
@@ -109,10 +107,10 @@ public:
 template<size_t ndim>
 class CheckOverlapCartesianCellLists : public CellListCheckOverlap<pele::cartesian_distance<ndim> > {
 public:
-    CheckOverlapCartesianCellLists(pele::Array<double> hs_radii, pele::Array<double> boxvec, double rcut, double ncellx_scale=1.0)
+    CheckOverlapCartesianCellLists(pele::Array<double> hs_radii, pele::Array<double> boxvec, double ncellx_scale=1.0)
         : CellListCheckOverlap<pele::cartesian_distance<ndim> >(hs_radii,
                 std::make_shared<pele::cartesian_distance<ndim> >(),
-                std::make_shared<pele::CellListsWithBreak<pele::cartesian_distance<ndim> > >(std::make_shared<pele::cartesian_distance<ndim> >(), boxvec, rcut, ncellx_scale))
+                std::make_shared<pele::CellListsWithBreak<pele::cartesian_distance<ndim> > >(std::make_shared<pele::cartesian_distance<ndim> >(), boxvec, ncellx_scale))
     {}
 };
 
@@ -121,10 +119,10 @@ class CheckOverlapCartesianCellListsFrozen : public ConfTestFrozenWrapper<CheckO
 public:
     CheckOverlapCartesianCellListsFrozen(pele::Array<double> reference_coords,
             pele::Array<size_t>& frozen_dof, pele::Array<double> hs_radii,
-            pele::Array<double> boxvec, double rcut, double ncellx_scale=1.0)
+            pele::Array<double> boxvec, double ncellx_scale=1.0)
         : ConfTestFrozenWrapper< CheckOverlapCartesianCellLists<ndim> > (
                 std::make_shared<CheckOverlapCartesianCellLists<ndim> >(
-                        hs_radii, boxvec, rcut, ncellx_scale),
+                        hs_radii, boxvec, ncellx_scale),
                         reference_coords.copy(), frozen_dof.copy())
     {}
 };
