@@ -352,7 +352,7 @@ class BV_MCrunner(_BaseMCRunner):
         if self.use_periodic:
             if self.use_cell_lists:
                 self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
-                                 self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                 self.boxv, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
                                  reference_coords=self.origin) 
             
@@ -364,7 +364,7 @@ class BV_MCrunner(_BaseMCRunner):
         else: 
             if self.use_cell_lists:
                 self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
-                                 self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                 self.boxv, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen,
                                  frozen_atoms=self.frozen_atoms,
                                  reference_coords=self.origin)
@@ -604,7 +604,7 @@ class Findk_MCrunner(_BaseMCRunner):
         if use_periodic:
             if self.use_cell_lists:
                 self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
-                                 self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                 self.boxv, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
                                  reference_coords=self.origin) 
             
@@ -616,7 +616,7 @@ class Findk_MCrunner(_BaseMCRunner):
         else: 
             if self.use_cell_lists:
                 self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
-                                 self.boxv, self.rcut, ncellx_scale=self.ncellx_scale,
+                                 self.boxv, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen,
                                  frozen_atoms=self.frozen_atoms,
                                  reference_coords=self.origin)
