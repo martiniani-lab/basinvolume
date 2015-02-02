@@ -19,7 +19,7 @@ public:
     pele::Array<double> boxvec;
     virtual void SetUp()
     {
-        nr_particles = 42;
+        nr_particles = 12;
         nr_dof = nr_particles * nr_dim;
         x = pele::Array<double>(nr_dof, 0);
         x_overlap = pele::Array<double>(nr_dof, 0);
@@ -52,7 +52,6 @@ TEST_F(CheckOverlapTest, CellLists_Works)
     EXPECT_FALSE(check_overlap_non_periodic.conf_test(x_overlap, NULL));
 }
 
-/*
 class CheckOverlapManyParticlesTest : public ::testing::Test {
 public:
     static const size_t nr_dim = 2;
@@ -75,9 +74,9 @@ public:
         hs_radii = pele::Array<double>(nr_particles, 0);
         hs_radii_inflated = pele::Array<double>(nr_particles, 0);
         rng.seed(42);
-        const double L = 2 * std::sqrt(nr_particles);
+        const double L = 3 * std::sqrt(nr_particles);
         boxvec = pele::Array<double>(nr_dim, L);
-        uniL = std::uniform_real_distribution<double>(-0.5 * L, 0.5 * L);
+        uniL = std::uniform_real_distribution<double>(0, L);
         uniR = std::uniform_real_distribution<double>(0.9, 1.1);
         for (size_t i = 0; i < nr_dof; ++i) {
             x_initial[i] = uniL(rng);
@@ -104,4 +103,3 @@ TEST_F(CheckOverlapManyParticlesTest, CellListsOverlap_Works)
     EXPECT_TRUE(bv::CheckOverlapPeriodicCellLists<nr_dim>(hs_radii, boxvec).conf_test(x_minimized, NULL));
     EXPECT_FALSE(bv::CheckOverlapPeriodicCellLists<nr_dim>(hs_radii_inflated, boxvec).conf_test(x_minimized, NULL));
 }
-*/
