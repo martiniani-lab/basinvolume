@@ -120,9 +120,8 @@ class HS_MCrunner(_BaseMCRunner):
         ##########################################
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour
-        rcut = np.amax(self.hs_radii) * 2
         if np.amin(boxvec) // rcut <= 3:
-            self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, rcut, use_frozen=False)
+            self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, use_frozen=False)
         else:
             self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
         #set up pele:MC

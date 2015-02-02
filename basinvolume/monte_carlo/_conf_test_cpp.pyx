@@ -116,7 +116,7 @@ class CheckOverlapCartesian(_Cdef_CheckOverlapCartesian):
 cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
     """define the python interface to the c++ CheckOverlapCellLists implementation
     """
-    def __cinit__(self, hs_radii, boxvec, rcut, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None, reference_coords=None):
+    def __cinit__(self, hs_radii, boxvec, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None, reference_coords=None):
         cdef np.ndarray[size_t, ndim=1] frozen_dof
         cdef size_t ndim = len(boxvec)
         cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
@@ -127,10 +127,10 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
         if not use_frozen:
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT2]
-                                                        (rd_, bv_, rcut, ncellx_scale)) 
+                                                        (rd_, bv_, ncellx_scale)) 
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT3]
-                                                        (rd_, bv_, rcut, ncellx_scale)) 
+                                                        (rd_, bv_, ncellx_scale)) 
             else:
                 raise Exception("CheckOverlapCellLists: illegal boxdimension")
         else:
@@ -142,10 +142,10 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
             rc_ = array_wrap_np(reference_coords)
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellListsFrozen[INT2]
-                                                        (rc_, fd_, rd_, bv_, rcut, ncellx_scale)) 
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale)) 
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellListsFrozen[INT3]
-                                                        (rc_, fd_, rd_, bv_, rcut, ncellx_scale)) 
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale)) 
             else:
                 raise Exception("CheckOverlapCellLists: illegal boxdimension")
 
@@ -160,7 +160,7 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
     """
     CheckOverlapCartesianCellLists
     """
-    def __cinit__(self, hs_radii, boxvec, rcut, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None, reference_coords=None):
+    def __cinit__(self, hs_radii, boxvec, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None, reference_coords=None):
         cdef np.ndarray[size_t, ndim=1] frozen_dof
         cdef size_t ndim = len(boxvec)
         cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
@@ -170,10 +170,10 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
         if not use_frozen:
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellLists[INT2]
-                                                        (rd_, bv_, rcut, ncellx_scale)) 
+                                                        (rd_, bv_, ncellx_scale)) 
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellLists[INT3]
-                                                        (rd_, bv_, rcut, ncellx_scale)) 
+                                                        (rd_, bv_, ncellx_scale)) 
             else:
                 raise Exception("CheckOverlapCellLists: illegal boxdimension")
         else:
@@ -185,10 +185,10 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
             rc_ = array_wrap_np(reference_coords)
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellListsFrozen[INT2]
-                                                        (rc_, fd_, rd_, bv_, rcut, ncellx_scale)) 
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale)) 
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellListsFrozen[INT3]
-                                                        (rc_, fd_, rd_, bv_, rcut, ncellx_scale))
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale))
             else:
                 raise Exception("CheckOverlapCellLists: illegal boxdimension")
 
