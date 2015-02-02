@@ -9,7 +9,10 @@ namespace bv {
 
 template <class distance_policy>
 class OverlapAccumulator {
+public:
     const static size_t m_ndim = distance_policy::_ndim;
+    typedef pele::AtomPosition<m_ndim> atom_position;
+private:
     std::shared_ptr<distance_policy> m_dist;
     const double* m_x;
     const double* m_h;
@@ -22,14 +25,16 @@ public:
           legal(true)
     {}
     bool configuration_is_legal() const { return legal; }
-    bool insert_atom_pair(const size_t atom_i, const size_t atom_j)
+    double get_squared_atom_distance(const atom_position& atom_i, const atom_position& atom_j) const
     {
-        const size_t xi_off = m_ndim * atom_i;
-        const size_t xj_off = m_ndim * atom_j;
         double dr[m_ndim];
-        m_dist->get_rij(dr, m_x + xi_off, m_x + xj_off);
-        const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
-        const double tmp = (m_h[atom_i] + m_h[atom_j]);
+        m_dist->get_rij(dr, atom_i.x.data(), atom_j.x.data());
+        return std::inner_product(dr, dr + m_ndim, dr, double(0));
+    }
+    bool insert_atom_pair(const atom_position& atom_i, const atom_position& atom_j)
+    {
+        const double dij2 = get_squared_atom_distance(atom_i, atom_j);
+        const double tmp = (m_h[atom_i.atom_index] + m_h[atom_j.atom_index]);
         legal = (dij2 >= tmp * tmp);
         return !legal;
     }
