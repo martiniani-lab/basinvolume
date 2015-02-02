@@ -18,6 +18,7 @@ public:
     CellListsLoopBreak(visitor_t& visitor, CellListsContainer<ndim> const& container)
         : CellListsLoop<visitor_t, ndim>(visitor, container)
     {}
+    /*
     void loop_through_atom_pairs()
     {
         for (auto const & ijpair : CellListsLoop<visitor_t, ndim>::m_cell_neighbor_pairs) {
@@ -38,6 +39,7 @@ public:
             }
         }
     }
+    */
 
 };
 

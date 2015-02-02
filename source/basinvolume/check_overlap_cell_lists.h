@@ -72,7 +72,7 @@ public:
         }
         m_cell_lists->reset(trial_coords);
         OverlapAccumulator<DIST_POL> acc(m_dist, trial_coords, m_hs_radii);
-        pele::CellListsLoopBreak<OverlapAccumulator<DIST_POL> > joe_the_looper = m_cell_lists->get_atom_pair_looper_break(acc);
+        pele::CellListsLoopBreak<OverlapAccumulator<DIST_POL>, m_ndim> joe_the_looper = m_cell_lists->get_atom_pair_looper_break(acc);
         joe_the_looper.loop_through_atom_pairs();
         return acc.configuration_is_legal();
     }
