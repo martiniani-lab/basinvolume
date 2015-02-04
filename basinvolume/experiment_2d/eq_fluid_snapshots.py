@@ -34,13 +34,19 @@ class EqFluidSnapshots(object):
         self.mc.add_conf_test(self.overlap_check)
         self.printed_images = 0
     def run(self):
+        print("finding number of decorrelation steps")
+        
+        print("finding number of decorrelation steps -- done")
         print("running reference fluid")
         while self.printed_images < self.nr_images:
             self.print_next_image()
         print("running reference fluid -- done")
     def print_next_image(self):
         print("printing image", self.printed_images, "out of", self.nr_images)
-        
-        
+        for _ in xrange(self.nr_decorrelation_steps):
+            self.mc.one_iteration()
+        x = self.mc.get_coords()
+        self.print_Lorenzo_style(x)
         print("printed image", self.printed_images - 1, "out of", self.nr_images)
+    def print_Lorenzo_style(self, x)
         
