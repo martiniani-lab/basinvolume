@@ -38,7 +38,7 @@ class HSExpReferenceGeneratePacking(object):
         Beginning of the experimental data set name.
         This is something like "PackingsData_".
     """
-    def __init__(self, nr_particles=1000, nr_images=1, exp_data_set_index=1, exp_data_set_name_begin="PackingsData_", data_dir=None, show_radii_distribution=False, hard_phi=0.67, seed_radii=42, seed_coords=44):
+    def __init__(self, nr_particles=1000, nr_images=1, exp_data_set_index=1, exp_data_set_name_begin="PackingsData_", data_dir=None, show_radii_distribution=False, hard_phi=0.67, seed_radii=42, seed_coords=44, step_seed=46):
         # begin: store input
         self.nr_particles = nr_particles
         self.nr_images = nr_images
@@ -49,13 +49,14 @@ class HSExpReferenceGeneratePacking(object):
         self.hard_phi = hard_phi
         self.seed_radii = seed_radii
         self.seed_coords = seed_coords
+        self.step_seed = step_seed
         # end: store input
         self.radii_sampler = RadiiSampler(self.exp_data_set_index, self.exp_data_set_name_begin, self.data_dir, self.nr_particles, show_distribution=self.show_radii_distribution, seed=self.seed_radii)
         self.radii = self.radii_sampler.radii
         self.initial_condition = ThrowAndQuench(self.nr_particles, self.hard_phi, self.radii, seed=self.seed_coords)
         self.boxvec = self.initial_condition.boxvec
         self.initial_coordinates = self.initial_condition.coordinates
-        self.fluid = EqFluidSnapshots(self.radii, self.initial_coordinates, self.boxvec)
+        self.fluid = EqFluidSnapshots(self.radii, self.initial_coordinates, self.boxvec, step_seed=self.step_seed)
         self.fluid.run()
         
 if __name__ == "__main__":
@@ -69,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("--hard_phi", type=float, default=0.67, help="hard disc volume fraction")
     parser.add_argument("--seed_radii", type=int, default=42, help="seed for rng for sampling from learned radii distribution")
     parser.add_argument("--seed_coords", type=int, default=44, help="seed for rng for sampling of initial positions")
+    parser.add_argument("--step_seed", type=int, default=46, help="seed for rng for sampling of displacements in fluid")
     pars = parser.parse_args()
     print("input parameters:", pars)
-    HSExpReferenceGeneratePacking(nr_particles=pars.nr_particles, nr_images=pars.nr_images, exp_data_set_index=pars.exp_data_set_index, exp_data_set_name_begin=pars.exp_data_set_name_begin, data_dir=pars.data_dir, show_radii_distribution=pars.show_radii_distribution, hard_phi=pars.hard_phi, seed_radii=pars.seed_radii, seed_coords=pars.seed_coords)
+    HSExpReferenceGeneratePacking(nr_particles=pars.nr_particles, nr_images=pars.nr_images, exp_data_set_index=pars.exp_data_set_index, exp_data_set_name_begin=pars.exp_data_set_name_begin, data_dir=pars.data_dir, show_radii_distribution=pars.show_radii_distribution, hard_phi=pars.hard_phi, seed_radii=pars.seed_radii, seed_coords=pars.seed_coords, step_seed=pars.step_seed)
