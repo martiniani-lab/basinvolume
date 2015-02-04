@@ -15,12 +15,13 @@ class EqFluidSnapshots(object):
     and initial conditions.
     This should also print snapshots at equal and specified intervals.
     """
-    def __init__(self, radii, coordinates, boxvec, nr_steps=1e8, step_seed=4242):
+    def __init__(self, radii, coordinates, boxvec, nr_steps=1e8, step_seed=4242, nr_images=42):
         self.radii = np.array(radii)
         self.coordinates = np.array(coordinates)
         self.boxvec = np.array(boxvec)
         self.nr_steps = nr_steps
         self.step_seed = step_seed
+        self.nr_images = nr_images
         #
         self.eq_steps = self.nr_steps // 2
         self.overlap_check = CheckOverlapPeriodicCellLists(self.radii, self.boxvec)
@@ -31,8 +32,15 @@ class EqFluidSnapshots(object):
         self.mc.set_report_steps(self.eq_steps)
         self.mc.set_takestep(self.step)
         self.mc.add_conf_test(self.overlap_check)
+        self.printed_images = 0
     def run(self):
         print("running reference fluid")
-        
+        while self.printed_images < self.nr_images:
+            self.print_next_image()
         print("running reference fluid -- done")
+    def print_next_image(self):
+        print("printing image", self.printed_images, "out of", self.nr_images)
+        
+        
+        print("printed image", self.printed_images - 1, "out of", self.nr_images)
         

@@ -56,7 +56,7 @@ class HSExpReferenceGeneratePacking(object):
         self.initial_condition = ThrowAndQuench(self.nr_particles, self.hard_phi, self.radii, seed=self.seed_coords)
         self.boxvec = self.initial_condition.boxvec
         self.initial_coordinates = self.initial_condition.coordinates
-        self.fluid = EqFluidSnapshots(self.radii, self.initial_coordinates, self.boxvec, step_seed=self.step_seed)
+        self.fluid = EqFluidSnapshots(self.radii, self.initial_coordinates, self.boxvec, step_seed=self.step_seed, nr_images=self.nr_images)
         self.fluid.run()
         
 if __name__ == "__main__":
