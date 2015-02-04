@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from pele.potentials import Harmonic
+from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import RandomCoordsDisplacement
 
 class MC(_BaseMCRunner):
