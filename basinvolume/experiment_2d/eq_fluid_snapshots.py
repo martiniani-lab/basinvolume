@@ -30,7 +30,7 @@ class EqFluidSnapshots(object):
         self.step = RandomCoordsDisplacement(self.step_seed, 1, single=True, nparticles=1, bdim=2)
         self.mc.set_report_steps(self.eq_steps)
         self.mc.set_takestep(self.step)
-        self.mc.add_config_test(self.overlap_check)
+        self.mc.add_conf_test(self.overlap_check)
     def run(self):
         print("running reference fluid")
         
