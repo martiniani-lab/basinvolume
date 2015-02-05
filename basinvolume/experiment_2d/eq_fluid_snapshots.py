@@ -1,9 +1,10 @@
 from __future__ import division
 import numpy as np
-from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import RandomCoordsDisplacement
+from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
+from basinvolume.spheres import HS_MCrunnerOptDiffusion
 
 class MC(_BaseMCRunner):
     def set_control(self, temp):
@@ -23,24 +24,35 @@ class EqFluidSnapshots(object):
         self.step_seed = step_seed
         self.nr_images = nr_images
         #
-        self.eq_steps = self.nr_steps // 2
+        self.eq_steps = 0 # Adapting stepsize and finding nr of decorrelation steps should be done by the diffusion test MC. Therefore, we do not need eq_steps (report steps) in the 'second' MC (which prints the fluid snapshots).
         self.overlap_check = CheckOverlapPeriodicCellLists(self.radii, self.boxvec)
         self.temperature = 1
         self.mock_potential = Harmonic(self.coordinates, 42, bdim=2) # This is not used.
+        self.stepsize = 1
+        self.find_nr_decorrelation_steps()
         self.mc = MC(self.mock_potential, self.coordinates, self.temperature, self.nr_steps)
-        self.step = RandomCoordsDisplacement(self.step_seed, 1, single=True, nparticles=1, bdim=2)
+        self.step = RandomCoordsDisplacement(self.step_seed, self.stepsize, single=True, nparticles=1, bdim=2)
         self.mc.set_report_steps(self.eq_steps)
         self.mc.set_takestep(self.step)
         self.mc.add_conf_test(self.overlap_check)
         self.printed_images = 0
     def run(self):
-        print("finding number of decorrelation steps")
-        
-        print("finding number of decorrelation steps -- done")
         print("running reference fluid")
         while self.printed_images < self.nr_images:
             self.print_next_image()
         print("running reference fluid -- done")
+    def find_nr_decorrelation_steps(self):
+        print("finding number of decorrelation steps")
+        diffusion_test_mc = HS_MCrunnerOptDiffusion(self.mock_potential, self.coordinates, self.temperature, self.stepsize, 1e9, self.radii, self.boxvec, adjustf=0.9, acceptance=0.15, adjustf_niter=1e6, single=True)
+        diffusion_test_mc.run()
+        self.stepsize = diffusion_test_mc.get_stepsize()
+        self.nr_decorrelation_steps = diffusion_test_mc.get_nr_decorrelation_steps()
+        self.coordinates, energy = diffusion_test_mc.get_config()
+        self.nr_steps = max(self.nr_steps, self.nr_images * self.nr_decorrelation_steps)
+        print("finding number of decorrelation steps -- done -- results:")
+        print("stepsize", self.stepsize)
+        print("nr decorrelation steps", self.nr_decorrelation_steps)
+        print("maximum total nr steps", self.nr_steps)
     def print_next_image(self):
         print("printing image", self.printed_images, "out of", self.nr_images)
         for _ in xrange(self.nr_decorrelation_steps):
