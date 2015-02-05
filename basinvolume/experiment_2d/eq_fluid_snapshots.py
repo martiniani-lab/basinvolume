@@ -48,5 +48,47 @@ class EqFluidSnapshots(object):
         x = self.mc.get_coords()
         self.print_Lorenzo_style(x)
         print("printed image", self.printed_images - 1, "out of", self.nr_images)
-    def print_Lorenzo_style(self, x)
-        
+    def print_Lorenzo_style(self, x):
+        out_file = open(self.base_out_file_name + "_" + str(self.printed_images))
+        for particle_index in xrange(self.nr_particles):
+            out_file.write(self.get_Lorenzo_style_string(particle_index))
+        out_file.close()
+    def get_Lorenzo_style_string(self, particle_index):
+        """
+        Lorenzo's file format, for his images of jammed experimental
+        packings, is as follows: 'The files *.dat contain the x-y
+        coordinates, the radius and a binary and a binary variable which
+        is 1 if the particle belongs to the green component (larger
+        particles).  All distances are in pixel.'
+        (x, y, radius, large particle flag)
+        Examples:
+        42.827,1493.5,16.434,1
+        42.529,1809.8,19.726,0
+        44.158,345.29,15.846,0
+        46.431,715.81,14.904,0
+        48.376,206.32,16.691,0
+        Procedure:
+        This is replicated in the following, such that the fluid
+        snapshots printed here can be used directly with the same
+        scripts that analyze the experimental images.
+        Warning:
+        For now, I did not bother to replicate the large particle flag.
+        This could be done, e.g., using the median of the sampled radii.
+        Since we are not using the large particle flag in the
+        experimental basinvolume scripts, I did not implement that and
+        it will just be set to 1 for all particles, irrespective of
+        their radius.
+        """
+        x = self.get_x(particle_index)
+        y = self.get_y(particle_index)
+        r = self.get_r(particle_index)
+        large_particle_flag = self.get_large_particle_flag(particle_index)
+        return ",".join([str(x), str(y), str(r), str(large_particle_flag)])
+    def get_x(self, particle):
+        return self.coordinates[particle * 2]
+    def get_y(self, particle):
+        return self.coordinates[particle * 2 + 1]
+    def get_r(self, particle):
+        return self.radii[particle]
+    def get_large_particle_flag(self, particle):
+        return 1
