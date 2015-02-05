@@ -16,14 +16,16 @@ class EqFluidSnapshots(object):
     and initial conditions.
     This should also print snapshots at equal and specified intervals.
     """
-    def __init__(self, radii, coordinates, boxvec, nr_steps=1e8, step_seed=4242, nr_images=42):
+    def __init__(self, radii, coordinates, boxvec, nr_steps=1e8, step_seed=4242, nr_images=42, base_out_file_name="exp_reference_packing"):
         self.radii = np.array(radii)
         self.coordinates = np.array(coordinates)
         self.boxvec = np.array(boxvec)
         self.nr_steps = nr_steps
         self.step_seed = step_seed
         self.nr_images = nr_images
+        self.base_out_file_name = base_out_file_name
         #
+        self.nr_particles = self.radii.size
         self.eq_steps = 0 # Adapting stepsize and finding nr of decorrelation steps should be done by the diffusion test MC. Therefore, we do not need eq_steps (report steps) in the 'second' MC (which prints the fluid snapshots).
         self.overlap_check = CheckOverlapPeriodicCellLists(self.radii, self.boxvec)
         self.temperature = 1
@@ -54,17 +56,18 @@ class EqFluidSnapshots(object):
         print("nr decorrelation steps", self.nr_decorrelation_steps)
         print("maximum total nr steps", self.nr_steps)
     def print_next_image(self):
-        print("printing image", self.printed_images, "out of", self.nr_images)
+        print("printing image", self.printed_images + 1, "out of", self.nr_images)
         for _ in xrange(self.nr_decorrelation_steps):
             self.mc.one_iteration()
         x = self.mc.get_coords()
         self.print_Lorenzo_style(x)
-        print("printed image", self.printed_images - 1, "out of", self.nr_images)
+        print("printed image", self.printed_images, "out of", self.nr_images)
     def print_Lorenzo_style(self, x):
-        out_file = open(self.base_out_file_name + "_" + str(self.printed_images))
+        out_file = open(self.base_out_file_name + "_" + str(self.printed_images), "w")
         for particle_index in xrange(self.nr_particles):
             out_file.write(self.get_Lorenzo_style_string(particle_index))
         out_file.close()
+        self.printed_images += 1
     def get_Lorenzo_style_string(self, particle_index):
         """
         Lorenzo's file format, for his images of jammed experimental
