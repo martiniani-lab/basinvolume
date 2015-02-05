@@ -33,7 +33,7 @@ class EqFluidSnapshots(object):
         self.stepsize = 1
         self.find_nr_decorrelation_steps()
         self.mc = MC(self.mock_potential, self.coordinates, self.temperature, self.nr_steps)
-        self.step = RandomCoordsDisplacement(self.step_seed, self.stepsize, single=True, nparticles=1, bdim=2)
+        self.step = RandomCoordsDisplacement(self.step_seed, self.stepsize, single=True, nparticles=self.nr_particles, bdim=2)
         self.mc.set_report_steps(self.eq_steps)
         self.mc.set_takestep(self.step)
         self.mc.add_conf_test(self.overlap_check)
@@ -62,6 +62,7 @@ class EqFluidSnapshots(object):
         self.print_Lorenzo_style()
         print("printed image", self.printed_images, "out of", self.nr_images)
     def print_Lorenzo_style(self):
+        print("number of MC steps", self.mc.get_iterations_count())
         self.coordinates = self.mc.get_coords()
         put_in_box(self.coordinates, self.boxvec)
         out_file = open(self.base_out_file_name + "_" + str(self.printed_images), "w")
@@ -100,6 +101,7 @@ class EqFluidSnapshots(object):
         r = self.get_r(particle_index)
         large_particle_flag = self.get_large_particle_flag(particle_index)
         return ",".join([str(x), str(y), str(r), str(large_particle_flag)])
+        #return " ".join([str(x), str(y), str(r), str(large_particle_flag)])
     def get_x(self, particle):
         return self.coordinates[particle * 2]
     def get_y(self, particle):
