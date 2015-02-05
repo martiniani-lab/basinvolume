@@ -5,6 +5,7 @@ from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.spheres import HS_MCrunnerOptDiffusion
+from basinvolume.utils import put_in_box
 
 class MC(_BaseMCRunner):
     def set_control(self, temp):
@@ -16,11 +17,10 @@ class EqFluidSnapshots(object):
     and initial conditions.
     This should also print snapshots at equal and specified intervals.
     """
-    def __init__(self, radii, coordinates, boxvec, nr_steps=1e8, step_seed=4242, nr_images=42, base_out_file_name="exp_reference_packing"):
+    def __init__(self, radii, coordinates, boxvec, step_seed=4242, nr_images=42, base_out_file_name="exp_reference_packing"):
         self.radii = np.array(radii)
         self.coordinates = np.array(coordinates)
         self.boxvec = np.array(boxvec)
-        self.nr_steps = nr_steps
         self.step_seed = step_seed
         self.nr_images = nr_images
         self.base_out_file_name = base_out_file_name
@@ -50,7 +50,7 @@ class EqFluidSnapshots(object):
         self.stepsize = diffusion_test_mc.get_stepsize()
         self.nr_decorrelation_steps = diffusion_test_mc.get_nr_decorrelation_steps()
         self.coordinates, energy = diffusion_test_mc.get_config()
-        self.nr_steps = max(self.nr_steps, self.nr_images * self.nr_decorrelation_steps)
+        self.nr_steps = self.nr_images * self.nr_decorrelation_steps
         print("finding number of decorrelation steps -- done -- results:")
         print("stepsize", self.stepsize)
         print("nr decorrelation steps", self.nr_decorrelation_steps)
@@ -59,13 +59,14 @@ class EqFluidSnapshots(object):
         print("printing image", self.printed_images + 1, "out of", self.nr_images)
         for _ in xrange(self.nr_decorrelation_steps):
             self.mc.one_iteration()
-        x = self.mc.get_coords()
-        self.print_Lorenzo_style(x)
+        self.print_Lorenzo_style()
         print("printed image", self.printed_images, "out of", self.nr_images)
-    def print_Lorenzo_style(self, x):
+    def print_Lorenzo_style(self):
+        self.coordinates = self.mc.get_coords()
+        put_in_box(self.coordinates, self.boxvec)
         out_file = open(self.base_out_file_name + "_" + str(self.printed_images), "w")
         for particle_index in xrange(self.nr_particles):
-            out_file.write(self.get_Lorenzo_style_string(particle_index))
+            out_file.write(self.get_Lorenzo_style_string(particle_index) + "\n")
         out_file.close()
         self.printed_images += 1
     def get_Lorenzo_style_string(self, particle_index):
