@@ -31,7 +31,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.rel_std_err = rel_std_err #relative standard error
         self.rel_std_err_arr = [] #array of measured relative standard errors
         self.eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
-        self.eq_max_ptiter = int(self.eq_min_ptiter*10)
+        self.eq_max_ptiter = int(2e6/self.mcrunner.niter)
         self.min_window = min_window
         self.max_eq_time = max_eq_time
         assert(self.eq_min_ptiter > self.skip)
