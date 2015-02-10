@@ -120,31 +120,53 @@ def test1(X, potential, origin, nconf, maxstep, fname="test"):
     np.savez("xbool_n{}_{}.npz".format(nconf, fname), X=X[:nconf], 
              fire_Xbool=fire_Xbool, lbfgs_Xbool=lbfgs_Xbool, 
              cgd_Xbool=cgd_Xbool)
-    
-    plot_projection(X, fire_Xbool)
 
-def plot_projection(X, Xbool, pair=[0,2], plt_density=False):
+def _plot_simple_projection(X, Xbool, color='b', pair=[0,2], plt_density=False):
     print len(X)
     Xpos = [x for i,x in enumerate(X) if Xbool[i]]
     x, y = [x[pair[0]] for x in Xpos], [x[pair[1]] for x in Xpos]
     if plt_density:
-        plot_density(Xpos, pair=pair)
+        plot_density(x, y)
     else:    
-        plt.scatter(x, y, marker='s', s=3, edgecolor='none') 
+        plt.scatter(x, y, color=color, marker='s', s=10, edgecolor='none') 
     
-def plot_proj_file(fname, array_name='fire_Xbool', pair=[7,3], plt_density=False):
+def plot_file_simple(fname, array_name='fire_Xbool', pair=[7,3], plt_density=False):
     print "loading data...",
     data = np.load(fname)
     X = data['X']
     Xbool = data[array_name]
-    plot_projection(X, Xbool, pair=pair, plt_density=plt_density)
+    _plot_simple_projection(X, Xbool, pair=pair, plt_density=plt_density)
 
-def plot_density(Xpos, pair=[0,2]):
+def _plot_eig_projection(sim, X, Xbool, color='b', plt_density=False):
+    from pele.utils.hessian import get_sorted_eig
+    print len(X)
+    Xpos = [x for i,x in enumerate(X) if Xbool[i]]
+    hess = sim.mcrunner.pot_optimizer.getEnergyGradientHessian(sim.mcrunner.origin)[2]
+    print hess
+    w, v = get_sorted_eig(hess)
+    w = np.real(w)
+    vmax = v[-1]
+    vmin = v[0]
+    x, y = [np.dot(x,vmax) for x in Xpos], [np.dot(x,vmin) for x in Xpos]
+    if plt_density:
+        plot_density(x, y)
+    else:
+        plt.scatter(x, y, color=color, marker='s', s=10, edgecolor='none')
+
+def plot_file_eig(raw_fname, req_fname, array_name='fire_Xbool', plt_density=False):
+    X_success, X_fail, sim = get_X(fname=raw_fname, pppn=[3,6], nconf=int(1e5))
+    print "loading data...",
+    data = np.load(req_fname)
+    X = data['X']
+    Xbool = data[array_name]
+    _plot_eig_projection(sim, X, Xbool, plt_density=plt_density)
+
+
+def plot_density(x,y):
     """
     use a one class svm to fit the density. Takes the full positive array
     """
     from sklearn import svm
-    x, y = [x[pair[0]] for x in Xpos], [x[pair[1]] for x in Xpos]
     xmin, xmax = np.amin(x)-abs(np.amin(x)*0.05), np.amax(x)+abs(np.amax(x)*0.05)
     ymin, ymax = np.amin(y)-abs(np.amin(y)*0.05), np.amax(y)+abs(np.amax(y)*0.05)
     xx, yy = np.meshgrid(np.linspace(xmin, xmax, 500), np.linspace(ymin, ymax, 500))
@@ -175,17 +197,21 @@ def main(fname="test_data10k.npz"):
     origin = sim.mcrunner.origin
     nconf = len(X_success)
     print "positives"
-    test1(X_success, pot, origin, nconf, maxstep, fname=fname)
+    Xf = []
+    for x in X_fail:
+        if _check_no_overlaps(x, sim.hs_radii, sim.boxv):
+            Xf.append(x)
+    #Xf=X_fail
+    #test1(X_success, pot, origin, nconf, maxstep, fname=fname)
     #print "false positives"
     #test1(X_fail, pot, origin, nconf, maxstep)
-    
-    
+    #_plot_simple_projection(Xf, np.ones(len(Xf)), color='r', pair=[2,3], plt_density=False)
+    _plot_eig_projection(sim, Xf, np.ones(len(Xf)), color='r', plt_density=False)
    
 if __name__ == "__main__":
-    #main()
-    plot_proj_file("xbool_n13097_test_data10k.npz.npz", pair=[5,27], plt_density=True)
-    #plot_proj_file("xbool_n13097_test_data10k.npz.npz", array_name='cgd_Xbool')
-    #plot_proj_file("xbool_n13097_test_data10k.npz.npz", array_name='lbfgs_Xbool')
+    main()
+    #plot_file_simple("xbool_n13097_test_data10k.npz.npz", pair=[2,3], plt_density=False)
+    plot_file_eig("test_data10k.npz", "xbool_n13097_test_data10k.npz.npz", plt_density=False)
     plt.show()    
                 
             
