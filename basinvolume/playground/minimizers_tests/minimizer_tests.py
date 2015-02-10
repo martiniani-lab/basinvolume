@@ -8,6 +8,11 @@ from basinvolume.utils import *
 import time
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp, cg_descent, steepest_descent
 
+"""
+run tests in 
+/scratch/sm958/Results/basinvolume_tests/n32_phi88_2D
+"""
+
 def unique_rows(a):
     a = np.ascontiguousarray(a)
     unique_a = np.unique(a.view([('', a.dtype)]*a.shape[1]))
@@ -84,22 +89,26 @@ def test_minimizer(minimizer, potential, X, origin, Etol=1e-6, dtol=1e-4, **kwar
     Eorigin = potential.getEnergy(origin)
     count=0
     nfev=0
+    Xbool = []
     for coords in X:
         res = minimizer(coords, potential, **kwargs)
         nfev += res.nfev
         if test_same_minimum(res.coords, res.energy):
             count += 1
-    return count, nfev
+            Xbool.append(True)
+        else:
+            Xbool.append(False)
+    return np.array(Xbool), count, nfev
     
-def test1(X, potential, origin, nconf, maxstep):
+def test1(X, potential, origin, nconf, maxstep, fname="test"):
     print "test1 nconf", nconf
     
-    fire_count, fire_nfev = test_minimizer(modifiedfire_cpp, potential, X[:nconf], origin, 
+    fire_Xbool, fire_count, fire_nfev = test_minimizer(modifiedfire_cpp, potential, X[:nconf], origin, 
                                              tol=1e-7, maxstep=maxstep, nsteps=int(1e6))
-    lbfgs_count, lbfgs_nfev = test_minimizer(lbfgs_cpp, potential, X[:nconf], origin,
+    lbfgs_Xbool, lbfgs_count, lbfgs_nfev = test_minimizer(lbfgs_cpp, potential, X[:nconf], origin,
                                              tol=1e-7, M=1, maxErise=1e-4, maxstep=maxstep/10, 
                                              nsteps=int(1e6))
-    cgd_count, cgd_nfev = test_minimizer(cg_descent, potential, X[:nconf], origin,
+    cgd_Xbool, cgd_count, cgd_nfev = test_minimizer(cg_descent, potential, X[:nconf], origin,
                                              tol=1e-7, nsteps=int(1e6))
     
     print "accuracy: fire {} lbfgs {} cgd {} ".format(fire_count/nconf, 
@@ -107,23 +116,77 @@ def test1(X, potential, origin, nconf, maxstep):
                                                      cgd_count/nconf)
     
     print "nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(fire_nfev, lbfgs_nfev, cgd_nfev)
+    
+    np.savez("xbool_n{}_{}.npz".format(nconf, fname), X=X[:nconf], 
+             fire_Xbool=fire_Xbool, lbfgs_Xbool=lbfgs_Xbool, 
+             cgd_Xbool=cgd_Xbool)
+    
+    plot_projection(X, fire_Xbool)
 
+def plot_projection(X, Xbool, pair=[0,2], plt_density=False):
+    print len(X)
+    Xpos = [x for i,x in enumerate(X) if Xbool[i]]
+    x, y = [x[pair[0]] for x in Xpos], [x[pair[1]] for x in Xpos]
+    if plt_density:
+        plot_density(Xpos, pair=pair)
+    else:    
+        plt.scatter(x, y, marker='s', s=3, edgecolor='none') 
+    
+def plot_proj_file(fname, array_name='fire_Xbool', pair=[7,3], plt_density=False):
+    print "loading data...",
+    data = np.load(fname)
+    X = data['X']
+    Xbool = data[array_name]
+    plot_projection(X, Xbool, pair=pair, plt_density=plt_density)
+
+def plot_density(Xpos, pair=[0,2]):
+    """
+    use a one class svm to fit the density. Takes the full positive array
+    """
+    from sklearn import svm
+    x, y = [x[pair[0]] for x in Xpos], [x[pair[1]] for x in Xpos]
+    xmin, xmax = np.amin(x)-abs(np.amin(x)*0.05), np.amax(x)+abs(np.amax(x)*0.05)
+    ymin, ymax = np.amin(y)-abs(np.amin(y)*0.05), np.amax(y)+abs(np.amax(y)*0.05)
+    xx, yy = np.meshgrid(np.linspace(xmin, xmax, 500), np.linspace(ymin, ymax, 500))
+    # fit the model
+    X_train = np.column_stack((x,y))
+    clf = svm.OneClassSVM(nu=0.01, kernel="rbf", gamma=30)
+    print "fitting...",
+    clf.fit(X_train)
+    print "done"
+    Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+    plt.title("Basin One class fit")
+    plt.contourf(xx, yy, Z, levels=np.linspace(Z.min(), 0, 7), cmap=plt.cm.Blues_r)
+    a = plt.contour(xx, yy, Z, levels=[0], linewidths=2, colors='red')
+    plt.contourf(xx, yy, Z, levels=[0, Z.max()], colors='orange')
+    b1 = plt.scatter(X_train[:, 0], X_train[:, 1], c='white')
+    plt.axis('tight')
+    plt.xlim((xmin, xmax))
+    plt.ylim((ymin, ymax))
+    plt.legend([a.collections[0], b1],
+           ["learned frontier", "training observations"],
+           loc="best", framealpha=0.5, fancybox=True)
+    
 def main(fname="test_data10k.npz"):
-    X_success, X_fail, sim = get_X(fname=fname, pppn=[2,6], nconf=int(1e5))
+    X_success, X_fail, sim = get_X(fname=fname, pppn=[3,6], nconf=int(1e5))
     pot = sim.mcrunner.pot_optimizer
     maxstep = sim.mc_params['opt_maxstep']
     origin = sim.mcrunner.origin
-    nconf = 10 #len(X_success)
+    nconf = len(X_success)
     print "positives"
-    test1(X_success, pot, origin, nconf, maxstep)
+    test1(X_success, pot, origin, nconf, maxstep, fname=fname)
     #print "false positives"
     #test1(X_fail, pot, origin, nconf, maxstep)
     
     
    
 if __name__ == "__main__":
-    main()
-        
+    #main()
+    plot_proj_file("xbool_n13097_test_data10k.npz.npz", pair=[5,27], plt_density=True)
+    #plot_proj_file("xbool_n13097_test_data10k.npz.npz", array_name='cgd_Xbool')
+    #plot_proj_file("xbool_n13097_test_data10k.npz.npz", array_name='lbfgs_Xbool')
+    plt.show()    
                 
             
               
