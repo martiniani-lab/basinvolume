@@ -16,9 +16,8 @@
 
 #include "convergence_test.h"
 #include "minima_list.h"
+#include "bv_cg_descent.h"
 
-using pele::Array;
-using mcpele::MC;
 
 namespace bv {
 
@@ -50,7 +49,7 @@ protected:
     inline void _check_convergence(pele::Array<double> quenched_coords);
     bool _quench(pele::Array<double> &trial_coords);
     size_t _ndim;
-    std::shared_ptr<pele::GradientOptimizer> _optimizer;
+    std::shared_ptr<OPT_T> _optimizer;
     std::shared_ptr<pele::BasePotential> _potential;
     pele::Array<double> _origin;
     pele::Array<double> _rattlers;
@@ -72,7 +71,7 @@ protected:
     bool _collect_minima_list;
     MinimaList _minima_list;
 public:
-    CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
+    CheckSameMinimum(std::shared_ptr<OPT_T> optimizer,
             std::shared_ptr<pele::BasePotential> potential,
             pele::Array<double> origin, pele::Array<double> rattlers, double dtol,
             size_t ndim, const size_t eqsteps=0, std::shared_ptr<pele::DistanceInterface> dist=NULL,
@@ -97,9 +96,9 @@ public:
 };
 
 template <class OPT_T>
-CheckSameMinimum<OPT_T>::CheckSameMinimum(std::shared_ptr<pele::GradientOptimizer> optimizer,
-        std::shared_ptr<pele::BasePotential> potential, Array<double> origin,
-        Array<double> rattlers, double dtol, size_t ndim,
+CheckSameMinimum<OPT_T>::CheckSameMinimum(std::shared_ptr<OPT_T> optimizer,
+        std::shared_ptr<pele::BasePotential> potential, pele::Array<double> origin,
+        pele::Array<double> rattlers, double dtol, size_t ndim,
         const size_t eqsteps, std::shared_ptr<pele::DistanceInterface> dist,
         const bool perform_convergence_test, const bool collect_minima_list)
     : _ndim(ndim),
@@ -204,6 +203,7 @@ double CheckSameMinimum<OPT_T>::_get_d2(pele::Array<double> coords)
 }
 
 /*quench configuration and add minimum to new minimum list*/
+
 template <class OPT_T>
 bool CheckSameMinimum<OPT_T>::_quench(pele::Array<double> &trial_coords)
 {
@@ -236,8 +236,20 @@ bool CheckSameMinimum<OPT_T>::_quench(pele::Array<double> &trial_coords)
     return success;
 }
 
+
+//template specialization when using cg_descent
+template <>
+bool CheckSameMinimum<BvCGDescent>::_quench(pele::Array<double> &trial_coords){
+    _optimizer->reset(trial_coords);
+    _optimizer->run();
+    _d = sqrt(_optimizer->get_d2());
+    _rms = sqrt(_optimizer->get_rmsd2());
+    bool success = _optimizer->success();
+    return success;
+}
+
 template <class OPT_T>
-bool CheckSameMinimum<OPT_T>::conf_test(Array<double> &trial_coords, MC * mc)
+bool CheckSameMinimum<OPT_T>::conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
 {
     bool quench_success = true;
     bool same_minimum = this->_quench(trial_coords);
@@ -300,6 +312,46 @@ public:
             size_t eqsteps=0, bool perform_convergence_test=false,
             bool collect_minima_list=false)
         : CheckSameMinimum<>(optimizer, potential, origin, rattlers,
+                dtol, ndim, eqsteps,
+                std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
+                perform_convergence_test, collect_minima_list)
+    {}
+};
+
+template<size_t ndim>
+class CheckSameMinimumCGDCartesian : public CheckSameMinimum<BvCGDescent> {
+public:
+    CheckSameMinimumCGDCartesian(
+            std::shared_ptr<pele::BasePotential> potential,
+            pele::Array<double> origin, pele::Array<double> boxvec,
+            pele::Array<double> rattlers, double etol, double dtol,
+            size_t opt_maxiter, size_t opt_PrintLevel, size_t eqsteps=0,
+            bool perform_convergence_test=false,
+            bool collect_minima_list=false)
+        : CheckSameMinimum<BvCGDescent>(std::make_shared<BvCGDescent>(potential, origin, origin,
+                rattlers, ndim, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(boxvec),
+                etol, dtol, opt_maxiter, opt_PrintLevel),
+                potential, origin, rattlers,
+                dtol, ndim, eqsteps,
+                std::make_shared<pele::CartesianDistanceWrapper<ndim> >(boxvec),
+                perform_convergence_test, collect_minima_list)
+    {}
+};
+
+template<size_t ndim>
+class CheckSameMinimumCGDPeriodic : public CheckSameMinimum<BvCGDescent> {
+public:
+    CheckSameMinimumCGDPeriodic(
+            std::shared_ptr<pele::BasePotential> potential,
+            pele::Array<double> origin, pele::Array<double> boxvec,
+            pele::Array<double> rattlers, double etol, double dtol,
+            size_t opt_maxiter, size_t opt_PrintLevel, size_t eqsteps=0,
+            bool perform_convergence_test=false,
+            bool collect_minima_list=false)
+        : CheckSameMinimum<BvCGDescent>(std::make_shared<BvCGDescent>(potential, origin, origin,
+                rattlers, ndim, std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
+                etol, dtol, opt_maxiter, opt_PrintLevel),
+                potential, origin, rattlers,
                 dtol, ndim, eqsteps,
                 std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
                 perform_convergence_test, collect_minima_list)

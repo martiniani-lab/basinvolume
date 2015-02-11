@@ -9,12 +9,15 @@ namespace bv{
 
 BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const pele::Array<double> x0, pele::Array<double> origin,
             pele::Array<double> rattlers, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, double etol,
-            double dtol, size_t PrintLevel):
+            double dtol, size_t maxiter, size_t PrintLevel):
             pycgd::CGDescent(potential, x0, etol, PrintLevel),
             m_origin(origin.copy()),
             m_rattlers(rattlers.copy()),
             m_distance(origin.size()),
+            m_maxiter(maxiter),
             m_dtol2(dtol*dtol),
+            m_d2(0),
+            m_rms2(0),
             m_ndim(ndim),
             m_nparticles(origin.size() / ndim),
             m_Nnoratt(0),
@@ -38,6 +41,7 @@ BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const p
             for (size_t i = 0; i < m_origin.size(); i +=m_ndim) {
                 m_Nnoratt += m_rattlers[i];
             }
+            this->set_maxit(m_maxiter);
 }
 
 pele::Array<double> BvCGDescent::m_align_coords(pele::Array<double> coords)
@@ -79,9 +83,9 @@ double BvCGDescent::m_get_d2(pele::Array<double> coords)
 }
 
     bool BvCGDescent::test_convergence(double energy, pele::Array<double> x, pele::Array<double> g){
-        double d2 = this->m_get_d2(x);
-        double rmsd2 = d2 / m_Nnoratt;
-        return rmsd2 < m_dtol2;
+        m_d2 = this->m_get_d2(x);
+        m_rmsd2 = m_d2 / m_Nnoratt;
+        return m_rmsd2 < m_dtol2;
     }
 }
 
