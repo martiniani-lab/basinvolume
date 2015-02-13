@@ -8,9 +8,9 @@
 namespace bv{
 
 BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const pele::Array<double> x0, pele::Array<double> origin,
-            pele::Array<double> rattlers, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, double etol,
+            pele::Array<double> rattlers, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, double tol,
             double dtol, size_t maxiter, size_t PrintLevel):
-            pycgd::CGDescent(potential, x0, etol, PrintLevel),
+            pycgd::CGDescent(potential, x0, tol, PrintLevel),
             m_origin(origin.copy()),
             m_rattlers(rattlers.copy()),
             m_distance(origin.size()),

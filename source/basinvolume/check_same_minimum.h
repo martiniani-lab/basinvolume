@@ -333,13 +333,13 @@ public:
     CheckSameMinimumCGDCartesian(
             std::shared_ptr<pele::BasePotential> potential,
             pele::Array<double> origin, pele::Array<double> rattlers,
-            double etol, double dtol,
+            double tol, double dtol,
             size_t opt_maxiter, size_t opt_PrintLevel, size_t eqsteps=0,
             bool perform_convergence_test=false,
             bool collect_minima_list=false)
         : CheckSameMinimum<BvCGDescent>(std::make_shared<BvCGDescent>(potential, origin, origin,
                 rattlers, ndim, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
-                etol, dtol, opt_maxiter, opt_PrintLevel),
+                tol, dtol, opt_maxiter, opt_PrintLevel),
                 potential, origin, rattlers,
                 dtol, ndim, eqsteps,
                 std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
@@ -353,13 +353,13 @@ public:
     CheckSameMinimumCGDPeriodic(
             std::shared_ptr<pele::BasePotential> potential,
             pele::Array<double> origin, pele::Array<double> boxvec,
-            pele::Array<double> rattlers, double etol, double dtol,
+            pele::Array<double> rattlers, double tol, double dtol,
             size_t opt_maxiter, size_t opt_PrintLevel, size_t eqsteps=0,
             bool perform_convergence_test=false,
             bool collect_minima_list=false)
         : CheckSameMinimum<BvCGDescent>(std::make_shared<BvCGDescent>(potential, origin, origin,
                 rattlers, ndim, std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),
-                etol, dtol, opt_maxiter, opt_PrintLevel),
+                tol, dtol, opt_maxiter, opt_PrintLevel),
                 potential, origin, rattlers,
                 dtol, ndim, eqsteps,
                 std::make_shared<pele::PeriodicDistanceWrapper<ndim> >(boxvec),

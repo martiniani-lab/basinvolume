@@ -207,27 +207,34 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     cdef _pele.BasePotential potential
     
     cdef cppCheckSameMinimumInterface* newptr
-    def __cinit__(self, pot, origin, rattlers, dtol, opt=None, boxvec=None, bdim=3, eqsteps=0, opt_tol=1e-4, 
+    def __cinit__(self, pot, origin, rattlers, dtol, opt=None, bdim=3, eqsteps=0, opt_tol=1e-4, 
                   opt_maxiter=1e5, use_cgd=False, cbool perform_convergence_test=False, 
-                  cbool collect_minima_list=False, use_periodic=False):
+                  cbool collect_minima_list=False):
         if opt is None:
             assert use_cgd is True
-        if boxvec is None:
-            assert(use_periodic is False)
-        elif len(boxvec) != bdim:
-            raise Exception("_Cdef_CheckSameMinimum: illegal input: boxvec vs bdim")
         if len(origin) != len(rattlers):
             raise Exception("_Cdef_CheckSameMinimum: illegal input: origin vs rattlers")
         if len(origin) % bdim != 0:
             raise Exception("_Cdef_CheckSameMinimum: illegal input: origin vs bdim")
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
-        cdef np.ndarray[double, ndim=1] bv
         self.optimizer = opt
         self.potential = pot
         #print rattlers
         
-        if boxvec is None or not use_periodic:
+        if use_cgd:
+            if (bdim == 2):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT2](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), opt_tol, dtol, opt_maxiter, 0, eqsteps, 
+                                                                     perform_convergence_test, collect_minima_list)
+                                                       )
+            else:
+                assert(bdim == 3)
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT3](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), opt_tol, dtol, opt_maxiter, 0, eqsteps, 
+                                                                     perform_convergence_test, collect_minima_list)
+                                                   )
+        else:
             if (bdim == 2):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps, 
@@ -236,21 +243,6 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
             else:
                 assert(bdim == 3)
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT3](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
-                                                                     perform_convergence_test, collect_minima_list)
-                                                       )
-        else:    
-            bv = np.array(boxvec, dtype=float)
-            if (len(boxvec) == 2):
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> bv.data, bv.size), 
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
-                                                                     perform_convergence_test, collect_minima_list)
-                                                       )
-            else:
-                assert(len(boxvec) == 3)
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> bv.data, bv.size), 
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
                                                                      perform_convergence_test, collect_minima_list)
                                                        )
@@ -288,3 +280,31 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
 class CheckSameMinimum(_Cdef_CheckSameMinimum):
     """This class is the python interface for the c++ CheckSameMinimum implementation.
     """
+
+#        else:    
+#            bv = np.array(boxvec, dtype=float)
+#            if use_cgd:
+#                if (len(boxvec) == 2):
+#                    self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDPeriodic[INT2](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+#                                                                         _pele.Array[double](<double*> bv.data, bv.size), _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
+#                                                                         opt_tol, dtol, opt_maxiter, 0, eqsteps, perform_convergence_test, collect_minima_list)
+#                                                           )
+#                else:
+#                    assert(len(boxvec) == 3)
+#                    self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDPeriodic[INT3](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+#                                                                         _pele.Array[double](<double*> bv.data, bv.size), _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
+#                                                                         opt_tol, dtol, opt_maxiter, 0, eqsteps, perform_convergence_test, collect_minima_list)
+#            else:
+#                if (len(boxvec) == 2):
+#                    self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+#                                                                         _pele.Array[double](<double*> bv.data, bv.size), 
+#                                                                         _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
+#                                                                         perform_convergence_test, collect_minima_list)
+#                                                           )
+#                else:
+#                    assert(len(boxvec) == 3)
+#                    self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT3](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
+#                                                                         _pele.Array[double](<double*> bv.data, bv.size), 
+#                                                                         _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
+#                                                                         perform_convergence_test, collect_minima_list)
+#                                                       )

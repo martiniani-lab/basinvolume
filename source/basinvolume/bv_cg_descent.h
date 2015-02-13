@@ -23,7 +23,7 @@ protected:
     double m_get_d2(pele::Array<double> coords);
 public:
     BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const pele::Array<double> x0, pele::Array<double> origin,
-            pele::Array<double> rattlers, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, double etol=1e-4,
+            pele::Array<double> rattlers, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, double tol=1e-4,
             double dtol=1e-4, size_t maxiter=1e6, size_t PrintLevel=0);
 
     virtual ~BvCGDescent(){}
