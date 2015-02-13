@@ -45,7 +45,7 @@ try:
 except ImportError as err:
     print(err)
     
-def analytical_d2(x, k, N, boxdim=3):
+def analytical_d2(x, k, N, boxdim=2):
     f = float(k * x) / 2
     g = float(boxdim * N - boxdim) / 2 - 1
     return np.exp(-f) * np.power(f, g)
@@ -521,7 +521,7 @@ class Findk_MCrunner(_BaseMCRunner):
                  binsize=0.005, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
-                 frozen_atoms=None, rcontainer=None):
+                 frozen_atoms=None, rcontainer=None, use_cgd=False):
         #construct base class
         assert not (use_frozen and use_periodic)
         if use_frozen:
@@ -549,6 +549,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
+        self.use_cgd = use_cgd
         self.frozen_atoms = frozen_atoms
         self.use_periodic = use_periodic
         self.rcontainer = rcontainer
@@ -630,8 +631,7 @@ class Findk_MCrunner(_BaseMCRunner):
         
         self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol, 
                                           opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,
-                                          bdim=self.bdim, eqsteps=self.equilibration_steps,
-                                          use_cgd=self.use_cgd,
+                                          bdim=self.bdim, use_cgd=self.use_cgd,
                                           perform_convergence_test=perform_convergence_test, 
                                           collect_minima_list=collect_minima_list)
         self.hmin = hmin

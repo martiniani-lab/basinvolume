@@ -22,7 +22,8 @@ class _findk_mcrunner(_configure_mcrunner):
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9, 
                  knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, 
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False, 
-                 seeds=None, use_cell_lists=False, packings_dir='jammed_packings', verbose=False):
+                 seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', 
+                 verbose=False):
                 
         self.temperature=1.0
         self.eps = eps
@@ -37,7 +38,7 @@ class _findk_mcrunner(_configure_mcrunner):
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':self.eps,
                           'ktarget':ktarget, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps, 'perform_convergence_test':perform_convergence_test, 
-                          'collect_minima_list':collect_minima_list}
+                          'collect_minima_list':collect_minima_list, 'use_cgd':use_cgd}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -58,7 +59,7 @@ class _findk_mcrunner(_configure_mcrunner):
                                        opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, 
                                        opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test, 
                                        collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                                       use_periodic=True, use_frozen=False) 
+                                       use_cgd=use_cgd, use_periodic=True, use_frozen=False) 
         self._initialise()
     
     def run(self):
@@ -147,8 +148,8 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[1])
     
-    sim = _findk_mcrunner('jammed_packing101.xyzdr', avgcount=5e4, k=1000, opt_tol=1e-7, ktarget=0.99, knavg=5e3,
-                          seeds=seeds, use_cell_lists=True, verbose=True)
+    sim = _findk_mcrunner('jammed_packing1.xydr', avgcount=1e4, k=500, opt_tol=1e-7, ktarget=0.9, knavg=1e3,
+                          seeds=seeds, use_cell_lists=False, verbose=True, use_cgd=True)
     print 'simulation started'
     start=time.time() 
     sim.run()
