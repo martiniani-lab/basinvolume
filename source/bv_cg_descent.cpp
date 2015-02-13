@@ -14,12 +14,12 @@ BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const p
             m_origin(origin.copy()),
             m_rattlers(rattlers.copy()),
             m_distance(origin.size()),
-            m_maxiter(maxiter),
             m_dtol2(dtol*dtol),
             m_d2(0),
-            m_rms2(0),
+            m_rmsd2(0),
             m_ndim(ndim),
             m_nparticles(origin.size() / ndim),
+            m_maxiter(maxiter),
             m_Nnoratt(0),
             m_dist_policy(dist)
 {

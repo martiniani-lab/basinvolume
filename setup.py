@@ -9,6 +9,7 @@ from numpy.distutils.misc_util import has_cxx_sources
 import numpy as np
 import pele
 import mcpele
+import PyCG_DESCENT
 
 ## Numpy header files 
 numpy_lib = os.path.split(np.__file__)[0] 
@@ -20,14 +21,22 @@ mcpele_found = False
 pele_found = False
 
 try:
-    pelepath = os.path.dirname(pele.__file__)[:-5]
+    pelepath = os.path.dirname(pele.__file__)[:-len("/pele")]
 except:
     sys.stderr.write("WARNING: could't find path to pele\n")
     sys.exit()
 try:
-    mcpelepath = os.path.dirname(mcpele.__file__)[:-7]
+    mcpelepath = os.path.dirname(mcpele.__file__)[:-len("/mcpele")]
+    print mcpelepath
 except:
     sys.stderr.write("WARNING: could't find path to mcpele\n")
+    sys.exit()
+
+try:
+    py_cgdescentpath = os.path.dirname(PyCG_DESCENT.__file__)[:-len("/PyCG_DESCENT")]
+    print py_cgdescentpath
+except:
+    sys.stderr.write("WARNING: could't find path to PyCG_DESCENT\n")
     sys.exit()
 
 # print git version to version.py file, copied from pele
@@ -128,6 +137,12 @@ include_sources_mcpele = [mcpelepath+"/source/" + f for f in os.listdir(mcpelepa
 include_sources_pele = [pelepath+"/source/" + f for f in os.listdir(pelepath+"/source") 
                    if f.endswith(".cpp")]
 
+include_sources_py_cgdescent = [py_cgdescentpath+"/source/" + f for f in os.listdir(py_cgdescentpath+"/source")
+                   if f.endswith(".cpp") or f.endswith(".c")]
+
+include_sources_py_cgdescent += [py_cgdescentpath+"/source/CG_DESCENT6.7/" + f for f in os.listdir(py_cgdescentpath+"/source/CG_DESCENT6.7/")
+                   if f.endswith(".cpp") or f.endswith(".c")]
+
 include_dirs = [numpy_include, "source"]
 
 depends_bv = [os.path.join("source/basinvolume", f) for f in os.listdir("source/basinvolume/") 
@@ -139,6 +154,11 @@ depends_mcpele = [os.path.join(mcpelepath+"/source/mcpele", f) for f in os.listd
 depends_pele = [os.path.join(pelepath+"/source/pele", f) for f in os.listdir(pelepath+"/source/pele") 
                 if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
 
+depends_py_cgdescent = [os.path.join(py_cgdescentpath+"/source/CG_DESCENT6.7", f) for f in os.listdir(py_cgdescentpath+"/source/CG_DESCENT6.7/")
+           if f.endswith(".cpp") or f.endswith(".c") or f.endswith(".h") or f.endswith(".hpp")]
+depends_py_cgdescent += [os.path.join(py_cgdescentpath+"/source/PyCG_DESCENT", f) for f in os.listdir(py_cgdescentpath+"/source/PyCG_DESCENT/")
+           if f.endswith(".cpp") or f.endswith(".c") or f.endswith(".h") or f.endswith(".hpp")]
+
 # note: on my computer (ubuntu 12.04 gcc version 4.6.3), when compiled with the
 # flag -march=native I run into problems.  Everything seems to run ok, but when
 # I run it through valgrind, valgrind complains about an unrecognized
@@ -149,14 +169,16 @@ depends_pele = [os.path.join(pelepath+"/source/pele", f) for f in os.listdir(pel
 
 include_pele_source = '-I'+ pelepath + '/source'
 include_mcpele_source = '-I'+ mcpelepath + '/source'
-extra_compile_args = [include_pele_source,include_mcpele_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3']
+include_py_cgdescent_source = '-I'+ py_cgdescentpath + '/source'
+
+extra_compile_args = [include_pele_source,include_mcpele_source,include_py_cgdescent_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3']
 
 # note: to compile with debug on and to override extra_compile_args use, e.g.
 # OPT="-g -O2 -march=native" python setup.py ...
 
-include_sources_all = include_sources_bv + include_sources_mcpele + include_sources_pele
+include_sources_all = include_sources_bv + include_sources_py_cgdescent + include_sources_mcpele + include_sources_pele
 #recompile if any of depends has been modified
-depends_all = depends_bv + depends_mcpele + depends_pele 
+depends_all = depends_bv + depends_py_cgdescent + depends_mcpele + depends_pele
 
 cxx_modules = [
     Extension("basinvolume.monte_carlo._conf_test_cpp", 
