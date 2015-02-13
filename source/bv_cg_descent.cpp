@@ -14,7 +14,6 @@ BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const p
             m_origin(origin.copy()),
             m_rattlers(rattlers.copy()),
             m_distance(origin.size()),
-            m_etol(etol),
             m_dtol2(dtol*dtol),
             m_d2(0),
             m_rmsd2(0),

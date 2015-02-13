@@ -65,7 +65,7 @@ protected:
     mcpele::Moments m_failed_quench_frac;
     //convergence test classes
     bool _perform_convergence_test;
-    convergence_test _conv_test;
+    convergence_test<OPT_T> _conv_test;
     //minima list
     size_t m_eqsteps;
     bool _collect_minima_list;
@@ -155,14 +155,6 @@ template <class OPT_T>
 void CheckSameMinimum<OPT_T>::_check_convergence(pele::Array<double> quenched_coords)
 {
     _conv_test.check_convergence(quenched_coords, _optimizer);
-}
-
-template <>
-void CheckSameMinimum<BvCGDescent>::_check_convergence(pele::Array<double> quenched_coords)
-{
-    //do nothing (conv test assumes that optimizer is of type pele::GradientDescent)
-    //in principle check_convergence can be templated easily, I have not done it because
-    //this function is currently not being used
 }
 
 /**
