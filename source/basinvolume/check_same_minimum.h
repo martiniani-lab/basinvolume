@@ -157,6 +157,14 @@ void CheckSameMinimum<OPT_T>::_check_convergence(pele::Array<double> quenched_co
     _conv_test.check_convergence(quenched_coords, _optimizer);
 }
 
+template <>
+void CheckSameMinimum<BvCGDescent>::_check_convergence(pele::Array<double> quenched_coords)
+{
+    //do nothing (conv test assumes that optimizer is of type pele::GradientDescent)
+    //in principle check_convergence can be templated easily, I have not done it because
+    //this function is currently not being used
+}
+
 /**
  * aligns structures
  */
@@ -323,17 +331,17 @@ class CheckSameMinimumCGDCartesian : public CheckSameMinimum<BvCGDescent> {
 public:
     CheckSameMinimumCGDCartesian(
             std::shared_ptr<pele::BasePotential> potential,
-            pele::Array<double> origin, pele::Array<double> boxvec,
-            pele::Array<double> rattlers, double etol, double dtol,
+            pele::Array<double> origin, pele::Array<double> rattlers,
+            double etol, double dtol,
             size_t opt_maxiter, size_t opt_PrintLevel, size_t eqsteps=0,
             bool perform_convergence_test=false,
             bool collect_minima_list=false)
         : CheckSameMinimum<BvCGDescent>(std::make_shared<BvCGDescent>(potential, origin, origin,
-                rattlers, ndim, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(boxvec),
+                rattlers, ndim, std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
                 etol, dtol, opt_maxiter, opt_PrintLevel),
                 potential, origin, rattlers,
                 dtol, ndim, eqsteps,
-                std::make_shared<pele::CartesianDistanceWrapper<ndim> >(boxvec),
+                std::make_shared<pele::CartesianDistanceWrapper<ndim> >(),
                 perform_convergence_test, collect_minima_list)
     {}
 };
