@@ -41,8 +41,17 @@ namespace bv {
  * _Nnoratt: number of non-rattlers
  * */
 
+class CheckSameMinimumInterface : public mcpele::ConfTest{
+public:
+    virtual ~CheckSameMinimumInterface(){};
+    virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)=0;
+    virtual size_t ml_nr_distinct_minima() const =0;
+    virtual pele::Array<Minimum*> get_array_of_minima() =0;
+    virtual double get_failed_quench_frac() const =0;
+};
+
 template <class OPT_T=pele::GradientOptimizer>
-class CheckSameMinimum : public mcpele::ConfTest {
+class CheckSameMinimum : public CheckSameMinimumInterface {
 protected:
     inline pele::Array<double> _align_coords(pele::Array<double> coords);
     inline double _get_d2(pele::Array<double> coords);
@@ -84,15 +93,15 @@ public:
     bool perform_convergence_test() const { return _perform_convergence_test; }
     bool collect_minima_list() const { return _collect_minima_list; }
     //forwarding minima database information to the outside
-    size_t ml_nr_distinct_minima() const { return _minima_list.nr_distinct_minima(); }
-    double get_failed_quench_frac() const { return m_failed_quench_frac.mean(); }
+    virtual size_t ml_nr_distinct_minima() const { return _minima_list.nr_distinct_minima(); }
+    virtual double get_failed_quench_frac() const { return m_failed_quench_frac.mean(); }
     /**
      * return and Array of the minima we've found
      *
      * This is primarily for easy access in cython.  C++ code should probably
      * use the iterator syntax
      */
-    pele::Array<Minimum*> get_array_of_minima();
+    virtual pele::Array<Minimum*> get_array_of_minima();
 };
 
 template <class OPT_T>

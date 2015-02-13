@@ -206,9 +206,12 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     cdef _pele_opt.GradientOptimizer optimizer # this is stored so that the memory is not freed
     cdef _pele.BasePotential potential
     
-    cdef cppCheckSameMinimum* newptr
-    def __cinit__(self, opt, pot, origin, rattlers, dtol, boxvec=None, bdim=3, eqsteps=0, cbool perform_convergence_test=False, 
+    cdef cppCheckSameMinimumInterface* newptr
+    def __cinit__(self, pot, origin, rattlers, dtol, opt=None, boxvec=None, bdim=3, eqsteps=0, opt_tol=1e-4, 
+                  opt_maxiter=1e5, use_cgd=False, cbool perform_convergence_test=False, 
                   cbool collect_minima_list=False, use_periodic=False):
+        if opt is None:
+            assert use_cgd is True
         if boxvec is None:
             assert(use_periodic is False)
         elif len(boxvec) != bdim:
@@ -251,7 +254,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
                                                                      _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
                                                                      perform_convergence_test, collect_minima_list)
                                                        )
-        self.newptr = <cppCheckSameMinimum*> self.thisptr.get()
+        self.newptr = <cppCheckSameMinimumInterface*> self.thisptr.get()
     
     @cython.boundscheck(False)
     @cython.wraparound(False) 

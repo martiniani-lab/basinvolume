@@ -16,7 +16,7 @@ protected:
     pele::Array<double> m_origin;
     pele::Array<double> m_rattlers;
     pele::Array<double> m_distance;
-    double m_etol, m_dtol2, m_d2, m_rmsd2;
+    double m_dtol2, m_d2, m_rmsd2;
     size_t m_ndim, m_nparticles, m_maxiter, m_inoratt, m_Nnoratt;
     std::shared_ptr<pele::DistanceInterface> m_dist_policy;
     pele::Array<double> m_align_coords(pele::Array<double> coords);
@@ -30,7 +30,6 @@ public:
     virtual bool test_convergence(double energy, pele::Array<double> x, pele::Array<double> g);
     inline double get_d2(){return m_d2;};
     inline double get_rmsd2(){return m_rmsd2;};
-    inline double get_tol(){return m_etol;};
 };
 
 }
