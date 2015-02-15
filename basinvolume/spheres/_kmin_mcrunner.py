@@ -150,8 +150,9 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing1.xydr', k=1000, opt_tol=1e-7, seeds=seeds, 
-                         single=True, use_cell_lists=False, verbose=True, use_cgd=True)
+    sim = _kmin_mcrunner('jammed_packing1.xydr', niter=5e5, k=0, opt_tol=1e-4, seeds=seeds,
+                         single=True, use_cell_lists=False, verbose=True, use_cgd=True,
+                         hmax=20, hbinsize=0.05, opt_nsteps=1e6)
     print 'simulation started'
     start=time.time()
     sim.run()

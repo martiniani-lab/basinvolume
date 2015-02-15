@@ -34,7 +34,7 @@ if __name__ == "__main__":
     single = not args.moveall
     kmin_kwargs = dict(k=0, stepsize=1e-1, niter=1e5, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1, 
                        acceptance=0.2, adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100,
-                       opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4, packings_dir=packings_dir, 
+                       opt_dtmax=1, opt_tol=1e-4, opt_nsteps=1e5, packings_dir=packings_dir,
                        use_cell_lists=args.nocell, single=single,verbose=args.verbose)
     
     i32max = np.iinfo(np.int32).max
