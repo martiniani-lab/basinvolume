@@ -10,6 +10,7 @@
 namespace bv{
 
 
+template<class OPT_T=pele::GradientOptimizer>
 class convergence_test{
 private:
     const double _lowtol;
@@ -26,9 +27,33 @@ public:
           _eigtol(_eigtol_),
           _ev_finder(landscape_potential, boxdimension, _ranvec_, _lbfgsniter_)
     {}
+
     void check_convergence(pele::Array<double> quenched_coords,
-            std::shared_ptr<pele::GradientOptimizer> _optimizer);
+            std::shared_ptr<OPT_T> _optimizer);
 };
+
+/**
+ * compute the lowest eigenvalue to ensure that it is positive
+ */
+template<class OPT_T>
+void convergence_test<OPT_T>::check_convergence(pele::Array<double> quenched_coords,
+        std::shared_ptr<OPT_T> _optimizer)
+{
+    bool minimum = false;
+    size_t l = 0;
+    while (minimum == false && l < 10){
+        minimum = true;
+        const double lowesteig = _ev_finder.compute_lowest_eigenvalue(quenched_coords);
+        if (lowesteig < _eigtol){
+            minimum = false;
+            _optimizer->set_tol(_lowtol);
+            _optimizer->run();
+            std::cout<<"NOT A MINIMUM"<<std::endl;
+        }
+        ++l;
+    }
+    _optimizer->set_tol(_hightol);
+}
 
 
 }//namespace bv

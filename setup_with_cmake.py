@@ -14,6 +14,7 @@ from numpy.distutils.command.build_ext import build_ext as old_build_ext
 
 import pele
 import mcpele
+import PyCG_DESCENT
 
 ## Numpy header files 
 numpy_lib = os.path.split(np.__file__)[0] 
@@ -21,14 +22,22 @@ numpy_include = os.path.join(numpy_lib, 'core/include')
 
 ##find pele path
 try:
-    pelepath = os.path.dirname(pele.__file__)[:-5]
+    pelepath = os.path.dirname(pele.__file__)[:-len("/pele")]
 except:
     sys.stderr.write("WARNING: could't find path to pele\n")
     sys.exit()
 try:
-    mcpelepath = os.path.dirname(mcpele.__file__)[:-7]
+    mcpelepath = os.path.dirname(mcpele.__file__)[:-len("/mcpele")]
+    print mcpelepath
 except:
     sys.stderr.write("WARNING: could't find path to mcpele\n")
+    sys.exit()
+
+try:
+    py_cgdescentpath = os.path.dirname(PyCG_DESCENT.__file__)[:-len("/PyCG_DESCENT")]
+    print py_cgdescentpath
+except:
+    sys.stderr.write("WARNING: could't find path to PyCG_DESCENT\n")
     sys.exit()
 
 # extract the -j flag and pass save it for running make on the CMake makefile
@@ -183,6 +192,7 @@ with open("CMakeLists.txt.in", "r") as fin:
 # We first tell cmake where the include directories are 
 cmake_txt = cmake_txt.replace("__PELE_INCLUDE__", pelepath + "/source")
 cmake_txt = cmake_txt.replace("__MCPELE_INCLUDE__", mcpelepath + "/source")
+cmake_txt = cmake_txt.replace("__PY_CGDESCENT_INCLUDE__", py_cgdescentpath + "/source")
 # note: the code to find python_includes was taken from the python-config executable
 python_includes = [sysconfig.get_python_inc(), 
                    sysconfig.get_python_inc(plat_specific=True)]
