@@ -22,7 +22,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
-                 adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, opt_nsteps=1e4,
+                 adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False, single=False, 
                  seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', verbose=False):
                 

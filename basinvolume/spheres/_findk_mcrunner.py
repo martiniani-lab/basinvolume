@@ -20,7 +20,7 @@ class _findk_mcrunner(_configure_mcrunner):
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     """
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9, 
-                 knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-7, 
+                 knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, 
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False, 
                  seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', 
                  verbose=False):

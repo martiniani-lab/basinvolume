@@ -65,7 +65,7 @@ if __name__ == "__main__":
         print "found numerical packing"
         sim = configure_bv_mcrunner(rank, nprocs)
     
-    mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, hmin=0,
+    mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5, opt_nsteps=1e5, hmin=0,
                    hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
                    pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, use_cgd=args.cgd,
                    perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,

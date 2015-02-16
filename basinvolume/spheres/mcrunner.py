@@ -263,7 +263,7 @@ class BV_MCrunner(_BaseMCRunner):
                  hmin=0, hmax=1, hbinsize=0.001, acceptance=0.2, adjustf=0.9,
                  adjustf_niter=1e4, adjustf_navg=100, pt_eq_niter=0,
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
-                 opt_tol=1e-4, opt_nsteps=1e5, perform_convergence_test=False,
+                 opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, single=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
