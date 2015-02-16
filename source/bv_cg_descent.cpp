@@ -42,6 +42,7 @@ BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const p
                 m_Nnoratt += m_rattlers[i];
             }
             this->set_maxit(m_maxiter);
+            this->set_memory(0); //guarantees that memory is set to 0 irrespective of default settings
 }
 
 pele::Array<double> BvCGDescent::m_align_coords(pele::Array<double> coords)
