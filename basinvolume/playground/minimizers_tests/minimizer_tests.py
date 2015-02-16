@@ -41,17 +41,20 @@ def _check_no_overlaps(coords, hs_radii, boxv):
             break
     return no_overlap
 
-def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(1e5)):
+def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(2e5)):
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
-    sim = _kmin_mcrunner('jammed_packing1.xydr', k=0, hmax=10, hbinsize=0.5, opt_tol=1e-7, seeds=seeds, niter=5e3,
-                         single=True, use_cell_lists=False, verbose=False)
+    sim = _kmin_mcrunner('jammed_packing1.xydr', k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5, 
+                         seeds=seeds, niter=5e3, adjustf_niter=5e3, single=True, use_cell_lists=False, 
+                         use_cgd=True, verbose=False)
     try:
         print "loading data...",
         data = np.load(fname)
         X_success = data['X_success']
-        X_fail = data['X_fail']
+        X_out = data['X_out']
+        X_overlap = data['X_overlap']
         print "done"
     except:
+        print "failed"
         mcrunner = sim.mcrunner
         adjust_niter = sim.mc_params['adjustf_niter'] = 5e3
         
@@ -62,7 +65,8 @@ def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(1e5)):
         
         #get training data
         X_success = np.empty([0,64])
-        X_fail = np.empty([0,64])
+        X_out = np.empty([0,64])
+        X_overlap = np.empty([0,64])
         
         print "Generating training samples...",
         for _ in xrange(nconf):
@@ -74,11 +78,13 @@ def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(1e5)):
                 X_success = np.concatenate((X_success, coords), axis=0)
             else:
                 if _check_no_overlaps(coords, sim.hs_radii, sim.boxv):
-                    X_fail = np.concatenate((X_fail, coords), axis=0)
+                    X_out = np.concatenate((X_out, coords), axis=0)
+                else:
+                    X_overlap = np.concatenate((X_overlap, coords), axis=0)
         print "done"
-        np.savez(fname, X_success=X_success, X_fail=X_fail)
+        np.savez(fname, X_success=X_success, X_out=X_out, X_overalp=X_overlap)
     
-    return X_success, X_fail, sim
+    return X_success, X_out, X_overlap, sim
 
 def test_minimizer(minimizer, potential, X, origin, Etol=1e-6, dtol=1e-4, **kwargs):
     def test_same_minimum(coords, E):
@@ -121,9 +127,13 @@ def test1(X, potential, origin, nconf, maxstep, fname="test"):
              fire_Xbool=fire_Xbool, lbfgs_Xbool=lbfgs_Xbool, 
              cgd_Xbool=cgd_Xbool)
 
-def _plot_simple_projection(X, Xbool, color='b', pair=[0,2], plt_density=False):
+def _plot_simple_projection(X, Xbool=None, color='b', pair=[0,2], plt_density=False):
     print len(X)
-    Xpos = [x for i,x in enumerate(X) if Xbool[i]]
+    if Xbool is None:
+        Xbool = np.ones(len(X))
+        Xpos = X
+    else:
+        Xpos = [x for i,x in enumerate(X) if Xbool[i]]
     x, y = [x[pair[0]] for x in Xpos], [x[pair[1]] for x in Xpos]
     if plt_density:
         plot_density(x, y)
@@ -134,13 +144,23 @@ def plot_file_simple(fname, array_name='fire_Xbool', pair=[7,3], plt_density=Fal
     print "loading data...",
     data = np.load(fname)
     X = data['X']
-    Xbool = data[array_name]
-    _plot_simple_projection(X, Xbool, pair=pair, plt_density=plt_density)
+    try:
+        Xbool = data[array_name]
+    except:
+        Xbool=None
+    _plot_simple_projection(X, Xbool=Xbool, pair=pair, plt_density=plt_density)
 
-def _plot_eig_projection(sim, X, Xbool, color='b', plt_density=False):
+def _plot_eig_projection(sim, X, Xbool=None, color='b', msize=10, plt_density=False):
+    """
+    Xbool is an array indicating wether a particuar configuration should be included
+    """
     from pele.utils.hessian import get_sorted_eig
     print len(X)
-    Xpos = [x for i,x in enumerate(X) if Xbool[i]]
+    if Xbool is None:
+        Xbool = np.ones(len(X))
+        Xpos = X
+    else:
+        Xpos = [x for i,x in enumerate(X) if Xbool[i]]
     hess = sim.mcrunner.pot_optimizer.getEnergyGradientHessian(sim.mcrunner.origin)[2]
     print hess
     w, v = get_sorted_eig(hess)
@@ -151,15 +171,18 @@ def _plot_eig_projection(sim, X, Xbool, color='b', plt_density=False):
     if plt_density:
         plot_density(x, y)
     else:
-        plt.scatter(x, y, color=color, marker='s', s=10, edgecolor='none')
+        plt.scatter(x, y, color=color, marker='s', s=msize, edgecolor='none')
 
 def plot_file_eig(raw_fname, req_fname, array_name='fire_Xbool', plt_density=False):
-    X_success, X_fail, sim = get_X(fname=raw_fname, pppn=[3,6], nconf=int(1e5))
+    X_success, X_out, X_overlap, sim = get_X(fname=raw_fname, pppn=[3,6], nconf=int(1e5))
     print "loading data...",
     data = np.load(req_fname)
     X = data['X']
-    Xbool = data[array_name]
-    _plot_eig_projection(sim, X, Xbool, plt_density=plt_density)
+    try:
+        Xbool = data[array_name]
+    except:
+        Xbool=None
+    _plot_eig_projection(sim, X, Xbool=Xbool, plt_density=plt_density)
 
 
 def plot_density(x,y):
@@ -189,30 +212,62 @@ def plot_density(x,y):
     plt.legend([a.collections[0], b1],
            ["learned frontier", "training observations"],
            loc="best", framealpha=0.5, fancybox=True)
+
+def classify_points(fname="test_data10k.npz"):
+    """
+    this is a utility function to convert old format data to new format for analysis
+    """
+    data = np.load(fname)
+    X_success = data['X_success']
+    X_fail = data['X_fail']
+    seeds = dict(seed_takestep=1, seed_metropolis=2)
+    sim = _kmin_mcrunner('jammed_packing1.xydr', k=0, hmax=10, hbinsize=0.5, opt_tol=1e-7, seeds=seeds, niter=5e3,
+                         single=True, use_cell_lists=False, verbose=False)
+    X_out = []
+    X_overlap = []
+    for x in X_fail:
+        if _check_no_overlaps(x, sim.hs_radii, sim.boxv):
+            X_out.append(x)
+        else:
+            X_overlap.append(x)
+    np.savez(fname[:-4]+"_classified", X_success=X_success, X_out=X_out, X_overlap=X_overlap)
     
-def main(fname="test_data10k.npz"):
-    X_success, X_fail, sim = get_X(fname=fname, pppn=[3,6], nconf=int(1e5))
+def main(fname="test_data20k.npz"):
+    X_success, X_out, X_overlap, sim = get_X(fname=fname, pppn=[3,6], nconf=int(1e5))
     pot = sim.mcrunner.pot_optimizer
     maxstep = sim.mc_params['opt_maxstep']
     origin = sim.mcrunner.origin
     nconf = len(X_success)
     print "positives"
-    Xf = []
-    for x in X_fail:
-        if _check_no_overlaps(x, sim.hs_radii, sim.boxv):
-            Xf.append(x)
     #Xf=X_fail
     #test1(X_success, pot, origin, nconf, maxstep, fname=fname)
     #print "false positives"
     #test1(X_fail, pot, origin, nconf, maxstep)
     #_plot_simple_projection(Xf, np.ones(len(Xf)), color='r', pair=[2,3], plt_density=False)
-    _plot_eig_projection(sim, Xf, np.ones(len(Xf)), color='r', plt_density=False)
-   
+    if False:
+        plt.figure()
+        _plot_eig_projection(sim, X_success, np.ones(len(X_success)), color='g', plt_density=False)
+        plt.savefig(fname[:-4]+"_Xsuc_plot.pdf")
+        plt.figure()
+        _plot_eig_projection(sim, X_out, np.ones(len(X_out)), color='r', plt_density=False)
+        plt.savefig(fname[:-4]+"_Xout_plot.pdf")
+        plt.figure()
+        _plot_eig_projection(sim, X_overlap, np.ones(len(X_overlap)), color='b', plt_density=False)
+        plt.savefig(fname[:-4]+"_Xove_plot.pdf")
+    if False:
+        plt.figure()
+        msize=0.5
+        _plot_eig_projection(sim, X_success, np.ones(len(X_success)), color='g', msize=msize, plt_density=False)
+        _plot_eig_projection(sim, X_out, np.ones(len(X_out)), color='r', msize=msize, plt_density=False)
+        _plot_eig_projection(sim, X_overlap, np.ones(len(X_overlap)), color='b', msize=msize, plt_density=False)
+        plt.savefig(fname[:-4]+"_Xall_plot.pdf")
+        
 if __name__ == "__main__":
-    main()
+    main("test_data20k.npz")
+    #classify_points()
     #plot_file_simple("xbool_n13097_test_data10k.npz.npz", pair=[2,3], plt_density=False)
-    plot_file_eig("test_data10k.npz", "xbool_n13097_test_data10k.npz.npz", plt_density=False)
-    plt.show()    
+    #plot_file_eig("test_data10k.npz", "xbool_n13097_test_data10k.npz.npz", plt_density=False)
+    #plt.show()    
                 
             
               
