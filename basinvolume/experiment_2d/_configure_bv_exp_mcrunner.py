@@ -30,7 +30,7 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=None, 
                  opt_tol=1e-7, opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False, 
-                 single=False, seeds=None, use_cell_lists=False, record_histogram = False, 
+                 single=False, seeds=None, use_cell_lists=False, use_cgd=False, record_histogram = False, 
                  packings_dir='jammed_packings', base_dir=None, verbose = False):
                 
         self.fname = fname
@@ -62,7 +62,7 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
                           'ts_niter':ts_niter, 'ts_freq':ts_freq,'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,'perform_convergence_test':perform_convergence_test, 
                           'collect_minima_list':collect_minima_list, 'record_histogram':record_histogram,
-                          'single':single, 'use_cell_lists':use_cell_lists, 'rcontainer':rcontainer}
+                          'single':single, 'use_cell_lists':use_cell_lists, 'rcontainer':rcontainer, 'use_cgd':use_cgd}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -84,7 +84,7 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
                                perform_convergence_test=perform_convergence_test, record_histogram=record_histogram, 
                                collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
                                single=single, use_periodic=False, use_frozen=True, frozen_atoms=self.frozen, 
-                               rcontainer=rcontainer)
+                               rcontainer=rcontainer, use_cgd=use_cgd)
         
         return mcrunner 
     
