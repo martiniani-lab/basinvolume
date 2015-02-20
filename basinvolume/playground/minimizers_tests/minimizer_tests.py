@@ -93,6 +93,12 @@ def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(2e5)):
 def test_minimizer(minimizer, potential, X, origin, Etol=1e-6, dtol=1e-4, **kwargs):
     def test_same_minimum(coords, E):
         if np.abs(E-Eorigin) > Etol:
+            xmean, ymean = np.mean(origin[::2]), np.mean(origin[1::2])
+            origin[::2] -= xmean
+            origin[1::2] -= ymean
+            xmean, ymean = np.mean(coords[::2]), np.mean(coords[1::2])
+            coords[::2] -= xmean
+            coords[1::2] -= ymean
             if np.linalg.norm(coords - origin)/np.sqrt(len(coords)) > dtol:
                 return False
         return True
@@ -109,6 +115,22 @@ def test_minimizer(minimizer, potential, X, origin, Etol=1e-6, dtol=1e-4, **kwar
         else:
             Xbool.append(False)
     return np.array(Xbool), count, nfev
+
+def test_minimizer_single(minimizer, potential, coords, origin, Etol=1e-6, dtol=1e-4, **kwargs):
+    def test_same_minimum(coords, E):
+        if np.abs(E-Eorigin) > Etol:
+            xmean, ymean = np.mean(origin[::2]), np.mean(origin[1::2])
+            origin[::2] -= xmean
+            origin[1::2] -= ymean
+            xmean, ymean = np.mean(coords[::2]), np.mean(coords[1::2])
+            coords[::2] -= xmean
+            coords[1::2] -= ymean
+            if np.linalg.norm(coords - origin)/np.sqrt(len(coords)) > dtol:
+                return False
+        return True
+    Eorigin = potential.getEnergy(origin)
+    res = minimizer(coords, potential, **kwargs)
+    return test_same_minimum(res.coords, res.energy)
     
 def test1(X, potential, origin, nconf, maxstep, fname="test"):
     print "test1 nconf", nconf
@@ -200,24 +222,18 @@ def _plot_dist_projection(sim, X, origin=None, orth='min', marker='s', color='b'
     x = []
     y = []
     for coords in X:
-        dx = coords-origin
-        dxv = dx / np.linalg.norm(dx) #distance vector
-        cxv = np.ones(len(coords))
-        cxv -= np.dot(cxv, dxv) * dxv #orthogonalize to 1 vector
-        cxv -= np.dot(cxv, v) * v #orthogonalize to 2 vector
-        cxv /= np.linalg.norm(cxv) #perpendicular unit vector
-        x.append(np.dot(coords,dxv))
-        y.append(np.dot(coords,cxv))
+        x.append(np.linalg.norm(coords))
+        y.append(np.dot(coords,v)/np.linalg.norm(coords))
         
     if plt_density:
         plot_density(x, y)
     else:
-        plt.scatter(x, y, color=color, marker=marker, s=msize, alpha=alpha, edgecolor='none')
+        plt.scatter(x, np.arccos(y)/np.pi, color=color, marker=marker, s=msize, alpha=alpha, edgecolor='none')
     plt.xlabel(r'$|x-x_o|$')
     if orth == 'max':
-        plt.ylabel(r'$(\mathbf{x}-\mathbf{x}_o) \times \mathbf{e}_{max}$')
+        plt.ylabel(r'$(\mathbf{x}-\mathbf{x}_o) \cdot \mathbf{e}_{max}$')
     else:
-        plt.ylabel(r'$(\mathbf{x}-\mathbf{x}_o) \times \mathbf{e}_{min}$')
+        plt.ylabel(r'$(\mathbf{x}-\mathbf{x}_o) \cdot \mathbf{e}_{min}$')
     
 def plot_file_eig(raw_fname, req_fname, array_name='fire_Xbool', plt_density=False):
     X_success, X_out, X_overlap, sim = get_X(fname=raw_fname, pppn=[3,6], nconf=int(1e5))
@@ -229,7 +245,59 @@ def plot_file_eig(raw_fname, req_fname, array_name='fire_Xbool', plt_density=Fal
     except:
         Xbool=None
     _plot_eig_projection(sim, X, Xbool=Xbool, plt_density=plt_density)
+    
+def _hist_nnb_midpoint(fname, Xin, Xout):
+    """
+    histogram the distance from the midpoint of all pairs of nearest neighbours to the closest point out of the basin
+    note: should check that midpoint is inside the basin!
+    """
+    array_dist = []
+    for i in xrange(len(Xin)):
+        dx = 1e100
+        for j in xrange(i+1, len(Xin)):
+            dx_trial = np.linalg.norm(Xin[i] - Xin[j])
+            if dx_trial < dx:
+                nnb_in = (i,j)
+        nnb_midpoint = (Xin[nnb_in[0]] + Xin[nnb_in[1]])/2
+        #find shorted distance from nnb_midpoint to points out
+        dx = 1e100
+        for x in Xout:
+            dx_trial = np.linalg.norm(nnb_midpoint - x)
+            if dx_trial < dx:
+                dx = dx_trial
+        array_dist.append(dx)
+    np.savez(fname[:-4]+"_array_dist_midpoint", array_dist=array_dist)
+    plt.hist(array_dist)
+    
+def _hist_nnb(fname, Xin, Xout):
+    """
+    histogram the distance from the midpoint of all pairs of nearest neighbours to the closest point out of the basin
+    note: should check that midpoint is inside the basin!
+    """
+    array_dist = []
+    for xin in Xin:
+        dx = 1e100
+        for x in Xout:
+            dx_trial = np.linalg.norm(xin - x)
+            if dx_trial < dx:
+                dx = dx_trial
+        array_dist.append(dx)
+    np.savez(fname[:-4]+"_array_dist", array_dist=array_dist)
+    return array_dist
 
+def hist_nnb(fname, Xin, Xout):
+    try:
+        print "loading data...",
+        f = fname[:-4]+"_array_dist"
+        data = np.load(f)
+        array_dist= data['array_dist']
+        print "done"
+    except:
+        array_dist = _hist_nnb(fname, Xin, Xout)
+    
+    plt.hist(array_dist, normed=True, bins=14)
+    plt.xlabel(r'$|x_{in}-x_{out}|_{nnb}$')
+    plt.ylabel(r'$p(|x_{in}-x_{out}|_{nnb})$')
 
 def plot_density(x,y):
     """
@@ -278,43 +346,165 @@ def classify_points(fname="test_data10k.npz"):
             X_overlap.append(x)
     np.savez(fname[:-4]+"_classified", X_success=X_success, X_out=X_out, X_overlap=X_overlap)
 
-def _walk_eig_direction(sim, stepsize=0.001):
+def _walk_eig_direction(sim, index_evec=-1, stepsize=0.001, distance_array=[], te_array=[], ev_array=[]):
     """
     Xbool is an array indicating wether a particuar configuration should be included
     """
     from pele.utils.hessian import get_sorted_eig
     origin = sim.mcrunner.origin
     hess = sim.mcrunner.pot_optimizer.getEnergyGradientHessian(origin)[2]
-    print hess
+    #print hess
     w, v = get_sorted_eig(hess)
     w = np.real(w)
-    vmax = v[-1]/np.linalg.norm(v[-1])
-    vmin = v[0]/np.linalg.norm(v[0])
+    if w[index_evec] < 1e-3:
+        print "rattler eigenvector"
+        return 0
+    evec = v[index_evec]/np.linalg.norm(v[index_evec])
     out = False
     x = np.array(sim.mcrunner.origin)
     d = 0
     backtrack_count = 0
     while out == False:
-        x += vmax*stepsize
+        x += evec*stepsize
         d += stepsize
-        #success = test_minimizer(cg_descent, sim.mcrunner.pot_optimizer, [x], origin, tol=1e-7, nsteps=int(1e6))[0][0]
-        success = test_minimizer(modifiedfire_cpp, sim.mcrunner.pot_optimizer, [x], origin, tol=1e-7, maxstep=0.01, nsteps=int(1e6))[0][0]
-        print success
+        success = _check_no_overlaps(x, sim.mcrunner.hs_radii, sim.mcrunner.boxv)
+        if success:
+            success = test_minimizer_single(cg_descent, sim.mcrunner.pot_optimizer, x, origin, tol=1e-7, nsteps=int(1e6))
+            #success = test_minimizer_single(modifiedfire_cpp, sim.mcrunner.pot_optimizer, x, origin, tol=1e-7, maxstep=0.01, nsteps=int(1e6))
+        #print success, stepsize
         if not success and backtrack_count < 10:
-            x -= vmin*stepsize
+            x -= evec*stepsize
             d -= stepsize
             stepsize /= 2
+            if stepsize < 1e-12:
+                break
             out = False
             backtrack_count += 1
+        elif not success:
+            x -= evec*stepsize
+            d -= stepsize
+            out = True
         else:
-            out = not success
-        print d
+            backtrack_count = 0
+            out = False
+    distance_array.append(d)
+    ev_array.append(w[index_evec])
+    te_array.append(sim.mcrunner.pot_optimizer.getEnergy(x))
+    print d
 
-def walk_eig(fname="test_data20k.npz"):
-    sim = get_X(fname=fname, pppn=[3,6], nconf=int(1e5))[3]
-    _walk_eig_direction(sim, stepsize=0.001)
+def _walk_eig_loop(fname, ndim=128, npackings=250):
+    pppn=[3,6]
+    seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
+    distance_array = []
+    te_array = [] #transition state energy (energy at point where we fall out from basin)
+    ev_array = []
+    for i in xrange(ndim):
+        for j in xrange(npackings):
+            try:
+                sim = _kmin_mcrunner('jammed_packing{}.xydr'.format(j), k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5, 
+                                     seeds=seeds, niter=5e3, adjustf_niter=5e3, single=True, use_cell_lists=False, 
+                                     use_cgd=True, verbose=False)
+                _walk_eig_direction(sim, stepsize=0.01, index_evec=i, distance_array=distance_array, 
+                                    te_array=te_array, ev_array=ev_array)
+            except:
+                pass
+    return distance_array, te_array, ev_array
+
+def walk_eig(fname):
+    try:
+        print "loading data...",
+        f = fname[:-4]+"_walk_eig.npz"
+        data = np.load(f)
+        distance_array, te_array, ev_array = data["distance_array"], data["te_array"], data["ev_array"]
+        print "done"
+    except:
+        print "failed"
+        distance_array, te_array, ev_array = _walk_eig_loop(fname)
+        np.savez(fname[:-4]+"_walk_eig", distance_array=distance_array, te_array=te_array, ev_array=ev_array)
+    plt.figure()
+    plt.scatter(ev_array, distance_array, color='k', marker='s', s=2, edgecolor='none')
+    plt.xlabel(r'$\lambda$')
+    plt.ylabel(r'$\mathbf{x}_o + \delta \mathbf{e}_{\lambda}$')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.savefig(fname[:-4]+"_lamb_dx.pdf")
     
+    from scipy.stats import binned_statistic
+    plt.figure()
+    dx_means, bin_edges, binnumber = binned_statistic(ev_array, distance_array, statistic='mean', bins=20)
+    bin_means = [(bin_edges[i]+bin_edges[i+1])/2 for i in xrange(len(dx_means))]
+    plt.plot(bin_means, dx_means, marker='o')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel(r'$\lambda$')
+    plt.ylabel(r'$\mathbf{x}_o + \delta \mathbf{e}_{\lambda}$')
+    plt.savefig(fname[:-4]+"_lamb_dx_mean.pdf")
     
+    plt.figure()
+    plt.scatter(ev_array, te_array, color='k', marker='s', s=2, edgecolor='none')
+    plt.xlabel(r'$\lambda$')
+    plt.ylabel(r'$\Delta E$')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.savefig(fname[:-4]+"_lamb_te.pdf")
+    
+    plt.figure()
+    te_means, bin_edges, binnumber = binned_statistic(ev_array, te_array, statistic='mean', bins=8)
+    bin_means = [(bin_edges[i]+bin_edges[i+1])/2 for i in xrange(len(te_means))]
+    plt.plot(bin_means, te_means, marker='o')
+    plt.xlabel(r'$\lambda$')
+    plt.ylabel(r'$\Delta E$')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.savefig(fname[:-4]+"_lamb_te_mean.pdf")
+    
+##import time series routines
+
+def _import_time_series(explore_dir):
+    """
+    import time series in an array
+    """
+    import glob
+    timeseries = []
+    series_order = []
+    for subdir, dirs, files in os.walk(explore_dir):
+        for dir in dirs:
+            if dir.isdigit():
+                path = os.path.join(explore_dir, dir)
+                file_list = glob.glob(path + '/TimeSeries*')
+                file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
+                series_order.append(int(dir))
+                series = []
+                for series_path in file_list:
+                    series.extend(read_txt(series_path))
+                timeseries.append(series)
+    X = np.array(timeseries)
+    Y = series_order
+    return np.array([x for (y, x) in sorted(zip(Y, X))])
+
+def _import_ks(explore_dir):
+    """
+    import spring constants
+    """
+    karray = [] 
+    path = os.path.join(explore_dir, 'temperatures')
+    f = open(path, "r")
+    while True:
+        k = f.readline()
+        if not k: break
+        karray.extend([float(k)])
+    #kmax is not included because we don't have a time series for it
+    #karray = np.array(karray[::-1], dtype='d')    
+    return karray
+
+def build_histogram(explore_dir, bins=100):
+    all_timeseries = _import_time_series(explore_dir)
+    karray = _import_ks(explore_dir)
+    hist_ts = np.empty(bins)
+    for timeseries in all_timeseries:
+        hist_ts = np.vstack((hist_ts, np.histogram(timeseries, bins)[0]))
+    return hist_ts
+
 def main(fname="test_data20k.npz"):
     X_success, X_out, X_overlap, sim = get_X(fname=fname, pppn=[3,6], nconf=int(1e5))
     pot = sim.mcrunner.pot_optimizer
@@ -369,8 +559,11 @@ def main(fname="test_data20k.npz"):
         _plot_eig_projection(sim, np.array([origin]), origin=origin, color='g', msize=10, plt_density=False, alpha=1)
         plt.axis('scaled')
         plt.savefig(fname[:-4]+"_Xall_plot.pdf")
-    
-    #from here on we deal with distances from the origin
+    if False:
+        walk_eig(fname)
+    ##########################################################################
+    #########from here on we deal with distances from the origin##############
+    ##########################################################################
     for i,x in enumerate(X_success):
         X_success[i] -= origin
     for i,x in enumerate(X_out):
@@ -403,7 +596,7 @@ def main(fname="test_data20k.npz"):
     #distance vector projection
     if False:
         msize = 0.5
-        orth = 'min'
+        orth = 'max'
         plt.figure()
         _plot_dist_projection(sim, X_success, origin=origin, orth=orth, color='b', msize=msize, plt_density=False, alpha=0.5)
         plt.savefig(fname[:-4]+"_Xsuc_distpro_plot.pdf")
@@ -413,18 +606,23 @@ def main(fname="test_data20k.npz"):
         plt.figure()
         _plot_dist_projection(sim, X_overlap, origin=origin, orth=orth, color='r', msize=msize, plt_density=False, alpha=0.5)
         plt.savefig(fname[:-4]+"_Xove_distpro_plot.pdf")
-    if True:
+    if False:
         msize = 0.5
-        orth = 'max'
+        orth = 'min'
         plt.figure()
         _plot_dist_projection(sim, X_overlap, origin=origin, orth=orth, color='r', msize=msize, plt_density=False, alpha=0.5)
         _plot_dist_projection(sim, X_success, origin=origin, orth=orth, color='b', msize=msize, plt_density=False, alpha=0.5)
         _plot_dist_projection(sim, X_out, origin=origin, orth=orth, color='k', msize=msize, plt_density=False, alpha=0.5)
         plt.savefig(fname[:-4]+"_Xall_distpro_plot.pdf")
-
+    if False:
+        plt.figure()
+        #_hist_nnb_midpoint(fname, X_success, np.concatenate((X_out, X_overlap), axis=0))
+        hist_nnb(fname, X_success, np.concatenate((X_out, X_overlap), axis=0))
+        plt.savefig(fname[:-4]+"_Xsuc_nnb_hist.pdf")
+        
 if __name__ == "__main__":
-    main("test_data20k.npz")
-    #walk_eig()
+    #main("test_data20k.npz")
+    walk_eig("test")
     #classify_points()
     #plot_file_simple("xbool_n13097_test_data10k.npz.npz", pair=[2,3], plt_density=False)
     #plot_file_eig("test_data10k.npz", "xbool_n13097_test_data10k.npz.npz", plt_density=False)
