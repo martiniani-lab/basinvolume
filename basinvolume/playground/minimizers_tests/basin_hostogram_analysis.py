@@ -155,7 +155,7 @@ def build_histogram(explore_dir, nbins=100):
     assert hist_visits.shape[0] == karray.size
     return hist_visits, hist_red_energy, karray, bin_edges
 
-def main(explore_dir="explore_bv_jammed_packing2"):
+def main(explore_dir="explore_bv_jammed_packing1"):
     from histogram_reweighting.wham_potential import WhamPotential
     from histogram_reweighting import wham_utils
     
