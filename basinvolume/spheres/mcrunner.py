@@ -45,7 +45,7 @@ try:
 except ImportError as err:
     print(err)
     
-def analytical_d2(x, k, N, boxdim=3):
+def analytical_d2(x, k, N, boxdim=2):
     f = float(k * x) / 2
     g = float(boxdim * N - boxdim) / 2 - 1
     return np.exp(-f) * np.power(f, g)
@@ -263,10 +263,11 @@ class BV_MCrunner(_BaseMCRunner):
                  hmin=0, hmax=1, hbinsize=0.001, acceptance=0.2, adjustf=0.9,
                  adjustf_niter=1e4, adjustf_navg=100, pt_eq_niter=0,
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
-                 opt_tol=1e-4, opt_nsteps=1e5, perform_convergence_test=False,
+                 opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, single=False, use_periodic=True,
-                 use_frozen=False, frozen_atoms=None, rcontainer=None):
+                 use_frozen=False, frozen_atoms=None, rcontainer=None,
+                 use_cgd=False):
         #construct base class
         assert not (use_frozen and use_periodic)
         if use_frozen:
@@ -295,6 +296,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
+        self.use_cgd = use_cgd
         self.frozen_atoms = frozen_atoms
         self.use_periodic = use_periodic
         self.rcontainer = rcontainer
@@ -374,12 +376,12 @@ class BV_MCrunner(_BaseMCRunner):
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
             
-        #CheckSameMinimum MUST have use_periodic=False
-        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin,
-                                          self.rattlers, self.dtol, bdim=self.bdim,
-                                          eqsteps=self.equilibration_steps,
+        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol, 
+                                          opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,
+                                          bdim=self.bdim, eqsteps=self.equilibration_steps,
+                                          use_cgd=self.use_cgd,
                                           perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list, use_periodic=False)
+                                          collect_minima_list=collect_minima_list)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         
@@ -519,7 +521,7 @@ class Findk_MCrunner(_BaseMCRunner):
                  binsize=0.005, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
-                 frozen_atoms=None, rcontainer=None):
+                 frozen_atoms=None, rcontainer=None, use_cgd=False):
         #construct base class
         assert not (use_frozen and use_periodic)
         if use_frozen:
@@ -547,6 +549,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
+        self.use_cgd = use_cgd
         self.frozen_atoms = frozen_atoms
         self.use_periodic = use_periodic
         self.rcontainer = rcontainer
@@ -625,11 +628,12 @@ class Findk_MCrunner(_BaseMCRunner):
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
         
-        #CheckSameMinimum MUST have use_periodic=False
-        self.conftest2 = CheckSameMinimum(self.optimizer, self.pot_optimizer, self.red_origin, 
-                                          self.rattlers, self.dtol, bdim = self.bdim,
+        
+        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol, 
+                                          opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,
+                                          bdim=self.bdim, use_cgd=self.use_cgd,
                                           perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list, use_periodic=False)
+                                          collect_minima_list=collect_minima_list)
         self.hmin = hmin
         self.hmax = hmax
         self.binsize = binsize

@@ -20,6 +20,13 @@ set(basinvolume_include ../../source)
 include_directories(${basinvolume_include})
 message("basinvolume include directory ${basinvolume_include}")
 
+# set the PyCG_DESCENT include directory
+set(pycgd_include /home/sm958/Work/PyCG_DESCENT/source)
+#set(cgd_include /home/sm958/Work/PyCG_DESCENT/source/CG_DESCENT6.7)
+include_directories(${pycgd_include})
+#include_directories(${cgd_include})
+message("pycgd_include include directory ${pycgd_include}")
+
 # set the pele include directory
 set(pele_include ../../../pele/source)
 include_directories(${pele_include})
@@ -39,6 +46,10 @@ add_library(pele_lib ${pele_sources})
 FILE(GLOB mcpele_sources ${mcpele_include}/*.cpp)
 add_library(mcpele_lib ${mcpele_sources})
 
+# build the PyCG_DESCENT library
+FILE(GLOB pycgd_sources ${pycgd_include}/CG_DESCENT6.7/*.c*)
+add_library(pycgd_lib ${pycgd_sources})
+
 # build the basinvolume library
 FILE(GLOB basinvolume_sources ${basinvolume_include}/*.cpp)
 add_library(basinvolume_lib ${basinvolume_sources})
@@ -50,4 +61,4 @@ add_executable(test_main ${sources})
 #target_link_libraries(test_main basinvolume_lib gtest gtest_main pthread)
 #target_link_libraries(test_main pele_lib mcpele_lib basinvolume_lib gtest gtest_main pthread)
 #target_link_libraries(test_main pele_lib gtest gtest_main pthread)
-target_link_libraries(test_main basinvolume_lib mcpele_lib pele_lib gtest gtest_main pthread)
+target_link_libraries(test_main basinvolume_lib pycgd_lib mcpele_lib pele_lib gtest gtest_main pthread)
