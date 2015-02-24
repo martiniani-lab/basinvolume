@@ -211,8 +211,8 @@ class BVSubmitPBS(object):
                                 command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
                                 pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
                                 pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
-                        else:
-                            pass
+                            else:
+                                pass
     
     def _get_pt_command(self, noj, path_to_script, script='bv_parallel_tempering.py'):
         """
@@ -327,8 +327,8 @@ class BVSubmitPBS(object):
                                         pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
                                         pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
                                     
-                        else:
-                            pass
+                            else:
+                                pass
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
