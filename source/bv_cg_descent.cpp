@@ -17,6 +17,7 @@ BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const p
             m_dtol2(dtol*dtol),
             m_d2(0),
             m_rmsd2(0),
+            m_rmsgtol(tol),
             m_ndim(ndim),
             m_nparticles(origin.size() / ndim),
             m_maxiter(maxiter),
@@ -83,10 +84,9 @@ double BvCGDescent::m_get_d2(pele::Array<double> coords)
     return dot(m_distance,m_distance);
 }
 
-    bool BvCGDescent::test_convergence(double energy, pele::Array<double> x, pele::Array<double> g){
+bool BvCGDescent::test_convergence(double energy, pele::Array<double> x, pele::Array<double> g){
         m_d2 = this->m_get_d2(x);
         m_rmsd2 = m_d2 / m_Nnoratt;
-        return m_rmsd2 < m_dtol2;
+        return (m_rmsd2 < m_dtol2);
     }
 }
-

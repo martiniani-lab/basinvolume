@@ -16,7 +16,7 @@ protected:
     pele::Array<double> m_origin;
     pele::Array<double> m_rattlers;
     pele::Array<double> m_distance;
-    double m_dtol2, m_d2, m_rmsd2;
+    double m_dtol2, m_d2, m_rmsd2, m_rmsgtol;
     size_t m_ndim, m_nparticles, m_maxiter, m_inoratt, m_Nnoratt;
     std::shared_ptr<pele::DistanceInterface> m_dist_policy;
     pele::Array<double> m_align_coords(pele::Array<double> coords);
