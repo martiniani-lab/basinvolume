@@ -701,7 +701,7 @@ class Findk_MCrunner(_BaseMCRunner):
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
-        and2 = vec_analytical_d2(val,self.get_k(), self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), self.nparticles))[0]
+        and2 = vec_analytical_d2(val,self.get_k(), self.nparticles, self.bdim) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), self.nparticles, self.bdim))[0]
         plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
         #plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
