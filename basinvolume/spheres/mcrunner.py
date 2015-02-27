@@ -7,7 +7,7 @@ from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest, CheckSphericalContainer 
-from mcpele.monte_carlo import GaussianCoordsDisplacement
+from mcpele.monte_carlo import SampleGaussian
 from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
@@ -601,7 +601,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.seeds=seeds
         
         #construct test/action classes      
-        self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'], stepsize)
+        self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
         
         if use_periodic:
             if self.use_cell_lists:
@@ -701,7 +701,7 @@ class Findk_MCrunner(_BaseMCRunner):
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
-        and2 = vec_analytical_d2(val,self.get_k(), self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), self.nparticles))[0]
+        and2 = vec_analytical_d2(val,self.get_k(), self.nparticles, self.bdim) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), self.nparticles, self.bdim))[0]
         plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
         #plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
