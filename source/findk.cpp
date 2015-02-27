@@ -74,20 +74,21 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
         //adjust step if last two step oscillated around the target, uses a lower bound
         adjust_k(mc_count / _navg, mc);
         //adjust the standard deviation of the normal distribution
-        static_cast<mcpele::GaussianCoordsDisplacement*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
+        static_cast<mcpele::SampleGaussian*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
         //now reset to zero memory of acceptance and rejection
         _naccepted = 0;
         _nrejected = 0;
     }
-    //reset coordinates to origin
-    coords.assign(_origin);
+    //reset coordinates to origin although this obsolete because the new SampleGaussian ignores the new coordinates
+    //and resamples from the origin
+    //coords.assign(_origin);
 }
 
 void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
     // parameter: can be adapted for better convergence
     const size_t period = 3;
     //get k
-    const double ik = static_cast<mcpele::GaussianCoordsDisplacement*>(mc->get_takestep().get())->get_stepsize();
+    const double ik = static_cast<mcpele::SampleGaussian*>(mc->get_takestep().get())->get_stepsize();
     _k = 1 / (ik * ik);
     //debug output
 

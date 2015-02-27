@@ -167,7 +167,7 @@ TEST_F(CheckSameMinimumTest, CGDMCInteraction){
 
 TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     mcpele::MC mc(pot, x, 1);
-    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::GaussianCoordsDisplacement>(42, stepsize);
+    shared_ptr<mcpele::TakeStep> sampler_uniform = std::make_shared<mcpele::SampleGaussian>(42, stepsize, origin);
     mc.set_takestep(sampler_uniform);
     //add action findk
     const size_t findk__avg_count = 1e3;
@@ -190,5 +190,5 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin){
     //the precise final value depends on the inital value, the iteration, etc.
     EXPECT_NEAR(std::static_pointer_cast<bv::Findk>(findk)->get_k(), 0, 1);
     //check that stepsize of mc is correctly adapted to k as adjusted in findk
-    EXPECT_NEAR_RELATIVE(static_cast<mcpele::GaussianCoordsDisplacement*>(mc.get_takestep().get())->get_stepsize(), 1 / sqrt(std::static_pointer_cast<bv::Findk>(findk)->get_k()), 1e-15);
+    EXPECT_NEAR_RELATIVE(static_cast<mcpele::SampleGaussian*>(mc.get_takestep().get())->get_stepsize(), 1 / sqrt(std::static_pointer_cast<bv::Findk>(findk)->get_k()), 1e-15);
 }
