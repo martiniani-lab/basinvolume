@@ -119,9 +119,6 @@ class BVSphereMCrunner(_BaseMCRunner):
         Factor for step size adaptation.
     adjustf_niter : integer
         Number of steps for step size adaptation.
-    adjustf_navg : integer
-        Number of steps from which to compute the step acceptance ratio during
-        step size adaptation.
     pt_eq_niter : integer
         ?
     ts_niter : inteteger
@@ -146,8 +143,6 @@ class BVSphereMCrunner(_BaseMCRunner):
         Flag indicating if cell lists are used.
     record_histogram : bool
         Flag indicating if Displ2 histogram is recorded and stored.
-    single : bool
-        Flag indicating if single particle moves are performed rather than global moves.
     use_periodic : bool
         Flag indicating if periodic boundary conditions are used.
     use_frozen : bool
@@ -159,14 +154,14 @@ class BVSphereMCrunner(_BaseMCRunner):
         typically halfway between the outer and inner radius of the frozen shell
         forbids jumps outside out the frozen shell
     """
-    def __init__(self, full_coords, temperature, stepsize, niter, origin,
+    def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
                  hmin=0, hmax=1, hbinsize=0.001, acceptance=0.2, adjustf=0.9,
-                 adjustf_niter=1e4, adjustf_navg=100, pt_eq_niter=0,
+                 adjustf_niter=0, pt_eq_niter=0,
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
-                 record_histogram=False, single=False, use_periodic=True,
+                 record_histogram=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
                  use_cgd=False):
         #construct base class
@@ -176,7 +171,7 @@ class BVSphereMCrunner(_BaseMCRunner):
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         else:
             red_coords = full_coords
-        potential = as_cpp_potential(NullPotential())
+        #potential = as_cpp_potential(NullPotential())
         super(BVSphereMCrunner, self).__init__(potential, red_coords, temperature, niter)
         
         self.boxv = boxv

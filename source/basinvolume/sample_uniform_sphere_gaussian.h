@@ -22,6 +22,6 @@ public:
     virtual void displace(pele::Array<double>& coords, mcpele::MC* mc);
 };
 
-} // namespace mcpele
+} // namespace bv
 
 #endif // #ifndef _BV_SAMPLE_UNIFORM_SPHERE_GAUSSIAN_H__

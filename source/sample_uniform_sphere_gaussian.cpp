@@ -16,7 +16,7 @@ void SampleUniformSphereGaussian::displace(pele::Array<double>& coords, mcpele::
     this->m_sample_normal_vec();
     m_normal_vec /= norm(m_normal_vec);
     double randz = m_distribution(m_generator); //this is sample from N(0,1)
-    double ldisplacement = randz * m_stepsize; // this corresponds to N(0,stepsize)
+    double ldisplacement = fabs(randz) * m_stepsize; // this corresponds to N(0,stepsize)
     for(size_t i = 0; i < m_ndim; ++i){
          coords[i] = m_origin[i] + m_normal_vec[i] * ldisplacement; //here the stepsize plays the same role as the stdev. This is sampled from N(0,stepsize)
     }

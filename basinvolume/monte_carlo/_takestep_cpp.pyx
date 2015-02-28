@@ -1,5 +1,4 @@
 # distutils: language = c++
-# distutils: sources = takestep.cpp
 
 import sys
 from pele.potentials import _pele
