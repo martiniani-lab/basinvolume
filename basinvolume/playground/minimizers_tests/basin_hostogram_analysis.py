@@ -133,9 +133,11 @@ def build_histogram(explore_dir, nbins=100):
     karray = _import_ks(explore_dir)
     #import sphere ts
     ts_sphere = np.genfromtxt(os.path.join(explore_dir,"inner_sphere.timeseries"))
-    #ts_sphere = [x for x in ts_sphere if x > 0.01]
+    #ts_sphere = np.genfromtxt("test_time_series_unif")
+    ts_sphere = np.array([x for x in ts_sphere if x > 0]) #remove 0s
     ts_sphere = ts_sphere[:np.shape(all_timeseries)[1]]
-    ksphere = 9
+    print ts_sphere
+    ksphere = 9.56230003699
     all_timeseries = np.vstack((ts_sphere, all_timeseries))
     karray = [ksphere] + karray
     
@@ -154,10 +156,6 @@ def build_histogram(explore_dir, nbins=100):
     assert hist_visits.shape == hist_red_energy.shape
     assert hist_visits.shape[0] == karray.size
     return hist_visits, hist_red_energy, karray, bin_edges
-    
-    
-    
-    
     
 def main(explore_dir="explore_bv_jammed_packing1"):
     from histogram_reweighting.wham_potential import WhamPotential
