@@ -132,10 +132,10 @@ def build_histogram(explore_dir, nbins=100):
     all_timeseries = _import_time_series(explore_dir)
     karray = _import_ks(explore_dir)
     #import sphere ts
-    ts_sphere = np.genfromtxt("test_time_series_unif")
+    ts_sphere = np.genfromtxt(os.path.join(explore_dir,"inner_sphere.timeseries"))
     #ts_sphere = [x for x in ts_sphere if x > 0.01]
     ts_sphere = ts_sphere[:np.shape(all_timeseries)[1]]
-    ksphere = 11
+    ksphere = 9
     all_timeseries = np.vstack((ts_sphere, all_timeseries))
     karray = [ksphere] + karray
     
