@@ -10,6 +10,11 @@ from basinvolume.playground.minimizers_tests import BVSphereMCrunner
 import ConfigParser
 import time
 
+def _subtract_com(x):
+    x = x.reshape(-1,3)
+    com = x.mean(0)
+    return (x - com[np.newaxis, :]).ravel()
+
 class _sphere_mcrunner(_configure_mcrunner):
     """
     this is a class that implements a kmin_mcrunner class
@@ -22,8 +27,7 @@ class _sphere_mcrunner(_configure_mcrunner):
     """
         
     def __init__(self, fname, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0,
-                 hmax=0.01, hbinsize=0.0005, acceptance=0.2, adjustf=0.9, adjustf_niter = 0,
-                 opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
+                 hmax=0.01, hbinsize=0.0005, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', verbose=False):
                 
@@ -39,8 +43,7 @@ class _sphere_mcrunner(_configure_mcrunner):
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,
-                          'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,
-                          'adjustf':adjustf,'adjustf_niter':adjustf_niter,
+                          'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
                           'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
                           'use_cgd':use_cgd, 'use_cell_lists':use_cell_lists}
@@ -53,11 +56,11 @@ class _sphere_mcrunner(_configure_mcrunner):
         self._requench_coords(dtol, opt_maxstep, verbose)
         
         #construct mcrunner
+        self.coords = _subtract_com(self.coords)
         potential = Harmonic(self.coords, 0, bdim=self.bdim, com=False)
         self.mcrunner = BVSphereMCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords,
-                                    self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, k=k, dtol=dtol, 
-                                    eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize, acceptance=acceptance, 
-                                    adjustf=adjustf, adjustf_niter = adjustf_niter,
+                                    self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, dtol=dtol, 
+                                    eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True,
@@ -150,9 +153,8 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _sphere_mcrunner('jammed_packing1.xyzdr', niter=5e4, opt_tol=1e-4, seeds=seeds,
-                         stepsize=0.14, adjustf_niter = 0,
-                         use_cell_lists=False, verbose=True, use_cgd=True,
+    sim = _sphere_mcrunner('jammed_packing1.xyzdr', niter=5e5, opt_tol=1e-4, seeds=seeds,
+                         stepsize=1/np.sqrt(11), use_cell_lists=False, verbose=False, use_cgd=True,
                          hmax=0.1, hbinsize=0.001, opt_nsteps=1e6)
     print 'simulation started'
     start=time.time()

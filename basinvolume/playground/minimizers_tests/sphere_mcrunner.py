@@ -63,12 +63,12 @@ Specific implementations of MCrunners, generally they should follow this pattern
 * add other functionalities that you may find desirable, e.g. dump histogram to file
 """
 
-from pele.potentials._pythonpotential import as_cpp_potential
-from pele.potentials._pele import BasePotential
-
-class NullPotential(BasePotential):
-    def getEnergy(self):
-        return 0
+#from pele.potentials._pythonpotential import as_cpp_potential
+#from pele.potentials._pele import BasePotential
+#
+#class NullPotential(BasePotential):
+#    def getEnergy(self):
+#        return 0
 
 class BVSphereMCrunner(_BaseMCRunner):
     """
@@ -101,8 +101,6 @@ class BVSphereMCrunner(_BaseMCRunner):
     rattlers : array of bool
         Array of rattler status if degrees of freedom. If dof does not belong to
         rattler, 1, if dof does belong to rattler, 0.
-    k : double
-        Sping constant for harmonic potential.
     dtol : double
         Tolerance on the rms distance of the minimised structure to the origin.
     eps : double
@@ -113,12 +111,6 @@ class BVSphereMCrunner(_BaseMCRunner):
         Initial value of displ2 histogram upper bound.
     hbinsize : double
         Displ2 histogram bin size.
-    acceptance : double
-        Target step acceptance ratio.
-    adjustf : double
-        Factor for step size adaptation.
-    adjustf_niter : integer
-        Number of steps for step size adaptation.
     pt_eq_niter : integer
         ?
     ts_niter : inteteger
@@ -155,9 +147,8 @@ class BVSphereMCrunner(_BaseMCRunner):
         forbids jumps outside out the frozen shell
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
-                 hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
-                 hmin=0, hmax=1, hbinsize=0.001, acceptance=0.2, adjustf=0.9,
-                 adjustf_niter=0, pt_eq_niter=0,
+                 hs_radii, boxv, sca, rattlers=None, dtol=1e-3, eps=1.,
+                 hmin=0, hmax=1, hbinsize=0.001,
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
@@ -197,7 +188,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         self.frozen_atoms = frozen_atoms
         self.use_periodic = use_periodic
         self.rcontainer = rcontainer
-        self.equilibration_steps = adjustf_niter + pt_eq_niter
+        self.equilibration_steps = 0
         if ts_niter is None:
             ts_niter = niter
         
@@ -281,7 +272,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                                           collect_minima_list=collect_minima_list)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
         
-        self.set_report_steps(adjustf_niter)
+        self.set_report_steps(0)
         self.takestep = SampleUniformSphereGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
         
         #set up pele:MC
@@ -375,11 +366,14 @@ class BVSphereMCrunner(_BaseMCRunner):
         """
         hist = self.histogram.get_histogram()
         val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
+        
         n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
-        and2 = vec_analytical_d2(val,self.k, self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.k, self.nparticles))[0]
+        #and2 = vec_analytical_d2(val,self.k, self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.k, self.nparticles))[0]
+        k = self.k * self.ndim / (self.ndim-1) #adjust for fixed com
+        and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
         plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
         #plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')

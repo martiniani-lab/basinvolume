@@ -13,6 +13,7 @@ SampleUniformSphereGaussian::SampleUniformSphereGaussian(const size_t rseed, con
  * */
 void SampleUniformSphereGaussian::displace(pele::Array<double>& coords, mcpele::MC* mc)
 {
+    //assert(coords.size() == m_ndim);
     this->m_sample_normal_vec();
     m_normal_vec /= norm(m_normal_vec);
     double randz = m_distribution(m_generator); //this is sample from N(0,1)

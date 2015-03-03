@@ -80,7 +80,6 @@ def generate_samples(k=50, subtract_com=True):
     with open("timeseries", "w") as fout:
         for i in xrange(100000):
             x = generate_sample(x0, k=k, subtract_com=subtract_com)
-            
             fout.write("{}\n".format(p.get_dist(x)))
 
 

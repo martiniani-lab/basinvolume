@@ -3,9 +3,7 @@ from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 import matplotlib.pyplot as plt
 import numpy as np
-from basinvolume.spheres._kmin_mcrunner import _kmin_mcrunner
 from pele.potentials import HS_WCA
-from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *
 import time
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp, cg_descent, steepest_descent
@@ -128,38 +126,44 @@ def _import_ks(explore_dir):
 #    assert hist_visits.shape[0] == karray.size
 #    return hist_visits, hist_red_energy, karray, bin_edges
 
+
 def build_histogram(explore_dir, nbins=100):
+    #import PT time series
     all_timeseries = _import_time_series(explore_dir)
     karray = _import_ks(explore_dir)
+    #import sphere ts
+    ts_sphere = np.genfromtxt("test_time_series_unif")
+    #ts_sphere = [x for x in ts_sphere if x > 0.01]
+    ts_sphere = ts_sphere[:np.shape(all_timeseries)[1]]
+    ksphere = 11
+    all_timeseries = np.vstack((ts_sphere, all_timeseries))
+    karray = [ksphere] + karray
+    
     hist_visits = []
     bin_edges = np.linspace(np.amin(all_timeseries), np.amax(all_timeseries), nbins+1)
     for i,timeseries in enumerate(all_timeseries):
         hist = np.histogram(timeseries, bin_edges)[0]
         hist_visits.append(hist)
-#        hist_red_energy = np.vstack((hist_red_energy, bin_edges[:-1]*karray[i]))
+#        hist_red_energy = np.vstack((hist_red_energy, 0.5 * bin_edges[:-1]*karray[i]))
         print i
-    kmax = 1000
-    inv_pow = ((24-1)*3-1)*np.log(bin_edges[:-1])
-    inv_pow -= bin_edges[:-1]**2 * kmax * 0.5
-    print "inv pot", inv_pow
-    inv_pow -= np.amax(inv_pow) - np.log(1.5e5)
-    print "inv pot", inv_pow
-    inv_pow = np.asarray(np.floor( np.exp(inv_pow) ), dtype='int')
-    print "inv pot", inv_pow
-    hist_visits = [inv_pow] + hist_visits
-    karray = [kmax] + karray
     hist_visits = np.array(hist_visits)
     karray = np.array(karray)
-    hist_red_energy = np.outer(0.5*karray, bin_edges[:-1]**2)
+    hist_red_energy = np.outer(0.5*karray[1:], bin_edges[:-1]**2)
+    hist_red_energy = np.vstack((((24-1)*3-1)*np.log(bin_edges[:-1])+0.5*karray[0]*bin_edges[:-1]**2, hist_red_energy))
+    
     assert hist_visits.shape == hist_red_energy.shape
     assert hist_visits.shape[0] == karray.size
     return hist_visits, hist_red_energy, karray, bin_edges
-
+    
+    
+    
+    
+    
 def main(explore_dir="explore_bv_jammed_packing1"):
     from histogram_reweighting.wham_potential import WhamPotential
     from histogram_reweighting import wham_utils
     
-    hist_visits, hist_red_energy, karray, bin_edges = build_histogram(explore_dir, nbins=150)
+    hist_visits, hist_red_energy, karray, bin_edges = build_histogram(explore_dir, nbins=500)
     print hist_visits, hist_red_energy, karray
     nreps, nbins = hist_visits.shape
     #print hist_ts
@@ -197,7 +201,7 @@ def main(explore_dir="explore_bv_jammed_packing1"):
     logn_E = X[nreps:]
     w_i_final = X[:nreps]
 
-    if True:
+    if False:
         plt.plot(bin_edges[:-1], hist_visits.transpose())
 #        plt.plot(karray)
 #        plt.plot(bin_edges[:-1], hist_visits[0,:])
@@ -215,24 +219,59 @@ def main(explore_dir="explore_bv_jammed_packing1"):
     return logn_E, w_i_final, bin_edges
     
 if __name__ == "__main__":
+    import scipy
+    from scipy.integrate import romb, simps, trapz
+    import bisect
     logn_E, w_i_final, bin_edges = main()
     import matplotlib.pyplot as plt
+    ndof =  ((24-1)*3-1)
     plt.figure()
-    plt.plot(bin_edges[:-1], logn_E)
-    plt.plot(bin_edges[:-1], logn_E - ((24-1)*3-1)*np.log(bin_edges[:-1]))
+    plt.plot(bin_edges[:-1], logn_E, label=r'$\log(n_E)$')
+    plt.plot(bin_edges[:-1], logn_E - ndof*np.log(bin_edges[:-1]))
     plt.show()
-    plt.figure()
-    plt.plot(1./bin_edges[:-1], logn_E)
-    plt.plot(1./bin_edges[:-1], logn_E - ((24-1)*3-1)*np.log(bin_edges[:-1]))
-    plt.show()
+#    plt.figure()
+#    plt.plot(1./bin_edges[:-1], logn_E)
+#    plt.plot(1./bin_edges[:-1], logn_E - ndof*np.log(bin_edges[:-1]))
+#    plt.show()
+    import statsmodels.api as sm
     
     logn_E -= np.amax(logn_E)
+    dos = np.exp(logn_E)
     plt.figure()
-    plt.plot(bin_edges[:-1], np.exp(logn_E))
+    plt.plot(bin_edges[:-1], dos)
+    smooth = sm.nonparametric.lowess(dos, bin_edges[:-1], frac=0.1, it=10)
+    dos_smooth, smooth_edges = smooth[:,1], smooth[:,0]
+    plt.plot(bin_edges[:-1], dos_smooth)
     plt.show()
     print logn_E, w_i_final
-            
-              
-                
-                
+    print "bin_edges diff", bin_edges[1] - bin_edges[0] - (bin_edges[-1] - bin_edges[-2])
+    #volume non smooth
+    print "raw"
+    print "fake volume",np.trapz(np.ones(len(dos)),dx=bin_edges[1]-bin_edges[0])
+    print "bin_edges extrema", bin_edges[0], bin_edges[-1]
+    natoms = 24
+    ndof = (natoms-1)*3
+    rmin = 0.2
+    boxv = 5.7897565913256273**3
+    vmin = volume_nball(rmin, ndof)
+    s = bisect.bisect(bin_edges,rmin)
+    #numpy trapez
+    print "np.trapez"
+    A = vmin / np.trapz(dos[:s],bin_edges[:s])
+    Vol = A*np.trapz(dos,bin_edges[:-1])
+    print "A: {} Vol: {}".format(A, Vol)
+    print "F: {}".format(-np.log(Vol) - np.log(boxv))        
+    #scipy trapz
+    print "scipy.trapz"
+    dx=bin_edges[1]-bin_edges[0]
+    A = vmin / trapz(dos[:s],dx=dx)
+    Vol = A*trapz(dos, dx=dx)
+    print "A: {} Vol: {}".format(A, Vol)
+    print "F: {}".format(-np.log(Vol)- np.log(boxv)) 
+    #scipy simps
+    print "scipy.simps"
+    A = vmin / simps(dos[:s],dx=dx)
+    Vol = A*simps(dos,dx=dx)
+    print "A: {} Vol: {}".format(A, Vol)
+    print "F: {}".format(-np.log(Vol)- np.log(boxv))
                 
