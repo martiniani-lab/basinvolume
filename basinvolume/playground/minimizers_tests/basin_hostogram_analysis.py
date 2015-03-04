@@ -134,9 +134,10 @@ def build_histogram(explore_dir, nbins=100):
     #import sphere ts
     ts_sphere = np.genfromtxt(os.path.join(explore_dir,"inner_sphere.timeseries"))
     #ts_sphere = np.genfromtxt("test_time_series_unif")
-    ts_sphere = np.array([x for x in ts_sphere if x > 0]) #remove 0s
+    ts_sphere = np.trim_zeros(ts_sphere) 
+    #np.array([x for x in ts_sphere if x > 0]) #remove 0s
     ts_sphere = ts_sphere[:np.shape(all_timeseries)[1]]
-    print ts_sphere
+    #print ts_sphere
     ksphere = 9.56230003699
     all_timeseries = np.vstack((ts_sphere, all_timeseries))
     karray = [ksphere] + karray
@@ -199,11 +200,8 @@ def main(explore_dir="explore_bv_jammed_packing1"):
     logn_E = X[nreps:]
     w_i_final = X[:nreps]
 
-    if False:
+    if True:
         plt.plot(bin_edges[:-1], hist_visits.transpose())
-#        plt.plot(karray)
-#        plt.plot(bin_edges[:-1], hist_visits[0,:])
-        plt.plot(bin_edges[:-1], (np.log(hist_visits) + hist_red_energy).transpose())
         plt.show()
         
         plt.figure()
@@ -218,7 +216,8 @@ def main(explore_dir="explore_bv_jammed_packing1"):
     
 if __name__ == "__main__":
     import scipy
-    from scipy.integrate import romb, simps, trapz
+    from scipy.integrate import romb, simps, trapz, quad, nquad
+    from scipy.interpolate import interp1d
     import bisect
     logn_E, w_i_final, bin_edges = main()
     import matplotlib.pyplot as plt
@@ -226,7 +225,7 @@ if __name__ == "__main__":
     plt.figure()
     plt.plot(bin_edges[:-1], logn_E, label=r'$\log(n_E)$')
     plt.plot(bin_edges[:-1], logn_E - ndof*np.log(bin_edges[:-1]))
-    plt.show()
+    #plt.show()
 #    plt.figure()
 #    plt.plot(1./bin_edges[:-1], logn_E)
 #    plt.plot(1./bin_edges[:-1], logn_E - ndof*np.log(bin_edges[:-1]))
@@ -237,10 +236,13 @@ if __name__ == "__main__":
     dos = np.exp(logn_E)
     plt.figure()
     plt.plot(bin_edges[:-1], dos)
-    smooth = sm.nonparametric.lowess(dos, bin_edges[:-1], frac=0.1, it=10)
-    dos_smooth, smooth_edges = smooth[:,1], smooth[:,0]
-    plt.plot(bin_edges[:-1], dos_smooth)
-    plt.show()
+    #smooth = sm.nonparametric.lowess(dos, bin_edges[:-1], frac=0.1, it=10)
+    #dos_smooth, smooth_edges = smooth[:,1], smooth[:,0]
+    dosf = interp1d(bin_edges[:-1], dos, kind='cubic')
+    dos_interp = dosf(bin_edges[:-1])
+    
+    plt.plot(bin_edges[:-1], dos_interp)
+    #plt.show()
     print logn_E, w_i_final
     print "bin_edges diff", bin_edges[1] - bin_edges[0] - (bin_edges[-1] - bin_edges[-2])
     #volume non smooth
@@ -249,7 +251,7 @@ if __name__ == "__main__":
     print "bin_edges extrema", bin_edges[0], bin_edges[-1]
     natoms = 24
     ndof = (natoms-1)*3
-    rmin = 0.2
+    rmin = 0.1
     boxv = 5.7897565913256273**3
     vmin = volume_nball(rmin, ndof)
     s = bisect.bisect(bin_edges,rmin)
@@ -265,11 +267,21 @@ if __name__ == "__main__":
     A = vmin / trapz(dos[:s],dx=dx)
     Vol = A*trapz(dos, dx=dx)
     print "A: {} Vol: {}".format(A, Vol)
-    print "F: {}".format(-np.log(Vol)- np.log(boxv)) 
+    print "F: {}".format(-np.log(Vol)- np.log(boxv))
     #scipy simps
     print "scipy.simps"
     A = vmin / simps(dos[:s],dx=dx)
     Vol = A*simps(dos,dx=dx)
     print "A: {} Vol: {}".format(A, Vol)
     print "F: {}".format(-np.log(Vol)- np.log(boxv))
-                
+    #scipy romb
+    print "scipy.romb"
+    s2 = 2**np.ceil(np.log2(s))
+    dosmin = np.append(np.zeros(s2-s+1), dos[:s])
+    A = vmin / simps(dosmin,dx=dx)
+    dosromb = np.append(np.zeros(2**np.ceil(np.log2(dos.size))+1), dos)
+    Vol = A*simps(dosromb,dx=dx)
+    print "A: {} Vol: {}".format(A, Vol)
+    print "F: {}".format(-np.log(Vol)- np.log(boxv))
+    
+    
