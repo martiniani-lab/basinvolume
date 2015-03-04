@@ -348,7 +348,7 @@ class BVInnerSphereMCrunner(_BaseMCRunner):
         n, bins, patch = plt.hist(timeseries, bins=500, range=(np.amin(timeseries), np.amax(timeseries)), normed=True,
                            alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
-        k = self.k * self.ndim / (self.ndim-1) #adjust for fixed com
+        k = self.k * self.nparticles / (self.nparticles-1) #adjust for fixed com
         #and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
         and2 = n[0] * np.exp(-0.5 * k * bins[:-1]**2)
         plt.plot(bins[:-1], and2, linewidth=2.5, ls='--', color=color_cycle[-1])

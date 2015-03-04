@@ -4,7 +4,7 @@ import abc
 import os
 import glob
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
-from basinvolume.utils import to_string, read_txt, volume_nball
+from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
@@ -105,7 +105,7 @@ class _wham_compute_dos(object):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
-        self.displ_k_max = 0.2 #configf.getfloat('FINDK', 'displ_k_max')
+        self.displ_k_max = 0.1 #configf.getfloat('FINDK', 'displ_k_max')
         self.var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max') #DEBUG
         configf.read(str(self.innersphere_configpath))
         self.k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
@@ -174,7 +174,7 @@ class _wham_compute_dos(object):
             hist_visits.append(hist)
         
         self.hist_visits = np.array(hist_visits)
-        self.bin_edges = bin_edges
+        self.bin_edges = bin_edges + (bin_edges[1]-bin_edges[0])/2
         
     def _unbias_histogram(self):
         hist_unbiased = np.outer(0.5*self.karray[1:], self.bin_edges[:-1]**2)
@@ -189,7 +189,7 @@ class _wham_compute_dos(object):
         nreps, nbins = hist_visits.shape
         
         whampot = WhamPotential(hist_visits, hist_unbiased)
-        if True:
+        if False:
             X = np.random.rand( nreps + nbins )
         else:
             # estimate an initial guess for the offsets and density of states
@@ -204,12 +204,12 @@ class _wham_compute_dos(object):
             from pele.optimize import lbfgs_cpp as quench
             if True:
                 print "minimizing with pele lbfgs"
-            ret = quench(X, whampot, tol=1e-3, maxstep=1e4, nsteps=10000, iprint=0)
+            ret = quench(X, whampot, tol=1e-5, maxstep=1e4, nsteps=10000, iprint=0)
         except ImportError:
             from wham_utils import lbfgs_scipy
             if True:
                 print "minimizing with scipy lbfgs"
-            ret = lbfgs_scipy(X, whampot, tol=1e-3, nsteps=10000)
+            ret = lbfgs_scipy(X, whampot, tol=1e-5, nsteps=10000)
         
         if self.verbose:
             print "chi^2 went from %g (rms %g) to %g (rms %g) in %d iterations" % (
@@ -227,15 +227,20 @@ class _wham_compute_dos(object):
         
         logn_E = self.logn_E - np.amax(self.logn_E)
         self.dos = np.exp(logn_E)
-        vmin = volume_nball(self.displ_k_max, self.ndof)
-        s = bisect.bisect(self.bin_edges, self.displ_k_max)
         dx = self.bin_edges[1] - self.bin_edges[0]
         assert (dx - (self.bin_edges[-1] - self.bin_edges[-2])) < 1e-14
-        A = vmin / simps(self.dos[:s],dx=dx)
-        Vol = A*simps(self.dos, dx=dx)
+        
+        bin_edges = self.bin_edges
+        s = np.ceil(self.displ_k_max / dx)
+        self.rmin = (s-1)*dx + bin_edges[0]
+        vmin = volume_nball(self.rmin, self.ndof)
+        A = vmin / simps(self.dos[:s], dx=dx)
+        Vol = A*simps(self.dos, dx=dx) + volume_nball(bin_edges[0], self.ndof) #add the contribution from 0 to the first bin
         if self.verbose:
             print "A: {} Vol: {}".format(A, Vol)
             print "F0: {}".format(-np.log(Vol) - np.log(self.vcavity))
+        
+        #print "const simpson", simps(np.ones(10), dx=dx) - dx*9
     
         #currently don't have an estimate for the error
         self.F0, self.sigF0 = -np.log(Vol) - np.log(self.vcavity), 0
@@ -274,8 +279,9 @@ class _wham_compute_dos(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(self.bin_edges[:-1], self.logn_E, label=r'$\log(n_E)$')
+        #dx = self.bin_edges[1] - self.bin_edges[0]
         rg = self.logn_E - (self.ndof-1)*np.log(self.bin_edges[:-1])
-        ax.plot(self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^N)$')
+        ax.plot(self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
         plt.ylim((np.amin(rg),1.1*np.amax(rg)))
@@ -283,16 +289,16 @@ class _wham_compute_dos(object):
         if self.show:
             plt.show()
         
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(1./self.bin_edges[:-1], self.logn_E, label=r'$\log(n_E)$')
-        ax.plot(1./self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^N)$')
-        ax.set_xlabel(r'1/$\Delta r$')
-        ax.legend(frameon=False, loc="best")
-        plt.ylim((np.amin(rg),1.1*np.amax(rg)))
-        plt.savefig(self.base_directory + '/rec_log_dos.eps')
-        if self.show:
-            plt.show()
+#        fig = plt.figure()
+#        ax = fig.add_subplot(111)
+#        ax.plot(1./self.bin_edges[:-1], self.logn_E, label=r'$\log(n_E)$')
+#        ax.plot(1./self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
+#        ax.set_xlabel(r'1/$\Delta r$')
+#        ax.legend(frameon=False, loc="best")
+#        plt.xlim((0,1))
+#        plt.savefig(self.base_directory + '/rec_log_dos.eps')
+#        if self.show:
+#            plt.show()
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -339,7 +345,7 @@ if __name__ == "__main__":
     sim = _wham_compute_dos()
     
     if (fname != None):
-        sim(fname=fname, explore_dir=fdir, frozen=args.frozen)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=False)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:
