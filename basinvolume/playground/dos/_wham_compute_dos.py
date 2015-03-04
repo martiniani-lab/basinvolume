@@ -27,7 +27,7 @@ class _wham_compute_dos(object):
     this is a class that implements _wham_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=500, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='jammed_packings', plot_data=True,
                  frozen=False, show=False, verbose=True):
         
@@ -230,18 +230,28 @@ class _wham_compute_dos(object):
         dx = self.bin_edges[1] - self.bin_edges[0]
         assert (dx - (self.bin_edges[-1] - self.bin_edges[-2])) < 1e-14
         
+        #recall the bin edges have been shifted by dx/2 at the beginning
         bin_edges = self.bin_edges
         s = np.ceil(self.displ_k_max / dx)
         self.rmin = (s-1)*dx + bin_edges[0]
-        vmin = volume_nball(self.rmin, self.ndof)
-        A = vmin / simps(self.dos[:s], dx=dx)
+        
+        #compute the average for the prefactor
+        Alist = []
+        assert s > 3
+        for i in xrange(-3,3,1):
+            vmin = volume_nball(self.rmin+i*dx, self.ndof)
+            A = vmin / simps(self.dos[:s+i], dx=dx)
+            Alist.append(A)
+        A, Astd = np.mean(Alist), np.std(Alist)
+        
+        #compute volume
         Vol = A*simps(self.dos, dx=dx) + volume_nball(bin_edges[0], self.ndof) #add the contribution from 0 to the first bin
+        
         if self.verbose:
-            print "A: {} Vol: {}".format(A, Vol)
+            print "A: {}+/-{} Vol: {}".format(A, Astd, Vol)
             print "F0: {}".format(-np.log(Vol) - np.log(self.vcavity))
         
         #print "const simpson", simps(np.ones(10), dx=dx) - dx*9
-    
         #currently don't have an estimate for the error
         self.F0, self.sigF0 = -np.log(Vol) - np.log(self.vcavity), 0
         self.F0unc, self.sigF0unc = -np.log(Vol), 0
@@ -345,7 +355,7 @@ if __name__ == "__main__":
     sim = _wham_compute_dos()
     
     if (fname != None):
-        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=False)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=True)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:
