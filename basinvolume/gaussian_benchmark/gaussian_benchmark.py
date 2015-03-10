@@ -1,10 +1,12 @@
 from __future__ import division
 import numpy as np
 from pele.optimize import ModifiedFireCPP
+from mcpele.monte_carlo import CheckSphericalContainer
+from basinvolume.monte_carlo import CheckSameMinimum
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 
 class GaussianBenchmark(object):
-    def __init__(self, means=None, cov=None, minimum_index=0, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5):
+    def __init__(self, means=None, cov=None, minimum_index=0, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, radius_container=10, bdim=2):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -12,6 +14,8 @@ class GaussianBenchmark(object):
         self.opt_maxstep = opt_maxstep
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
+        self.radius_container = radius_container
+        self.bdim = bdim
         #
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
@@ -22,9 +26,13 @@ class GaussianBenchmark(object):
         self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         self.origin = self.get_minimum_coords(index=self.minimum_index)
         self.optimizer = ModifiedFireCPP(self.origin, self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
+        self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
+        self.rattlers = np.ones(self.origin.size())
+        self.use_cgd = False
+        self.conftest_check_same_minimum = CheckSameMinimum(self.pot_optimizer, self.origin, self.rattlers, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps, bdim=self.bdim, use_cgd=self.use_cgd, perform_convergence_test=False, collect_minima_list=False)
     def find_kmax(self):
         print("find kmax")
-        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer)
+        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer, conftest_outer_sphere=self.conftest_outer_sphere)
         kmax_run.run()
         self.kmax = kmax_run.kmax
     def run_kmin(self):
