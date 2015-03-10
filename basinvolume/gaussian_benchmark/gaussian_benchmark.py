@@ -1,22 +1,30 @@
 from __future__ import division
 import numpy as np
+from pele.optimize import ModifiedFireCPP
+from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 
 class GaussianBenchmark(object):
-    def __init__(self, means=None, cov=None, minimum_index=0):
+    def __init__(self, means=None, cov=None, minimum_index=0, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
+        self.opt_dtmax = opt_dtmax
+        self.opt_maxstep = opt_maxstep
+        self.opt_tol = opt_tol
+        self.opt_nsteps = opt_nsteps
         #
-        if not self.means:
+        if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
-        if not self.cov:
+        if self.cov is None:
             raise Exception("GaussianBenchmark: illegal input: cov")
     def set_up_potential(self):
         print("set up potential")
-        #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        self.origin = self.get_minimum_coords(index=self.minimum_index)
+        self.optimizer = ModifiedFireCPP(self.origin, self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
     def find_kmax(self):
         print("find kmax")
-        kmax_run = GaussianBenchmarkKmaxRun()
+        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer)
         kmax_run.run()
         self.kmax = kmax_run.kmax
     def run_kmin(self):
