@@ -16,12 +16,23 @@ class GaussianBenchmark(object):
         #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
     def find_kmax(self):
         print("find kmax")
+        kmax_run = GaussianBenchmarkKmaxRun()
+        kmax_run.run()
+        self.kmax = kmax_run.kmax
     def run_kmin(self):
         print("run kmin")
+        kmin_run = GaussianBenchmarkKminRun()
+        kmin_run.run()
+        self.displ2_kmin = kmin_run.displ2_kmin
     def run_PT(self):
         print("run PT")
+        pt_run = GaussianBenchmarkPTRun()
+        pt_run.run()
+        self.k, self.displ2 = pt_run.get_k_displ2()
     def compute_volume(self):
         print("compute volume")
+        print("k", self.k)
+        print("displ2", self.displ2)
 
 if __name__ == "__main__":
     means = [
