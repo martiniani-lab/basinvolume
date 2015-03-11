@@ -26,7 +26,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
             seeds = dict(seed_takestep=np.random.randint(i32max))
         self.seeds = seeds
         self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
-        self.rattlers = np.ones(self.origin.size())
+        self.rattlers = np.ones(self.origin.size)
         self.add_modules_to_mc()
     def add_modules_to_mc(self):
         self.set_takestep(self.takestep)
