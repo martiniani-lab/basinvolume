@@ -41,7 +41,7 @@ class GaussianBenchmark(object):
     def find_kmax(self):
         print("find kmax")
         action_findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
-        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer, conftest_outer_sphere=self.conftest_outer_sphere, action_findk=action_findk)
+        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer, conftest_outer_sphere=self.conftest_outer_sphere, conftest_check_same_minimum=self.conftest_check_same_minimum, action_findk=action_findk)
         kmax_run.run()
         self.kmax = kmax_run.get_k()
         print("kmax", self.kmax)
