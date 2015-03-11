@@ -168,7 +168,6 @@ cmake_build_dir = "build/cmake"
 
 cxx_files = ["basinvolume/monte_carlo/_conf_test_cpp.cxx",
              "basinvolume/monte_carlo/_action_cpp.cxx",
-             "basinvolume/monte_carlo/_sumgaussianpot_cpp.cxx",
              "basinvolume/utils/_utils_cpp.cxx"
              ]
 
