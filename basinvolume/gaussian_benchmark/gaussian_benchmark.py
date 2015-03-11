@@ -7,7 +7,7 @@ from basinvolume.monte_carlo import Findk
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 
 class GaussianBenchmark(object):
-    def __init__(self, means=None, cov=None, minimum_index=0, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, radius_container=10, bdim=2, avgcount=1e6, ktarget=0.75, knavg=500, ktol=0.05):
+    def __init__(self, means=None, cov=None, minimum_index=0, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, radius_container=10, bdim=2, avgcount=1e6, ktarget=0.75, knavg=500, ktol=0.05, hmin=0, hmax=1, binsize=0.005):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -21,6 +21,9 @@ class GaussianBenchmark(object):
         self.ktarget = ktarget
         self.knavg=knavg 
         self.ktol=ktol
+        self.hmin = hmin
+        self.hmax = hmax
+        self.binsize = binsize
         #
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
