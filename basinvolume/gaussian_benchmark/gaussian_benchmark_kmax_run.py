@@ -38,3 +38,12 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_conf_test(self.conftest_check_same_minimum)
         self.add_action(self.action_findk)
+    def get_stepsize(self):
+        return self.takestep.get_stepsize()
+    def get_k(self):
+        """ The MC potential is just a placeholder. 
+        k is determined by takestep.
+        """
+        stepsize = self.get_stepsize()
+        return stepsize ** -2
+    
