@@ -2,17 +2,15 @@
 # distutils: language = C++
 """
 import numpy as np
-
 cimport numpy as np
+from ctypes import c_size_t as size_t
+from ctypes import c_double as double
 
 cimport pele.potentials._pele as _pele
 from pele.potentials._pele cimport array_wrap_np
+from pele.potentials._pele cimport Array
 from pele.potentials._pele cimport shared_ptr
 
-cdef extern from "basinvolume/sumgaussianpot.h" namespace "bv":
-    cdef cppclasss  cSumGaussianPot "bv::SumGaussianPot":
-        cSumGaussianPot(size_t bdim, _pele.Array[double] means, _pele.Array[double] cov) except +
-        
 cdef class SumGaussianPot(_pele.BasePotential):
     """python interface to c++ SumGaussianPot
     """
@@ -22,4 +20,4 @@ cdef class SumGaussianPot(_pele.BasePotential):
         bdim = means.size()[0]
         cdef _pele.Array[double] m_ = array_wrap_np(np.flatten(means))
         cdef _pele.Array[double] c_ = array_wrap_np(np.flatten(cov))
-        self.thisptr = shared_ptr[_pele.cBasePotential](<_pele.cBasePotential>new cSumGaussianPot(bdim, m_, c_)))
+        self.thisptr = shared_ptr[_pele.cBasePotential](<_pele.cBasePotential>new cSumGaussianPot(bdim, m_, c_))
