@@ -20,22 +20,20 @@ class GaussianBenchmark(object):
         self.bdim = bdim
         self.avgcount = avgcount
         self.ktarget = ktarget
-        self.knavg=knavg 
-        self.ktol=ktol
+        self.knavg = knavg 
+        self.ktol = ktol
         self.hmin = hmin
         self.hmax = hmax
         self.binsize = binsize
-        #
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
             raise Exception("GaussianBenchmark: illegal input: cov")
-        #
+        self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        self.optimizer = ModifiedFireCPP(self.means[0][:], self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
         self.find_origin()
         self.rattlers = np.ones(self.origin.size())
         self.use_cgd = False
-        self.pot_optimizer = SumGaussianPot(self.means, self.cov)
-        self.optimizer = ModifiedFireCPP(self.origin, self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
         self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
         self.conftest_check_same_minimum = CheckSameMinimum(self.pot_optimizer, self.origin, self.rattlers, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps, bdim=self.bdim, use_cgd=self.use_cgd, perform_convergence_test=False, collect_minima_list=False)
     def find_kmax(self):
@@ -68,13 +66,14 @@ class GaussianBenchmark(object):
     def get_local_minimum(self, mean_index=0):
         initial_position = self.means[self.minimum_index][:]
         print("initial_position", initial_position)
+        self.optimizer.reset(x=initial_position)
         self.optimizer.run()
         origin_result = self.optimizer.get_result().coords
-        self.optimizer.reset()
+        self.optimizer.reset(x=origin_result)
         return origin_result
 
 if __name__ == "__main__":
-    means = [
+    means = np.asarray([
     [-0.66188835, -4.90248303],
     [-2.50068746,  1.00984605],
     [ 2.79156189,  3.46309925],
@@ -85,8 +84,8 @@ if __name__ == "__main__":
     [ 7.82900305,  2.89542514],
     [ 5.35866288, -7.17580499],
     [-5.16164399, -7.13075119]        
-    ]
-    cov = [
+    ])
+    cov = np.asarray([
     [ 2.89579414,  2.89579414],
     [ 3.27805735,  3.27805735],
     [ 2.36765046,  2.36765046],
@@ -97,7 +96,7 @@ if __name__ == "__main__":
     [ 5.88827858,  5.88827858],
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
-    ]
+    ])
     bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
     bm.find_kmax()
     #bm.run_kmin()
