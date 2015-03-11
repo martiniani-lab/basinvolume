@@ -1,10 +1,10 @@
 from __future__ import division
 import numpy as np
 from pele.optimize import ModifiedFireCPP
+from pele.potentials import SumGaussianPot
 from mcpele.monte_carlo import CheckSphericalContainer
 from basinvolume.monte_carlo import CheckSameMinimum
 from basinvolume.monte_carlo import Findk
-from basinvolume.monte_carlo import SumGaussianPot
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 
 class GaussianBenchmark(object):
