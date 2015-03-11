@@ -7,7 +7,7 @@ from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest, CheckSphericalContainer 
-from mcpele.monte_carlo import GaussianCoordsDisplacement
+from mcpele.monte_carlo import SampleGaussian
 from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
@@ -601,7 +601,7 @@ class Findk_MCrunner(_BaseMCRunner):
         self.seeds=seeds
         
         #construct test/action classes      
-        self.takestep = GaussianCoordsDisplacement(self.seeds['seed_takestep'], stepsize)
+        self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
         
         if use_periodic:
             if self.use_cell_lists:
