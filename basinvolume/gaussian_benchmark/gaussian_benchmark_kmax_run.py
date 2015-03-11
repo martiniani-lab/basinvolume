@@ -11,10 +11,6 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
     def __init__(self, pot_optimizer=None, origin=None, optimizer=None, seeds=None, conftest_outer_sphere=None, conftest_check_same_minimum=None, action_findk=None, niter=1e8):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
-        self.avgcount = avgcount
-        self.ktarget = ktarget
-        self.knavg = knavg 
-        self.ktol = ktol
         self.optimizer = optimizer
         self.conftest_outer_sphere = conftest_outer_sphere
         self.conftest_check_same_minimum = conftest_check_same_minimum
