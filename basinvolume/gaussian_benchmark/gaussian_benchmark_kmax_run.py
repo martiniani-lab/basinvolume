@@ -8,10 +8,9 @@ from mcpele.monte_carlo import SampleGaussian
 from basinvolume.monte_carlo import CheckSameMinimum
 
 class GaussianBenchmarkKmaxRun(_BaseMCRunner):
-    def __init__(self, pot_optimizer=None, origin=None, dtol=1e-3, optimizer=None, seeds=None, conftest_outer_sphere=None, conftest_check_same_minimum=None, action_findk=None, niter=1e8):
+    def __init__(self, pot_optimizer=None, origin=None, optimizer=None, seeds=None, conftest_outer_sphere=None, conftest_check_same_minimum=None, action_findk=None, niter=1e8):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
-        self.dtol = dtol
         self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg = knavg 
@@ -46,3 +45,6 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         """
         stepsize = self.get_stepsize()
         return stepsize ** -2
+    def set_control(self, c):
+        """set k"""
+        print("WARNING: findk set control is not defined, spring constant is set through stepsize")

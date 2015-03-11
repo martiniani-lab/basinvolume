@@ -8,7 +8,7 @@ from basinvolume.monte_carlo import Findk
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 
 class GaussianBenchmark(object):
-    def __init__(self, means=None, cov=None, minimum_index=0, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, radius_container=10, bdim=2, avgcount=1e6, ktarget=0.75, knavg=500, ktol=0.05, hmin=0, hmax=1, binsize=0.005):
+    def __init__(self, means=None, cov=None, minimum_index=0, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, radius_container=10, bdim=2, avgcount=1e6, ktarget=0.75, knavg=500, ktol=0.05, hmin=0, hmax=1, binsize=0.005, dtol=1e-3):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -25,6 +25,7 @@ class GaussianBenchmark(object):
         self.hmin = hmin
         self.hmax = hmax
         self.binsize = binsize
+        self.dtol = dtol
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -32,7 +33,8 @@ class GaussianBenchmark(object):
         self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         self.optimizer = ModifiedFireCPP(self.means[0][:], self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
         self.find_origin()
-        self.rattlers = np.ones(self.origin.size())
+        print("self.origin.size", self.origin.size)
+        self.rattlers = np.ones(self.origin.size)
         self.use_cgd = False
         self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
         self.conftest_check_same_minimum = CheckSameMinimum(self.pot_optimizer, self.origin, self.rattlers, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps, bdim=self.bdim, use_cgd=self.use_cgd, perform_convergence_test=False, collect_minima_list=False)
@@ -66,10 +68,10 @@ class GaussianBenchmark(object):
     def get_local_minimum(self, mean_index=0):
         initial_position = self.means[self.minimum_index][:]
         print("initial_position", initial_position)
-        self.optimizer.reset(x=initial_position)
+        self.optimizer.reset(initial_position)
         self.optimizer.run()
         origin_result = self.optimizer.get_result().coords
-        self.optimizer.reset(x=origin_result)
+        self.optimizer.reset(origin_result)
         return origin_result
 
 if __name__ == "__main__":
