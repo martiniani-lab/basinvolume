@@ -8,7 +8,7 @@ from mcpele.monte_carlo import SampleGaussian
 from basinvolume.monte_carlo import CheckSameMinimum
 
 class GaussianBenchmarkKmaxRun(_BaseMCRunner):
-    def __init__(self, pot_optimizer=None, origin=None, optimizer=None, seeds=None, conftest_outer_sphere=None, conftest_check_same_minimum=None, action_findk=None, niter=1e8):
+    def __init__(self, pot_optimizer=None, origin=None, optimizer=None, seeds=None, conftest_outer_sphere=None, conftest_check_same_minimum=None, action_findk=None, niter=1e8, stepsize=1e-1):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
         self.optimizer = optimizer
