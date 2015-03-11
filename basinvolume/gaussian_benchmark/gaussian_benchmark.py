@@ -43,11 +43,13 @@ class GaussianBenchmark(object):
         kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer, conftest_outer_sphere=self.conftest_outer_sphere, action_findk=action_findk)
         kmax_run.run()
         self.kmax = kmax_run.get_k()
+        print("kmax", self.kmax)
     def run_kmin(self):
         print("run kmin")
         kmin_run = GaussianBenchmarkKminRun()
         kmin_run.run()
         self.displ2_kmin = kmin_run.displ2_kmin
+        print("displ2_kmin", self.displ2_kmin)
     def run_PT(self):
         print("run PT")
         pt_run = GaussianBenchmarkPTRun()
