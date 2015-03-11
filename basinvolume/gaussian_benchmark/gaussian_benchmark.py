@@ -87,6 +87,6 @@ if __name__ == "__main__":
     ]
     bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
     bm.find_kmax()
-    bm.run_kmin()
-    bm.run_PT()
-    bm.compute_volume()
+    #bm.run_kmin()
+    #bm.run_PT()
+    #bm.compute_volume()
