@@ -46,4 +46,3 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         """
         stepsize = self.get_stepsize()
         return stepsize ** -2
-    
