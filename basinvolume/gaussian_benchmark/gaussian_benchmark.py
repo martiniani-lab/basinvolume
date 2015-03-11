@@ -30,9 +30,9 @@ class GaussianBenchmark(object):
         if self.cov is None:
             raise Exception("GaussianBenchmark: illegal input: cov")
         #
+        self.find_origin()
         self.rattlers = np.ones(self.origin.size())
         self.use_cgd = False
-        self.origin = self.get_minimum_coords(index=self.minimum_index)
         self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         self.optimizer = ModifiedFireCPP(self.origin, self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
         self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
@@ -59,6 +59,18 @@ class GaussianBenchmark(object):
         print("compute volume")
         print("k", self.k)
         print("displ2", self.displ2)
+    def find_origin(self):
+        print("initial quench")
+        self.origin = self.get_local_minimum(mean_index=self.minimum_index)
+        print("Gaussian center coords", self.means[self.minimum_index][:])
+        print("corresponding mimimum position (origin)", self.origin)
+    def get_local_minimum(self, mean_index=0):
+        initial_position = self.means[self.minimum_index][:]
+        print("initial_position", initial_position)
+        self.optimizer.run()
+        origin_result = self.optimizer.get_result().coords
+        self.optimizer.reset()
+        return origin_result
 
 if __name__ == "__main__":
     means = [
