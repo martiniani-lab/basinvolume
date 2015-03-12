@@ -11,8 +11,8 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
                  adjustf_niter=None,
                  pt_eq_niter=None,
                  equilibration_steps=None,
-                 seeds=None,
-                 metropolis=None):
+                 metropolis=None,
+                 takestep=None):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
         self.optimizer = optimizer
@@ -22,9 +22,17 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = equilibration_steps
-        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_record_displ is None or metropolis is None:
+        self.metropolis = metropolis
+        self.takestep = takestep
+        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_record_displ is None or self.metropolis is None or self.takestep is None:
             raise Exception("GaussianBenchmarkKminRun: illegal input")
-        self.seeds = seeds
+        self.set_report_steps(self.adjustf_niter)
+        self.set_control(0)
+        self.add_action(self.action_record_displ)
+        self.set_takestep(self.takestep)
+        self.add_conf_test(self.conftest_outer_sphere)
+        self.add_conf_test(self.conftest_check_same_minimum)
+        self.add_accept_test(self.metropolis)
     def get_displ2_kmin(self):
         return self.action_record_displ.get_mean_variance()
     def set_control(self, c):

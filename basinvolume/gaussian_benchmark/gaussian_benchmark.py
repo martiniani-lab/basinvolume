@@ -4,6 +4,7 @@ from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
 from mcpele.monte_carlo import CheckSphericalContainer
 from mcpele.monte_carlo import RandomCoordsDisplacement
+from mcpele.monte_carlo import MetropolisTest
 from basinvolume.monte_carlo import CheckSameMinimum
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
@@ -55,6 +56,12 @@ class GaussianBenchmark(object):
             seeds = dict(seed_takestep=np.random.randint(i32max),
                     seed_metropolis=np.random.randint(i32max))
         self.seeds = seeds
+        stepsize = 0.1
+        adjustf_navg=20
+        acceptance=0.2
+        adjustf=0.9
+        single=False
+        self.nparticles = 42
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, nparticles=self.nparticles, bdim=self.bdim)
@@ -82,7 +89,8 @@ class GaussianBenchmark(object):
                    adjustf_niter=self.adjustf_niter,
                    pt_eq_niter=self.pt_eq_niter,
                    equilibration_steps=self.equilibration_steps,
-                   metropolis=self.metropolis)
+                   metropolis=self.metropolis,
+                   takestep=self.takestep)
         kmin_run.run()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin)
