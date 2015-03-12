@@ -16,6 +16,14 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.action_record_displ = action_record_displ
         if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_record_displ is None:
             raise Exception("GaussianBenchmarkKminRun: illegal input")
+        #compute seeds
+        if not seeds:
+            i32max = np.iinfo(np.int32).max
+            seeds = dict(seed_takestep=np.random.randint(i32max),
+                    seed_metropolis=np.random.randint(i32max))
+        self.seeds = seeds
+    def get_displ2_kmin(self):
+        return self.action_record_displ.get_mean_variance()
     def set_control(self, c):
         """set temperature, canonical control parameter"""
         self.k = c

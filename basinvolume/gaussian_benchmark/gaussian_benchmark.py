@@ -5,11 +5,17 @@ from pele.potentials import SumGaussianPot
 from mcpele.monte_carlo import CheckSphericalContainer
 from basinvolume.monte_carlo import CheckSameMinimum
 from basinvolume.monte_carlo import Findk
+from basinvolume.monte_carlo import RecordDisp2Histogram
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 
 class GaussianBenchmark(object):
-    def __init__(self, means=None, cov=None, minimum_index=0, opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, radius_container=10, bdim=2, avgcount=1e6, ktarget=0.75, knavg=500, ktol=0.05, hmin=0, hmax=1, binsize=0.005, dtol=1e-3):
+    def __init__(self, means=None, cov=None, minimum_index=0,
+                 opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4,
+                 opt_nsteps=1e5, radius_container=10, bdim=2,
+                 avgcount=1e6, ktarget=0.75, knavg=500, ktol=0.05,
+                 hmin=0, hmax=1, binsize=0.005, dtol=1e-3,
+                 equilibration_steps=1e4):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -27,6 +33,7 @@ class GaussianBenchmark(object):
         self.hmax = hmax
         self.binsize = binsize
         self.dtol = dtol
+        self.equilibration_steps = equilibration_steps
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -48,13 +55,19 @@ class GaussianBenchmark(object):
         print("kmax", self.kmax)
     def run_kmin(self):
         print("run kmin")
+        hmin=0
+        hmax=1
+        hbinsize=0.001
+        action_record_displ = RecordDisp2Histogram(self.origin,
+                              self.rattlers, self.bdim, hmin, hmax,
+                              hbinsize, self.equilibration_steps)
         kmin_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,
                    origin=self.origin, optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
                    conftest_check_same_minimum=self.conftest_check_same_minimum,
-                   action_record_displ=self.action_record_displ)
+                   action_record_displ=action_record_displ)
         kmin_run.run()
-        self.displ2_kmin = kmin_run.get_displ2_kmin()
+        self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin)
     def run_PT(self):
         print("run PT")
