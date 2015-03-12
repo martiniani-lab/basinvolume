@@ -7,20 +7,23 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
     def __init__(self, pot_optimizer=None, origin=None, optimizer=None,
                  seeds=None, conftest_outer_sphere=None,
                  conftest_check_same_minimum=None,
-                 action_record_displ=None):
+                 action_record_displ=None,
+                 adjustf_niter=None,
+                 pt_eq_niter=None,
+                 equilibration_steps=None,
+                 seeds=None,
+                 metropolis=None):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
         self.optimizer = optimizer
         self.conftest_outer_sphere = conftest_outer_sphere
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.action_record_displ = action_record_displ
-        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_record_displ is None:
+        self.adjustf_niter = adjustf_niter
+        self.pt_eq_niter = pt_eq_niter
+        self.equilibration_steps = equilibration_steps
+        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_record_displ is None or metropolis is None:
             raise Exception("GaussianBenchmarkKminRun: illegal input")
-        #compute seeds
-        if not seeds:
-            i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max),
-                    seed_metropolis=np.random.randint(i32max))
         self.seeds = seeds
     def get_displ2_kmin(self):
         return self.action_record_displ.get_mean_variance()

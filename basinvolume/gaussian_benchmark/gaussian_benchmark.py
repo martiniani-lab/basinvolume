@@ -3,6 +3,7 @@ import numpy as np
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
 from mcpele.monte_carlo import CheckSphericalContainer
+from mcpele.monte_carlo import RandomCoordsDisplacement
 from basinvolume.monte_carlo import CheckSameMinimum
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
@@ -15,7 +16,8 @@ class GaussianBenchmark(object):
                  opt_nsteps=1e5, radius_container=10, bdim=2,
                  avgcount=1e6, ktarget=0.75, knavg=500, ktol=0.05,
                  hmin=0, hmax=1, binsize=0.005, dtol=1e-3,
-                 equilibration_steps=1e4):
+                 adjustf_niter=1e4, pt_eq_niter=1e3,
+                 seeds=None):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -33,7 +35,9 @@ class GaussianBenchmark(object):
         self.hmax = hmax
         self.binsize = binsize
         self.dtol = dtol
-        self.equilibration_steps = equilibration_steps
+        self.adjustf_niter = adjustf_niter
+        self.pt_eq_niter = pt_eq_niter
+        self.equilibration_steps = adjustf_niter + pt_eq_niter
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -46,6 +50,15 @@ class GaussianBenchmark(object):
         self.use_cgd = False
         self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
         self.conftest_check_same_minimum = CheckSameMinimum(self.pot_optimizer, self.origin, self.rattlers, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps, bdim=self.bdim, use_cgd=self.use_cgd, perform_convergence_test=False, collect_minima_list=False)
+        if not seeds:
+            i32max = np.iinfo(np.int32).max
+            seeds = dict(seed_takestep=np.random.randint(i32max),
+                    seed_metropolis=np.random.randint(i32max))
+        self.seeds = seeds
+        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
+                                                  factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
+                                                  single=single, nparticles=self.nparticles, bdim=self.bdim)
+        self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
     def find_kmax(self):
         print("find kmax")
         action_findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
@@ -65,7 +78,11 @@ class GaussianBenchmark(object):
                    origin=self.origin, optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
                    conftest_check_same_minimum=self.conftest_check_same_minimum,
-                   action_record_displ=action_record_displ)
+                   action_record_displ=action_record_displ,
+                   adjustf_niter=self.adjustf_niter,
+                   pt_eq_niter=self.pt_eq_niter,
+                   equilibration_steps=self.equilibration_steps,
+                   metropolis=self.metropolis)
         kmin_run.run()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin)
