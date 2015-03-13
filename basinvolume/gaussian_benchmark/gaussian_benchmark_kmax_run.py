@@ -8,10 +8,17 @@ from mcpele.monte_carlo import SampleGaussian
 from basinvolume.monte_carlo import CheckSameMinimum
 
 class GaussianBenchmarkKmaxRun(_BaseMCRunner):
-    def __init__(self, pot_optimizer=None, origin=None, optimizer=None,
-                 seeds=None, conftest_outer_sphere=None,
-                 conftest_check_same_minimum=None, action_findk=None,
-                 niter=1e8, stepsize=1e-1):
+    def __init__(self,
+                 pot_optimizer=None,
+                 origin=None,
+                 optimizer=None,
+                 seeds=None,
+                 conftest_outer_sphere=None,
+                 conftest_check_same_minimum=None,
+                 action_findk=None,
+                 niter=1e8,
+                 stepsize=1e-1,
+                 action_record_displ_kmax=None):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
         self.optimizer = optimizer
@@ -19,8 +26,9 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.action_findk = action_findk
         self.niter = niter
+        self.action_record_displ_kmax = action_record_displ_kmax
         #
-        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_findk is None:
+        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_findk is None or self.action_record_displ_kmax is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input")
         fake_potential = NullPotential()
         super(GaussianBenchmarkKmaxRun, self).__init__(fake_potential, self.origin, 1, self.niter)
@@ -36,8 +44,11 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_conf_test(self.conftest_check_same_minimum)
         self.add_action(self.action_findk)
+        self.add_action(self.action_record_displ_kmax)
     def get_stepsize(self):
         return self.takestep.get_stepsize()
+    def get_displ2(self):
+        return self.action_record_displ_kmax.get_mean_variance()[0]
     def get_k(self):
         """ The MC potential is just a placeholder. 
         k is determined by takestep.

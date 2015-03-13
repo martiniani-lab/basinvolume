@@ -22,7 +22,7 @@ class GaussianBenchmark(object):
                  opt_tol=1e-4,
                  opt_nsteps=1e5,
                  radius_container=10,
-                 bdim=2,
+                 bdim=1,
                  avgcount=1e6,
                  ktarget=0.75,
                  knavg=500,
@@ -64,40 +64,51 @@ class GaussianBenchmark(object):
         print("self.origin.size", self.origin.size)
         self.rattlers = np.ones(self.origin.size)
         self.use_cgd = False
-        self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
+        ####
+        #self.conftest_outer_sphere = CheckSphericalContainerConfig(self.radius_container)
+        self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, 10)
+        ####
+        #self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer, self.origin, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps)
         self.conftest_check_same_minimum = CheckSameMinimum(self.pot_optimizer, self.origin, self.rattlers, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps, bdim=self.bdim, use_cgd=self.use_cgd, perform_convergence_test=False, collect_minima_list=False)
+        ####
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max),
                     seed_metropolis=np.random.randint(i32max))
         self.seeds = seeds
         stepsize = 0.1
-        adjustf_navg=20
-        acceptance=0.2
-        adjustf=0.9
-        single=False
-        self.nparticles = 42
+        adjustf_navg = 20
+        acceptance = 0.2
+        adjustf = 0.9
+        single = False
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
-                                                  single=single, nparticles=self.nparticles, bdim=self.bdim)
+                                                  single=single, bdim=self.bdim)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         k = 42
         harmonic_com_flag = True
         self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
     def find_kmax(self):
         print("find kmax")
+        hmin = 0
+        hmax = 1
+        hbinsize = 0.001
+        action_record_displ_kmax = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax, hbinsize, 0)
         action_findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
-        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer, conftest_outer_sphere=self.conftest_outer_sphere, conftest_check_same_minimum=self.conftest_check_same_minimum, action_findk=action_findk)
+        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer, conftest_outer_sphere=self.conftest_outer_sphere, conftest_check_same_minimum=self.conftest_check_same_minimum, action_findk=action_findk, action_record_displ_kmax=action_record_displ_kmax)
         kmax_run.run()
         self.kmax = kmax_run.get_k()
+        self.kmax_displ2 = kmax_run.get_displ2()
         print("kmax", self.kmax)
+        print("kmax_displ2", self.kmax_displ2)
+        print("kmax_displ2 samples", action_record_displ_kmax.get_count())
     def run_kmin(self):
         print("run kmin")
         hmin = 0
         hmax = 1
         hbinsize = 0.001
         print("histogram parameters set")
-        action_record_displ = RecordDisp2Histogram(self.origin,
+        action_record_displ_kmin = RecordDisp2Histogram(self.origin,
                               self.rattlers, self.bdim, hmin, hmax,
                               hbinsize, self.equilibration_steps)
         print("histogram action constructed")
@@ -105,7 +116,7 @@ class GaussianBenchmark(object):
                    origin=self.origin, optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
                    conftest_check_same_minimum=self.conftest_check_same_minimum,
-                   action_record_displ=action_record_displ,
+                   action_record_displ=action_record_displ_kmin,
                    adjustf_niter=self.adjustf_niter,
                    pt_eq_niter=self.pt_eq_niter,
                    equilibration_steps=self.equilibration_steps,
