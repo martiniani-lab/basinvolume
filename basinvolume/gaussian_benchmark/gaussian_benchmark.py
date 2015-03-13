@@ -6,7 +6,7 @@ from pele.potentials import Harmonic
 from mcpele.monte_carlo import CheckSphericalContainerConfig
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
-from basinvolume.monte_carlo import CheckSameMinimum
+from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
@@ -64,13 +64,8 @@ class GaussianBenchmark(object):
         print("self.origin.size", self.origin.size)
         self.rattlers = np.ones(self.origin.size)
         self.use_cgd = False
-        ####
         self.conftest_outer_sphere = CheckSphericalContainerConfig(self.radius_container)
-        #self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, 10)
-        ####
-        #self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer, self.origin, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps)
         self.conftest_check_same_minimum = CheckSameMinimum(self.pot_optimizer, self.origin, self.rattlers, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps, bdim=self.bdim, use_cgd=self.use_cgd, perform_convergence_test=False, collect_minima_list=False)
-        ####
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max),
