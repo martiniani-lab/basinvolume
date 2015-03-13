@@ -1,5 +1,6 @@
 from __future__ import division
 import numpy as np
+import copy
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
 from pele.potentials import Harmonic
@@ -30,7 +31,7 @@ class GaussianBenchmark(object):
                  hmin=0,
                  hmax=1,
                  binsize=0.005,
-                 dtol=1e-3,
+                 dtol=1e-2,
                  adjustf_niter=1e4,
                  pt_eq_niter=1e3,
                  seeds=None):
@@ -58,8 +59,12 @@ class GaussianBenchmark(object):
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
             raise Exception("GaussianBenchmark: illegal input: cov")
-        self.pot_optimizer = SumGaussianPot(self.means, self.cov)
-        self.optimizer = ModifiedFireCPP(self.means[0][:], self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
+        #####
+        #self.pot_optimizer = Harmonic(np.ones(2), 42, bdim=1, com=False)
+        self.pot_optimizer = SumGaussianPot(np.ones(self.means.shape), self.cov)
+        #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        #####
+        self.optimizer = ModifiedFireCPP(self.means[self.minimum_index][:], self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
         self.find_origin()
         print("self.origin.size", self.origin.size)
         self.rattlers = np.ones(self.origin.size)
@@ -83,6 +88,20 @@ class GaussianBenchmark(object):
         k = 42
         harmonic_com_flag = True
         self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
+    def find_origin(self):
+        print("initial quench")
+        self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
+        print("Gaussian center coords", self.means[self.minimum_index][:])
+        print("corresponding mimimum position (origin)", self.origin)
+    def get_local_minimum(self, mean_index=0):
+        initial_position = self.means[self.minimum_index][:]
+        print("initial_position", initial_position)
+        self.optimizer.reset(initial_position)
+        result = self.optimizer.run()
+        print("initial optimization", result.success)
+        origin_result = result.coords
+        self.optimizer.reset(origin_result)
+        return origin_result
     def find_kmax(self):
         print("find kmax")
         hmin = 0
@@ -132,19 +151,6 @@ class GaussianBenchmark(object):
         print("compute volume")
         print("k", self.k)
         print("displ2", self.displ2)
-    def find_origin(self):
-        print("initial quench")
-        self.origin = self.get_local_minimum(mean_index=self.minimum_index)
-        print("Gaussian center coords", self.means[self.minimum_index][:])
-        print("corresponding mimimum position (origin)", self.origin)
-    def get_local_minimum(self, mean_index=0):
-        initial_position = self.means[self.minimum_index][:]
-        print("initial_position", initial_position)
-        self.optimizer.reset(initial_position)
-        self.optimizer.run()
-        origin_result = self.optimizer.get_result().coords
-        self.optimizer.reset(origin_result)
-        return origin_result
 
 if __name__ == "__main__":
     means = np.asarray([
@@ -172,7 +178,7 @@ if __name__ == "__main__":
     [ 1.62236091,  1.62236091]
     ])
     bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
-    bm.find_kmax()
-    bm.run_kmin()
+    #bm.find_kmax()
+    #bm.run_kmin()
     #bm.run_PT()
     #bm.compute_volume()
