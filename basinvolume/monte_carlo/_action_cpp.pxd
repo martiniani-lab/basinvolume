@@ -8,6 +8,7 @@ from mcpele.monte_carlo._action_cpp cimport cppRecordEnergyHistogram
 cdef extern from "basinvolume/record_disp2_histogram.h" namespace "bv":
     cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
         cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t) except +
+        int get_entries() except +
 
 cdef extern from "basinvolume/findk.h" namespace "bv":    
     cdef cppclass cppFindk "bv::Findk":

@@ -13,7 +13,7 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
                  equilibration_steps=None,
                  metropolis=None,
                  takestep=None,
-                 niter=1e5,
+                 niter=1e7,
                  potential=None):
         print("constructing GaussianBenchmarkKminRun")
         self.pot_optimizer = pot_optimizer
@@ -42,7 +42,14 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_late_conf_test(self.conftest_check_same_minimum)
         self.add_accept_test(self.metropolis)
+    def run_kmin(self):
+        print("run kmin")
+        print("coords initial", self.get_coords())
+        self.set_print_progress()
+        self.run()
+        print("coords final", self.get_coords())
     def get_displ2_kmin(self):
+        print("recorded steos for displ2", self.action_record_displ.get_entries())
         return self.action_record_displ.get_mean_variance()
     def set_control(self, c):
         """set temperature, canonical control parameter"""

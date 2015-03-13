@@ -99,7 +99,7 @@ class GaussianBenchmark(object):
                    takestep=self.takestep,
                    potential=self.potential)
         print("kmin run constructed")
-        kmin_run.run()
+        kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin_mean)
         print("displ2_kmin_variance", self.displ2_kmin_variance)
