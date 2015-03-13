@@ -58,7 +58,7 @@ public:
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
     double get_prob() const { return _acceptedf; }
     double get_k() const { return _k; }
-    int get_entries() const { return _hist.entries(); }
+    int get_entries() const { return _hist.get_count(); }
     double get_mean() const { return _hist.get_mean(); }
     double get_variance() const { return _hist.get_variance(); }
     pele::Array<double> get_histogram() const

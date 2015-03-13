@@ -55,16 +55,8 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         variance = self.newptr.get_variance()
         return mean, variance
         
-    def get_entries(self):
-        """get number of entries in histogram
-        
-        Returns
-        -------
-        entries : integer
-            number of entries in histogram
-        """
-        entries = self.newptr.get_entries()
-        return entries
+    def get_count(self):
+        return self.newptr.get_count()
     
 class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
     """This class is the python interface for the c++ RecordDisp2Histogram implementation.
