@@ -13,12 +13,26 @@ from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 
 class GaussianBenchmark(object):
-    def __init__(self, means=None, cov=None, minimum_index=0,
-                 opt_dtmax=1, opt_maxstep=0.6, opt_tol=1e-4,
-                 opt_nsteps=1e5, radius_container=10, bdim=2,
-                 avgcount=1e6, ktarget=0.75, knavg=500, ktol=0.05,
-                 hmin=0, hmax=1, binsize=0.005, dtol=1e-3,
-                 adjustf_niter=1e4, pt_eq_niter=1e3,
+    def __init__(self,
+                 means=None,
+                 cov=None,
+                 minimum_index=0,
+                 opt_dtmax=1,
+                 opt_maxstep=0.6,
+                 opt_tol=1e-4,
+                 opt_nsteps=1e5,
+                 radius_container=10,
+                 bdim=2,
+                 avgcount=1e6,
+                 ktarget=0.75,
+                 knavg=500,
+                 ktol=0.05,
+                 hmin=0,
+                 hmax=1,
+                 binsize=0.005,
+                 dtol=1e-3,
+                 adjustf_niter=1e4,
+                 pt_eq_niter=1e3,
                  seeds=None):
         self.means = means
         self.cov = cov
