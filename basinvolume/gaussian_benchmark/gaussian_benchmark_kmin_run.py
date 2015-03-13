@@ -49,7 +49,7 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.run()
         print("coords final", self.get_coords())
     def get_displ2_kmin(self):
-        print("recorded steos for displ2", self.action_record_displ.get_entries())
+        print("recorded steps for displ2", self.action_record_displ.get_entries())
         return self.action_record_displ.get_mean_variance()
     def set_control(self, c):
         """set temperature, canonical control parameter"""
