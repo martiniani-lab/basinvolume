@@ -202,14 +202,12 @@ class CheckOverlapCartesianCellLists(_Cdef_CheckOverlapCartesianCellLists):
 cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
     cdef _pele_opt.GradientOptimizer optimizer # this is stored so that the memory is not freed
     cdef _pele.BasePotential potential
-    cdef cppCheckSameMinimumInterface* newptr
+    cdef cppCheckSameMinimumConfig* newptr
     def __cinit__(self, pot, origin, dtol, opt=None, opt_tol=1e-4, opt_maxiter=1e5):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
-        cdef np.ndarray[double, ndim=1] rattlersc = np.ones(origin.size)
         self.optimizer = opt
         self.potential = pot
-        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT1](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                               _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, 0, False, False))
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumConfig(self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size), dtol))
                                                
                                                
 class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):

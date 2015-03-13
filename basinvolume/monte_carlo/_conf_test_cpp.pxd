@@ -55,6 +55,12 @@ cdef extern from "basinvolume/minimum.h" namespace "bv":
 
 #CheckSameMinimum2D(bool perform_convergence_test=false, bool collect_minima_list=false)
 
+cdef extern from "basinvolume/check_same_minimum_config.h" namespace "bv":
+    cdef cppclass cppCheckSameMinimumConfig "bv::CheckSameMinimumConfig":
+        cppCheckSameMinimumConfig(shared_ptr[_pele_opt.cGradientOptimizer],
+                                  shared_ptr[_pele.cBasePotential], _pele.Array[double],
+                                  double) except +
+
 cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
     cdef cppclass cppCheckSameMinimumInterface "bv::CheckSameMinimumInterface":
         size_t ml_nr_distinct_minima() except +
