@@ -75,12 +75,14 @@ class GaussianBenchmark(object):
         print("kmax", self.kmax)
     def run_kmin(self):
         print("run kmin")
-        hmin=0
-        hmax=1
-        hbinsize=0.001
+        hmin = 0
+        hmax = 1
+        hbinsize = 0.001
+        print("histogram parameters set")
         action_record_displ = RecordDisp2Histogram(self.origin,
                               self.rattlers, self.bdim, hmin, hmax,
                               hbinsize, self.equilibration_steps)
+        print("histogram action constructed")
         kmin_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,
                    origin=self.origin, optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
@@ -91,6 +93,7 @@ class GaussianBenchmark(object):
                    equilibration_steps=self.equilibration_steps,
                    metropolis=self.metropolis,
                    takestep=self.takestep)
+        print("kmin run constructed")
         kmin_run.run()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin)

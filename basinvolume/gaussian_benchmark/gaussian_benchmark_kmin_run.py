@@ -12,7 +12,10 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
                  pt_eq_niter=None,
                  equilibration_steps=None,
                  metropolis=None,
-                 takestep=None):
+                 takestep=None,
+                 niter=1e5,
+                 potential=None):
+        print("constructing GaussianBenchmarkKminRun")
         self.pot_optimizer = pot_optimizer
         self.origin = origin
         self.optimizer = optimizer
@@ -24,8 +27,14 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.equilibration_steps = equilibration_steps
         self.metropolis = metropolis
         self.takestep = takestep
-        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_record_displ is None or self.metropolis is None or self.takestep is None:
+        self.niter = niter
+        self.potential = potential
+        print("forwarded input")
+        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_record_displ is None or self.metropolis is None or self.takestep is None or self.potential is None:
             raise Exception("GaussianBenchmarkKminRun: illegal input")
+        print("checked input")
+        super(GaussianBenchmarkKminRun, self).__init__(self.potential, self.origin, 1, self.niter)
+        print("constructed super")
         self.set_report_steps(self.adjustf_niter)
         self.set_control(0)
         self.add_action(self.action_record_displ)
