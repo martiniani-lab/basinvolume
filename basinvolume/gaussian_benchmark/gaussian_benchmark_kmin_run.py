@@ -40,7 +40,7 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.add_action(self.action_record_displ)
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest_outer_sphere)
-        self.add_conf_test(self.conftest_check_same_minimum)
+        self.add_late_conf_test(self.conftest_check_same_minimum)
         self.add_accept_test(self.metropolis)
     def get_displ2_kmin(self):
         return self.action_record_displ.get_mean_variance()

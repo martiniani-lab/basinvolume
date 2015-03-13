@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
+from pele.potentials import Harmonic
 from mcpele.monte_carlo import CheckSphericalContainer
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
@@ -66,6 +67,9 @@ class GaussianBenchmark(object):
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, nparticles=self.nparticles, bdim=self.bdim)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
+        k = 42
+        harmonic_com_flag = True
+        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
     def find_kmax(self):
         print("find kmax")
         action_findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
@@ -92,11 +96,13 @@ class GaussianBenchmark(object):
                    pt_eq_niter=self.pt_eq_niter,
                    equilibration_steps=self.equilibration_steps,
                    metropolis=self.metropolis,
-                   takestep=self.takestep)
+                   takestep=self.takestep,
+                   potential=self.potential)
         print("kmin run constructed")
         kmin_run.run()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
-        print("displ2_kmin", self.displ2_kmin)
+        print("displ2_kmin", self.displ2_kmin_mean)
+        print("displ2_kmin_variance", self.displ2_kmin_variance)
     def run_PT(self):
         print("run PT")
         pt_run = GaussianBenchmarkPTRun()
