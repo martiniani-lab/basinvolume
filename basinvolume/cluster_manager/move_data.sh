@@ -77,16 +77,16 @@ data_size_=$(du -s $1)
 data_size=$(echo $data_size_ | awk '{split($0,a," "); print a[1]}')
 echo "data size "$data_size
 
-free_space_=$(ssh $remote_computer 'df $remote_folder')
-free_space=$(echo $free_space_ | awk '{split($0,a," "); print a[11]}')
-echo "free space "$free_space
+#free_space_=$(ssh $remote_computer 'df $remote_folder')
+#free_space=$(echo $free_space_ | awk '{split($0,a," "); print a[11]}')
+#echo "free space "$free_space
 # Assumption: multiply actual folder size by some safety factor larger 1
-double_data_size=$((2 * data_size))
-if [ "$free_space" -lt "$double_data_size" ];
-then
-    echo "not enough disk space at destination"
-    exit 42
-fi
+#double_data_size=$((2 * data_size))
+#if [ "$free_space" -lt "$double_data_size" ];
+#then
+#    echo "not enough disk space at destination"
+#    exit 42
+#fi
 
 # Step 3.1
 # Check if remote folder with (probably corruped data) exists and leave it, or erase it.
