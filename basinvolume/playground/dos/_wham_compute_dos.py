@@ -27,7 +27,7 @@ class _wham_compute_dos(object):
     this is a class that implements _wham_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=500, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='jammed_packings', plot_data=True,
                  frozen=False, show=False, verbose=True):
         
@@ -237,8 +237,8 @@ class _wham_compute_dos(object):
         
         #compute the average for the prefactor
         Alist = []
-        assert s > 3
-        for i in xrange(-3,3,1):
+        assert s > 2
+        for i in xrange(-2,2,1):
             vmin = volume_nball(self.rmin+i*dx, self.ndof)
             A = vmin / simps(self.dos[:s+i], dx=dx)
             Alist.append(A)
@@ -355,7 +355,7 @@ if __name__ == "__main__":
     sim = _wham_compute_dos()
     
     if (fname != None):
-        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=True)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=False)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:
