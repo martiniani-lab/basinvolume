@@ -24,7 +24,7 @@ class GaussianBenchmark(object):
                  opt_nsteps=1e5,
                  radius_container=10,
                  bdim=1,
-                 avgcount=1e6,
+                 avgcount=1e3,
                  ktarget=0.75,
                  knavg=500,
                  ktol=0.05,
@@ -33,8 +33,9 @@ class GaussianBenchmark(object):
                  binsize=0.005,
                  dtol=1e-5,
                  adjustf_niter=1e4,
-                 pt_eq_niter=1e3,
-                 seeds=None):
+                 pt_eq_niter=1e4,
+                 seeds=None,
+                 pt_niter=None):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -55,6 +56,7 @@ class GaussianBenchmark(object):
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
+        self.pt_niter = 2 * self.equilibration_steps
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -155,7 +157,8 @@ class GaussianBenchmark(object):
                    equilibration_steps=self.equilibration_steps,
                    metropolis=self.metropolis,
                    takestep=self.takestep,
-                   potential=self.potential)
+                   potential=self.potential,
+                   niter=self.pt_niter)
         print("kmin run constructed")
         kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
