@@ -99,6 +99,8 @@ class GaussianBenchmark(object):
         k = 42
         harmonic_com_flag = True
         self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
+        self.PES_energy_calls = 0
+        self.harmonic_energy_calls = 0
     def find_origin(self):
         print("initial quench")
         self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
@@ -111,10 +113,12 @@ class GaussianBenchmark(object):
         result = self.optimizer.run()
         print("initial optimization", result.success)
         origin_result = result.coords
+        print("self.optimizer.get_niter()", self.optimizer.get_niter())
         self.optimizer.reset(origin_result)
         return origin_result
     def find_kmax(self):
         print("find kmax")
+        print("self.optimizer.get_niter()", self.optimizer.get_niter())
         hmin = 0
         hmax = 1
         hbinsize = 0.001
@@ -137,8 +141,10 @@ class GaussianBenchmark(object):
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
         print("kmax_displ2 samples", action_record_displ_kmax.get_count())
+        print("self.optimizer.get_niter()", self.optimizer.get_niter())
     def run_kmin(self):
         print("run kmin")
+        print("self.optimizer.get_niter()", self.optimizer.get_niter())
         hmin = 0
         hmax = 1
         hbinsize = 0.001
@@ -164,6 +170,7 @@ class GaussianBenchmark(object):
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin_mean)
         print("displ2_kmin_variance", self.displ2_kmin_variance)
+        print("self.optimizer.get_niter()", self.optimizer.get_niter())
     def run_PT(self):
         print("run PT")
         pt_run = GaussianBenchmarkPTRun()
@@ -173,6 +180,10 @@ class GaussianBenchmark(object):
         print("compute volume")
         print("k", self.k)
         print("displ2", self.displ2)
+    def print_nr_function_calls(self):
+        print("total nr function calls PES")
+        #print(self.optimizer.get_result().nfev)
+        print("self.optimizer.get_niter()", self.optimizer.get_niter())
 
 if __name__ == "__main__":
     means = np.asarray([
@@ -240,3 +251,4 @@ if __name__ == "__main__":
     bm.run_kmin()
 #   bm.run_PT()
 #   bm.compute_volume()
+    bm.print_nr_function_calls()
