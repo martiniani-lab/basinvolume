@@ -513,6 +513,8 @@ class Findk_MCrunner(_BaseMCRunner):
     *knavg: number of steps over findk averages the acceptance
     *ktol: when acceptance-ktarget<ktol the search for k terminates 
     * this class requires 1 seed
+    avgcount : integer
+        Number of samples to measure displ2 at kmax once kmax has been found
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, avgcount=1e6, dtol=1e-3,
