@@ -15,8 +15,8 @@ from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 
 class GaussianBenchmark(object):
     def __init__(self,
-                 means=np.ones((10,2)),
-                 cov=np.ones((10,2)),
+                 means=np.ones((10, 2)),
+                 cov=np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
                  opt_maxstep=0.01,
@@ -60,21 +60,26 @@ class GaussianBenchmark(object):
         if self.cov is None:
             raise Exception("GaussianBenchmark: illegal input: cov")
         #####
-        #self.pot_optimizer = Harmonic(np.ones(2), 42, bdim=1, com=False)
         self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
             print "Energy", self.pot_optimizer.getEnergy(minimum)
         #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         #####
-        self.optimizer = ModifiedFireCPP(self.means[self.minimum_index][:], self.pot_optimizer, 
-                                         dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, 
+        self.optimizer = ModifiedFireCPP(self.means[self.minimum_index][:],
+                                         self.pot_optimizer,
+                                         dtmax=self.opt_dtmax,
+                                         maxstep=self.opt_maxstep,
+                                         tol=self.opt_tol, 
                                          nsteps=opt_nsteps, verbosity=1)
         self.find_origin()
         print("self.origin.size", self.origin.size)
         self.rattlers = np.ones(self.origin.size)
         self.use_cgd = False
         self.conftest_outer_sphere = CheckSphericalContainerConfig(self.radius_container)
-        self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer, self.origin, self.dtol, opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps)
+        self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer,
+                                           self.origin, self.dtol,
+                                           opt=self.optimizer, opt_tol=opt_tol,
+                                           opt_maxiter=opt_nsteps)
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max),
@@ -111,9 +116,19 @@ class GaussianBenchmark(object):
         hmin = 0
         hmax = 1
         hbinsize = 0.001
-        action_record_displ_kmax = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax, hbinsize, 0)
-        action_findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget, self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
-        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer, origin=self.origin, optimizer=self.optimizer, conftest_outer_sphere=self.conftest_outer_sphere, conftest_check_same_minimum=self.conftest_check_same_minimum, action_findk=action_findk, action_record_displ_kmax=action_record_displ_kmax)
+        action_record_displ_kmax = RecordDisp2Histogram(self.origin,
+                                   self.rattlers, self.bdim, hmin,
+                                   hmax, hbinsize, 0)
+        action_findk = Findk(self.origin, self.rattlers, self.bdim,
+                             self.avgcount, self.ktarget, self.knavg,
+                             self.ktol, self.hmin, self.hmax,
+                             self.binsize)
+        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer,
+                   origin=self.origin, optimizer=self.optimizer,
+                   conftest_outer_sphere=self.conftest_outer_sphere,
+                   conftest_check_same_minimum=self.conftest_check_same_minimum,
+                   action_findk=action_findk,
+                   action_record_displ_kmax=action_record_displ_kmax)
         kmax_run.run()
         self.kmax = kmax_run.get_k()
         self.kmax_displ2 = kmax_run.get_displ2()
