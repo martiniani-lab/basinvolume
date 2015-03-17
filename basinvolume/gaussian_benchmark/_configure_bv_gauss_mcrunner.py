@@ -47,7 +47,24 @@ class configure_bv_gauss_mcrunner(object):
         self._import_packing_configuration()
         hbinsize = self._get_histogram_bin(k)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
-        #
+        self.eps = eps
+        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':self.eps,
+                          'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,
+                          'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,'pt_eq_niter':pt_eq_niter,
+                          'ts_niter':ts_niter, 'ts_freq':ts_freq,'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
+                          'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,'perform_convergence_test':perform_convergence_test, 
+                          'collect_minima_list':collect_minima_list, 'record_histogram':record_histogram,
+                          'single':single, 'use_cell_lists':use_cell_lists, 'use_cgd':use_cgd}
+        #add seeds dictionary to mc_params
+        try:
+            self.mc_params.update(seeds)
+        except:
+            print "WARNING:seeds not passed"
+        
+        self._initialise()
+        self._requench_coords(dtol, opt_maxstep, verbose)
+        ####
+        potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
         mcrunner = GaussianBenchmarkKminRun()
         ##
         ##
