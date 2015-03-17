@@ -31,12 +31,14 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_findk is None or self.action_record_displ_kmax is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input")
         fake_potential = NullPotential()
-        super(GaussianBenchmarkKmaxRun, self).__init__(fake_potential, self.origin, 1, self.niter)
+        super(GaussianBenchmarkKmaxRun, self).__init__(fake_potential,
+                                            self.origin, 1, self.niter)
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max))
         self.seeds = seeds
-        self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
+        self.takestep = SampleGaussian(self.seeds['seed_takestep'],
+                                        stepsize, self.origin)
         self.rattlers = np.ones(self.origin.size)
         self.add_modules_to_mc()
     def add_modules_to_mc(self):
