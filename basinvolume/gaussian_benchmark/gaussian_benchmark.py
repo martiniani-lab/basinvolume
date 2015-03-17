@@ -15,12 +15,12 @@ from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 
 class GaussianBenchmark(object):
     def __init__(self,
-                 means=None,
-                 cov=None,
+                 means=np.ones((10,2)),
+                 cov=np.ones((10,2)),
                  minimum_index=0,
                  opt_dtmax=1,
-                 opt_maxstep=0.6,
-                 opt_tol=1e-4,
+                 opt_maxstep=0.01,
+                 opt_tol=1e-7,
                  opt_nsteps=1e5,
                  radius_container=10,
                  bdim=1,
@@ -31,7 +31,7 @@ class GaussianBenchmark(object):
                  hmin=0,
                  hmax=1,
                  binsize=0.005,
-                 dtol=1e-2,
+                 dtol=1e-5,
                  adjustf_niter=1e4,
                  pt_eq_niter=1e3,
                  seeds=None):
@@ -61,10 +61,14 @@ class GaussianBenchmark(object):
             raise Exception("GaussianBenchmark: illegal input: cov")
         #####
         #self.pot_optimizer = Harmonic(np.ones(2), 42, bdim=1, com=False)
-        self.pot_optimizer = SumGaussianPot(np.ones(self.means.shape), self.cov)
+        self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        for minimum in self.means:
+            print "Energy", self.pot_optimizer.getEnergy(minimum)
         #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         #####
-        self.optimizer = ModifiedFireCPP(self.means[self.minimum_index][:], self.pot_optimizer, dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=opt_nsteps)
+        self.optimizer = ModifiedFireCPP(self.means[self.minimum_index][:], self.pot_optimizer, 
+                                         dtmax=self.opt_dtmax, maxstep=self.opt_maxstep, tol=self.opt_tol, 
+                                         nsteps=opt_nsteps, verbosity=1)
         self.find_origin()
         print("self.origin.size", self.origin.size)
         self.rattlers = np.ones(self.origin.size)
@@ -177,8 +181,44 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
+
+    def plot_potential(means, cov):    
+        import matplotlib.pyplot as plt
+        
+        N = 200
+        xx = np.linspace(-10, 10, N)
+        U = np.zeros((N, N))
+        pot = SumGaussianPot(means, cov)
+        R = 10
+        
+        for i in xrange(0, N):
+            for j in xrange(0, N):
+                U[i, j] = pot.getEnergy(np.array([xx[j], xx[i]]))
+    
+        plot_axes = R + 1
+        plt.figure(1)
+        plt.clf()
+        plt.axes(aspect='equal')
+        plt.contourf(xx, xx, U, 30)
+        plt.colorbar()
+        plt.axis([-plot_axes, plot_axes, -plot_axes, plot_axes])
+        plt.hold(True)
+        plt.xlabel('$x$')
+        plt.ylabel('$y$')
+    
+        centre1 = np.array([0, 0])
+        X_circ1 = np.linspace(centre1[0] - R, centre1[0] + R, N)
+        Y_circ1_pos = centre1[1] + np.sqrt(R ** 2 - (X_circ1 - centre1[0]) ** 2)
+        Y_circ1_neg = centre1[1] - np.sqrt(R ** 2 - (X_circ1 - centre1[0]) ** 2)
+    
+        plt.plot(X_circ1, Y_circ1_pos, 'c')
+        plt.plot(X_circ1, Y_circ1_neg, 'c')
+        plt.show()
+        plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
+    
     bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
+#   bm = GaussianBenchmark(minimum_index=0)
     bm.find_kmax()
     bm.run_kmin()
-    #bm.run_PT()
-    #bm.compute_volume()
+#   bm.run_PT()
+#   bm.compute_volume()
