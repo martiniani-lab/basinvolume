@@ -196,6 +196,25 @@ class CheckOverlapCartesianCellLists(_Cdef_CheckOverlapCartesianCellLists):
     """This class is the python interface for the c++ CheckOverlapCartesianCellLists implementation."""
         
 #===============================================================================
+# Check same minimum config
+#===============================================================================
+
+cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
+    cdef _pele_opt.GradientOptimizer optimizer # this is stored so that the memory is not freed
+    cdef _pele.BasePotential potential
+    cdef cppCheckSameMinimumConfig* newptr
+    def __cinit__(self, pot, origin, dtol, opt=None, opt_tol=1e-4, opt_maxiter=1e5):
+        cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
+        self.optimizer = opt
+        self.potential = pot
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumConfig(self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size), dtol))
+                                               
+                                               
+class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):
+    """interface
+    """
+
+#===============================================================================
 # Check same minimum
 #===============================================================================
 
