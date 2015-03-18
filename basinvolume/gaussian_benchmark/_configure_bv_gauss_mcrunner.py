@@ -145,4 +145,18 @@ class configure_bv_gauss_mcrunner(object):
         self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
         self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
         self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
-        
+    def _import_packing_config_files(self):
+        configf = ConfigParser.ConfigParser()
+        configf.read(str(self.packing_configpath))
+        self.ngaussians = configf.getint('JAMMED_PACKING', 'ngaussians')
+        self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
+        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
+        #self.ndim = self.nparticles * self.bdim
+        configf.read(str(self.findk_configpath))
+        self.kmax = configf.getfloat('FINDK', 'kmax')
+        self.prob_kmax = configf.getfloat('FINDK', 'prob')
+        self.displ_k_max = configf.getfloat('FINDK', 'displ_k_max')
+        self.var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max')
+        configf.read(str(self.kmin_configpath))
+        self.displ_k_min = configf.getfloat('KMIN', 'displ_k_min')
+        self.var_displ_k_min = configf.getfloat('KMIN', 'var_displ_k_min')
