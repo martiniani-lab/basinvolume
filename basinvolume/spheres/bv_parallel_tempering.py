@@ -3,7 +3,6 @@ import numpy as np
 import argparse
 from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
 from basinvolume.experiment_2d import configure_bv_exp_mcrunner
-from basinvolume.gaussian_benchmark import configure_bv_gauss_mcrunner
 import time
 from mpi4py import MPI
 from basinvolume.utils import view_traceback
@@ -62,9 +61,6 @@ if __name__ == "__main__":
     if ".xydfr" in fname or ".xyzdfr" in fname:
         print "found experimental packing"
         sim = configure_bv_exp_mcrunner(rank, nprocs)
-    elif ".gauss" in fname:
-        print "found gaussian benchmark configuration":
-        sim = configure_bv_gauss_mcrunner(rank, nprocs)
     else:
         print "found numerical packing"
         sim = configure_bv_mcrunner(rank, nprocs)

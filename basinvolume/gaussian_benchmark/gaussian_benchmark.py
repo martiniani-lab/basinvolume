@@ -249,6 +249,6 @@ if __name__ == "__main__":
 #   bm = GaussianBenchmark(minimum_index=0)
     bm.find_kmax()
     bm.run_kmin()
-#   bm.run_PT()
+    bm.run_PT()
 #   bm.compute_volume()
     bm.print_nr_function_calls()
