@@ -1,5 +1,13 @@
 from __future__ import division
 import numpy as np
+from pele.optimize import ModifiedFireCPP
+from pele.potentials import SumGaussianPot
+from pele.potentials import Harmonic
+from mcpele.monte_carlo import CheckSphericalContainerConfig
+from mcpele.monte_carlo import RandomCoordsDisplacement
+from mcpele.monte_carlo import MetropolisTest
+from basinvolume.monte_carlo import CheckSameMinimumConfig
+from basinvolume.monte_carlo import RecordDisp2Histogram
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 
 class configure_bv_gauss_mcrunner(object):
@@ -60,13 +68,56 @@ class configure_bv_gauss_mcrunner(object):
             self.mc_params.update(seeds)
         except:
             print "WARNING:seeds not passed"
-        
+        self.get_means_cov()
+        self.get_radius_container()
         self._initialise()
         self._requench_coords(dtol, opt_maxstep, verbose)
-        ####
-        potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
-        mcrunner = GaussianBenchmarkKminRun()
-        ##
-        ##
+        if not seeds:
+            i32max = np.iinfo(np.int32).max
+            seeds = dict(seed_takestep=np.random.randint(i32max),
+                    seed_metropolis=np.random.randint(i32max))
+        self.seeds = seeds
+        stepsize = 0.1
+        adjustf_navg = 20
+        acceptance = 0.2
+        adjustf = 0.9
+        single = False
+        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
+                                                  factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
+                                                  single=single, bdim=self.bdim)
+        self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        self.optimizer = ModifiedFireCPP(self.origin,
+                                    self.pot_optimizer,
+                                    dtmax=self.opt_dtmax,
+                                    maxstep=self.opt_maxstep,
+                                    tol=self.opt_tol, 
+                                    nsteps=opt_nsteps,
+                                    verbosity=1)
+        harmonic_com_flag = True
+        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
+        self.conftest_outer_sphere = CheckSphericalContainerConfig(self.radius_container)
+        self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer,
+                                           self.origin, self.dtol,
+                                           opt=self.optimizer, opt_tol=opt_tol,
+                                           opt_maxiter=opt_nsteps)
+        self.action_record_displ_kmin = RecordDisp2Histogram(self.origin,
+                                      self.rattlers, self.bdim, hmin, hmax,
+                                      hbinsize, self.equilibration_steps)
+        self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
+        mcrunner = GaussianBenchmarkKminRun(
+                     pot_optimizer=self.pot_optimizer,
+                     origin=self.origin,
+                     optimizer=self.optimizer,
+                     conftest_outer_sphere=self.conftest_outer_sphere,
+                     conftest_check_same_minimum=self.conftest_check_same_minimum,
+                     action_record_displ=self.action_record_displ2_kmin,
+                     adjustf_niter=self.adjustf_niter,
+                     pt_eq_niter=self.pt_eq_niter,
+                     equilibration_steps=self.equilibration_steps,
+                     metropolis=self.metropolis,
+                     takestep=self.takestep,
+                     niter=self.pt_niter,
+                     potential=self.potential
+                     )
         return mcrunner
         
