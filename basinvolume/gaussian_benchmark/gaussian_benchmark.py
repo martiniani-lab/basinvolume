@@ -12,6 +12,7 @@ from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
+from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
 
 class GaussianBenchmark(object):
     def __init__(self,
@@ -182,7 +183,6 @@ class GaussianBenchmark(object):
         print("displ2", self.displ2)
     def print_nr_function_calls(self):
         print("total nr function calls PES")
-        #print(self.optimizer.get_result().nfev)
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
 
 if __name__ == "__main__":
