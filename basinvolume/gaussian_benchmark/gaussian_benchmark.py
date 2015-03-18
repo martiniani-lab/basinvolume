@@ -174,7 +174,8 @@ class GaussianBenchmark(object):
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
     def run_PT(self):
         print("run PT")
-        pt_run = GaussianBenchmarkPTRun()
+        pt_run = GaussianBenchmarkPTRun(configuration_name="config0.gauss",
+                                        base_directory="gauss_pt")
         self.k, self.displ2 = pt_run.get_k_displ2()
     def compute_volume(self):
         print("compute volume")
