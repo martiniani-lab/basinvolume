@@ -57,19 +57,48 @@ class GaussianBenchmarkPTRun(object):
         nprocs = comm.Get_size()
         rank = comm.Get_rank()
         sim = configure_bv_gauss_mcrunner(rank, nprocs)
-        mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5, opt_nsteps=1e5, hmin=0,
-                   hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
-                   pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, use_cgd=args.cgd,
-                   perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
-                   seeds=seeds, use_cell_lists=args.nocell, single=single, record_histogram=record_histogram)
+        mcrunner = sim(fname,
+                       niter=niter,
+                       stepsize=1e-1,
+                       dtol=1e-4,
+                       opt_tol=1e-5,
+                       opt_nsteps=1e5,
+                       hmin=0,
+                       hmax=1000,
+                       hbinsize=1e-1,
+                       acceptance=0.2,
+                       adjustf=0.9,
+                       adjustf_niter=adjustf_niter,
+                       adjustf_navg=100,
+                       pt_eq_niter=pt_eq_niter,
+                       ts_niter=ts_niter,
+                       ts_freq=ts_freq,
+                       use_cgd=args.cgd,
+                       perform_convergence_test=perform_minimisation_convergence_test,
+                       collect_minima_list=collect_minima_list,
+                       seeds=seeds,
+                       use_cell_lists=args.nocell,
+                       single=single,
+                       record_histogram=record_histogram)
         #prepare PT runner
         kmin = 0
         displ_k_min = sim.displ_k_min
         var_displ_k_min = sim.displ_k_min
         kmax = sim.kmax
-        ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip,
-                                         test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err, 
-                                         min_window=min_window, max_eq_time=max_eq_time, base_directory=path, verbose=args.verbose)
+        ptrunner = MPI_BV_PT_RLhandshake(mcrunner,
+                                         kmax,
+                                         kmin,
+                                         displ_k_min,
+                                         max_ptiter=ptiter+1,
+                                         pfreq=pfreq,
+                                         skip=nskip,
+                                         test_convergence=test_convergence_ts,
+                                         fast_ct=fast_ct,
+                                         rel_std_err=rel_std_err, 
+                                         min_window=min_window,
+                                         max_eq_time=max_eq_time,
+                                         base_directory=path,
+                                         verbose=args.verbose)
         assert ptrunner.rank == rank, "rank id do not match"
         assert ptrunner.nproc == nprocs, "number of cores do not match"        
         # run PT
