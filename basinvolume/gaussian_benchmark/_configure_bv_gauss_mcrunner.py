@@ -120,4 +120,27 @@ class configure_bv_gauss_mcrunner(object):
                      potential=self.potential
                      )
         return mcrunner
+    def _set_paths(self, base_dir, packings_dir):
+        """
+        set base_directory, packings_directory and configpaths, configfile
+        """
+        dname = self.fname
+        if dname.endswith('.gauss'):
+            dname = dname[:-5]
+        else:
+            raise Exception("illegal file name")
+        if base_dir is None:
+            base_directory = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+            assert(os.path.exists(base_directory))
+        else:
+            if not os.path.isabs(base_dir):
+                base_directory = os.path.join(os.getcwd(), packings_dir)
+        self.base_directory = base_directory
+        if not os.path.isabs(packings_dir):
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
+        self.packings_dir = packings_dir
+        self.packing_configpath = os.path.join(packings_dir, 'jammed_packings.config')
+        self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
+        self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
+        self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
         
