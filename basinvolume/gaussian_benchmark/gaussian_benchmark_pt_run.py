@@ -15,7 +15,8 @@ class GaussianBenchmarkPTRun(object):
                  base_directory=None,
                  totniter=5e5,
                  nocell=True,
-                 nocollectminima=True
+                 nocollectminima=True,
+                 cgd=False
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
@@ -23,6 +24,7 @@ class GaussianBenchmarkPTRun(object):
         self.totniter = totniter
         self.nocell = nocell
         self.nocollectminima = nocollectminima
+        self.cgd = cgd
         if self.configuration_name is None or self.base_directory is None:
             raise Exception("illegal input")
         path = self.base_directory
@@ -73,11 +75,11 @@ class GaussianBenchmarkPTRun(object):
                        pt_eq_niter=pt_eq_niter,
                        ts_niter=ts_niter,
                        ts_freq=ts_freq,
-                       use_cgd=args.cgd,
+                       use_cgd=self.cgd,
                        perform_convergence_test=perform_minimisation_convergence_test,
                        collect_minima_list=collect_minima_list,
                        seeds=seeds,
-                       use_cell_lists=args.nocell,
+                       use_cell_lists=self.nocell,
                        single=single,
                        record_histogram=record_histogram)
         #prepare PT runner
