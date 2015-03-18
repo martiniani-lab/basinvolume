@@ -175,7 +175,6 @@ class GaussianBenchmark(object):
     def run_PT(self):
         print("run PT")
         pt_run = GaussianBenchmarkPTRun()
-        pt_run.run()
         self.k, self.displ2 = pt_run.get_k_displ2()
     def compute_volume(self):
         print("compute volume")
