@@ -127,11 +127,12 @@ class configure_bv_gauss_mcrunner(object):
         """
         dname = self.fname
         if dname.endswith('.gauss'):
-            dname = dname[:-5]
+            dname = dname[:-6]
         else:
             raise Exception("illegal file name")
         if base_dir is None:
             base_directory = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+            print("asser existence of base disrctory:", base_directory)
             assert(os.path.exists(base_directory))
         else:
             if not os.path.isabs(base_dir):
