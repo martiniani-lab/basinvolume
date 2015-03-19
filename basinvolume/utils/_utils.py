@@ -345,6 +345,8 @@ class ResultsFile(object):
         self.f.write("[" + title + "]\n")
     def to_file(self, name, value):
         self.f.write((name + ": {}\n").format(to_string(value)))
+    def to_file_plain(self, name, value):
+        self.f.write((name + ": {}\n").format(value))
     def close(self):
         self.f.close()
         

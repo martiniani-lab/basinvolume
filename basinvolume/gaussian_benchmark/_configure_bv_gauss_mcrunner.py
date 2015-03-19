@@ -135,12 +135,13 @@ class configure_bv_gauss_mcrunner(object):
             raise Exception("illegal file name")
         if base_dir is None:
             base_directory = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
-            print("asser existence of base disrctory:", base_directory)
+            print("assert existence of base disrctory:", base_directory)
             assert(os.path.exists(base_directory))
         else:
             if not os.path.isabs(base_dir):
                 base_directory = os.path.join(os.getcwd(), packings_dir)
         self.base_directory = base_directory
+        print("self.base_directory", self.base_directory)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
@@ -150,6 +151,7 @@ class configure_bv_gauss_mcrunner(object):
         self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
     def _import_packing_config_files(self):
         configf = ConfigParser.ConfigParser()
+        print("attempting to read from config file at", self.packing_configpath)
         configf.read(str(self.packing_configpath))
         self.ngaussians = configf.getint('GAUSSIAN_SUM', 'ngaussians')
         self.bdim = configf.getint('GAUSSIAN_SUM', 'boxdim')

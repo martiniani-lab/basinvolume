@@ -1,6 +1,7 @@
 from __future__ import division
-import numpy as np
+import os
 import copy
+import numpy as np
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
 from pele.potentials import Harmonic
@@ -10,6 +11,8 @@ from mcpele.monte_carlo import MetropolisTest
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
+from basinvolume.utils import trymakedir
+from basinvolume.utils import ResultsFile
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
@@ -102,6 +105,9 @@ class GaussianBenchmark(object):
         self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
+        self.basic_config_path = os.path.join(os.getcwd(), "gaussian_sum")
+        self.ngaussians = self.means.shape[0]
+        self.print_gaussian_sum_config_file()
     def find_origin(self):
         print("initial quench")
         self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
@@ -184,6 +190,14 @@ class GaussianBenchmark(object):
     def print_nr_function_calls(self):
         print("total nr function calls PES")
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
+    def print_gaussian_sum_config_file(self):
+        print("trymakedir", self.basic_config_path)
+        trymakedir(self.basic_config_path)
+        f = ResultsFile(os.path.join(self.basic_config_path, "gaussian_sum.config"))
+        f.set_heading("GAUSSIAN_SUM")
+        print("ngaussians", self.ngaussians)
+        f.to_file_plain("ngaussians", self.ngaussians)
+        f.close()
 
 if __name__ == "__main__":
     means = np.asarray([
