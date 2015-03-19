@@ -50,7 +50,7 @@ class configure_bv_gauss_mcrunner(object):
                  use_cell_lists=False,
                  use_cgd=False,
                  record_histogram=False,
-                 packings_dir='jammed_packings',
+                 packings_dir='gaussian_sum',
                  base_dir=None,
                  verbose=False):
         self.fname = fname
@@ -144,15 +144,15 @@ class configure_bv_gauss_mcrunner(object):
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
-        self.packing_configpath = os.path.join(packings_dir, 'jammed_packings.config')
+        self.packing_configpath = os.path.join(packings_dir, 'gaussian_sum.config')
         self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
         self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
         self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
     def _import_packing_config_files(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.packing_configpath))
-        self.ngaussians = configf.getint('JAMMED_PACKING', 'ngaussians')
-        self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
+        self.ngaussians = configf.getint('GAUSSIAN_SUM', 'ngaussians')
+        self.bdim = configf.getint('GAUSSIAN_SUM', 'boxdim')
         assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         #self.ndim = self.nparticles * self.bdim
         configf.read(str(self.findk_configpath))
