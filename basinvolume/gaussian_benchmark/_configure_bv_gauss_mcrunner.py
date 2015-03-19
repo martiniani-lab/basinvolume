@@ -1,5 +1,8 @@
 from __future__ import division
 import os
+import ConfigParser
+import time
+import cPickle as pickle
 import numpy as np
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
