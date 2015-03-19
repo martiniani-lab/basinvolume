@@ -181,6 +181,7 @@ class GaussianBenchmark(object):
         print("displ2_kmin", self.displ2_kmin_mean)
         print("displ2_kmin_variance", self.displ2_kmin_variance)
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
         pt_run = GaussianBenchmarkPTRun(configuration_name="config0.gauss",
@@ -214,6 +215,16 @@ class GaussianBenchmark(object):
         f.to_file("prob", self.prob_kmax)
         f.to_file("displ_k_max", self.kmax_displ2)
         f.to_file("var_displ_k_max", self.var_displ_kmax)
+        f.close()
+    def print_kmin_config_file(self, configuration_name="config0.gauss"):
+        dname = configuration_name[0:-6]
+        basic_kmin_config_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+        trymakedir(basic_kmin_config_path)
+        kmin_config_name = os.path.join(basic_kmin_config_path, "kmin_" + dname + ".config")
+        f = ResultsFile(kmin_config_name)
+        f.set_heading("KMIN")
+        f.to_file("displ_k_min", self.displ2_kmin_mean)
+        f.to_file("var_displ_k_min", self.displ2_kmin_variance)
         f.close()
 
 if __name__ == "__main__":
