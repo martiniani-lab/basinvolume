@@ -145,10 +145,13 @@ class GaussianBenchmark(object):
         kmax_run.run()
         self.kmax = kmax_run.get_k()
         self.kmax_displ2 = kmax_run.get_displ2()
+        self.prob_kmax = kmax_run.get_prob_kmax()
+        self.var_displ_kmax = kmax_run.get_var_displ_kmax()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
         print("kmax_displ2 samples", action_record_displ_kmax.get_count())
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        self.print_findk_config_file()
     def run_kmin(self):
         print("run kmin")
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
@@ -197,6 +200,20 @@ class GaussianBenchmark(object):
         f.set_heading("GAUSSIAN_SUM")
         print("ngaussians", self.ngaussians)
         f.to_file_plain("ngaussians", self.ngaussians)
+        f.to_file_plain("bdim", self.bdim)
+        f.close()
+    def print_findk_config_file(self, configuration_name="config0.gauss"):
+        dname = configuration_name[0:-6]
+        basic_findk_config_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+        trymakedir(basic_findk_config_path)
+        findk_config_name = os.path.join(basic_findk_config_path, "findk_" + dname + ".config")
+        print("findk_config_name", findk_config_name)
+        f = ResultsFile(findk_config_name)
+        f.set_heading("FINDK")
+        f.to_file("kmax", self.kmax)
+        f.to_file("prob", self.prob_kmax)
+        f.to_file("displ_k_max", self.kmax_displ2)
+        f.to_file("var_displ_k_max", self.var_displ_kmax)
         f.close()
 
 if __name__ == "__main__":

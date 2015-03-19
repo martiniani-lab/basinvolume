@@ -154,9 +154,9 @@ class configure_bv_gauss_mcrunner(object):
         print("attempting to read from config file at", self.packing_configpath)
         configf.read(str(self.packing_configpath))
         self.ngaussians = configf.getint('GAUSSIAN_SUM', 'ngaussians')
-        self.bdim = configf.getint('GAUSSIAN_SUM', 'boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
+        self.bdim = configf.getint('GAUSSIAN_SUM', 'bdim')
         #self.ndim = self.nparticles * self.bdim
+        print("self.findk_configpath", self.findk_configpath)
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')

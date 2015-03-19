@@ -51,6 +51,10 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         return self.takestep.get_stepsize()
     def get_displ2(self):
         return self.action_record_displ_kmax.get_mean_variance()[0]
+    def get_var_displ_kmax(self):
+        return self.action_record_displ_kmax.get_mean_variance()[1]
+    def get_prob_kmax(self):
+        return self.action_findk.get_prob()
     def get_k(self):
         """ The MC potential is just a placeholder. 
         k is determined by takestep.
