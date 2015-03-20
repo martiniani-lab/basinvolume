@@ -5,6 +5,7 @@ import traceback
 import copy
 from _kmin_mcrunner import _kmin_mcrunner
 from basinvolume.experiment_2d import _kmin_exp_mcrunner
+from basinvolume.utils import check_kmax_reasonable 
 
 def worker_kmin(fname, kwargs):
     try:
@@ -14,7 +15,10 @@ def worker_kmin(fname, kwargs):
         else:
             print "found numerical packing"
             mcrunner = _kmin_mcrunner(fname, **kwargs)
-        mcrunner.run()
+        if check_kmax_reasonable(mcrunner.findk_configpath):
+            mcrunner.run()
+        else:
+            print('bv_find_kmin.py: kmax is unreasonable, exiting')
     except:
         print('kmin worker: %s' % (traceback.format_exc()))
         

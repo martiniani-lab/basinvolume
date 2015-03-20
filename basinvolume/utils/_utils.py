@@ -11,6 +11,7 @@ from pele.potentials import BasePotential
 import copy
 import sys, traceback
 from bisect import bisect_left
+import ConfigParser
 try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
@@ -589,3 +590,19 @@ def simple_overlap_check(coords, radii, boxlength):
             if pair_is_overlapping(ii, jj):
                 return True # At least one overlap.
     return False # No overlap.
+
+def check_kmax_reasonable(kmax_configpath, max_kmax=1e4):
+    """
+    checks whether the value for kmax is reasonable. If it can't
+    read kmax then it assumes that it is reasonable. It is essential
+    that if reading kmax_configpath fail this functions returns True
+    """
+    configf = ConfigParser.ConfigParser()
+    try:
+        configf.read(str(kmax_configpath))
+        kmax = configf.getfloat('FINDK','kmax')
+    except:
+        return True
+    if not (0. < kmax <= max_kmax):
+        return False
+    return True
