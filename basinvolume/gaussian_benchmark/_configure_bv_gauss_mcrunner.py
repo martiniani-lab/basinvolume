@@ -13,6 +13,7 @@ from mcpele.monte_carlo import MetropolisTest
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import RecordDisp2Histogram
 from basinvolume.utils import read_single_column_coords
+from basinvolume.utils import read_multi_column
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 
 class configure_bv_gauss_mcrunner(object):
@@ -183,20 +184,22 @@ class configure_bv_gauss_mcrunner(object):
         Import means and covs from file.
         """
         print("gdim", self.gdim)
-        self.means = read_multi_column(self.means_configpath, self.gdim)
-        self.cov = read_multi_column(self.cov_configpath, self.gdim)
+        self.means = read_multi_column(self.means_configpath)
+        self.cov = read_multi_column(self.cov_configpath)
+        if self.means.shape[1] != self.gdim or self.cov.shape[1] != self.gdim:
+            raise Exception("reading means-covs failed")
+        print("self.means", self.means)
+        print("self.cov", self.cov)
     def _get_histogram_bin(self, k):
         """automatically estimate size of histogram"""
         """
         This is copied from bv config. (Needs to be changed?) 
         """
-        hmax = self.displ_k_min * k #self.displ_k_max*self.kmax
+        hmax = self.displ_k_min * k
         hbinsize = hmax * 0.0001 
         return hbinsize
     def _get_opt_maxstep(self, opt_maxstep):
         """returns opt max step"""
         if opt_maxstep is None:
-            #opt_maxstep = self.boxv[0] * 0.01
-            #opt_maxstep = self.sca * np.amin(self.red_radii)
             opt_maxstep = self.radius_container
         return opt_maxstep

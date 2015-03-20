@@ -211,6 +211,17 @@ def read_single_column_coords(fname):
         coords.append(float(line))
     f.close()
     return np.array(coords, dtype="d")
+    
+def read_multi_column(fname):
+    coords = []
+    f = open(fname, "r")
+    while True:
+        line = f.readline()
+        if not line:
+            break
+        coords.append([float(x) for x in line.split()])
+    f.close()
+    return np.array(coords, dtype="d")
 
 def reduce_coordinates(mylist, indexes, bdim):
     """

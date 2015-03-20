@@ -208,6 +208,18 @@ class GaussianBenchmark(object):
         f.to_file_plain("gdim", self.gdim)
         f.to_file("radius_container", self.radius_container)
         f.close()
+        np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_means.config"), self.means)
+        np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_cov.config"), self.cov)
+        
+        """
+        self.basic_config_path = os.path.join(os.getcwd(), "gaussian_sum")
+        
+        self.means_configpath = os.path.join(packings_dir, "gaussian_sum_means.config")
+        self.cov_configpath = os.path.join(packings_dir, "gaussian_sum_cov.config")
+        self.packing_configpath = os.path.join(packings_dir, 'gaussian_sum.config')
+        self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
+        self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
+        """
     def print_findk_config_file(self, configuration_name="config0.gauss"):
         dname = configuration_name[0:-6]
         basic_findk_config_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
