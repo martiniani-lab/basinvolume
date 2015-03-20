@@ -37,10 +37,11 @@ class GaussianBenchmark(object):
                  hmax=1,
                  binsize=0.005,
                  dtol=1e-5,
-                 adjustf_niter=1e3,
-                 pt_eq_niter=1e3,
+                 adjustf_niter=1e2,
+                 pt_eq_niter=1e4,
                  seeds=None,
-                 pt_niter=None):
+                 pt_niter=None,
+                 eq_max_ptiter=1e6):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -62,6 +63,7 @@ class GaussianBenchmark(object):
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
         self.pt_niter = 2 * self.equilibration_steps
+        self.eq_max_ptiter = eq_max_ptiter
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -188,7 +190,9 @@ class GaussianBenchmark(object):
     def run_PT(self):
         print("run PT")
         pt_run = GaussianBenchmarkPTRun(configuration_name="config0.gauss",
-                                        base_directory="gauss_pt")
+                                        base_directory="gauss_pt",
+                                        totniter=self.pt_niter,
+                                        eq_max_ptiter=self.eq_max_ptiter)
         self.k, self.displ2 = pt_run.get_k_displ2()
     def compute_volume(self):
         print("compute volume")
