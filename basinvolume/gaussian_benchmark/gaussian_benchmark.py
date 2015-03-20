@@ -37,8 +37,8 @@ class GaussianBenchmark(object):
                  hmax=1,
                  binsize=0.005,
                  dtol=1e-5,
-                 adjustf_niter=1e2,
-                 pt_eq_niter=1e4,
+                 adjustf_niter=1e3,
+                 pt_eq_niter=6e6,
                  seeds=None,
                  pt_niter=None,
                  eq_max_ptiter=1e6):
