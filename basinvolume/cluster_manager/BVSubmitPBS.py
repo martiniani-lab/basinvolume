@@ -7,7 +7,7 @@ import ConfigParser
 import numpy as np
 import argparse
 from basinvolume.cluster_manager import BuildPBSScript
-from basinvolume.utils import trymakedir
+from basinvolume.utils import trymakedir, _check_kmax_reasonable
 import shutil
 import shlex
 import subprocess
@@ -76,22 +76,6 @@ class BVSubmitPBS(object):
         except:
             return False
         return success
-    
-    def _check_kmax_reasonable(self, kmax_configpath, max_kmax=1e4):
-        """
-        checks whether the value for kmax is reasonable. This should only
-        be run if _check_kmax_config_file_ready has passed (assertion checks this)
-        """
-        assert(self._check_kmax_config_file_ready(kmax_configpath))
-        configf = ConfigParser.ConfigParser()
-        try:
-            configf.read(str(kmax_configpath))
-            kmax = configf.getfloat('FINDK','kmax')
-        except:
-            return False
-        if kmax >= max_kmax:
-            return False
-        return True
     
     def _check_kmin_config_file_ready(self, kmin_configpath):
         """
@@ -267,12 +251,12 @@ class BVSubmitPBS(object):
                             if (self._check_kmax_config_file_ready(kmax_path) \
                             and self._check_kmin_config_file_ready(kmin_path)) \
                             and (not self._check_pt_config_file_ready(pt_path) or force):
-                                #now check that kmax has a reasonable value
-                                if self._check_kmax_reasonable(kmax_path):
-                                    #########remove old pt data#######
-                                    self._remove_pt_old_data(dir, self.pt_config + noj,
-                                                             output_signature="bv_{}_pt{}.o*".format(self.label, noj))
-                                    ##################################
+                                #############remove old pt data##############
+                                self._remove_pt_old_data(dir, self.pt_config + noj,
+                                                         output_signature="bv_{}_pt{}.o*".format(self.label, noj))
+                                ##############################################
+                                ##now check that kmax has a reasonable value##
+                                if _check_kmax_reasonable(kmax_path):
                                     if not os.path.isabs(path_to_script):
                                         path_to_script = os.path.abspath(path_to_script)
                                     command = self._get_pt_command(noj, path_to_script)
@@ -313,7 +297,7 @@ class BVSubmitPBS(object):
                                 ##################################
                                 if not os.path.isabs(path_to_script):
                                     path_to_script = os.path.abspath(path_to_script)
-                                kmax_fname = 'bv_kmax'+noj+'.sh'
+                                #kmax_fname = 'bv_kmax'+noj+'.sh' #unused
                                 kmin_fname = 'bv_kmin'+noj+'.sh'
                                 pt_fname = 'bv_pt'+noj+'.sh'
                                 kmax_ready = self._check_kmax_config_file_ready(kmax_path)
@@ -322,35 +306,36 @@ class BVSubmitPBS(object):
                                 #prepare PT command
                                 pt_command = self._get_pt_command(noj, path_to_script)
                                 pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
-                                #if kmin and kmax terminated
-                                if kmax_ready and kmin_ready:
-                                    pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
-                                else:
-                                    pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
-                                    if not kmin_ready:
-                                        #########remove old pbs output#######
-                                        self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
-                                        #####################################
-                                        kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
-                                        kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                                        pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
-                                        if kmax_ready:
-                                            pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
-                                        else:
+                                #if kmax is either not terminated or is reasonable then continue
+                                if _check_kmax_reasonable(kmax_path):
+                                    #if kmin and kmax terminated
+                                    if kmax_ready and kmin_ready:
+                                        pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
+                                    else:
+                                        pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
+                                        if not kmin_ready:
                                             #########remove old pbs output#######
-                                            self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                            self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
                                             #####################################
-                                            pbs.writePBSscript(kmin_fname, 'bv_'+self.label+'_kmin'+noj)
+                                            kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                                            kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
+                                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
+                                            if kmax_ready:
+                                                pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                                            else:
+                                                #########remove old pbs output#######
+                                                self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                                #####################################
+                                                pbs.writePBSscript(kmin_fname, 'bv_'+self.label+'_kmin'+noj)
+                                                kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
+                                                kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmin_fname)
+                                                pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
+                                                pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
+                                        else:
                                             kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                                            kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmin_fname)
+                                            kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
                                             pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
                                             pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
-                                    else:
-                                        kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                                        kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                                        pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
-                                        pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
-                                    
                             else:
                                 pass
     

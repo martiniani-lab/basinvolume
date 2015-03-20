@@ -5,7 +5,8 @@ from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
 from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 import time
 from mpi4py import MPI
-from basinvolume.utils import view_traceback
+from basinvolume.utils import view_traceback, _check_kmax_reasonable
+import sys
 
 if __name__ == "__main__":
     """
@@ -71,6 +72,10 @@ if __name__ == "__main__":
                    perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
                    seeds=seeds, use_cell_lists=args.nocell, single=single, record_histogram=record_histogram)
     
+    if not _check_kmax_reasonable(mcrunner.findk_configpath):
+        print('bv_parallel_tempering: kmax is unreasonable, exiting')
+        sys.exit()
+        
     #prepare PT runner
     kmin = 0
     displ_k_min = sim.displ_k_min
