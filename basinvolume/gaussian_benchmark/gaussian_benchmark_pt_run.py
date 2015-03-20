@@ -16,7 +16,8 @@ class GaussianBenchmarkPTRun(object):
                  totniter=5e5,
                  nocell=True,
                  nocollectminima=True,
-                 cgd=False
+                 cgd=False,
+                 verbose=True
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
@@ -100,7 +101,7 @@ class GaussianBenchmarkPTRun(object):
                                          min_window=min_window,
                                          max_eq_time=max_eq_time,
                                          base_directory=path,
-                                         verbose=args.verbose)
+                                         verbose=verbose)
         assert ptrunner.rank == rank, "rank id do not match"
         assert ptrunner.nproc == nprocs, "number of cores do not match"        
         # run PT
