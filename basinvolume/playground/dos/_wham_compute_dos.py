@@ -274,7 +274,20 @@ class _wham_compute_dos(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(self.bin_edges[:-1], self.hist_visits.transpose(), linewidth=2)
+        ax.set_xlabel(r'$\Delta r$')
+        ax.set_ylabel('Frequency')
         plt.savefig(self.base_directory + '/wham_histograms.eps')
+        if self.show:
+            plt.show()
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for i in xrange(len(self.karray)):
+            y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] #hist(r)*exp(kx^2) (hist*unbiasing) -> dos up to free energy difference
+            ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
+        ax.set_xlabel(r'$\Delta r$')
+        ax.set_ylabel('WHAM')
+        plt.savefig(self.base_directory + '/wham_fragments.eps')
         if self.show:
             plt.show()
         
@@ -634,16 +647,16 @@ if __name__ == "__main__":
     if not os.path.isabs(fdir):
         fdir = os.path.join(wdir,fdir + fname)
     
-#    sim = _wham_compute_dos()
-#    
-#    if (fname != None):
-#        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=False)
-#    else :
-#        for subdir, dirs, files in os.walk(wdir):
-#            for dir in dirs:
-#                if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
-#                    path = os.path.join(wdir, dir)
-#                    sim(explore_dir=path, frozen=args.frozen)
+    sim = _wham_compute_dos()
+    
+    if (fname != None):
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=False)
+    else :
+        for subdir, dirs, files in os.walk(wdir):
+            for dir in dirs:
+                if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
+                    path = os.path.join(wdir, dir)
+                    sim(explore_dir=path, frozen=args.frozen)
     
     sim = _mbar_compute_dos()
     
