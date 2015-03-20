@@ -13,6 +13,7 @@ from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
 from basinvolume.utils import trymakedir
 from basinvolume.utils import ResultsFile
+from basinvolume.utils import to_string
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
@@ -65,6 +66,7 @@ class GaussianBenchmark(object):
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
             raise Exception("GaussianBenchmark: illegal input: cov")
+        self.basic_config_path = os.path.join(os.getcwd(), "gaussian_sum")
         #####
         self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
@@ -105,7 +107,6 @@ class GaussianBenchmark(object):
         self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
-        self.basic_config_path = os.path.join(os.getcwd(), "gaussian_sum")
         self.ngaussians = self.means.shape[0]
         self.print_gaussian_sum_config_file()
     def find_origin(self):
@@ -113,6 +114,7 @@ class GaussianBenchmark(object):
         self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
         print("Gaussian center coords", self.means[self.minimum_index][:])
         print("corresponding mimimum position (origin)", self.origin)
+        self.print_minimum_coords_file(configuration_name="config0.gauss")
     def get_local_minimum(self, mean_index=0):
         initial_position = self.means[self.minimum_index][:]
         print("initial_position", initial_position)
@@ -225,6 +227,14 @@ class GaussianBenchmark(object):
         f.set_heading("KMIN")
         f.to_file("displ_k_min", self.displ2_kmin_mean)
         f.to_file("var_displ_k_min", self.displ2_kmin_variance)
+        f.close()
+    def print_minimum_coords_file(self, configuration_name="config0.gauss"):
+        """
+        /home/kjs73/projects/basinvolume/gaussian_sum/config0.gauss
+        """
+        f = open(os.path.join(self.basic_config_path, configuration_name), "w")
+        for x in self.origin:
+            f.write(to_string(x) + "\n")
         f.close()
 
 if __name__ == "__main__":
