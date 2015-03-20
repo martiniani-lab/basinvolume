@@ -201,6 +201,17 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
 
+def read_single_column_coords(fname):
+    coords = []
+    f = open(fname, "r")
+    while True:
+        line = f.readline()
+        if not line:
+            break
+        coords.append(float(line))
+    f.close()
+    return np.array(coords, dtype="d")
+
 def reduce_coordinates(mylist, indexes, bdim):
     """
     remove coordinates of frozen atoms

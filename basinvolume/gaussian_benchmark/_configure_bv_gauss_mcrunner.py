@@ -12,6 +12,7 @@ from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import RecordDisp2Histogram
+from basinvolume.utils import read_single_column_coords
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 
 class configure_bv_gauss_mcrunner(object):
@@ -165,3 +166,13 @@ class configure_bv_gauss_mcrunner(object):
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat('KMIN', 'displ_k_min')
         self.var_displ_k_min = configf.getfloat('KMIN', 'var_displ_k_min')
+    def _import_packing_configuration(self):
+        """
+        Import position of minimum, as determined earlier.
+        This should replace the function with the same name in bv for jammed particles.
+        """
+        print("self.packings_dir", self.packings_dir)
+        print("self.fname", self.fname)
+        path = os.path.join(self.packings_dir, self.fname)
+        self.coords = read_single_column_coords(path)
+        
