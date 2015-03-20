@@ -7,7 +7,7 @@ import ConfigParser
 import numpy as np
 import argparse
 from basinvolume.cluster_manager import BuildPBSScript
-from basinvolume.utils import trymakedir, _check_kmax_reasonable
+from basinvolume.utils import trymakedir, check_kmax_reasonable
 import shutil
 import shlex
 import subprocess
@@ -256,7 +256,7 @@ class BVSubmitPBS(object):
                                                          output_signature="bv_{}_pt{}.o*".format(self.label, noj))
                                 ##############################################
                                 ##now check that kmax has a reasonable value##
-                                if _check_kmax_reasonable(kmax_path):
+                                if check_kmax_reasonable(kmax_path):
                                     if not os.path.isabs(path_to_script):
                                         path_to_script = os.path.abspath(path_to_script)
                                     command = self._get_pt_command(noj, path_to_script)
@@ -307,7 +307,7 @@ class BVSubmitPBS(object):
                                 pt_command = self._get_pt_command(noj, path_to_script)
                                 pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
                                 #if kmax is either not terminated or is reasonable then continue
-                                if _check_kmax_reasonable(kmax_path):
+                                if check_kmax_reasonable(kmax_path):
                                     #if kmin and kmax terminated
                                     if kmax_ready and kmin_ready:
                                         pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
