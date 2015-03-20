@@ -58,6 +58,7 @@ class configure_bv_gauss_mcrunner(object):
         self._set_paths(base_dir, packings_dir)
         self._import_packing_config_files()
         self._import_packing_configuration()
+        self.get_means_cov()
         hbinsize = self._get_histogram_bin(k)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         self.eps = eps
@@ -73,8 +74,6 @@ class configure_bv_gauss_mcrunner(object):
             self.mc_params.update(seeds)
         except:
             print "WARNING:seeds not passed"
-        self.get_means_cov()
-        self.get_radius_container()
         self._initialise()
         self._requench_coords(dtol, opt_maxstep, verbose)
         if not seeds:
@@ -146,6 +145,8 @@ class configure_bv_gauss_mcrunner(object):
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
+        self.means_configpath = os.path.join(packings_dir, "gaussian_sum_means.config")
+        self.cov_configpath = os.path.join(packings_dir, "gaussian_sum_cov.config")
         self.packing_configpath = os.path.join(packings_dir, 'gaussian_sum.config')
         self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
         self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
@@ -156,6 +157,8 @@ class configure_bv_gauss_mcrunner(object):
         configf.read(str(self.packing_configpath))
         self.ngaussians = configf.getint('GAUSSIAN_SUM', 'ngaussians')
         self.bdim = configf.getint('GAUSSIAN_SUM', 'bdim')
+        self.gdim = configf.getint("GAUSSIAN_SUM", "gdim")
+        self.radius_container = configf.getfloat("GAUSSIAN_SUM", "radius_container")
         #self.ndim = self.nparticles * self.bdim
         print("self.findk_configpath", self.findk_configpath)
         configf.read(str(self.findk_configpath))
@@ -175,4 +178,25 @@ class configure_bv_gauss_mcrunner(object):
         print("self.fname", self.fname)
         path = os.path.join(self.packings_dir, self.fname)
         self.coords = read_single_column_coords(path)
-        
+    def get_means_cov(self):
+        """
+        Import means and covs from file.
+        """
+        print("gdim", self.gdim)
+        self.means = read_multi_column(self.means_configpath, self.gdim)
+        self.cov = read_multi_column(self.cov_configpath, self.gdim)
+    def _get_histogram_bin(self, k):
+        """automatically estimate size of histogram"""
+        """
+        This is copied from bv config. (Needs to be changed?) 
+        """
+        hmax = self.displ_k_min * k #self.displ_k_max*self.kmax
+        hbinsize = hmax * 0.0001 
+        return hbinsize
+    def _get_opt_maxstep(self, opt_maxstep):
+        """returns opt max step"""
+        if opt_maxstep is None:
+            #opt_maxstep = self.boxv[0] * 0.01
+            #opt_maxstep = self.sca * np.amin(self.red_radii)
+            opt_maxstep = self.radius_container
+        return opt_maxstep

@@ -108,6 +108,7 @@ class GaussianBenchmark(object):
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
         self.ngaussians = self.means.shape[0]
+        self.gdim = self.means.shape[1]
         self.print_gaussian_sum_config_file()
     def find_origin(self):
         print("initial quench")
@@ -204,6 +205,8 @@ class GaussianBenchmark(object):
         print("ngaussians", self.ngaussians)
         f.to_file_plain("ngaussians", self.ngaussians)
         f.to_file_plain("bdim", self.bdim)
+        f.to_file_plain("gdim", self.gdim)
+        f.to_file("radius_container", self.radius_container)
         f.close()
     def print_findk_config_file(self, configuration_name="config0.gauss"):
         dname = configuration_name[0:-6]
