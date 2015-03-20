@@ -99,6 +99,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir,'{}.config'.format(dname))
+        self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
     
