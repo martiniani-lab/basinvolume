@@ -4,10 +4,15 @@ import abc
 import os
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
+from pele.optimize._quench import cg_descent
 from basinvolume.utils import *
 import ConfigParser
 import re
 import argparse
+try:
+    import pylab
+except:
+    pass
 
 class _Generate_Jammed_Packing(object):
     """
@@ -113,6 +118,11 @@ class _Generate_Jammed_Packing(object):
         self._write_opengl_input(n)
     
     @abc.abstractmethod
+    def _histogram_eigenvalues(self):
+        """ method to plot eigenvalues histograms
+        """
+    
+    @abc.abstractmethod
     def one_iteration(self,fname):
         """perform one iteration
         """
@@ -121,8 +131,9 @@ class _Generate_Jammed_Packing(object):
         self._initialise()
         for fname in os.listdir(self.packings_dir):
             if ('xyzd' in fname and self.bdim == 3) or ('xyd' in fname and self.bdim == 2):
-                print fname
+                print "\n",fname
                 self.one_iteration(fname)
+        self._histogram_eigenvalues()
             
 class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     """
@@ -136,13 +147,20 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
-    def __init__(self, packing_frac=0.7, rattler_eval_tol=1.,packings_dir='packings', use_cell_lists=False):
+    def __init__(self, packing_frac=0.7, rattler_eval_tol=1.,packings_dir='packings', use_cell_lists=False, show=False):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
         
         self.use_cell_lists = use_cell_lists
         ##constants#
-        self.rattler_eval_tol = rattler_eval_tol 
+        self.rattler_eval_tol = rattler_eval_tol
         ############
+        #histogram variables#
+        self.block_evalues = []
+        self.whole_evalues = []
+        self.nbins = 1000
+        self.nbins_low = 500
+        self.low_range = (-1,1)
+        self.show = show
     
     def _initialise(self):
         self.configpath = os.path.join(self.packings_dir,'packings.config')
@@ -155,6 +173,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """perform one iteration
         """
         self._import_packing_configuration(fname)
+        self.max_nrattlers = int(self.nparticles*0.1)
         
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
@@ -215,7 +234,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _generate_packing_coords_iteration(self, tol=1e-9):
         """quenches the imported structure using FIRE"""
         fire_maxstep = np.amin(self.hs_radii)*self.sca
-        res = modifiedfire_cpp(self.coords,self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
+        res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
         if not res.success:
             print 'quench failed'
             return False
@@ -238,23 +257,34 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #analyse packing, assert that the whole system has only 3 0'evalues + a 0 evalue for each rattler 0 evalue
         hess = self.potential.getHessian(self.coords)
         ratt0evals= []
+        nratls = 0
         for i in xrange(self.nparticles):
             i1 = self.bdim*i
             hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
             w, v = np.linalg.eig(hess_block)
             w = np.real(w)
+            if np.any(w < self.rattler_eval_tol):
+                nratls += 1
             ratt0evals.extend([x for x in w if abs(x) < self.rattler_eval_tol]) #append to array of zero evalues due to rattlers
+            self.block_evalues.extend(w) 
         
         w, v = np.linalg.eig(hess)
         w = np.real(w)
         full0evals = [x for x in w if abs(x) < self.rattler_eval_tol]
         if len(full0evals) - len(ratt0evals) > self.bdim:
             print 'hessian 0s mismatch rattlers 0s'
-            return False
+            #do not return false because for lower packings fraction the number of low freequency modes increases significantly
+            pass
+        self.whole_evalues.extend(w)
+          
+        print "nrattlers: {}".format(nratls)
+        if nratls > self.max_nrattlers:
+            print '{} rattlers constitute more than 10% of the system'.format(nratls)
+            return False 
         
         #check that there isn't any significantly negative evalue
-        if np.any(w) < -0.01:
-            print 'eigevalue < -0.01'
+        if np.any(w < -2e-7):
+            print 'eigevalue < -2e-7'
             return False
         
         return True
@@ -370,6 +400,44 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         else:
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
+    
+    def _histogram_eigenvalues(self):
+        #self.eigenvalues = np.array(self.eigenvalues,dtype='d')
+        self.block_evalues = np.real(self.block_evalues)
+        pylab.figure()
+        self.block_histogram, bins = np.histogram(self.block_evalues ,bins=self.nbins)
+        width = bins[1] - bins[0]
+        center = (bins[:-1] + bins[1:]) / 2
+        pylab.bar(center, self.block_histogram, align='center', width=width)
+        pylab.savefig(os.path.join(self.base_directory,'blocks_histogram.eps'))
+        if self.show:
+            pylab.show()
+        pylab.figure()
+        self.block_histogram_low, bins = np.histogram(self.block_evalues ,bins=self.nbins_low, range=self.low_range)
+        width = bins[1] - bins[0]
+        center = (bins[:-1] + bins[1:]) / 2
+        pylab.bar(center, self.block_histogram_low, align='center', width=width)
+        pylab.savefig(os.path.join(self.base_directory, 'blocks_histogram_low{}.eps'.format(self.low_range[1])) )
+        if self.show:
+            pylab.show()
+        
+        self.whole_evalues = np.real(self.whole_evalues)
+        pylab.figure()
+        self.whole_histogram, bins = np.histogram(self.whole_evalues ,bins=self.nbins)
+        width = bins[1] - bins[0]
+        center = (bins[:-1] + bins[1:]) / 2
+        pylab.bar(center, self.whole_histogram, align='center', width=width)
+        pylab.savefig(os.path.join(self.base_directory,'whole_histogram.eps'))
+        if self.show:
+            pylab.show()
+        pylab.figure()
+        self.whole_histogram_low, bins = np.histogram(self.whole_evalues ,bins=self.nbins_low, range=self.low_range)
+        width = bins[1] - bins[0]
+        center = (bins[:-1] + bins[1:]) / 2
+        pylab.bar(center, self.whole_histogram_low, align='center', width=width)
+        pylab.savefig(os.path.join(self.base_directory,'whole_histogram_low{}.eps'.format(self.low_range[1])))
+        if self.show:
+            pylab.show()
 
             
 if __name__ == "__main__":
@@ -379,11 +447,13 @@ if __name__ == "__main__":
     parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
+    parser.add_argument("--show", action='store_true', help="show histograms", default=False)
+
     args = parser.parse_args()
     print args
     
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
-                                     use_cell_lists=args.nocell)
+                                     use_cell_lists=args.nocell, show=args.show)
     sim.run()
     
     

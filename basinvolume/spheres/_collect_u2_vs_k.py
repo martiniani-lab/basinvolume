@@ -98,6 +98,8 @@ class _collect_u2_vs_k(object):
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
         self.displ_k_max = configf.getfloat('FINDK', 'displ_k_max')
         self.var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max')
+        self.kmax_iteration = configf.getfloat("FINDK_MCRUNNER_STATUS", "iteration")
+        self.std_error_kmax = np.sqrt(self.var_displ_k_max / (self.prob_kmax * self.kmax_iteration))
         configf.read(str(self.kmin_configpath))
         self.kmin = configf.getfloat('KMIN_MCRUNNER', 'k')
         self.displ_k_min = configf.getfloat('KMIN', 'displ_k_min')
@@ -122,6 +124,7 @@ class _collect_u2_vs_k(object):
         n = len(self.karray)-1
         self.u2_array = [0 for _ in xrange(n)]
         self.var_array = [0 for _ in xrange(n)] 
+        self.std_error_array = [0 for _ in xrange(n)]
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
@@ -132,11 +135,14 @@ class _collect_u2_vs_k(object):
                     niter, u2, var, std_err = lineList[-1].split()
                     self.u2_array[int(dir)] = u2
                     self.var_array[int(dir)] = var
+                    self.std_error_array[int(dir)] = std_err
         #prepend u2 kmax
         self.u2_array.insert(0, self.displ_k_max)
         self.var_array.insert(0, self.var_displ_k_max)
+        self.std_error_array.insert(0, self.std_error_kmax)
         self.u2_array = np.array(self.u2_array[::-1], dtype='d')
         self.var_array = np.array(self.var_array[::-1], dtype='d')
+        self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
         
     def _import_time_series(self):
         timeseries = []
@@ -170,15 +176,20 @@ class _collect_u2_vs_k(object):
     def _compute_volume(self):
         """
         numerical volume obtained by integrating over the PT data
+        Note that to function get_free_energy_F0, we need to pass the array of squared standard errors of the data points to get the correct error bars.
+        This was not done previously, so the naming in the subsequent function calls can be confusing, suggesting that we are actually passing the array of variances of the displ2 points.
         """
+        
+        #sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
+        sqared_std_errors = self.std_error_array ** 2
         
         self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
-                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
         
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
-                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(self.var_array)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)

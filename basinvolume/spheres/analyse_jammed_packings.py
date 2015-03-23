@@ -99,7 +99,7 @@ class analyse_jammed_packings(object):
         self.whole_evalues.extend(w)
         
         #check that there isn't any significantly negative evalue
-        if np.any(w) < -0.1:
+        if np.any(w < -0.1):
             print "configuration is a saddle, it has strongly negative evalue"
         
         self.iteration+=1

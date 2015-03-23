@@ -11,6 +11,7 @@ from pele.potentials import BasePotential
 import copy
 import sys, traceback
 from bisect import bisect_left
+import ConfigParser
 try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
@@ -204,6 +205,28 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
 
+def read_single_column_coords(fname):
+    coords = []
+    f = open(fname, "r")
+    while True:
+        line = f.readline()
+        if not line:
+            break
+        coords.append(float(line))
+    f.close()
+    return np.array(coords, dtype="d")
+    
+def read_multi_column(fname):
+    coords = []
+    f = open(fname, "r")
+    while True:
+        line = f.readline()
+        if not line:
+            break
+        coords.append([float(x) for x in line.split()])
+    f.close()
+    return np.array(coords, dtype="d")
+
 def reduce_coordinates(mylist, indexes, bdim):
     """
     remove coordinates of frozen atoms
@@ -348,6 +371,8 @@ class ResultsFile(object):
         self.f.write("[" + title + "]\n")
     def to_file(self, name, value):
         self.f.write((name + ": {}\n").format(to_string(value)))
+    def to_file_plain(self, name, value):
+        self.f.write((name + ": {}\n").format(value))
     def close(self):
         self.f.close()
         
@@ -568,3 +593,19 @@ def simple_overlap_check(coords, radii, boxlength):
             if pair_is_overlapping(ii, jj):
                 return True # At least one overlap.
     return False # No overlap.
+
+def check_kmax_reasonable(kmax_configpath, max_kmax=1e5):
+    """
+    checks whether the value for kmax is reasonable. If it can't
+    read kmax then it assumes that it is reasonable. It is essential
+    that if reading kmax_configpath fail this functions returns True
+    """
+    configf = ConfigParser.ConfigParser()
+    try:
+        configf.read(str(kmax_configpath))
+        kmax = configf.getfloat('FINDK','kmax')
+    except:
+        return True
+    if not (0. < kmax <= max_kmax):
+        return False
+    return True
