@@ -17,7 +17,8 @@ class GaussianBenchmarkPTRun(object):
                  nocell=True,
                  nocollectminima=True,
                  cgd=False,
-                 verbose=True
+                 verbose=True,
+                 eq_max_ptiter=1e3
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
@@ -48,8 +49,8 @@ class GaussianBenchmarkPTRun(object):
         record_histogram = False        
         assert(record_histogram == False and pt_eq_niter == 0 and ts_freq == 1) #ts_freq must be 1 with current output implementation (all based on timeseries)        
         rel_std_err = 0.05 #relative standard error in the mean used by convergence test        
-        min_window = 2.5e5 #minimum amount of data before trying to check convergence        
-        max_eq_time = 2.5e5 #maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)        
+        min_window = int(0.5 * tot_niter) #minimum amount of data before trying to check convergence        
+        max_eq_time = np.min([int(0.5 * tot_niter), 2.5e5]) #maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)        
         fast_ct = False #if false skip heuristic search for equilibration point        
         collect_minima_list = False       
         i32max = np.iinfo(np.int32).max
@@ -93,6 +94,7 @@ class GaussianBenchmarkPTRun(object):
                                          kmin,
                                          displ_k_min,
                                          max_ptiter=ptiter+1,
+                                         #eq_max_ptiter=eq_max_ptiter,
                                          pfreq=pfreq,
                                          skip=nskip,
                                          test_convergence=test_convergence_ts,
