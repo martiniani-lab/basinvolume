@@ -382,9 +382,9 @@ class plot_entropy(object):
                 
 if __name__ == "__main__":
     pe = plot_entropy()
-    #pe.plot_single(show=False, savefig=True)
-    #pe.plot_compare_apf2D(show=True,savefig=False)
-    #pe.plot_all(show=True,savefig=False)
-    pe.plot_lo_param(show=True,savefig=False)
+    pe.plot_single(show=False, savefig=True)
+    pe.plot_compare_apf2D(show=False,savefig=True)
+    pe.plot_all(show=False,savefig=True)
+    pe.plot_lo_param(show=False,savefig=True)
 
 

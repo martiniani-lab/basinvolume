@@ -1,3 +1,4 @@
 from _action_cpp import RecordDisp2Histogram, Findk, RecordDisplacementTimeseries, FindNrDecorrelationSteps
 from _conf_test_cpp import CheckHyperSphericalContainer, CheckOverlapPeriodic, CheckOverlapCartesian
 from _conf_test_cpp import CheckSameMinimum, CheckSameMinimumConfig, CheckOverlapPeriodicCellLists, CheckOverlapCartesianCellLists
+from _takestep_cpp import SampleUniformSphereGaussian
