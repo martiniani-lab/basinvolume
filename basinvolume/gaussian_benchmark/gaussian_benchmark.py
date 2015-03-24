@@ -193,7 +193,7 @@ class GaussianBenchmark(object):
                                         base_directory="gauss_pt",
                                         totniter=self.pt_niter,
                                         eq_max_ptiter=self.eq_max_ptiter)
-        self.k, self.displ2 = pt_run.get_k_displ2()
+        #self.k, self.displ2 = pt_run.get_k_displ2()
     def compute_volume(self):
         print("compute volume")
         print("k", self.k)
