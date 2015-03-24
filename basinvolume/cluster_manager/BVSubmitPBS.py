@@ -140,8 +140,10 @@ class BVSubmitPBS(object):
     
     def _remove_innersphere_dos_old_data(self, explore_dir_path, config_fname, output_signature="bv*innersphere_dos*.o*", 
                                          rmdata="inner_sphere.timeseries"):
-        print "removing ", os.path.join(explore_dir_path,rmdata)
-        os.remove(os.path.join(explore_dir_path, rmdata))
+        try:
+            os.remove(os.path.join(explore_dir_path, rmdata))
+        except OSError:
+            pass #nothing to remove
         #remove config file and pbs output
         self._remove_pbs_output(explore_dir_path, output_signature)
         self._remove_pbs_output(explore_dir_path, config_fname+"*.config")
@@ -176,10 +178,11 @@ class BVSubmitPBS(object):
         this function returns the correct command line.
         
         this methods makes the assumption that path_to_script points to the spheres folder
+        so it goes up one folder from path_to_script and replaces 'spheres' with  'mbar_spheres'
         """
         packing = self.packing_naming + noj + self.ext
-        innersphere_dos_script = os.path.join(path_to_script, script)
-        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(findk_script, packing)
+        innersphere_dos_script =  os.path.join(os.path.dirname(path_to_script), 'mbar_spheres', script)
+        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(innersphere_dos_script, packing)
         if self.use_cgd:
             command += " --cgd"
         return command
@@ -202,7 +205,7 @@ class BVSubmitPBS(object):
                     noj = re.findall(r'\d+', file)[0]                       #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
-                        if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")) or force:   #check if there's a tar version
+                        if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")):   #check if there's a tar version
                             path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
                             if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
                                 trymakedir(path)    
@@ -238,7 +241,7 @@ class BVSubmitPBS(object):
                     noj = re.findall(r'\d+', file)[0]                      #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
-                        if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")) or force:   #check if there's a tar version
+                        if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")):   #check if there's a tar version
                             path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
                             if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
                                 trymakedir(path)
@@ -273,19 +276,23 @@ class BVSubmitPBS(object):
                     noj = re.findall(r'\d+', file)[0]                       #extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
                         explore_dir = self.explore_dir + noj                #build explore_dir name
-                        if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")) or force:   #check if there's a tar version
+                        if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")):   #check if there's a tar version
                             path = os.path.join(self.workdir, explore_dir)  #build a full path for explore dir
                             if (explore_dir) not in subdirs:                #check is explore_dir is a subfolder of self.workdir
                                 trymakedir(path)    
                             innersphere_dos_path = os.path.join(path, self.innersphere_dos_config + noj + '.config')
-                            if not self._check_innersphere_dos_config_file_ready(innersphere_dos_path) or force:
+                            kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
+                            pt_path = os.path.join(path, self.pt_config + noj + '.config')
+                            if (self._check_pt_config_file_ready(pt_path) \
+                            and self._check_kmax_config_file_ready(kmax_path))\
+                            and (not self._check_innersphere_dos_config_file_ready(innersphere_dos_path) or force):
                                 #########remove old innersphere data#######
                                 self._remove_innersphere_dos_old_data(dir, self.innersphere_dos_config + noj,
                                                                       output_signature="bv_{}_innersphere_dos{}.o*".format(self.label, noj))
                                 #####################################
                                 if not os.path.isabs(path_to_script):
                                     path_to_script = os.path.abspath(path_to_script)
-                                command = self._get_findk_command(noj, path_to_script, script='bv_innersphere_dos.py')
+                                command = self._get_innersphere_dos_command(noj, path_to_script, script='bv_innersphere_dos.py')
                                 pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
                                 pbs.submit_PBS('bv_innersphere_dos'+noj+'.sh', 'bv_'+self.label+'_innersphere_dos'+noj)
                             else:
@@ -315,7 +322,7 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(self.workdir):
             for dir in dirs:
                 if self.explore_dir in dir:            #PT requires that the explore_dir has already been created
-                    if not os.path.isfile(os.path.join(self.workdir,dir+".tar.gz")) or force:   #check if there's a tar version
+                    if not os.path.isfile(os.path.join(self.workdir,dir+".tar.gz")):   #check if there's a tar version
                         noj = re.findall(r'\d+', dir)[0]   #extract packing number from explor_dir string
                         if self.nojmin <= int(noj) <= self.nojmax:
                             path = os.path.join(root,dir)      #build a full path
@@ -364,54 +371,65 @@ class BVSubmitPBS(object):
                             kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                             kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                             pt_path = os.path.join(path, self.pt_config + noj + '.config')
-                            if not self._check_pt_config_file_ready(pt_path):
-                                #########remove old pt data#######
-                                self._remove_pt_old_data(explore_dir, self.pt_config + noj,
-                                                         output_signature="bv_{}_pt{}.o*".format(self.label, noj))
-                                ##################################
+                            innersphere_dos_path = os.path.join(path, self.innersphere_dos_config + noj + '.config')
+                            
+                            if not self._check_innersphere_dos_config_file_ready(innersphere_dos_path):
+                                #########remove old innersphere data#######
+                                self._remove_innersphere_dos_old_data(dir, self.innersphere_dos_config + noj,
+                                                                      output_signature="bv_{}_innersphere_dos{}.o*".format(self.label, noj))
+                                #####################################
                                 if not os.path.isabs(path_to_script):
                                     path_to_script = os.path.abspath(path_to_script)
                                 #kmax_fname = 'bv_kmax'+noj+'.sh' #unused
                                 kmin_fname = 'bv_kmin'+noj+'.sh'
                                 pt_fname = 'bv_pt'+noj+'.sh'
-                                kmax_ready = self._check_kmax_config_file_ready(kmax_path)
-                                kmin_ready = self._check_kmin_config_file_ready(kmin_path)
-                                
-                                #prepare PT command
-                                pt_command = self._get_pt_command(noj, path_to_script)
-                                pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
-                                #if kmax is either not terminated or is reasonable then continue
-                                if check_kmax_reasonable(kmax_path):
-                                    #if kmin and kmax terminated
-                                    if kmax_ready and kmin_ready:
-                                        pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
-                                    else:
-                                        pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
-                                        if not kmin_ready:
-                                            #########remove old pbs output#######
-                                            self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
-                                            #####################################
-                                            kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
-                                            kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
-                                            if kmax_ready:
-                                                pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
-                                            else:
+                                innersphere_dos_fname = 'bv_innersphere_dos'+noj+'.sh'                                
+                                innersphere_dos_command = self._get_innersphere_dos_command(noj, path_to_script, script='bv_innersphere_dos.py')
+                                pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, innersphere_dos_command, outdir=path, nodays=self.nodays)
+                                if self._check_pt_config_file_ready(pt_path):
+                                    pbs.submit_PBS('bv_innersphere_dos'+noj+'.sh', 'bv_'+self.label+'_innersphere_dos'+noj)
+                                else:
+                                    pbs.writePBSscript(innersphere_dos_fname, 'bv_'+self.label+'_innersphere_dos'+noj)
+                                    #########remove old pt data#######
+                                    self._remove_pt_old_data(explore_dir, self.pt_config + noj,
+                                                             output_signature="bv_{}_pt{}.o*".format(self.label, noj))
+                                    ##################################
+                                    kmax_ready = self._check_kmax_config_file_ready(kmax_path)
+                                    kmin_ready = self._check_kmin_config_file_ready(kmin_path)
+                                    #prepare PT command
+                                    pt_command = self._get_pt_command(noj, path_to_script)
+                                    pt_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(innersphere_dos_fname)
+                                    pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
+                                    #if kmax is either not terminated or is reasonable then continue
+                                    if check_kmax_reasonable(kmax_path):
+                                        #if kmin and kmax terminated
+                                        if kmax_ready and kmin_ready:
+                                            pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
+                                        else:
+                                            pbs.writePBSscript(pt_fname, 'bv_'+self.label+'_pt'+noj)
+                                            if not kmin_ready:
                                                 #########remove old pbs output#######
-                                                self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                                self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
                                                 #####################################
-                                                pbs.writePBSscript(kmin_fname, 'bv_'+self.label+'_kmin'+noj)
+                                                kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                                                kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
+                                                pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
+                                                if kmax_ready:
+                                                    pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
+                                                else:
+                                                    #########remove old pbs output#######
+                                                    self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                                    #####################################
+                                                    pbs.writePBSscript(kmin_fname, 'bv_'+self.label+'_kmin'+noj)
+                                                    kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
+                                                    kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmin_fname)
+                                                    pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
+                                                    pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
+                                            else:
                                                 kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                                                kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmin_fname)
+                                                kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
                                                 pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
                                                 pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
-                                        else:
-                                            kmax_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                                            kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                                            pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
-                                            pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
-                            else:
-                                pass
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
@@ -430,6 +448,7 @@ if __name__ == "__main__":
     single_parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
     single_parser.add_argument("--kmin", action='store_true', help="compute kmin",default=False)
     single_parser.add_argument("--kmax", action='store_true', help="compute kmax",default=False)
+    single_parser.add_argument("--mbar", action='store_true', help="compute innersphere dos",default=False)
     single_parser.add_argument("--pt", action='store_true', help="perform parallel tempering",default=False)        
     single_parser.add_argument("--nojmin", type=int, help="number of minimum job ID to submit (to selectively submit a range of jobs)",default=0)
     single_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
@@ -473,4 +492,7 @@ if __name__ == "__main__":
             bvpbs.submit_kmax_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script, args.force)
         if args.pt:
             bvpbs.submit_pt_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script, args.force)
+        if args.mbar:
+            bvpbs.submit_innersphere_dos_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script, args.force)
+        
         
