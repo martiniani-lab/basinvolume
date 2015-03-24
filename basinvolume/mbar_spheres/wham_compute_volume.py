@@ -18,7 +18,9 @@ except ImportError as err:
     
 class wham_compute_dos(object):
     """
-    this is a class that implements _wham_compute_dos class 
+    this is a class that implements wham_compute_dos class
+    
+    this method is here only for testing purposes, the mbar module should be preferred 
     """
         
     def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
