@@ -1,4 +1,5 @@
 from __future__ import division
+import argparse
 import numpy as np
 from basinvolume.spheres import MPI_BV_PT_RLhandshake
 from basinvolume.gaussian_benchmark import configure_bv_gauss_mcrunner
@@ -125,4 +126,19 @@ class GaussianBenchmarkPTRun(object):
                                                                                        ptrunner.ptiter, adjustf_niter, 
                                                                                        ptrunner.skip, ptrunner.pfreq)
         print ("elapsed time", end - start)
-
+        
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="pt runs for gaussian bv benchmark")
+    parser.add_argument("configuration_name", type=str, default="config0.gauss")
+    parser.add_argument("base_directory", type=str, default="gauss_pt")
+    parser.add_argument("totniter", type=int)
+    parser.add_argument("eq_max_ptiter", type=int)
+    args = parser.parse_args()
+    GaussianBenchmarkPTRun(configuration_name=args.configuration_name,
+                           base_directory=args.base_directory,
+                           totniter=args.totniter,
+                           nocell=True,
+                           nocollectminima=True,
+                           cgd=False,
+                           verbose=True,
+                           eq_max_ptiter=args.eq_max_ptiter)

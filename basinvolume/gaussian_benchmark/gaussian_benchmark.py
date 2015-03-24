@@ -1,6 +1,9 @@
 from __future__ import division
 import os
 import copy
+import subprocess
+import shlex
+import shutil
 import numpy as np
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
@@ -41,7 +44,8 @@ class GaussianBenchmark(object):
                  pt_eq_niter=1e3,
                  seeds=None,
                  pt_niter=None,
-                 eq_max_ptiter=1e6):
+                 eq_max_ptiter=1e6,
+                 nprocs=5):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -64,6 +68,7 @@ class GaussianBenchmark(object):
         self.equilibration_steps = adjustf_niter + pt_eq_niter
         self.pt_niter = 2 * self.equilibration_steps
         self.eq_max_ptiter = eq_max_ptiter
+        self.nprocs = nprocs
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -189,11 +194,17 @@ class GaussianBenchmark(object):
         self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
+        cmd = 'mpiexec -n {0} python basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4}'.format(self.nprocs, "config0.gauss", os.getcwd(), int(self.pt_niter), int(self.eq_max_ptiter))
+        p = subprocess.call(shlex.split(cmd))
+        if p != 0:
+            raise Exception("gauss pt run failed")
+        """
         pt_run = GaussianBenchmarkPTRun(configuration_name="config0.gauss",
                                         base_directory="gauss_pt",
                                         totniter=self.pt_niter,
                                         eq_max_ptiter=self.eq_max_ptiter)
         #self.k, self.displ2 = pt_run.get_k_displ2()
+        """
     def compute_volume(self):
         print("compute volume")
         print("k", self.k)
