@@ -142,6 +142,7 @@ class BVSubmitPBS(object):
                                          rmdata="inner_sphere.timeseries"):
         try:
             os.remove(os.path.join(explore_dir_path, rmdata))
+            print "removed {}".format(os.path.join(explore_dir_path, rmdata))
         except OSError:
             pass #nothing to remove
         #remove config file and pbs output
@@ -181,7 +182,7 @@ class BVSubmitPBS(object):
         so it goes up one folder from path_to_script and replaces 'spheres' with  'mbar_spheres'
         """
         packing = self.packing_naming + noj + self.ext
-        innersphere_dos_script =  os.path.join(os.path.dirname(path_to_script), 'mbar_spheres', script)
+        innersphere_dos_script =  os.path.join(os.path.dirname(os.path.dirname(path_to_script)), 'mbar_spheres', script)
         command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(innersphere_dos_script, packing)
         if self.use_cgd:
             command += " --cgd"
