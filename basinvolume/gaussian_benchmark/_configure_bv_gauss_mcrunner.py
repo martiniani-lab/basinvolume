@@ -107,6 +107,7 @@ class configure_bv_gauss_mcrunner(object):
                                                   single=single, bdim=self.bdim)
         self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")
+        self._initialise()
         print(self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps)
         self.optimizer = ModifiedFireCPP(self.origin,
                                     self.pot_optimizer,
@@ -138,7 +139,8 @@ class configure_bv_gauss_mcrunner(object):
                      metropolis=self.metropolis,
                      takestep=self.takestep,
                      niter=self.pt_niter,
-                     potential=self.potential
+                     potential=self.potential,
+                     nparticles=self.nparticles
                      )
         return mcrunner
     def _set_paths(self, base_dir, packings_dir):
@@ -176,6 +178,7 @@ class configure_bv_gauss_mcrunner(object):
         self.bdim = configf.getint('GAUSSIAN_SUM', 'bdim')
         self.gdim = configf.getint("GAUSSIAN_SUM", "gdim")
         self.radius_container = configf.getfloat("GAUSSIAN_SUM", "radius_container")
+        self.nparticles = configf.getint("GAUSSIAN_SUM", "nparticles")
         #self.ndim = self.nparticles * self.bdim
         print("self.findk_configpath", self.findk_configpath)
         configf.read(str(self.findk_configpath))

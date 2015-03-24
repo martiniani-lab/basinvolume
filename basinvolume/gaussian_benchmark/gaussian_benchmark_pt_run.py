@@ -19,7 +19,8 @@ class GaussianBenchmarkPTRun(object):
                  nocollectminima=True,
                  cgd=False,
                  verbose=True,
-                 eq_max_ptiter=1e3
+                 eq_max_ptiter=1e3,
+                 nparticles=None
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
@@ -28,6 +29,7 @@ class GaussianBenchmarkPTRun(object):
         self.nocell = nocell
         self.nocollectminima = nocollectminima
         self.cgd = cgd
+        self.nparticles = nparticles
         if self.configuration_name is None or self.base_directory is None:
             raise Exception("illegal input")
         path = self.base_directory
@@ -133,6 +135,7 @@ if __name__ == "__main__":
     parser.add_argument("base_directory", type=str, default="gauss_pt")
     parser.add_argument("totniter", type=int)
     parser.add_argument("eq_max_ptiter", type=int)
+    parser.add_argument("nparticles", type=int)
     args = parser.parse_args()
     GaussianBenchmarkPTRun(configuration_name=args.configuration_name,
                            base_directory=args.base_directory,
@@ -141,4 +144,5 @@ if __name__ == "__main__":
                            nocollectminima=True,
                            cgd=False,
                            verbose=True,
-                           eq_max_ptiter=args.eq_max_ptiter)
+                           eq_max_ptiter=args.eq_max_ptiter,
+                           nparticles=args.nparticles)

@@ -116,6 +116,7 @@ class GaussianBenchmark(object):
         self.harmonic_energy_calls = 0
         self.ngaussians = self.means.shape[0]
         self.gdim = self.means.shape[1]
+        self.nparticles = self.gdim
         self.print_gaussian_sum_config_file()
     def find_origin(self):
         print("initial quench")
@@ -184,7 +185,8 @@ class GaussianBenchmark(object):
                    metropolis=self.metropolis,
                    takestep=self.takestep,
                    potential=self.potential,
-                   niter=self.pt_niter)
+                   niter=self.pt_niter,
+                   nparticles=self.nparticles)
         print("kmin run constructed")
         kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
@@ -194,17 +196,10 @@ class GaussianBenchmark(object):
         self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
-        cmd = 'mpiexec -n {0} python basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4}'.format(self.nprocs, "config0.gauss", os.getcwd(), int(self.pt_niter), int(self.eq_max_ptiter))
+        cmd = 'mpiexec -n {0} python basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4} {5}'.format(self.nprocs, "config0.gauss", os.getcwd(), int(self.pt_niter), int(self.eq_max_ptiter), self.nparticles)
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
-        """
-        pt_run = GaussianBenchmarkPTRun(configuration_name="config0.gauss",
-                                        base_directory="gauss_pt",
-                                        totniter=self.pt_niter,
-                                        eq_max_ptiter=self.eq_max_ptiter)
-        #self.k, self.displ2 = pt_run.get_k_displ2()
-        """
     def compute_volume(self):
         print("compute volume")
         print("k", self.k)
@@ -222,6 +217,7 @@ class GaussianBenchmark(object):
         f.to_file_plain("bdim", self.bdim)
         f.to_file_plain("gdim", self.gdim)
         f.to_file("radius_container", self.radius_container)
+        f.to_file("nparticles", self.nparticles)
         f.close()
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_means.config"), self.means)
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_cov.config"), self.cov)
