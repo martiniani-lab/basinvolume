@@ -287,7 +287,7 @@ class BVSubmitPBS(object):
                             and self._check_kmax_config_file_ready(kmax_path))\
                             and (not self._check_innersphere_dos_config_file_ready(innersphere_dos_path) or force):
                                 #########remove old innersphere data#######
-                                self._remove_innersphere_dos_old_data(dir, self.innersphere_dos_config + noj,
+                                self._remove_innersphere_dos_old_data(explore_dir, self.innersphere_dos_config + noj,
                                                                       output_signature="bv_{}_innersphere_dos{}.o*".format(self.label, noj))
                                 #####################################
                                 if not os.path.isabs(path_to_script):
@@ -375,7 +375,7 @@ class BVSubmitPBS(object):
                             
                             if not self._check_innersphere_dos_config_file_ready(innersphere_dos_path):
                                 #########remove old innersphere data#######
-                                self._remove_innersphere_dos_old_data(dir, self.innersphere_dos_config + noj,
+                                self._remove_innersphere_dos_old_data(explore_dir, self.innersphere_dos_config + noj,
                                                                       output_signature="bv_{}_innersphere_dos{}.o*".format(self.label, noj))
                                 #####################################
                                 if not os.path.isabs(path_to_script):
