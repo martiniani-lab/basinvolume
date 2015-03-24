@@ -72,7 +72,7 @@ if __name__ == "__main__":
                    perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
                    seeds=seeds, use_cell_lists=args.nocell, single=single, record_histogram=record_histogram)
     
-    if not check_kmax_reasonable(mcrunner.findk_configpath):
+    if not check_kmax_reasonable(sim.findk_configpath):
         print('bv_parallel_tempering: kmax is unreasonable, exiting')
         sys.exit()
         
