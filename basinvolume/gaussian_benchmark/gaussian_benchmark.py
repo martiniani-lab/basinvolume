@@ -38,7 +38,7 @@ class GaussianBenchmark(object):
                  binsize=0.005,
                  dtol=1e-5,
                  adjustf_niter=1e3,
-                 pt_eq_niter=6e6,
+                 pt_eq_niter=1e3,
                  seeds=None,
                  pt_niter=None,
                  eq_max_ptiter=1e6):
@@ -193,7 +193,7 @@ class GaussianBenchmark(object):
                                         base_directory="gauss_pt",
                                         totniter=self.pt_niter,
                                         eq_max_ptiter=self.eq_max_ptiter)
-        self.k, self.displ2 = pt_run.get_k_displ2()
+        #self.k, self.displ2 = pt_run.get_k_displ2()
     def compute_volume(self):
         print("compute volume")
         print("k", self.k)
