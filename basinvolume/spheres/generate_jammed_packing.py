@@ -4,7 +4,6 @@ import abc
 import os
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
-from pele.optimize._quench import cg_descent
 from basinvolume.utils import *
 import ConfigParser
 import re
