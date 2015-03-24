@@ -27,8 +27,9 @@ class BVSubmitPBS(object):
     *nodays if true use walltime HH:MM:SS format (necessary for some clusters)
     """
     def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
-                 kmin_config='kmin_jammed_packing', pt_config='explore_jammed_packing', packing_naming='jammed_packing',
-                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, experimental=False, use_cgd=True):
+                 kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing', pt_config='explore_jammed_packing', 
+                 packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, 
+                 experimental=False, use_cgd=True):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -37,6 +38,7 @@ class BVSubmitPBS(object):
         self.explore_dir = explore_dir
         self.kmax_config = kmax_config 
         self.kmin_config = kmin_config
+        self.innersphere_dos_config = innersphere_dos_config
         self.pt_config = pt_config
         self.packing_naming = packing_naming
         self.label = job_label
@@ -112,6 +114,21 @@ class BVSubmitPBS(object):
                 return False
         return True
     
+    def _check_innersphere_dos_config_file_ready(self, innersphere_dos_configpath):
+        """
+        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
+        returns false if they are not
+        """
+        if not self._check_config_file_exist(innersphere_dos_configpath):
+            return False
+        configf = ConfigParser.ConfigParser()
+        try:
+            configf.read(str(innersphere_dos_configpath))
+            success = configf.getboolean('STATUS','success')
+        except:
+            return False
+        return success
+    
     def _check_config_file_exist(self, configpath):
         return os.path.isfile(configpath)
     
@@ -120,6 +137,14 @@ class BVSubmitPBS(object):
                                                                                                                 output_signature)))
         if p != 0:
             raise Exception("removing pbs output file failed")
+    
+    def _remove_innersphere_dos_old_data(self, explore_dir_path, config_fname, output_signature="bv*innersphere_dos*.o*", 
+                                         rmdata="inner_sphere.timeseries"):
+        print "removing ", os.path.join(explore_dir_path,rmdata)
+        os.remove(os.path.join(explore_dir_path, rmdata))
+        #remove config file and pbs output
+        self._remove_pbs_output(explore_dir_path, output_signature)
+        self._remove_pbs_output(explore_dir_path, config_fname+"*.config")
     
     def _remove_pt_old_data(self, explore_dir_path, config_fname, output_signature="bv*pt*.o*", pt=False):
         for root, dirs, files in os.walk(explore_dir_path):
@@ -141,6 +166,19 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
+        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(findk_script, packing)
+        if self.use_cgd:
+            command += " --cgd"
+        return command
+    
+    def _get_innersphere_dos_command(self, noj, path_to_script, script='bv_innersphere_dos.py'):
+        """
+        this function returns the correct command line.
+        
+        this methods makes the assumption that path_to_script points to the spheres folder
+        """
+        packing = self.packing_naming + noj + self.ext
+        innersphere_dos_script = os.path.join(path_to_script, script)
         command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(findk_script, packing)
         if self.use_cgd:
             command += " --cgd"
@@ -214,6 +252,42 @@ class BVSubmitPBS(object):
                                 command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
                                 pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
                                 pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
+                            else:
+                                pass
+    
+    def submit_innersphere_dos_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
+        """
+        launch innersphere_dos bv_innersphere_dos calculations manually if they have not been launched yet
+        (this method only checks that the config file is not ready or present, 
+        hence this method should only be used when there are no calculations running,
+        as the calculation might have already been launched and it is in the queue)
+        *pbs object of type BuildPBSScript
+        *path_to_script, excluding the filename with .py extension
+        """
+        subdirs = get_immediate_subdirectories(self.workdir)
+        assert(self.structures_dir in subdirs)
+        structures_dir_path = os.path.join(self.workdir, self.structures_dir)
+        for root, dirs, files in os.walk(structures_dir_path):
+            for file in files:
+                if self.ext in file:
+                    noj = re.findall(r'\d+', file)[0]                       #extract packing number
+                    if self.nojmin <= int(noj) <= self.nojmax:
+                        explore_dir = self.explore_dir + noj                #build explore_dir name
+                        if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")) or force:   #check if there's a tar version
+                            path = os.path.join(self.workdir, explore_dir)  #build a full path for explore dir
+                            if (explore_dir) not in subdirs:                #check is explore_dir is a subfolder of self.workdir
+                                trymakedir(path)    
+                            innersphere_dos_path = os.path.join(path, self.innersphere_dos_config + noj + '.config')
+                            if not self._check_innersphere_dos_config_file_ready(innersphere_dos_path) or force:
+                                #########remove old innersphere data#######
+                                self._remove_innersphere_dos_old_data(dir, self.innersphere_dos_config + noj,
+                                                                      output_signature="bv_{}_innersphere_dos{}.o*".format(self.label, noj))
+                                #####################################
+                                if not os.path.isabs(path_to_script):
+                                    path_to_script = os.path.abspath(path_to_script)
+                                command = self._get_findk_command(noj, path_to_script, script='bv_innersphere_dos.py')
+                                pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
+                                pbs.submit_PBS('bv_innersphere_dos'+noj+'.sh', 'bv_'+self.label+'_innersphere_dos'+noj)
                             else:
                                 pass
     

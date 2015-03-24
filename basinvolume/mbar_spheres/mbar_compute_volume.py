@@ -198,7 +198,7 @@ class mbar_compute_dos(object):
     
     def _build_mbar(self):
         self.ts_sphere = np.genfromtxt(os.path.join(self.explore_dir,"inner_sphere.timeseries"))
-        self.timeseries = self.timeseries[:,self.eq_time:]  #remove equilibration region from timeseries
+        self.timeseries = self.timeseries[:,self.eq_time:]  #remove equilibration region from pt timeseries
                 
         self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_sphere, self.timeseries)
         self.u_kn = self._build_u_kn(self.flat_timeseries)
