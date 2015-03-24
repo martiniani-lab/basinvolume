@@ -30,9 +30,10 @@ if __name__ == "__main__":
     packings_dir = args.packingsdir
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(),packings_dir)
-    innersphere_kwargs = dict(niter=1e6, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1, 
-                              opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, packings_dir=packings_dir,
-                              use_cell_lists=args.nocell, use_cgd=args.cgd, verbose=args.verbose)
+    #when niter=None, niter is set equal to exact number of PT niter
+    innersphere_kwargs = dict(niter=1e5, dtol=1e-4, eps=1., opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, 
+                              packings_dir=packings_dir, use_cell_lists=args.nocell, use_cgd=args.cgd, 
+                              verbose=args.verbose)
     
     i32max = np.iinfo(np.int32).max
     seeds_dict = dict(seed_takestep=np.random.randint(i32max))

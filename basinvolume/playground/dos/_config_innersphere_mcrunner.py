@@ -14,11 +14,12 @@ def _subtract_com(x):
     return (x - com[np.newaxis, :]).ravel()
 
 class _config_innersphere_mcrunner(_configure_mcrunner):
-    """
-    this is a class that implements a mcrunner that samples the inner sphere of a basin
+    """this is a class that implements a mcrunner that samples the inner sphere of a basin
+    
+    when niter=None, niter is set equal to exact number of PT niter
     """
         
-    def __init__(self, fname, niter=5e4, dtol=1e-4, eps=1., hmin=0, hmax=0.01, hbinsize=0.0005, 
+    def __init__(self, fname, niter=None, dtol=1e-4, eps=1., hmin=0, hmax=0.01, hbinsize=0.0005, 
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, use_cgd=False, record_histogram=False, 
@@ -33,11 +34,12 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         self._import_packing_configuration()
         self.k = 1.0 / self.u2_k0
         self.stepsize = 1./np.sqrt(self.k)
-        
+        if niter is not None:
+            self.niter = niter
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
-        self.mc_params = {'k':self.k,'temperature':self.temperature,'niter':niter,'stepsize':self.stepsize,'dtol':dtol,
+        self.mc_params = {'k':self.k,'temperature':self.temperature,'niter':self.niter,'stepsize':self.stepsize,'dtol':dtol,
                           'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
                           'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
@@ -53,7 +55,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         #construct mcrunner
         self.coords = _subtract_com(self.coords)
         potential = NullPotential()
-        self.mcrunner = BVInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, niter, self.coords,
+        self.mcrunner = BVInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, self.niter, self.coords,
                                               self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, dtol=dtol, 
                                               eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                               opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
@@ -110,6 +112,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         niter, u2, var, std_err = lineList[-1].split()
         self.u2_k0 = float(u2)
         self.var_k0 = float(var)
+        self.niter = int(niter) + 1
     
     def _initialise(self):
         self._print_initialise()
@@ -160,7 +163,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _config_innersphere_mcrunner('jammed_packing1.xyzdr', niter=5e4, opt_tol=1e-4, seeds=seeds, 
+    sim = _config_innersphere_mcrunner('jammed_packing1.xyzdr', niter=1e5, opt_tol=1e-4, seeds=seeds, 
                                 use_cell_lists=False, verbose=False, use_cgd=True, opt_nsteps=1e5)
     print 'simulation started'
     start=time.time()

@@ -22,7 +22,7 @@ def dos_from_offsets(visits, log_dos_all, offsets, nodata_value=0.):
     ldos = np.where(norm > 0, ldos / norm, nodata_value)
     return ldos
 
-class _mbar_compute_dos(object):
+class mbar_compute_dos(object):
     """
     this is a class that implements _mbar_compute_dos class 
     """
@@ -172,7 +172,7 @@ class _mbar_compute_dos(object):
         assert N == u_kn.shape[1]
         return u_kn
     
-    def _subsample_timeseries(self, timeseries):
+    def _subsample_timeseries(self, ts_sphere, timeseries):
         """
         returns a flatten timeseries of the uncorrelated data
         """
@@ -180,38 +180,34 @@ class _mbar_compute_dos(object):
         g = np.ones(K)
         N_k = np.zeros(K, dtype='i')
         flat_ts = np.empty(0)
-        for i in xrange(K):  # subsample the energies
-            g[i] = statisticalInefficiency_fft(timeseries[i])
-            indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[i])) # indices of uncorrelated samples
-            N_k[i] = len(indices) # number of uncorrelated samples
+        
+        #deal with ts separately
+        g[0] = statisticalInefficiency_fft(ts_sphere)
+        indices = np.array(subsampleCorrelatedData(ts_sphere, g=g[0])) # indices of uncorrelated samples
+        N_k[0] = len(indices) # number of uncorrelated samples
+        flat_ts = np.append(flat_ts, ts_sphere[indices])
+        #now loop through pt timeseries
+        for i in xrange(K-1):  # subsample the energies
+            j = i+1
+            g[j] = statisticalInefficiency_fft(timeseries[i])
+            indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
+            N_k[j] = len(indices) # number of uncorrelated samples
             flat_ts = np.append(flat_ts, timeseries[i,indices])
+        
         return flat_ts, N_k, g
     
     def _build_mbar(self):
-        ts_sphere = np.genfromtxt(os.path.join(self.explore_dir,"inner_sphere.timeseries"))
-        ts_sphere = np.trim_zeros(ts_sphere)                #remove trailing 0s
-        if ts_sphere.size < self.timeseries.shape[1]:
-            print "direct sampling data are less than PT data, aborting"
-            assert(False)
-            #ts_sphere = np.append(np.zeros(self.timeseries.shape[1]-ts_sphere.size), ts_sphere) #DEBUG, NOT SURE THIS IS A GOOD IDEA 
-        else:
-            ts_sphere = ts_sphere[:self.timeseries.shape[1]]
-        ts_sphere = np.reshape(ts_sphere, (1,ts_sphere.size))
-        assert ts_sphere.size == self.timeseries.shape[1]
-        self.timeseries = np.vstack((ts_sphere, self.timeseries))
+        self.ts_sphere = np.genfromtxt(os.path.join(self.explore_dir,"inner_sphere.timeseries"))
         self.timeseries = self.timeseries[:,self.eq_time:]  #remove equilibration region from timeseries
                 
-        self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.timeseries)
+        self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_sphere, self.timeseries)
         self.u_kn = self._build_u_kn(self.flat_timeseries)
         self.mbar = MBAR(self.u_kn, self.N_k, verbose=True)
-#        Deltaf_ij_estimated, dDeltaf_ij_estimated, Theta_ij = self.mbar.getFreeEnergyDifferences()
-#        print Deltaf_ij_estimated
 
     def _mbar_compute_volume(self):
         K, N = self.u_kn.shape 
         Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
         self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
-        print self.w_i_final
         #print "effective sample number", self.mbar.computeEffectiveSampleNumber()
         
         rmin = 1/np.sqrt(self.kmax)
@@ -239,9 +235,12 @@ class _mbar_compute_dos(object):
         
     def _build_histogram(self):
         hist_visits = []
-        bin_edges = np.linspace(np.amin(self.timeseries), np.amax(self.timeseries), self.nbins+1)
+        bin_edges = np.linspace(np.amin(np.append(self.timeseries, self.ts_sphere)), np.amax(np.append(self.timeseries, self.ts_sphere)), self.nbins+1)
+        
+        hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
+        hist_visits.append(hist)
         for timeseries in self.timeseries:
-            hist = np.histogram(timeseries, bin_edges)[0]
+            hist = np.histogram(timeseries, bin_edges, normed=True)[0]
             hist_visits.append(hist)
         
         self.hist_visits = np.array(hist_visits)
@@ -350,7 +349,7 @@ if __name__ == "__main__":
     if not os.path.isabs(fdir):
         fdir = os.path.join(wdir,fdir + fname)
     
-    sim = _mbar_compute_dos()
+    sim = mbar_compute_dos()
     
     if (fname != None):
         sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=True)
