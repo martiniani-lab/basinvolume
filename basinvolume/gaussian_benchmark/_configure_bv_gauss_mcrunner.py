@@ -265,3 +265,24 @@ class configure_bv_gauss_mcrunner(object):
         f.write('[STATUS]\n')
         for i in xrange(self.nprocs):
             f.write('success_rank{}: {}\n'.format(str(i), "False"))
+    def _print_success(self, success):
+        """
+        print whether calculation has completed successfully
+        """
+        assert(hasattr(self, 'configfile'))
+        fname = self.configfile
+        f = open(fname, 'a')
+        f.write('[STATUS]\n')
+        f.write('success: {}\n'.format(str(success)))
+        f.close()
+    def print_success_all(self, success):
+        """
+        print whether calculation has completed successfully
+        """
+        assert(hasattr(self, 'configfile'))
+        if self.rank == 0:
+            configf = ConfigParser.ConfigParser()
+            configf.read(str(self.configfile))
+            for i in xrange(self.nprocs):
+                configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
+            configf.write(open(str(self.configfile),'w')) 

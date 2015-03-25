@@ -5,6 +5,7 @@ from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
 from basinvolume.utils import get_dist_com, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
+from basinvolume.gaussian_benchmark import GaussianBenchmarkKminRun
 from pymbar.timeseries import detectEquilibration_binary_search
 import copy, warnings, time
 
@@ -195,7 +196,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         *red_origin is just the origin for systems with pbc and is the reduced set of coordinates for systems with frozen coordinates 
         """
         #compute dx with com correction for each replica
-        assert isinstance(self.mcrunner,BV_MCrunner)
+        assert isinstance(self.mcrunner, BV_MCrunner) or isinstance(self.mcrunner, GaussianBenchmarkKminRun)
         dx = get_dist_com(np.array(self.config,dtype='d'),np.array(self.mcrunner.red_origin,dtype='d'),self.mcrunner.bdim)
         
         #gather dx, only root will do so
