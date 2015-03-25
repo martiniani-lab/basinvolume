@@ -217,7 +217,7 @@ class GaussianBenchmark(object):
         f.to_file_plain("bdim", self.bdim)
         f.to_file_plain("gdim", self.gdim)
         f.to_file("radius_container", self.radius_container)
-        f.to_file("nparticles", self.nparticles)
+        f.to_file_plain("nparticles", self.nparticles)
         f.close()
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_means.config"), self.means)
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_cov.config"), self.cov)
