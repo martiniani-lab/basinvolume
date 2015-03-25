@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 
 from mcpele.monte_carlo import _BaseMCRunner
+from basinvolume.monte_carlo import RecordDisplacementTimeseries
 
 class GaussianBenchmarkKminRun(_BaseMCRunner):
     def __init__(self,
@@ -44,6 +45,7 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         super(GaussianBenchmarkKminRun, self).__init__(self.potential,
                                             self.origin, 1, self.niter)
         print("constructed super")
+        self.red_origin = self.origin
         self.set_report_steps(self.adjustf_niter)
         self.set_control(0)
         self.add_action(self.action_record_displ)
@@ -51,6 +53,10 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_late_conf_test(self.conftest_check_same_minimum)
         self.add_accept_test(self.metropolis)
+        ts_niter = niter
+        ts_freq = 1
+        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
+        self.add_action(self.time_series)
     def run_kmin(self):
         print("run kmin")
         print("coords initial", self.get_coords())
@@ -65,4 +71,19 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.k = c
         self.potential.set_k(c)
         self.reset_energy()
+    def dump_timeseries(self, fname, clear=True):
+        """write time series to fname, returns the timeseries"""
+        timeseries = np.array(self.time_series.get_time_series())
+        np.savetxt(fname, timeseries)
+        if clear:
+            self.time_series.clear()
+        return timeseries
+    def get_timeseries(self):
+        """write time series to fname, returns the timeseries"""
+        timeseries = np.array(self.time_series.get_time_series())
+        return timeseries
+    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
+        return self.time_series.check_convergence(nr_steps_to_check=nr_steps_to_check,
+                                                   rel_std_threshold=rel_std_threshold)
+        
         
