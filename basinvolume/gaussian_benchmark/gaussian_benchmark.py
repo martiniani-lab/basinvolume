@@ -196,7 +196,10 @@ class GaussianBenchmark(object):
         self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
-        cmd = 'mpiexec -n {0} python basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4} {5}'.format(self.nprocs, "config0.gauss", os.getcwd(), int(self.pt_niter), int(self.eq_max_ptiter), self.nparticles)
+        configuration_name="config0.gauss"
+        dname = configuration_name[0:-6]
+        base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+        cmd = 'mpiexec -n {0} python basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4} {5}'.format(self.nprocs, "config0.gauss", base_pt_path, int(self.pt_niter), int(self.eq_max_ptiter), self.nparticles)
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
@@ -221,16 +224,6 @@ class GaussianBenchmark(object):
         f.close()
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_means.config"), self.means)
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_cov.config"), self.cov)
-        
-        """
-        self.basic_config_path = os.path.join(os.getcwd(), "gaussian_sum")
-        
-        self.means_configpath = os.path.join(packings_dir, "gaussian_sum_means.config")
-        self.cov_configpath = os.path.join(packings_dir, "gaussian_sum_cov.config")
-        self.packing_configpath = os.path.join(packings_dir, 'gaussian_sum.config')
-        self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
-        self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
-        """
     def print_findk_config_file(self, configuration_name="config0.gauss"):
         dname = configuration_name[0:-6]
         basic_findk_config_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))

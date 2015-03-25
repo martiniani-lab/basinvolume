@@ -131,8 +131,10 @@ class GaussianBenchmarkPTRun(object):
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="pt runs for gaussian bv benchmark")
-    parser.add_argument("configuration_name", type=str, default="config0.gauss")
-    parser.add_argument("base_directory", type=str, default="gauss_pt")
+#    parser.add_argument("configuration_name", type=str, default="config0.gauss")
+    parser.add_argument("configuration_name", type=str)
+#    parser.add_argument("base_directory", type=str, default="gauss_pt")
+    parser.add_argument("base_directory", type=str)
     parser.add_argument("totniter", type=int)
     parser.add_argument("eq_max_ptiter", type=int)
     parser.add_argument("nparticles", type=int)
