@@ -41,12 +41,12 @@ class GaussianBenchmark(object):
                  binsize=0.005,
                  dtol=1e-5,
                  adjustf_niter=1e3,
-                 pt_eq_niter=1e6,
+                 pt_eq_niter=1e2,
                  seeds=None,
                  pt_niter=None,
-                 eq_max_ptiter=1e8,
+                 eq_max_ptiter=1e4,
                  nprocs=5,
-                 kmin_niter=1e3):
+                 kmin_niter=1e2):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -68,7 +68,7 @@ class GaussianBenchmark(object):
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
         self.pt_niter = self.equilibration_steps
-        self.eq_max_ptiter = eq_max_ptiter
+        self.eq_max_ptiter = 0.5 * self.pt_niter
         self.nprocs = nprocs
         self.kmin_niter = kmin_niter
         if self.means is None:

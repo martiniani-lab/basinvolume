@@ -141,7 +141,7 @@ class configure_bv_gauss_mcrunner(object):
                      equilibration_steps=self.equilibration_steps,
                      metropolis=self.metropolis,
                      takestep=self.takestep,
-                     niter=self.pt_niter,
+                     niter=100,
                      potential=self.potential,
                      nparticles=self.nparticles
                      )
