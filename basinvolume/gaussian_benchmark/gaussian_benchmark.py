@@ -41,11 +41,12 @@ class GaussianBenchmark(object):
                  binsize=0.005,
                  dtol=1e-5,
                  adjustf_niter=1e3,
-                 pt_eq_niter=1e4,
+                 pt_eq_niter=1e6,
                  seeds=None,
                  pt_niter=None,
-                 eq_max_ptiter=1e6,
-                 nprocs=5):
+                 eq_max_ptiter=1e8,
+                 nprocs=5,
+                 kmin_niter=1e3):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -66,9 +67,10 @@ class GaussianBenchmark(object):
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
-        self.pt_niter = 2 * self.equilibration_steps
+        self.pt_niter = self.equilibration_steps
         self.eq_max_ptiter = eq_max_ptiter
         self.nprocs = nprocs
+        self.kmin_niter = kmin_niter
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -168,7 +170,7 @@ class GaussianBenchmark(object):
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         hmin = 0
         hmax = 1
-        hbinsize = 0.001
+        hbinsize = 0.1
         print("histogram parameters set")
         action_record_displ_kmin = RecordDisp2Histogram(self.origin,
                               self.rattlers, self.bdim, hmin, hmax,
@@ -180,12 +182,12 @@ class GaussianBenchmark(object):
                    conftest_check_same_minimum=self.conftest_check_same_minimum,
                    action_record_displ=action_record_displ_kmin,
                    adjustf_niter=self.adjustf_niter,
-                   pt_eq_niter=self.pt_eq_niter,
-                   equilibration_steps=self.equilibration_steps,
+                   pt_eq_niter=self.kmin_niter,
+                   equilibration_steps=(self.kmin_niter/2),
                    metropolis=self.metropolis,
                    takestep=self.takestep,
                    potential=self.potential,
-                   niter=self.pt_niter,
+                   niter=(self.kmin_niter + (self.kmin_niter/2)),
                    nparticles=self.nparticles)
         print("kmin run constructed")
         kmin_run.run_kmin()
@@ -255,6 +257,9 @@ class GaussianBenchmark(object):
         for x in self.origin:
             f.write(to_string(x) + "\n")
         f.close()
+    def compute_volume(self):
+        print("computing volume")
+        print("computing volume -- done")
 
 if __name__ == "__main__":
     means = np.asarray([
@@ -321,5 +326,5 @@ if __name__ == "__main__":
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
-#   bm.compute_volume()
+    bm.compute_volume()
     bm.print_nr_function_calls()

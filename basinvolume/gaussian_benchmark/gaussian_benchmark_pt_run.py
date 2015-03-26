@@ -139,6 +139,7 @@ if __name__ == "__main__":
     parser.add_argument("eq_max_ptiter", type=int)
     parser.add_argument("nparticles", type=int)
     args = parser.parse_args()
+    print("args", args)
     GaussianBenchmarkPTRun(configuration_name=args.configuration_name,
                            base_directory=args.base_directory,
                            totniter=args.totniter,

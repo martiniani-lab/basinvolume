@@ -39,7 +39,7 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.nparticles = nparticles
         self.bdim = bdim
         print("forwarded input")
-        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_record_displ is None or self.metropolis is None or self.takestep is None or self.potential is None or self.nparticles is None:
+        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.metropolis is None or self.takestep is None or self.potential is None or self.nparticles is None:
             raise Exception("GaussianBenchmarkKminRun: illegal input")
         print("checked input")
         super(GaussianBenchmarkKminRun, self).__init__(self.potential,
@@ -48,7 +48,8 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.red_origin = self.origin
         self.set_report_steps(self.adjustf_niter)
         self.set_control(0)
-        self.add_action(self.action_record_displ)
+        if self.action_record_displ is not None:
+            self.add_action(self.action_record_displ)
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_late_conf_test(self.conftest_check_same_minimum)

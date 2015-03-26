@@ -122,9 +122,11 @@ class configure_bv_gauss_mcrunner(object):
                                            self.origin, self.dtol,
                                            opt=self.optimizer, opt_tol=opt_tol,
                                            opt_maxiter=opt_nsteps)
+        """
         self.action_record_displ2_kmin = RecordDisp2Histogram(self.origin,
                                       self.rattlers, self.bdim, hmin, hmax,
                                       hbinsize, self.equilibration_steps)
+        """
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         mcrunner = GaussianBenchmarkKminRun(
                      pot_optimizer=self.pot_optimizer,
@@ -132,7 +134,8 @@ class configure_bv_gauss_mcrunner(object):
                      optimizer=self.optimizer,
                      conftest_outer_sphere=self.conftest_outer_sphere,
                      conftest_check_same_minimum=self.conftest_check_same_minimum,
-                     action_record_displ=self.action_record_displ2_kmin,
+                     #action_record_displ=self.action_record_displ2_kmin,
+                     action_record_displ=None,
                      adjustf_niter=self.adjustf_niter,
                      pt_eq_niter=self.pt_eq_niter,
                      equilibration_steps=self.equilibration_steps,
@@ -217,7 +220,7 @@ class configure_bv_gauss_mcrunner(object):
         This is copied from bv config. (Needs to be changed?) 
         """
         hmax = self.displ_k_min * k
-        hbinsize = hmax * 0.0001 
+        hbinsize = hmax * 0.01 
         return hbinsize
     def _initialise(self):
         """initialisation function"""
