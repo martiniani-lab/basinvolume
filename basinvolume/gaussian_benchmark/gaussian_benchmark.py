@@ -40,8 +40,8 @@ class GaussianBenchmark(object):
                  hmax=1,
                  binsize=0.005,
                  dtol=1e-5,
-                 adjustf_niter=1e3,
-                 pt_eq_niter=1e2,
+                 adjustf_niter=1e1,
+                 pt_eq_niter=1e3,
                  seeds=None,
                  pt_niter=None,
                  eq_max_ptiter=1e4,
@@ -173,21 +173,26 @@ class GaussianBenchmark(object):
         hbinsize = 0.1
         print("histogram parameters set")
         action_record_displ_kmin = RecordDisp2Histogram(self.origin,
-                              self.rattlers, self.bdim, hmin, hmax,
-                              hbinsize, self.equilibration_steps)
+                                                        self.rattlers,
+                                                        self.bdim,
+                                                        hmin,
+                                                        hmax,
+                                                        hbinsize,
+                                                        self.adjustf_niter)
         print("histogram action constructed")
         kmin_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,
-                   origin=self.origin, optimizer=self.optimizer,
+                   origin=self.origin,
+                   optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
                    conftest_check_same_minimum=self.conftest_check_same_minimum,
                    action_record_displ=action_record_displ_kmin,
                    adjustf_niter=self.adjustf_niter,
-                   pt_eq_niter=self.kmin_niter,
-                   equilibration_steps=(self.kmin_niter/2),
+                   pt_eq_niter=self.pt_eq_niter,
+                   equilibration_steps=self.equilibration_steps,
                    metropolis=self.metropolis,
                    takestep=self.takestep,
                    potential=self.potential,
-                   niter=(self.kmin_niter + (self.kmin_niter/2)),
+                   niter=100,
                    nparticles=self.nparticles)
         print("kmin run constructed")
         kmin_run.run_kmin()
