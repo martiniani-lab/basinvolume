@@ -107,6 +107,7 @@ class configure_bv_gauss_mcrunner(object):
                                                   single=single, bdim=self.bdim)
         self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")
+        self._initialise()
         print(self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps)
         self.optimizer = ModifiedFireCPP(self.origin,
                                     self.pot_optimizer,
@@ -121,9 +122,11 @@ class configure_bv_gauss_mcrunner(object):
                                            self.origin, self.dtol,
                                            opt=self.optimizer, opt_tol=opt_tol,
                                            opt_maxiter=opt_nsteps)
+        """
         self.action_record_displ2_kmin = RecordDisp2Histogram(self.origin,
                                       self.rattlers, self.bdim, hmin, hmax,
                                       hbinsize, self.equilibration_steps)
+        """
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         mcrunner = GaussianBenchmarkKminRun(
                      pot_optimizer=self.pot_optimizer,
@@ -131,14 +134,16 @@ class configure_bv_gauss_mcrunner(object):
                      optimizer=self.optimizer,
                      conftest_outer_sphere=self.conftest_outer_sphere,
                      conftest_check_same_minimum=self.conftest_check_same_minimum,
-                     action_record_displ=self.action_record_displ2_kmin,
+                     #action_record_displ=self.action_record_displ2_kmin,
+                     action_record_displ=None,
                      adjustf_niter=self.adjustf_niter,
                      pt_eq_niter=self.pt_eq_niter,
                      equilibration_steps=self.equilibration_steps,
                      metropolis=self.metropolis,
                      takestep=self.takestep,
-                     niter=self.pt_niter,
-                     potential=self.potential
+                     niter=100,
+                     potential=self.potential,
+                     nparticles=self.nparticles
                      )
         return mcrunner
     def _set_paths(self, base_dir, packings_dir):
@@ -176,6 +181,7 @@ class configure_bv_gauss_mcrunner(object):
         self.bdim = configf.getint('GAUSSIAN_SUM', 'bdim')
         self.gdim = configf.getint("GAUSSIAN_SUM", "gdim")
         self.radius_container = configf.getfloat("GAUSSIAN_SUM", "radius_container")
+        self.nparticles = configf.getint("GAUSSIAN_SUM", "nparticles")
         #self.ndim = self.nparticles * self.bdim
         print("self.findk_configpath", self.findk_configpath)
         configf.read(str(self.findk_configpath))
@@ -214,7 +220,7 @@ class configure_bv_gauss_mcrunner(object):
         This is copied from bv config. (Needs to be changed?) 
         """
         hmax = self.displ_k_min * k
-        hbinsize = hmax * 0.0001 
+        hbinsize = hmax * 0.01 
         return hbinsize
     def _initialise(self):
         """initialisation function"""
@@ -262,3 +268,24 @@ class configure_bv_gauss_mcrunner(object):
         f.write('[STATUS]\n')
         for i in xrange(self.nprocs):
             f.write('success_rank{}: {}\n'.format(str(i), "False"))
+    def _print_success(self, success):
+        """
+        print whether calculation has completed successfully
+        """
+        assert(hasattr(self, 'configfile'))
+        fname = self.configfile
+        f = open(fname, 'a')
+        f.write('[STATUS]\n')
+        f.write('success: {}\n'.format(str(success)))
+        f.close()
+    def print_success_all(self, success):
+        """
+        print whether calculation has completed successfully
+        """
+        assert(hasattr(self, 'configfile'))
+        if self.rank == 0:
+            configf = ConfigParser.ConfigParser()
+            configf.read(str(self.configfile))
+            for i in xrange(self.nprocs):
+                configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
+            configf.write(open(str(self.configfile),'w')) 

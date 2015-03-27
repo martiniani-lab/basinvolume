@@ -1,6 +1,9 @@
 from __future__ import division
 import os
 import copy
+import subprocess
+import shlex
+import shutil
 import numpy as np
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
@@ -37,11 +40,14 @@ class GaussianBenchmark(object):
                  hmax=1,
                  binsize=0.005,
                  dtol=1e-5,
-                 adjustf_niter=1e3,
-                 pt_eq_niter=1e3,
+                 adjustf_niter=5e1,
+                 pt_eq_niter=1e2,
                  seeds=None,
                  pt_niter=None,
-                 eq_max_ptiter=1e6):
+                 eq_max_ptiter=1e4,
+                 nprocs=5,
+                 kmin_niter=1e2,
+                 totniter=1e4):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -62,8 +68,11 @@ class GaussianBenchmark(object):
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
-        self.pt_niter = 2 * self.equilibration_steps
-        self.eq_max_ptiter = eq_max_ptiter
+        self.pt_niter = self.equilibration_steps
+        self.eq_max_ptiter = 0.5 * self.pt_niter
+        self.nprocs = nprocs
+        self.kmin_niter = kmin_niter
+        self.totniter = totniter
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -111,6 +120,7 @@ class GaussianBenchmark(object):
         self.harmonic_energy_calls = 0
         self.ngaussians = self.means.shape[0]
         self.gdim = self.means.shape[1]
+        self.nparticles = self.gdim
         self.print_gaussian_sum_config_file()
     def find_origin(self):
         print("initial quench")
@@ -162,14 +172,19 @@ class GaussianBenchmark(object):
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         hmin = 0
         hmax = 1
-        hbinsize = 0.001
+        hbinsize = 0.1
         print("histogram parameters set")
         action_record_displ_kmin = RecordDisp2Histogram(self.origin,
-                              self.rattlers, self.bdim, hmin, hmax,
-                              hbinsize, self.equilibration_steps)
+                                                        self.rattlers,
+                                                        self.bdim,
+                                                        hmin,
+                                                        hmax,
+                                                        hbinsize,
+                                                        self.adjustf_niter)
         print("histogram action constructed")
         kmin_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,
-                   origin=self.origin, optimizer=self.optimizer,
+                   origin=self.origin,
+                   optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
                    conftest_check_same_minimum=self.conftest_check_same_minimum,
                    action_record_displ=action_record_displ_kmin,
@@ -179,7 +194,8 @@ class GaussianBenchmark(object):
                    metropolis=self.metropolis,
                    takestep=self.takestep,
                    potential=self.potential,
-                   niter=self.pt_niter)
+                   niter=100,
+                   nparticles=self.nparticles)
         print("kmin run constructed")
         kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
@@ -189,11 +205,19 @@ class GaussianBenchmark(object):
         self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
-        pt_run = GaussianBenchmarkPTRun(configuration_name="config0.gauss",
-                                        base_directory="gauss_pt",
-                                        totniter=self.pt_niter,
-                                        eq_max_ptiter=self.eq_max_ptiter)
-        #self.k, self.displ2 = pt_run.get_k_displ2()
+        configuration_name="config0.gauss"
+        dname = configuration_name[0:-6]
+        base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+        cmd = 'mpiexec -n {0} python /home/kjs73/projects/basinvolume/basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4} {5}'.format(self.nprocs,
+                                                                                                                             "config0.gauss",
+                                                                                                                             base_pt_path,
+                                                                                                                             #int(self.pt_niter),
+                                                                                                                             int(self.totniter),
+                                                                                                                             int(self.eq_max_ptiter),
+                                                                                                                             self.nparticles)
+        p = subprocess.call(shlex.split(cmd))
+        if p != 0:
+            raise Exception("gauss pt run failed")
     def compute_volume(self):
         print("compute volume")
         print("k", self.k)
@@ -211,19 +235,10 @@ class GaussianBenchmark(object):
         f.to_file_plain("bdim", self.bdim)
         f.to_file_plain("gdim", self.gdim)
         f.to_file("radius_container", self.radius_container)
+        f.to_file_plain("nparticles", self.nparticles)
         f.close()
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_means.config"), self.means)
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_cov.config"), self.cov)
-        
-        """
-        self.basic_config_path = os.path.join(os.getcwd(), "gaussian_sum")
-        
-        self.means_configpath = os.path.join(packings_dir, "gaussian_sum_means.config")
-        self.cov_configpath = os.path.join(packings_dir, "gaussian_sum_cov.config")
-        self.packing_configpath = os.path.join(packings_dir, 'gaussian_sum.config')
-        self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
-        self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
-        """
     def print_findk_config_file(self, configuration_name="config0.gauss"):
         dname = configuration_name[0:-6]
         basic_findk_config_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
@@ -255,6 +270,9 @@ class GaussianBenchmark(object):
         for x in self.origin:
             f.write(to_string(x) + "\n")
         f.close()
+    def compute_volume(self):
+        print("computing volume")
+        print("computing volume -- done")
 
 if __name__ == "__main__":
     means = np.asarray([
@@ -321,5 +339,5 @@ if __name__ == "__main__":
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
-#   bm.compute_volume()
+    bm.compute_volume()
     bm.print_nr_function_calls()

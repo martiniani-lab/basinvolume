@@ -1,4 +1,5 @@
 from __future__ import division
+import argparse
 import numpy as np
 from basinvolume.spheres import MPI_BV_PT_RLhandshake
 from basinvolume.gaussian_benchmark import configure_bv_gauss_mcrunner
@@ -18,7 +19,8 @@ class GaussianBenchmarkPTRun(object):
                  nocollectminima=True,
                  cgd=False,
                  verbose=True,
-                 eq_max_ptiter=1e3
+                 eq_max_ptiter=1e3,
+                 nparticles=None
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
@@ -27,13 +29,15 @@ class GaussianBenchmarkPTRun(object):
         self.nocell = nocell
         self.nocollectminima = nocollectminima
         self.cgd = cgd
+        self.nparticles = nparticles
         if self.configuration_name is None or self.base_directory is None:
             raise Exception("illegal input")
         path = self.base_directory
         fname = self.configuration_name
         single = True
         tot_niter = self.totniter
-        ptiter = int(tot_niter * 0.1) #10% PT swaps
+        #ptiter = int(tot_niter * 0.1) #10% PT swaps
+        ptiter = int(tot_niter * 1e-2) #1% PT swaps
         niter = int((tot_niter - ptiter) / ptiter) #90% MCMC walk        
         adjustf_niter = int(tot_niter * 0.1) #equilibrate for the first 1/10th of total steps        
         nskip = int(adjustf_niter / niter) #don't swap while adjusting the step-size        
@@ -84,6 +88,7 @@ class GaussianBenchmarkPTRun(object):
                        use_cell_lists=self.nocell,
                        single=single,
                        record_histogram=record_histogram)
+        mcrunner.set_report_steps(adjustf_niter)
         #prepare PT runner
         kmin = 0
         displ_k_min = sim.displ_k_min
@@ -104,6 +109,7 @@ class GaussianBenchmarkPTRun(object):
                                          max_eq_time=max_eq_time,
                                          base_directory=path,
                                          verbose=verbose)
+        ptrunner.suppress_histogram = True
         assert ptrunner.rank == rank, "rank id do not match"
         assert ptrunner.nproc == nprocs, "number of cores do not match"        
         # run PT
@@ -111,8 +117,6 @@ class GaussianBenchmarkPTRun(object):
         start = time.time()
         try:
             ptrunner.run()
-            if collect_minima_list:
-                mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(rank))
             sim.print_success_all(True)
         except:
             view_traceback()
@@ -125,4 +129,24 @@ class GaussianBenchmarkPTRun(object):
                                                                                        ptrunner.ptiter, adjustf_niter, 
                                                                                        ptrunner.skip, ptrunner.pfreq)
         print ("elapsed time", end - start)
-
+        
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="pt runs for gaussian bv benchmark")
+#    parser.add_argument("configuration_name", type=str, default="config0.gauss")
+    parser.add_argument("configuration_name", type=str)
+#    parser.add_argument("base_directory", type=str, default="gauss_pt")
+    parser.add_argument("base_directory", type=str)
+    parser.add_argument("totniter", type=int)
+    parser.add_argument("eq_max_ptiter", type=int)
+    parser.add_argument("nparticles", type=int)
+    args = parser.parse_args()
+    print("args", args)
+    GaussianBenchmarkPTRun(configuration_name=args.configuration_name,
+                           base_directory=args.base_directory,
+                           totniter=args.totniter,
+                           nocell=True,
+                           nocollectminima=True,
+                           cgd=False,
+                           verbose=True,
+                           eq_max_ptiter=args.eq_max_ptiter,
+                           nparticles=args.nparticles)

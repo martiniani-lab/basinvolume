@@ -142,6 +142,7 @@ class BVSubmitPBS(object):
                                          rmdata="inner_sphere.timeseries"):
         try:
             os.remove(os.path.join(explore_dir_path, rmdata))
+            print "removed {}".format(os.path.join(explore_dir_path, rmdata))
         except OSError:
             pass #nothing to remove
         #remove config file and pbs output
