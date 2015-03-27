@@ -36,7 +36,8 @@ class GaussianBenchmarkPTRun(object):
         fname = self.configuration_name
         single = True
         tot_niter = self.totniter
-        ptiter = int(tot_niter * 0.1) #10% PT swaps
+        #ptiter = int(tot_niter * 0.1) #10% PT swaps
+        ptiter = int(tot_niter * 1e-2) #1% PT swaps
         niter = int((tot_niter - ptiter) / ptiter) #90% MCMC walk        
         adjustf_niter = int(tot_niter * 0.1) #equilibrate for the first 1/10th of total steps        
         nskip = int(adjustf_niter / niter) #don't swap while adjusting the step-size        
@@ -87,6 +88,7 @@ class GaussianBenchmarkPTRun(object):
                        use_cell_lists=self.nocell,
                        single=single,
                        record_histogram=record_histogram)
+        mcrunner.set_report_steps(adjustf_niter)
         #prepare PT runner
         kmin = 0
         displ_k_min = sim.displ_k_min
@@ -107,6 +109,7 @@ class GaussianBenchmarkPTRun(object):
                                          max_eq_time=max_eq_time,
                                          base_directory=path,
                                          verbose=verbose)
+        ptrunner.suppress_histogram = True
         assert ptrunner.rank == rank, "rank id do not match"
         assert ptrunner.nproc == nprocs, "number of cores do not match"        
         # run PT
@@ -114,8 +117,6 @@ class GaussianBenchmarkPTRun(object):
         start = time.time()
         try:
             ptrunner.run()
-            if collect_minima_list:
-                mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(rank))
             sim.print_success_all(True)
         except:
             view_traceback()

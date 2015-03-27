@@ -40,13 +40,14 @@ class GaussianBenchmark(object):
                  hmax=1,
                  binsize=0.005,
                  dtol=1e-5,
-                 adjustf_niter=1e1,
-                 pt_eq_niter=1e3,
+                 adjustf_niter=5e1,
+                 pt_eq_niter=1e2,
                  seeds=None,
                  pt_niter=None,
                  eq_max_ptiter=1e4,
                  nprocs=5,
-                 kmin_niter=1e2):
+                 kmin_niter=1e2,
+                 totniter=1e4):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -71,6 +72,7 @@ class GaussianBenchmark(object):
         self.eq_max_ptiter = 0.5 * self.pt_niter
         self.nprocs = nprocs
         self.kmin_niter = kmin_niter
+        self.totniter = totniter
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -206,7 +208,13 @@ class GaussianBenchmark(object):
         configuration_name="config0.gauss"
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
-        cmd = 'mpiexec -n {0} python basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4} {5}'.format(self.nprocs, "config0.gauss", base_pt_path, int(self.pt_niter), int(self.eq_max_ptiter), self.nparticles)
+        cmd = 'mpiexec -n {0} python /home/kjs73/projects/basinvolume/basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4} {5}'.format(self.nprocs,
+                                                                                                                             "config0.gauss",
+                                                                                                                             base_pt_path,
+                                                                                                                             #int(self.pt_niter),
+                                                                                                                             int(self.totniter),
+                                                                                                                             int(self.eq_max_ptiter),
+                                                                                                                             self.nparticles)
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")

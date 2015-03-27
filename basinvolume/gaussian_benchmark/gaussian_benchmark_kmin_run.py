@@ -72,6 +72,8 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.k = c
         self.potential.set_k(c)
         self.reset_energy()
+    def _print_data(self):
+        self._all_dump_timeseries() #convergence is tested in this function
     def dump_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
