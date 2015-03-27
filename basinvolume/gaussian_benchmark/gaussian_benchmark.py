@@ -11,6 +11,7 @@ from pele.potentials import Harmonic
 from mcpele.monte_carlo import CheckSphericalContainerConfig
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
+import basinvolume
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
@@ -208,13 +209,16 @@ class GaussianBenchmark(object):
         configuration_name="config0.gauss"
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
-        cmd = 'mpiexec -n {0} python /home/kjs73/projects/basinvolume/basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4} {5}'.format(self.nprocs,
-                                                                                                                             "config0.gauss",
-                                                                                                                             base_pt_path,
-                                                                                                                             #int(self.pt_niter),
-                                                                                                                             int(self.totniter),
-                                                                                                                             int(self.eq_max_ptiter),
-                                                                                                                             self.nparticles)
+        #full_path_to_pt_run_script = "/home/kjs73/projects/basinvolume/basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py"
+        full_path_to_pt_run_script = os.path.join(os.path.dirname(basinvolume.__file__), "gaussian_benchmark", "gaussian_benchmark_pt_run.py")
+        cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4} {5}"
+        cmd = cmd_base_str.format(self.nprocs,
+                                  "config0.gauss",
+                                  base_pt_path,
+                                  #int(self.pt_niter),
+                                  int(self.totniter),
+                                  int(self.eq_max_ptiter),
+                                  self.nparticles)
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
@@ -270,9 +274,54 @@ class GaussianBenchmark(object):
         for x in self.origin:
             f.write(to_string(x) + "\n")
         f.close()
-    def compute_volume(self):
+    def compute_volume(self, configuration_name="config0.gauss"):
         print("computing volume")
+        """
+        Set analysis base directory.
+        """
+        self.base_directory = os.path.join(os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6])), "analysis")
+        base_directory = self.base_directory
+        trymakedir(base_directory)
+        """
+        Full volume computation, assuming that PT data is available
+        """
+        self._import_ks()
+        self._import_u2_reverse()
+        self._print_u2_vs_k()
+        self._compute_volume()
+        self._plot_data()
+        """
+        Print basin volumes for further processing
+        """
+        self._print_volumes()
         print("computing volume -- done")
+    def _print_volumes(self):
+        dname = 'volume_data'
+        fname = '{}/{}'.format(self.base_directory,dname)
+        f = open(fname, 'w')
+        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        def _to_file(name, value):
+            f.write((name + ": {}\n").format(to_string(value)))
+        f.write('[VOLUME_FULL_PT]\n')
+        if hasattr(self, "F0"):
+            _to_file("F0", self.F0)
+            _to_file("sigF0", self.sigF0)
+        f.close()
+    def _import_ks(self):
+        """
+        must run before import u2
+        """
+        karray = [] 
+        path = os.path.join(self.explore_dir, 'temperatures')
+        f = open(path, "r")
+        while True:
+            k = f.readline()
+            if not k: break
+            karray.extend([float(k)])
+        #prepend kmax
+        karray.insert(0, self.kmax)
+        self.karray = np.array(karray[::-1], dtype='d')
+        print("self.karray", self.karray)
 
 if __name__ == "__main__":
     means = np.asarray([
