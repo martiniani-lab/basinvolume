@@ -18,6 +18,8 @@ from basinvolume.monte_carlo import RecordDisp2Histogram
 from basinvolume.utils import trymakedir
 from basinvolume.utils import ResultsFile
 from basinvolume.utils import to_string
+from basinvolume.post_processing import F_Basin_From_MC_Data
+from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
@@ -163,6 +165,7 @@ class GaussianBenchmark(object):
         self.kmax_displ2 = kmax_run.get_displ2()
         self.prob_kmax = kmax_run.get_prob_kmax()
         self.var_displ_kmax = kmax_run.get_var_displ_kmax()
+        self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
         print("kmax_displ2 samples", action_record_displ_kmax.get_count())
@@ -209,7 +212,6 @@ class GaussianBenchmark(object):
         configuration_name="config0.gauss"
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
-        #full_path_to_pt_run_script = "/home/kjs73/projects/basinvolume/basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py"
         full_path_to_pt_run_script = os.path.join(os.path.dirname(basinvolume.__file__), "gaussian_benchmark", "gaussian_benchmark_pt_run.py")
         cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4} {5}"
         cmd = cmd_base_str.format(self.nprocs,
@@ -279,6 +281,7 @@ class GaussianBenchmark(object):
         """
         Set analysis base directory.
         """
+        self.explore_dir = os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6]))
         self.base_directory = os.path.join(os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6])), "analysis")
         base_directory = self.base_directory
         trymakedir(base_directory)
@@ -295,18 +298,6 @@ class GaussianBenchmark(object):
         """
         self._print_volumes()
         print("computing volume -- done")
-    def _print_volumes(self):
-        dname = 'volume_data'
-        fname = '{}/{}'.format(self.base_directory,dname)
-        f = open(fname, 'w')
-        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-        def _to_file(name, value):
-            f.write((name + ": {}\n").format(to_string(value)))
-        f.write('[VOLUME_FULL_PT]\n')
-        if hasattr(self, "F0"):
-            _to_file("F0", self.F0)
-            _to_file("sigF0", self.sigF0)
-        f.close()
     def _import_ks(self):
         """
         must run before import u2
@@ -322,6 +313,74 @@ class GaussianBenchmark(object):
         karray.insert(0, self.kmax)
         self.karray = np.array(karray[::-1], dtype='d')
         print("self.karray", self.karray)
+    def _import_u2_reverse(self):
+        n = len(self.karray)-1
+        self.u2_array = [0 for _ in xrange(n)]
+        self.var_array = [0 for _ in xrange(n)] 
+        self.std_error_array = [0 for _ in xrange(n)]
+        for subdir, dirs, files in os.walk(self.explore_dir):
+            for dir in dirs:
+                if dir.isdigit():
+                    path = os.path.join(self.explore_dir, dir + '/hist_mean')
+                    fileHandle = open (path, "r")
+                    lineList = fileHandle.readlines()
+                    fileHandle.close()
+                    niter, u2, var, std_err = lineList[-1].split()
+                    self.u2_array[int(dir)] = u2
+                    self.var_array[int(dir)] = var
+                    self.std_error_array[int(dir)] = std_err
+        #prepend u2 kmax
+        self.displ_k_max = self.kmax_displ2
+        self.var_displ_k_max = self.var_displ_kmax
+        self.u2_array.insert(0, self.displ_k_max)
+        self.var_array.insert(0, self.var_displ_k_max)
+        self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
+        self.std_error_array.insert(0, self.std_error_kmax)
+        self.u2_array = np.array(self.u2_array[::-1], dtype='d')
+        self.var_array = np.array(self.var_array[::-1], dtype='d')
+        self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
+    def _print_u2_vs_k(self):
+        """writes <u2> and variance vs """
+        dname = 'u2_vs_k'
+        fname = '{}/{}'.format(self.base_directory,dname)
+        f = open(fname,'w')
+        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        f.write('#{:>15}\t{:>15}\n'.format('<u2>', 'var(<u2>)'))
+        for i in xrange(len(self.u2_array)):
+            f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i])) 
+        f.close()
+    def _compute_volume(self):
+        """
+        numerical volume obtained by integrating over the PT data
+        Note that to function get_free_energy_F0, we need to pass the array of squared standard errors of the data points to get the correct error bars.
+        This was not done previously, so the naming in the subsequent function calls can be confusing, suggesting that we are actually passing the array of variances of the displ2 points.
+        """
+        #sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
+        sqared_std_errors = self.std_error_array ** 2
+        
+        self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
+                                                                                self.u2_array, self.vcavity,\
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
+        
+        self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
+                                                                                self.u2_array, self.vcavity,\
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
+        self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
+        self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
+        print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
+    def _print_volumes(self):
+        dname = 'volume_data'
+        fname = '{}/{}'.format(self.base_directory,dname)
+        f = open(fname, 'w')
+        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        def _to_file(name, value):
+            f.write((name + ": {}\n").format(to_string(value)))
+        f.write('[VOLUME_FULL_PT]\n')
+        if hasattr(self, "F0"):
+            _to_file("F0", self.F0)
+            _to_file("sigF0", self.sigF0)
+        f.close()
 
 if __name__ == "__main__":
     means = np.asarray([
