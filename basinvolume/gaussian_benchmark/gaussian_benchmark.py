@@ -18,6 +18,7 @@ from basinvolume.monte_carlo import RecordDisp2Histogram
 from basinvolume.utils import trymakedir
 from basinvolume.utils import ResultsFile
 from basinvolume.utils import to_string
+from basinvolume.utils import volume_nball
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
@@ -124,6 +125,7 @@ class GaussianBenchmark(object):
         self.ngaussians = self.means.shape[0]
         self.gdim = self.means.shape[1]
         self.nparticles = self.gdim
+        self.vcavity = np.power(volume_nball(self.radius_container, self.gdim), 1 / self.gdim)
         self.print_gaussian_sum_config_file()
     def find_origin(self):
         print("initial quench")
