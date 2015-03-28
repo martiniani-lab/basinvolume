@@ -21,6 +21,7 @@ from basinvolume.utils import to_string
 from basinvolume.utils import volume_nball
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
+from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
@@ -294,7 +295,7 @@ class GaussianBenchmark(object):
         self._import_u2_reverse()
         self._print_u2_vs_k()
         self._compute_volume()
-        self._plot_data()
+        #self._plot_data()
         """
         Print basin volumes for further processing
         """
@@ -362,18 +363,18 @@ class GaussianBenchmark(object):
         
         self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
-                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
         
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
-                                                                                self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
         print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
     def _print_volumes(self):
         dname = 'volume_data'
-        fname = '{}/{}'.format(self.base_directory,dname)
+        fname = '{}/{}'.format(self.base_directory, dname)
         f = open(fname, 'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         def _to_file(name, value):
