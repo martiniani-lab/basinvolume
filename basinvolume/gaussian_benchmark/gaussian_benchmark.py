@@ -50,9 +50,10 @@ class GaussianBenchmark(object):
                  seeds=None,
                  pt_niter=None,
                  eq_max_ptiter=1e4,
-                 nprocs=5,
+                 nprocs=7,
                  kmin_niter=1e2,
-                 totniter=1e4):
+                 totniter=1e4   ,
+                 harmonic_com_flag=False):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -78,6 +79,7 @@ class GaussianBenchmark(object):
         self.nprocs = nprocs
         self.kmin_niter = kmin_niter
         self.totniter = totniter
+        self.harmonic_com_flag = harmonic_com_flag
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -119,14 +121,17 @@ class GaussianBenchmark(object):
                                                   single=single, bdim=self.bdim)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         k = 42
-        harmonic_com_flag = True
-        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
+        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag)
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
         self.ngaussians = self.means.shape[0]
         self.gdim = self.means.shape[1]
         self.nparticles = self.gdim
-        self.vcavity = np.power(volume_nball(self.radius_container, self.gdim), 1 / self.gdim)
+        ##
+        #self.vcavity = np.power(volume_nball(self.radius_container, self.gdim), 1 / self.nparticles)
+        self.vcavity = 1
+        #self.vcavity = volume_nball(self.radius_container, self.gdim)
+        ##
         self.print_gaussian_sum_config_file()
     def find_origin(self):
         print("initial quench")
@@ -383,6 +388,9 @@ class GaussianBenchmark(object):
         if hasattr(self, "F0"):
             _to_file("F0", self.F0)
             _to_file("sigF0", self.sigF0)
+        if hasattr(self, "F0unc"):
+            _to_file("F0unc", self.F0unc)
+            _to_file("sigF0unc", self.sigF0unc)
         f.close()
 
 if __name__ == "__main__":

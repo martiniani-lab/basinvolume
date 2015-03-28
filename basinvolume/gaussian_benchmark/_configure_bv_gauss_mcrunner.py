@@ -59,7 +59,8 @@ class configure_bv_gauss_mcrunner(object):
                  record_histogram=False,
                  packings_dir='gaussian_sum',
                  base_dir=None,
-                 verbose=False):
+                 verbose=False,
+                 harmonic_com_flag=False):
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
@@ -78,6 +79,7 @@ class configure_bv_gauss_mcrunner(object):
         opt_maxstep = self.radius_container
         self.opt_maxstep = opt_maxstep
         self.eps = eps
+        self.harmonic_com_flag = harmonic_com_flag
         self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':self.eps,
                           'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,
                           'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,'pt_eq_niter':pt_eq_niter,
@@ -115,8 +117,7 @@ class configure_bv_gauss_mcrunner(object):
                                     maxstep=self.opt_maxstep,
                                     tol=self.opt_tol, 
                                     nsteps=opt_nsteps)
-        harmonic_com_flag = True
-        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
+        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag)
         self.conftest_outer_sphere = CheckSphericalContainerConfig(self.radius_container)
         self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer,
                                            self.origin, self.dtol,
