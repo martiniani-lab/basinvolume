@@ -29,7 +29,7 @@ from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
 class GaussianBenchmark(object):
     def __init__(self,
                  means=np.ones((10, 2)),
-                 cov=np.ones((10, 2)),
+                 cov=0.5*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
                  opt_maxstep=0.01,
@@ -50,9 +50,9 @@ class GaussianBenchmark(object):
                  seeds=None,
                  pt_niter=None,
                  eq_max_ptiter=1e4,
-                 nprocs=7,
+                 nprocs=15,
                  kmin_niter=1e2,
-                 totniter=1e4   ,
+                 totniter=1e4,
                  harmonic_com_flag=False):
         self.means = means
         self.cov = cov
@@ -454,7 +454,7 @@ if __name__ == "__main__":
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
     
     bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
-#   bm = GaussianBenchmark(minimum_index=0)
+#    bm = GaussianBenchmark(minimum_index=0)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
