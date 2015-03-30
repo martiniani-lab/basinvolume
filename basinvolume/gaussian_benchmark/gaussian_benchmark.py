@@ -53,7 +53,8 @@ class GaussianBenchmark(object):
                  seeds=None,
                  nprocs=15,
                  totniter=1e4,
-                 harmonic_com_flag=False):
+                 harmonic_com_flag=False,
+                 kmin_niter=1e4):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -77,6 +78,7 @@ class GaussianBenchmark(object):
         self.nprocs = nprocs
         self.totniter = totniter
         self.harmonic_com_flag = harmonic_com_flag
+        self.kmin_niter = kmin_niter
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -203,7 +205,7 @@ class GaussianBenchmark(object):
                                             metropolis=self.metropolis,
                                             takestep=self.takestep,
                                             potential=self.potential,
-                                            niter=100,
+                                            niter=self.kmin_niter,
                                             nparticles=self.nparticles)
         print("kmin run constructed")
         kmin_run.run_kmin()
@@ -448,6 +450,6 @@ if __name__ == "__main__":
 #    bm = GaussianBenchmark(minimum_index=0)
     bm.find_kmax()
     bm.run_kmin()
-    #bm.run_PT()
-    #bm.compute_volume()
+    bm.run_PT()
+    bm.compute_volume()
     bm.print_nr_function_calls()
