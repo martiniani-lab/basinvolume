@@ -11,20 +11,28 @@ from pele.potentials import Harmonic
 from mcpele.monte_carlo import CheckSphericalContainerConfig
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
+import basinvolume
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
 from basinvolume.utils import trymakedir
 from basinvolume.utils import ResultsFile
 from basinvolume.utils import to_string
-from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
-from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
-from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
+from basinvolume.utils import volume_nball
+from basinvolume.post_processing import F_Basin_From_MC_Data
+from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
+from basinvolume.post_processing import Gauss_Lobatto_abscissas
+try:
+    from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
+    from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
+    from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
+except:
+    print("gaussian import failed")
 
 class GaussianBenchmark(object):
     def __init__(self,
                  means=np.ones((10, 2)),
-                 cov=np.ones((10, 2)),
+                 cov=0.5*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
                  opt_maxstep=0.01,
@@ -40,12 +48,15 @@ class GaussianBenchmark(object):
                  hmax=1,
                  binsize=0.005,
                  dtol=1e-5,
-                 adjustf_niter=1e3,
-                 pt_eq_niter=1e3,
+                 adjustf_niter=5e1,
+                 pt_eq_niter=1e2,
                  seeds=None,
                  pt_niter=None,
-                 eq_max_ptiter=1e6,
-                 nprocs=5):
+                 eq_max_ptiter=1e4,
+                 nprocs=15,
+                 kmin_niter=1e2,
+                 totniter=1e4,
+                 harmonic_com_flag=False):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -66,9 +77,12 @@ class GaussianBenchmark(object):
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
-        self.pt_niter = 2 * self.equilibration_steps
-        self.eq_max_ptiter = eq_max_ptiter
+        self.pt_niter = self.equilibration_steps
+        self.eq_max_ptiter = 0.5 * self.pt_niter
         self.nprocs = nprocs
+        self.kmin_niter = kmin_niter
+        self.totniter = totniter
+        self.harmonic_com_flag = harmonic_com_flag
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -110,12 +124,17 @@ class GaussianBenchmark(object):
                                                   single=single, bdim=self.bdim)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         k = 42
-        harmonic_com_flag = True
-        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=harmonic_com_flag)
+        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag)
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
         self.ngaussians = self.means.shape[0]
         self.gdim = self.means.shape[1]
+        self.nparticles = self.gdim
+        ##
+        #self.vcavity = np.power(volume_nball(self.radius_container, self.gdim), 1 / self.nparticles)
+        self.vcavity = 1
+        #self.vcavity = volume_nball(self.radius_container, self.gdim)
+        ##
         self.print_gaussian_sum_config_file()
     def find_origin(self):
         print("initial quench")
@@ -157,6 +176,7 @@ class GaussianBenchmark(object):
         self.kmax_displ2 = kmax_run.get_displ2()
         self.prob_kmax = kmax_run.get_prob_kmax()
         self.var_displ_kmax = kmax_run.get_var_displ_kmax()
+        self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
         print("kmax_displ2 samples", action_record_displ_kmax.get_count())
@@ -167,14 +187,19 @@ class GaussianBenchmark(object):
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         hmin = 0
         hmax = 1
-        hbinsize = 0.001
+        hbinsize = 0.1
         print("histogram parameters set")
         action_record_displ_kmin = RecordDisp2Histogram(self.origin,
-                              self.rattlers, self.bdim, hmin, hmax,
-                              hbinsize, self.equilibration_steps)
+                                                        self.rattlers,
+                                                        self.bdim,
+                                                        hmin,
+                                                        hmax,
+                                                        hbinsize,
+                                                        self.adjustf_niter)
         print("histogram action constructed")
         kmin_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,
-                   origin=self.origin, optimizer=self.optimizer,
+                   origin=self.origin,
+                   optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
                    conftest_check_same_minimum=self.conftest_check_same_minimum,
                    action_record_displ=action_record_displ_kmin,
@@ -184,7 +209,8 @@ class GaussianBenchmark(object):
                    metropolis=self.metropolis,
                    takestep=self.takestep,
                    potential=self.potential,
-                   niter=self.pt_niter)
+                   niter=100,
+                   nparticles=self.nparticles)
         print("kmin run constructed")
         kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
@@ -194,17 +220,10 @@ class GaussianBenchmark(object):
         self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
-        cmd = 'mpiexec -n {0} python /home/sm958/Work/basinvolume/basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4}'.format(self.nprocs, "config0.gauss", os.getcwd(), int(self.pt_niter), int(self.eq_max_ptiter))
+        cmd = 'mpiexec -n {0} python basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4}'.format(self.nprocs, "config0.gauss", os.getcwd(), int(self.pt_niter), int(self.eq_max_ptiter))
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
-        """
-        pt_run = GaussianBenchmarkPTRun(configuration_name="config0.gauss",
-                                        base_directory="gauss_pt",
-                                        totniter=self.pt_niter,
-                                        eq_max_ptiter=self.eq_max_ptiter)
-        #self.k, self.displ2 = pt_run.get_k_displ2()
-        """
     def compute_volume(self):
         print("compute volume")
         print("k", self.k)
@@ -222,19 +241,10 @@ class GaussianBenchmark(object):
         f.to_file_plain("bdim", self.bdim)
         f.to_file_plain("gdim", self.gdim)
         f.to_file("radius_container", self.radius_container)
+        f.to_file_plain("nparticles", self.nparticles)
         f.close()
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_means.config"), self.means)
         np.savetxt(os.path.join(self.basic_config_path, "gaussian_sum_cov.config"), self.cov)
-        
-        """
-        self.basic_config_path = os.path.join(os.getcwd(), "gaussian_sum")
-        
-        self.means_configpath = os.path.join(packings_dir, "gaussian_sum_means.config")
-        self.cov_configpath = os.path.join(packings_dir, "gaussian_sum_cov.config")
-        self.packing_configpath = os.path.join(packings_dir, 'gaussian_sum.config')
-        self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
-        self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
-        """
     def print_findk_config_file(self, configuration_name="config0.gauss"):
         dname = configuration_name[0:-6]
         basic_findk_config_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
@@ -265,6 +275,114 @@ class GaussianBenchmark(object):
         f = open(os.path.join(self.basic_config_path, configuration_name), "w")
         for x in self.origin:
             f.write(to_string(x) + "\n")
+        f.close()
+    def compute_volume(self, configuration_name="config0.gauss"):
+        print("computing volume")
+        """
+        Set analysis base directory.
+        """
+        self.explore_dir = os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6]))
+        self.base_directory = os.path.join(os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6])), "analysis")
+        base_directory = self.base_directory
+        trymakedir(base_directory)
+        """
+        Full volume computation, assuming that PT data is available
+        """
+        self._import_ks()
+        self._import_u2_reverse()
+        self._print_u2_vs_k()
+        self._compute_volume()
+        #self._plot_data()
+        """
+        Print basin volumes for further processing
+        """
+        self._print_volumes()
+        print("computing volume -- done")
+    def _import_ks(self):
+        """
+        must run before import u2
+        """
+        karray = [] 
+        path = os.path.join(self.explore_dir, 'temperatures')
+        f = open(path, "r")
+        while True:
+            k = f.readline()
+            if not k: break
+            karray.extend([float(k)])
+        #prepend kmax
+        karray.insert(0, self.kmax)
+        self.karray = np.array(karray[::-1], dtype='d')
+        print("self.karray", self.karray)
+    def _import_u2_reverse(self):
+        n = len(self.karray)-1
+        self.u2_array = [0 for _ in xrange(n)]
+        self.var_array = [0 for _ in xrange(n)] 
+        self.std_error_array = [0 for _ in xrange(n)]
+        for subdir, dirs, files in os.walk(self.explore_dir):
+            for dir in dirs:
+                if dir.isdigit():
+                    path = os.path.join(self.explore_dir, dir + '/hist_mean')
+                    fileHandle = open (path, "r")
+                    lineList = fileHandle.readlines()
+                    fileHandle.close()
+                    niter, u2, var, std_err = lineList[-1].split()
+                    self.u2_array[int(dir)] = u2
+                    self.var_array[int(dir)] = var
+                    self.std_error_array[int(dir)] = std_err
+        #prepend u2 kmax
+        self.displ_k_max = self.kmax_displ2
+        self.var_displ_k_max = self.var_displ_kmax
+        self.u2_array.insert(0, self.displ_k_max)
+        self.var_array.insert(0, self.var_displ_k_max)
+        self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
+        self.std_error_array.insert(0, self.std_error_kmax)
+        self.u2_array = np.array(self.u2_array[::-1], dtype='d')
+        self.var_array = np.array(self.var_array[::-1], dtype='d')
+        self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
+    def _print_u2_vs_k(self):
+        """writes <u2> and variance vs """
+        dname = 'u2_vs_k'
+        fname = '{}/{}'.format(self.base_directory,dname)
+        f = open(fname,'w')
+        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        f.write('#{:>15}\t{:>15}\n'.format('<u2>', 'var(<u2>)'))
+        for i in xrange(len(self.u2_array)):
+            f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i])) 
+        f.close()
+    def _compute_volume(self):
+        """
+        numerical volume obtained by integrating over the PT data
+        Note that to function get_free_energy_F0, we need to pass the array of squared standard errors of the data points to get the correct error bars.
+        This was not done previously, so the naming in the subsequent function calls can be confusing, suggesting that we are actually passing the array of variances of the displ2 points.
+        """
+        #sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
+        sqared_std_errors = self.std_error_array ** 2
+        
+        self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
+                                                                                self.u2_array, self.vcavity,\
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
+        
+        self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
+                                                                                self.u2_array, self.vcavity,\
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
+        self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
+        self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
+        print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
+    def _print_volumes(self):
+        dname = 'volume_data'
+        fname = '{}/{}'.format(self.base_directory, dname)
+        f = open(fname, 'w')
+        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        def _to_file(name, value):
+            f.write((name + ": {}\n").format(to_string(value)))
+        f.write('[VOLUME_FULL_PT]\n')
+        if hasattr(self, "F0"):
+            _to_file("F0", self.F0)
+            _to_file("sigF0", self.sigF0)
+        if hasattr(self, "F0unc"):
+            _to_file("F0unc", self.F0unc)
+            _to_file("sigF0unc", self.sigF0unc)
         f.close()
 
 if __name__ == "__main__":
@@ -328,9 +446,9 @@ if __name__ == "__main__":
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
     
     bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
-#   bm = GaussianBenchmark(minimum_index=0)
+#    bm = GaussianBenchmark(minimum_index=0)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
-#   bm.compute_volume()
+    bm.compute_volume()
     bm.print_nr_function_calls()

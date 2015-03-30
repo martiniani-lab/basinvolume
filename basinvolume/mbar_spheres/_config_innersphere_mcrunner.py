@@ -4,7 +4,7 @@ import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import *
-from basinvolume.playground.dos import BVInnerSphereMCrunner
+from basinvolume.mbar_spheres import BVInnerSphereMCrunner
 import ConfigParser
 import time
 
