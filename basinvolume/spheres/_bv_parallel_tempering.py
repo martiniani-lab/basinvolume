@@ -5,9 +5,12 @@ from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
 from basinvolume.utils import get_dist_com, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
-from basinvolume.gaussian_benchmark import GaussianBenchmarkKminRun
 from pymbar.timeseries import detectEquilibration_binary_search
 import copy, warnings, time
+try:
+    from basinvolume.gaussian_benchmark import GaussianBenchmarkKminRun
+except:
+    print("gaussian import failed")
 
 class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """

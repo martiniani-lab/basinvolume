@@ -22,9 +22,12 @@ from basinvolume.utils import volume_nball
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
-from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
-from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
-from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
+try:
+    from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
+    from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
+    from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
+except:
+    print("gaussian import failed")
 
 class GaussianBenchmark(object):
     def __init__(self,
