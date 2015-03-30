@@ -3,7 +3,7 @@ import numpy as np
 import os
 import glob
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, read_txt, volume_nball
+from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
@@ -27,9 +27,9 @@ class mbar_compute_dos(object):
     this is a class that implements _mbar_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=350, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='jammed_packings', plot_data=True,
-                 frozen=False, show=False, verbose=False):
+                 frozen=False, show=False, verbose=True):
         
         self.fname = fname
         self.nbins = nbins
@@ -76,6 +76,7 @@ class mbar_compute_dos(object):
         self._build_histogram()
         self._compute_dos()
         self._plot_data()
+        #self._pmf()
         #except Exception as err:
         #    print err
         """
@@ -210,7 +211,7 @@ class mbar_compute_dos(object):
         self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
         #print "effective sample number", self.mbar.computeEffectiveSampleNumber()
         
-        rmin = 1/np.sqrt(self.kmax)
+        rmin = 1./np.sqrt(self.kmax) #we choose rmin to be 80 of 1/sqrt(k_max)
         print "rmin", rmin
         vmin = volume_nball(rmin, self.ndof)
         Fmin = -np.log(vmin) 
@@ -309,6 +310,39 @@ class mbar_compute_dos(object):
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
+        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)))
+        ax.set_xlabel(r'$\Delta r$')
+        ax.set_ylabel(r'$g(r)/r^{N-1}$')
+        plt.savefig(self.base_directory + '/ratio_g.eps')
+        if self.show:
+            plt.show()
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.bin_edges[:-1], rg-np.amax(rg))
+        ax.set_xlabel(r'$\Delta r$')
+        ax.set_ylabel(r'$\log(g(r)/r^{N-1})$')
+        ax.set_xscale('log')
+        plt.savefig(self.base_directory + '/ratio_g_loglog.eps')
+        if self.show:
+            plt.show()
+        
+#        corey's S_n^gamma function
+#        fig = plt.figure()
+#        ax = fig.add_subplot(111)
+#        A = surface_nball(1.,self.ndof)
+#        Vrat = np.exp(self.F0 - self.nparticles*self.bdim*np.log(self.vcavity))
+#        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)) * (self.bin_edges[:-1]**(self.nparticles*self.bdim-1)))
+#        ax.set_xlabel(r'$\Delta r$')
+#        ax.set_ylabel(r'$S_n^{\Gamma}$')
+#        #ax.set_yscale('log')
+#        #ax.set_xscale('log')
+#        #plt.savefig(self.base_directory + '/wbp.eps')
+#        if self.show:
+#            plt.show()
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
         ax.plot(self.bin_edges[:-1], dos)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel('DOS')
@@ -329,6 +363,33 @@ class mbar_compute_dos(object):
             _to_file("sigF0", self.sigF0)
             _to_file("unit_box_F0", self.unit_box_F0)
         f.close()
+
+#    def _pmf(self):
+#        # Select the potential we want to compute the PMF for (here, condition k=0).
+#        u_n = self.u_kn[-1]
+#        # Sort into nbins equally-populated bins
+#        N_tot = self.N_k.sum()
+#        x_n = self.flat_timeseries
+#        x_n_sorted = np.sort(x_n) # unroll to n-indices
+#        bins = np.append(x_n_sorted[0::(N_tot/self.nbins)], x_n_sorted.max()+0.1)
+#        bins = bins[1:-1]
+#        bin_widths = bins[1:] - bins[0:-1]
+#        bin_n = np.digitize(x_n, bins) - 1
+#        # Compute PMF for these unequally-sized bins.
+#        [f_i, df_i] = self.mbar.computePMF(u_n, bin_n, self.nbins)
+#        # If we want to correct for unequally-spaced bins to get a PMF on uniform measure
+#        f_i_corrected = f_i - np.log(bin_widths)
+#        fig = plt.figure()
+#        ax = fig.add_subplot(111)
+#        print bins.size
+#        print f_i_corrected.size
+#        ax.plot(bins[:-1], np.exp(-f_i_corrected))
+#        ax.set_xlabel(r'$\Delta r$')
+#        ax.set_ylabel(r'pmf')
+#        #ax.set_xscale('log')
+#        #plt.savefig(self.base_directory + '/ratio_g_loglog.eps')
+#        if self.show:
+#            plt.show()
 
 if __name__ == "__main__":
     
