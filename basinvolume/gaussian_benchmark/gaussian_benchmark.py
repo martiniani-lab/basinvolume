@@ -48,13 +48,10 @@ class GaussianBenchmark(object):
                  hmax=1,
                  binsize=0.005,
                  dtol=1e-5,
-                 adjustf_niter=5e1,
+                 adjustf_niter=1e1,
                  pt_eq_niter=1e2,
                  seeds=None,
-                 pt_niter=None,
-                 eq_max_ptiter=1e4,
                  nprocs=15,
-                 kmin_niter=1e2,
                  totniter=1e4,
                  harmonic_com_flag=False):
         self.means = means
@@ -77,10 +74,7 @@ class GaussianBenchmark(object):
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
-        self.pt_niter = self.equilibration_steps
-        self.eq_max_ptiter = 0.5 * self.pt_niter
         self.nprocs = nprocs
-        self.kmin_niter = kmin_niter
         self.totniter = totniter
         self.harmonic_com_flag = harmonic_com_flag
         if self.means is None:
@@ -198,19 +192,19 @@ class GaussianBenchmark(object):
                                                         self.adjustf_niter)
         print("histogram action constructed")
         kmin_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,
-                   origin=self.origin,
-                   optimizer=self.optimizer,
-                   conftest_outer_sphere=self.conftest_outer_sphere,
-                   conftest_check_same_minimum=self.conftest_check_same_minimum,
-                   action_record_displ=action_record_displ_kmin,
-                   adjustf_niter=self.adjustf_niter,
-                   pt_eq_niter=self.pt_eq_niter,
-                   equilibration_steps=self.equilibration_steps,
-                   metropolis=self.metropolis,
-                   takestep=self.takestep,
-                   potential=self.potential,
-                   niter=100,
-                   nparticles=self.nparticles)
+                                            origin=self.origin,
+                                            optimizer=self.optimizer,
+                                            conftest_outer_sphere=self.conftest_outer_sphere,
+                                            conftest_check_same_minimum=self.conftest_check_same_minimum,
+                                            action_record_displ=action_record_displ_kmin,
+                                            adjustf_niter=self.adjustf_niter,
+                                            pt_eq_niter=self.pt_eq_niter,
+                                            equilibration_steps=self.equilibration_steps,
+                                            metropolis=self.metropolis,
+                                            takestep=self.takestep,
+                                            potential=self.potential,
+                                            niter=100,
+                                            nparticles=self.nparticles)
         print("kmin run constructed")
         kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
@@ -224,8 +218,8 @@ class GaussianBenchmark(object):
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
         full_path_to_pt_run_script = os.path.join(os.path.dirname(basinvolume.__file__), "gaussian_benchmark", "gaussian_benchmark_pt_run.py")
-        cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4} {5}"
-        cmd = cmd_base_str.format(self.nprocs, "config0.gauss", base_pt_path, int(self.totniter), int(self.eq_max_ptiter), self.nparticles)
+        cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4}"
+        cmd = cmd_base_str.format(self.nprocs, "config0.gauss", base_pt_path, int(self.totniter), self.nparticles)
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
@@ -454,6 +448,6 @@ if __name__ == "__main__":
 #    bm = GaussianBenchmark(minimum_index=0)
     bm.find_kmax()
     bm.run_kmin()
-    bm.run_PT()
-    bm.compute_volume()
+    #bm.run_PT()
+    #bm.compute_volume()
     bm.print_nr_function_calls()

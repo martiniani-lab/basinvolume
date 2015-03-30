@@ -19,7 +19,6 @@ class GaussianBenchmarkPTRun(object):
                  nocollectminima=True,
                  cgd=False,
                  verbose=True,
-                 eq_max_ptiter=1e3,
                  nparticles=None
                  ):
         print("construct: GaussianBenchmarkPTRun")
@@ -99,7 +98,6 @@ class GaussianBenchmarkPTRun(object):
                                          kmin,
                                          displ_k_min,
                                          max_ptiter=ptiter+1,
-                                         #eq_max_ptiter=eq_max_ptiter,
                                          pfreq=pfreq,
                                          skip=nskip,
                                          test_convergence=test_convergence_ts,
@@ -137,7 +135,6 @@ if __name__ == "__main__":
 #    parser.add_argument("base_directory", type=str, default="gauss_pt")
     parser.add_argument("base_directory", type=str)
     parser.add_argument("totniter", type=int)
-    parser.add_argument("eq_max_ptiter", type=int)
     parser.add_argument("nparticles", type=int)
     args = parser.parse_args()
     print("args", args)
@@ -148,5 +145,4 @@ if __name__ == "__main__":
                            nocollectminima=True,
                            cgd=False,
                            verbose=True,
-                           eq_max_ptiter=args.eq_max_ptiter,
                            nparticles=args.nparticles)
