@@ -14,6 +14,7 @@ for f in $explore_files
 do
     echo "moving "$f
     sh ~/Work/basinvolume/basinvolume/cluster_manager/move_data.sh $f $1
+    sh ~/projects/basinvolume/basinvolume/cluster_manager/move_data.sh $f $1
 done
 
 exit 0
