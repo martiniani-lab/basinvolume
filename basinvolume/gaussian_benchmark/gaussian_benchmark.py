@@ -220,7 +220,12 @@ class GaussianBenchmark(object):
         self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
-        cmd = 'mpiexec -n {0} python basinvolume/gaussian_benchmark/gaussian_benchmark_pt_run.py {1} {2} {3} {4}'.format(self.nprocs, "config0.gauss", os.getcwd(), int(self.pt_niter), int(self.eq_max_ptiter))
+        configuration_name="config0.gauss"
+        dname = configuration_name[0:-6]
+        base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+        full_path_to_pt_run_script = os.path.join(os.path.dirname(basinvolume.__file__), "gaussian_benchmark", "gaussian_benchmark_pt_run.py")
+        cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4} {5}"
+        cmd = cmd_base_str.format(self.nprocs, "config0.gauss", base_pt_path, int(self.totniter), int(self.eq_max_ptiter), self.nparticles)
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
