@@ -32,7 +32,7 @@ except:
 class GaussianBenchmark(object):
     def __init__(self,
                  means=np.ones((10, 2)),
-                 cov=0.5*np.ones((10, 2)),
+                 cov=2*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
                  opt_maxstep=0.01,
@@ -48,13 +48,13 @@ class GaussianBenchmark(object):
                  hmax=1,
                  binsize=0.005,
                  dtol=1e-5,
-                 adjustf_niter=1e1,
+                 adjustf_niter=1e3,
                  pt_eq_niter=1e2,
                  seeds=None,
                  nprocs=15,
-                 totniter=1e4,
+                 totniter=1e5,
                  harmonic_com_flag=False,
-                 kmin_niter=1e4):
+                 kmin_niter=1e5):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -123,6 +123,7 @@ class GaussianBenchmark(object):
         self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag)
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
+        self.total_neval = 0
         self.ngaussians = self.means.shape[0]
         self.gdim = self.means.shape[1]
         self.nparticles = self.gdim
@@ -177,6 +178,8 @@ class GaussianBenchmark(object):
         print("kmax_displ2", self.kmax_displ2)
         print("kmax_displ2 samples", action_record_displ_kmax.get_count())
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        print("kmax_run.get_nfev()", kmax_run.get_neval())
+        self.total_neval += kmax_run.get_neval()
         self.print_findk_config_file()
     def run_kmin(self):
         print("run kmin")
@@ -213,6 +216,8 @@ class GaussianBenchmark(object):
         print("displ2_kmin", self.displ2_kmin_mean)
         print("displ2_kmin_variance", self.displ2_kmin_variance)
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        self.total_neval += kmin_run.get_neval()
+        print("self.total_neval, kmin, kmax", self.total_neval)
         self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
@@ -230,8 +235,9 @@ class GaussianBenchmark(object):
         print("k", self.k)
         print("displ2", self.displ2)
     def print_nr_function_calls(self):
-        print("total nr function calls PES")
-        print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        #print("total nr function calls PES")
+        #print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        print("self.total_neval", self.total_neval)
     def print_gaussian_sum_config_file(self):
         print("trymakedir", self.basic_config_path)
         trymakedir(self.basic_config_path)
@@ -446,8 +452,8 @@ if __name__ == "__main__":
         plt.show()
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
     
-    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
-#    bm = GaussianBenchmark(minimum_index=0)
+    #bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
+    bm = GaussianBenchmark(minimum_index=0)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()

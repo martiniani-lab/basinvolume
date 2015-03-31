@@ -106,7 +106,8 @@ class GaussianBenchmarkPTRun(object):
                                          min_window=min_window,
                                          max_eq_time=max_eq_time,
                                          base_directory=path,
-                                         verbose=verbose)
+                                         verbose=verbose,
+                                         bs_nodes=10)
         ptrunner.suppress_histogram = True
         assert ptrunner.rank == rank, "rank id do not match"
         assert ptrunner.nproc == nprocs, "number of cores do not match"        
