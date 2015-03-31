@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
     parser.add_argument("base_directory", type=str, help="directory in which to save results")
     parser.add_argument("-n","--totniter", type=int, help="number of energy evaluation per replica, default: 5e5. This sets a lower bound",default=5e5)
+    parser.add_argument("--numnegk", type=int, help="number of negative k's to use, default 0",default=0)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--cgd", action='store_true', help="use CG_DESCENT, default: False",default=False)
@@ -83,7 +84,8 @@ if __name__ == "__main__":
     kmax = sim.kmax
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=ptiter+1, pfreq=pfreq, skip=nskip,
                                      test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err, 
-                                     min_window=min_window, max_eq_time=max_eq_time, base_directory=path, verbose=args.verbose)
+                                     min_window=min_window, max_eq_time=max_eq_time, numnegk=args.numnegk, 
+                                     base_directory=path, verbose=args.verbose)
     assert ptrunner.rank == rank, "rank id do not match"
     assert ptrunner.nproc == nprocs, "number of cores do not match"
     
