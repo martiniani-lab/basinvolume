@@ -32,7 +32,7 @@ except:
 class GaussianBenchmark(object):
     def __init__(self,
                  means=np.ones((10, 2)),
-                 cov=5*np.ones((10, 2)),
+                 cov=1*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
                  opt_maxstep=0.01,
@@ -51,10 +51,10 @@ class GaussianBenchmark(object):
                  adjustf_niter=1e3,
                  pt_eq_niter=1e2,
                  seeds=None,
-                 nprocs=15,
-                 totniter=1e5,
+                 nprocs=7,
+                 totniter=1e6,
                  harmonic_com_flag=False,
-                 kmin_niter=1e5):
+                 kmin_niter=1e6):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -161,7 +161,7 @@ class GaussianBenchmark(object):
         action_findk = Findk(self.origin, self.rattlers, self.bdim,
                              self.avgcount, self.ktarget, self.knavg,
                              self.ktol, self.hmin, self.hmax,
-                             self.binsize)
+                             self.binsize, fix_com=self.harmonic_com_flag)
         kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer,
                    origin=self.origin, optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
@@ -373,7 +373,6 @@ class GaussianBenchmark(object):
                                                                                 self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
-        print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
     def _print_volumes(self):
         dname = 'volume_data'
         fname = '{}/{}'.format(self.base_directory, dname)

@@ -24,6 +24,8 @@ class Base_Compute_Integral(object):
         self.displ_k_min_trafo = displ_k_min_trafo
         self.k_max = self.k_values[-1]
         if self.k_max !=  max(self.k_values):
+            print("self.k_max", self.k_max)
+            print("max(self.k_values)", max(self.k_values))
             raise Exception("Base_Compute_Integral: label mismatch")
         self.nr_points = len(self.k_values)
         if self.nr_points != len(self.displacements):
