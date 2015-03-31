@@ -17,12 +17,12 @@ cdef extern from *:
 #derives from record energy histogram
 cdef extern from "basinvolume/record_disp2_histogram.h" namespace "bv":
     cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
-        cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t) except +
+        cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t, cbool) except +
         int get_count() except +
 
 cdef extern from "basinvolume/findk.h" namespace "bv":    
     cdef cppclass cppFindk "bv::Findk":
-        cppFindk(_pele.Array[double], _pele.Array[double], size_t, size_t, double, size_t, double, double, double, double) except+
+        cppFindk(_pele.Array[double], _pele.Array[double], size_t, size_t, double, size_t, double, double, double, double, cbool) except+
         double get_prob() except+
         double get_mean() except+
         double get_variance() except+
@@ -31,7 +31,7 @@ cdef extern from "basinvolume/findk.h" namespace "bv":
 
 cdef extern from "basinvolume/record_displacement_timeseries.h" namespace "bv":    
     cdef cppclass cppRecordDisplacementTimeseries "bv::RecordDisplacementTimeseries":
-        cppRecordDisplacementTimeseries(_pele.Array[double], size_t, size_t, size_t) except +
+        cppRecordDisplacementTimeseries(_pele.Array[double], size_t, size_t, size_t, cbool) except +
 
 cdef extern from "basinvolume/record_steps_timeseries.h" namespace "bv":    
     cdef cppclass cppRecordStepsTimeseries "bv::RecordStepsTimeseries"[ndim]:

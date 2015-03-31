@@ -8,7 +8,7 @@
 namespace bv {
 
 Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
-        size_t navg, double tol, double min, double max, double bin)
+        size_t navg, double tol, double min, double max, double bin, const bool fix_com)
 	: _origin(origin.copy()),
       _rattlers(rattlers.copy()),
       _distance(origin.size()),
@@ -24,29 +24,42 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
       _nrejected(0),
       _start(0),
       _converged(false),
-      _hist(min, max, bin)
+      _hist(min, max, bin),
+      m_fix_com(fix_com)
 {}
 
-void Findk::_get_vec_distance(const pele::Array<double>& x){
-    pele::Array<double> delta_com(_ndim, 0);
-    for(size_t i = 0; i < _nparticles; ++i) {
-        const size_t i1 = i * _ndim;
-        for(size_t j = 0; j < _ndim; ++j){
-            const double d = (x[i1 + j] - _origin[i1 + j]);
-            _distance[i1 + j] = d;
-            delta_com[j] += d;
+void Findk::_get_vec_distance(const pele::Array<double>& x)
+{
+    if (m_fix_com) {
+        pele::Array<double> delta_com(_ndim, 0);
+        for (size_t i = 0; i < _nparticles; ++i) {
+            const size_t i1 = i * _ndim;
+            for (size_t j = 0; j < _ndim; ++j) {
+                const double d = (x[i1 + j] - _origin[i1 + j]);
+                _distance[i1 + j] = d;
+                delta_com[j] += d;
+            }
+        }
+        delta_com /= _nparticles;
+        for (size_t i = 0; i < _nparticles; ++i) {
+            const size_t i1 = i * _ndim;
+            for (size_t j = 0; j < _ndim; ++j)
+                _distance[i1 + j] -= delta_com[j];
         }
     }
-
-    delta_com /= _nparticles;
-    for(size_t i = 0; i < _nparticles; ++i) {
-        const size_t i1 = i * _ndim;
-        for(size_t j = 0; j < _ndim; ++j)
-            _distance[i1 + j] -= delta_com[j];
+    else {
+        for (size_t i = 0; i < _nparticles; ++i) {
+            const size_t i1 = i * _ndim;
+            for (size_t j = 0; j < _ndim; ++j) {
+                const double d = (x[i1 + j] - _origin[i1 + j]);
+                _distance[i1 + j] = d;
+            }
+        }
     }
 }
 
-void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc){
+void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc)
+{
 
     const size_t mc_count = mc->get_iterations_count();
 
@@ -84,7 +97,8 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
     //coords.assign(_origin);
 }
 
-void Findk::adjust_k(const size_t iterations, mcpele::MC* mc){
+void Findk::adjust_k(const size_t iterations, mcpele::MC* mc)
+{
     // parameter: can be adapted for better convergence
     const size_t period = 3;
     //get k

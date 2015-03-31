@@ -56,7 +56,7 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.add_accept_test(self.metropolis)
         ts_niter = niter
         ts_freq = 1
-        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
+        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq, fix_com=False)
         self.add_action(self.time_series)
     def run_kmin(self):
         print("run kmin")
