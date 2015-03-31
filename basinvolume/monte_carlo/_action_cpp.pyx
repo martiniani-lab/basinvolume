@@ -127,8 +127,8 @@ class Findk(_Cdef_Findk):
 cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisplacementTimeseries action class implementation
     """
-cdef cbool fix_com
-cdef cppRecordScalarTimeseries* newptr
+    cdef cbool fix_com
+    cdef cppRecordScalarTimeseries* newptr
     def __cinit__(self, origin, bdim, niter, record_every, fix_com=True):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef size_t cbdim = bdim
