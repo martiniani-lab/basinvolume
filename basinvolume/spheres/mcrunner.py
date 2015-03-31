@@ -13,7 +13,7 @@ from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import FindNrDecorrelationSteps
 from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian 
-from basinvolume.monte_carlo import RecordDisplacementTimeseries
+from basinvolume.monte_carlo import RecordDisplacementTimeseries, RecordStepsTimeseries
 from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.gui import HSWCASystem
@@ -383,6 +383,7 @@ class BV_MCrunner(_BaseMCRunner):
                                           perform_convergence_test=perform_convergence_test, 
                                           collect_minima_list=collect_minima_list)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
+        self.steps_time_series = RecordStepsTimeseries(self.red_origin, self.rattlers, self.bdim, ts_niter, ts_freq)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         
         self.set_report_steps(adjustf_niter)
@@ -399,6 +400,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.time_series)
+        self.add_action(self.steps_time_series)
         
     def set_control(self, c):
         """set temperature, canonical control parameter"""
@@ -424,9 +426,17 @@ class BV_MCrunner(_BaseMCRunner):
     def dump_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
-        np.savetxt(fname, timeseries)
+        np.savetxt(fname, timeseries)        
         if clear:
             self.time_series.clear()
+        return timeseries
+    
+    def dump_steps_timeseries(self, fname, clear=True):
+        """write time series to fname, returns the timeseries"""
+        timeseries = np.array(self.steps_time_series.get_time_series())
+        np.savetxt(fname, timeseries)        
+        if clear:
+            self.steps_time_series.clear()
         return timeseries
     
     def get_timeseries(self):

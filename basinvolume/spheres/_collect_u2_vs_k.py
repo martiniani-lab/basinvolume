@@ -161,7 +161,25 @@ class _collect_u2_vs_k(object):
         X = np.array(timeseries)
         Y = series_order
         self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
-                    
+    
+    def _import_steps_time_series(self):
+        timeseries = []
+        series_order = []
+        for subdir, dirs, files in os.walk(self.explore_dir):
+            for dir in dirs:
+                if dir.isdigit():
+                    path = os.path.join(self.explore_dir, dir)
+                    file_list = glob.glob(path + '/StepsTimeSeries*')
+                    file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
+                    series_order.append(int(dir))
+                    series = []
+                    for series_path in file_list:
+                        series.extend(read_txt(series_path))
+                    timeseries.append(series)
+        X = np.array(timeseries)
+        Y = series_order
+        self.steps_timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
+    
     def _print_u2_vs_k(self):
         """writes <u2> and variance vs """
         dname = 'u2_vs_k'
@@ -237,6 +255,20 @@ class _collect_u2_vs_k(object):
         plt.savefig(self.base_directory + '/time_series.eps')
         if self.show:
             plt.show()
+        #try to plot cumulative sum of steps_timeseries
+        try:
+            self._import_steps_time_series()
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            for i,series in enumerate(self.steps_timeseries):
+                ax.plot(np.cumsum(series)[::self.ts_skip], ls=next(linecycler), linewidth=1, label=str(i))
+            #plt.yscale('symlog')
+            ax.legend(frameon=False, loc=1)
+            plt.savefig(self.base_directory + '/steps_time_series.eps')
+            if self.show:
+                plt.show()
+        except Exception,e:
+            print e
         #integrand
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -259,6 +291,7 @@ class _collect_u2_vs_k(object):
         plt.savefig(self.base_directory + '/u2_vs_k.eps') 
         if self.show:
             plt.show()
+            
         
     def _print_volumes(self):
         dname = 'volume_data'
