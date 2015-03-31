@@ -21,16 +21,18 @@ protected:
     const size_t m_N;
     const size_t m_ndim;
     const size_t m_nparticles;
+    const bool m_fix_com;
 public:
     RecordDisp2Histogram(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, double min,
-            double max, double bin, size_t eqsteps)
+            double max, double bin, size_t eqsteps, bool fix_com=true)
         : RecordEnergyHistogram(min, max, bin, eqsteps),
           m_origin(origin.copy()),
           m_rattlers(rattlers.copy()),
           m_distance(origin.size()),
           m_N(origin.size()),
           m_ndim(ndim),
-          m_nparticles(m_N/m_ndim)
+          m_nparticles(m_N/m_ndim),
+          m_fix_com(fix_com)
     {}
     virtual ~RecordDisp2Histogram(){};
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);

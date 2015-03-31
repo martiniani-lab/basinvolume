@@ -8,7 +8,7 @@ import numpy as np
 from pele.optimize import ModifiedFireCPP
 from pele.potentials import SumGaussianPot
 from pele.potentials import Harmonic
-from mcpele.monte_carlo import CheckSphericalContainerConfig
+from mcpele.monte_carlo import CheckSphericalContainer
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
 import basinvolume
@@ -63,7 +63,6 @@ class GaussianBenchmark(object):
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
         self.radius_container = radius_container
-        self.bdim = bdim
         self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg = knavg 
@@ -84,6 +83,10 @@ class GaussianBenchmark(object):
         if self.cov is None:
             raise Exception("GaussianBenchmark: illegal input: cov")
         self.basic_config_path = os.path.join(os.getcwd(), "gaussian_sum")
+        self.ngaussians = self.means.shape[0]
+        self.gdim = self.means.shape[1]
+        self.bdim = self.gdim
+        self.nparticles = 1
         #####
         self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
@@ -100,7 +103,7 @@ class GaussianBenchmark(object):
         print("self.origin.size", self.origin.size)
         self.rattlers = np.ones(self.origin.size)
         self.use_cgd = False
-        self.conftest_outer_sphere = CheckSphericalContainerConfig(self.radius_container)
+        self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
         self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer,
                                            self.origin, self.dtol,
                                            opt=self.optimizer, opt_tol=opt_tol,
@@ -110,8 +113,8 @@ class GaussianBenchmark(object):
             seeds = dict(seed_takestep=np.random.randint(i32max),
                     seed_metropolis=np.random.randint(i32max))
         self.seeds = seeds
-        stepsize = 0.1
-        adjustf_navg = 20
+        stepsize = 5
+        adjustf_navg = 100
         acceptance = 0.2
         adjustf = 0.9
         single = False
@@ -124,13 +127,10 @@ class GaussianBenchmark(object):
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
         self.total_neval = 0
-        self.ngaussians = self.means.shape[0]
-        self.gdim = self.means.shape[1]
-        self.nparticles = self.gdim
         ##
         #self.vcavity = np.power(volume_nball(self.radius_container, self.gdim), 1 / self.nparticles)
-        self.vcavity = 1
-        #self.vcavity = volume_nball(self.radius_container, self.gdim)
+        #self.vcavity = 1
+        self.vcavity = volume_nball(self.radius_container, self.gdim)
         ##
         self.print_gaussian_sum_config_file()
     def find_origin(self):
@@ -157,7 +157,7 @@ class GaussianBenchmark(object):
         hbinsize = 0.001
         action_record_displ_kmax = RecordDisp2Histogram(self.origin,
                                    self.rattlers, self.bdim, hmin,
-                                   hmax, hbinsize, 0)
+                                   hmax, hbinsize, 0, fix_com=self.harmonic_com_flag)
         action_findk = Findk(self.origin, self.rattlers, self.bdim,
                              self.avgcount, self.ktarget, self.knavg,
                              self.ktol, self.hmin, self.hmax,
@@ -180,6 +180,7 @@ class GaussianBenchmark(object):
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         print("kmax_run.get_nfev()", kmax_run.get_neval())
         self.total_neval += kmax_run.get_neval()
+        self.harmonic_energy_calls += kmax_run.get_iterations_count()
         self.print_findk_config_file()
     def run_kmin(self):
         print("run kmin")
@@ -194,7 +195,8 @@ class GaussianBenchmark(object):
                                                         hmin,
                                                         hmax,
                                                         hbinsize,
-                                                        self.adjustf_niter)
+                                                        (5 * self.equilibration_steps),
+                                                        fix_com=self.harmonic_com_flag)
         print("histogram action constructed")
         kmin_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,
                                             origin=self.origin,
@@ -217,6 +219,7 @@ class GaussianBenchmark(object):
         print("displ2_kmin_variance", self.displ2_kmin_variance)
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         self.total_neval += kmin_run.get_neval()
+        self.harmonic_energy_calls += kmin_run.get_iterations_count()
         print("self.total_neval, kmin, kmax", self.total_neval)
         self.print_kmin_config_file()
     def run_PT(self):
@@ -238,6 +241,7 @@ class GaussianBenchmark(object):
         #print("total nr function calls PES")
         #print("self.optimizer.get_niter()", self.optimizer.get_niter())
         print("self.total_neval", self.total_neval)
+        print("self.harmonic_energy_calls", self.harmonic_energy_calls)
     def print_gaussian_sum_config_file(self):
         print("trymakedir", self.basic_config_path)
         trymakedir(self.basic_config_path)

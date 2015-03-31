@@ -7,7 +7,7 @@ from mcpele.monte_carlo._action_cpp cimport cppRecordEnergyHistogram
 #derives from record energy histogram
 cdef extern from "basinvolume/record_disp2_histogram.h" namespace "bv":
     cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
-        cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t) except +
+        cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t, cbool) except +
         int get_count() except +
 
 cdef extern from "basinvolume/findk.h" namespace "bv":    
@@ -21,7 +21,7 @@ cdef extern from "basinvolume/findk.h" namespace "bv":
 
 cdef extern from "basinvolume/record_displacement_timeseries.h" namespace "bv":    
     cdef cppclass cppRecordDisplacementTimeseries "bv::RecordDisplacementTimeseries":
-        cppRecordDisplacementTimeseries(_pele.Array[double], size_t, size_t, size_t) except +
+        cppRecordDisplacementTimeseries(_pele.Array[double], size_t, size_t, size_t, cbool) except +
         _pele.Array[double] get_time_series() except +
         void clear() except +
         cbool moving_average_is_stable(size_t, double) except +

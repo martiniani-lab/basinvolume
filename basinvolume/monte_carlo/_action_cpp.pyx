@@ -14,8 +14,9 @@ import sys
 cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisp2Histogram acceptance test class implementation
     """
+    cdef cbool fix_com
     cdef cppRecordEnergyHistogram* newptr
-    def __cinit__(self, origin, rattlers, ndim, min, max, bin, eqsteps):
+    def __cinit__(self, origin, rattlers, ndim, min, max, bin, eqsteps, fix_com=True):
         if len(origin) != len(rattlers):
             raise Exception("_Cdef_RecordDisp2Histogram: illegal input: origin, ndim, rattlers")
         if len(origin) % ndim != 0:
@@ -25,7 +26,7 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         
         self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
-                                                               ndim, min, max, bin, eqsteps)
+                                                               ndim, min, max, bin, eqsteps, fix_com)
                                              )
         self.newptr = <cppRecordEnergyHistogram*> self.thisptr.get()
     
@@ -123,15 +124,16 @@ class Findk(_Cdef_Findk):
 cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisplacementTimeseries action class implementation
     """
+    cdef cbool fix_com
     cdef cppRecordDisplacementTimeseries* newptr
-    def __cinit__(self, origin, bdim, niter, record_every):
+    def __cinit__(self, origin, bdim, niter, record_every, fix_com=True):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef size_t cbdim = bdim
         cdef size_t cniter = niter
         cdef size_t crecord_every = record_every
         
         self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisplacementTimeseries(_pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                       cbdim, cniter, crecord_every)
+                                                                       cbdim, cniter, crecord_every, fix_com)
                                              )
         self.newptr = <cppRecordDisplacementTimeseries*> self.thisptr.get()
     
