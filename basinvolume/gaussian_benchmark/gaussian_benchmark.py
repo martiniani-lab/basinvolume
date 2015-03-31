@@ -52,9 +52,9 @@ class GaussianBenchmark(object):
                  pt_eq_niter=1e2,
                  seeds=None,
                  nprocs=7,
-                 totniter=1e6,
+                 totniter=1e5,
                  harmonic_com_flag=False,
-                 kmin_niter=1e6):
+                 kmin_niter=1e5):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -73,7 +73,7 @@ class GaussianBenchmark(object):
         self.dtol = dtol
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
-        self.equilibration_steps = adjustf_niter + pt_eq_niter
+        self.equilibration_steps = adjustf_niter + pt_eq_niter * 100
         self.nprocs = nprocs
         self.totniter = totniter
         self.harmonic_com_flag = harmonic_com_flag
@@ -195,7 +195,7 @@ class GaussianBenchmark(object):
                                                         hmin,
                                                         hmax,
                                                         hbinsize,
-                                                        (5 * self.equilibration_steps),
+                                                        self.equilibration_steps,
                                                         fix_com=self.harmonic_com_flag)
         print("histogram action constructed")
         kmin_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,

@@ -23,7 +23,7 @@ class Base_Compute_Integral(object):
         self.kappa_const = kappa_const
         self.displ_k_min_trafo = displ_k_min_trafo
         self.k_max = self.k_values[-1]
-        if self.k_max !=  max(self.k_values):
+        if np.abs(self.k_max -  max(self.k_values)) > 1e-10:
             print("self.k_max", self.k_max)
             print("max(self.k_values)", max(self.k_values))
             raise Exception("Base_Compute_Integral: label mismatch")
