@@ -32,7 +32,7 @@ except:
 class GaussianBenchmark(object):
     def __init__(self,
                  means=np.ones((10, 2)),
-                 cov=2*np.ones((10, 2)),
+                 cov=5*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
                  opt_maxstep=0.01,
@@ -52,9 +52,9 @@ class GaussianBenchmark(object):
                  pt_eq_niter=1e2,
                  seeds=None,
                  nprocs=15,
-                 totniter=1e4,
+                 totniter=1e5,
                  harmonic_com_flag=False,
-                 kmin_niter=1e4):
+                 kmin_niter=1e5):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -368,16 +368,10 @@ class GaussianBenchmark(object):
         """
         #sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
         sqared_std_errors = self.std_error_array ** 2
-        
-        self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
-                                                                                self.u2_array, self.vcavity,\
-                                                                                self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
-        
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
                                                                                 self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
-        self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
         print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
     def _print_volumes(self):
@@ -388,9 +382,6 @@ class GaussianBenchmark(object):
         def _to_file(name, value):
             f.write((name + ": {}\n").format(to_string(value)))
         f.write('[VOLUME_FULL_PT]\n')
-        if hasattr(self, "F0"):
-            _to_file("F0", self.F0)
-            _to_file("sigF0", self.sigF0)
         if hasattr(self, "F0unc"):
             _to_file("F0unc", self.F0unc)
             _to_file("sigF0unc", self.sigF0unc)
