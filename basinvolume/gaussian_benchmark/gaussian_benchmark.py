@@ -32,11 +32,11 @@ except:
 class GaussianBenchmark(object):
     def __init__(self,
                  means=np.ones((10, 2)),
-                 cov=1*np.ones((10, 2)),
+                 cov=9.5*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
-                 opt_maxstep=0.01,
-                 opt_tol=1e-7,
+                 opt_maxstep=1,
+                 opt_tol=1e-9,
                  opt_nsteps=1e5,
                  radius_container=10,
                  bdim=1,
@@ -52,9 +52,9 @@ class GaussianBenchmark(object):
                  pt_eq_niter=1e2,
                  seeds=None,
                  nprocs=7,
-                 totniter=1e7,
+                 totniter=1e5,
                  harmonic_com_flag=False,
-                 kmin_niter=1e7):
+                 kmin_niter=1e5):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index

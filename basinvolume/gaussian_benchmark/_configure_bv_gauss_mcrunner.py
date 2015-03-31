@@ -48,7 +48,7 @@ class configure_bv_gauss_mcrunner(object):
                  ts_freq=1,
                  opt_dtmax=1,
                  opt_maxstep=None, 
-                 opt_tol=1e-5,
+                 opt_tol=1e-9,
                  opt_nsteps=1e5,
                  perform_convergence_test=False,
                  collect_minima_list=False, 

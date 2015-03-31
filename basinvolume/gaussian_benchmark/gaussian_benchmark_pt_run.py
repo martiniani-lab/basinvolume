@@ -68,7 +68,7 @@ class GaussianBenchmarkPTRun(object):
                        niter=niter,
                        stepsize=1e-1,
                        dtol=1e-4,
-                       opt_tol=1e-5,
+                       opt_tol=1e-9,
                        opt_nsteps=1e5,
                        hmin=0,
                        hmax=1000,
