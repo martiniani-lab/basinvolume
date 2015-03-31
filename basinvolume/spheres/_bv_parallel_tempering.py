@@ -20,9 +20,14 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     eq_max_ptiter: determines the maximum number of pt steps to perform if convergence is not reached before, 20 times initial assigned time
     fast_ct, if false perform full convergence test computing the segment of the recorded time series that maximises the number of uncorrelated samples
     else return the maximum equilibration time
+    numnegk : int
+        number of negative k's, by default 0
+    lownegk : float
+        lowest negative k
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, fast_ct=False, 
-                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, print_status=False, base_directory=None, verbose=False):
+                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-3.5, print_status=False, 
+                 base_directory=None, verbose=False):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip, 
                                                    print_status=print_status, base_directory=base_directory, verbose=verbose)
         self.u2meank0 = u2meank0
@@ -38,6 +43,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.eq_max_ptiter = int(2e6/self.mcrunner.niter)
         self.min_window = min_window
         self.max_eq_time = max_eq_time
+        self.numnegk = numnegk
+        self.lownegk = lownegk
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
@@ -175,19 +182,42 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             self.histogram_mean_stream.write('{:<15}\t{:>15.15e}\t{:>15.15e}\t{:>15.15e}\n'.format(iteration,mean,variance,std_err))
         self.histogram_mean_stream.flush() #print every time not to lose data
     
+#    def _get_temps(self):
+#        """
+#        NOTE: BECAUSE K0 IS INCLUDED IN THE CALCULATION TARRAY CANNOT BE REVERSED AS [::-1]
+#        set up the spring constant. We give root the lowest temperature.
+#        This should increase performance when pair lists are used (they are updated less often at low temperature
+#        or when steps involve minimisation, as the low temperatures are closer to the minimum)
+#        """
+#        if (self.rank == 0):
+#            Tarray = spring_constants_variable_transform(self.nproc+1, self.Tmax, self.u2meank0, 
+#                                                         self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
+#            Tarray = Tarray[::-1]
+#            Tarray = np.array(Tarray[1:],dtype='d') #exclude kmax entry, no need to be simulated, mean is already available
+#            self.Tarray = Tarray
+#        else:
+#            self.Tarray = None
+    
+    #THIS IS get_temps CAN DEAL WITH NEGATIVE Ks
     def _get_temps(self):
         """
-        NOTE: BECAUSE K0 IS INCLUDED IN THE CALCULATION TARRAY CANNOT BE REVERSED AS [::-1]
-        set up the spring constant. We give root the lowest temperature.
+        set up the temperatures by distributing them exponentially. We give root the lowest temperature.
         This should increase performance when pair lists are used (they are updated less often at low temperature
         or when steps involve minimisation, as the low temperatures are closer to the minimum)
         """
         if (self.rank == 0):
-            Tarray = spring_constants_variable_transform(self.nproc+1, self.Tmax, self.u2meank0, 
+            nposk = self.nproc - self.numnegk #number of positive k
+            Tarray = spring_constants_variable_transform(nposk, self.Tmax, self.u2meank0, 
                                                          self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
-            Tarray = Tarray[::-1]
-            Tarray = np.array(Tarray[1:],dtype='d') #exclude kmax entry, no need to be simulated, mean is already available
-            self.Tarray = Tarray
+            if self.numnegk > 0:
+                assert np.abs(self.lownegk) > 0
+                grid = -(np.abs(self.lownegk)+1-(np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1), self.numnegk+1))))[:-1]
+                assert grid.size == self.numnegk
+                for x in grid[::-1]:
+                    Tarray.insert(0, x)
+            print "len Tarray", len(Tarray)
+            print "Tarray:", Tarray
+            self.Tarray = np.array(Tarray[::-1],dtype='d')
         else:
             self.Tarray = None
     

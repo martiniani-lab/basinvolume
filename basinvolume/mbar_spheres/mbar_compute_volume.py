@@ -124,6 +124,7 @@ class mbar_compute_dos(object):
         #prepend k innersphere
         karray.insert(0, self.k_innersphere)
         self.karray = np.array(karray)
+        self.k0_index = np.where(self.karray==0.)[0][0]
         
     def _import_pt_time_series(self):
         timeseries = []
@@ -188,7 +189,7 @@ class mbar_compute_dos(object):
         N_k[0] = len(indices) # number of uncorrelated samples
         flat_ts = np.append(flat_ts, ts_sphere[indices])
         #now loop through pt timeseries
-        for i in xrange(K-1):  # subsample the energies
+        for i in xrange(K-1):  #subsample the energies
             j = i+1
             g[j] = statisticalInefficiency_fft(timeseries[i])
             indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
@@ -199,11 +200,12 @@ class mbar_compute_dos(object):
     
     def _build_mbar(self):
         self.ts_sphere = np.genfromtxt(os.path.join(self.explore_dir,"inner_sphere.timeseries"))
+        self.ts_sphere = np.trim_zeros(self.ts_sphere)
         self.timeseries = self.timeseries[:,self.eq_time:]  #remove equilibration region from pt timeseries
                 
         self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_sphere, self.timeseries)
         self.u_kn = self._build_u_kn(self.flat_timeseries)
-        self.mbar = MBAR(self.u_kn, self.N_k, verbose=True)
+        self.mbar = MBAR(self.u_kn, self.N_k, verbose=True, initialize='BAR')
 
     def _mbar_compute_volume(self):
         K, N = self.u_kn.shape 
@@ -211,21 +213,21 @@ class mbar_compute_dos(object):
         self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
         #print "effective sample number", self.mbar.computeEffectiveSampleNumber()
         
-        rmin = 1./np.sqrt(self.kmax) #we choose rmin to be 80 of 1/sqrt(k_max)
+        rmin = 1./np.sqrt(self.kmax) #we choose rmin to be 1/sqrt(k_max)
         print "rmin", rmin
         vmin = volume_nball(rmin, self.ndof)
         Fmin = -np.log(vmin) 
         
-        u_lk = np.copy(self.u_kn[-1])
+        u_lk = np.copy(self.u_kn[self.k0_index]) #was -1
         r = self.flat_timeseries
         LARGE = 1e70
         u_lk = np.where(r < rmin, u_lk, LARGE)
         u_lk = np.reshape(u_lk, (1, u_lk.size))
-        u_lk = np.vstack((u_lk, self.u_kn[-1]))
+        u_lk = np.vstack((u_lk, self.u_kn[self.k0_index])) #was -1, measure free energy difference between k=0 and kw
         Deltaf_ij, dDeltaf_ij = self.mbar.computePerturbedFreeEnergies(u_lk)
         #vol = Deltaf_ij[1,0]
-        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) - np.log(self.vcavity), dDeltaf_ij[1,0]
-        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0]), dDeltaf_ij[1,0]
+        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) + np.log(self.prob_kmax) - np.log(self.vcavity), dDeltaf_ij[1,0]
+        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0])  + np.log(self.prob_kmax), dDeltaf_ij[1,0]
         
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
