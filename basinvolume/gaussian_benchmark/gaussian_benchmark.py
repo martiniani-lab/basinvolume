@@ -52,9 +52,9 @@ class GaussianBenchmark(object):
                  pt_eq_niter=1e2,
                  seeds=None,
                  nprocs=15,
-                 totniter=1e5,
+                 totniter=1e4,
                  harmonic_com_flag=False,
-                 kmin_niter=1e5):
+                 kmin_niter=1e4):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
