@@ -47,13 +47,17 @@ class GaussianBenchmarkPTRun(object):
         pfreq = int((ptiter - 1) * 0.1) #print every 1/10th of ptiter (this will give 5 snapshots) #this is also frequency of tests        
         ts_freq = 1        
         ts_niter = int(niter * pfreq / ts_freq)        
+        print("################")
+        print("pfreq", pfreq, "---------------------------------------------------------")
+        print("ts_niter", ts_niter, "---------------------------------------------------------")
+        print("#-#-#-#-#-#-#-#-")
         perform_minimisation_convergence_test = False        
         test_convergence_ts = True        
         record_histogram = False        
         assert(record_histogram == False and pt_eq_niter == 0 and ts_freq == 1) #ts_freq must be 1 with current output implementation (all based on timeseries)        
         rel_std_err = 0.05 #relative standard error in the mean used by convergence test        
-        min_window = int(0.5 * tot_niter) #minimum amount of data before trying to check convergence        
-        max_eq_time = np.min([int(0.5 * tot_niter), 2.5e5]) #maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)        
+        min_window = int(0.2 * tot_niter) #minimum amount of data before trying to check convergence        
+        max_eq_time = np.min([int(0.2 * tot_niter), 2.5e5]) #maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)        
         fast_ct = False #if false skip heuristic search for equilibration point        
         collect_minima_list = False       
         i32max = np.iinfo(np.int32).max
@@ -68,7 +72,7 @@ class GaussianBenchmarkPTRun(object):
                        niter=niter,
                        stepsize=1e-1,
                        dtol=1e-4,
-                       opt_tol=1e-9,
+                       opt_tol=1e-8,
                        opt_nsteps=1e5,
                        hmin=0,
                        hmax=1000,
