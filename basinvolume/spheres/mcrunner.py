@@ -257,6 +257,10 @@ class BV_MCrunner(_BaseMCRunner):
     rcontainer : double
         typically halfway between the outer and inner radius of the frozen shell
         forbids jumps outside out the frozen shell
+    record_steps_timeseries : bool
+        record steps timeseries
+    record_steps_timeseries_every : list
+        array of intervals over which to record step distances 
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
@@ -265,9 +269,10 @@ class BV_MCrunner(_BaseMCRunner):
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
-                 record_histogram=False, single=False, use_periodic=True,
-                 use_frozen=False, frozen_atoms=None, rcontainer=None,
-                 use_cgd=False):
+                 record_histogram=False, record_steps_timeseries=False, 
+                 record_steps_timeseries_every=[1], 
+                 single=False, use_periodic=True, use_frozen=False, 
+                 frozen_atoms=None, rcontainer=None, use_cgd=False):
         #construct base class
         assert not (use_frozen and use_periodic)
         if use_frozen:
@@ -383,7 +388,6 @@ class BV_MCrunner(_BaseMCRunner):
                                           perform_convergence_test=perform_convergence_test, 
                                           collect_minima_list=collect_minima_list)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
-        self.steps_time_series = RecordStepsTimeseries(self.red_origin, self.rattlers, self.bdim, ts_niter, ts_freq)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         
         self.set_report_steps(adjustf_niter)
@@ -400,7 +404,13 @@ class BV_MCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.time_series)
-        self.add_action(self.steps_time_series)
+        if record_steps_timeseries:
+            self.steps_timeseries_list = []
+            self.record_steps_timeseries_every = record_steps_timeseries_every
+            for freq in self.record_steps_timeseries_every:
+                self.steps_timeseries_list.append(RecordStepsTimeseries(self.red_origin, self.rattlers, self.bdim, ts_niter, freq))
+            for action in self.steps_timeseries_list:
+                self.add_action(action)
         
     def set_control(self, c):
         """set temperature, canonical control parameter"""
@@ -433,11 +443,12 @@ class BV_MCrunner(_BaseMCRunner):
     
     def dump_steps_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
-        timeseries = np.array(self.steps_time_series.get_time_series())
-        np.savetxt(fname, timeseries)        
-        if clear:
-            self.steps_time_series.clear()
-        return timeseries
+        for i,action in enumerate(self.steps_timeseries_list):
+            print(i, action)
+            timeseries = np.array(action.get_time_series())
+            np.savetxt(fname+".every{}".format(self.record_steps_timeseries_every[i]), timeseries)        
+            if clear:
+                action.clear()
     
     def get_timeseries(self):
         """write time series to fname, returns the timeseries"""

@@ -166,8 +166,6 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         iteration = self.mcrunner.get_iterations_count()
         fname = "{0}/TimeSeries.{1}".format(directory,int(iteration))
         self.mcrunner.dump_timeseries(fname, clear=True)
-        fname = "{0}/StepsTimeSeries.{1}".format(directory,int(iteration))
-        self.mcrunner.dump_steps_timeseries(fname, clear=True)
     
     def _all_dump_histogram(self):
         """for this to work the directory must have been initialised in _print_initialise"""

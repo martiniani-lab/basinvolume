@@ -23,6 +23,7 @@ class _kmin_mcrunner(_configure_mcrunner):
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=0.01, hbinsize=0.0005, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
+                 record_steps_timeseries=False, record_steps_timeseries_every=[1],
                  perform_convergence_test=False, collect_minima_list=False, single=False, 
                  seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', verbose=False):
                 
@@ -40,6 +41,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                           'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,
                           'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
+                          'record_steps_timeseries':record_steps_timeseries,
                           'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
                           'use_cgd':use_cgd,'single':single, 'use_cell_lists':use_cell_lists}
         #add seeds dictionary to mc_params
@@ -59,6 +61,8 @@ class _kmin_mcrunner(_configure_mcrunner):
                                     eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize, acceptance=acceptance, 
                                     adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                                    record_steps_timeseries=record_steps_timeseries, 
+                                    record_steps_timeseries_every=record_steps_timeseries_every,
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
                                     use_cgd=use_cgd, use_periodic=True, use_frozen=False) 
@@ -145,14 +149,22 @@ class _kmin_mcrunner(_configure_mcrunner):
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
         f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
         f.close()
+        self._dump_timeseries()
     
+    def _dump_timeseries(self):
+        fname = "{0}/StepsTimeSeries.{1}".format(self.base_directory,int(self.mc_params['niter']))
+        print fname
+        if bool(self.mc_params['record_steps_timeseries']):
+            self.mcrunner.dump_steps_timeseries(fname, clear=True)
+        
 if __name__ == "__main__":
     
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing1.xydr', niter=5e5, k=0, opt_tol=1e-4, seeds=seeds,
-                         single=True, use_cell_lists=False, verbose=True, use_cgd=True,
+    sim = _kmin_mcrunner('jammed_packing4.xyzdr', niter=5e3, k=0, opt_tol=1e-4, seeds=seeds,
+                         record_steps_timeseries=True,
+                         single=True, use_cell_lists=False, verbose=False, use_cgd=True,
                          hmax=20, hbinsize=0.05, opt_nsteps=1e6)
     print 'simulation started'
     start=time.time()
@@ -163,7 +175,7 @@ if __name__ == "__main__":
     print status
     print 'd2 kmin: ',sim.displ_k_min
     print 'var: ',sim.var_displ_k_min
-    sim.mcrunner.show_histogram_kmax()
+    #sim.mcrunner.show_histogram_kmax()
     
     
         

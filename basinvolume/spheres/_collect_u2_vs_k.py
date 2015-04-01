@@ -250,25 +250,35 @@ class _collect_u2_vs_k(object):
         self._import_time_series()
         for i,series in enumerate(self.timeseries):
             ax.plot(series[::self.ts_skip], ls=next(linecycler), linewidth=1, label=str(i))
-        #plt.yscale('symlog')
+        #plt.yscale('log')
+        #plt.xscale('log')
         ax.legend(frameon=False, loc=1)
         plt.savefig(self.base_directory + '/time_series.eps')
         if self.show:
             plt.show()
-        #try to plot cumulative sum of steps_timeseries
-        try:
-            self._import_steps_time_series()
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            for i,series in enumerate(self.steps_timeseries):
-                ax.plot(np.cumsum(series)[::self.ts_skip], ls=next(linecycler), linewidth=1, label=str(i))
-            #plt.yscale('symlog')
-            ax.legend(frameon=False, loc=1)
-            plt.savefig(self.base_directory + '/steps_time_series.eps')
-            if self.show:
-                plt.show()
-        except Exception,e:
-            print e
+#        #try to plot cumulative sum of steps_timeseries
+#        try:
+#            self._import_steps_time_series()
+#            fig = plt.figure()
+#            ax = fig.add_subplot(111)
+#            for i,series in enumerate(self.steps_timeseries):
+#                ax.plot(series[:1e5], ls=next(linecycler), linewidth=1, label=str(i))
+#            series = self.steps_timeseries[-4][6e4:]
+#            series2 = np.linspace(0, series.size, series.size)
+#            cum_series = np.cumsum(series)
+#            m,b = np.polyfit(series2, cum_series, 1)
+#            ax.plot(cum_series, ls=next(linecycler), linewidth=1, label="m={} b={}".format(m,b)) 
+#            #cum_series2 = np.cumsum(series2)
+#            s = (cum_series[-1]-cum_series[0])/cum_series.size
+#            m,b = np.polyfit(series2, np.sqrt(series2*s), 1)
+#            ax.plot(np.pow(series2*s), label="m={} b={}".format(m,b))
+#            #plt.yscale('symlog')
+#            ax.legend(frameon=False, loc=1)
+#            plt.savefig(self.base_directory + '/steps_time_series.eps')
+#            if self.show:
+#                plt.show()
+#        except Exception,e:
+#            print e
         #integrand
         fig = plt.figure()
         ax = fig.add_subplot(111)
