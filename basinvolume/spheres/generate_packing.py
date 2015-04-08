@@ -186,25 +186,27 @@ class HS_Generate_Packing(_Generate_Packing):
         self._resize_box()
                                     
     def _initialise(self):
-        if self.method is 'quench':
+        if self.method == 'quench':
             #this is necessary to initialise the radii if using the quench routine
             self._initialise_coords_quench()
-        rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
-        if self.use_cell_lists:
-            if np.amin(self.boxv) // rcut <= 3:
-                self.use_cell_lists = False
-        if self.use_cell_lists:
-            self.potential = HS_WCA(use_periodic=True,
-                             use_cell_lists=True, eps=self.eps,
-                             sca=self.sca, radii=self.hs_radii,
-                             boxvec=self.boxv,
-                             reference_coords=self.coords, 
-                             rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
+            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
+            if self.use_cell_lists:
+                if np.amin(self.boxv) // rcut <= 3:
+                    self.use_cell_lists = False
+            if self.use_cell_lists:
+                self.potential = HS_WCA(use_periodic=True,
+                                 use_cell_lists=True, eps=self.eps,
+                                 sca=self.sca, radii=self.hs_radii,
+                                 boxvec=self.boxv,
+                                 reference_coords=self.coords, 
+                                 rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
+            else:
+                self.potential = HS_WCA(use_periodic=True, eps=self.eps,
+                                 sca=self.sca, radii=self.hs_radii,
+                                 boxvec=self.boxv, ndim=self.bdim, 
+                                 use_cell_lists=False)
         else:
-            self.potential = HS_WCA(use_periodic=True, eps=self.eps,
-                             sca=self.sca, radii=self.hs_radii,
-                             boxvec=self.boxv, ndim=self.bdim, 
-                             use_cell_lists=False)
+            self._initialise_coords_crystal()
         self._print_initialise()
         self.initialised = True     
     
@@ -227,8 +229,10 @@ class HS_Generate_Packing(_Generate_Packing):
 #        #endtest
     
     def _sample_hs_radii(self):
-        if self.hs_radii is None:
+        if self.hs_radii is None and self.sig > 1e-8:
             self.hs_radii = self.rng.normal(self.mu,self.sig,self.nparticles)
+        elif self.sig <= 1e-8:
+            self.hs_radii = np.ones(self.nparticles)*self.mu
         else:
             self.hs_radii = np.array(self.hs_radii,dtype='d')
         assert(np.all(self.hs_radii > 0))
@@ -289,10 +293,12 @@ class HS_Generate_Packing(_Generate_Packing):
         return distances
     
     def _generate_packing_coords(self):
-        if self.method is 'quench':
+        if self.method == 'quench':
             self._generate_packing_coords_quench()
-        elif self.method is 'direct':
+        elif self.method == 'direct':
             self._generate_packing_coords_direct()
+        else:
+            self._generate_coords_crystal()
         return True
     
     def _generate_packing_coords_quench(self):
@@ -335,11 +341,177 @@ class HS_Generate_Packing(_Generate_Packing):
             #assert(res.success is True) #checks that a minimum configuration has been found
             self.coords = np.array(res.coords)
 #            print "generated new start coords "
-#    sort radii in cavity
+#            sort radii in cavity
 #            self._sort_radii_in_cavities()
             #check that no two particles are overlapping (using nearest image convention)
             overlap = not self._check_no_overlaps()
             print "overlap",overlap
+    
+    def _initialise_coords_crystal(self):
+        pass
+    
+    def _generate_coords_crystal(self):
+        """
+        place particles on a hegonal lattice
+        """
+        self.coords = np.ones(self.nparticles*self.bdim)
+        if self.method == 'fcc':
+            self._generate_coords_fcc_lattice()
+        elif self.method == 'bcc':
+            self._generate_coords_bcc_lattice_3d()
+        else:
+            raise Exception("_generate_coords_crystal: {} method not implemented".format(self.method))
+        assert self._check_no_overlaps()
+    
+    def _generate_coords_fcc_lattice(self):
+        if self.bdim == 2:
+            self._generate_coords_fcc_lattice_2d()
+        elif self.bdim == 3:
+            self._generate_coords_fcc_lattice_3d()
+        #align centre of mass
+        for i in xrange(self.bdim):
+            self.coords[i::self.bdim] -= np.mean(self.coords[i::self.bdim])
+    
+    def _generate_coords_bcc_lattice(self):
+        if self.bdim == 2:
+            self._generate_coords_fcc_lattice_2d()
+        elif self.bdim == 3:
+            self._generate_coords_bcc_lattice_3d()
+        #align centre of mass
+        for i in xrange(self.bdim):
+            self.coords[i::self.bdim] -= np.mean(self.coords[i::self.bdim])
+    
+    def _generate_coords_fcc_lattice_2d(self):
+        """
+        Put discs in triangular lattice.
+        """
+        n = int(np.power(self.nparticles/2,1./self.bdim))
+        assert ( n - np.power(int(n),self.bdim)) < 1e-8, "Nparticles is not (N/2)^2"
+        boxx = self.boxv[0]
+        boxy = self.boxv[1]
+        if boxx / boxy != 1:
+            print "_generate_packing_coords_lattice_2d: warning: works best for aspect ratio unity"
+        maximum_radius = np.amax(self.hs_radii)
+        minimum_spacing_x = 2 * maximum_radius
+        minimum_spacing_y = np.sqrt(3) * 0.5 * minimum_spacing_x
+        LX = int(boxx / minimum_spacing_x)
+        LY = int(boxy / minimum_spacing_y)
+        max_placable_discs = LX * LY
+        if self.nparticles > max_placable_discs:
+            raise Exception("_generate_packing_coords_lattice_2d: discs can not be placed on lattice")
+        while ((LX - 1) * (LY - 1)) >= self.nparticles:
+            LX -= 1
+            LY -= 1
+        spacing_x = boxx / LX 
+        spacing_y = boxy / LY
+        for i in xrange(self.nparticles):
+            xi = self.bdim * i
+            xint = i % LX
+            yint = int(i / LX)
+            self.coords[xi] = (xint + 0.5 * (yint % 2)) * spacing_x
+            self.coords[xi + 1] = yint * spacing_y
+    
+    def _generate_coords_fcc_lattice_3d(self):
+        """
+        Put spheres in FCC lattice.
+        See e.g. here: Frenkel and Smit: Understanding Molecular Simulation, page 252
+        http://www.uic.edu/eng/ems/MEng/ChEME494/pdf/L8pt2.pdf
+        """
+        n = int(np.power(self.nparticles/4,1./self.bdim))
+        assert ( n - np.power(int(n),self.bdim)) < 1e-8, "Nparticles is not (N/4)^3"
+        #assuming that box is cubic
+        L_cube = int((self.nparticles/4) ** (1/3))
+        NX = L_cube
+        NY = L_cube
+        NZ = L_cube
+        print L_cube
+        dx = self.boxv[0] / NX
+        dy = self.boxv[1] / NY
+        dz = self.boxv[2] / NZ
+        d = [dx, dy, dz]
+        if np.amax(self.hs_radii) > np.amax(d):
+            raise Exception("_generate_packing_coords_lattice_3d: spheres can not be placed on lattice")
+        coords=[]
+        for iz in xrange(NZ):
+            for iy in xrange(NY):
+                for ix in xrange(NX):
+                    coords.extend([ix*d[0],iy*d[1],iz*d[2]])
+                    coords.extend([(ix+0.5)*d[0],(iy+0.5)*d[1],iz*d[2]])
+                    coords.extend([ix*d[0],(iy+0.5)*d[1],(iz+0.5)*d[2]])
+                    coords.extend([(ix+0.5)*d[0],iy*d[1],(iz+0.5)*d[2]])
+        self.coords = np.array(coords)
+    
+    def _generate_coords_bcc_lattice_3d(self):
+        """
+        Put spheres in FCC lattice.
+        See e.g. here: Frenkel and Smit: Understanding Molecular Simulation, page 252
+        """
+        n = int(np.power(self.nparticles/2,1./self.bdim))
+        assert ( n - np.power(int(n),self.bdim)) < 1e-8, "Nparticles is not (N/2)^3"
+        #assuming that box is cubic
+        L_cube = int((self.nparticles/2) ** (1/3))
+        NX = L_cube
+        NY = L_cube
+        NZ = L_cube
+        print L_cube
+        dx = self.boxv[0] / NX
+        dy = self.boxv[1] / NY
+        dz = self.boxv[2] / NZ
+        d = [dx, dy, dz]
+        if np.amax(self.hs_radii) > np.amax(d):
+            raise Exception("_generate_packing_coords_lattice_3d: spheres can not be placed on lattice")
+        coords=[]
+        for iz in xrange(NZ):
+            for iy in xrange(NY):
+                for ix in xrange(NX):
+                    coords.extend([ix*d[0],iy*d[1],iz*d[2]])
+                    coords.extend([(ix+0.5)*d[0],(iy+0.5)*d[1],(iz+0.5)*d[2]])
+        self.coords = np.array(coords)
+    
+#    def _initialise_coords_hcp_lattice_3d(self):
+#        """
+#        Put spheres in FCC lattice.
+#        See e.g. here: Frenkel and Smit: Understanding Molecular Simulation, page 252
+#        http://micro.stanford.edu/wiki/M02_Making_a_Perfect_Crystal
+#        """
+#        n = int(np.power(self.nparticles/4,1./self.bdim))
+#        assert ( n - np.power(int(n),self.bdim)) < 1e-8, "Nparticles is not N^3/4"
+#        #assuming that box is cubic
+#        L_cube = int((self.nparticles/4) ** (1/3))
+#        NX = L_cube
+#        NY = L_cube
+#        NZ = L_cube
+#        print L_cube
+#        dx = self.boxv[0] / NX
+#        dy = self.boxv[1] / NY
+#        dz = self.boxv[2] / NZ
+#        d = [dx, dy, dz]
+#        if np.amax(self.hs_radii) > np.amax(d):
+#            raise Exception("_generate_packing_coords_lattice_3d: spheres can not be placed on lattice")
+#        coords=[]
+#        for iz in xrange(NZ):
+#            for iy in xrange(NY):
+#                for ix in xrange(NX):
+#                    coords.extend([ix*d[0],iy*d[1],iz*d[2]])
+#                    coords.extend([(ix+0.5)*d[0],(iy+0.5)*d[1],iz*d[2]])
+#                    coords.extend([(ix+0.5),(iy+1./6)*d[1],(iz+0.5)*d[2]])
+#                    coords.extend([ix*d[0],(iy+2/3)*d[1],(iz+0.5)*d[2]])
+#        self.coords = np.array(coords)
+   
+#    def _initialise_coords_hcp_lattice_3d(self):
+#        L_cube = int((self.nparticles/4) ** (1/3))
+#        NX = L_cube
+#        NY = L_cube
+#        NZ = L_cube
+#        print L_cube
+#        a1 = (np.prod(self.boxv) / (NX * NY * NZ)) ** (1/3)
+#        for iz in xrange(NZ):
+#            for iy in xrange(NY):
+#                for ix in xrange(NX):
+#                    i = (ix + iy*NX + iz*NX*NY)*self.bdim 
+#                    self.coords[i] = (2*ix+((iy+iz)%2))*a1
+#                    self.coords[i + 1] = (np.sqrt(3)*(iy+(iz%2)/3))*a1
+#                    self.coords[i + 2] = (2*np.sqrt(6)*iz/3)*a1
     
     def _sort_radii_in_cavities(self):
         """

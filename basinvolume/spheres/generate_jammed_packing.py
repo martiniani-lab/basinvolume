@@ -283,7 +283,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         
         #check that there isn't any significantly negative evalue
         if np.any(w < -2e-7):
-            print 'eigevalue < -2e-7'
+            print 'e: {} eigevalue < -2e-7'.format(np.amin(w))
             return False
         
         return True

@@ -444,7 +444,6 @@ class BV_MCrunner(_BaseMCRunner):
     def dump_steps_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         for i,action in enumerate(self.steps_timeseries_list):
-            print(i, action)
             timeseries = np.array(action.get_time_series())
             np.savetxt(fname+".every{}".format(self.record_steps_timeseries_every[i]), timeseries)        
             if clear:

@@ -166,7 +166,7 @@ class _collect_u2_vs_k(object):
         import re
         timeseries = []
         series_order = []
-        path = self.explore_dir
+        path = os.path.join(self.explore_dir, "diffusion")
         file_list = glob.glob(path + '/StepsTimeSeries*')
         file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
         series = []
@@ -180,16 +180,20 @@ class _collect_u2_vs_k(object):
         step_timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
         step_timeseries_order =  np.sort(series_order)
         step_timeseries_mean_path = []
+        step_timeseries_mean_path_std = []
         step_timeseries_mean_eucdist = []
+        step_timeseries_mean_eucdist_std = []
         for i,n in enumerate(step_timeseries_order[1:]):
-            mean = 0.
+            mean_arr = []
             nsubs = step_timeseries[0][eqtime:].size // n
             for j in xrange(nsubs):
-                mean += np.sum(step_timeseries[0][eqtime+j*n:eqtime+(j+1)*n])
-            mean /= nsubs
+                mean_arr.append(np.sum(step_timeseries[0][eqtime+j*n:eqtime+(j+1)*n]))
+            mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
             step_timeseries_mean_path.append(mean)
+            step_timeseries_mean_path_std.append(stdev/np.sqrt(len(mean_arr)))
             step_timeseries_mean_eucdist.append(np.mean(step_timeseries[i+1][eqtime//n:]))
-        return step_timeseries_mean_path, step_timeseries_mean_eucdist
+            step_timeseries_mean_eucdist_std.append(np.std(step_timeseries[i+1][eqtime//n:])/np.sqrt(len(step_timeseries[i+1])))
+        return step_timeseries_mean_path, step_timeseries_mean_path_std, step_timeseries_mean_eucdist, step_timeseries_mean_eucdist_std
     
     def _print_u2_vs_k(self):
         """writes <u2> and variance vs """
@@ -246,35 +250,49 @@ class _collect_u2_vs_k(object):
         print "unit_box_F0_approx_PTu2k0 {}".format(self.unit_box_F0_approx_PTu2k0)
 
     def _plot_diffusion(self):
-        x, y = self._import_steps_time_series_diffusion()
-        pol = np.poly1d(np.polyfit(np.log(x), np.log(y), 1))
-        w = np.polyfit(np.log(x), np.log(y), 1)
+        x, dx, y, dy = self._import_steps_time_series_diffusion()
+        x, dx, y, dy = np.array(x), np.array(dx), np.array(y), np.array(dy)
+        pol = np.poly1d(np.polyfit(np.log(x)[:2], np.log(y)[:2], 1,  w=(y/dy)[:2])) #[5:-1]
+        w = np.polyfit(np.log(x)[:2], np.log(y)[:2], 1)
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(np.log(x), np.log(y), 'o')
+        ax.errorbar(np.log(x), np.log(y), fmt='o', xerr=dx/x, yerr=dy/y)
         ax.plot(np.log(x), pol(np.log(x)), '-', label='a={} b={}'.format(w[0],w[1]))
+        ax.set_ylabel(r'$\log(\Delta r)$')
+        ax.set_xlabel(r'$\log (\Delta s)$')
         #plt.yscale('log')
         #plt.xscale('log')
         ax.legend(frameon=False, loc=1)
-        plt.savefig(self.base_directory + '/steps_time_series.eps')
+        plt.savefig(os.path.join(self.base_directory, 'diffusion_logr_vs_logt.eps'))
         if self.show:
             plt.show()
-    
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(np.log(x), np.log(y)-0.5*np.log(x), fmt='o', xerr=dx/x+dy/y, yerr=dy/y)
+        ax.set_ylabel(r'$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$')
+        ax.set_xlabel(r'$\log (\Delta s)$')
+        ax.legend(frameon=False, loc=1)
+        plt.savefig(os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.eps'))
+        if self.show:
+            plt.show()
+        
+        
     def _plot_data(self):
         if self.plot_ts_integrand_data is False:
             return
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
         
+        #try to plot cumulative sum of steps_timeseries
+        try:
+            self._plot_diffusion()
+        except Exception, e:
+            print e
+        
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
         u2_array_app = (cont_karray + (self.nparticles * self.bdim) / self.displ_k_min) / (self.nparticles * self.bdim)
         u2_array_app = 1.0 / u2_array_app
         
-        #try to plot cumulative sum of steps_timeseries
-        try:
-            self._plot_diffusion()
-        except Exception:
-            pass
         #timeseries
         fig = plt.figure()
         ax = fig.add_subplot(111)

@@ -152,7 +152,9 @@ class _kmin_mcrunner(_configure_mcrunner):
         self._dump_timeseries()
     
     def _dump_timeseries(self):
-        fname = "{0}/StepsTimeSeries.{1}".format(self.base_directory,int(self.mc_params['niter']))
+        path = os.path.join(self.base_directory,"diffusion")
+        trymakedir(path)
+        fname = "{0}/StepsTimeSeries.{1}".format(path,int(self.mc_params['niter']))
         print fname
         if bool(self.mc_params['record_steps_timeseries']):
             self.mcrunner.dump_steps_timeseries(fname, clear=True)
@@ -162,9 +164,9 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing3.xyzdr', niter=5e5, k=0, opt_tol=1e-4, seeds=seeds,
-                         record_steps_timeseries=True, record_steps_timeseries_every=[1,8,16,32,64,128,256],
-                         single=True, use_cell_lists=False, verbose=False, use_cgd=True,
+    sim = _kmin_mcrunner('jammed_packing0.xyzdr', niter=1e6, k=0, opt_tol=1e-4, seeds=seeds,
+                         record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
+                         single=True, use_cell_lists=True, verbose=False, use_cgd=True,
                          hmax=20, hbinsize=0.05, opt_nsteps=1e6)
     print 'simulation started'
     start=time.time()

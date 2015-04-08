@@ -26,7 +26,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         lowest negative k
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, fast_ct=False, 
-                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-3.5, print_status=False, 
+                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False, 
                  base_directory=None, verbose=False, bs_nodes=100):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip, 
                                                    print_status=print_status, base_directory=base_directory, verbose=verbose)
