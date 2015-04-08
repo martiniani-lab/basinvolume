@@ -41,14 +41,14 @@ class configure_bv_gauss_mcrunner(object):
                  hbinsize=1,
                  acceptance=0.2,
                  adjustf=0.9,
-                 adjustf_niter=5e3,
+                 adjustf_niter=1e3,
                  adjustf_navg=100, 
                  pt_eq_niter=0,
                  ts_niter=None,
                  ts_freq=1,
                  opt_dtmax=1,
                  opt_maxstep=None, 
-                 opt_tol=1e-5,
+                 opt_tol=1e-8,
                  opt_nsteps=1e5,
                  perform_convergence_test=False,
                  collect_minima_list=False, 
@@ -64,7 +64,6 @@ class configure_bv_gauss_mcrunner(object):
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
-        self.pt_niter = 2 * self.equilibration_steps
         self.fname = fname
         self.dtol = dtol
         self.opt_dtmax = opt_dtmax

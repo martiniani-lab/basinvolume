@@ -50,6 +50,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
         assert((self.eq_max_ptiter-self.eq_min_ptiter)*self.mcrunner.niter > self.min_window) #condition on the minimal window size
+        if not (self.min_window > self.mcrunner_eqsteps):
+            print("self.min_window", self.min_window)
+            print("self.mcrunner_eqsteps", self.mcrunner_eqsteps)
         assert(self.min_window > self.mcrunner_eqsteps)
         assert(self.max_eq_time > self.mcrunner_eqsteps)
         
@@ -69,8 +72,14 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     def _print_data(self):
         self._all_dump_timeseries() #convergence is tested in this function
         #the histogram depends on self.timeseries that is not empty only once the ts test is passed
+        print("_print_data -- BEGIN")
+        print("self.ptiter", self.ptiter)
+        print("self.eq_min_ptiter", self.eq_min_ptiter)
+        print("self.timeseries2.size", self.timeseries2.size)
+        print("self.mcrunner_eqsteps", self.mcrunner_eqsteps)
         if self.ptiter >= self.eq_min_ptiter and self.timeseries2.size > self.mcrunner_eqsteps:
             self._all_dump_histogram()
+        print("_print_data -- END")
     
     def _test_convergence(self):
         tail_timeseries = self.mcrunner.get_timeseries()
