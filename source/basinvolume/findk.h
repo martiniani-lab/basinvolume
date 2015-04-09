@@ -46,6 +46,7 @@ protected:
     size_t _nrejected;
     size_t _start;
     bool _converged;
+    const bool m_fix_com;
 
 private:
     mcpele::Histogram _hist;
@@ -53,7 +54,7 @@ private:
 public:
     Findk(pele::Array<double> origin, pele::Array<double> rattlers,
             size_t ndim, size_t avg_count, double target,
-            size_t navg, double tol, double min, double max, double bin);
+            size_t navg, double tol, double min, double max, double bin, const bool fix_com=true);
     virtual ~Findk() {}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
     double get_prob() const { return _acceptedf; }

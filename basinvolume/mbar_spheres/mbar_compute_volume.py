@@ -3,7 +3,7 @@ import numpy as np
 import os
 import glob
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball
+from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball, write_csv_xy
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
@@ -27,7 +27,7 @@ class mbar_compute_dos(object):
     this is a class that implements _mbar_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=350, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=400, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='jammed_packings', plot_data=True,
                  frozen=False, show=False, verbose=True):
         
@@ -124,6 +124,7 @@ class mbar_compute_dos(object):
         #prepend k innersphere
         karray.insert(0, self.k_innersphere)
         self.karray = np.array(karray)
+        self.k0_index = np.where(self.karray==0.)[0][0]
         
     def _import_pt_time_series(self):
         timeseries = []
@@ -166,7 +167,7 @@ class mbar_compute_dos(object):
         
         for i in xrange(K):
             if i == 0:
-                u_kn[i] = ((24-1)*3-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
+                u_kn[i] = ((self.nparticles-1)*3-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
             else:
                 u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
         assert self.karray.size == u_kn.shape[0]
@@ -188,7 +189,7 @@ class mbar_compute_dos(object):
         N_k[0] = len(indices) # number of uncorrelated samples
         flat_ts = np.append(flat_ts, ts_sphere[indices])
         #now loop through pt timeseries
-        for i in xrange(K-1):  # subsample the energies
+        for i in xrange(K-1):  #subsample the energies
             j = i+1
             g[j] = statisticalInefficiency_fft(timeseries[i])
             indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
@@ -199,11 +200,12 @@ class mbar_compute_dos(object):
     
     def _build_mbar(self):
         self.ts_sphere = np.genfromtxt(os.path.join(self.explore_dir,"inner_sphere.timeseries"))
+        self.ts_sphere = np.trim_zeros(self.ts_sphere)
         self.timeseries = self.timeseries[:,self.eq_time:]  #remove equilibration region from pt timeseries
                 
         self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_sphere, self.timeseries)
         self.u_kn = self._build_u_kn(self.flat_timeseries)
-        self.mbar = MBAR(self.u_kn, self.N_k, verbose=True)
+        self.mbar = MBAR(self.u_kn, self.N_k, verbose=True, initialize='BAR')
 
     def _mbar_compute_volume(self):
         K, N = self.u_kn.shape 
@@ -211,21 +213,21 @@ class mbar_compute_dos(object):
         self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
         #print "effective sample number", self.mbar.computeEffectiveSampleNumber()
         
-        rmin = 1./np.sqrt(self.kmax) #we choose rmin to be 80 of 1/sqrt(k_max)
+        rmin = 1./np.sqrt(self.kmax) #we choose rmin to be 1/sqrt(k_max)
         print "rmin", rmin
         vmin = volume_nball(rmin, self.ndof)
         Fmin = -np.log(vmin) 
         
-        u_lk = np.copy(self.u_kn[-1])
+        u_lk = np.copy(self.u_kn[self.k0_index]) #was -1
         r = self.flat_timeseries
         LARGE = 1e70
         u_lk = np.where(r < rmin, u_lk, LARGE)
         u_lk = np.reshape(u_lk, (1, u_lk.size))
-        u_lk = np.vstack((u_lk, self.u_kn[-1]))
+        u_lk = np.vstack((u_lk, self.u_kn[self.k0_index])) #was -1, measure free energy difference between k=0 and kw
         Deltaf_ij, dDeltaf_ij = self.mbar.computePerturbedFreeEnergies(u_lk)
         #vol = Deltaf_ij[1,0]
-        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) - np.log(self.vcavity), dDeltaf_ij[1,0]
-        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0]), dDeltaf_ij[1,0]
+        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) + np.log(self.prob_kmax) - np.log(self.vcavity), dDeltaf_ij[1,0]
+        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0])  + np.log(self.prob_kmax), dDeltaf_ij[1,0]
         
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
@@ -250,7 +252,7 @@ class mbar_compute_dos(object):
     
     def _unbias_histogram(self):
         hist_unbiased = np.outer(0.5*self.karray[1:], self.bin_edges[:-1]**2)
-        hist_unbiased = np.vstack((((24-1)*3-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[0]*self.bin_edges[:-1]**2, hist_unbiased))
+        hist_unbiased = np.vstack((((self.nparticles-1)*3-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[0]*self.bin_edges[:-1]**2, hist_unbiased))
         self.hist_unbiased = hist_unbiased
         assert self.hist_visits.shape == self.hist_unbiased.shape
         assert self.hist_visits.shape[0] == self.karray.size
@@ -279,8 +281,7 @@ class mbar_compute_dos(object):
         plt.savefig(self.base_directory + '/histograms.eps')
         if self.show:
             plt.show()
-        
-        
+                
         fig = plt.figure()
         ax = fig.add_subplot(111) 
         for i in xrange(len(self.karray)):
@@ -305,6 +306,8 @@ class mbar_compute_dos(object):
         ax.legend(frameon=False, loc="best")
         plt.ylim((np.amin(rg),1.1*np.amax(rg)))
         plt.savefig(self.base_directory + '/log_dos.eps')
+        write_csv_xy(self.bin_edges[:-1], logn_E, fname=os.path.join(self.base_directory, 'log_gr.csv'))
+        write_csv_xy(self.bin_edges[:-1], rg, fname=os.path.join(self.base_directory, 'log_gr_ratio.csv'))
         if self.show:
             plt.show()
         
@@ -314,6 +317,7 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel(r'$g(r)/r^{N-1}$')
         plt.savefig(self.base_directory + '/ratio_g.eps')
+        write_csv_xy(self.bin_edges[:-1], np.exp(rg-np.amax(rg)), fname=os.path.join(self.base_directory, 'gr_ratio.csv'))
         if self.show:
             plt.show()
         
@@ -347,6 +351,23 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel('DOS')
         plt.savefig(self.base_directory + '/dos.eps')
+        write_csv_xy(self.bin_edges[:-1], dos, fname=os.path.join(self.base_directory, 'dos.csv'))
+        if self.show:
+            plt.show()
+            
+        #plot of the variance of the histograms as a function of k
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        var = []
+        for ts in self.timeseries:
+            var.append(np.var(ts))
+        var = np.array(var)
+        ax.plot(self.karray[1:], var)
+        ax.set_xlabel(r'k')
+        ax.set_ylabel('$var(r)$')
+        plt.xlim((self.karray[-1],self.karray[1]))
+        plt.savefig(self.base_directory + '/hist_var_k.eps')
+        write_csv_xy(self.karray[1:], var, fname=os.path.join(self.base_directory, 'hist_var_k.csv'))
         if self.show:
             plt.show()
         
@@ -399,6 +420,7 @@ if __name__ == "__main__":
     parser.add_argument("-d","--fdir", type=str, help="directory containing file, if not absolute path by default: fdir+fname", default='explore_bv_')
     parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir", default=os.getcwd())
     parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
+    parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
     args = parser.parse_args()
     print args
     
@@ -413,7 +435,7 @@ if __name__ == "__main__":
     sim = mbar_compute_dos()
     
     if (fname != None):
-        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=True)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:

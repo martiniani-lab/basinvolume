@@ -56,8 +56,9 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.add_accept_test(self.metropolis)
         ts_niter = niter
         ts_freq = 1
-        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
+        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq, fix_com=False)
         self.add_action(self.time_series)
+        self.suppress_histogram = True
     def run_kmin(self):
         print("run kmin")
         print("coords initial", self.get_coords())
@@ -72,8 +73,6 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.k = c
         self.potential.set_k(c)
         self.reset_energy()
-    def _print_data(self):
-        self._all_dump_timeseries() #convergence is tested in this function
     def dump_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())

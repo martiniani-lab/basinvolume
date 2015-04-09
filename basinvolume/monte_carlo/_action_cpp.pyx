@@ -5,6 +5,8 @@ import numpy as np
 cimport numpy as np
 from pele.potentials import _pele
 cimport cython
+from pele.potentials._pele cimport array_wrap_np
+from pele.potentials._pele cimport array_wrap_np_long, array_wrap_np_size_t
 import sys
 
 #===============================================================================
@@ -14,8 +16,9 @@ import sys
 cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisp2Histogram acceptance test class implementation
     """
+    cdef cbool fix_com
     cdef cppRecordEnergyHistogram* newptr
-    def __cinit__(self, origin, rattlers, ndim, min, max, bin, eqsteps):
+    def __cinit__(self, origin, rattlers, ndim, min, max, bin, eqsteps, fix_com=True):
         if len(origin) != len(rattlers):
             raise Exception("_Cdef_RecordDisp2Histogram: illegal input: origin, ndim, rattlers")
         if len(origin) % ndim != 0:
@@ -25,7 +28,7 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         
         self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
-                                                               ndim, min, max, bin, eqsteps)
+                                                               ndim, min, max, bin, eqsteps, fix_com)
                                              )
         self.newptr = <cppRecordEnergyHistogram*> self.thisptr.get()
     
@@ -69,8 +72,9 @@ class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
 cdef class _Cdef_Findk(_Cdef_Action):
     """This class is the python interface for the c++ bv::cppFindk action class implementation
     """
+    cdef cbool fix_com
     cdef cppFindk* newptr
-    def __cinit__(self, origin, rattlers, bdim, avgcount, target, navg, tol, min, max, bin):
+    def __cinit__(self, origin, rattlers, bdim, avgcount, target, navg, tol, min, max, bin, fix_com=True):
         if len(origin) != len(rattlers):
             raise Exception("_Cdef_Findk: illegal input: origin, rattlers, bdim")
         if len(origin) % bdim != 0:
@@ -79,7 +83,7 @@ cdef class _Cdef_Findk(_Cdef_Action):
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         self.thisptr = shared_ptr[cppAction](<cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                 _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
-                                                bdim, avgcount, target, navg, tol, min, max, bin)
+                                                bdim, avgcount, target, navg, tol, min, max, bin, fix_com)
                                              )
         self.newptr = <cppFindk*> self.thisptr.get()
     
@@ -123,17 +127,18 @@ class Findk(_Cdef_Findk):
 cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
     """This class is the python interface for the c++ bv::RecordDisplacementTimeseries action class implementation
     """
-    cdef cppRecordDisplacementTimeseries* newptr
-    def __cinit__(self, origin, bdim, niter, record_every):
+    cdef cbool fix_com
+    cdef cppRecordScalarTimeseries* newptr
+    def __cinit__(self, origin, bdim, niter, record_every, fix_com=True):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef size_t cbdim = bdim
         cdef size_t cniter = niter
         cdef size_t crecord_every = record_every
         
         self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisplacementTimeseries(_pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                       cbdim, cniter, crecord_every)
+                                                                       cbdim, cniter, crecord_every, fix_com)
                                              )
-        self.newptr = <cppRecordDisplacementTimeseries*> self.thisptr.get()
+        self.newptr = <cppRecordScalarTimeseries*> self.thisptr.get()
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -155,7 +160,54 @@ cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
 class RecordDisplacementTimeseries(_Cdef_RecordDisplacementTimeseries):
     """This class is the python interface for the c++ RecordDisplacementTimeseries implementation.
     """
+
+#===============================================================================
+# RecordStepsTimeseries
+#===============================================================================
+
+cdef class _Cdef_RecordStepsTimeseries(_Cdef_Action):
+    """This class is the python interface for the c++ bv::RecordStepsTimeseries action class implementation
+    """
+    cdef cppRecordScalarTimeseries* newptr
+    def __cinit__(self, origin, rattlers, bdim, niter, record_every):
+        cdef _pele.Array[double] origin_ = array_wrap_np(origin)
+        cdef _pele.Array[double] rattlers_ = array_wrap_np(rattlers)
+        cdef size_t cbdim = bdim
+        cdef size_t cniter = niter
+        cdef size_t crecord_every = record_every
+        
+        if bdim == 1:
+            self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordStepsTimeseries[INT1](origin_, rattlers_, cniter, crecord_every))
+        elif bdim == 2:
+            self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordStepsTimeseries[INT2](origin_, rattlers_, cniter, crecord_every))
+        elif bdim == 3:
+            self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordStepsTimeseries[INT3](origin_, rattlers_, cniter, crecord_every))
+        else:
+            raise Exception("RecordStepsTimeseries: illegal boxdimension")
+        
+        self.newptr = <cppRecordScalarTimeseries*> self.thisptr.get()
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def get_time_series(self):
+        """return a energy time series array"""
+        cdef _pele.Array[double] seriesi = self.newptr.get_time_series()
+        cdef double *seriesdata = seriesi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(seriesi.size())
+        cdef size_t i
+        for i in xrange(seriesi.size()):
+            series[i] = seriesdata[i]
+              
+        return series
+    
+    def clear(self):
+        """clears time series"""
+        self.newptr.clear()
+    
+class RecordStepsTimeseries(_Cdef_RecordStepsTimeseries):
+    """This class is the python interface for the c++ RecordStepsTimeseries implementation.
+    """
+
 #===============================================================================
 # FindNrDecorrelationStep
 #===============================================================================

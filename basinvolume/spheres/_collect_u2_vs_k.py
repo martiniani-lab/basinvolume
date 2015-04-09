@@ -6,7 +6,7 @@ import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
-from basinvolume.utils import to_string, read_txt
+from basinvolume.utils import to_string, read_txt, write_csv_xy
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
@@ -25,7 +25,7 @@ class _collect_u2_vs_k(object):
     *ts_skip number of points skipped when printing time series (every ts_skip)
     """
         
-    def __call__(self, ts_skip=1000, fname='jammed_packing0', base_dir='analysis',
+    def __call__(self, ts_skip=5000, fname='jammed_packing0', base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data=True,
                  frozen=False, show=True):
                
@@ -161,7 +161,40 @@ class _collect_u2_vs_k(object):
         X = np.array(timeseries)
         Y = series_order
         self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
-                    
+
+    def _import_steps_time_series_diffusion(self, eqtime=2e5):
+        import re
+        timeseries = []
+        series_order = []
+        path = os.path.join(self.explore_dir, "diffusion")
+        file_list = glob.glob(path + '/StepsTimeSeries*')
+        file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
+        series = []
+        for series_path in file_list:
+            fname = str(os.path.split(series_path)[-1].split())
+            digits = map(int, re.findall(r'\d+', fname))
+            series_order.append(digits[-1])
+            timeseries.append(read_txt(series_path))
+        X = np.array(timeseries)
+        Y = series_order
+        step_timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
+        step_timeseries_order =  np.sort(series_order)
+        step_timeseries_mean_path = []
+        step_timeseries_mean_path_std = []
+        step_timeseries_mean_eucdist = []
+        step_timeseries_mean_eucdist_std = []
+        for i,n in enumerate(step_timeseries_order[1:]):
+            mean_arr = []
+            nsubs = step_timeseries[0][eqtime:].size // n
+            for j in xrange(nsubs):
+                mean_arr.append(np.sum(step_timeseries[0][eqtime+j*n:eqtime+(j+1)*n]))
+            mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
+            step_timeseries_mean_path.append(mean)
+            step_timeseries_mean_path_std.append(stdev/np.sqrt(len(mean_arr)))
+            step_timeseries_mean_eucdist.append(np.mean(step_timeseries[i+1][eqtime//n:]))
+            step_timeseries_mean_eucdist_std.append(np.std(step_timeseries[i+1][eqtime//n:])/np.sqrt(len(step_timeseries[i+1])))
+        return step_timeseries_mean_path, step_timeseries_mean_path_std, step_timeseries_mean_eucdist, step_timeseries_mean_eucdist_std
+    
     def _print_u2_vs_k(self):
         """writes <u2> and variance vs """
         dname = 'u2_vs_k'
@@ -216,27 +249,65 @@ class _collect_u2_vs_k(object):
         self.unit_box_F0_approx_PTu2k0 = self.F0_approx_PTu2k0 + self.nparticles * np.log(self.vcavity)
         print "unit_box_F0_approx_PTu2k0 {}".format(self.unit_box_F0_approx_PTu2k0)
 
+    def _plot_diffusion(self):
+        x, dx, y, dy = self._import_steps_time_series_diffusion()
+        x, dx, y, dy = np.array(x), np.array(dx), np.array(y), np.array(dy)
+        pol = np.poly1d(np.polyfit(np.log(x)[:2], np.log(y)[:2], 1,  w=(y/dy)[:2])) #[5:-1]
+        w = np.polyfit(np.log(x)[:2], np.log(y)[:2], 1)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(np.log(x), np.log(y), fmt='o', xerr=dx/x, yerr=dy/y)
+        ax.plot(np.log(x), pol(np.log(x)), '-', label='a={} b={}'.format(w[0],w[1]))
+        ax.set_ylabel(r'$\log(\Delta r)$')
+        ax.set_xlabel(r'$\log (\Delta s)$')
+        #plt.yscale('log')
+        #plt.xscale('log')
+        ax.legend(frameon=False, loc=1)
+        plt.savefig(os.path.join(self.base_directory, 'diffusion_logr_vs_logt.eps'))
+        write_csv_xy(np.log(x), np.log(y), xerr=dx/x, yerr=dy/y, fit=pol(np.log(x)), 
+                     fname=os.path.join(self.base_directory, 'diffusion_logr_vs_logt.csv'))
+        if self.show:
+            plt.show()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(np.log(x), np.log(y)-0.5*np.log(x), fmt='o', xerr=dx/x+dy/y, yerr=dy/y)
+        ax.set_ylabel(r'$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$')
+        ax.set_xlabel(r'$\log (\Delta s)$')
+        ax.legend(frameon=False, loc=1)
+        plt.savefig(os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.eps'))
+        write_csv_xy(np.log(x), np.log(y)-0.5*np.log(x), xerr=dx/x+dy/y, yerr=dy/y, 
+                     fname=os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.csv'))
+        if self.show:
+            plt.show()
+        
     def _plot_data(self):
         if self.plot_ts_integrand_data is False:
             return
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
         
+        #try to plot cumulative sum of steps_timeseries
+        try:
+            self._plot_diffusion()
+        except Exception, e:
+            print e
+        
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
         u2_array_app = (cont_karray + (self.nparticles * self.bdim) / self.displ_k_min) / (self.nparticles * self.bdim)
         u2_array_app = 1.0 / u2_array_app
         
+        #timeseries
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        #timeseries
         self._import_time_series()
         for i,series in enumerate(self.timeseries):
             ax.plot(series[::self.ts_skip], ls=next(linecycler), linewidth=1, label=str(i))
-        #plt.yscale('symlog')
+        #plt.yscale('log')
+        #plt.xscale('log')
         ax.legend(frameon=False, loc=1)
         plt.savefig(self.base_directory + '/time_series.eps')
         if self.show:
-            plt.show()
+            plt.show()       
         #integrand
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -244,6 +315,8 @@ class _collect_u2_vs_k(object):
         ax.set_xlabel('t')
         ax.set_ylabel('integrand')
         plt.savefig(self.base_directory + '/integrand.eps')
+        write_csv_xy(self.tarray, self.farray, yerr=self.sigfarray, 
+                     fname=os.path.join(self.base_directory, 'integrand.csv'))
         if self.show:
             plt.show()
         #plt.figure()
@@ -256,9 +329,12 @@ class _collect_u2_vs_k(object):
         ax.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
-        plt.savefig(self.base_directory + '/u2_vs_k.eps') 
+        plt.savefig(self.base_directory + '/u2_vs_k.eps')
+        write_csv_xy(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), 
+                     fname=os.path.join(self.base_directory, 'u2_vs_k.csv'))
         if self.show:
             plt.show()
+            
         
     def _print_volumes(self):
         dname = 'volume_data'

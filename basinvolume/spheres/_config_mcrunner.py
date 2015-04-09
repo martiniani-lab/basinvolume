@@ -77,19 +77,19 @@ class _configure_mcrunner(object):
         f.write('python_version: {}\n'.format(get_python_version()))
         f.write('cython_version: {}\n'.format(get_cython_version()))
     
-    def _requench_coords(self, dtol, opt_maxstep, verbose, frozen=False):
+    def _requench_coords(self, dtol, opt_maxstep, verbose, gtol=1e-7, frozen=False):
         """re-quench origin to avoid rounding errors"""
         if frozen:
             pot_optimizer = HS_WCA(use_periodic=False, reference_coords=self.coords, eps=self.eps,
                                    sca=self.sca, radii=self.hs_radii, use_frozen=True, 
                                    frozen_atoms=self.frozen, ndim=self.bdim)
-            res = modifiedfire_cpp(self.red_coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=1e-9)
+            res = modifiedfire_cpp(self.red_coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=gtol)
             new_coords = full_coordinates(res.coords, self.coords, self.frozen, self.bdim)
             self.red_coords = np.array(res.coords)
         else:    
             pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, 
                                    ndim=self.bdim, boxvec=self.boxv)
-            res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=1e-9)
+            res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=gtol)
             new_coords = res.coords
         if not res.success:
             assert(False)
