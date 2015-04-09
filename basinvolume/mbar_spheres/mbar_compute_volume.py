@@ -27,7 +27,7 @@ class mbar_compute_dos(object):
     this is a class that implements _mbar_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=400, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='jammed_packings', plot_data=True,
                  frozen=False, show=False, verbose=True):
         

@@ -14,20 +14,38 @@ except:
 
 class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """
-    u2meank0 is mean of histogram from simulation done at k=0
-    Tmax and Tmin here correspond to kmin and kmax, they should be computed by bv_find_params
-    eq_min_ptiter: determines the minimum number of pt steps to perform before checking convergence, 95% of initial assigned time 
-    eq_max_ptiter: determines the maximum number of pt steps to perform if convergence is not reached before, 20 times initial assigned time
-    fast_ct, if false perform full convergence test computing the segment of the recorded time series that maximises the number of uncorrelated samples
-    else return the maximum equilibration time
+    Note that ptiter is a single REM step, for each ptiter there are self.mcrunner.niter Monte Carlo steps
+    
+    u2meank0 : float 
+        mean of histogram from simulation done at k=0
+    Tmax, Tmin : float
+        here correspond to kmin and kmax, they should be computed by bv_find_params
+    fast_ct: bool 
+        if false perform full convergence test computing the segment of the recorded time series that maximises the number of uncorrelated samples
+        else return the maximum equilibration time
     numnegk : int
         number of negative k's, by default 0
     lownegk : float
         lowest negative k
+    skip: int
+        number of pt iteration where swaps should be skipped. For instance while the stepsize is adjusted, pt swaps shuold be avoided 
+    max_ptiter: int
+        inherited max_ptiter, in this class it plays as the minimum number of pt_iter. In other words it's eq_min_ptiter
+    eq_min_ptiter: int
+        95% of max_ptiter, this is the minimum length for which the calculation will run
+    eq_max_ptiter: int
+        maximum number of pt iterations that the class will permorm, it will literally abort past this number ot ptiter
+    min_window: int
+        minimal sample size of array to measure correlation length. So once the equilibration point is computed the next
+        convergence test is not performed until we have enough data to fill the min_window
+    max_eq_time: int
+        when computing the equilibration time we choose the minimum value between max_eq_time and the computed one
+    bs_nodes : int
+        number of binary search nodes to use when computing the equilibration point
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, fast_ct=False, 
                  rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False, 
-                 base_directory=None, verbose=False, bs_nodes=100):
+                 base_directory=None, verbose=False, bs_nodes=100, eq_min_ptiter=None, eq_max_ptiter=None):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip, 
                                                    print_status=print_status, base_directory=base_directory, verbose=verbose)
         self.u2meank0 = u2meank0
@@ -39,8 +57,12 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.fast_ct = fast_ct
         self.rel_std_err = rel_std_err #relative standard error
         self.rel_std_err_arr = [] #array of measured relative standard errors
-        self.eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
-        self.eq_max_ptiter = int(2e6/self.mcrunner.niter)
+        if eq_min_ptiter is None:
+            eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
+        self.eq_min_ptiter = eq_min_ptiter  
+        if eq_max_ptiter is None:
+            eq_max_ptiter = int(2e6/self.mcrunner.niter)
+        self.eq_max_ptiter = eq_max_ptiter
         self.min_window = min_window
         self.max_eq_time = max_eq_time
         self.bs_nodes = bs_nodes

@@ -117,6 +117,7 @@ setup(name='basinvolume',
                 "basinvolume.monte_carlo",
                 "basinvolume.utils",
                 "basinvolume.spheres",
+                "basinvolume.gui",
                 # add the test directories
                 "basinvolume.monte_carlo.tests",
                 "basinvolume.spheres.tests",
