@@ -12,11 +12,29 @@ import copy
 import sys, traceback
 from bisect import bisect_left
 import ConfigParser
+import csv
 try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
     print err
+    
+def write_csv_xy(x, y, xerr=None, yerr=None, fit=None, fname='data.csv'):
+    """
+    fit is the y values of the fit to the xy plot
+    """
+    if xerr is None:
+        xerr = np.zeros(len(x))
+    if yerr is None:
+        yerr = np.zeros(len(x))
+    if fit is None:
+        fit = np.zeros(len(x))
+    data = (np.array(x),np.array(xerr),np.array(y),np.array(yerr), np.array(fit))
+    np.savetxt(fname, np.column_stack(data), delimiter=',')
+
+def read_csv_xy(fname):
+    x, xerr, y, yerr, fit = np.loadtxt(fname, delimiter=',', unpack=True)
+    return x, xerr, y, yerr, fit
 
 def volume_nball(radius, n):
     volume = np.power(np.pi, n / 2) * np.power(radius, n) / gamma(n / 2 + 1)

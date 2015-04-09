@@ -3,7 +3,7 @@ import numpy as np
 import os
 import glob
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball
+from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball, write_csv_xy
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
@@ -27,7 +27,7 @@ class mbar_compute_dos(object):
     this is a class that implements _mbar_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=350, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='jammed_packings', plot_data=True,
                  frozen=False, show=False, verbose=True):
         
@@ -281,8 +281,7 @@ class mbar_compute_dos(object):
         plt.savefig(self.base_directory + '/histograms.eps')
         if self.show:
             plt.show()
-        
-        
+                
         fig = plt.figure()
         ax = fig.add_subplot(111) 
         for i in xrange(len(self.karray)):
@@ -307,6 +306,8 @@ class mbar_compute_dos(object):
         ax.legend(frameon=False, loc="best")
         plt.ylim((np.amin(rg),1.1*np.amax(rg)))
         plt.savefig(self.base_directory + '/log_dos.eps')
+        write_csv_xy(self.bin_edges[:-1], logn_E, fname=os.path.join(self.base_directory, 'log_gr.csv'))
+        write_csv_xy(self.bin_edges[:-1], rg, fname=os.path.join(self.base_directory, 'log_gr_ratio.csv'))
         if self.show:
             plt.show()
         
@@ -316,6 +317,7 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel(r'$g(r)/r^{N-1}$')
         plt.savefig(self.base_directory + '/ratio_g.eps')
+        write_csv_xy(self.bin_edges[:-1], np.exp(rg-np.amax(rg)), fname=os.path.join(self.base_directory, 'gr_ratio.csv'))
         if self.show:
             plt.show()
         
@@ -349,6 +351,23 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel('DOS')
         plt.savefig(self.base_directory + '/dos.eps')
+        write_csv_xy(self.bin_edges[:-1], dos, fname=os.path.join(self.base_directory, 'dos.csv'))
+        if self.show:
+            plt.show()
+            
+        #plot of the variance of the histograms as a function of k
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        var = []
+        for ts in self.timeseries:
+            var.append(np.var(ts))
+        var = np.array(var)
+        ax.plot(self.karray[1:], var)
+        ax.set_xlabel(r'k')
+        ax.set_ylabel('$var(r)$')
+        plt.xlim((self.karray[-1],self.karray[1]))
+        plt.savefig(self.base_directory + '/hist_var_k.eps')
+        write_csv_xy(self.karray[1:], var, fname=os.path.join(self.base_directory, 'hist_var_k.csv'))
         if self.show:
             plt.show()
         

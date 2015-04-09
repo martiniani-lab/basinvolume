@@ -6,7 +6,7 @@ import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
-from basinvolume.utils import to_string, read_txt
+from basinvolume.utils import to_string, read_txt, write_csv_xy
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
@@ -264,6 +264,8 @@ class _collect_u2_vs_k(object):
         #plt.xscale('log')
         ax.legend(frameon=False, loc=1)
         plt.savefig(os.path.join(self.base_directory, 'diffusion_logr_vs_logt.eps'))
+        write_csv_xy(np.log(x), np.log(y), xerr=dx/x, yerr=dy/y, fit=pol(np.log(x)), 
+                     fname=os.path.join(self.base_directory, 'diffusion_logr_vs_logt.csv'))
         if self.show:
             plt.show()
         fig = plt.figure()
@@ -273,9 +275,10 @@ class _collect_u2_vs_k(object):
         ax.set_xlabel(r'$\log (\Delta s)$')
         ax.legend(frameon=False, loc=1)
         plt.savefig(os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.eps'))
+        write_csv_xy(np.log(x), np.log(y)-0.5*np.log(x), xerr=dx/x+dy/y, yerr=dy/y, 
+                     fname=os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.csv'))
         if self.show:
             plt.show()
-        
         
     def _plot_data(self):
         if self.plot_ts_integrand_data is False:
@@ -312,6 +315,8 @@ class _collect_u2_vs_k(object):
         ax.set_xlabel('t')
         ax.set_ylabel('integrand')
         plt.savefig(self.base_directory + '/integrand.eps')
+        write_csv_xy(self.tarray, self.farray, yerr=self.sigfarray, 
+                     fname=os.path.join(self.base_directory, 'integrand.csv'))
         if self.show:
             plt.show()
         #plt.figure()
@@ -324,7 +329,9 @@ class _collect_u2_vs_k(object):
         ax.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
-        plt.savefig(self.base_directory + '/u2_vs_k.eps') 
+        plt.savefig(self.base_directory + '/u2_vs_k.eps')
+        write_csv_xy(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), 
+                     fname=os.path.join(self.base_directory, 'u2_vs_k.csv'))
         if self.show:
             plt.show()
             
