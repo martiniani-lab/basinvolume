@@ -239,8 +239,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         """
         if (self.rank == 0):
             nposk = self.nproc - self.numnegk #number of positive k
-            Tarray = spring_constants_variable_transform(nposk, self.Tmax, self.u2meank0, 
+            Tarray = spring_constants_variable_transform(nposk+1, self.Tmax, self.u2meank0, 
                                                          self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
+            Tarray = Tarray[:-1] #exclude kmax entry, no need to be simulated, mean is already available
             if self.numnegk > 0:
                 assert np.abs(self.lownegk) > 0
                 grid = -(np.abs(self.lownegk)+1-(np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1), self.numnegk+1))))[:-1]

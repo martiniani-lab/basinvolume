@@ -27,7 +27,7 @@ class _collect_u2_vs_k(object):
         
     def __call__(self, ts_skip=5000, fname='jammed_packing0', base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data=True,
-                 frozen=False, show=True):
+                 frozen=False, show=False, plot_only=False):
                
         self.fname = fname
         if not os.path.isabs(packings_dir):
@@ -48,6 +48,7 @@ class _collect_u2_vs_k(object):
         self.ts_skip = ts_skip
         self.plot_ts_integrand_data = plot_ts_integrand_data
         self.show = show
+        self.plot_only = plot_only
         self._import_config_files()
         self.run()
     
@@ -58,11 +59,14 @@ class _collect_u2_vs_k(object):
         Full volume computation, assuming that PT data is available
         """
         try:
-            self._import_ks()
-            self._import_u2_reverse()
-            self._print_u2_vs_k()
-            self._compute_volume()
-            self._plot_data()
+            if self.plot_only:
+                self._plot_data()
+            else:
+                self._import_ks()
+                self._import_u2_reverse()
+                self._print_u2_vs_k()
+                self._compute_volume()
+                self._plot_data()
         except Exception as err:
             print err
         """
@@ -368,6 +372,8 @@ if __name__ == "__main__":
     parser.add_argument("-d","--fdir", type=str, help="directory containing file, if not absolute path by default: fdir+fname", default='explore_bv_')
     parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir", default=os.getcwd())
     parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
+    parser.add_argument("--plotonly", action='store_true', help="plot only, default: False", default=False)
+    parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
     args = parser.parse_args()
     print args
     
@@ -382,7 +388,7 @@ if __name__ == "__main__":
     sim = _collect_u2_vs_k()
     
     if (fname != None):
-        sim(fname=fname, explore_dir=fdir, frozen=args.frozen)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, plot_only=args.plotonly, show=args.show)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:
