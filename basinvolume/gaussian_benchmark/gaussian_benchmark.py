@@ -32,7 +32,7 @@ except:
 class GaussianBenchmark(object):
     def __init__(self,
                  means=np.ones((10, 2)),
-                 cov=10*np.ones((10, 2)),
+                 cov=8*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
                  opt_maxstep=1,
@@ -41,7 +41,7 @@ class GaussianBenchmark(object):
                  radius_container=10,
                  bdim=1,
                  avgcount=1e3,
-                 ktarget=0.75,
+                 ktarget=0.9,
                  knavg=500,
                  ktol=0.05,
                  hmin=0,
@@ -171,9 +171,9 @@ class GaussianBenchmark(object):
                    action_record_displ_kmax=action_record_displ_kmax)
         kmax_run.run()
         self.kmax = kmax_run.get_k()
-        self.kmax_displ2 = kmax_run.get_displ2()
+        self.kmax_displ2 = kmax_run.get_displ2() ** 2
         self.prob_kmax = kmax_run.get_prob_kmax()
-        self.var_displ_kmax = kmax_run.get_var_displ_kmax()
+        self.var_displ_kmax = kmax_run.get_var_displ_kmax() ** 2
         self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
@@ -369,7 +369,11 @@ class GaussianBenchmark(object):
         """
         #sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
         sqared_std_errors = self.std_error_array ** 2
-        self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
+        print("data for integral")
+        print("self.u2_array", self.u2_array)
+        print("self.karray", self.karray)
+        print("data for integral -- END")
+        self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc = F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
                                                                                 self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
