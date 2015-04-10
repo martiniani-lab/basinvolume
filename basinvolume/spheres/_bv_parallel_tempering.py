@@ -231,7 +231,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
 #            self.Tarray = None
     
     #THIS _get_temps CAN DEAL WITH NEGATIVE Ks
-def _get_temps(self):
+    def _get_temps(self):
         """
         set up the temperatures by distributing them exponentially. We give root the lowest temperature.
         This should increase performance when pair lists are used (they are updated less often at low temperature
