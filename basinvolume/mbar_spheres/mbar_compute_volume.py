@@ -122,9 +122,9 @@ class mbar_compute_dos(object):
                 ts = full_flat_timeseries[j:j+n_k]
                 self.flat_timeseries[j:j+n_k] = ts[idx]
                 j+=n_k
-            start = time.clock()
+            start = time.time()
             self._build_mbar(verbose=False, maxiter=1000, reltol=1.0e-7, initial_f_k=initial_f_k, subsampling=16)
-            print "t: ", time.clock() - start
+            print "t: ", time.time() - start
             #compute the weights, skip the volume calculation
             Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
             self.w_i_final = -Deltaf_ij[0]
@@ -135,7 +135,6 @@ class mbar_compute_dos(object):
         #plot data
         self._plot_data()
         
-    
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.packing_configpath))
@@ -508,7 +507,6 @@ class mbar_compute_dos(object):
         #write_csv_xy(self.bin_edges[:-1], np.exp(rg-np.amax(rg)), fname=os.path.join(self.base_directory, 'gr_ratio.csv'))
         if self.show:
             plt.show()
-        
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
