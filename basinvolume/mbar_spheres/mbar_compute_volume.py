@@ -333,6 +333,8 @@ class mbar_compute_dos(object):
         self.logn_E = np.array(ldos)
     
     def _plot_data(self):
+        if self.plot_data is False:
+            return
         self._plot_raw()
         if self.bootstrap:
             self._plot_dos_bs()
@@ -340,8 +342,6 @@ class mbar_compute_dos(object):
             self._plot_dos()
         
     def _plot_raw(self):
-        if self.plot_data is False:
-            return
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
                 
@@ -385,6 +385,72 @@ class mbar_compute_dos(object):
         if self.show:
             plt.show()
 
+    def _plot_dos(self):
+        lines = ["-", "--", "-."]
+        linecycler = cycle(lines)
+        
+        logn_E = self.logn_E - np.amax(self.logn_E)
+        dos = np.exp(logn_E)
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.bin_edges[:-1], logn_E, label=r'$\log(g(r))$')
+        #dx = self.bin_edges[1] - self.bin_edges[0]
+        rg = logn_E - (self.ndof-1)*np.log(self.bin_edges[:-1])
+        ax.plot(self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
+        ax.set_xlabel(r'$\Delta r$')
+        ax.legend(frameon=False, loc="best")
+        plt.ylim((np.amin(rg),1.1*np.amax(rg)))
+        plt.savefig(self.base_directory + '/log_dos.eps')
+        write_csv_xy(self.bin_edges[:-1], logn_E, fname=os.path.join(self.base_directory, 'log_gr.csv'))
+        write_csv_xy(self.bin_edges[:-1], rg, fname=os.path.join(self.base_directory, 'log_gr_ratio.csv'))
+        if self.show:
+            plt.show()
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)))
+        ax.set_xlabel(r'$\Delta r$')
+        ax.set_ylabel(r'$g(r)/r^{N-1}$')
+        plt.savefig(self.base_directory + '/ratio_g.eps')
+        write_csv_xy(self.bin_edges[:-1], np.exp(rg-np.amax(rg)), fname=os.path.join(self.base_directory, 'gr_ratio.csv'))
+        if self.show:
+            plt.show()
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.bin_edges[:-1], rg-np.amax(rg))
+        ax.set_xlabel(r'$\Delta r$')
+        ax.set_ylabel(r'$\log(g(r)/r^{N-1})$')
+        ax.set_xscale('log')
+        plt.savefig(self.base_directory + '/ratio_g_loglog.eps')
+        if self.show:
+            plt.show()
+        
+#        corey's S_n^gamma function
+#        fig = plt.figure()
+#        ax = fig.add_subplot(111)
+#        A = surface_nball(1.,self.ndof)
+#        Vrat = np.exp(self.F0 - self.nparticles*self.bdim*np.log(self.vcavity))
+#        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)) * (self.bin_edges[:-1]**(self.nparticles*self.bdim-1)))
+#        ax.set_xlabel(r'$\Delta r$')
+#        ax.set_ylabel(r'$S_n^{\Gamma}$')
+#        #ax.set_yscale('log')
+#        #ax.set_xscale('log')
+#        #plt.savefig(self.base_directory + '/wbp.eps')
+#        if self.show:
+#            plt.show()
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.bin_edges[:-1], dos)
+        ax.set_xlabel(r'$\Delta r$')
+        ax.set_ylabel('DOS')
+        plt.savefig(self.base_directory + '/dos.eps')
+        write_csv_xy(self.bin_edges[:-1], dos, fname=os.path.join(self.base_directory, 'dos.csv'))
+        if self.show:
+            plt.show()
+    
     def _plot_dos_bs(self, alpha=0.05):
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
@@ -465,72 +531,6 @@ class mbar_compute_dos(object):
         ax.set_ylabel('DOS')
         plt.savefig(self.base_directory + '/dos_bs.eps')
         #write_csv_xy(self.bin_edges[:-1], dos, fname=os.path.join(self.base_directory, 'dos.csv'))
-        if self.show:
-            plt.show()
-
-    def _plot_dos(self):
-        lines = ["-", "--", "-."]
-        linecycler = cycle(lines)
-        
-        logn_E = self.logn_E - np.amax(self.logn_E)
-        dos = np.exp(logn_E)
-        
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], logn_E, label=r'$\log(g(r))$')
-        #dx = self.bin_edges[1] - self.bin_edges[0]
-        rg = logn_E - (self.ndof-1)*np.log(self.bin_edges[:-1])
-        ax.plot(self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
-        ax.set_xlabel(r'$\Delta r$')
-        ax.legend(frameon=False, loc="best")
-        plt.ylim((np.amin(rg),1.1*np.amax(rg)))
-        plt.savefig(self.base_directory + '/log_dos.eps')
-        write_csv_xy(self.bin_edges[:-1], logn_E, fname=os.path.join(self.base_directory, 'log_gr.csv'))
-        write_csv_xy(self.bin_edges[:-1], rg, fname=os.path.join(self.base_directory, 'log_gr_ratio.csv'))
-        if self.show:
-            plt.show()
-        
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)))
-        ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel(r'$g(r)/r^{N-1}$')
-        plt.savefig(self.base_directory + '/ratio_g.eps')
-        write_csv_xy(self.bin_edges[:-1], np.exp(rg-np.amax(rg)), fname=os.path.join(self.base_directory, 'gr_ratio.csv'))
-        if self.show:
-            plt.show()
-        
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], rg-np.amax(rg))
-        ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel(r'$\log(g(r)/r^{N-1})$')
-        ax.set_xscale('log')
-        plt.savefig(self.base_directory + '/ratio_g_loglog.eps')
-        if self.show:
-            plt.show()
-        
-#        corey's S_n^gamma function
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        A = surface_nball(1.,self.ndof)
-#        Vrat = np.exp(self.F0 - self.nparticles*self.bdim*np.log(self.vcavity))
-#        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)) * (self.bin_edges[:-1]**(self.nparticles*self.bdim-1)))
-#        ax.set_xlabel(r'$\Delta r$')
-#        ax.set_ylabel(r'$S_n^{\Gamma}$')
-#        #ax.set_yscale('log')
-#        #ax.set_xscale('log')
-#        #plt.savefig(self.base_directory + '/wbp.eps')
-#        if self.show:
-#            plt.show()
-        
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], dos)
-        ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel('DOS')
-        plt.savefig(self.base_directory + '/dos.eps')
-        write_csv_xy(self.bin_edges[:-1], dos, fname=os.path.join(self.base_directory, 'dos.csv'))
         if self.show:
             plt.show()
         
