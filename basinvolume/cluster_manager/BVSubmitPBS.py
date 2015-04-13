@@ -312,9 +312,9 @@ class BVSubmitPBS(object):
         packing = self.packing_naming + noj + self.ext
         explore_dir = self.explore_dir + noj
         pt_script = os.path.join(path_to_script, script)
-        command = 'python {0} {1} ${{PBS_O_WORKDIR}}/{2} \
-        --mintotniter {3} --maxtotniter {4} --relstderr {5}'.format(pt_script, packing, explore_dir, self.mintotniter, 
-                                                                    self.maxtotniter, self.relstderr)
+        command = ('python {0} {1} ${{PBS_O_WORKDIR}}/{2} '
+                   '--mintotniter {3} --maxtotniter {4} --relstderr {5}').format(pt_script, packing, explore_dir, self.mintotniter, 
+                                                                                 self.maxtotniter, self.relstderr)
         if self.use_cgd:
             command += " --cgd"
         if self.numnegk > 0:
