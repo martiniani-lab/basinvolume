@@ -30,7 +30,7 @@ class BVSubmitPBS(object):
     def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
                  kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing', pt_config='explore_jammed_packing', 
                  packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, 
-                 experimental=False, use_cgd=True, numnegk=0):
+                 experimental=False, use_cgd=True, mintotniter=5e5, maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -49,6 +49,10 @@ class BVSubmitPBS(object):
         self.nodays=nodays
         self.experimental = experimental
         self.use_cgd = use_cgd
+        self.mintotniter = int(mintotniter)
+        self.maxtotniter = int(maxtotniter)
+        self.relstderr = relstderr
+        self.lownegk = lownegk
         self.numnegk = numnegk
         self.pt_output_files = ["exchanges","rem_permutations","temperatures"]
         if ndim == 2:
@@ -308,11 +312,13 @@ class BVSubmitPBS(object):
         packing = self.packing_naming + noj + self.ext
         explore_dir = self.explore_dir + noj
         pt_script = os.path.join(path_to_script, script)
-        command = 'python {0} {1} ${{PBS_O_WORKDIR}}/{2}'.format(pt_script, packing, explore_dir)
+        command = 'python {0} {1} ${{PBS_O_WORKDIR}}/{2} \
+        --mintotniter {3} --maxtotniter {4} --relstderr {5}'.format(pt_script, packing, explore_dir, self.mintotniter, 
+                                                                    self.maxtotniter, self.relstderr)
         if self.use_cgd:
             command += " --cgd"
         if self.numnegk > 0:
-            command += " --numnegk {}".format(self.numnegk)
+            command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         return command
     
     def submit_pt_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
@@ -460,7 +466,13 @@ if __name__ == "__main__":
     single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
     single_parser.add_argument("--fire", action='store_true', help="use fire instead of cgd",default=False)
+    single_parser.add_argument("--mintotniter", type=float, help="minimum number of energy evaluation per replica, \
+    before checking for convergence default: 5e5. This sets a lower bound",default=5e5)
+    single_parser.add_argument("--maxtotniter", type=float, help="maximum number of energy evaluation per replica, \
+    This sets an upper bound default: 2e6",default=2e6)
+    single_parser.add_argument("--relstderr", type=float, help="relative standard error to test convergence, default 0.05", default=0.05)
     single_parser.add_argument("--numnegk", type=int, help="number of negative ks to use", default=0)
+    single_parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
     single_parser.add_argument("--force", action='store_true', help="force run",default=False)
     
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
@@ -479,14 +491,21 @@ if __name__ == "__main__":
     chain_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     chain_parser.add_argument("--fire", action='store_true', help="use fire instead of cgd",default=False)
+    chain_parser.add_argument("--mintotniter", type=float, help="minimum number of energy evaluation per replica, \
+    before checking for convergence default: 5e5. This sets a lower bound",default=5e5)
+    chain_parser.add_argument("--maxtotniter", type=float, help="maximum number of energy evaluation per replica, \
+    This sets an upper bound default: 2e6",default=2e6)
+    chain_parser.add_argument("--relstderr", type=float, help="relative standard error to test convergence, default 0.05", default=0.05)
     chain_parser.add_argument("--numnegk", type=int, help="number of negative ks to use", default=0)
+    chain_parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
     chain_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
     
     args = parser.parse_args()
     print args
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, 
                         nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, use_cgd=not args.fire,
-                        numnegk=args.numnegk)
+                        mintotniter=args.mintotniter, maxtotniter=args.maxtotniter, relstderr=args.relstderr, 
+                        numnegk=args.numnegk, lownegk=args.lownegk)
        
     if args.mode == 'chain':
         bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores, 
