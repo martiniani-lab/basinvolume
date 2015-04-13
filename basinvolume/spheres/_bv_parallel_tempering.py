@@ -59,15 +59,15 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.rel_std_err_arr = [] #array of measured relative standard errors
         if eq_min_ptiter is None:
             eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
-        self.eq_min_ptiter = eq_min_ptiter  
+        self.eq_min_ptiter = int(eq_min_ptiter)  
         if eq_max_ptiter is None:
             eq_max_ptiter = int(2e6/self.mcrunner.niter)
-        self.eq_max_ptiter = eq_max_ptiter
-        self.min_window = min_window
-        self.max_eq_time = max_eq_time
-        self.bs_nodes = bs_nodes
-        self.numnegk = numnegk
-        self.lownegk = lownegk
+        self.eq_max_ptiter = int(eq_max_ptiter)
+        self.min_window = int(min_window)
+        self.max_eq_time = int(max_eq_time)
+        self.bs_nodes = int(bs_nodes)
+        self.numnegk = int(numnegk)
+        self.lownegk = int(lownegk)
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)

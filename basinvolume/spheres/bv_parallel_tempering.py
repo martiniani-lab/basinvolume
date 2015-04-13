@@ -23,7 +23,7 @@ if __name__ == "__main__":
                         This sets an upper bound default: 2e6",default=2e6)
     parser.add_argument("--numnegk", type=int, help="number of negative k's to use, default 0",default=0)
     parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
-    parser.add_argument("-s", "--relstderr", type=float, help="relative standard error to test convergence, default 0.05 ,default=0.05")
+    parser.add_argument("-s", "--relstderr", type=float, help="relative standard error to test convergence, default 0.05", default=0.05)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--cgd", action='store_true', help="use CG_DESCENT, default: False",default=False)
