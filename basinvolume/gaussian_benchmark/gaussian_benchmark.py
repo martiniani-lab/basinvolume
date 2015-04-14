@@ -36,12 +36,12 @@ class GaussianBenchmark(object):
                  minimum_index=0,
                  opt_dtmax=1,
                  opt_maxstep=1,
-                 opt_tol=1e-8,
+                 opt_tol=1e-7,
                  opt_nsteps=1e5,
                  radius_container=10,
                  bdim=1,
                  avgcount=1e3,
-                 ktarget=0.9,
+                 ktarget=0.85,
                  knavg=500,
                  ktol=0.05,
                  hmin=0,
@@ -51,7 +51,7 @@ class GaussianBenchmark(object):
                  adjustf_niter=1e3,
                  pt_eq_niter=1e2,
                  seeds=None,
-                 nprocs=7,
+                 nprocs=15,
                  totniter=1e5,
                  harmonic_com_flag=False,
                  kmin_niter=1e5):
@@ -171,9 +171,9 @@ class GaussianBenchmark(object):
                    action_record_displ_kmax=action_record_displ_kmax)
         kmax_run.run()
         self.kmax = kmax_run.get_k()
-        self.kmax_displ2 = kmax_run.get_displ2() ** 2
+        self.kmax_displ2 = kmax_run.get_displ2()
         self.prob_kmax = kmax_run.get_prob_kmax()
-        self.var_displ_kmax = kmax_run.get_var_displ_kmax() ** 2
+        self.var_displ_kmax = kmax_run.get_var_displ_kmax()
         self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
