@@ -310,16 +310,21 @@ class BVSubmitPBS(object):
                             else:
                                 pass
     
-    def _get_pt_command(self, noj, path_to_script, script='bv_parallel_tempering.py'):
+    def _get_pt_command(self, noj, path_to_script, ncores, script='bv_parallel_tempering.py'):
         """
         this function returns the correct command line for the parallel tempering calculation
         """
         packing = self.packing_naming + noj + self.ext
         explore_dir = self.explore_dir + noj
         pt_script = os.path.join(path_to_script, script)
-        command = ('python {0} {1} ${{PBS_O_WORKDIR}}/{2} '
-                   '--mintotniter {3} --maxtotniter {4} --relstderr {5}').format(pt_script, packing, explore_dir, self.mintotniter, 
-                                                                                 self.maxtotniter, self.relstderr)
+        if ncores % 2 == 0:
+            command = ('-n {0} python {1} {2} ${{PBS_O_WORKDIR}}/{3} '
+                       '--mintotniter {4} --maxtotniter {5} --relstderr {6}').format(ncores-1, pt_script, packing, explore_dir, self.mintotniter, 
+                                                                                     self.maxtotniter, self.relstderr)
+        else:
+            command = ('python {0} {1} ${{PBS_O_WORKDIR}}/{2} '
+                       '--mintotniter {3} --maxtotniter {4} --relstderr {5}').format(pt_script, packing, explore_dir, self.mintotniter, 
+                                                                                     self.maxtotniter, self.relstderr)
         if self.use_cgd:
             command += " --cgd"
         if self.numnegk > 0:
@@ -356,7 +361,7 @@ class BVSubmitPBS(object):
                                 if check_kmax_reasonable(kmax_path):
                                     if not os.path.isabs(path_to_script):
                                         path_to_script = os.path.abspath(path_to_script)
-                                    command = self._get_pt_command(noj, path_to_script)
+                                    command = self._get_pt_command(noj, path_to_script, nodes*cores)
                                     pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays) 
                                     pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
                             else:
@@ -413,7 +418,7 @@ class BVSubmitPBS(object):
                                     kmax_ready = self._check_kmax_config_file_ready(kmax_path)
                                     kmin_ready = self._check_kmin_config_file_ready(kmin_path)
                                     #prepare PT command
-                                    pt_command = self._get_pt_command(noj, path_to_script)
+                                    pt_command = self._get_pt_command(noj, path_to_script, pt_nodes*pt_cores)
                                     pt_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(innersphere_dos_fname)
                                     pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
                                     #if kmax is either not terminated or is reasonable then continue
