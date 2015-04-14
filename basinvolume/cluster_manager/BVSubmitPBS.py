@@ -30,7 +30,8 @@ class BVSubmitPBS(object):
     def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
                  kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing', pt_config='explore_jammed_packing', 
                  packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, 
-                 experimental=False, use_cgd=True, mintotniter=5e5, maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5):
+                 experimental=False, use_cgd=True, record_steps_timeseries=False, mintotniter=5e5, maxtotniter=2e6, 
+                 relstderr=0.05, numnegk=0, lownegk=-2.5):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -49,6 +50,7 @@ class BVSubmitPBS(object):
         self.nodays=nodays
         self.experimental = experimental
         self.use_cgd = use_cgd
+        self.record_steps_timeseries = record_steps_timeseries
         self.mintotniter = int(mintotniter)
         self.maxtotniter = int(maxtotniter)
         self.relstderr = relstderr
@@ -169,7 +171,7 @@ class BVSubmitPBS(object):
         self._remove_pbs_output(explore_dir_path, output_signature)
         self._remove_pbs_output(explore_dir_path, config_fname+"*.config")
     
-    def _get_findk_command(self, noj, path_to_script, script='bv_find_kmin.py'):
+    def _get_findk_command(self, noj, path_to_script, script='bv_find_kmin.py', record_steps_timeseries=False):
         """
         this function returns the correct command line
         """
@@ -178,6 +180,8 @@ class BVSubmitPBS(object):
         command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(findk_script, packing)
         if self.use_cgd:
             command += " --cgd"
+        if record_steps_timeseries:
+            command += " --rsts"
         return command
     
     def _get_innersphere_dos_command(self, noj, path_to_script, script='bv_innersphere_dos.py'):
@@ -223,7 +227,8 @@ class BVSubmitPBS(object):
                                 #####################################
                                 if not os.path.isabs(path_to_script):
                                     path_to_script = os.path.abspath(path_to_script)
-                                command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                                command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py',
+                                                                  record_steps_timeseries=self.record_steps_timeseries)
                                 pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
                                 pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
                             else:
@@ -422,7 +427,8 @@ class BVSubmitPBS(object):
                                                 #########remove old pbs output#######
                                                 self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
                                                 #####################################
-                                                kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py')
+                                                kmin_command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py',
+                                                                                       record_steps_timeseries=self.record_steps_timeseries)
                                                 kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
                                                 pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmin_command, outdir=path, nodays=self.nodays)
                                                 if kmax_ready:
@@ -466,6 +472,7 @@ if __name__ == "__main__":
     single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
     single_parser.add_argument("--fire", action='store_true', help="use fire instead of cgd",default=False)
+    single_parser.add_argument("--rsts", action='store_true', help="record steps timeseries for diffusion studies, default: False",default=False)
     single_parser.add_argument("--mintotniter", type=float, help="minimum number of energy evaluation per replica, \
     before checking for convergence default: 5e5. This sets a lower bound",default=5e5)
     single_parser.add_argument("--maxtotniter", type=float, help="maximum number of energy evaluation per replica, \
@@ -491,6 +498,7 @@ if __name__ == "__main__":
     chain_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     chain_parser.add_argument("--fire", action='store_true', help="use fire instead of cgd",default=False)
+    chain_parser.add_argument("--rsts", action='store_true', help="record steps timeseries for diffusion studies, default: False",default=False)
     chain_parser.add_argument("--mintotniter", type=float, help="minimum number of energy evaluation per replica, \
     before checking for convergence default: 5e5. This sets a lower bound",default=5e5)
     chain_parser.add_argument("--maxtotniter", type=float, help="maximum number of energy evaluation per replica, \
@@ -504,8 +512,8 @@ if __name__ == "__main__":
     print args
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, 
                         nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, use_cgd=not args.fire,
-                        mintotniter=args.mintotniter, maxtotniter=args.maxtotniter, relstderr=args.relstderr, 
-                        numnegk=args.numnegk, lownegk=args.lownegk)
+                        record_steps_timeseries=args.rsts, mintotniter=args.mintotniter, maxtotniter=args.maxtotniter, 
+                        relstderr=args.relstderr, numnegk=args.numnegk, lownegk=args.lownegk)
        
     if args.mode == 'chain':
         bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores, 
