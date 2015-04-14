@@ -89,10 +89,7 @@ class ComputeEntropyCommon(object):
     def set_up_directories(self):
         self.output_path = os.path.join(self.packings_dir, 'entropy_analysis_{}'.format('all' if self.nr_volume_points==-1 else str(self.nr_volume_points)))
         trymakedir(self.output_path)
-        if self.gaussian_benchmark:
-            self.explore_dirs = [os.path.join(self.packings_dir, f) for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_config")]
-        else:
-            self.explore_dirs = [os.path.join(self.packings_dir, f) for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
+        self.explore_dirs = [os.path.join(self.packings_dir, f) for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
         if self.nr_volume_points != -1:
             print "removing volume points"
             nr_to_kill = len(self.explore_dirs) - self.nr_volume_points
@@ -340,14 +337,12 @@ if __name__ == "__main__":
     parser.add_argument("--force", action='store_true', help="force to recompute volumes for already computed ones", default=False)
     parser.add_argument("--numerical_moments", action="store_true", help="compute moments of radii distribution numerically from the sample of radii instead of analytically from the parameters of the distribution", default=False)
     parser.add_argument("-j","--ncores", type=int, help="number of packings to produce",default=4)
-    parser.add_argument("--gaussian_benchmark", action="store_true", help="analyse gaussian benchmark configurations", default=False)
     args = parser.parse_args()
     
     ncores = args.ncores
     kwargs = dict(plot_ts_integrand_data=False, skip_volume_computation=args.plot_only,
                   max_relative_GL_error=args.max_relative_GL_error, kmax_threshold=args.kmax_threshold,
-                  nr_volume_points=args.nr_vpoints, force_run=args.force, numerical_moments=args.numerical_moments,
-                  gaussian_benchmark=args.gaussian_benchmark)
+                  nr_volume_points=args.nr_vpoints, force_run=args.force, numerical_moments=args.numerical_moments)
     
     if not args.all:
         packings_dir = os.path.abspath(args.packings_dir)
