@@ -61,6 +61,14 @@ else
 	echo "is_success_file does not exist -- terminating"
 	exit 42
 fi
+is_success_line=$(grep "success" $is_success_file)
+if [ "$is_success_line" ];
+	then
+		echo "is complete"
+else	
+		echo "is incomplete -- terminating"
+		exit 42
+fi
 rank_success_lines=$(grep "success_rank" $pt_success_file)
 for l in $rank_success_lines
 do
