@@ -279,11 +279,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if nratls > self.max_nrattlers:
             print '{} rattlers constitute more than 10% of the system'.format(nratls)
             return False 
-        
-        #check that there isn't any significantly negative evalue
-        if np.any(w < -2.5e-7):
-            print 'e: {} eigenvalue < -2.5e-7'.format(np.amin(w))
-            return False
+
+#        if the mismatch test works correctly there is no need to test for negative eigenvalues 
+#        because the negative eigenvalue that makes the test fail might (and probably will) belong 
+#        to a rattler, in which case who cares. If it does not belong to a rattler then the mismatch 
+#        test will fail anyway first, so I am going to remove this test.
+#        #check that there isn't any significantly negative evalue
+#        if np.any(w < -2.5e-7):
+#            print 'e: {} eigenvalue < -2.5e-7'.format(np.amin(w))
+#            return False
         
         return True
     
