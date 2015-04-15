@@ -281,8 +281,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             return False 
         
         #check that there isn't any significantly negative evalue
-        if np.any(w < -1e-6):
-            print 'e: {} eigenvalue < -1e-6'.format(np.amin(w))
+        if np.any(w < -2.5e-7):
+            print 'e: {} eigenvalue < -2.5e-7'.format(np.amin(w))
             return False
         
         return True
