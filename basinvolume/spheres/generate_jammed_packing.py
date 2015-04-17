@@ -157,8 +157,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.block_evalues = []
         self.whole_evalues = []
         self.nbins = 1000
-        self.nbins_low = 500
-        self.low_range = (-1,1)
+        self.nbins_low = 6000
+        self.low_range = (-0.00001,0.00001)
         self.show = show
     
     def _initialise(self):
@@ -269,22 +269,25 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         
         w, v = np.linalg.eig(hess)
         w = np.real(w)
-        full0evals = [x for x in w if abs(x) < self.rattler_eval_tol]
+        full0evals = [x for x in w if abs(x) < 1e-6]
         if len(full0evals) - len(ratt0evals) > self.bdim:
             print 'hessian 0s mismatch rattlers 0s'
-            #do not return false because for lower packings fraction the number of low freequency modes increases significantly
-            pass
+            return False
         self.whole_evalues.extend(w)
           
         print "nrattlers: {}".format(nratls)
         if nratls > self.max_nrattlers:
             print '{} rattlers constitute more than 10% of the system'.format(nratls)
             return False 
-        
-        #check that there isn't any significantly negative evalue
-        if np.any(w < -2e-7):
-            print 'e: {} eigevalue < -2e-7'.format(np.amin(w))
-            return False
+
+#        if the mismatch test works correctly there is no need to test for negative eigenvalues 
+#        because the negative eigenvalue that makes the test fail might (and probably will) belong 
+#        to a rattler, in which case who cares. If it does not belong to a rattler then the mismatch 
+#        test will fail anyway first, so I am going to remove this test.
+#        #check that there isn't any significantly negative evalue
+#        if np.any(w < -2.5e-7):
+#            print 'e: {} eigenvalue < -2.5e-7'.format(np.amin(w))
+#            return False
         
         return True
     
