@@ -54,7 +54,8 @@ class GaussianBenchmark(object):
                  nprocs=15,
                  totniter=1e5,
                  harmonic_com_flag=False,
-                 kmin_niter=1e5):
+                 kmin_niter=1e5,
+                 harmonic_well=True):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -78,6 +79,7 @@ class GaussianBenchmark(object):
         self.totniter = totniter
         self.harmonic_com_flag = harmonic_com_flag
         self.kmin_niter = kmin_niter
+        self.harmonic_well = harmonic_well
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -88,7 +90,10 @@ class GaussianBenchmark(object):
         self.bdim = self.gdim
         self.nparticles = 1
         #####
-        self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        if self.harmonic_well:
+            self.pot_optimizer = Harmonic([0, 0], 42, bdim=self.bdim)
+        else:
+            self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
             print "Energy", self.pot_optimizer.getEnergy(minimum)
         print("ENERGY", self.pot_optimizer.getEnergy(np.asarray([10.0, 10.0])))
@@ -452,7 +457,7 @@ if __name__ == "__main__":
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
     
     #bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
-    bm = GaussianBenchmark(minimum_index=0)
+    bm = GaussianBenchmark(minimum_index=0, harmonic_well=True)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
