@@ -108,7 +108,7 @@ class configure_bv_gauss_mcrunner(object):
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, bdim=self.bdim)
-        if self.harmonic_well:
+        if self.harmonic_well == "True":
             self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim)
         else:
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)

@@ -55,7 +55,7 @@ class GaussianBenchmark(object):
                  totniter=1e5,
                  harmonic_com_flag=False,
                  kmin_niter=1e5,
-                 harmonic_well=True,
+                 harmonic_well=False,
                  kmax_niter=1e5):
         self.means = means
         self.cov = cov
@@ -477,7 +477,7 @@ if __name__ == "__main__":
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
     
     #bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
-    bm = GaussianBenchmark(minimum_index=0, harmonic_well=True)
+    bm = GaussianBenchmark(minimum_index=0, harmonic_well=False)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
