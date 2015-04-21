@@ -163,6 +163,14 @@ class GaussianBenchmark(object):
         hmin = 0
         hmax = 1
         hbinsize = 0.001
+        action_record_displ_kmax = RecordDisp2Histogram(self.origin,
+                                                        self.rattlers,
+                                                        self.bdim,
+                                                        hmin,
+                                                        hmax,
+                                                        hbinsize,
+                                                        self.kmax_niter - self.avgcount,
+                                                        fix_com=self.harmonic_com_flag)
         action_findk = Findk(self.origin,
                              self.rattlers,
                              self.bdim,
@@ -175,22 +183,23 @@ class GaussianBenchmark(object):
                              self.binsize,
                              fix_com=self.harmonic_com_flag)
         kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer,
-                   origin=self.origin,
-                   optimizer=self.optimizer,
-                   conftest_outer_sphere=self.conftest_outer_sphere,
-                   conftest_check_same_minimum=self.conftest_check_same_minimum,
-                   action_findk=action_findk,
-                   niter=self.kmax_niter,
-                   avgcount=self.avgcount)
+                                           origin=self.origin,
+                                           optimizer=self.optimizer,
+                                           conftest_outer_sphere=self.conftest_outer_sphere,
+                                           conftest_check_same_minimum=self.conftest_check_same_minimum,
+                                           action_findk=action_findk,
+                                           action_record_displ_kmax=action_record_displ_kmax,
+                                           niter=self.kmax_niter,
+                                           avgcount=self.avgcount)
         kmax_run.run()
         self.kmax = kmax_run.get_k()
         self.kmax_displ2 = kmax_run.get_displ2()
         self.prob_kmax = kmax_run.get_prob_kmax()
         self.var_displ_kmax = kmax_run.get_var_displ_kmax()
-        self.kmax_displ2_nr_samples = action_findk.get_entries()
+        self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
-        print("kmax_displ2 samples", action_findk.get_entries())
+        print("kmax_displ2 samples", action_record_displ_kmax.get_count())
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         print("kmax_run.get_nfev()", kmax_run.get_neval())
         self.total_neval += kmax_run.get_neval()
