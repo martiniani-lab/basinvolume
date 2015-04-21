@@ -18,7 +18,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
                  action_findk=None,
                  niter=1e8,
                  stepsize=1e-1,
-                 action_record_displ_kmax=None):
+                 avgcount=1e4):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
         self.optimizer = optimizer
@@ -26,9 +26,9 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.action_findk = action_findk
         self.niter = niter
-        self.action_record_displ_kmax = action_record_displ_kmax
+        self.avgcount = avgcount
         #
-        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_findk is None or self.action_record_displ_kmax is None:
+        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_findk is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input")
         fake_potential = NullPotential()
         super(GaussianBenchmarkKmaxRun, self).__init__(fake_potential,
@@ -41,18 +41,20 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
                                         stepsize, self.origin)
         self.rattlers = np.ones(self.origin.size)
         self.add_modules_to_mc()
+        self.set_report_steps(self.niter - self.avgcount)
     def add_modules_to_mc(self):
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_conf_test(self.conftest_check_same_minimum)
         self.add_action(self.action_findk)
-        self.add_action(self.action_record_displ_kmax)
     def get_stepsize(self):
         return self.takestep.get_stepsize()
     def get_displ2(self):
-        return self.action_record_displ_kmax.get_mean_variance()[0]
+        displ_k_max, var_displ_k_max = self.action_findk.get_mean_variance()
+        return displ_k_max
     def get_var_displ_kmax(self):
-        return self.action_record_displ_kmax.get_mean_variance()[1]
+        displ_k_max, var_displ_k_max = self.action_findk.get_mean_variance()
+        return var_displ_k_max
     def get_prob_kmax(self):
         return self.action_findk.get_prob()
     def get_k(self):
@@ -61,6 +63,9 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         """
         stepsize = self.get_stepsize()
         k = 1.0 / (stepsize * stepsize)
+        ###
+        print("k", k)
+        ###
         return k
     def set_control(self, c):
         """set k"""

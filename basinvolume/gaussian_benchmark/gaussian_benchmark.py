@@ -40,7 +40,7 @@ class GaussianBenchmark(object):
                  opt_nsteps=1e5,
                  radius_container=10,
                  bdim=1,
-                 avgcount=1e3,
+                 avgcount=1e5,
                  ktarget=0.85,
                  knavg=500,
                  ktol=0.05,
@@ -55,7 +55,8 @@ class GaussianBenchmark(object):
                  totniter=1e5,
                  harmonic_com_flag=False,
                  kmin_niter=1e5,
-                 harmonic_well=True):
+                 harmonic_well=True,
+                 kmax_niter=1e5):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -80,6 +81,7 @@ class GaussianBenchmark(object):
         self.harmonic_com_flag = harmonic_com_flag
         self.kmin_niter = kmin_niter
         self.harmonic_well = harmonic_well
+        self.kmax_niter = kmax_niter
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -161,28 +163,34 @@ class GaussianBenchmark(object):
         hmin = 0
         hmax = 1
         hbinsize = 0.001
-        action_record_displ_kmax = RecordDisp2Histogram(self.origin,
-                                   self.rattlers, self.bdim, hmin,
-                                   hmax, hbinsize, 0, fix_com=self.harmonic_com_flag)
-        action_findk = Findk(self.origin, self.rattlers, self.bdim,
-                             self.avgcount, self.ktarget, self.knavg,
-                             self.ktol, self.hmin, self.hmax,
-                             self.binsize, fix_com=self.harmonic_com_flag)
+        action_findk = Findk(self.origin,
+                             self.rattlers,
+                             self.bdim,
+                             self.avgcount,
+                             self.ktarget,
+                             self.knavg,
+                             self.ktol,
+                             self.hmin,
+                             self.hmax,
+                             self.binsize,
+                             fix_com=self.harmonic_com_flag)
         kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer,
-                   origin=self.origin, optimizer=self.optimizer,
+                   origin=self.origin,
+                   optimizer=self.optimizer,
                    conftest_outer_sphere=self.conftest_outer_sphere,
                    conftest_check_same_minimum=self.conftest_check_same_minimum,
                    action_findk=action_findk,
-                   action_record_displ_kmax=action_record_displ_kmax)
+                   niter=self.kmax_niter,
+                   avgcount=self.avgcount)
         kmax_run.run()
         self.kmax = kmax_run.get_k()
         self.kmax_displ2 = kmax_run.get_displ2()
         self.prob_kmax = kmax_run.get_prob_kmax()
         self.var_displ_kmax = kmax_run.get_var_displ_kmax()
-        self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
+        self.kmax_displ2_nr_samples = action_findk.get_entries()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
-        print("kmax_displ2 samples", action_record_displ_kmax.get_count())
+        print("kmax_displ2 samples", action_findk.get_entries())
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         print("kmax_run.get_nfev()", kmax_run.get_neval())
         self.total_neval += kmax_run.get_neval()
