@@ -19,7 +19,8 @@ class GaussianBenchmarkPTRun(object):
                  nocollectminima=True,
                  cgd=False,
                  verbose=True,
-                 nparticles=None
+                 nparticles=None,
+                 harmonic_well=False
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
@@ -29,6 +30,7 @@ class GaussianBenchmarkPTRun(object):
         self.nocollectminima = nocollectminima
         self.cgd = cgd
         self.nparticles = nparticles
+        self.harmonic_well = harmonic_well
         if self.configuration_name is None or self.base_directory is None:
             raise Exception("illegal input")
         path = self.base_directory
@@ -90,7 +92,8 @@ class GaussianBenchmarkPTRun(object):
                        seeds=seeds,
                        use_cell_lists=self.nocell,
                        single=single,
-                       record_histogram=record_histogram)
+                       record_histogram=record_histogram,
+                       harmonic_well=self.harmonic_well)
         mcrunner.set_report_steps(adjustf_niter)
         #prepare PT runner
         kmin = 0
@@ -141,6 +144,7 @@ if __name__ == "__main__":
     parser.add_argument("base_directory", type=str)
     parser.add_argument("totniter", type=int)
     parser.add_argument("nparticles", type=int)
+    parser.add_argument("harmonic_well", type=bool)
     args = parser.parse_args()
     print("args", args)
     GaussianBenchmarkPTRun(configuration_name=args.configuration_name,
@@ -150,4 +154,5 @@ if __name__ == "__main__":
                            nocollectminima=True,
                            cgd=False,
                            verbose=True,
-                           nparticles=args.nparticles)
+                           nparticles=args.nparticles,
+                           harmonic_well=args.harmonic_well)

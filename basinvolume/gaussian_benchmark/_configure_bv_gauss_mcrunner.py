@@ -60,7 +60,9 @@ class configure_bv_gauss_mcrunner(object):
                  packings_dir='gaussian_sum',
                  base_dir=None,
                  verbose=False,
-                 harmonic_com_flag=False):
+                 harmonic_com_flag=False,
+                 harmonic_well=False):
+        self.harmonic_well = harmonic_well
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
         self.equilibration_steps = adjustf_niter + pt_eq_niter
@@ -106,7 +108,10 @@ class configure_bv_gauss_mcrunner(object):
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, bdim=self.bdim)
-        self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        if self.harmonic_well:
+            self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim)
+        else:
+            self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")
         self._initialise()
         print(self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps)

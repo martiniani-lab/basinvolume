@@ -91,7 +91,7 @@ class GaussianBenchmark(object):
         self.nparticles = 1
         #####
         if self.harmonic_well:
-            self.pot_optimizer = Harmonic([0, 0], 42, bdim=self.bdim)
+            self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim)
         else:
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
@@ -219,6 +219,9 @@ class GaussianBenchmark(object):
                                             niter=self.kmin_niter,
                                             nparticles=self.nparticles)
         print("kmin run constructed")
+        ###
+        #kmin_run.set_control(self.kmax)
+        ###
         kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin_mean)
@@ -234,8 +237,8 @@ class GaussianBenchmark(object):
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
         full_path_to_pt_run_script = os.path.join(os.path.dirname(basinvolume.__file__), "gaussian_benchmark", "gaussian_benchmark_pt_run.py")
-        cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4}"
-        cmd = cmd_base_str.format(self.nprocs, "config0.gauss", base_pt_path, int(self.totniter), self.nparticles)
+        cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4} {5}"
+        cmd = cmd_base_str.format(self.nprocs, "config0.gauss", base_pt_path, int(self.totniter), self.nparticles, self.harmonic_well)
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
