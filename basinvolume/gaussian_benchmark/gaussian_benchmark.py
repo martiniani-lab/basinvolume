@@ -476,8 +476,8 @@ if __name__ == "__main__":
         plt.show()
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
     
-    #bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
-    bm = GaussianBenchmark(minimum_index=0, harmonic_well=False)
+    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
+    #bm = GaussianBenchmark(minimum_index=0, harmonic_well=False)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
