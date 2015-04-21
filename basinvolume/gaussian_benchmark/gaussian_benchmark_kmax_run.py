@@ -60,7 +60,8 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         k is determined by takestep.
         """
         stepsize = self.get_stepsize()
-        return stepsize ** -2
+        k = 1.0 / (stepsize * stepsize)
+        return k
     def set_control(self, c):
         """set k"""
         print("WARNING: findk set control is not defined, spring constant is set through stepsize")
