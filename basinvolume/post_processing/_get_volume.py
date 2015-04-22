@@ -4,7 +4,7 @@ from basinvolume.post_processing import calculate_GL_integral_with_transform, ca
 import numpy as np
 
 class Base_Compute_Integral(object):
-    def __init__(self, dimension, nr_particles, k_values, displacements, kappa_const=1.0, displ_k_min_trafo=None):
+    def __init__(self, dimension, nr_particles, k_values, displacements, kappa_const=1.0, displ_k_min_trafo=None, simple_integrator=False):
         """
         Compute the integral needed for the th. integration.
         This only computes in the integral over the squared displacements and does not apply corrections nor does it know about the Einstein crystal part.
@@ -22,6 +22,7 @@ class Base_Compute_Integral(object):
         self.displacements = displacements
         self.kappa_const = kappa_const
         self.displ_k_min_trafo = displ_k_min_trafo
+        self.simple_integrator = simple_integrator
         self.k_max = self.k_values[-1]
         if np.abs(self.k_max -  max(self.k_values)) > 1e-10:
             print("self.k_max", self.k_max)
@@ -30,13 +31,19 @@ class Base_Compute_Integral(object):
         self.nr_points = len(self.k_values)
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
-        self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, 
+        if self.simple_integrator:
+            self.integral_over_displacements, self.f = 424242
+        else:
+            self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, 
                                                                                         self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const, displ_k_min_trafo=self.displ_k_min_trafo)
     def _calculate_error_F0(self, displacements_variance):
         """
         calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0)
         """
-        sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, 
+        if self.simple_integrator:
+            sigF0, sigIntegrand = 424242
+        else:
+            sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, 
                                                                   self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const, displ_k_min_trafo=self.displ_k_min_trafo) 
         return 0.5*sigF0, sigIntegrand
     
@@ -45,8 +52,8 @@ class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
     Computes the free energy F(0) = -log(v).
     Here there is no correction for the fixed c.o.m.
     """
-    def __init__(self, dimension, nr_particles, k_values, displacements, prob, kappa_const=1.0, displ_k_min_trafo=None):
-        super(F_Basin_From_MC_Data_Free_COM,self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const, displ_k_min_trafo=displ_k_min_trafo)
+    def __init__(self, dimension, nr_particles, k_values, displacements, prob, kappa_const=1.0, displ_k_min_trafo=None, simple_integrator=False):
+        super(F_Basin_From_MC_Data_Free_COM, self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const, displ_k_min_trafo=displ_k_min_trafo, simple_integrator=simple_integrator)
         self.prob = prob
         
     def get_free_energy_F0(self, displacements_variance):
