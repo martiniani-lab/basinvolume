@@ -56,7 +56,8 @@ class GaussianBenchmark(object):
                  harmonic_com_flag=False,
                  kmin_niter=1e5,
                  harmonic_well=False,
-                 kmax_niter=1e5):
+                 kmax_niter=1e5,
+                 simple_integrator=False):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -82,6 +83,7 @@ class GaussianBenchmark(object):
         self.kmin_niter = kmin_niter
         self.harmonic_well = harmonic_well
         self.kmax_niter = kmax_niter
+        self.simple_integrator = simple_integrator
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -400,7 +402,7 @@ class GaussianBenchmark(object):
         print("data for integral -- END")
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc = F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
-                                                                                self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean).get_free_energy_F0(sqared_std_errors)
+                                                                                self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean, simple_integrator=self.simple_integrator).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
     def _print_volumes(self):
@@ -475,8 +477,8 @@ if __name__ == "__main__":
         plt.plot(X_circ1, Y_circ1_neg, 'c')
         plt.show()
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
-    
-    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0)
+    simple_integrator = True
+    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0, simple_integrator=simple_integrator)
     #bm = GaussianBenchmark(minimum_index=0, harmonic_well=False)
     bm.find_kmax()
     bm.run_kmin()
