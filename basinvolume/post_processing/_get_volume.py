@@ -83,6 +83,13 @@ class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
         self.prob = prob
         
     def get_free_energy_F0(self, displacements_variance):
+        """
+        print("self.integral_over_displacements", self.integral_over_displacements)
+        print("self.nr_particles", self.nr_particles)
+        print("self.dimension", self.dimension)
+        print("self.k_max", self.k_max)
+        print("self.prob", self.prob)
+        """
         F0 = -0.5 * self.integral_over_displacements - (self.nr_particles * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max) - np.log(self.prob) 
         
         sigF0, sigf = self._calculate_error_F0(displacements_variance)

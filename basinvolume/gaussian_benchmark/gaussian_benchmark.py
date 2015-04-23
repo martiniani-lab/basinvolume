@@ -137,11 +137,6 @@ class GaussianBenchmark(object):
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
         self.total_neval = 0
-        ##
-        #self.vcavity = np.power(volume_nball(self.radius_container, self.gdim), 1 / self.nparticles)
-        #self.vcavity = 1
-        self.vcavity = volume_nball(self.radius_container, self.gdim)
-        ##
         self.print_gaussian_sum_config_file()
     def find_origin(self):
         print("initial quench")
@@ -401,12 +396,16 @@ class GaussianBenchmark(object):
         print("data for integral")
         print("self.u2_array", self.u2_array)
         print("self.karray", self.karray)
+        print("self.prob_kmax", self.prob_kmax)
         print("data for integral -- END")
-        self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc = F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
-                                                                                self.u2_array, self.vcavity,\
-                                                                                self.prob_kmax, displ_k_min_trafo=self.displ2_kmin_mean, simple_integrator=self.simple_integrator).get_free_energy_F0(sqared_std_errors)
+        self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc = F_Basin_From_MC_Data_Free_COM(self.bdim,
+                                                                                                    self.nparticles,
+                                                                                                    self.karray,
+                                                                                                    self.u2_array,
+                                                                                                    self.prob_kmax,
+                                                                                                    displ_k_min_trafo=self.displ2_kmin_mean,
+                                                                                                    simple_integrator=self.simple_integrator).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
-        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
     def _print_volumes(self):
         dname = 'volume_data'
         fname = '{}/{}'.format(self.base_directory, dname)
@@ -479,7 +478,7 @@ if __name__ == "__main__":
         plt.plot(X_circ1, Y_circ1_neg, 'c')
         plt.show()
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
-    simple_integrator = True
+    simple_integrator = False
     #bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0, simple_integrator=simple_integrator)
     bm = GaussianBenchmark(minimum_index=0, harmonic_well=True, simple_integrator=simple_integrator)
     bm.find_kmax()
