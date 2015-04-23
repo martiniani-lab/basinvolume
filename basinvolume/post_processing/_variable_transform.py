@@ -58,6 +58,7 @@ def calculate_simple_integral(u_sq_k, k_max, nr_particles, dimension, k_min=0.0,
     else:
         displ_k_min = displ_k_min_trafo
     k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k_min, kappa_const=kappa_const)
+    print("integral", simps(u_sq_k, x=k))
     return simps(u_sq_k, x=k), u_sq_k
 
 
