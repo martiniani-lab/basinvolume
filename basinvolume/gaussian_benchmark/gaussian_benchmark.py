@@ -478,9 +478,8 @@ if __name__ == "__main__":
         plt.plot(X_circ1, Y_circ1_neg, 'c')
         plt.show()
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
-    simple_integrator = False
-    #bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0, simple_integrator=simple_integrator)
-    bm = GaussianBenchmark(minimum_index=0, harmonic_well=True, simple_integrator=simple_integrator)
+    #bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0, simple_integrator=False)
+    bm = GaussianBenchmark(minimum_index=0, harmonic_well=False, simple_integrator=False)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
