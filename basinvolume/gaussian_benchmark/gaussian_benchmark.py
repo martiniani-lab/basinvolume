@@ -51,12 +51,12 @@ class GaussianBenchmark(object):
                  adjustf_niter=1e3,
                  pt_eq_niter=1e2,
                  seeds=None,
-                 nprocs=15,
-                 totniter=1e5,
+                 nprocs=7,
+                 totniter=2e5,
                  harmonic_com_flag=False,
                  kmin_niter=1e5,
                  harmonic_well=False,
-                 kmax_niter=1e5,
+                 kmax_niter=2e5,
                  simple_integrator=False):
         self.means = means
         self.cov = cov
