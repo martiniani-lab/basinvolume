@@ -144,7 +144,8 @@ if __name__ == "__main__":
     parser.add_argument("base_directory", type=str)
     parser.add_argument("totniter", type=int)
     parser.add_argument("nparticles", type=int)
-    parser.add_argument("harmonic_well", type=bool)
+    parser.add_argument("--harmonic_well", action='store_true', help="use harmonic well potential for energy landscape", default=False)
+    #parser.add_argument("harmonic_well", type=bool)
     args = parser.parse_args()
     print("args", args)
     GaussianBenchmarkPTRun(configuration_name=args.configuration_name,
