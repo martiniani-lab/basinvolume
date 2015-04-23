@@ -95,7 +95,7 @@ class GaussianBenchmark(object):
         self.nparticles = 1
         #####
         if self.harmonic_well:
-            self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim)
+            self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim, com=False)
         else:
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
@@ -478,8 +478,8 @@ if __name__ == "__main__":
         plt.show()
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
     simple_integrator = True
-    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0, simple_integrator=simple_integrator)
-    #bm = GaussianBenchmark(minimum_index=0, harmonic_well=False)
+    #bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0, simple_integrator=simple_integrator)
+    bm = GaussianBenchmark(minimum_index=0, harmonic_well=True, simple_integrator=simple_integrator)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()

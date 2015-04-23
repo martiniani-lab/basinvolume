@@ -109,7 +109,7 @@ class configure_bv_gauss_mcrunner(object):
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, bdim=self.bdim)
         if self.harmonic_well == "True":
-            self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim)
+            self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim, com=False)
         else:
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")

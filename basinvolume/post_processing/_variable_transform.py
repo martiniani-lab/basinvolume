@@ -1,6 +1,10 @@
 from __future__ import division
 from basinvolume.post_processing import Gauss_Lobatto_abscissas, Gauss_Lobatto_weights, calculate_GL_integral
 import numpy as np
+try:
+    from scipy.integrate import simps
+except:
+    print("import error")
 
 def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0, kappa_const=1.0):
     """
@@ -46,6 +50,17 @@ def calculate_GL_integral_with_transform(u_sq_k, k_max, nr_particles, dimension,
     f = np.array([u_sq_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_ki,ki) in zip(u_sq_k,k)])
     return calculate_GL_integral(f), f
 
+def calculate_simple_integral(u_sq_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0, displ_k_min_trafo=None):
+    nr_points = len(u_sq_k)
+    displ_k_min = 0
+    if displ_k_min_trafo is None:
+        displ_k_min = u_sq_k[0]
+    else:
+        displ_k_min = displ_k_min_trafo
+    k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k_min, kappa_const=kappa_const)
+    return simps(u_sq_k, x=k), u_sq_k
+
+
 def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0, displ_k_min_trafo=None):
     """
     Estimates the statistical error of above integral from statistical errors of the squared displacements.
@@ -66,6 +81,22 @@ def calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr
     weights = Gauss_Lobatto_weights(Gauss_Lobatto_abscissas(nr_points)())()
     var_integrand = np.array([u_sq_var_ki*0.5*(ki-k_min+kappa)*np.log(1.0+(k_max-k_min)/kappa) for (u_sq_var_ki,ki) in zip(u_sq_var_k,k)])
     sum_sq_weights_vars = sum( wi*wi*vari for (wi,vari) in zip(weights,var_integrand) )
+    return np.sqrt(sum_sq_weights_vars), np.sqrt(var_integrand)
+    
+def calculate_simple_integral_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0, displ_k_min_trafo=None):
+    nr_points = len(u_sq_var_k)
+    if nr_points != len(u_sq_k):
+        raise Exception("calculate_GL_integral_with_transform_get_error: squared displacements and variances have different lengths")
+    displ_k_min = 0
+    if displ_k_min_trafo is None:
+        displ_k_min = u_sq_k[0]
+    else:
+        displ_k_min = displ_k_min_trafo
+    kappa = nr_particles*dimension/displ_k_min*kappa_const
+    k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k_min, kappa_const=kappa_const)
+    weights = np.ones(nr_points)
+    var_integrand = u_sq_var_k
+    sum_sq_weights_vars = sum(wi * wi * vari for (wi, vari) in zip(weights, var_integrand))
     return np.sqrt(sum_sq_weights_vars), np.sqrt(var_integrand)
 
 if __name__ == "__main__":

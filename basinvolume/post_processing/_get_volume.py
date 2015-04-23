@@ -1,6 +1,8 @@
 from __future__ import division
 from math import pi, log
 from basinvolume.post_processing import calculate_GL_integral_with_transform, calculate_GL_integral_with_transform_get_error
+from basinvolume.post_processing import calculate_simple_integral
+from basinvolume.post_processing import calculate_simple_integral_get_error
 import numpy as np
 
 class Base_Compute_Integral(object):
@@ -32,19 +34,43 @@ class Base_Compute_Integral(object):
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
         if self.simple_integrator:
-            self.integral_over_displacements, self.f = 424242
+            self.integral_over_displacements, self.f = calculate_simple_integral(self.displacements,
+                                                                                 self.k_max, 
+                                                                                 self.nr_particles,
+                                                                                 self.dimension,
+                                                                                 k_min=self.k_values[0],
+                                                                                 kappa_const=self.kappa_const,
+                                                                                 displ_k_min_trafo=self.displ_k_min_trafo)
         else:
-            self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements, self.k_max, 
-                                                                                        self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const, displ_k_min_trafo=self.displ_k_min_trafo)
+            self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements,
+                                                                                            self.k_max, 
+                                                                                            self.nr_particles,
+                                                                                            self.dimension,
+                                                                                            k_min=self.k_values[0],
+                                                                                            kappa_const=self.kappa_const,
+                                                                                            displ_k_min_trafo=self.displ_k_min_trafo)
     def _calculate_error_F0(self, displacements_variance):
         """
         calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0)
         """
         if self.simple_integrator:
-            sigF0, sigIntegrand = 424242
+            sigF0, sigIntegrand = calculate_simple_integral_get_error(self.displacements,
+                                                                      displacements_variance,
+                                                                      self.k_max, 
+                                                                      self.nr_particles,
+                                                                      self.dimension,
+                                                                      k_min=self.k_values[0],
+                                                                      kappa_const=self.kappa_const,
+                                                                      displ_k_min_trafo=self.displ_k_min_trafo)
         else:
-            sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements, displacements_variance, self.k_max, 
-                                                                  self.nr_particles, self.dimension, k_min=self.k_values[0], kappa_const=self.kappa_const, displ_k_min_trafo=self.displ_k_min_trafo) 
+            sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements,
+                                                                                 displacements_variance,
+                                                                                 self.k_max, 
+                                                                                 self.nr_particles,
+                                                                                 self.dimension,
+                                                                                 k_min=self.k_values[0],
+                                                                                 kappa_const=self.kappa_const,
+                                                                                 displ_k_min_trafo=self.displ_k_min_trafo) 
         return 0.5*sigF0, sigIntegrand
     
 class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
