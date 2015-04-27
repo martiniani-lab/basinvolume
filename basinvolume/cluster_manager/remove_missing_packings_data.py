@@ -22,9 +22,11 @@ class BVRemoveMissingPackingsData(object):
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
             workdir = os.path.abspath(workdir)
+        assert os.path.isdir(workdir)
         self.workdir = workdir
         if not os.path.isabs(packing_folder):
             packing_folder = os.path.join(self.workdir, packing_folder)
+        assert os.path.isdir(packing_folder)
         self.packing_folder = packing_folder
         self.explore_dir = explore_dir
         self.packing_naming = packing_naming
