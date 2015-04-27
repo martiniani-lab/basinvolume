@@ -50,10 +50,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
         
     parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
-    parser.add_argument("--ext", type=str, help="jammed packing extension, default xyzdr", default="xyzdr")        
+    parser.add_argument("ext", type=str, help="jammed packing extension, default xyzdr")        
     
     args = parser.parse_args()
     print args
+    assert args.ext == "xyzdr" or args.ext == "xydr" or args.ext == "xyzdfr" or args.ext == "xydfr", "{} not a valid extension".format(args.ext)
+    
     check = query_yes_no("Confirm that the right file extension is \"{}\" ".format(args.ext), default="no")
     if check:
         bvrm = BVRemoveMissingPackingsData(workdir=args.workdir, ext=args.ext)
