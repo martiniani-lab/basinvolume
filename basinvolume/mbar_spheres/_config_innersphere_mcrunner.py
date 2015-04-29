@@ -8,8 +8,8 @@ from basinvolume.mbar_spheres import BVInnerSphereMCrunner
 import ConfigParser
 import time
 
-def _subtract_com(x):
-    x = x.reshape(-1,3)
+def _subtract_com(x, ndim=3):
+    x = x.reshape(-1,ndim)
     com = x.mean(0)
     return (x - com[np.newaxis, :]).ravel()
 
@@ -53,7 +53,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         self._requench_coords(dtol, opt_maxstep, verbose)
         
         #construct mcrunner
-        self.coords = _subtract_com(self.coords)
+        self.coords = _subtract_com(self.coords, ndim=self.bdim)
         potential = NullPotential()
         self.mcrunner = BVInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, self.niter, self.coords,
                                               self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, dtol=dtol, 
