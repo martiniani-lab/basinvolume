@@ -294,7 +294,7 @@ class _collect_u2_vs_k(object):
         try:
             self._plot_diffusion()
         except Exception, e:
-            print e
+            print e 
         
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
         u2_array_app = (cont_karray + (self.nparticles * self.bdim) / self.displ_k_min) / (self.nparticles * self.bdim)
