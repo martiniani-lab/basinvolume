@@ -188,7 +188,7 @@ class mbar_compute_dos(object):
                     file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
                     series_order.append(int(dir))
                     series = []
-                    for series_path in file_list:
+                    for series_path in file_list: #DEBUG [len(file_list)//3:]
                         series.extend(read_txt(series_path))
                     timeseries.append(series)
         X = np.array(timeseries)

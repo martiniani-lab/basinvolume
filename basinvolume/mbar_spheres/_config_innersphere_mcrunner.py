@@ -9,7 +9,7 @@ import ConfigParser
 import time
 
 def _subtract_com(x, ndim=3):
-    x = x.reshape(-1,ndim)
+    x = x.reshape(-1, ndim)
     com = x.mean(0)
     return (x - com[np.newaxis, :]).ravel()
 
