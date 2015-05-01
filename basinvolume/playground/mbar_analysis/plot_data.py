@@ -12,7 +12,7 @@ try:
     import scipy
     from scipy.stats import t
     from scipy.interpolate import spline
-    from scipy.integrate import simps, trapz
+    from scipy.integrate import simps
     import glob
 except ImportError as err:
     print err
@@ -61,21 +61,59 @@ def _sort_pair(x,y):
 class mbar_data(object):
     def __init__(self, label, analysis_folder = "analysis", log_gr_file = "log_gr.csv", 
                  log_gr_ratio_file = "log_gr_ratio.csv", gr_ratio_file = "gr_ratio.csv",
-                 dos_file = "dos.csv"):
+                 dos_file = "dos.csv", volume_file="mbar_dos_volume_data"):
         self.label = label
         self.analysis_folder = analysis_folder
+        self.volume_file = volume_file
         self.log_gr_file = log_gr_file
         self.log_gr_ratio_file = log_gr_ratio_file
         self.gr_ratio_file = gr_ratio_file
         self.dos_file = dos_file
+        self.volumes = []
         self.log_gr = []
         self.log_gr_ratio = []
         self.gr_ratio = []
         self.dos = []
+        self.dos_mean = []
         self.log_gr_mean = []
         self.log_gr_ratio_mean = []
         self.gr_ratio_mean = []
-        self.dos_mean = []
+        self.dos_moments = []
+        
+    def compute_mean(self):
+        self.log_gr_mean = np.mean(self.log_gr_mean, axis=0).tolist()
+        x, xerr, y, yerr, fit = self.log_gr[0]
+        self.log_gr_mean = [(x, xerr, self.log_gr_mean, yerr, fit)]
+        
+        self.log_gr_ratio_mean = np.mean(self.log_gr_ratio_mean, axis=0).tolist()
+        x, xerr, y, yerr, fit = self.log_gr_ratio[0]
+        self.log_gr_ratio_mean = [(x, xerr, self.log_gr_ratio_mean, yerr, fit)]
+        
+        self.gr_ratio_mean = np.mean(self.gr_ratio_mean, axis=0).tolist()
+        x, xerr, y, yerr, fit = self.gr_ratio[0]
+        self.gr_ratio_mean = [(x, xerr, self.gr_ratio_mean, yerr, fit)]
+        
+        self.dos_mean = np.mean(self.dos_mean, axis=0).tolist()
+        x, xerr, y, yerr, fit = self.dos[0]
+        self.dos_mean = [(x, xerr, self.dos_mean, yerr, fit)]
+    
+    def _normalize_dist(self, y, x):
+        area = simps(y, x)
+        y = np.array(y) / area
+        area = simps(y, x)
+        y = np.array(y) / area
+        return y
+    
+    def compute_dos_moments(self):
+        for csv_tuple in self.dos:
+            (x, xerr, y, yerr, fit) = csv_tuple
+            y = self._normalize_dist(y, x)
+            mean = np.average(x, weights=y)
+            var = np.average((x-mean)**2, weights=y)
+            std = np.sqrt(var)
+            skewness = np.average((x-mean)**3, weights=y) / std**3
+            kurtosis = np.average((x-mean)**4, weights=y) / var**2
+            self.dos_moments.append((mean, var, skewness, kurtosis))
 
 class plot_mbar_data(object):
     def __init__(self, workdir=None, explore_dir='explore_bv_jammed_packing', Nrange=(0,1000)):
@@ -94,6 +132,9 @@ class plot_mbar_data(object):
         self._collect_data(self.fcc_data)
         self._collect_data(self.fcc_mono_data)
         self._collect_data(self.disordered_data)
+        self.fcc_mono_data.compute_dos_moments()
+        self.fcc_data.compute_dos_moments()
+        self.disordered_data.compute_dos_moments()
     
     def _collect_data(self, mbar_data):
         subdirs = get_immediate_subdirectories(os.path.join(self.workdir, mbar_data.label))
@@ -103,6 +144,13 @@ class plot_mbar_data(object):
                 if os.path.isdir(path):
                     npack = int(re.findall('\d+', folder)[0])
                     if self.Nrange[0] <= npack <= self.Nrange[1]:
+                        #collect volume
+                        configf = ConfigParser.ConfigParser()
+                        fpath = os.path.join(path, mbar_data.volume_file)
+                        if os.path.isfile(fpath):
+                            configf.read(fpath)
+                            F, Ferr = configf.getfloat('VOLUME_DOS','F0'), configf.getfloat('VOLUME_DOS','sigF0')
+                            mbar_data.volumes.append((F, Ferr))
                         #log_gr
                         fpath = os.path.join(path, mbar_data.log_gr_file)
                         if os.path.isfile(fpath):
@@ -133,7 +181,7 @@ class plot_mbar_data(object):
     def _plot(self, ax, csv_tuple, label=None, plot_err=False, plot_fit=False, normalize=False):
         (x, xerr, y, yerr, fit) = csv_tuple
         if normalize:
-            area = trapz(y, dx=x[2]-x[1])
+            area = simps(y, x)
             y = np.array(y) / area
         if plot_err:
             ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=9, label=label)
@@ -292,7 +340,7 @@ class plot_diffusion_data(object):
         (x, xerr, y, yerr, fit) = csv_tuple
         color = color_cycle.next()
         if normalize:
-            area = trapz(y, dx=x[2]-x[1])
+            area = simps(y, x)
             y = np.array(y) / area
         if plot_err:
             ax.errorbar(x, y, yerr=yerr, xerr=xerr, c=color, fmt='o', ms=6, label=label)
@@ -352,15 +400,16 @@ class plot_diffusion_data(object):
             plt.show()
      
 if __name__ == "__main__":
-    show = True
-#    pe = plot_mbar_data(Nrange=(0,1000))
-#    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True)
-#    pe.plot_all(plot_type="log_gr", show=show, savefig=True)
-#    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True)
-#    pe.plot_all(plot_type="dos", show=show, savefig=True)
-#    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True, average=True)
-#    pe.plot_all(plot_type="log_gr", show=show, savefig=True, average=True)
-#    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True, average=True)
-#    pe.plot_all(plot_type="dos", show=show, savefig=True, average=True)
-    diff = plot_diffusion_data(Nrange=(0,1))
-    diff.plot_all("red_logr_vs_logt", show=True, savefig=True)
+    show = False
+    pe = plot_mbar_data(Nrange=(0,1000))
+    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True)
+    pe.plot_all(plot_type="log_gr", show=show, savefig=True)
+    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True)
+    pe.plot_all(plot_type="dos", show=show, savefig=True)
+    #pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True, average=True)
+    #pe.plot_all(plot_type="log_gr", show=show, savefig=True, average=True)
+    #pe.plot_all(plot_type="gr_ratio", show=show, savefig=True, average=True)
+    #pe.plot_all(plot_type="dos", show=show, savefig=True, average=True)
+    #plt.show()
+#    diff = plot_diffusion_data(Nrange=(0,1))
+#   diff.plot_all("red_logr_vs_logt", show=True, savefig=True)
