@@ -262,6 +262,60 @@ class plot_mbar_data(object):
             plt.savefig(figname)
         if show:
             plt.show()
+    
+    def _plot_correlations(self, ax, mbar_data, plot_type="v_m1", label=None, color='b'):
+        moments = np.reshape(mbar_data.dos_moments, (-1,4))
+        volumes = np.reshape(mbar_data.volumes, (-1,2))
+        xlabel=r'F'
+        if plot_type == "v_m1":
+            ax.scatter(volumes[:,0], moments[:,0], label=label, c=color, alpha=0.5)
+            ylabel=r'$\langle r \rangle$'
+        elif plot_type == "v_m2":
+            ax.scatter(volumes[:,0], moments[:,1], label=label, c=color, alpha=0.5)
+            ylabel=r'$\langle (r - \langle r \rangle)^2 \rangle$'
+        elif plot_type == "v_m3":
+            ax.scatter(volumes[:,0], moments[:,2], label=label, c=color, alpha=0.5)
+            ylabel=r'$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$'
+        elif plot_type == "v_m4":
+            ax.scatter(volumes[:,0], moments[:,3], label=label, c=color, alpha=0.5)
+            ylabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
+        
+        area = np.pi * (10 / (volumes[:,0]/100))**2 # 0 to 10 point radiuses
+        if plot_type == "m1_m2":
+            ax.scatter(moments[:,0], moments[:,1], s=area, label=label, c=color, alpha=0.5)
+            xlabel=r'$\langle r \rangle$'
+            ylabel=r'$\langle (r - \langle r \rangle)^2 \rangle$'
+        elif plot_type == "m3_m4":
+            ax.scatter(moments[:,2], moments[:,3], s=area, label=label, c=color, alpha=0.5)
+            xlabel=r'$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$'
+            ylabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
+        
+        return ax, xlabel, ylabel
+    
+    def plot_correlations(self, plot_type="v_m1", figname=None, title=None, show=False, savefig=False):
+        dlabel = None
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        
+        ax, xlabel, ylabel = self._plot_correlations(ax, self.fcc_data, plot_type=plot_type, label=r"fcc", color='g')
+        ax, xlabel, ylabel = self._plot_correlations(ax, self.fcc_mono_data, plot_type=plot_type, label=r"fcc mono", color='r')
+        ax, xlabel, ylabel = self._plot_correlations(ax, self.disordered_data, plot_type=plot_type, label=dlabel)
+        
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        try:
+            ax.legend(frameon=False, loc="best", numpoints=1)
+        except Exception, e:
+            print e
+            
+        if title:
+            plt.title(title)
+        if figname is None:
+            figname = plot_type + ".eps"
+        if savefig:
+            plt.savefig(figname)
+        if show:
+            plt.show()
 
 class diffusion_data(object):
     def __init__(self, label, analysis_folder = "diffusion"):
@@ -402,14 +456,23 @@ class plot_diffusion_data(object):
 if __name__ == "__main__":
     show = False
     pe = plot_mbar_data(Nrange=(0,1000))
-    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True)
-    pe.plot_all(plot_type="log_gr", show=show, savefig=True)
-    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True)
-    pe.plot_all(plot_type="dos", show=show, savefig=True)
-    #pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True, average=True)
-    #pe.plot_all(plot_type="log_gr", show=show, savefig=True, average=True)
-    #pe.plot_all(plot_type="gr_ratio", show=show, savefig=True, average=True)
-    #pe.plot_all(plot_type="dos", show=show, savefig=True, average=True)
-    #plt.show()
-#    diff = plot_diffusion_data(Nrange=(0,1))
-#   diff.plot_all("red_logr_vs_logt", show=True, savefig=True)
+#    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True)
+#    pe.plot_all(plot_type="log_gr", show=show, savefig=True)
+#    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True)
+#    pe.plot_all(plot_type="dos", show=show, savefig=True)
+#    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True, average=True)
+#    pe.plot_all(plot_type="log_gr", show=show, savefig=True, average=True)
+#    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True, average=True)
+#    pe.plot_all(plot_type="dos", show=show, savefig=True, average=True)
+
+#    pe.plot_correlations(plot_type="v_m1", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="v_m2", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="v_m3", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="v_m4", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="m1_m2", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="m3_m4", show=False, savefig=True)
+
+    diff = plot_diffusion_data(Nrange=(0,1))
+    diff.plot_all("logr_vs_logt", show=show, savefig=True)
+    diff.plot_all("red_logr_vs_logt", show=show, savefig=True)
+    plt.show()

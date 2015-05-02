@@ -18,18 +18,21 @@ class _kmin_mcrunner(_configure_mcrunner):
     *packing_frac: target jammed packing fraction
     *boxv: an array of size bdim that contains the vectors defining the box
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
+    *print_diffusion_only: bool
+        print diffusion data only and none of the other configuration files
     """
         
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
                  hmax=0.01, hbinsize=0.0005, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
-                 record_steps_timeseries=False, record_steps_timeseries_every=[1],
+                 record_steps_timeseries=False, record_steps_timeseries_every=[1], print_diffusion_only=False,
                  perform_convergence_test=False, collect_minima_list=False, single=False, 
                  seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', verbose=False):
                 
         self.fname = fname
         self.temperature=1.0
         self.eps = eps
+        self.print_diffusion_only = print_diffusion_only
         
         self._set_paths(packings_dir)
         self._import_packing_config_files()
@@ -111,7 +114,8 @@ class _kmin_mcrunner(_configure_mcrunner):
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        self._print_parameters()
+        if not self.print_diffusion_only:
+            self._print_parameters()
     
     def _write_sim_params(self, f):
         """
@@ -139,16 +143,17 @@ class _kmin_mcrunner(_configure_mcrunner):
         note that self.displ_k_min *= 1.5 to account for the limited computation time, 
         this is just an approximation 
         """
-        fname = self.configfile
-        f = open(fname,'a')
-        f.write('[KMIN_MCRUNNER_STATUS]\n')
-        status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
-            f.write('{}: {}\n'.format(key,value))
-        f.write('[KMIN]\n')
-        f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
-        f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
-        f.close()
+        if not self.print_diffusion_only:
+            fname = self.configfile
+            f = open(fname,'a')
+            f.write('[KMIN_MCRUNNER_STATUS]\n')
+            status = self.mcrunner.get_status()
+            for key, value in status.iteritems() :
+                f.write('{}: {}\n'.format(key,value))
+            f.write('[KMIN]\n')
+            f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
+            f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
+            f.close()
         self._dump_timeseries()
     
     def _dump_timeseries(self):
@@ -158,7 +163,21 @@ class _kmin_mcrunner(_configure_mcrunner):
         print fname
         if bool(self.mc_params['record_steps_timeseries']):
             self.mcrunner.dump_steps_timeseries(fname, clear=True)
-        
+    
+    def _print_success(self, success):
+        """
+        print whether calculation has completed successfully
+        this method is overloaded her to check whether this is a 
+        diffusion only calculations 
+        """
+        if not self.print_diffusion_only:
+            assert(hasattr(self, 'configfile'))
+            fname = self.configfile
+            f = open(fname, 'a')
+            f.write('[STATUS]\n')
+            f.write('success: {}\n'.format(str(success)))
+            f.close()
+    
 if __name__ == "__main__":
     
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
