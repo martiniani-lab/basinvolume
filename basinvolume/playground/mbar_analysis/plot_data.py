@@ -350,7 +350,7 @@ class plot_diffusion_data(object):
             if self.explore_dir in folder:
                 self._import_steps_time_series_diffusion(folder, diffusion_data)
                 
-    def _import_steps_time_series_diffusion(self, folder, diffusion_data, eqtime=2.5e4):
+    def _import_steps_time_series_diffusion(self, folder, diffusion_data, eqtime=2.5e5):
         timeseries = []
         series_order = []
         path = os.path.join(self.workdir, diffusion_data.label, folder, diffusion_data.analysis_folder)
@@ -407,10 +407,11 @@ class plot_diffusion_data(object):
     def _plot_all(self, ax, diffusion_data, plot_type="logr_vs_logt", label=None):
         X, DX = diffusion_data.step_timeseries_mean_path, diffusion_data.step_timeseries_mean_path_std
         Y, DY = diffusion_data.step_timeseries_mean_eucdist, diffusion_data.step_timeseries_mean_eucdist_std
+        i = 0
         for x, dx, y, dy in zip(X, DX, Y, DY):
             x, dx, y, dy = np.array(x), np.array(dx), np.array(y), np.array(dy)
             
-            if plot_type == "logr_vs_logt":
+            if plot_type == "logr_vs_logt" and x.size > 0:
                 pol = np.poly1d(np.polyfit(np.log(x)[:3], np.log(y)[:3], 1,  w=(y/dy)[:3])) #[5:-1]
                 w = np.polyfit(np.log(x)[:3], np.log(y)[:3], 1)
                 print w
@@ -419,8 +420,9 @@ class plot_diffusion_data(object):
                 ax = self._plot(ax, csv_tuple, label=label, plot_err=True, plot_fit=True)
                 ylabel = r'$\log(\Delta r)$'
                 xlabel = r'$\log (\Delta s)$'
-            if plot_type == "red_logr_vs_logt":
-                csv_tuple = (np.log(x), dx/x+dy/y, np.log(y)-0.5*np.log(x), dy/y, np.zeros(len(x)))
+            if plot_type == "red_logr_vs_logt" and x.size > 0:
+                redy = np.log(y)-0.5*np.log(x)
+                csv_tuple = (np.log(x), dx/x+dy/y, redy - np.amax(redy), dy/y, np.zeros(len(x)))
                 ax = self._plot(ax, csv_tuple, label=label, plot_err=True, plot_fit=False)
                 ylabel = (r'$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$')
                 xlabel = (r'$\log (\Delta s)$')
@@ -472,7 +474,7 @@ if __name__ == "__main__":
 #    pe.plot_correlations(plot_type="m1_m2", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="m3_m4", show=False, savefig=True)
 
-    diff = plot_diffusion_data(Nrange=(0,1))
+    diff = plot_diffusion_data(Nrange=(0,1000))
     diff.plot_all("logr_vs_logt", show=show, savefig=True)
     diff.plot_all("red_logr_vs_logt", show=show, savefig=True)
     plt.show()
