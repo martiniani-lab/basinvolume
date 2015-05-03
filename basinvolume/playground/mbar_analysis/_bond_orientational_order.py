@@ -68,11 +68,18 @@ class BondOrientationalOrder():
                     with open(boo_fname, 'w') as f:
                         for q in boo_list:
                             f.write('{:.16f} \n'.format(q))
-                    if solo:
-                        global_boo_fname = os.path.join(analysis_dir_path,'glob_boo_deg{}'.format(deg))
-                        with open(global_boo_fname, 'w') as f:
-                            f.write('Q{}: {:.16f} \n'.format(deg, np.mean(boo_list)))
-
+                    opt = 'w' if solo else 'a'
+                    global_boo_fname = os.path.join(analysis_dir_path,'glob_boo')
+                    pinit = False if os.path.isfile(global_boo_fname) else True
+                    with open(global_boo_fname, opt) as f:
+                        if pinit:
+                            f.write('[BOO] \n'.format(deg, np.mean(boo_list)))
+                        f.write('Q{}: {:.16f} \n'.format(deg, np.mean(boo_list)))
+    
+    def run_all(self, deg_list=[4,6,8,10,12], existing_only=True):
+        for deg in deg_list:
+            self.run(deg, solo=False, existing_only=existing_only)
+    
     def _cartesian_to_polar(self, vector):
         vector = np.array(vector)
         r = np.linalg.norm(vector)
@@ -142,5 +149,5 @@ class BondOrientationalOrder():
 
 if __name__ == "__main__":
     boo = BondOrientationalOrder()
-    boo.run(deg=12, solo=True)
-    
+    #boo.run(deg=12, solo=True)
+    boo.run_all()
