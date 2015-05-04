@@ -155,8 +155,9 @@ class mbar_compute_dos(object):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
-        self.displ_k_max = 0.1 #configf.getfloat('FINDK', 'displ_k_max')
-        self.var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max') #DEBUG
+#        unused variables
+#        self.displ_k_max = 0.1 #configf.getfloat('FINDK', 'displ_k_max') #DEBUG
+#        self.var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max') 
         configf.read(str(self.innersphere_configpath))
         self.k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
         self.ndof = (self.nparticles-1)*self.bdim
@@ -188,7 +189,7 @@ class mbar_compute_dos(object):
                     file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
                     series_order.append(int(dir))
                     series = []
-                    for series_path in file_list: #DEBUG [len(file_list)//3:]
+                    for series_path in file_list[len(file_list)//3:]: #DEBUG [len(file_list)//3:]
                         series.extend(read_txt(series_path))
                     timeseries.append(series)
         X = np.array(timeseries)

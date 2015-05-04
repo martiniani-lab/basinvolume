@@ -61,7 +61,7 @@ def _sort_pair(x,y):
 class mbar_data(object):
     def __init__(self, label, analysis_folder = "analysis", log_gr_file = "log_gr.csv", 
                  log_gr_ratio_file = "log_gr_ratio.csv", gr_ratio_file = "gr_ratio.csv",
-                 dos_file = "dos.csv", volume_file="mbar_dos_volume_data"):
+                 dos_file = "dos.csv", volume_file="mbar_dos_volume_data", boo_file='glob_boo'):
         self.label = label
         self.analysis_folder = analysis_folder
         self.volume_file = volume_file
@@ -69,6 +69,7 @@ class mbar_data(object):
         self.log_gr_ratio_file = log_gr_ratio_file
         self.gr_ratio_file = gr_ratio_file
         self.dos_file = dos_file
+        self.boo_file = boo_file
         self.volumes = []
         self.log_gr = []
         self.log_gr_ratio = []
@@ -79,6 +80,7 @@ class mbar_data(object):
         self.log_gr_ratio_mean = []
         self.gr_ratio_mean = []
         self.dos_moments = []
+        self.boo = [] #Q4, Q6, Q8, Q10, Q12
         
     def compute_mean(self):
         self.log_gr_mean = np.mean(self.log_gr_mean, axis=0).tolist()
@@ -108,12 +110,13 @@ class mbar_data(object):
         for csv_tuple in self.dos:
             (x, xerr, y, yerr, fit) = csv_tuple
             y = self._normalize_dist(y, x)
+            mode =  x[np.argmax(y)]
             mean = np.average(x, weights=y)
             var = np.average((x-mean)**2, weights=y)
             std = np.sqrt(var)
             skewness = np.average((x-mean)**3, weights=y) / std**3
             kurtosis = np.average((x-mean)**4, weights=y) / var**2
-            self.dos_moments.append((mean, var, skewness, kurtosis))
+            self.dos_moments.append((mode, mean, var, skewness, kurtosis))
 
 class plot_mbar_data(object):
     def __init__(self, workdir=None, explore_dir='explore_bv_jammed_packing', Nrange=(0,1000)):
@@ -151,6 +154,15 @@ class plot_mbar_data(object):
                             configf.read(fpath)
                             F, Ferr = configf.getfloat('VOLUME_DOS','F0'), configf.getfloat('VOLUME_DOS','sigF0')
                             mbar_data.volumes.append((F, Ferr))
+                        #collect boo (bond orientational order parameter)
+                        configf = ConfigParser.ConfigParser()
+                        fpath = os.path.join(path, mbar_data.boo_file)
+                        if os.path.isfile(fpath):
+                            configf.read(fpath)
+                            Q4, Q6 = configf.getfloat('BOO','Q4'), configf.getfloat('BOO','Q6')
+                            Q8, Q10 = configf.getfloat('BOO','Q8'), configf.getfloat('BOO','Q10')
+                            Q12 = configf.getfloat('BOO','Q12')
+                            mbar_data.boo.append((Q4, Q6, Q8, Q10, Q12))
                         #log_gr
                         fpath = os.path.join(path, mbar_data.log_gr_file)
                         if os.path.isfile(fpath):
@@ -264,31 +276,79 @@ class plot_mbar_data(object):
             plt.show()
     
     def _plot_correlations(self, ax, mbar_data, plot_type="v_m1", label=None, color='b'):
-        moments = np.reshape(mbar_data.dos_moments, (-1,4))
+        moments = np.reshape(mbar_data.dos_moments, (-1,5))
         volumes = np.reshape(mbar_data.volumes, (-1,2))
+        boo = np.reshape(mbar_data.boo, (-1,5))
         xlabel=r'F'
-        if plot_type == "v_m1":
+        
+        #volume-moments correlations
+        if plot_type == "v_m0":
             ax.scatter(volumes[:,0], moments[:,0], label=label, c=color, alpha=0.5)
+            ylabel=r'$\max[g(r)]$'
+        elif plot_type == "v_m1":
+            ax.scatter(volumes[:,0], moments[:,1], label=label, c=color, alpha=0.5)
             ylabel=r'$\langle r \rangle$'
         elif plot_type == "v_m2":
-            ax.scatter(volumes[:,0], moments[:,1], label=label, c=color, alpha=0.5)
+            ax.scatter(volumes[:,0], moments[:,2], label=label, c=color, alpha=0.5)
             ylabel=r'$\langle (r - \langle r \rangle)^2 \rangle$'
         elif plot_type == "v_m3":
-            ax.scatter(volumes[:,0], moments[:,2], label=label, c=color, alpha=0.5)
+            ax.scatter(volumes[:,0], moments[:,3], label=label, c=color, alpha=0.5)
             ylabel=r'$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$'
         elif plot_type == "v_m4":
-            ax.scatter(volumes[:,0], moments[:,3], label=label, c=color, alpha=0.5)
+            ax.scatter(volumes[:,0], moments[:,4], label=label, c=color, alpha=0.5)
             ylabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
         
-        area = np.pi * (10 / (volumes[:,0]/100))**2 # 0 to 10 point radiuses
+        #moment-moment correlations
+        #a = np.exp(-volumes[:,0] + np.amax(volumes[:,0]))
+        #area = np.pi * (10 *  a / np.amax(a))**2 # 0 to 10 point radiuses
+        area = np.ones(volumes.shape[0])*2*np.pi*4
         if plot_type == "m1_m2":
-            ax.scatter(moments[:,0], moments[:,1], s=area, label=label, c=color, alpha=0.5)
+            ax.scatter(moments[:,1], moments[:,2], s=area, label=label, c=color, alpha=0.5)
             xlabel=r'$\langle r \rangle$'
             ylabel=r'$\langle (r - \langle r \rangle)^2 \rangle$'
         elif plot_type == "m3_m4":
-            ax.scatter(moments[:,2], moments[:,3], s=area, label=label, c=color, alpha=0.5)
+            ax.scatter(moments[:,3], moments[:,4], s=area, label=label, c=color, alpha=0.5)
             xlabel=r'$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$'
             ylabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
+        
+        #boo-volume correlations
+        if plot_type == "v_q4":
+            ax.scatter(volumes[:,0], boo[:,0], label=label, c=color, alpha=0.5)
+            ylabel=r'$Q4$'
+        elif plot_type == "v_q6":
+            ax.scatter(volumes[:,0], boo[:,1], label=label, c=color, alpha=0.5)
+            ylabel=r'$Q6$'
+        elif plot_type == "v_q8":
+            ax.scatter(volumes[:,0], boo[:,2], label=label, c=color, alpha=0.5)
+            ylabel=r'$Q8$'
+        elif plot_type == "v_q10":
+            ax.scatter(volumes[:,0], boo[:,3], label=label, c=color, alpha=0.5)
+            ylabel=r'$Q10$'
+        elif plot_type == "v_q12":
+            ax.scatter(volumes[:,0], boo[:,4], label=label, c=color, alpha=0.5)
+            ylabel=r'$Q12$'
+        
+        #boo-moments correlations
+        if plot_type == "m0_q6":
+            ax.scatter(moments[:,0], boo[:,1], s=area, label=label, c=color, alpha=0.5)
+            ylabel=r'$Q6$'
+            xlabel=r'$\max[g(r)]$'
+        elif plot_type == "m1_q6":
+            ax.scatter(moments[:,1], boo[:,1], s=area, label=label, c=color, alpha=0.5)
+            ylabel=r'$Q6$'
+            xlabel=r'$\langle r \rangle$'
+        elif plot_type == "m2_q6":
+            ax.scatter(moments[:,2], boo[:,1], s=area, label=label, c=color, alpha=0.5)
+            ylabel=r'$Q6$'
+            xlabel=r'$\langle (r - \langle r \rangle)^2 \rangle$'
+        elif plot_type == "m3_q6":
+            ax.scatter(moments[:,3], boo[:,1], s=area, label=label, c=color, alpha=0.5)
+            ylabel=r'$Q6$'
+            xlabel=r'$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$'
+        elif plot_type == "m4_q6":
+            ax.scatter(moments[:,4], boo[:,1], s=area, label=label, c=color, alpha=0.5)
+            ylabel=r'$Q6$'
+            xlabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$' 
         
         return ax, xlabel, ylabel
     
@@ -461,12 +521,13 @@ if __name__ == "__main__":
 #    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True)
 #    pe.plot_all(plot_type="log_gr", show=show, savefig=True)
 #    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True)
-#    pe.plot_all(plot_type="dos", show=show, savefig=True)
+    pe.plot_all(plot_type="dos", show=show, savefig=True)
 #    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True, average=True)
 #    pe.plot_all(plot_type="log_gr", show=show, savefig=True, average=True)
 #    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True, average=True)
 #    pe.plot_all(plot_type="dos", show=show, savefig=True, average=True)
 
+    pe.plot_correlations(plot_type="v_m0", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="v_m1", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="v_m2", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="v_m3", show=False, savefig=True)
@@ -474,7 +535,19 @@ if __name__ == "__main__":
 #    pe.plot_correlations(plot_type="m1_m2", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="m3_m4", show=False, savefig=True)
 
-    diff = plot_diffusion_data(Nrange=(0,1000))
-    diff.plot_all("logr_vs_logt", show=show, savefig=True)
-    diff.plot_all("red_logr_vs_logt", show=show, savefig=True)
+#    pe.plot_correlations(plot_type="v_q4", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="v_q6", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="v_q8", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="v_q10", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="v_q12", show=False, savefig=True)
+
+    pe.plot_correlations(plot_type="m0_q6", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="m1_q6", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="m2_q6", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="m3_q6", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="m4_q6", show=False, savefig=True)
+    
+#    diff = plot_diffusion_data(Nrange=(0,1000))
+#    diff.plot_all("logr_vs_logt", show=show, savefig=True)
+#    diff.plot_all("red_logr_vs_logt", show=show, savefig=True)
     plt.show()
