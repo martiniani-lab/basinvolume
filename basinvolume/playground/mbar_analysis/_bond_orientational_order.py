@@ -49,10 +49,12 @@ class BondOrientationalOrder():
             dname = dname[:-5]
         return dname
     
-    def run(self, deg=6, solo=False, existing_only=True):
-        """compute boo for pakcings
+    def run(self, deg=6, pinit=True, existing_only=True):
+        """compute boo for packings
         exisisting_only: bool
             run on already existing packings only
+        pinit : bool
+            initialise printing
         """
         for fname in os.listdir(self.packings_dir):
             if ('xyzd' in fname and self.bdim == 3) or ('xyd' in fname and self.bdim == 2):
@@ -63,22 +65,24 @@ class BondOrientationalOrder():
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
                     trymakedir(analysis_dir_path)
                     coords, ss_radii = self._import_packing_configuration(fname)
-                    boo_list = self.bond_orientation_order_all(coords, ss_radii, ndim=self.bdim, deg=deg)
+                    boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, ndim=self.bdim, deg=deg)
                     boo_fname = os.path.join(analysis_dir_path,'boo_deg{}'.format(deg))
                     with open(boo_fname, 'w') as f:
-                        for q in boo_list:
-                            f.write('{:.16f} \n'.format(q))
-                    opt = 'w' if solo else 'a'
+                        f.write('#Q{} \t Z\n'.format(deg))
+                        for q, z in zip(boo_list, z_list):
+                            f.write('{:.16f} \t {}\n'.format(q, z))
                     global_boo_fname = os.path.join(analysis_dir_path,'glob_boo')
-                    pinit = False if os.path.isfile(global_boo_fname) else True
+                    opt = 'w' if pinit else 'a'
                     with open(global_boo_fname, opt) as f:
                         if pinit:
-                            f.write('[BOO] \n'.format(deg, np.mean(boo_list)))
+                            f.write('[Z] \n')
+                            f.write('Z: {:.16f} \n'.format(np.mean(z_list)))
+                            f.write('[BOO] \n')
                         f.write('Q{}: {:.16f} \n'.format(deg, np.mean(boo_list)))
     
     def run_all(self, deg_list=[4,6,8,10,12], existing_only=True):
-        for deg in deg_list:
-            self.run(deg, solo=False, existing_only=existing_only)
+        for i,deg in enumerate(deg_list):
+            self.run(deg, pinit=i<1, existing_only=existing_only)
     
     def _cartesian_to_polar(self, vector):
         vector = np.array(vector)
@@ -139,15 +143,23 @@ class BondOrientationalOrder():
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
     
     def bond_orientation_order_all(self, coords, hs_radii, ndim=3, deg=6):
+        """
+        boo_list : array
+            list of bond orientational order
+        z_list : array
+            list of coordination number for each particle
+        """
         nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)
         boo_list = []
+        z_list = []
         for i in xrange(hs_radii.size):
             nnatoms_vec = nnatoms_list[i]
             boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
             boo_list.append(boo)
-        return np.array(boo_list)
+            z_list.append(len(nnatoms_vec))
+        return np.array(boo_list), np.array(z_list)
 
 if __name__ == "__main__":
     boo = BondOrientationalOrder()
-    #boo.run(deg=12, solo=True)
+    #boo.run(deg=12)
     boo.run_all()
