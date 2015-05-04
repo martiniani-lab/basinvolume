@@ -81,6 +81,7 @@ class mbar_data(object):
         self.gr_ratio_mean = []
         self.dos_moments = []
         self.boo = [] #Q4, Q6, Q8, Q10, Q12
+        self.z_numbers = [] #average coordination number
         
     def compute_mean(self):
         self.log_gr_mean = np.mean(self.log_gr_mean, axis=0).tolist()
@@ -163,6 +164,8 @@ class plot_mbar_data(object):
                             Q8, Q10 = configf.getfloat('BOO','Q8'), configf.getfloat('BOO','Q10')
                             Q12 = configf.getfloat('BOO','Q12')
                             mbar_data.boo.append((Q4, Q6, Q8, Q10, Q12))
+                            z = configf.getfloat('Z','Z')
+                            mbar_data.z_numbers.append(z)
                         #log_gr
                         fpath = os.path.join(path, mbar_data.log_gr_file)
                         if os.path.isfile(fpath):
@@ -278,25 +281,27 @@ class plot_mbar_data(object):
     def _plot_correlations(self, ax, mbar_data, plot_type="v_m1", label=None, color='b'):
         moments = np.reshape(mbar_data.dos_moments, (-1,5))
         volumes = np.reshape(mbar_data.volumes, (-1,2))
+        #volumes[:,0] = np.exp(-volumes[:,0])
         boo = np.reshape(mbar_data.boo, (-1,5))
+        z_numbers = mbar_data.z_numbers
         xlabel=r'F'
         
         #volume-moments correlations
         if plot_type == "v_m0":
-            ax.scatter(volumes[:,0], moments[:,0], label=label, c=color, alpha=0.5)
+            ax.scatter(volumes[:,0], np.log(moments[:,0]), label=label, c=color, alpha=0.5)
             ylabel=r'$\max[g(r)]$'
         elif plot_type == "v_m1":
-            ax.scatter(volumes[:,0], moments[:,1], label=label, c=color, alpha=0.5)
-            ylabel=r'$\langle r \rangle$'
+            ax.scatter(volumes[:,0], np.log(moments[:,1]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(\langle r \rangle)$'
         elif plot_type == "v_m2":
-            ax.scatter(volumes[:,0], moments[:,2], label=label, c=color, alpha=0.5)
-            ylabel=r'$\langle (r - \langle r \rangle)^2 \rangle$'
+            ax.scatter(volumes[:,0], np.log(moments[:,2]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(\langle (r - \langle r \rangle)^2 \rangle)$'
         elif plot_type == "v_m3":
-            ax.scatter(volumes[:,0], moments[:,3], label=label, c=color, alpha=0.5)
-            ylabel=r'$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$'
+            ax.scatter(volumes[:,0], np.log(moments[:,3]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}})$'
         elif plot_type == "v_m4":
-            ax.scatter(volumes[:,0], moments[:,4], label=label, c=color, alpha=0.5)
-            ylabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
+            ax.scatter(volumes[:,0], np.log(moments[:,4]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}})$'
         
         #moment-moment correlations
         #a = np.exp(-volumes[:,0] + np.amax(volumes[:,0]))
@@ -312,21 +317,24 @@ class plot_mbar_data(object):
             ylabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
         
         #boo-volume correlations
-        if plot_type == "v_q4":
-            ax.scatter(volumes[:,0], boo[:,0], label=label, c=color, alpha=0.5)
-            ylabel=r'$Q4$'
+        if plot_type == "v_z":
+            ax.scatter(volumes[:,0], np.log(z_numbers), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(Z)$'
+        elif plot_type == "v_q4":
+            ax.scatter(volumes[:,0], np.log(boo[:,0]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(Q4)$'
         elif plot_type == "v_q6":
-            ax.scatter(volumes[:,0], boo[:,1], label=label, c=color, alpha=0.5)
-            ylabel=r'$Q6$'
+            ax.scatter(volumes[:,0], np.log(boo[:,1]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(Q6)$'
         elif plot_type == "v_q8":
-            ax.scatter(volumes[:,0], boo[:,2], label=label, c=color, alpha=0.5)
-            ylabel=r'$Q8$'
+            ax.scatter(volumes[:,0], np.log(boo[:,2]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(Q8)$'
         elif plot_type == "v_q10":
-            ax.scatter(volumes[:,0], boo[:,3], label=label, c=color, alpha=0.5)
-            ylabel=r'$Q10$'
+            ax.scatter(volumes[:,0], np.log(boo[:,3]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(Q10)$'
         elif plot_type == "v_q12":
-            ax.scatter(volumes[:,0], boo[:,4], label=label, c=color, alpha=0.5)
-            ylabel=r'$Q12$'
+            ax.scatter(volumes[:,0], np.log(boo[:,4]), label=label, c=color, alpha=0.5)
+            ylabel=r'$log(Q12)$'
         
         #boo-moments correlations
         if plot_type == "m0_q6":
@@ -352,7 +360,7 @@ class plot_mbar_data(object):
         
         return ax, xlabel, ylabel
     
-    def plot_correlations(self, plot_type="v_m1", figname=None, title=None, show=False, savefig=False):
+    def plot_correlations(self, plot_type="v_m1", figname=None, title=None, show=False, savefig=False, logx=False, logy=False):
         dlabel = None
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -367,7 +375,10 @@ class plot_mbar_data(object):
             ax.legend(frameon=False, loc="best", numpoints=1)
         except Exception, e:
             print e
-            
+        if logx:
+            ax.set_xscale('log')
+        if logy:
+            ax.set_yscale('log')
         if title:
             plt.title(title)
         if figname is None:
@@ -521,31 +532,34 @@ if __name__ == "__main__":
 #    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True)
 #    pe.plot_all(plot_type="log_gr", show=show, savefig=True)
 #    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True)
-    pe.plot_all(plot_type="dos", show=show, savefig=True)
+#    pe.plot_all(plot_type="dos", show=show, savefig=True)
 #    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True, average=True)
 #    pe.plot_all(plot_type="log_gr", show=show, savefig=True, average=True)
 #    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True, average=True)
 #    pe.plot_all(plot_type="dos", show=show, savefig=True, average=True)
 
-    pe.plot_correlations(plot_type="v_m0", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_m1", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_m2", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="v_m0", show=False, savefig=True)
+    pe.plot_correlations(plot_type="v_m1", show=False, savefig=True)
+    pe.plot_correlations(plot_type="v_m2", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="v_m3", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="v_m4", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="m1_m2", show=False, savefig=True)
+    pe.plot_correlations(plot_type="m1_m2", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="m3_m4", show=False, savefig=True)
 
+#    pe.plot_correlations(plot_type="v_z", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="v_q4", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_q6", show=False, savefig=True)
+    pe.plot_correlations(plot_type="v_q6", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="v_q8", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="v_q10", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_q12", show=False, savefig=True)
+    pe.plot_correlations(plot_type="v_q12", show=False, savefig=True)
 
-    pe.plot_correlations(plot_type="m0_q6", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="m1_q6", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="m2_q6", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="m3_q6", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="m4_q6", show=False, savefig=True)
+    logx=True
+    logy=True
+#    pe.plot_correlations(plot_type="m0_q6", logx=logx, logy=logy, show=False, savefig=True)
+    pe.plot_correlations(plot_type="m1_q6", logx=logx, logy=logy, show=False, savefig=True)
+    pe.plot_correlations(plot_type="m2_q6", logx=logx, logy=logy, show=False, savefig=True)
+#    pe.plot_correlations(plot_type="m3_q6", logx=logx, logy=logy, show=False, savefig=True)
+#    pe.plot_correlations(plot_type="m4_q6", logx=logx, logy=logy, show=False, savefig=True)
     
 #    diff = plot_diffusion_data(Nrange=(0,1000))
 #    diff.plot_all("logr_vs_logt", show=show, savefig=True)
