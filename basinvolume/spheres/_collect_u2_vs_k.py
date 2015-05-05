@@ -12,6 +12,7 @@ from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0
+from basinvolume.post_processing import VolumeSanityCheck
 import argparse
 from itertools import cycle
 try:
@@ -26,12 +27,14 @@ class _collect_u2_vs_k(object):
     """
         
     def __call__(self, ts_skip=5000, fname='jammed_packing0', base_dir='analysis',
-                 explore_dir='explore_bv_', packings_dir='jammed_packings', plot_ts_integrand_data=True,
-                 frozen=False, show=False, plot_only=False):
+                 explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings',
+                 plot_ts_integrand_data=True, frozen=False, show=False, plot_only=False):
                
         self.fname = fname
-        if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        if not os.path.isabs(jammed_packings_dir):
+            jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
+        self.jammed_packings_dir = jammed_packings_dir
         self.packings_dir = packings_dir
         if not os.path.isabs(explore_dir):
             explore_dir = os.path.join(os.getcwd(),explore_dir+fname)
@@ -39,8 +42,10 @@ class _collect_u2_vs_k(object):
         self.base_directory = self.explore_dir + '/' + base_dir
         self.frozen = frozen
         if not frozen:
-            self.packing_configpath = os.path.join(packings_dir, 'jammed_packings.config')
+            self.jammed_packing_configpath = os.path.join(jammed_packings_dir, 'jammed_packings.config')
+            self.packing_configpath = os.path.join(packings_dir, 'packings.config')
         else:
+            self.jammed_packing_configpath = os.path.join(jammed_packings_dir, fname + '.config')
             self.packing_configpath = os.path.join(packings_dir, fname + '.config')
         self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')  
         self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
@@ -73,6 +78,7 @@ class _collect_u2_vs_k(object):
         Volume compuation based on ingregral approximation with kmax and displ_k0 
         """
         try:
+            self._compute_hs_fluid_volume()
             self._compute_approx_volume()
             self._compute_PTu2k0_approx_volume()
         except Exception as err:
@@ -84,7 +90,7 @@ class _collect_u2_vs_k(object):
     
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
-        configf.read(str(self.packing_configpath))
+        configf.read(str(self.jammed_packing_configpath))
         self.nparticles = configf.getint('JAMMED_PACKING', 'nparticles')
         self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
         assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
@@ -228,9 +234,15 @@ class _collect_u2_vs_k(object):
                                                                                 self.u2_array, self.vcavity,\
                                                                                 self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
+        
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
         print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
+        
+    def _compute_hs_fluid_volume(self, numerical_moments=False):
+        volume_sanity_check = VolumeSanityCheck(self.packing_configpath, numerical_moments=numerical_moments)
+        self.F0_acc = volume_sanity_check.F0_acc
+        self.ideal_gas_F_acc = - self.nparticles*np.log(self.vcavity)
         
     def _compute_approx_volume(self):
         """
@@ -252,7 +264,7 @@ class _collect_u2_vs_k(object):
         self.F0_approx_PTu2k0, self.F0_approx_PTu2k0_error = F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(self.PTu2k0, self.PTu2k0_error, self.kmax, self.vcavity, self.nparticles, self.bdim, self.prob_kmax)
         self.unit_box_F0_approx_PTu2k0 = self.F0_approx_PTu2k0 + self.nparticles * np.log(self.vcavity)
         print "unit_box_F0_approx_PTu2k0 {}".format(self.unit_box_F0_approx_PTu2k0)
-
+    
     def _plot_diffusion(self):
         x, dx, y, dy = self._import_steps_time_series_diffusion()
         x, dx, y, dy = np.array(x), np.array(dx), np.array(y), np.array(dy)
@@ -347,6 +359,10 @@ class _collect_u2_vs_k(object):
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         def _to_file(name, value):
             f.write((name + ": {}\n").format(to_string(value)))
+        f.write('[VOLUME_HS_FLUID]\n')
+        if hasattr(self, "F0_acc"):
+            _to_file("F0_acc", self.F0_acc)
+            _to_file("F0_ideal_gas", self.ideal_gas_F_acc)
         f.write('[VOLUME_APPROXIMATED]\n')
         if hasattr(self, "F0_approx"):
             _to_file("F0_approx", self.F0_approx)

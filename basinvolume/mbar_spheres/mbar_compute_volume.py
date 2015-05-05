@@ -4,6 +4,7 @@ import os
 import glob
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball, write_csv_xy
+from basinvolume.post_processing import VolumeSanityCheck
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
@@ -29,13 +30,15 @@ class mbar_compute_dos(object):
     """
         
     def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
-                 explore_dir='explore_bv_', packings_dir='jammed_packings', plot_data=True,
-                 frozen=False, show=False, bootstrap=False, verbose=True):
+                 explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings', 
+                 plot_data=True, frozen=False, show=False, bootstrap=False, verbose=True):
         
         self.fname = fname
         self.nbins = nbins
-        if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        if not os.path.isabs(jammed_packings_dir):
+            jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
+        self.jammed_packings_dir = jammed_packings_dir
         self.packings_dir = packings_dir
         if not os.path.isabs(explore_dir):
             explore_dir = os.path.join(os.getcwd(),explore_dir+fname)
@@ -43,8 +46,10 @@ class mbar_compute_dos(object):
         self.base_directory = self.explore_dir + '/' + base_dir
         self.frozen = frozen
         if not frozen:
-            self.packing_configpath = os.path.join(packings_dir, 'jammed_packings.config')
+            self.jammed_packing_configpath = os.path.join(jammed_packings_dir, 'jammed_packings.config')
+            self.packing_configpath = os.path.join(packings_dir, 'packings.config')
         else:
+            self.jammed_packing_configpath = os.path.join(jammed_packings_dir, fname + '.config')
             self.packing_configpath = os.path.join(packings_dir, fname + '.config')
         self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + fname + '.config')
         self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')
@@ -80,6 +85,7 @@ class mbar_compute_dos(object):
         self._build_mbar()
         print "mbar computing volume"
         self._mbar_compute_volume()
+        self._compute_hs_fluid_volume()
         self._print_volumes()
         print "plotting data"
         self._build_histogram()
@@ -137,7 +143,7 @@ class mbar_compute_dos(object):
         
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
-        configf.read(str(self.packing_configpath))
+        configf.read(str(self.jammed_packing_configpath))
         self.nparticles = configf.getint('JAMMED_PACKING', 'nparticles')
         self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
         assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
@@ -280,8 +286,8 @@ class mbar_compute_dos(object):
         u_lk = np.vstack((u_lk, self.u_kn[self.k0_index])) #was -1, measure free energy difference between k=0 and kw
         Deltaf_ij, dDeltaf_ij = self.mbar.computePerturbedFreeEnergies(u_lk)
         #vol = Deltaf_ij[1,0]
-        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) + np.log(self.prob_kmax) - np.log(self.vcavity), dDeltaf_ij[1,0]
-        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0])  + np.log(self.prob_kmax), dDeltaf_ij[1,0]
+        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) - np.log(self.prob_kmax) - np.log(self.vcavity), dDeltaf_ij[1,0]
+        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0])  - np.log(self.prob_kmax), dDeltaf_ij[1,0]
         
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
@@ -289,7 +295,12 @@ class mbar_compute_dos(object):
         if self.verbose:
             print 'F0 {} F0unc {} +/- {}'.format(self.F0, self.F0unc, self.sigF0)
             print 'unit_box_F0 {} unit_box_F0unc {} +/- {}'.format(self.unit_box_F0, self.unit_box_F0unc, self.sigF0)
-        
+    
+    def _compute_hs_fluid_volume(self, numerical_moments=False):
+        volume_sanity_check = VolumeSanityCheck(self.packing_configpath, numerical_moments=numerical_moments)
+        self.F0_acc = volume_sanity_check.F0_acc
+        self.ideal_gas_F_acc = - self.nparticles*np.log(self.vcavity)
+      
     def _build_histogram(self, compute_binedges=True):
         """
         set compute bin_edges to false when subsampling so that all subsamples have the same number of bins over the same range
@@ -534,13 +545,17 @@ class mbar_compute_dos(object):
             plt.show()
         
     def _print_volumes(self):
-        dname = 'mbar_dos_volume_data'
+        dname = 'mbar_volume_data'
         fname = '{}/{}'.format(self.base_directory,dname)
         f = open(fname, 'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         def _to_file(name, value):
             f.write((name + ": {}\n").format(to_string(value)))
-        f.write('[VOLUME_DOS]\n')
+        f.write('[VOLUME_HS_FLUID]\n')
+        if hasattr(self, "F0_acc"):
+            _to_file("F0_acc", self.F0_acc)
+            _to_file("F0_ideal_gas", self.ideal_gas_F_acc)
+        f.write('[VOLUME_MBAR]\n')
         if hasattr(self, "F0"):
             _to_file("F0", self.F0)
             _to_file("sigF0", self.sigF0)

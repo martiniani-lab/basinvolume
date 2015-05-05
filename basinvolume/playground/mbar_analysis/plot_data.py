@@ -61,7 +61,7 @@ def _sort_pair(x,y):
 class mbar_data(object):
     def __init__(self, label, analysis_folder = "analysis", log_gr_file = "log_gr.csv", 
                  log_gr_ratio_file = "log_gr_ratio.csv", gr_ratio_file = "gr_ratio.csv",
-                 dos_file = "dos.csv", volume_file="mbar_dos_volume_data", boo_file='glob_boo'):
+                 dos_file = "dos.csv", volume_file="mbar_volume_data", boo_file='glob_boo'):
         self.label = label
         self.analysis_folder = analysis_folder
         self.volume_file = volume_file
@@ -70,7 +70,8 @@ class mbar_data(object):
         self.gr_ratio_file = gr_ratio_file
         self.dos_file = dos_file
         self.boo_file = boo_file
-        self.volumes = []
+        self.free_energies = []
+        self.acc_free_energies = []
         self.log_gr = []
         self.log_gr_ratio = []
         self.gr_ratio = []
@@ -128,7 +129,7 @@ class plot_mbar_data(object):
         self.workdir = workdir
         self.explore_dir = explore_dir
         self.Nrange = Nrange
-        self.fcc_data = mbar_data("fcc")
+        self.fcc_data = mbar_data("fcc_poly0050")
         self.fcc_mono_data = mbar_data("fcc_mono")
         self.disordered_data = mbar_data("disordered")
         markers = ["bo", "r^", "gs", "kx", "c+"]
@@ -153,8 +154,10 @@ class plot_mbar_data(object):
                         fpath = os.path.join(path, mbar_data.volume_file)
                         if os.path.isfile(fpath):
                             configf.read(fpath)
-                            F, Ferr = configf.getfloat('VOLUME_DOS','F0'), configf.getfloat('VOLUME_DOS','sigF0')
-                            mbar_data.volumes.append((F, Ferr))
+                            F, Ferr = configf.getfloat('VOLUME_MBAR','F0'), configf.getfloat('VOLUME_MBAR','sigF0')
+                            Facc = configf.getfloat('VOLUME_HS_FLUID','F0_acc')
+                            mbar_data.free_energies.append((F, Ferr))
+                            mbar_data.acc_free_energies.append(Facc)
                         #collect boo (bond orientational order parameter)
                         configf = ConfigParser.ConfigParser()
                         fpath = os.path.join(path, mbar_data.boo_file)
@@ -255,7 +258,7 @@ class plot_mbar_data(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         
-        ax, xlabel, ylabel = self._plot_all(ax, self.fcc_data, plot_type=plot_type, average=average, label=r"fcc")
+        ax, xlabel, ylabel = self._plot_all(ax, self.fcc_data, plot_type=plot_type, average=average, label=r"fcc $s=0.05$")
         ax, xlabel, ylabel = self._plot_all(ax, self.fcc_mono_data, plot_type=plot_type, average=average, label=r"fcc mono")
         ax, xlabel, ylabel = self._plot_all(ax, self.disordered_data, plot_type=plot_type, average=average, label=dlabel)
         
@@ -278,35 +281,37 @@ class plot_mbar_data(object):
         if show:
             plt.show()
     
-    def _plot_correlations(self, ax, mbar_data, plot_type="v_m1", label=None, color='b'):
+    def _plot_correlations(self, ax, mbar_data, plot_type="f_m1", label=None, color='b'):
         moments = np.reshape(mbar_data.dos_moments, (-1,5))
-        volumes = np.reshape(mbar_data.volumes, (-1,2))
-        #volumes[:,0] = np.exp(-volumes[:,0])
+        free_energies = np.reshape(mbar_data.free_energies, (-1,2))
+        free_energies[:,0] += np.array(mbar_data.acc_free_energies) #this gives the -log probability of being in a basin
+        
+        #free_energies[:,0] = np.exp(-free_energies[:,0])
         boo = np.reshape(mbar_data.boo, (-1,5))
         z_numbers = mbar_data.z_numbers
-        xlabel=r'F'
+        xlabel=r'$-\log(p)=f_i+f_{acc}$'
         
         #volume-moments correlations
-        if plot_type == "v_m0":
-            ax.scatter(volumes[:,0], np.log(moments[:,0]), label=label, c=color, alpha=0.5)
+        if plot_type == "f_m0":
+            ax.scatter(free_energies[:,0], np.log(moments[:,0]), label=label, c=color, alpha=0.5)
             ylabel=r'$\max[g(r)]$'
-        elif plot_type == "v_m1":
-            ax.scatter(volumes[:,0], np.log(moments[:,1]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_m1":
+            ax.scatter(free_energies[:,0], np.log(moments[:,1]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\langle r \rangle)$'
-        elif plot_type == "v_m2":
-            ax.scatter(volumes[:,0], np.log(moments[:,2]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_m2":
+            ax.scatter(free_energies[:,0], np.log(moments[:,2]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\langle (r - \langle r \rangle)^2 \rangle)$'
-        elif plot_type == "v_m3":
-            ax.scatter(volumes[:,0], np.log(moments[:,3]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_m3":
+            ax.scatter(free_energies[:,0], np.log(moments[:,3]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}})$'
-        elif plot_type == "v_m4":
-            ax.scatter(volumes[:,0], np.log(moments[:,4]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_m4":
+            ax.scatter(free_energies[:,0], np.log(moments[:,4]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}})$'
         
         #moment-moment correlations
-        #a = np.exp(-volumes[:,0] + np.amax(volumes[:,0]))
+        #a = np.exp(-free_energies[:,0] + np.amax(free_energies[:,0]))
         #area = np.pi * (10 *  a / np.amax(a))**2 # 0 to 10 point radiuses
-        area = np.ones(volumes.shape[0])*2*np.pi*4
+        area = np.ones(free_energies.shape[0])*2*np.pi*4
         if plot_type == "m1_m2":
             ax.scatter(moments[:,1], moments[:,2], s=area, label=label, c=color, alpha=0.5)
             xlabel=r'$\langle r \rangle$'
@@ -317,23 +322,23 @@ class plot_mbar_data(object):
             ylabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
         
         #boo-volume correlations
-        if plot_type == "v_z":
-            ax.scatter(volumes[:,0], np.log(z_numbers), label=label, c=color, alpha=0.5)
+        if plot_type == "f_z":
+            ax.scatter(free_energies[:,0], np.log(z_numbers), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Z)$'
-        elif plot_type == "v_q4":
-            ax.scatter(volumes[:,0], np.log(boo[:,0]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_q4":
+            ax.scatter(free_energies[:,0], np.log(boo[:,0]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q4)$'
-        elif plot_type == "v_q6":
-            ax.scatter(volumes[:,0], np.log(boo[:,1]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_q6":
+            ax.scatter(free_energies[:,0], np.log(boo[:,1]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q6)$'
-        elif plot_type == "v_q8":
-            ax.scatter(volumes[:,0], np.log(boo[:,2]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_q8":
+            ax.scatter(free_energies[:,0], np.log(boo[:,2]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q8)$'
-        elif plot_type == "v_q10":
-            ax.scatter(volumes[:,0], np.log(boo[:,3]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_q10":
+            ax.scatter(free_energies[:,0], np.log(boo[:,3]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q10)$'
-        elif plot_type == "v_q12":
-            ax.scatter(volumes[:,0], np.log(boo[:,4]), label=label, c=color, alpha=0.5)
+        elif plot_type == "f_q12":
+            ax.scatter(free_energies[:,0], np.log(boo[:,4]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q12)$'
         
         #boo-moments correlations
@@ -360,7 +365,7 @@ class plot_mbar_data(object):
         
         return ax, xlabel, ylabel
     
-    def plot_correlations(self, plot_type="v_m1", figname=None, title=None, show=False, savefig=False, logx=False, logy=False):
+    def plot_correlations(self, plot_type="f_m1", figname=None, title=None, show=False, savefig=False, logx=False, logy=False):
         dlabel = None
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -538,20 +543,20 @@ if __name__ == "__main__":
 #    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True, average=True)
 #    pe.plot_all(plot_type="dos", show=show, savefig=True, average=True)
 
-#    pe.plot_correlations(plot_type="v_m0", show=False, savefig=True)
-    pe.plot_correlations(plot_type="v_m1", show=False, savefig=True)
-    pe.plot_correlations(plot_type="v_m2", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_m3", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_m4", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="f_m0", show=False, savefig=True)
+    pe.plot_correlations(plot_type="f_m1", show=False, savefig=True)
+    pe.plot_correlations(plot_type="f_m2", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="f_m3", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="f_m4", show=False, savefig=True)
     pe.plot_correlations(plot_type="m1_m2", show=False, savefig=True)
 #    pe.plot_correlations(plot_type="m3_m4", show=False, savefig=True)
 
-#    pe.plot_correlations(plot_type="v_z", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_q4", show=False, savefig=True)
-    pe.plot_correlations(plot_type="v_q6", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_q8", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="v_q10", show=False, savefig=True)
-    pe.plot_correlations(plot_type="v_q12", show=False, savefig=True)
+    pe.plot_correlations(plot_type="f_z", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="f_q4", show=False, savefig=True)
+    pe.plot_correlations(plot_type="f_q6", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="f_q8", show=False, savefig=True)
+#    pe.plot_correlations(plot_type="f_q10", show=False, savefig=True)
+    pe.plot_correlations(plot_type="f_q12", show=False, savefig=True)
 
     logx=True
     logy=True
