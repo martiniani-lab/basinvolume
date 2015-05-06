@@ -44,11 +44,6 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.show = show
            
     def _initialise(self):
-        #HACK
-        self.configpath = os.path.join(self.packings_dir, 'packing1.config') #FUDGE
-        assert(os.path.isfile(self.configpath))
-        self._import_packing_config_file()
-        #ENDOFHACK
         self._print_initialise()
     
     def one_iteration(self,fname):

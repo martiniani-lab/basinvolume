@@ -36,7 +36,16 @@ class _Generate_Jammed_Packing(object):
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
-                
+    
+    def _import_single_packing_config_file(self, fname):
+        dname = fname
+        if dname.endswith('.xyzd'):
+            dname = dname[:-5]
+        elif dname.endswith('.xyd'):
+            dname = dname[:-4]
+        self.configpath = os.path.join(self.packings_dir, dname+'.config')
+        self._import_packing_config_file()
+          
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.configpath))
@@ -75,11 +84,10 @@ class _Generate_Jammed_Packing(object):
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        self._print_parameters()
     
-    def _print_parameters(self):
+    def _print_parameters(self, n):
         """writes the simulation parameters"""
-        fname = '{}/jammed_packings.config'.format(self.base_directory)
+        fname = '{}/jammed_packing{}.config'.format(self.base_directory,n)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Jammed_Packings base class input parameters\n')
@@ -113,6 +121,7 @@ class _Generate_Jammed_Packing(object):
         """dump configuration and opengl input to packings directory
             n is the unique identifier of the structure
         """
+        self._print_parameters(n)
         self._dump_configuration(n)
         self._write_opengl_input(n)
     
@@ -129,7 +138,7 @@ class _Generate_Jammed_Packing(object):
         """run generate packings"""
         self._initialise()
         for fname in os.listdir(self.packings_dir):
-            if ('xyzd' in fname and self.bdim == 3) or ('xyd' in fname and self.bdim == 2):
+            if ('xyzd' in fname) or ('xyd' in fname):
                 print "\n",fname
                 self.one_iteration(fname)
         self._histogram_eigenvalues()
@@ -162,15 +171,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.show = show
     
     def _initialise(self):
-        self.configpath = os.path.join(self.packings_dir,'packings.config')
-        self._import_packing_config_file()
-        self.rattlers = np.empty(self.nparticles,dtype='d')
-        self.rattlers_draw = np.empty(self.nparticles,dtype='d')
         self._print_initialise()
     
     def one_iteration(self,fname):
         """perform one iteration
         """
+        self._import_single_packing_config_file(fname)
+        self.rattlers = np.empty(self.nparticles,dtype='d')
+        self.rattlers_draw = np.empty(self.nparticles,dtype='d')
+        
         self._import_packing_configuration(fname)
         self.max_nrattlers = int(self.nparticles*0.1)
         

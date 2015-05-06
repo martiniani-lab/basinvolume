@@ -92,11 +92,10 @@ class _Generate_Packing(object):
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        self._print_parameters()
     
     def _print_parameters(self):
         """writes the simulation parameters"""
-        fname = '{}/packings.config'.format(self.base_directory)
+        fname = '{}/packing{}.config'.format(self.base_directory, self.iteration)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
@@ -125,6 +124,7 @@ class _Generate_Packing(object):
         
     def _print(self):
         """dump configuration and opengl input to packings directory"""
+        self._print_parameters()
         self._dump_configuration()
         self._write_opengl_input()
     
@@ -622,7 +622,7 @@ class HS_Generate_Packing(_Generate_Packing):
         
     def _print_parameters(self):
         """writes the simulation parameters"""
-        fname = '{}/packings.config'.format(self.base_directory)
+        fname = '{}/packing{}.config'.format(self.base_directory, self.iteration)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
