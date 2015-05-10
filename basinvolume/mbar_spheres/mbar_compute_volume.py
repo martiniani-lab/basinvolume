@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
+import re
 import glob
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball, write_csv_xy
@@ -45,15 +46,19 @@ class mbar_compute_dos(object):
         self.explore_dir = explore_dir
         self.base_directory = self.explore_dir + '/' + base_dir
         self.frozen = frozen
-        if not frozen:
-            self.jammed_packing_configpath = os.path.join(jammed_packings_dir, 'jammed_packings.config')
-            self.packing_configpath = os.path.join(packings_dir, 'packings.config')
-        else:
-            self.jammed_packing_configpath = os.path.join(jammed_packings_dir, fname + '.config')
-            self.packing_configpath = os.path.join(packings_dir, fname + '.config')
+        n = int(re.findall(r'\d+', self.fname)[0])
+        self.packing_configpath = os.path.join(packings_dir, 'packing{}.config'.format(n))
+        assert os.path.isfile(self.packing_configpath)
+        self.jammed_packing_configpath = os.path.join(jammed_packings_dir, '{}.config'.format(self.fname))
+        assert os.path.isfile(self.jammed_packing_configpath)
         self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + fname + '.config')
-        self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')
+        assert os.path.isfile(self.pt_configpath)
+        self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')  
+        assert os.path.isfile(self.findk_configpath)
+        self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
+        assert os.path.isfile(self.kmin_configpath)
         self.innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + fname + '.config')
+        assert os.path.isfile(self.innersphere_configpath)
         
         self.plot_data = plot_data
         self.show = show

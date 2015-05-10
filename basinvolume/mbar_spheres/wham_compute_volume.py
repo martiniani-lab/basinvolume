@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
+import re
 import glob
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, volume_nball
@@ -24,26 +25,34 @@ class wham_compute_dos(object):
     """
         
     def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
-                 explore_dir='explore_bv_', packings_dir='jammed_packings', plot_data=True,
-                 frozen=False, show=False, verbose=True):
+                 explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings', 
+                 plot_data=True, frozen=False, show=False, verbose=True):
         
         self.fname = fname
         self.nbins = nbins
-        if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+        if not os.path.isabs(jammed_packings_dir):
+            jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
+        self.jammed_packings_dir = jammed_packings_dir
         self.packings_dir = packings_dir
         if not os.path.isabs(explore_dir):
             explore_dir = os.path.join(os.getcwd(),explore_dir+fname)
         self.explore_dir = explore_dir
         self.base_directory = self.explore_dir + '/' + base_dir
         self.frozen = frozen
-        if not frozen:
-            self.packing_configpath = os.path.join(packings_dir, 'jammed_packings.config')
-        else:
-            self.packing_configpath = os.path.join(packings_dir, fname + '.config')
+        n = int(re.findall(r'\d+', self.fname)[0])
+        self.packing_configpath = os.path.join(packings_dir, 'packing{}.config'.format(n))
+        assert os.path.isfile(self.packing_configpath)
+        self.jammed_packing_configpath = os.path.join(jammed_packings_dir, '{}.config'.format(self.fname))
+        assert os.path.isfile(self.jammed_packing_configpath)
         self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + fname + '.config')
-        self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')
+        assert os.path.isfile(self.pt_configpath)
+        self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')  
+        assert os.path.isfile(self.findk_configpath)
+        self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
+        assert os.path.isfile(self.kmin_configpath)
         self.innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + fname + '.config')
+        assert os.path.isfile(self.innersphere_configpath)
         
         self.plot_data = plot_data
         self.show = show

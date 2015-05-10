@@ -91,7 +91,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
-        self.configpath = os.path.join(packings_dir,'jammed_packings.config')
+        self.configpath = os.path.join(packings_dir,'{}.config'.format(dname))
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     
     sim = _kmin_mcrunner('jammed_packing0.xyzdr', niter=1e6, k=0, opt_tol=1e-4, seeds=seeds,
                          record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
-                         single=True, use_cell_lists=True, verbose=False, use_cgd=True,
+                         single=True, use_cell_lists=True, verbose=True, use_cgd=True,
                          hmax=20, hbinsize=0.05, opt_nsteps=1e6)
     print 'simulation started'
     start=time.time()

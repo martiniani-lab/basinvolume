@@ -92,11 +92,10 @@ class _Generate_Packing(object):
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-        self._print_parameters()
     
     def _print_parameters(self):
         """writes the simulation parameters"""
-        fname = '{}/packings.config'.format(self.base_directory)
+        fname = '{}/packing{}.config'.format(self.base_directory, self.iteration)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
@@ -125,13 +124,13 @@ class _Generate_Packing(object):
         
     def _print(self):
         """dump configuration and opengl input to packings directory"""
+        self._print_parameters()
         self._dump_configuration()
         self._write_opengl_input()
     
     def one_iteration(self):
         """perform one iteration"""
-        if self.initialised is not True:
-            self._initialise()
+        self._initialise()
         success = self._generate_packing_coords()
         if success:
             self._print()
@@ -146,22 +145,32 @@ class _Generate_Packing(object):
 
 class HS_Generate_Packing(_Generate_Packing):
     """
-    *PARAMETERS
-    *hs_radii: array with the radii of the particles, if none sample particle sizes from a normal distribution
-    *mu: average particle size, passable to normal distribution
-    *sig: % standard deviaton of normal distribution from which to sample particles (this value is multiplied by the mean mu)
-    *sca: determines % by which the hs is inflated
-    *eps: LJ interaction energy of WCA part of the HS potential, here irrelevant because 'sca' is set to 0
-    *hsf stands for hard sphere fluid
-    *set seed to something other than none to remove randomness between instances of the class
+    hs_radii: array
+        array with the radii of the particles, if none sample particle sizes from a normal distribution
+    mu: float
+        average particle size, passable to normal distribution
+    sig: float
+        % standard deviaton of normal distribution from which to sample particles (this value is multiplied by the mean mu)
+    sca: float
+        determines % by which the hs is inflated
+    eps: float
+        LJ interaction energy of WCA part of the HS potential, here irrelevant because 'sca' is set to 0
+    hsf:
+        stands for hard sphere fluid
+    new_poly : bool
+        set to true to resample polidispersity at each new iteration
+    seeds: array 
+        set seed to something other than none to remove randomness between instances of the class
     """    
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, 
-                 mu = 1, sig = 0.1, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10, use_cell_lists=False, 
-                 single=False, seeds=None):
+                 mu = 1, sig = 0.1, new_poly=False, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10, 
+                 use_cell_lists=False, single=False, seeds=None):
         super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv, 
                                                  packing_frac=packing_frac, max_iter = max_iter, 
                                                  use_cell_lists = use_cell_lists)
         self.method = method
+        self.new_poly = new_poly
+        assert not (self.method == 'quench' and self.new_poly is True)
         #give a random seed to random state or assign passed seed
         self.rng = RandomState()
         if seeds:
@@ -181,34 +190,38 @@ class HS_Generate_Packing(_Generate_Packing):
         self.hsf_niter = hsf_niter #number of iteration for each hs fluid configuration
         self.hsf_stepsize = hsf_stepsize
         self.hs_radii = hs_radii
-        self._sample_hs_radii() #outcome of sample radii depends on hs_radii. hence if initialise is called twice, the second
-                                    #time it will not resample the radii, hence it must be kept in __init__
-        self._resize_box()
-                                    
+              
     def _initialise(self):
-        if self.method == 'quench':
-            #this is necessary to initialise the radii if using the quench routine
-            self._initialise_coords_quench()
-            rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
-            if self.use_cell_lists:
-                if np.amin(self.boxv) // rcut <= 3:
-                    self.use_cell_lists = False
-            if self.use_cell_lists:
-                self.potential = HS_WCA(use_periodic=True,
-                                 use_cell_lists=True, eps=self.eps,
-                                 sca=self.sca, radii=self.hs_radii,
-                                 boxvec=self.boxv,
-                                 reference_coords=self.coords, 
-                                 rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
+        if self.initialised is False:
+            self._sample_hs_radii(new_poly=False)
+            self._resize_box()
+            if self.method == 'quench':
+                #this is necessary to initialise the radii if using the quench routine
+                self._initialise_coords_quench()
+                rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
+                if self.use_cell_lists:
+                    if np.amin(self.boxv) // rcut <= 3:
+                        self.use_cell_lists = False
+                if self.use_cell_lists:
+                    self.potential = HS_WCA(use_periodic=True,
+                                     use_cell_lists=True, eps=self.eps,
+                                     sca=self.sca, radii=self.hs_radii,
+                                     boxvec=self.boxv,
+                                     reference_coords=self.coords, 
+                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
+                else:
+                    self.potential = HS_WCA(use_periodic=True, eps=self.eps,
+                                     sca=self.sca, radii=self.hs_radii,
+                                     boxvec=self.boxv, ndim=self.bdim, 
+                                     use_cell_lists=False)
             else:
-                self.potential = HS_WCA(use_periodic=True, eps=self.eps,
-                                 sca=self.sca, radii=self.hs_radii,
-                                 boxvec=self.boxv, ndim=self.bdim, 
-                                 use_cell_lists=False)
-        else:
-            self._initialise_coords_crystal()
-        self._print_initialise()
-        self.initialised = True     
+                self._initialise_coords_crystal()
+            self._print_initialise()
+            self.initialised = True
+        elif self.method != 'quench' and self.new_poly:
+            self._sample_hs_radii(new_poly=self.new_poly)
+            self._resize_box()
+            self._initialise_coords_crystal()     
     
     def _get_particles_volume(self):
         """returns volume of n=self.bdim dimensional sphere"""
@@ -228,10 +241,12 @@ class HS_Generate_Packing(_Generate_Packing):
 #        assert(phi - self.packing_frac < 1e-4)
 #        #endtest
     
-    def _sample_hs_radii(self):
-        if self.hs_radii is None and self.sig > 1e-8:
+    def _sample_hs_radii(self, new_poly=False):
+        if (self.hs_radii is None or new_poly) and self.sig > 1e-8:
+            print "sampling hs_radii"
             self.hs_radii = self.rng.normal(self.mu,self.sig,self.nparticles)
-        elif self.sig <= 1e-8:
+        elif (self.hs_radii is None or new_poly) and self.sig <= 1e-8:
+            print "sampling hs_radii"
             self.hs_radii = np.ones(self.nparticles)*self.mu
         else:
             self.hs_radii = np.array(self.hs_radii,dtype='d')
@@ -424,7 +439,7 @@ class HS_Generate_Packing(_Generate_Packing):
         NX = L_cube
         NY = L_cube
         NZ = L_cube
-        print L_cube
+        #print L_cube
         dx = self.boxv[0] / NX
         dy = self.boxv[1] / NY
         dz = self.boxv[2] / NZ
@@ -622,7 +637,7 @@ class HS_Generate_Packing(_Generate_Packing):
         
     def _print_parameters(self):
         """writes the simulation parameters"""
-        fname = '{}/packings.config'.format(self.base_directory)
+        fname = '{}/packing{}.config'.format(self.base_directory, self.iteration)
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
@@ -662,6 +677,7 @@ if __name__ == "__main__":
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-4)
+    parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
@@ -683,8 +699,8 @@ if __name__ == "__main__":
         hs_radii = hs_diameters/2
     
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
-                              hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, hsf_niter=args.hsfniter, 
-                              hsf_stepsize = args.hsfstep, max_iter =args.npackings,
+                              hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly, 
+                              hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
                               use_cell_lists=args.nocell, single=single)
     sim.run()    
                 

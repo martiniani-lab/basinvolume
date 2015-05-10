@@ -44,18 +44,13 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.show = show
            
     def _initialise(self):
-        #HACK
-        self.configpath = os.path.join(self.packings_dir, 'packing1.config') #FUDGE
-        assert(os.path.isfile(self.configpath))
-        self._import_packing_config_file()
-        #ENDOFHACK
         self._print_initialise()
     
     def one_iteration(self,fname):
         """perform one iteration
         """
         #import configuration
-        self._import_exp_packing_config_file(fname)
+        self._import_single_packing_config_file(fname)
         self._import_packing_configuration(fname)
         self._compute_sca()
         self.max_nrattlers = int(self.nparticles*0.1)
@@ -213,7 +208,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.hs_radii = hs_diameters/2
     
-    def _import_exp_packing_config_file(self, fname):
+    def _import_single_packing_config_file(self, fname):
         dname = fname
         if dname.endswith('.xyzdf'):
             dname = dname[:-6]

@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 import abc
 import os
+import re
 import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
@@ -41,14 +42,15 @@ class _collect_u2_vs_k(object):
         self.explore_dir = explore_dir
         self.base_directory = self.explore_dir + '/' + base_dir
         self.frozen = frozen
-        if not frozen:
-            self.jammed_packing_configpath = os.path.join(jammed_packings_dir, 'jammed_packings.config')
-            self.packing_configpath = os.path.join(packings_dir, 'packings.config')
-        else:
-            self.jammed_packing_configpath = os.path.join(jammed_packings_dir, fname + '.config')
-            self.packing_configpath = os.path.join(packings_dir, fname + '.config')
+        n = int(re.findall(r'\d+', self.fname)[0])
+        self.packing_configpath = os.path.join(packings_dir, 'packing{}.config'.format(n))
+        assert os.path.isfile(self.packing_configpath)
+        self.jammed_packing_configpath = os.path.join(jammed_packings_dir, '{}.config'.format(self.fname))
+        assert os.path.isfile(self.jammed_packing_configpath)
         self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')  
+        assert os.path.isfile(self.findk_configpath)
         self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
+        assert os.path.isfile(self.kmin_configpath)
         
         self.ts_skip = ts_skip
         self.plot_ts_integrand_data = plot_ts_integrand_data
