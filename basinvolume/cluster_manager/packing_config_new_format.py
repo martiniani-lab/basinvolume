@@ -50,7 +50,7 @@ class BVPackingsConfigNewFormat(object):
                     npack = re.findall('\d+', fn)[0]
                     dst = os.path.join(self.workdir, self.packing_folder, self.new_packing_naming + npack + ".config")
                     shutil.copyfile(src, dst)
-            os.remove(src)
+            shutil.copyfile(src, os.path.join(self.workdir, self.packing_folder, self.old_packing_naming + ".bak"))
     
     def copy_jammed_packing_config_files(self):
         files = get_immediate_files(os.path.join(self.workdir, self.jammed_packing_folder))
@@ -62,7 +62,7 @@ class BVPackingsConfigNewFormat(object):
                     npack = re.findall('\d+', fn)[0]
                     dst = os.path.join(self.workdir, self.jammed_packing_folder, self.new_jammed_packing_naming + npack + ".config")
                     shutil.copyfile(src, dst)
-            os.remove(src)
+            shutil.copyfile(src, os.path.join(self.workdir, self.jammed_packing_folder, self.old_jammed_packing_naming + ".bak"))
         
     def copy_all(self):
         self.copy_packing_config_files()
