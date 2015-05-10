@@ -51,7 +51,8 @@ class BVPackingsConfigNewFormat(object):
                     dst = os.path.join(self.workdir, self.packing_folder, self.new_packing_naming + npack + ".config")
                     shutil.copyfile(src, dst)
             shutil.copyfile(src, os.path.join(self.workdir, self.packing_folder, self.old_packing_naming + ".bak"))
-    
+            os.remove(src)
+            
     def copy_jammed_packing_config_files(self):
         files = get_immediate_files(os.path.join(self.workdir, self.jammed_packing_folder))
         src = os.path.join(self.workdir, self.jammed_packing_folder, self.old_jammed_packing_naming+".config")
@@ -63,7 +64,8 @@ class BVPackingsConfigNewFormat(object):
                     dst = os.path.join(self.workdir, self.jammed_packing_folder, self.new_jammed_packing_naming + npack + ".config")
                     shutil.copyfile(src, dst)
             shutil.copyfile(src, os.path.join(self.workdir, self.jammed_packing_folder, self.old_jammed_packing_naming + ".bak"))
-        
+            os.remove(src)
+            
     def copy_all(self):
         self.copy_packing_config_files()
         self.copy_jammed_packing_config_files()
