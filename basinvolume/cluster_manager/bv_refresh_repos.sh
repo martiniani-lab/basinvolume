@@ -7,9 +7,6 @@ git clone git@bitbucket.org:smcantab/basinvolume.git
 cd pymbar
 python setup.py build_ext -i
 cd ..
-cd PyCG_DESCENT
-git checkout test_callback
-cd ..
 for r in pele mcpele PyCG_DESCENT basinvolume 
 do
 	cd $r
