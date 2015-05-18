@@ -15,12 +15,10 @@ class BondOrientationalOrder():
         self.analysis_dir = analysis_dir
         self.iteration = 0
         self.eps = 1.
-        self.configpath = os.path.join(self.jammed_packings_dir,'jammed_packings.config')
-        self._import_packing_config_file()
     
-    def _import_packing_config_file(self):
+    def _import_packing_config_file(self, configpath):
         configf = ConfigParser.ConfigParser()
-        configf.read(str(self.configpath))
+        configf.read(str(configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
         assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
@@ -57,9 +55,11 @@ class BondOrientationalOrder():
             initialise printing
         """
         for fname in os.listdir(self.packings_dir):
-            if ('xyzd' in fname and self.bdim == 3) or ('xyd' in fname and self.bdim == 2):
+            if 'xyzd' in fname or 'xyd' in fname:
                 dname = self._get_dname(fname)
                 base_directory_path = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+                configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
+                self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not existing_only:
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)

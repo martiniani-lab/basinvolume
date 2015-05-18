@@ -140,7 +140,7 @@ include_sources_pele = [pelepath+"/source/" + f for f in os.listdir(pelepath+"/s
 include_sources_py_cgdescent = [py_cgdescentpath+"/source/" + f for f in os.listdir(py_cgdescentpath+"/source")
                    if f.endswith(".cpp") or f.endswith(".c")]
 
-include_sources_py_cgdescent += [py_cgdescentpath+"/source/CG_DESCENT6.7/" + f for f in os.listdir(py_cgdescentpath+"/source/CG_DESCENT6.7/")
+include_sources_py_cgdescent += [py_cgdescentpath+"/source/CG_DESCENT/" + f for f in os.listdir(py_cgdescentpath+"/source/CG_DESCENT/")
                    if f.endswith(".cpp") or f.endswith(".c")]
 
 include_dirs = [numpy_include, "source"]
@@ -154,7 +154,7 @@ depends_mcpele = [os.path.join(mcpelepath+"/source/mcpele", f) for f in os.listd
 depends_pele = [os.path.join(pelepath+"/source/pele", f) for f in os.listdir(pelepath+"/source/pele") 
                 if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
 
-depends_py_cgdescent = [os.path.join(py_cgdescentpath+"/source/CG_DESCENT6.7", f) for f in os.listdir(py_cgdescentpath+"/source/CG_DESCENT6.7/")
+depends_py_cgdescent = [os.path.join(py_cgdescentpath+"/source/CG_DESCENT", f) for f in os.listdir(py_cgdescentpath+"/source/CG_DESCENT/")
            if f.endswith(".cpp") or f.endswith(".c") or f.endswith(".h") or f.endswith(".hpp")]
 depends_py_cgdescent += [os.path.join(py_cgdescentpath+"/source/PyCG_DESCENT", f) for f in os.listdir(py_cgdescentpath+"/source/PyCG_DESCENT/")
            if f.endswith(".cpp") or f.endswith(".c") or f.endswith(".h") or f.endswith(".hpp")]

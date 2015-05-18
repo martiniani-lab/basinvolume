@@ -134,7 +134,7 @@ class _Generate_Packing(object):
         success = self._generate_packing_coords()
         if success:
             self._print()
-        self.iteration+=1
+            self.iteration+=1
         print 'iteration ',self.iteration
         
     def run(self):
@@ -246,7 +246,7 @@ class HS_Generate_Packing(_Generate_Packing):
             print "sampling hs_radii"
             self.hs_radii = self.rng.normal(self.mu,self.sig,self.nparticles)
         elif (self.hs_radii is None or new_poly) and self.sig <= 1e-8:
-            print "sampling hs_radii"
+            print "sampling hs_radii, setting to ones because sig <= 1e-8"
             self.hs_radii = np.ones(self.nparticles)*self.mu
         else:
             self.hs_radii = np.array(self.hs_radii,dtype='d')
@@ -314,7 +314,8 @@ class HS_Generate_Packing(_Generate_Packing):
             self._generate_packing_coords_direct()
         else:
             self._generate_coords_crystal()
-        return True
+        success = self._check_no_overlaps()
+        return success
     
     def _generate_packing_coords_quench(self):
         """do a MCMC walk using the quenched coordinates. Here we do not satisfy detailed balance and we set the number
@@ -376,7 +377,6 @@ class HS_Generate_Packing(_Generate_Packing):
             self._generate_coords_bcc_lattice_3d()
         else:
             raise Exception("_generate_coords_crystal: {} method not implemented".format(self.method))
-        assert self._check_no_overlaps()
     
     def _generate_coords_fcc_lattice(self):
         if self.bdim == 2:
