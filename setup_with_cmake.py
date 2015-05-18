@@ -169,7 +169,8 @@ cmake_build_dir = "build/cmake"
 cxx_files = ["basinvolume/monte_carlo/_conf_test_cpp.cxx",
              "basinvolume/monte_carlo/_action_cpp.cxx",
              "basinvolume/monte_carlo/_takestep_cpp.cxx",
-             "basinvolume/utils/_utils_cpp.cxx"
+             "basinvolume/utils/_utils_cpp.cxx",
+             "basinvolume/utils/_cross_validation_cost_cpp.cxx"
              ]
 
 def get_ldflags(opt="--ldflags"):

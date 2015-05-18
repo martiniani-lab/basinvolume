@@ -9,6 +9,7 @@ from basinvolume.post_processing import VolumeSanityCheck
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
+from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 import argparse
 from itertools import cycle
 try:
@@ -25,17 +26,22 @@ def dos_from_offsets(visits, log_dos_all, offsets, nodata_value=0.):
     ldos = np.where(norm > 0, ldos / norm, nodata_value)
     return ldos
 
+def get_kde_hist(timeseries, bin_edges):
+    bw = get_bandwidth_estimate(timeseries, kernel="gaussian", method="cross_validation")
+    hist = get_pdf(timeseries, bin_edges, bandwidth=bw)
+    return hist
+
 class mbar_compute_dos(object):
     """
     this is a class that implements _mbar_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=1000, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings', 
-                 plot_data=True, frozen=False, show=False, bootstrap=False, verbose=True):
+                 plot_data=True, frozen=False, show=False, bootstrap=False, kde=True, verbose=True):
         
         self.fname = fname
-        self.nbins = nbins
+        self.nbins = np.power(2, int(np.log2(nbins) + 0.5)) + 1#approximate to nearest power of 2 plus 1 (for rhomb integration)
         if not os.path.isabs(jammed_packings_dir):
             jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
             packings_dir = os.path.join(os.getcwd(), packings_dir)
@@ -60,6 +66,7 @@ class mbar_compute_dos(object):
         self.innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + fname + '.config')
         assert os.path.isfile(self.innersphere_configpath)
         
+        self.kde = kde
         self.plot_data = plot_data
         self.show = show
         self.bootstrap = bootstrap
@@ -93,7 +100,7 @@ class mbar_compute_dos(object):
         self._compute_hs_fluid_volume()
         self._print_volumes()
         print "plotting data"
-        self._build_histogram()
+        self._build_histogram(kde=self.kde)
         self._compute_dos()
         self._plot_data()
         #self._pmf()
@@ -117,7 +124,7 @@ class mbar_compute_dos(object):
         self._mbar_compute_volume()
         self._print_volumes()
         print "plotting data all"
-        self._build_histogram()
+        self._build_histogram(kde=self.kde)
         self._compute_dos()
         #now bootstrap timeseries to compute error bars on dos
         #the timeseries after find_eqtime has already discared the burn out region
@@ -140,7 +147,7 @@ class mbar_compute_dos(object):
             Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
             self.w_i_final = -Deltaf_ij[0]
             #now build histogram and compute dos
-            self._build_histogram(compute_binedges=False)
+            self._build_histogram(compute_binedges=False, kde=self.kde)
             self._compute_dos()
             self.logn_E_subs = np.vstack((self.logn_E_subs, self.logn_E))
         #plot data
@@ -305,29 +312,53 @@ class mbar_compute_dos(object):
         volume_sanity_check = VolumeSanityCheck(self.packing_configpath, numerical_moments=numerical_moments)
         self.F0_acc = volume_sanity_check.F0_acc
         self.ideal_gas_F_acc = - self.nparticles*np.log(self.vcavity)
-      
-    def _build_histogram(self, compute_binedges=True):
+    
+    def _build_histogram(self, compute_binedges=True, kde=False):
         """
         set compute bin_edges to false when subsampling so that all subsamples have the same number of bins over the same range
         """
         if not compute_binedges:
             assert self.bootstrap
-        hist_visits = []
         if compute_binedges:
             bin_edges = np.linspace(np.amin(np.append(self.timeseries, self.ts_sphere)), 
                                     np.amax(np.append(self.timeseries, self.ts_sphere)), self.nbins+1)  
         else:
             bin_edges = self.bin_edges - (self.bin_edges[1]-self.bin_edges[0])/2
         
+        if kde:
+            hist_visits = self._build_histogram_kde(bin_edges)
+        else:
+            hist_visits = self._build_histogram_simple(bin_edges)
+    
+        self.hist_visits = np.array(hist_visits)
+        self.bin_edges = bin_edges + (bin_edges[1]-bin_edges[0])/2 #shift bin edges by bin/2
+        self._unbias_histogram()
+        
+    def _build_histogram_simple(self, bin_edges):
+        hist_visits = []
         hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
         hist_visits.append(hist)
         for timeseries in self.timeseries:
             hist = np.histogram(timeseries, bin_edges, normed=True)[0]
             hist_visits.append(hist)
         
-        self.hist_visits = np.array(hist_visits)
-        self.bin_edges = bin_edges + (bin_edges[1]-bin_edges[0])/2
-        self._unbias_histogram()
+        return hist_visits
+    
+    def _build_histogram_kde(self, bin_edges):
+        from joblib import Parallel, delayed
+        
+        hist_visits = []
+        #hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
+        bin_edges = bin_edges[:-1]
+        bin_edges += (bin_edges[1]-bin_edges[0])/2 
+        hist = get_kde_hist(self.ts_sphere, bin_edges)
+        hist_visits.append(hist)
+        results = Parallel(n_jobs=8)(delayed(get_kde_hist)(timeseries, bin_edges) for timeseries in self.timeseries)
+        print np.shape(results)
+        for hist in results:
+            hist_visits.append(hist)
+        print np.shape(hist_visits)
+        return hist_visits
     
     def _unbias_histogram(self):
         hist_unbiased = np.outer(0.5*self.karray[1:], self.bin_edges[:-1]**2)

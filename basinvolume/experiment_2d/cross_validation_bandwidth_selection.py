@@ -25,13 +25,13 @@ class CrossValidationBandwidthSelection(object):
         print "done"
         self.opt_bandwidth = result.coords
 
-def get_bandwidth_estimate(data, method="cross_validation"):
+def get_bandwidth_estimate(data, kernel="gaussian", method="cross_validation"):
     nr_samples = len(data)
     std_samples = np.std(data)
     silverman_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
     if method == "Silverman":
         return silverman_bandwidth
-    loocv = CrossValidationBandwidthSelection(data, kernel="gaussian", h_initial=silverman_bandwidth)
+    loocv = CrossValidationBandwidthSelection(data, kernel=kernel, h_initial=silverman_bandwidth)
     return loocv.opt_bandwidth
 
 def get_pdf(data, x_sample_positions, bandwidth=2, kernel="gaussian"):

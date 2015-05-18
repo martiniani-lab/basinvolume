@@ -47,7 +47,7 @@ FILE(GLOB mcpele_sources ${mcpele_include}/*.cpp)
 add_library(mcpele_lib ${mcpele_sources})
 
 # build the PyCG_DESCENT library
-FILE(GLOB pycgd_sources ${pycgd_include}/CG_DESCENT6.7/*.c*)
+FILE(GLOB pycgd_sources ${pycgd_include}/CG_DESCENT/*.c*)
 add_library(pycgd_lib ${pycgd_sources})
 
 # build the basinvolume library

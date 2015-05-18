@@ -1,11 +1,11 @@
 # distutils: language = c++
-
-cimport cython
-import sys
 import numpy as np
 cimport numpy as np
 from pele.potentials import _pele
+cimport cython
+import sys
 from pymbar.timeseries import statisticalInefficiency_fft
+from ctypes import c_size_t as size_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
