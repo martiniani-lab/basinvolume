@@ -3,8 +3,14 @@ import numpy as np
 from scipy.special import sph_harm
 import os
 from basinvolume.utils import *
+from pele.utils._pressure_tensor import pressure_tensor
+import abc
+from pele.potentials import HS_WCA
 
-class BondOrientationalOrder():
+class StructuralAnalysis(object):
+    __metaclass__ = abc.ABCMeta
+    #@abc.abstractmethod
+    
     def __init__(self, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
@@ -15,6 +21,7 @@ class BondOrientationalOrder():
         self.analysis_dir = analysis_dir
         self.iteration = 0
         self.eps = 1.
+        self.frozen = False
     
     def _import_packing_config_file(self, configpath):
         configf = ConfigParser.ConfigParser()
@@ -25,6 +32,10 @@ class BondOrientationalOrder():
         self.ndof = self.nparticles * self.bdim
         boxv = configf.get('JAMMED_PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
+        if self.frozen:
+            self.vcavity = configf.getfloat('JAMMED_PACKING', 'vcavity')
+        else:
+            self.vcavity = np.prod(self.boxv)
         self.packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
         
@@ -38,7 +49,7 @@ class BondOrientationalOrder():
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         hs_radii = hs_diameters/2
         ss_radii = hs_radii * (1+self.sca)
-        return coords, ss_radii
+        return coords, hs_radii, ss_radii
     
     def _get_dname(self, dname):
         if dname.endswith('.xyzdr'):
@@ -46,6 +57,11 @@ class BondOrientationalOrder():
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
         return dname
+
+class BondOrientationalOrder(StructuralAnalysis):
+    def __init__(self, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
+        super(BondOrientationalOrder,self).__init__(packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
+                                                    analysis_dir=analysis_dir)
     
     def run(self, deg=6, pinit=True, existing_only=True):
         """compute boo for packings
@@ -64,7 +80,7 @@ class BondOrientationalOrder():
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
                     trymakedir(analysis_dir_path)
-                    coords, ss_radii = self._import_packing_configuration(fname)
+                    coords, hs_radii, ss_radii = self._import_packing_configuration(fname)
                     boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, ndim=self.bdim, deg=deg)
                     boo_fname = os.path.join(analysis_dir_path,'boo_deg{}'.format(deg))
                     with open(boo_fname, 'w') as f:
@@ -159,7 +175,40 @@ class BondOrientationalOrder():
             z_list.append(len(nnatoms_vec))
         return np.array(boo_list), np.array(z_list)
 
+class PressureTensor(StructuralAnalysis):
+    def __init__(self, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
+        super(PressureTensor,self).__init__(packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
+                                                    analysis_dir=analysis_dir)
+    
+    def run(self, existing_only=True):
+        """compute boo for packings
+        exisisting_only: bool
+            run on already existing packings only
+        pinit : bool
+            initialise printing
+        """
+        for fname in os.listdir(self.packings_dir):
+            if 'xyzd' in fname or 'xyd' in fname:
+                dname = self._get_dname(fname)
+                base_directory_path = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+                configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
+                self._import_packing_config_file(configpath)
+                if os.path.isdir(base_directory_path) or not existing_only:
+                    trymakedir(base_directory_path)
+                    analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
+                    trymakedir(analysis_dir_path)
+                    coords, hs_radii, ss_radii = self._import_packing_configuration(fname)
+                    potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, 
+                                       radii=hs_radii, boxvec=self.boxv, ndim=self.bdim)
+                    p, ptensor = pressure_tensor(potential, coords, self.vcavity, self.bdim) 
+                    fname = os.path.join(analysis_dir_path,'pressure_data')
+                    with open(fname, 'w') as f:
+                        f.write('P: {}\n'.format(p))
+                        f.write('Ptensor: {}\n'.format(ptensor))
+
 if __name__ == "__main__":
-    boo = BondOrientationalOrder()
-    #boo.run(deg=12)
-    boo.run_all()
+#    boo = BondOrientationalOrder()
+#    #boo.run(deg=12)
+#    boo.run_all()
+    pts = PressureTensor()
+    pts.run()
