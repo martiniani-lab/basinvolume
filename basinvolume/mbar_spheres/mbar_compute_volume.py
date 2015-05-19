@@ -11,7 +11,8 @@ from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrel
 from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 import argparse
-from itertools import cycle
+from itertools import cycle, chain
+from joblib import Parallel, delayed
 try:
     import pylab as plt
 except ImportError as err:
@@ -92,7 +93,7 @@ class mbar_compute_dos(object):
         print "importing time series"
         self._import_pt_time_series()
         print "detecting equilibration point"
-        self._find_eqtime()
+        self._find_eqtime(full=False)
         print "importing innersphre time series"
         self._import_ts_sphere()
         print "subsampling time series"
@@ -117,7 +118,7 @@ class mbar_compute_dos(object):
         print "importing time series"
         self._import_pt_time_series()
         print "detecting equilibration point"
-        self._find_eqtime()
+        self._find_eqtime(full=False)
         print "importing innersphre time series"
         self._import_ts_sphere()
         print "subsampling time series"
@@ -200,22 +201,22 @@ class mbar_compute_dos(object):
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray==0.)[0][0]
         
-    def _import_pt_time_series(self, max_series_size=7e6):
+    def _import_pt_time_series(self, max_series_size=3e6):
         timeseries = []
         series_order = []
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
+                    print "importing replica ", dir
                     path = os.path.join(self.explore_dir, dir)
                     file_list = glob.glob(path + '/TimeSeries*')
                     file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
                     series_order.append(int(dir))
-                    series = []
-                    for series_path in file_list: #DEBUG [len(file_list)//3:]
-                        series.extend(read_txt(series_path))
-                    #shorten series to max series size
-                    skip = max(1, len(series)//max_series_size)
-                    timeseries.append(series[::int(skip)])
+                    results = Parallel(n_jobs=8)(delayed(read_txt)(series_path) for series_path in file_list) #DEBUG [len(file_list)//3:]
+                    series = list(chain.from_iterable(results))
+                    #shorten series to max series size, remove adjustf region and subsample
+                    skip = max(1, len(series[int(self.adjustf_niter):])//max_series_size)
+                    timeseries.append(series[int(self.adjustf_niter)::int(skip)])
         X = np.array(timeseries)
         Y = series_order
         self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
@@ -233,10 +234,9 @@ class mbar_compute_dos(object):
                 #gather values, find largest, then broadcast it
                 if new_eq_time > eq_time:
                     eq_time = new_eq_time
-        else:
-            eq_time = self.adjustf_niter
-        self.eq_time = int(eq_time)
-        self.timeseries = self.timeseries[:,self.eq_time:]  #remove equilibration region from pt timeseries
+            eq_time = int(eq_time)
+            #remove equilibration region from pt timeseries
+            self.timeseries = self.timeseries[:,eq_time:]
     
     def _build_u_kn(self, flat_timeseries):
         K, N = self.karray.size, flat_timeseries.size
@@ -341,7 +341,6 @@ class mbar_compute_dos(object):
         self._unbias_histogram()
         
     def _build_histogram_simple(self, bin_edges):
-        from joblib import Parallel, delayed
         hist_visits = []
         hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
         hist_visits.append(hist)
@@ -351,7 +350,6 @@ class mbar_compute_dos(object):
         return hist_visits
     
     def _build_histogram_kde(self, bin_edges):
-        from joblib import Parallel, delayed
         hist_visits = []
         #hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
         kde_bin_edges = np.array(bin_edges[:-1])
