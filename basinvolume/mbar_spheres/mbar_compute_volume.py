@@ -40,7 +40,7 @@ class mbar_compute_dos(object):
     this is a class that implements _mbar_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=500, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=1000, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings', 
                  plot_data=True, frozen=False, show=False, bootstrap=False, kde=False, verbose=True):
         
@@ -353,10 +353,10 @@ class mbar_compute_dos(object):
     def _build_histogram_kde(self, bin_edges):
         from joblib import Parallel, delayed
         hist_visits = []
-        hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
+        #hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
         kde_bin_edges = np.array(bin_edges[:-1])
         kde_bin_edges += (kde_bin_edges[1]-kde_bin_edges[0])/2 
-        #hist = get_kde_hist(self.ts_sphere, bin_edges)
+        hist = get_kde_hist(self.ts_sphere, kde_bin_edges, kernel="epanechnikov", bw=0.01)
         hist_visits.append(hist)
         results = Parallel(n_jobs=8)(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
         print np.shape(results)
