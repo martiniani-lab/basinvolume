@@ -26,9 +26,13 @@ def dos_from_offsets(visits, log_dos_all, offsets, nodata_value=0.):
     ldos = np.where(norm > 0, ldos / norm, nodata_value)
     return ldos
 
-def get_kde_hist(timeseries, bin_edges):
-    bw = get_bandwidth_estimate(timeseries, kernel="gaussian", method="cross_validation")
-    hist = get_pdf(timeseries, bin_edges, bandwidth=bw)
+def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cross_validation", skip=1):
+    if kernel == "gaussian":
+        if method == "cross_validation":
+            skip = len(timeseries)//1e4
+        bw = get_bandwidth_estimate(np.array(timeseries[::skip]), kernel="gaussian", method=method)
+        print "bandwidth ", bw
+    hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
     return hist
 
 class mbar_compute_dos(object):
@@ -36,9 +40,9 @@ class mbar_compute_dos(object):
     this is a class that implements _mbar_compute_dos class 
     """
         
-    def __call__(self, fname='jammed_packing0', nbins=1000, base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', nbins=500, base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings', 
-                 plot_data=True, frozen=False, show=False, bootstrap=False, kde=True, verbose=True):
+                 plot_data=True, frozen=False, show=False, bootstrap=False, kde=False, verbose=True):
         
         self.fname = fname
         self.nbins = np.power(2, int(np.log2(nbins) + 0.5)) + 1#approximate to nearest power of 2 plus 1 (for rhomb integration)
@@ -105,7 +109,7 @@ class mbar_compute_dos(object):
         self._plot_data()
         #self._pmf()
     
-    def run_bs(self):
+    def run_bs(self, nr_subsamples=10):
         base_directory = self.base_directory
         trymakedir(base_directory)
         #first compute the volume using the full set of data
@@ -129,10 +133,9 @@ class mbar_compute_dos(object):
         #now bootstrap timeseries to compute error bars on dos
         #the timeseries after find_eqtime has already discared the burn out region
         full_flat_timeseries = np.copy(self.flat_timeseries)
-        nr_samples = 100 #number of subsampling iterations
         self.logn_E_subs = self.logn_E.copy()
         initial_f_k = np.array(self.mbar.f_k)
-        for iter in xrange(nr_samples):
+        for iter in xrange(nr_subsamples):
             print "sumbsapling - iteration {}".format(iter)
             j = 0
             for n_k in self.N_k:
@@ -141,7 +144,8 @@ class mbar_compute_dos(object):
                 self.flat_timeseries[j:j+n_k] = ts[idx]
                 j+=n_k
             start = time.time()
-            self._build_mbar(verbose=False, maxiter=1000, reltol=1.0e-7, initial_f_k=initial_f_k, subsampling=16)
+            #self._build_mbar(verbose=False, maxiter=1000, reltol=1.0e-7, initial_f_k=initial_f_k, subsampling=16)
+            self._build_mbar(verbose=False, initial_f_k=initial_f_k)
             print "t: ", time.time() - start
             #compute the weights, skip the volume calculation
             Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
@@ -196,7 +200,7 @@ class mbar_compute_dos(object):
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray==0.)[0][0]
         
-    def _import_pt_time_series(self):
+    def _import_pt_time_series(self, max_series_size=7e6):
         timeseries = []
         series_order = []
         for subdir, dirs, files in os.walk(self.explore_dir):
@@ -209,7 +213,9 @@ class mbar_compute_dos(object):
                     series = []
                     for series_path in file_list: #DEBUG [len(file_list)//3:]
                         series.extend(read_txt(series_path))
-                    timeseries.append(series)
+                    #shorten series to max series size
+                    skip = max(1, len(series)//max_series_size)
+                    timeseries.append(series[::int(skip)])
         X = np.array(timeseries)
         Y = series_order
         self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
@@ -238,7 +244,7 @@ class mbar_compute_dos(object):
         
         for i in xrange(K):
             if i == 0:
-                u_kn[i] = ((self.nparticles-1)*3-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
+                u_kn[i] = ((self.nparticles-1)*self.bdim-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
             else:
                 u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
         assert self.karray.size == u_kn.shape[0]
@@ -335,25 +341,24 @@ class mbar_compute_dos(object):
         self._unbias_histogram()
         
     def _build_histogram_simple(self, bin_edges):
+        from joblib import Parallel, delayed
         hist_visits = []
         hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
         hist_visits.append(hist)
-        for timeseries in self.timeseries:
-            hist = np.histogram(timeseries, bin_edges, normed=True)[0]
-            hist_visits.append(hist)
-        
+        results = Parallel(n_jobs=8)(delayed(np.histogram)(timeseries, bin_edges, normed=True) for timeseries in self.timeseries)
+        for hist in results:
+            hist_visits.append(hist[0])
         return hist_visits
     
     def _build_histogram_kde(self, bin_edges):
         from joblib import Parallel, delayed
-        
         hist_visits = []
-        #hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
-        bin_edges = bin_edges[:-1]
-        bin_edges += (bin_edges[1]-bin_edges[0])/2 
-        hist = get_kde_hist(self.ts_sphere, bin_edges)
+        hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
+        kde_bin_edges = np.array(bin_edges[:-1])
+        kde_bin_edges += (kde_bin_edges[1]-kde_bin_edges[0])/2 
+        #hist = get_kde_hist(self.ts_sphere, bin_edges)
         hist_visits.append(hist)
-        results = Parallel(n_jobs=8)(delayed(get_kde_hist)(timeseries, bin_edges) for timeseries in self.timeseries)
+        results = Parallel(n_jobs=8)(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
         print np.shape(results)
         for hist in results:
             hist_visits.append(hist)
@@ -362,7 +367,7 @@ class mbar_compute_dos(object):
     
     def _unbias_histogram(self):
         hist_unbiased = np.outer(0.5*self.karray[1:], self.bin_edges[:-1]**2)
-        hist_unbiased = np.vstack((((self.nparticles-1)*3-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[0]*self.bin_edges[:-1]**2, hist_unbiased))
+        hist_unbiased = np.vstack((((self.nparticles-1)*self.bdim-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[0]*self.bin_edges[:-1]**2, hist_unbiased))
         self.hist_unbiased = hist_unbiased
         assert self.hist_visits.shape == self.hist_unbiased.shape
         assert self.hist_visits.shape[0] == self.karray.size
@@ -608,6 +613,7 @@ if __name__ == "__main__":
     parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
     parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
+    parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
     args = parser.parse_args()
     print args
     
@@ -622,7 +628,7 @@ if __name__ == "__main__":
     sim = mbar_compute_dos()
     
     if (fname != None):
-        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show, bootstrap=args.bootstrap)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show, bootstrap=args.bootstrap, kde=args.kde)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:
