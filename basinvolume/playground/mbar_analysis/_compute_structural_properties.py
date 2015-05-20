@@ -203,8 +203,13 @@ class PressureTensor(StructuralAnalysis):
                     p, ptensor = pressure_tensor(potential, coords, self.vcavity, self.bdim) 
                     fname = os.path.join(analysis_dir_path,'pressure_data')
                     with open(fname, 'w') as f:
-                        f.write('P: {}\n'.format(p))
-                        f.write('Ptensor: {}\n'.format(ptensor))
+                        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
+                        f.write('[PRESSURE]\n')
+                        f.write('P: {:.16f}\n'.format(p))
+                        f.write('Ptensor: ')
+                        for val in ptensor:
+                            f.write('{:.16f} '.format(val))
+                        f.write('\n')
 
 if __name__ == "__main__":
 #    boo = BondOrientationalOrder()
