@@ -11,6 +11,7 @@ try:
     import scipy
     from scipy.stats import t
     from scipy.interpolate import spline
+    from itertools import chain
 except ImportError as err:
     print err
 
@@ -53,10 +54,85 @@ def _sort_pair(x,y):
     """
     xc = np.array(x)
     points = zip(xc,y)
-    sorted_points = sorted(points)
+    sorted_points = sorted(points, key=lambda x: x[0])
     new_x = np.array([point[0] for point in sorted_points])
     new_y = np.array([point[1] for point in sorted_points])
     return new_x, new_y
+
+class Bunch(dict):
+    def __init__(self, *args, **kwds):
+        super(Bunch, self).__init__(*args, **kwds)
+        self.__dict__ = self
+
+class EntropyData(object):
+    def __init__(self, nparticles, path, 
+                 apf_file="entropy_AFP", apf_file_title="ENTROPY_APF",
+                 kd_file="entropy_kernel_density", kd_file_title="LOG_OMEGA_KERNEL_DENSITY",
+                 lo_file="entropy_LogOmega", lo_file_title="ENTROPY_LOG_OMEGA",
+                 loml_file="entropy_ML_LogOmega", loml_file_title="LOG_OMEGA_ML",
+                 gen_gaussian_param_names = [("mu","mu_error"), ("alpha","alpha_error"), ("zeta","zeta_error")]):
+        self.nparticles = nparticles
+        self.path = path
+        self.apf = Bunch(file=apf_file, title=apf_file_title, entropy=[0.,0.])
+        self.kd = Bunch(file=kd_file, title=kd_file_title, entropy=[0.,0.])
+        parameters = dict(mu=[0.,0.],alpha=[0.,0.],zeta=[0.,0.])
+        self.lo = Bunch(file=lo_file, title=lo_file_title, entropy=[0.,0.], parameters=parameters)        #parameters are mu,alpha,zeta
+        self.loml = Bunch(file=loml_file, title=loml_file_title, entropy=[0.,0.], parameters=parameters)  #parameters are mu,alpha,zeta
+        self.gen_gaussian_param_names = gen_gaussian_param_names
+    
+    def add_all_entropy(self):
+        self.add_entropy(self.apf)
+        self.add_entropy(self.kd)
+        self.add_entropy_with_parameters(self.lo)
+        self.add_entropy_with_parameters(self.loml)
+    
+    def add_entropy(self, member):
+        """
+        member should be the appropriate class member
+        n : packing number
+        example
+        -------
+        data = EntropyData()
+        data.add_entropy(S, ds, data.apf)
+        """
+        configf = ConfigParser.ConfigParser()
+        fpath = os.path.join(self.path, member.file)
+        if os.path.isfile(fpath):
+            configf.read(fpath)
+            try:
+                member.entropy[0] = configf.getfloat(member.title,'S_star')
+                member.entropy[1] = configf.getfloat(member.title,'error_S_star')
+            except Exception, e:
+                print e
+         
+    def add_entropy_with_parameters(self, member):
+        """
+        member should be the appropriate class member
+        parameters: list ot tuples
+            (value, error)
+        n : packing number
+        example
+        -------
+        data = EntropyData()
+        data.add_entropy(S, ds, data.apf)
+        """
+        configf = ConfigParser.ConfigParser()
+        fpath = os.path.join(self.path, member.file)
+        if os.path.isfile(fpath):
+            configf.read(fpath)
+            try:
+                member.entropy[0] = configf.getfloat(member.title,'S_star')
+                member.entropy[1] = configf.getfloat(member.title,'error_S_star')
+            except Exception, e:
+                print e
+            for name in self.gen_gaussian_param_names:
+                try:
+                    val = configf.getfloat(member.title, name[0])
+                    member.parameters[name[0]][0] = val
+                    errval = configf.getfloat(member.title, name[1])
+                    member.parameters[name[0]][1] = errval
+                except Exception:
+                    pass
 
 class plot_entropy(object):
     def __init__(self, workdir=None, Nrange=(0,128)):
@@ -68,70 +144,36 @@ class plot_entropy(object):
         
         self.Nrange = Nrange
         self.analysis_folder = "entropy_analysis_all"
-        self.apf_file = ["entropy_AFP", "ENTROPY_APF"]
-        self.kd_file = ["entropy_kernel_density", "LOG_OMEGA_KERNEL_DENSITY"]
-        self.lo_file = ["entropy_LogOmega", "ENTROPY_LOG_OMEGA"]
-        self.loml_file = ["entropy_ML_LogOmega", "LOG_OMEGA_ML"]
-        self.apf_entropy = []
-        self.kd_entropy = []
-        self.lo_entropy = []
-        self.lo_parameters = [] #mu,alpha,zeta
-        self.loml_entropy = []
-        self.loml_parameters = [] #mu,alpha,zeta
+        self.entropy_data = []
         markers = ["bo", "r^", "gs", "kx", "c+"]
         self.markercycler = cycle(markers)
         
         subdirs = get_immediate_subdirectories(workdir)
         for folder in subdirs:
             if folder[1].isdigit():
-                path = os.path.join(workdir,folder,self.analysis_folder)
+                path = os.path.join(workdir,folder, self.analysis_folder)
                 if os.path.isdir(path):
-                    configf = ConfigParser.ConfigParser()
                     n = _read_nparticles(folder)
                     if self.Nrange[0] <= n <= self.Nrange[1]:
-                        #AFP
-                        fpath = os.path.join(path,self.apf_file[0])
-                        if os.path.isfile(fpath):
-                            configf.read(fpath)
-                            self.apf_entropy.append(n)
-                            self.apf_entropy.append(configf.getfloat(self.apf_file[1],'S_star'))
-                            self.apf_entropy.append(configf.getfloat(self.apf_file[1],'error_S_star'))
-                        #kernel density log omega
-                        fpath = os.path.join(path,self.kd_file[0])
-                        if os.path.isfile(fpath):
-                            configf.read(fpath)
-                            self.kd_entropy.append(n)
-                            self.kd_entropy.append(configf.getfloat(self.kd_file[1],'S_star'))
-                            self.kd_entropy.append(configf.getfloat(self.kd_file[1],'error_S_star'))
-                        #log omega
-                        fpath = os.path.join(path,self.lo_file[0])
-                        if os.path.isfile(fpath):
-                            configf.read(fpath)
-                            self.lo_entropy.append(n)
-                            self.lo_entropy.append(configf.getfloat(self.lo_file[1],'S_star'))
-                            self.lo_entropy.append(configf.getfloat(self.lo_file[1],'error_S_star'))
-                            self.lo_parameters.append(n)
-                            self.lo_parameters.append(configf.getfloat(self.lo_file[1],'mu'))
-                            self.lo_parameters.append(configf.getfloat(self.lo_file[1],'mu_error'))
-                            self.lo_parameters.append(configf.getfloat(self.lo_file[1],'alpha'))
-                            self.lo_parameters.append(configf.getfloat(self.lo_file[1],'alpha_error'))
-                            self.lo_parameters.append(configf.getfloat(self.lo_file[1],'zeta'))
-                            self.lo_parameters.append(configf.getfloat(self.lo_file[1],'zeta_error'))
-                        #log omega ML
-                        fpath = os.path.join(path,self.loml_file[0])
-                        if os.path.isfile(fpath):
-                            configf.read(fpath)
-                            self.loml_entropy.append(n)
-                            self.loml_entropy.append(configf.getfloat(self.loml_file[1],'S_star'))
-                            self.loml_parameters.append(n)
-                            self.loml_parameters.append(configf.getfloat(self.loml_file[1],'mu'))
-                            self.loml_parameters.append(configf.getfloat(self.loml_file[1],'alpha'))
-                            self.loml_parameters.append(configf.getfloat(self.loml_file[1],'zeta'))
-        
+                        data = EntropyData(n, path)
+                        data.add_all_entropy()
+                        self.entropy_data.append(data)
+        self.apf_entropy = list(chain.from_iterable((data.nparticles, data.apf.entropy[0], data.apf.entropy[1]) for data in self.entropy_data))
+        self.kd_entropy = list(chain.from_iterable((data.nparticles, data.kd.entropy[0], data.kd.entropy[1]) for data in self.entropy_data))
+        self.lo_entropy = list(chain.from_iterable((data.nparticles, data.lo.entropy[0], data.lo.entropy[1]) for data in self.entropy_data))
+        self.loml_entropy = list(chain.from_iterable((data.nparticles, data.loml.entropy[0]) for data in self.entropy_data)) 
         self.all_entropies_err = [(self.apf_entropy,r"$\sum p \ln p$","apf"), (self.kd_entropy,r"$\log \Omega_{KDE}$","kde"), 
                              (self.lo_entropy,r"$\log \Omega_G$", "logomega")]
         self.all_entropies = [(self.loml_entropy,r"$\log \Omega_{GML}$","logomegaml")]
         
+        self.lo_parameters = list(chain.from_iterable((data.nparticles, 
+                                                       data.lo.parameters['mu'][0], data.lo.parameters['mu'][1], 
+                                                       data.lo.parameters['alpha'][0], data.lo.parameters['alpha'][1], 
+                                                       data.lo.parameters['zeta'][0], data.lo.parameters['zeta'][1]) for data in self.entropy_data))
+        self.loml_parameters = list(chain.from_iterable((data.nparticles,
+                                                         data.loml.parameters['mu'][0], data.loml.parameters['alpha'][0], 
+                                                         data.loml.parameters['zeta'][0]) for data in self.entropy_data))
+          
     def _ploterr(self, entropy_array, xlabel=r"$N$", ylabel=r"$S$", raw=True, title=None, show=False):
         nparticles = np.array(entropy_array[0::3])
         nmax = np.amax(nparticles)
@@ -260,7 +302,7 @@ class plot_entropy(object):
         #mu
         mu = np.array(self.lo_parameters[1::7])
         mu_err = np.array(self.lo_parameters[2::7])
-        xa,mu = _sort_pair(nparticles,mu)
+        xa, mu = _sort_pair(nparticles,mu)
         x, mu_err = _sort_pair(nparticles,mu_err)
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -293,7 +335,7 @@ class plot_entropy(object):
         ax.plot(trialx,ynew,'b--', linewidth=2)
         #alphaML
         alpha = np.array(self.loml_parameters[2::4])
-        x,alpha = _sort_pair(nparticlesml,alpha)
+        x,alpha = _sort_pair(nparticlesml, alpha)
         ax.errorbar(x, alpha, fmt='r^', ms=9, label=r"$\alpha_{ML}$")        
         fit = np.polyfit(x, alpha, 1)
         ynew = trialx * fit[0] + fit[1] 
@@ -307,19 +349,21 @@ class plot_entropy(object):
         trialx = np.linspace(0,1/nmin,1000)
         zeta = np.array(self.lo_parameters[5::7])
         zeta_err = np.array(self.lo_parameters[6::7])
-        xa,zeta = _sort_pair(nparticles,alpha)
-        x, zeta = _sort_pair(nparticles,alpha_err)
+        xa,zeta = _sort_pair(nparticles, zeta)
+        x, zeta_err = _sort_pair(nparticles, zeta_err)
         fig = plt.figure()
-        ax = fig.add_subplot(111)        
-        ax.errorbar(1./x, 2-zeta, yerr=zeta_err, fmt='bo', ms=8, label=r"$2-\zeta$")
-        fit = np.polyfit(1./x, 2-zeta, 1, w=1./np.array(zeta_err))
+        ax = fig.add_subplot(111)
+        szeta = 2-zeta        
+        ax.errorbar(1./x, szeta, yerr=zeta_err, fmt='bo', ms=8, label=r"$2-\zeta$")
+        fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
         ynew = trialx * fit[0] + fit[1]
         ax.plot(trialx,ynew,'b--', linewidth=2)
         #zetaML
         zeta = np.array(self.loml_parameters[3::4])
-        x,zeta = _sort_pair(nparticlesml,zeta)
-        ax.errorbar(1./x, 2-zeta, fmt='r^', ms=8, label=r"$2-\zeta_{ML}$")        
-        fit = np.polyfit(1./x, 2-zeta, 1)
+        x, zeta = _sort_pair(nparticlesml, zeta)
+        szeta = 2-zeta
+        ax.errorbar(1./x, szeta, fmt='r^', ms=8, label=r"$2-\zeta_{ML}$")        
+        fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
         ynew = trialx * fit[0] + fit[1] 
         plt.xlabel(xlabel)
         plt.ylabel(r"$\zeta_{ML}$")
@@ -365,9 +409,9 @@ class plot_entropy(object):
         dat_dense[:,0] - np.log(dat_dense[:,0]) + np.log(2.*np.pi/kmax_dense)
         #2D apf
         ax.plot(x, y_apf, 'b*', markersize=15, label=r"PRL(\sum p \ln p)_{2D}")
-#        fit = np.polyfit(x, y_apf, 1)
-#        ynew = trialx * fit[0] + fit[1] 
-#        ax.plot(trialx,ynew,'b--', linewidth=2)
+        fit = np.polyfit(x, y_apf, 1)
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'b--', linewidth=2)
         #2D LogOmega
 #        ax.plot(x, y_lo, 'g*', markersize=15, label=r"PRL(\ln \Omega_G)_{2D}")
 #        fit = np.polyfit(x, y_lo, 1)
@@ -382,9 +426,9 @@ class plot_entropy(object):
                 
 if __name__ == "__main__":
     pe = plot_entropy()
-    #pe.plot_single(show=False, savefig=True)
-    pe.plot_compare_apf2D(show=False,savefig=True)
-    pe.plot_all(show=False,savefig=True)
-    #pe.plot_lo_param(show=False,savefig=True)
+    #pe.plot_single(show=True, savefig=True)
+    #pe.plot_compare_apf2D(show=True,savefig=True)
+    #pe.plot_all(show=False,savefig=True)
+    pe.plot_lo_param(show=True,savefig=False)
 
 

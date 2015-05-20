@@ -38,6 +38,7 @@ try:
     import argparse
     import ConfigParser
     import os
+    import re
     import matplotlib.pyplot as plt
     import traceback
     import copy
@@ -114,7 +115,7 @@ class ComputeEntropyCommon(object):
                             volf = ConfigParser.ConfigParser()
                             volf.read(str(path + "/analysis/volume_data"))
                             F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
-                        except:
+                        except Exception:
                             series_collector(frozen=self.experimental, fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
                     else:
                         series_collector(frozen=self.experimental, fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
@@ -244,7 +245,7 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
                                                       max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, 
                                                       numerical_moments)
     def get_packing_configpath(self, volume_file):
-        return os.path.join(self.packings_dir, "packings/packings.config")
+        return os.path.join(self.packings_dir, "packings/packing0.config")
     def compute_entropy_etc(self):
         print("---numerical packing---")
         packing_configpath = self.get_packing_configpath(42)
@@ -287,7 +288,8 @@ class ComputeEntropyExperimental(ComputeEntropyCommon):
         #
         #  cat /scratch/kjs73/test/n32_exp_88_2D/jammed_packings/jammed_packing224.config
         tmp = os.path.split(os.path.split(volume_file)[0])[0]
-        only_number = ((os.path.split(tmp)[1]).split("_")[3])[7:]
+        #only_number = ((os.path.split(tmp)[1]).split("_")[3])[7:]
+        only_number = int(re.findall('\d+', volume_file)[0])
         return os.path.join(self.packings_dir, "packings", "packing" + only_number + ".config")
         #return os.path.join(tmp,  "explore_jammed_packing" + only_number + ".config")
     def compute_entropy_etc(self):
