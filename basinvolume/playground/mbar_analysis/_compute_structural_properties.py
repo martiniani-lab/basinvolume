@@ -93,7 +93,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                     with open(global_boo_fname, opt) as f:
                         if pinit:
                             f.write('[Z] \n')
-                            f.write('Z: {:.16f} \n'.format(np.mean(z_list)))
+                            f.write('Z: {:.16f} \n'.format(np.sum(z_list) / (z_list > 1e-12).sum()))
                             f.write('[BOO] \n')
                         f.write('Q{}: {:.16f} \n'.format(deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
     

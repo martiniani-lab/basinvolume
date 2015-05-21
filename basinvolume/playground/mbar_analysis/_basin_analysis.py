@@ -15,6 +15,7 @@ try:
     from scipy.integrate import simps
     import glob
     from itertools import chain
+    import cPickle as pickle
 except ImportError as err:
     print err
 #######################SET LATEX OPTIONS###################
@@ -50,11 +51,13 @@ class PackingDataSet(object):
         self.set_path = set_path
         self.set_name = os.path.split(self.set_path)[1]
         str_values = re.findall('\d+', self.set_name)
-        self.nparticles, self.hs_phi = int(str_values[0]), int('0.'+str_values[1])
-        self.ss_phi, self.bdim = int('0.'+str_values[2]), int(str_values[3]) 
+        self.nparticles, self.hs_phi = float(str_values[0]), float('0.'+str_values[1])
+        self.ss_phi, self.bdim = float('0.'+str_values[2]), float(str_values[3]) 
         self.packing_data = []
         self.free_energies = []
         self.pressures = []
+        self.contacts = []
+        self.boos = []
     
     def add_data(self, packing_data):
         """
@@ -62,9 +65,12 @@ class PackingDataSet(object):
         """
         self.packing_data.extend(packing_data)
         for data in packing_data:
-            if data.F is not None or data.P is not None:
+            if data.F is not None and data.P is not None:
                 self.free_energies.append(data.F)
                 self.pressures.append(data.P)
+            if data.Z is not None and data.boo is not None:
+                self.contacts.append(data.Z)
+                self.boos.append(data.boo)
     
 class PackingData(object):
     def __init__(self, name, configpath, packing_path=None):
@@ -132,18 +138,18 @@ class PackingData(object):
             Ptensor = configf.get(title, 'Ptensor')
             self.Ptensor = np.array([float(x) for x in Ptensor.split()])
     
-    def import_structural_data(self, path):
+    def import_structural_data(self, path, title_boo="BOO", title_z="Z"):
         """
         import average contact number and bond orientational order parameters
         """
         if os.path.isfile(path):
             configf = ConfigParser.ConfigParser()
             configf.read(path)
-            Q4, Q6 = configf.getfloat('BOO','Q4'), configf.getfloat('BOO','Q6')
-            Q8, Q10 = configf.getfloat('BOO','Q8'), configf.getfloat('BOO','Q10')
-            Q12 = configf.getfloat('BOO','Q12')
+            Q4, Q6 = configf.getfloat(title_boo,'Q4'), configf.getfloat(title_boo,'Q6')
+            Q8, Q10 = configf.getfloat(title_boo,'Q8'), configf.getfloat(title_boo,'Q10')
+            Q12 = configf.getfloat(title_boo,'Q12')
             self.boo = Bunch(Q4=Q4, Q6=Q6, Q8=Q8, Q10=Q10, Q12=Q12)
-            z = configf.getfloat('Z','Z')
+            z = configf.getfloat(title_z,'Z')
             self.Z = z
             
 class BasinAnalysis(object):
@@ -155,19 +161,21 @@ class BasinAnalysis(object):
     """
     def __init__(self, workspace = None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
                  analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data", 
-                 volume_title = "VOLUME_FULL_PT"):
-        if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
-        if not os.path.isabs(jammed_packings_dir):
-            packings_dir = os.path.join(os.getcwd(), jammed_packings_dir)
+                 zboo_file="glob_boo", volume_title = "VOLUME_FULL_PT"):
+        if workspace is None:
+            workspace = os.getcwd()
+        if not os.path.isabs(workspace):
+            workspace = os.path.abspath(workspace)
+        self.workspace = workspace
         self.packings_dir = packings_dir
         self.jammed_packings_dir = jammed_packings_dir
         self.volume_file = volume_file
         self.pressure_file = pressure_file
         self.analysis_dir = analysis_dir
         self.volume_title = volume_title
+        self.zboo_file = zboo_file
         self.iteration = 0
-        self.packing_data = []
+        self.packing_datasets = []
     
     def _get_dname(self, dname):
         if dname.endswith('.xyzdr'):
@@ -176,59 +184,77 @@ class BasinAnalysis(object):
             dname = dname[:-5]
         return dname    
     
-    def _collect_data_single(self):
+    def collect_data_all_set(self, data_name="basin_analysis.pickle"):
+        listdir = glob.glob(os.path.join(self.workspace, 'n*_phi*_phi*_*D'))
+        data_pickle = os.path.join(self.workspace, data_name)
+        if os.path.isfile(data_pickle):
+            self.packing_datasets = pickle.load( open(data_pickle, "rb") )
+        else: 
+            for set_path in listdir:
+                print "collecting data from ",os.path.split(set_path)[1]
+                self.collect_data_single(set_path=set_path)
+            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ) )
+        
+    def collect_data_single(self, set_path=None):
+        if set_path is None:
+            set_path = self.workspace
+        packing_dataset = self._collect_data_single(set_path)
+        self.packing_datasets.append(packing_dataset)
+    
+    def _collect_data_single(self, set_path):
         """compute boo for packings
         """
-        for fname in os.listdir(self.packings_dir):
+        pd_list = []
+        packing_dataset = PackingDataSet(set_path)
+        for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
             if 'xyzd' in fname or 'xyd' in fname:
                 dname = self._get_dname(fname)
-                base_directory_path = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+                base_directory_path = os.path.join(set_path, 'explore_bv_'+str(dname))
                 if os.path.isdir(base_directory_path):
-                    configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
+                    configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
                     pd = PackingData(str(dname), configpath)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
                     pd.import_volume_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
-                    self.packing_data.append(pd)
-        self.free_energies = np.array([data.F for data in self.packing_data])
-        self.pressures = np.array([data.P for data in self.packing_data])
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
+                    pd.import_structural_data(path)
+                    pd_list.append(pd)
+        packing_dataset.add_data(pd_list)
+        return packing_dataset
         
-        #THESE ARE JUST QUICK PLOTS, CLEAN THIS UP AND PUTH EVERYTHING IN APPROPRIATE FUNCTIONS
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.scatter(self.free_energies, np.log(self.pressures))
-        plt.xlabel("F")
-        plt.ylabel("lnP")
-        plt.show()
-
-        from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
-        #kde pressures
-        bw = get_bandwidth_estimate(np.array(self.pressures), kernel="gaussian", method="cross_validation")
-        edges = np.linspace(np.amin(self.pressures), np.amax(self.pressures), 1000)
-        hist = get_pdf(self.pressures, edges, bandwidth=bw, kernel="gaussian")
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(edges, hist)
-        plt.xlabel("P")
-        plt.show()
-
-        #kde free energies
-        free_energies = np.array([f for f in self.free_energies if f is not None])
-        bw = get_bandwidth_estimate(np.array(free_energies), kernel="gaussian", method="cross_validation")
-        edges = np.linspace(np.amin(free_energies), np.amax(free_energies), 100)
-        hist = get_pdf(free_energies, edges, bandwidth=bw, kernel="gaussian")
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(edges, hist)
-        plt.xlabel("F")
-        plt.show()
+#        #THESE ARE JUST QUICK PLOTS, CLEAN THIS UP AND PUTH EVERYTHING IN APPROPRIATE FUNCTIONS
+#        fig = plt.figure()
+#        ax = fig.add_subplot(111)
+#        ax.scatter(self.free_energies, np.log(self.pressures))
+#        plt.xlabel("F")
+#        plt.ylabel("lnP")
+#        plt.show()
+#
+#        from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
+#        #kde pressures
+#        bw = get_bandwidth_estimate(np.array(self.pressures), kernel="gaussian", method="cross_validation")
+#        edges = np.linspace(np.amin(self.pressures), np.amax(self.pressures), 1000)
+#        hist = get_pdf(self.pressures, edges, bandwidth=bw, kernel="gaussian")
+#        fig = plt.figure()
+#        ax = fig.add_subplot(111)
+#        ax.plot(edges, hist)
+#        plt.xlabel("P")
+#        plt.show()
+#
+#        #kde free energies
+#        free_energies = np.array([f for f in self.free_energies if f is not None])
+#        bw = get_bandwidth_estimate(np.array(free_energies), kernel="gaussian", method="cross_validation")
+#        edges = np.linspace(np.amin(free_energies), np.amax(free_energies), 100)
+#        hist = get_pdf(free_energies, edges, bandwidth=bw, kernel="gaussian")
+#        fig = plt.figure()
+#        ax = fig.add_subplot(111)
+#        ax.plot(edges, hist)
+#        plt.xlabel("F")
+#        plt.show()
         
         
 
 if __name__ == "__main__":
-#    boo = BondOrientationalOrder()
-#    #boo.run(deg=12)
-#    boo.run_all()
     pts = BasinAnalysis()
-    pts._collect_data_single()
+    pts.collect_data_all_set()
