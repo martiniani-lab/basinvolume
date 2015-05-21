@@ -8,7 +8,7 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib import rc
     from itertools import cycle
-    from basinvolume.utils import log_factorial, read_csv_xy, read_txt, write_csv_xy
+    from basinvolume.utils import *
     import scipy
     from scipy.stats import t
     from scipy.interpolate import spline
@@ -35,8 +35,6 @@ color_cycle=cycle([cm(1. * i / 6) for i in xrange(6)])
 """
 for plotting a linear fit with intervals of confidence see http://nbviewer.ipython.org/url/bagrow.com/dsv/LEC10_notes_2014-02-13.ipynb
 """
-def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
 def _read_nparticles(folder):
     nparticles = ""
@@ -46,17 +44,6 @@ def _read_nparticles(folder):
         nparticles+=char
     nparticles = int(nparticles)
     return nparticles
-
-def _sort_pair(x,y):
-    """
-    sorts x and moves elements of y accordingly
-    """
-    xc = np.array(x)
-    points = zip(xc,y)
-    sorted_points = sorted(points)
-    new_x = np.array([point[0] for point in sorted_points])
-    new_y = np.array([point[1] for point in sorted_points])
-    return new_x, new_y
 
 class mbar_data(object):
     def __init__(self, label, analysis_folder = "analysis", log_gr_file = "log_gr.csv", 

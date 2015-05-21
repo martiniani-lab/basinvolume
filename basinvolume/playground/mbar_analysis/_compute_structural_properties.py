@@ -64,7 +64,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                                                     analysis_dir=analysis_dir)
     
     def run(self, deg=6, pinit=True, existing_only=True):
-        """compute boo for packings
+        """compute boo for packings. we exclude rattlers from the computation of the global structure factors
         exisisting_only: bool
             run on already existing packings only
         pinit : bool
@@ -77,6 +77,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not existing_only:
+                    print dname
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
                     trymakedir(analysis_dir_path)
@@ -94,7 +95,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                             f.write('[Z] \n')
                             f.write('Z: {:.16f} \n'.format(np.mean(z_list)))
                             f.write('[BOO] \n')
-                        f.write('Q{}: {:.16f} \n'.format(deg, np.mean(boo_list)))
+                        f.write('Q{}: {:.16f} \n'.format(deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
     
     def run_all(self, deg_list=[4,6,8,10,12], existing_only=True):
         for i,deg in enumerate(deg_list):
@@ -170,9 +171,14 @@ class BondOrientationalOrder(StructuralAnalysis):
         z_list = []
         for i in xrange(hs_radii.size):
             nnatoms_vec = nnatoms_list[i]
-            boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
-            boo_list.append(boo)
-            z_list.append(len(nnatoms_vec))
+            if len(nnatoms_vec) > 0:
+                boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
+                boo_list.append(boo)
+                z_list.append(len(nnatoms_vec))
+            else:
+                #rattlers
+                z_list.append(0)
+                boo_list.append(0)
         return np.array(boo_list), np.array(z_list)
 
 class PressureTensor(StructuralAnalysis):
@@ -212,8 +218,8 @@ class PressureTensor(StructuralAnalysis):
                         f.write('\n')
 
 if __name__ == "__main__":
-#    boo = BondOrientationalOrder()
-#    #boo.run(deg=12)
-#    boo.run_all()
+    boo = BondOrientationalOrder()
+    #boo.run(deg=12)
+    boo.run_all()
     pts = PressureTensor()
     pts.run()

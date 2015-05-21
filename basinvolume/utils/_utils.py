@@ -18,7 +18,26 @@ try:
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
     print err
-    
+
+class Bunch(dict):
+    def __init__(self, *args, **kwds):
+        super(Bunch, self).__init__(*args, **kwds)
+        self.__dict__ = self
+
+def get_immediate_subdirectories(dir):
+    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
+
+def _sort_pair(x,y):
+    """
+    sorts x and moves elements of y accordingly
+    """
+    xc = np.array(x)
+    points = zip(xc,y)
+    sorted_points = sorted(points)
+    new_x = np.array([point[0] for point in sorted_points])
+    new_y = np.array([point[1] for point in sorted_points])
+    return new_x, new_y
+
 def write_csv_xy(x, y, xerr=None, yerr=None, fit=None, fname='data.csv'):
     """
     fit is the y values of the fit to the xy plot

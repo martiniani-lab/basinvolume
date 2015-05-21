@@ -7,7 +7,7 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib import rc
     from itertools import cycle
-    from basinvolume.utils import log_factorial
+    from basinvolume.utils import *
     import scipy
     from scipy.stats import t
     from scipy.interpolate import spline
@@ -26,9 +26,6 @@ plt.rcParams['ytick.major.pad'] = 8
 """
 for plotting a linear fit with intervals of confidence see http://nbviewer.ipython.org/url/bagrow.com/dsv/LEC10_notes_2014-02-13.ipynb
 """
-def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
-
 def _read_nparticles(folder):
     nparticles = ""
     for char in folder[1:]:
@@ -58,11 +55,6 @@ def _sort_pair(x,y):
     new_x = np.array([point[0] for point in sorted_points])
     new_y = np.array([point[1] for point in sorted_points])
     return new_x, new_y
-
-class Bunch(dict):
-    def __init__(self, *args, **kwds):
-        super(Bunch, self).__init__(*args, **kwds)
-        self.__dict__ = self
 
 class EntropyData(object):
     def __init__(self, nparticles, path, 

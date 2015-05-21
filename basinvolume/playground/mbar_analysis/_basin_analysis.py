@@ -36,10 +36,36 @@ color_cycle=cycle([cm(1. * i / 6) for i in xrange(6)])
 """
 for plotting a linear fit with intervals of confidence see http://nbviewer.ipython.org/url/bagrow.com/dsv/LEC10_notes_2014-02-13.ipynb
 """
-def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
-
+class PackingDataSet(object):
+    """
+    this assumes naming convention n24_phi50_phi70_3D
+    
+    Parameters
+    ----------
+    set_path : string
+        path to set of explore_bv folders, for instance /path/to/n24_phi50_phi70_3D
+    """
+    def __init__(self, set_path):
+        self.set_path = set_path
+        self.set_name = os.path.split(self.set_path)[1]
+        str_values = re.findall('\d+', self.set_name)
+        self.nparticles, self.hs_phi = int(str_values[0]), int('0.'+str_values[1])
+        self.ss_phi, self.bdim = int('0.'+str_values[2]), int(str_values[3]) 
+        self.packing_data = []
+        self.free_energies = []
+        self.pressures = []
+    
+    def add_data(self, packing_data):
+        """
+        packing data is a list of PackingData objects
+        """
+        self.packing_data.extend(packing_data)
+        for data in packing_data:
+            if data.F is not None or data.P is not None:
+                self.free_energies.append(data.F)
+                self.pressures.append(data.P)
+    
 class PackingData(object):
     def __init__(self, name, configpath, packing_path=None):
         self.eps = 1.
@@ -54,6 +80,8 @@ class PackingData(object):
         self.P = None
         self.Ptensor = None
         self.Facc = None
+        self.Z = None
+        self.boo = None
         
     def _import_packing_config_file(self, configpath):
         configf = ConfigParser.ConfigParser()
@@ -103,15 +131,31 @@ class PackingData(object):
             self.P = configf.getfloat(title, 'P')
             Ptensor = configf.get(title, 'Ptensor')
             self.Ptensor = np.array([float(x) for x in Ptensor.split()])
+    
+    def import_structural_data(self, path):
+        """
+        import average contact number and bond orientational order parameters
+        """
+        if os.path.isfile(path):
+            configf = ConfigParser.ConfigParser()
+            configf.read(path)
+            Q4, Q6 = configf.getfloat('BOO','Q4'), configf.getfloat('BOO','Q6')
+            Q8, Q10 = configf.getfloat('BOO','Q8'), configf.getfloat('BOO','Q10')
+            Q12 = configf.getfloat('BOO','Q12')
+            self.boo = Bunch(Q4=Q4, Q6=Q6, Q8=Q8, Q10=Q10, Q12=Q12)
+            z = configf.getfloat('Z','Z')
+            self.Z = z
             
 class BasinAnalysis(object):
     """
     to use mbar change
+    set_dir is the directo
     volume_file = "mbar_volume"
     volume_title = "MBAR_VOLUME"
     """
-    def __init__(self, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
-                 volume_file="volume_data", pressure_file="pressure_data", volume_title = "VOLUME_FULL_PT"):
+    def __init__(self, workspace = None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
+                 analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data", 
+                 volume_title = "VOLUME_FULL_PT"):
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         if not os.path.isabs(jammed_packings_dir):
@@ -132,7 +176,7 @@ class BasinAnalysis(object):
             dname = dname[:-5]
         return dname    
     
-    def _collect_data(self):
+    def _collect_data_single(self):
         """compute boo for packings
         """
         for fname in os.listdir(self.packings_dir):
@@ -150,7 +194,7 @@ class BasinAnalysis(object):
         self.free_energies = np.array([data.F for data in self.packing_data])
         self.pressures = np.array([data.P for data in self.packing_data])
         
-        #THESE ARE JUST QUICK PLOTS, CLEAN THIS UP
+        #THESE ARE JUST QUICK PLOTS, CLEAN THIS UP AND PUTH EVERYTHING IN APPROPRIATE FUNCTIONS
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.scatter(self.free_energies, np.log(self.pressures))
@@ -159,20 +203,26 @@ class BasinAnalysis(object):
         plt.show()
 
         from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
-#        kde pressures
-#        bw = get_bandwidth_estimate(np.array(self.pressures), kernel="gaussian", method="cross_validation")
-#        edges = np.linspace(np.amin(self.pressures), np.amax(self.pressures), 1000)
-#        hist = get_pdf(self.pressures, edges, bandwidth=bw, kernel="gaussian")
-#        plt.plot(edges, hist)
-#        plt.show()
+        #kde pressures
+        bw = get_bandwidth_estimate(np.array(self.pressures), kernel="gaussian", method="cross_validation")
+        edges = np.linspace(np.amin(self.pressures), np.amax(self.pressures), 1000)
+        hist = get_pdf(self.pressures, edges, bandwidth=bw, kernel="gaussian")
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(edges, hist)
+        plt.xlabel("P")
+        plt.show()
 
-#        kde free energies
-#        free_energies = np.array([f for f in self.free_energies if f is not None])
-#        bw = get_bandwidth_estimate(np.array(free_energies), kernel="gaussian", method="cross_validation")
-#        edges = np.linspace(np.amin(free_energies), np.amax(free_energies), 100)
-#        hist = get_pdf(free_energies, edges, bandwidth=bw, kernel="gaussian")
-#        plt.plot(edges, hist)
-#        plt.show()
+        #kde free energies
+        free_energies = np.array([f for f in self.free_energies if f is not None])
+        bw = get_bandwidth_estimate(np.array(free_energies), kernel="gaussian", method="cross_validation")
+        edges = np.linspace(np.amin(free_energies), np.amax(free_energies), 100)
+        hist = get_pdf(free_energies, edges, bandwidth=bw, kernel="gaussian")
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(edges, hist)
+        plt.xlabel("F")
+        plt.show()
         
         
 
@@ -181,4 +231,4 @@ if __name__ == "__main__":
 #    #boo.run(deg=12)
 #    boo.run_all()
     pts = BasinAnalysis()
-    pts._collect_data()
+    pts._collect_data_single()
