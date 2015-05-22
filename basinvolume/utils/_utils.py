@@ -436,11 +436,15 @@ class OutlierDetection(object):
     def find_outliers(self):
         self.non_outliers = []
         self.outliers = []
-        for datum in self.data:
+        self.outliers_indexes = []
+        self.non_outliers_indexes = []
+        for i,datum in enumerate(self.data):
             if self.is_outlier(datum):
                 self.outliers.append(datum)
+                self.outliers_indexes.append(i)
             else:
                 self.non_outliers.append(datum)
+                self.non_outliers_indexes.append(i)
         if self.verbose:
             self.print_parameters_statistics()
     def is_outlier(self, central_datum):
