@@ -12,7 +12,6 @@ import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
-from basinvolume.post_processing import F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0
 from basinvolume.post_processing import VolumeSanityCheck
 import argparse
 from itertools import cycle
@@ -72,17 +71,9 @@ class _collect_u2_vs_k(object):
                 self._import_ks()
                 self._import_u2_reverse()
                 self._print_u2_vs_k()
+                self._compute_hs_fluid_volume() # Maybe we can move this to the entropy computation part, there is no reason to also compute the accessible volume at this point.
                 self._compute_volume()
                 self._plot_data()
-        except Exception as err:
-            print err
-        """
-        Volume compuation based on ingregral approximation with kmax and displ_k0 
-        """
-        try:
-            self._compute_hs_fluid_volume()
-            self._compute_approx_volume()
-            self._compute_PTu2k0_approx_volume()
         except Exception as err:
             print err
         """
@@ -246,27 +237,6 @@ class _collect_u2_vs_k(object):
         self.F0_acc = volume_sanity_check.F0_acc
         self.ideal_gas_F_acc = - self.nparticles*np.log(self.vcavity)
         
-    def _compute_approx_volume(self):
-        """
-        numerical volume obtained by approximating from kmax, and displ_k0
-        """
-        self.displ_k_min_error = np.sqrt(self.var_displ_k_min)
-        self.F0_approx, self.F0_approx_error = F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(self.displ_k_min, self.displ_k_min_error, self.kmax, self.vcavity, self.nparticles, self.bdim, self.prob_kmax)
-        self.unit_box_F0_approx = self.F0_approx + self.nparticles * np.log(self.vcavity)
-        print 'unit_box_F0_approx {}'.format(self.unit_box_F0_approx)
-        
-    def _compute_PTu2k0_approx_volume(self):
-        """
-        numerical volume obtained by approximating from kmax, and displ_k0, but using the displ_k0 as obtained from PT runs
-        """
-        self.PTu2k0 = self.u2_array[0]
-        self.PTu2k0_error = np.sqrt(self.var_array[0])
-        if np.amax(self.u2_array) > self.u2_array[0]:
-            raise Exception("_compute_PTu2k0_approx_volume: displacement-squared array is messed up")
-        self.F0_approx_PTu2k0, self.F0_approx_PTu2k0_error = F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(self.PTu2k0, self.PTu2k0_error, self.kmax, self.vcavity, self.nparticles, self.bdim, self.prob_kmax)
-        self.unit_box_F0_approx_PTu2k0 = self.F0_approx_PTu2k0 + self.nparticles * np.log(self.vcavity)
-        print "unit_box_F0_approx_PTu2k0 {}".format(self.unit_box_F0_approx_PTu2k0)
-    
     def _plot_diffusion(self):
         x, dx, y, dy = self._import_steps_time_series_diffusion()
         x, dx, y, dy = np.array(x), np.array(dx), np.array(y), np.array(dy)
@@ -365,21 +335,11 @@ class _collect_u2_vs_k(object):
         if hasattr(self, "F0_acc"):
             _to_file("F0_acc", self.F0_acc)
             _to_file("F0_ideal_gas", self.ideal_gas_F_acc)
-        f.write('[VOLUME_APPROXIMATED]\n')
-        if hasattr(self, "F0_approx"):
-            _to_file("F0_approx", self.F0_approx)
-            _to_file("F0_approx_error", self.F0_approx_error)
-            _to_file("unit_box_F0_approx", self.unit_box_F0_approx)
         f.write('[VOLUME_FULL_PT]\n')
         if hasattr(self, "F0"):
             _to_file("F0", self.F0)
             _to_file("sigF0", self.sigF0)
             _to_file("unit_box_F0", self.unit_box_F0)
-        f.write('[VOLUME_PTU2_APPROXIMATED]\n')
-        if hasattr(self, "F0_approx_PTu2k0"):
-            _to_file("F0_approx_PTu2k0", self.F0_approx_PTu2k0)
-            _to_file("F0_approx_PTu2k0_error", self.F0_approx_PTu2k0_error)
-            _to_file("unit_box_F0_approx_PTu2k0", self.unit_box_F0_approx_PTu2k0)
         f.close()
         
 if __name__ == "__main__":
