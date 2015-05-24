@@ -135,24 +135,12 @@ class ComputeEntropyCommon(object):
         self.F0 = []
         self.unit_box_F0 = []
         self.sigF0 = []
-        self.F0_approx = []
-        self.F0_approx_error = []
-        self.unit_box_F0_approx = []
-        self.F0_approx_PTu2k0 = []
-        self.F0_approx_PTu2k0_error = []
-        self.unit_box_F0_approx_PTu2k0 = []
         for vf in self.volume_files:
             self.read_from_volume_file(vf)
     def read_from_volume_file(self, vf):
         volf = ConfigParser.ConfigParser()
         volf.read(str(vf))
         try:
-            self.F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'F0_approx'))
-            self.F0_approx_error.append(volf.getfloat("VOLUME_APPROXIMATED", "F0_approx_error"))
-            self.unit_box_F0_approx.append(volf.getfloat('VOLUME_APPROXIMATED', 'unit_box_F0_approx'))
-            self.F0_approx_PTu2k0.append(volf.getfloat('VOLUME_PTU2_APPROXIMATED', 'F0_approx_PTu2k0'))
-            self.F0_approx_PTu2k0_error.append(volf.getfloat("VOLUME_PTU2_APPROXIMATED", "F0_approx_PTu2k0_error"))
-            self.unit_box_F0_approx_PTu2k0.append(volf.getfloat('VOLUME_PTU2_APPROXIMATED', 'unit_box_F0_approx_PTu2k0'))
             self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
             self.unit_box_F0.append(volf.getfloat('VOLUME_FULL_PT', 'unit_box_F0'))
             self.sigF0.append(volf.getfloat('VOLUME_FULL_PT', 'sigF0'))
@@ -328,7 +316,7 @@ def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
         
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compare F0 form full PT data with F0 from integral approximation")
+    parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
     parser.add_argument("-d", "--packings_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
     parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
     parser.add_argument("--nr_vpoints", type=int, default=-1, help="number of volume points, by default all otherwise select n at random")
