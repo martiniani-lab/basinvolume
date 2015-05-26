@@ -9,6 +9,7 @@ import os
 import numpy as np
 import argparse
 from itertools import cycle
+from basinvolume.post_processing import PackingDataSet
 try:
     import pylab as plt
 except ImportError as err:
@@ -30,6 +31,8 @@ class _compute_volumes(object):
         #
         self.set_path = os.path.abspath(self.set_path)
         print("self.set_path", self.set_path)
+        self.input_data = 
+        self.output_data = PackingDataSet(self.set_path)
     def run(self):
         print("running volume computation")
                
