@@ -1,3 +1,8 @@
+"""
+THIS IS OBSOLETE.
+But it has some useful code in it which should be migrated to the newer implementations.
+"""
+
 from __future__ import division
 import numpy as np
 import abc
