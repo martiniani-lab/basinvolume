@@ -57,6 +57,31 @@ try:
     from basinvolume.post_processing import BasinAnalysis
 except ImportError as err:
     print err
+    
+"""
+def compute_entropy_etc(self):
+    print("---numerical packing---")
+    packing_configpath = self.get_packing_configpath(42)
+    volume_sanity_check = VolumeSanityCheck(packing_configpath, numerical_moments=self.numerical_moments)
+    # -p log g entropy
+    self.APF_entropy = APFEntropy(self.F0_wo_outliers, volume_sanity_check)
+    self.APF_entropy.compute_and_write_entropy(os.path.join(self.output_path, "entropy_AFP"))
+    # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
+    self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, volume_sanity_check)
+    self.kernel_density_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_kernel_density"))
+    # fit to cdf, numerical integration for un-biasing
+    self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
+    try:
+        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(volume_sanity_check)
+    except Exception, e:
+        print e
+    # fit to pdf with ML method
+    self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, volume_sanity_check)
+    try:
+        self.ML_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_ML_LogOmega"))
+    except Exception, e:
+        print e
+"""
 
 class ComputeEntropy(object):
     """
