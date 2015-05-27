@@ -40,7 +40,6 @@ class ComputeEntropyCommon(object):
         # Begin: store input parameters.
         self.packings_dir = packings_dir
         self.plot_ts_integrand_data = plot_ts_integrand_data
-        self.skip_volume_computation = skip_volume_computation
         self.max_relative_GL_error = max_relative_GL_error
         self.kmax_threshold = kmax_threshold
         self.nr_volume_points = nr_volume_points
@@ -49,14 +48,8 @@ class ComputeEntropyCommon(object):
         # End: store input parameters.
         self.experimental = "exp" in packings_dir
         self.set_up_directories()
-        self.best_integration_selection = BestIntegrationSelection(max_relative_GL_error=self.max_relative_GL_error, kmax_threshold=self.kmax_threshold)
     def run_analysis(self):
-        if not self.skip_volume_computation:
-            self.compute_integrals_for_F0()
-        self.collect_computed_data_F0()
-        self.select_final_dataset()
-        self.process_final_dataset_for_plots()
-        self.compute_entropy_etc()
+        self.compute_integrals_for_F0()
     def set_up_directories(self):
         self.output_path = os.path.join(self.packings_dir, 'entropy_analysis_{}'.format('all' if self.nr_volume_points==-1 else str(self.nr_volume_points)))
         trymakedir(self.output_path)
@@ -259,10 +252,8 @@ class ComputeEntropy(object):
     based on the name of the folder containing the MC data
     ("packings_dir").
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data=False,
-                 skip_volume_computation=False, max_relative_GL_error=0.2, 
-                 kmax_threshold=1000, nr_volume_points=-1, force_run=False,
-                 numerical_moments=False):
+    def __init__(self, packings_dir, nr_volume_points=-1,
+                 force_run=False, method="MBAR"):
         self.experimental = "exp" in packings_dir
         if self.experimental:
             self.computer = ComputeEntropyExperimental(packings_dir,
@@ -286,23 +277,19 @@ def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
         
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
+    parser = argparse.ArgumentParser(description="Compute volumes from PT data, use either MBAR or TINT methods")
     parser.add_argument("-d", "--packings_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
     parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
     parser.add_argument("--nr_vpoints", type=int, default=-1, help="number of volume points, by default all otherwise select n at random")
-    parser.add_argument("-plot_only", "--plot_only", action='store_true', help="flag to switch off the actual volume computing and to only do the plotting part")
-    # if the relative error of the GL integral over the PT data is estimatedto be larger than max_relative_GL_error, the approximated integral is used instead to compute F0
-    parser.add_argument("-max_relative_GL_error", "--max_relative_GL_error", default=0.1, type=float, help="parameter that selects between GL integral from PT data and approx integral")
-    parser.add_argument("-kmax_threshold", "--kmax_threshold", default=1000, type=float, help="largest kmax value that is not considered to be huge")
     parser.add_argument("--force", action='store_true', help="force to recompute volumes for already computed ones", default=False)
-    parser.add_argument("--numerical_moments", action="store_true", help="compute moments of radii distribution numerically from the sample of radii instead of analytically from the parameters of the distribution", default=False)
-    parser.add_argument("-j","--ncores", type=int, help="number of packings to produce",default=4)
+    parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=4)
+    parser.add_argument("-m", "--method", type=str, help="volume computation method", default="MBAR")
     args = parser.parse_args()
     
     ncores = args.ncores
-    kwargs = dict(plot_ts_integrand_data=False, skip_volume_computation=args.plot_only,
-                  max_relative_GL_error=args.max_relative_GL_error, kmax_threshold=args.kmax_threshold,
-                  nr_volume_points=args.nr_vpoints, force_run=args.force, numerical_moments=args.numerical_moments)
+    kwargs = dict(nr_volume_points=args.nr_vpoints,
+                  force_run=args.force,
+                  method=args.method)
     
     if not args.all:
         packings_dir = os.path.abspath(args.packings_dir)
@@ -322,27 +309,3 @@ if __name__ == "__main__":
                     
         mypool.close()
         mypool.join()
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""               
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute basin volumes from PT data, use either TINT or MBAR")
-    parser.add_argument("-p","--set_path", type=str, help="packing data set path, e.g. n24_phi50_phi70_3D", default=None)
-    parser.add_argument("-m", "--method", type=str, help="volume computation method", default="MBAR")
-    parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
-    args = parser.parse_args()
-    print("args", args)
-    comp = _compute_volumes(set_path = args.set_path, frozen=args.frozen, method=args.method)
-    comp.run()
-"""
