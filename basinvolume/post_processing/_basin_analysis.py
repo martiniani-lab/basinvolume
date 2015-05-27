@@ -28,7 +28,7 @@ class BasinAnalysis(object):
     volume_file = "mbar_volume"
     volume_title = "MBAR_VOLUME"
     """
-    def __init__(self, workspace = None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
+    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
                  analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data", 
                  zboo_file="glob_boo", volume_title = "VOLUME_FULL_PT"):
         if workspace is None:
