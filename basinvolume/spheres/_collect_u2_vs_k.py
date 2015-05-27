@@ -19,6 +19,7 @@ from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import VolumeSanityCheck
 import argparse
+import sys
 from itertools import cycle
 try:
     import pylab as plt
@@ -32,7 +33,7 @@ class _collect_u2_vs_k(object):
     """
     def __call__(self, ts_skip=5000, fname='jammed_packing0', base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings',
-                 plot_ts_integrand_data=True, frozen=False, show=False, plot_only=False):
+                 plot_ts_integrand_data=True, frozen=False, show=False, plot_only=False, verbose=False):
                
         self.fname = fname
         if not os.path.isabs(jammed_packings_dir):
@@ -54,10 +55,12 @@ class _collect_u2_vs_k(object):
         assert os.path.isfile(self.findk_configpath)
         self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
         assert os.path.isfile(self.kmin_configpath)
-        print("self.packing_configpath", self.packing_configpath)
-        print("self.jammed_packing_configpath", self.jammed_packing_configpath)
-        print("self.findk_configpath", self.findk_configpath)
-        print("self.kmin_configpath", self.kmin_configpath)
+        self.verbose = verbose
+        if self.verbose:
+            print("self.packing_configpath", self.packing_configpath)
+            print("self.jammed_packing_configpath", self.jammed_packing_configpath)
+            print("self.findk_configpath", self.findk_configpath)
+            print("self.kmin_configpath", self.kmin_configpath)
         
         self.ts_skip = ts_skip
         self.plot_ts_integrand_data = plot_ts_integrand_data
@@ -79,8 +82,8 @@ class _collect_u2_vs_k(object):
                 self._import_ks()
                 self._import_u2_reverse()
                 self._print_u2_vs_k()
-                self._compute_hs_fluid_volume() # Maybe we can move this to the entropy computation part, there is no reason to also compute the accessible volume at this point.
-                self._compute_volume()
+                self._compute_hs_fluid_volume() # Maybe we can move this to the entropy computation part, 
+                self._compute_volume()          # there is no reason to also compute the accessible volume at this point.
                 self._plot_data()
         except Exception as err:
             print("Exception: ", err)

@@ -76,7 +76,7 @@ class VolumeSanityCheck(object):
         self.diameter_mean = 2 * configf.getfloat("PACKING", "radii_mean")
         radii_stdev = configf.getfloat("PACKING", "radii_stdev")
         self.diameter_variance = (2 * radii_stdev) ** 2
-        self.ideal_gas_V_acc = self.V_box ** self.nr_particles
+        self.log_ideal_gas_V_acc = self.nr_particles * np.log(self.V_box)
         if not numerical_moments:
             self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, self.diameter_mean, self.diameter_variance) 
         else:
@@ -86,11 +86,12 @@ class VolumeSanityCheck(object):
             diameter_variance_numerical = np.var(self.diameters)
             self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, diameter_mean_numerical, diameter_variance_numerical)
         self.V_acc = np.exp(- self.F0_acc)
-        if np.log(self.V_acc) > np.log(self.ideal_gas_V_acc):
+        if (-self.F0_acc) > self.log_ideal_gas_V_acc:
             raise Exception("VolumeSanityCheck: polyHS fluid failure")
         print "VolumeSanityCheck: "
         print "F0_acc, HS fluid", self.F0_acc
-        print "F0_acc, ideal gas", - np.log(self.ideal_gas_V_acc)
+        print "F0_acc, ideal gas", - self.log_ideal_gas_V_acc
+        
     def get_diameter_file_0_path(self):
         packings_dir = os.path.split(self.v_acc_parameter_file)[0]
         self.diameter_file_0_path = os.path.join(packings_dir, [dir for dir in os.listdir(packings_dir) if "xy" in dir][0])
@@ -112,9 +113,9 @@ class VolumeSanityCheck(object):
             print "failed F0 name", F0_name
             print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
             raise Exception("VolumeSanityCheck: illegal free energy")
-        if F0 < - np.log(self.ideal_gas_V_acc):
+        if F0 < - self.log_ideal_gas_V_acc:
             print "failed F0 value -- failed ideal gas box test"
-            print "-log(V_acc, ideal)", - np.log(self.ideal_gas_V_acc)
+            print "-log(V_acc, ideal)", - self.log_ideal_gas_V_acc
             print "failed F0 name", F0_name
             print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
             raise Exception("VolumeSanityCheck: illegal free energy")

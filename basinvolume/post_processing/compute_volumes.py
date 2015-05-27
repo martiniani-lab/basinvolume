@@ -79,10 +79,10 @@ class ComputeVolumesCommon(object):
                     if not self.force_run and os.path.isfile(os.path.join(path, self.analysis_dir, self.volume_file)):
                         try:
                             volf = ConfigParser.ConfigParser()
-                            volf.read(str(path + self.analysis_dir, self.volume_file))
+                            volf.read(os.path.join(path, self.analysis_dir, self.volume_file))
                             F0 = volf.getfloat(self.volume_title, 'F0')
                         except Exception, e:
-                            print "Exception: ", e
+                            print "run_analysis Exception: ", e
                             self._compute_volume(fname, path,
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))    
@@ -175,44 +175,6 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
                               jammed_packings_dir=jammed_packings_dir,
                               packings_dir=packings_dir,
                               plot_ts_integrand_data=False)
-    
-    def compute_integrals_for_F0(self):
-        series_collector = _collect_u2_vs_k()
-        self.pt_failures = PTFailures()
-        for (path, fname) in zip(self.explore_dirs, self.packing_strings):
-            if not (assert_pt_success(path, fname)):
-                # PT runs failed.
-                self.pt_failures.add_failure(fname)
-            else:
-                # PT runs successful.
-                self.pt_failures.add_success()
-                try:
-                    if not self.force_run and os.path.isfile(os.path.join(path, self.analysis_dir, self.volume_file)):
-                        try:
-                            volf = ConfigParser.ConfigParser()
-                            volf.read(str(path + "/analysis/volume_data"))
-                            F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
-                        except Exception, e:
-                            print "Exception: ", e
-                            series_collector(frozen=self.experimental,
-                                             fname=fname,
-                                             explore_dir=path,
-                                             jammed_packings_dir=os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
-                                             packings_dir=os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)),
-                                             plot_ts_integrand_data=False)
-                    else:
-                        series_collector(frozen=self.experimental,
-                                             fname=fname,
-                                             explore_dir=path,
-                                             jammed_packings_dir=os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
-                                             packings_dir=os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)),
-                                             plot_ts_integrand_data=False)
-                except Exception, e:
-                    print "Exception: ", e
-                    print "failed packing!"
-                    print "name: ", fname
-                    print "path:", path
-        self.pt_failures.print_failure_info()
 
 class ComputeVolumes(object):
     def __init__(self, workspace_dir, nr_volume_points=-1,
