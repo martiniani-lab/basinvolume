@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--nr_vpoints", type=int, default=-1, help="number of volume points, by default all otherwise select n at random")
     parser.add_argument("--force", action='store_true', help="force to recompute volumes for already computed ones", default=False)
     parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=4)
-    parser.add_argument("-m", "--method", type=str, help="volume computation method", default="MBAR")
+    parser.add_argument("-m", "--method", type=str, help="volume computation method", default="TINT")
     args = parser.parse_args()
     
     ncores = args.ncores
