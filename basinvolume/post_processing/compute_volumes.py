@@ -30,9 +30,9 @@ try:
 except ImportError as err:
     print err
 
-class ComputeEntropyCommon(object):
+class ComputeVolumesCommon(object):
     """
-    Contains common functionality of entropy computation which is
+    Contains common functionality of volume computation which is
     independent on config file layout.
     """
     def __init__(self, packings_dir, nr_volume_points, force_run, method):
@@ -47,8 +47,6 @@ class ComputeEntropyCommon(object):
     def run_analysis(self):
         self.compute_integrals_for_F0()
     def set_up_directories(self):
-        self.output_path = os.path.join(self.packings_dir, 'entropy_analysis_{}'.format('all' if self.nr_volume_points==-1 else str(self.nr_volume_points)))
-        trymakedir(self.output_path)
         self.explore_dirs = [os.path.join(self.packings_dir, f) for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
         if self.nr_volume_points != -1:
             print "removing volume points"
@@ -73,11 +71,21 @@ class ComputeEntropyCommon(object):
                             volf = ConfigParser.ConfigParser()
                             volf.read(str(path + "/analysis/volume_data"))
                             F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
-                        except Exception:
-                            series_collector(frozen=self.experimental, fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
+                        except Exception, e:
+                            print "Exception: ", e
+                            series_collector(frozen=self.experimental,
+                                             fname=fname,
+                                             explore_dir=path,
+                                             jammed_packings_dir=os.path.abspath(os.path.join(self.packings_dir, "jammed_packings")),
+                                             packings_dir=os.path.abspath(os.path.join(self.packings_dir, "packings")),
+                                             plot_ts_integrand_data=False)
                     else:
-                        series_collector(frozen=self.experimental, fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
-                    self.packing_stat.add_success()
+                        series_collector(frozen=self.experimental,
+                                             fname=fname,
+                                             explore_dir=path,
+                                             jammed_packings_dir=os.path.abspath(os.path.join(self.packings_dir, "jammed_packings")),
+                                             packings_dir=os.path.abspath(os.path.join(self.packings_dir, "packings")),
+                                             plot_ts_integrand_data=False)
                 except Exception, e:
                     print "Exception: ", e
                     print "failed packing!"
@@ -124,102 +132,14 @@ class ComputeEntropyCommon(object):
             self.print_histogram_and_data(self.F0_wo_outliers, "/volume_histogram_F0_final_removed_outliers")
         except Exception as err:
             print err
-    def print_histogram_and_data(self, data, name):
-        np.savetxt(self.output_path + name + ".data", data)
-        desired_binsize = 1.5
-        bins = np.abs(np.amax(data) - np.amin(data)) / desired_binsize
-        hist, bin_edges = np.histogram(data, density = True, bins = bins)
-        plt.hist(data, bins = bins, normed = True)
-        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-        def _gauss(x, sig, mu):
-            return 1 / np.sqrt(2 * np.pi * sig ** 2) * np.exp( -(x - mu) ** 2 / (2 * sig ** 2))
-        opt, error = curve_fit(_gauss, bin_centres, hist, [np.sqrt(np.var(data)), np.mean(data)])
-        gauss_fit_opt = opt
-        gauss_fit_opt[0] = np.abs(gauss_fit_opt[0]) #make printed sigma positive
-        gauss_fit_error = error
-        gauss_fit_names = ["sigma", "mean"]
-        gauss_fit = [gauss_fit_opt, gauss_fit_names]
-        generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
-        print "name:", name
-        generalised_gauss.fit(bin_centres, hist)
-        gen_gauss_fit_opt = [generalised_gauss.mu_fit, generalised_gauss.alpha_fit, generalised_gauss.zeta_fit]
-        gen_gauss_fit_error = generalised_gauss.fit_error
-        gen_gauss_fit_names = ["mean", "alpha", "zeta"]
-        gen_gauss_fit = [gen_gauss_fit_opt, gen_gauss_fit_names]
-        def _set_hist_basics(plt):
-            xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
-            plt.plot(xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g--", label = "Gaussian")
-            plt.plot(xp, [generalised_gauss.get_fitted(xpi) for xpi in xp], "r", label = "Generalised Gaussian")
-            plt.legend(loc='best', fancybox=True, framealpha=0.5)
-            plt.xlabel(r"Free energy $F$")
-            plt.ylabel(r"Probability density")
-        #plot in lin-lin scale
-        _set_hist_basics(plt)
-        save_pdf(plt, self.output_path + name + ".pdf")
-        plt.close()
-        plt.hist(data, bins=bins, normed=True)
-        #plot in ylog scale
-        _set_hist_basics(plt)
-        plt.yscale('log', nonposy='clip')
-        plt.axis(ymin = 0.25 / len(data))
-        save_pdf(plt, self.output_path + name + "_ylog" + ".pdf")
-        plt.close()
-        self.print_fitting_results(name, gauss_fit, gen_gauss_fit)
-    def print_fitting_results(self, name, gauss_fit, gen_gauss_fit):
-        self.fit_results_dir = self.output_path + name + ".fit_results"
-        f = ResultsFile(self.fit_results_dir)
-        def _print_function_parameters(fit_info):
-            for parameter in xrange(len(fit_info[0])):
-                f.to_file(fit_info[1][parameter], fit_info[0][parameter])
-        f.set_heading("GAUSS_FIT_PARAMETERS")
-        _print_function_parameters(gauss_fit)
-        f.set_heading("GENERALISED_GAUSS_FIT_PARAMETERS")
-        _print_function_parameters(gen_gauss_fit)
-        f.close()
 
-class ComputeEntropyNumerical(ComputeEntropyCommon):
-    """
-    Used for numerical packings wich have one and only one config file
-    for all basins.
-    """
-    def __init__(self, packings_dir, nr_volume_points, force_run, method):
-        super(ComputeEntropyNumerical, self).__init__(packings_dir, nr_volume_points, force_run, method)
-    def get_packing_configpath(self, volume_file):
-        return os.path.join(self.packings_dir, "packings/packing0.config")
-    def compute_entropy_etc(self):
-        print("---numerical packing---")
-        packing_configpath = self.get_packing_configpath(42)
-        volume_sanity_check = VolumeSanityCheck(packing_configpath, numerical_moments=self.numerical_moments)
-        # -p log g entropy
-        self.APF_entropy = APFEntropy(self.F0_wo_outliers, volume_sanity_check)
-        self.APF_entropy.compute_and_write_entropy(os.path.join(self.output_path, "entropy_AFP"))
-        # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
-        self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, volume_sanity_check)
-        self.kernel_density_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_kernel_density"))
-        # fit to cdf, numerical integration for un-biasing
-        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
-        try:
-            self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(volume_sanity_check)
-        except Exception, e:
-            print e
-        # fit to pdf with ML method
-        self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, volume_sanity_check)
-        try:
-            self.ML_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_ML_LogOmega"))
-        except Exception, e:
-            print e
-
-class ComputeEntropyExperimental(ComputeEntropyCommon):
+class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
     """
     Used for experimental packings, wich have different configuration
     files for each basin.
-    The name is ony for symmetry reasons.
-    Presumably this will only plot histograms (or possibly more),
-    because the entropy computation part is probably ill-defined for
-    experimental packings.
     """
     def __init__(self, packings_dir, nr_volume_points, force_run, method):
-        super(ComputeEntropyExperimental, self).__init__(packings_dir, nr_volume_points, force_run, method)
+        super(ComputeVolumesTINTMultiConfigFile, self).__init__(packings_dir, nr_volume_points, force_run, method)
     def get_packing_configpath(self, volume_file):
         # The data naming format of experimental packings MC is something like the following.
         # /scratch/kjs73/test/n32_exp_88_2D/explore_bv_jammed_packing73/explore_jammed_packing73.config
@@ -232,29 +152,25 @@ class ComputeEntropyExperimental(ComputeEntropyCommon):
         only_number = int(re.findall('\d+', volume_file)[0])
         return os.path.join(self.packings_dir, "packings", "packing" + only_number + ".config")
         #return os.path.join(tmp,  "explore_jammed_packing" + only_number + ".config")
-    def compute_entropy_etc(self):
-        print("---experimental packing---")
 
-class ComputeEntropy(object):
-    """
-    Use either ComputeEntropyNumerical or ComputeEntropyExperimental,
-    based on the name of the folder containing the MC data
-    ("packings_dir").
-    """
+class ComputeVolumes(object):
     def __init__(self, packings_dir, nr_volume_points=-1,
                  force_run=False, method="MBAR"):
+        self.method = method
         self.experimental = "exp" in packings_dir
-        if self.experimental:
-            self.computer = ComputeEntropyExperimental(packings_dir,
-                            nr_volume_points, force_run, method)
+        if self.method == "MBAR":
+            print("using MBAR method")
+        elif self.method == "TINT":
+            print("using thermodynamic integration method")
+            self.computer = ComputeVolumesTINTMultiConfigFile(packings_dir,
+                                nr_volume_points, force_run, method)
+            self.computer.run_analysis()
         else:
-            self.computer = ComputeEntropyNumerical(packings_dir,
-                            nr_volume_points, force_run, method)
-        self.computer.run_analysis()
+            raise Exception("ComputeVolumes: illegal choice of method, should be MBAR or TINT")
 
 def worker(packings_dir, kwargs):
     try:
-        ComputeEntropy(packings_dir, **kwargs)
+        ComputeVolumes(packings_dir, **kwargs)
     except:
         print('find_k worker: %s' % (traceback.format_exc()))
 
@@ -285,7 +201,6 @@ if __name__ == "__main__":
         try:
             for folder in subdirs:
                 if folder[1].isdigit() and folder[-1] == "D":
-                    #construct mcrunners in place and append them to pool
                     mypool.apply_async(worker, args=(os.path.abspath(folder),kwargs,))
         except:
             mypool.terminate()

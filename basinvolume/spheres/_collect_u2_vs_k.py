@@ -30,7 +30,6 @@ class _collect_u2_vs_k(object):
     this is a class that implements _collect_u2_vs_k class 
     *ts_skip number of points skipped when printing time series (every ts_skip)
     """
-        
     def __call__(self, ts_skip=5000, fname='jammed_packing0', base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings',
                  plot_ts_integrand_data=True, frozen=False, show=False, plot_only=False):
@@ -55,6 +54,10 @@ class _collect_u2_vs_k(object):
         assert os.path.isfile(self.findk_configpath)
         self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
         assert os.path.isfile(self.kmin_configpath)
+        print("self.packing_configpath", self.packing_configpath)
+        print("self.jammed_packing_configpath", self.jammed_packing_configpath)
+        print("self.findk_configpath", self.findk_configpath)
+        print("self.kmin_configpath", self.kmin_configpath)
         
         self.ts_skip = ts_skip
         self.plot_ts_integrand_data = plot_ts_integrand_data
@@ -80,7 +83,7 @@ class _collect_u2_vs_k(object):
                 self._compute_volume()
                 self._plot_data()
         except Exception as err:
-            print err
+            print("Exception: ", err)
         """
         Print basin volumes for further processing
         """
