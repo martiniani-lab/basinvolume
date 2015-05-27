@@ -35,16 +35,12 @@ class ComputeEntropyCommon(object):
     Contains common functionality of entropy computation which is
     independent on config file layout.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, 
-                 kmax_threshold, nr_volume_points, force_run, numerical_moments):
+    def __init__(self, packings_dir, nr_volume_points, force_run, method):
         # Begin: store input parameters.
         self.packings_dir = packings_dir
-        self.plot_ts_integrand_data = plot_ts_integrand_data
-        self.max_relative_GL_error = max_relative_GL_error
-        self.kmax_threshold = kmax_threshold
         self.nr_volume_points = nr_volume_points
         self.force_run = force_run
-        self.numerical_moments = numerical_moments
+        self.method = method
         # End: store input parameters.
         self.experimental = "exp" in packings_dir
         self.set_up_directories()
@@ -63,7 +59,6 @@ class ComputeEntropyCommon(object):
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
     def compute_integrals_for_F0(self):
         series_collector = _collect_u2_vs_k()
-        self.packing_stat = PackingFailureStatistics(len(self.explore_dirs))
         self.pt_failures = PTFailures()
         for (path, fname) in zip(self.explore_dirs, self.packing_strings):
             if not (assert_pt_success(path, fname)):
@@ -88,10 +83,7 @@ class ComputeEntropyCommon(object):
                     print "failed packing!"
                     print "name: ", fname
                     print "path:", path
-                    self.packing_stat.add_failure()
-                self.packing_stat.print_progress_info(fname)
         self.pt_failures.print_failure_info()
-        self.packing_stat.print_failure_info()
     def collect_computed_data_F0(self):
         self.volume_files = [os.path.join(f, "analysis/volume_data") for f in self.explore_dirs]
         self.F0_actually_imported_files = []
@@ -190,11 +182,8 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
     Used for numerical packings wich have one and only one config file
     for all basins.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, 
-                 max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments):
-        super(ComputeEntropyNumerical, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, 
-                                                      max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, 
-                                                      numerical_moments)
+    def __init__(self, packings_dir, nr_volume_points, force_run, method):
+        super(ComputeEntropyNumerical, self).__init__(packings_dir, nr_volume_points, force_run, method)
     def get_packing_configpath(self, volume_file):
         return os.path.join(self.packings_dir, "packings/packing0.config")
     def compute_entropy_etc(self):
@@ -229,8 +218,8 @@ class ComputeEntropyExperimental(ComputeEntropyCommon):
     because the entropy computation part is probably ill-defined for
     experimental packings.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments):
-        super(ComputeEntropyExperimental, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments)
+    def __init__(self, packings_dir, nr_volume_points, force_run, method):
+        super(ComputeEntropyExperimental, self).__init__(packings_dir, nr_volume_points, force_run, method)
     def get_packing_configpath(self, volume_file):
         # The data naming format of experimental packings MC is something like the following.
         # /scratch/kjs73/test/n32_exp_88_2D/explore_bv_jammed_packing73/explore_jammed_packing73.config
@@ -257,14 +246,10 @@ class ComputeEntropy(object):
         self.experimental = "exp" in packings_dir
         if self.experimental:
             self.computer = ComputeEntropyExperimental(packings_dir,
-                            plot_ts_integrand_data, skip_volume_computation,
-                            max_relative_GL_error, kmax_threshold,
-                            nr_volume_points, force_run, numerical_moments)
+                            nr_volume_points, force_run, method)
         else:
             self.computer = ComputeEntropyNumerical(packings_dir,
-                            plot_ts_integrand_data, skip_volume_computation,
-                            max_relative_GL_error, kmax_threshold,
-                            nr_volume_points, force_run, numerical_moments)
+                            nr_volume_points, force_run, method)
         self.computer.run_analysis()
 
 def worker(packings_dir, kwargs):
