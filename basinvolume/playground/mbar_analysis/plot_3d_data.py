@@ -34,7 +34,7 @@ cm = plt.get_cmap('Set2')
 #####################LINE STYLE CYCLER####################                             
 lines = ["-","--","-."]
 linecycler = cycle(lines)
-color_cycle=cycle([cm(1. * i / 6) for i in xrange(6)])
+color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
 ##########################################################
 """
 for plotting a linear fit with intervals of confidence see http://nbviewer.ipython.org/url/bagrow.com/dsv/LEC10_notes_2014-02-13.ipynb
@@ -49,19 +49,40 @@ def plot(packing_datasets):
         if len(dataset.free_energies) > 0:
             nparticles = dataset.nparticles
             outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
-            x = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-            y = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
-            ax.scatter(x, np.log(y), label=int(nparticles), color=color_cycle.next())
-            fit = np.polyfit(x, np.log(y),1)
+            x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+            y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+            x = np.log(x)
+            ax.scatter(x, y, label=int(nparticles), color=color_cycle.next())
+            fit = np.polyfit(x, y,1)
             fit_fn = np.poly1d(fit)
             ax.plot(x, fit_fn(x), color='k')
             dataset.add_extras(fit)
     ax.legend(frameon=False, loc="best")
-    plt.xlabel(r"$F$")
-    plt.ylabel(r"$\log P$")
+    plt.ylabel(r"$F$")
+    plt.xlabel(r"$\log P$")
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
+        if len(dataset.free_energies) > 0:
+            nparticles = dataset.nparticles
+            outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+            x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+            y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+            x = np.log(x)
+            x -= np.mean(x)
+            y -= np.mean(y)
+            ax.scatter(x, y, label=int(nparticles), color=color_cycle.next())
+            fit = np.polyfit(x, y,1)
+            fit_fn = np.poly1d(fit)
+            ax.plot(x, fit_fn(x), color='k')
+            dataset.add_extras(fit)
+    ax.legend(frameon=False, loc="best")
+    plt.ylabel(r"$F - \langle F \rangle$")
+    plt.xlabel(r"$\log P - \langle \log P \rangle$")
     
     def ff(x, a):
-        return a / x
+        return a * x
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -75,10 +96,29 @@ def plot(packing_datasets):
     #w = 1/np.array([data.nparticles for data in sorted(packing_datasets, key=lambda data: data.nparticles) if len(data.free_energies) > 0])
     popt, pcov = curve_fit(ff, x, y)
     print popt
-    ax.plot(x, ff(x, popt[0]), label="y = {:.3f} / N".format(popt[0]))
+    ax.plot(x, ff(x, popt[0]), label="F/log P = N/{:.3f}".format(1./popt[0]))
     ax.legend(frameon=False, loc="best")
     plt.xlabel(r"$ N $")
-    plt.ylabel("F vs logP power law exponent")
+    plt.ylabel(r"$F/\log P$ (power law exponent)")
+    
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
+#        nparticles = dataset.nparticles
+#        if len(dataset.free_energies) > 0:
+#            outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+#            x = np.array(dataset.contacts)[np.array(outliers.non_outliers_indexes, dtype="i")]
+#            y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+#            x = np.log(x)
+#            ax.scatter(x, y, label=int(nparticles), color=color_cycle.next())
+#            fit = np.polyfit(x, y,1)
+#            print fit
+#            fit_fn = np.poly1d(fit)
+#            ax.plot(x, fit_fn(x), color='k')
+#            #dataset.add_extras(fit)
+#    ax.legend(frameon=False, loc="best")
+#    plt.xlabel(r"$\log(z-z_{iso})$")
+#    plt.ylabel(r"$F$")
     
     plt.show()        
         
