@@ -40,22 +40,28 @@ class mbar_compute_dos(object):
     """
     this is a class that implements _mbar_compute_dos class 
     """
-        
-    def __call__(self, fname='jammed_packing0', nbins=1000, base_dir='analysis',
-                 explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings', 
-                 plot_data=True, frozen=False, show=False, bootstrap=False, kde=False, verbose=True):
-        
-        self.fname = fname
+    
+    def __init__(self, nbins=1000, bootstrap=False, kde=True):
         self.nbins = np.power(2, int(np.log2(nbins) + 0.5)) + 1#approximate to nearest power of 2 plus 1 (for rhomb integration)
+        self.kde = kde
+        self.bootstrap = bootstrap
+        
+    def __call__(self, fname='jammed_packing0', base_dir='analysis',
+                 explore_dir='explore_bv_jammed_packing', packings_dir='packings', 
+                 jammed_packings_dir='jammed_packings', frozen=False, show=False, 
+                 plot_data=True, verbose=True):
+        self.fname = fname
+        if not os.path.isabs(packings_dir):
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
+        self.packings_dir = packings_dir
         if not os.path.isabs(jammed_packings_dir):
             jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
-            packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.jammed_packings_dir = jammed_packings_dir
-        self.packings_dir = packings_dir
         if not os.path.isabs(explore_dir):
-            explore_dir = os.path.join(os.getcwd(),explore_dir+fname)
+            number = int(re.findall('\d+', self.fname)[0])
+            explore_dir = os.path.join(os.getcwd(),explore_dir+number)
         self.explore_dir = explore_dir
-        self.base_directory = self.explore_dir + '/' + base_dir
+        self.base_directory = os.path.join(self.explore_dir, base_dir)
         self.frozen = frozen
         n = int(re.findall(r'\d+', self.fname)[0])
         self.packing_configpath = os.path.join(packings_dir, 'packing{}.config'.format(n))
@@ -71,10 +77,8 @@ class mbar_compute_dos(object):
         self.innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + fname + '.config')
         assert os.path.isfile(self.innersphere_configpath)
         
-        self.kde = kde
         self.plot_data = plot_data
         self.show = show
-        self.bootstrap = bootstrap
         self.verbose = verbose
         self._import_config_files()
         if not self.bootstrap:
@@ -92,8 +96,8 @@ class mbar_compute_dos(object):
         self._import_ks()
         print "importing time series"
         self._import_pt_time_series()
-        print "detecting equilibration point"
-        self._find_eqtime(full=False)
+        #print "detecting equilibration point"
+        #self._find_eqtime(full=False) #commented out because this is switched off anyway
         print "importing innersphre time series"
         self._import_ts_sphere()
         print "subsampling time series"
@@ -117,8 +121,8 @@ class mbar_compute_dos(object):
         self._import_ks()
         print "importing time series"
         self._import_pt_time_series()
-        print "detecting equilibration point"
-        self._find_eqtime(full=False)
+        #print "detecting equilibration point"
+        #self._find_eqtime(full=False) #commented out because this is switched off anyway
         print "importing innersphre time series"
         self._import_ts_sphere()
         print "subsampling time series"
@@ -296,12 +300,12 @@ class mbar_compute_dos(object):
         vmin = volume_nball(rmin, self.ndof)
         Fmin = -np.log(vmin) 
         
-        u_lk = np.copy(self.u_kn[self.k0_index]) #was -1
+        u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
         LARGE = 1e70
         u_lk = np.where(r < rmin, u_lk, LARGE)
         u_lk = np.reshape(u_lk, (1, u_lk.size))
-        u_lk = np.vstack((u_lk, self.u_kn[self.k0_index])) #was -1, measure free energy difference between k=0 and kw
+        u_lk = np.vstack((u_lk, self.u_kn[self.k0_index])) #measure free energy difference between k=0 and kw
         Deltaf_ij, dDeltaf_ij = self.mbar.computePerturbedFreeEnergies(u_lk)
         #vol = Deltaf_ij[1,0]
         self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) - np.log(self.prob_kmax) - np.log(self.vcavity), dDeltaf_ij[1,0]
@@ -623,10 +627,10 @@ if __name__ == "__main__":
     if not os.path.isabs(fdir):
         fdir = os.path.join(wdir,fdir + fname)
     
-    sim = mbar_compute_dos()
+    sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde)
     
     if (fname != None):
-        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show, bootstrap=args.bootstrap, kde=args.kde)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:

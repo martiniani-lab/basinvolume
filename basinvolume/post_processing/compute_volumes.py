@@ -26,6 +26,7 @@ try:
     from basinvolume.utils import to_string, ResultsFile, MomentsAcc, trymakedir, OutlierDetection
     from basinvolume.post_processing import PTFailures, assert_pt_success, VolumeSanityCheck
     from basinvolume.spheres import _collect_u2_vs_k
+    from basinvolume.mbar_spheres import mbar_compute_dos
 except ImportError as err:
     print err
 
@@ -88,8 +89,8 @@ class ComputeVolumesCommon(object):
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))    
                     else:
                         self._compute_volume(fname, path,
-                                                os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
-                                                os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))
+                                             os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
+                                             os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))
                 except Exception, e:
                     print "Exception: ", e
                     print "failed packing!"
@@ -164,8 +165,10 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
     """
     Used for packings with one config file for each packing.
     """
-    def __init__(self, workspace_dir, nr_volume_points, force_run, method):
-        super(ComputeVolumesTINTMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method)
+    def __init__(self, workspace_dir, nr_volume_points, force_run, method, 
+                 volume_file="volume_data", volume_title="VOLUME_FULL_PT"):
+        super(ComputeVolumesTINTMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
+                                                                volume_file=volume_file, volume_title=volume_title)
         self.series_collector = _collect_u2_vs_k()
     
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
@@ -176,17 +179,37 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
                               packings_dir=packings_dir,
                               plot_ts_integrand_data=False)
 
+class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
+    """
+    Used for packings with one config file for each packing.
+    """
+    def __init__(self, workspace_dir, nr_volume_points, force_run, method, 
+                 volume_file="mbar_volume_data", volume_title="VOLUME_MBAR"):
+        super(ComputeVolumesMBARMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
+                                                                volume_file=volume_file, volume_title=volume_title)
+        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True)
+    
+    def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
+        self.series_collector(fname=fname,
+                              explore_dir=explore_dir,
+                              packings_dir=packings_dir,
+                              jammed_packings_dir=jammed_packings_dir,
+                              base_dir='analysis',
+                              plot_data=True, frozen=self.experimental, 
+                              show=False, verbose=False)
+
 class ComputeVolumes(object):
     def __init__(self, workspace_dir, nr_volume_points=-1,
-                 force_run=False, method="MBAR"):
+                 force_run=False, method="mbar"):
         self.method = method
         self.experimental = "exp" in workspace_dir
-        if self.method == "MBAR":
+        if self.method == "mbar":
             print("using MBAR method")
-        elif self.method == "TINT":
+            self.computer = ComputeVolumesMBARMultiConfigFile(workspace_dir, nr_volume_points, force_run, method)
+            self.computer.run_analysis()
+        elif self.method == "tint":
             print("using thermodynamic integration method")
-            self.computer = ComputeVolumesTINTMultiConfigFile(workspace_dir,
-                                nr_volume_points, force_run, method)
+            self.computer = ComputeVolumesTINTMultiConfigFile(workspace_dir, nr_volume_points, force_run, method)
             self.computer.run_analysis()
         else:
             raise Exception("ComputeVolumes: illegal choice of method, should be MBAR or TINT")
@@ -207,7 +230,7 @@ if __name__ == "__main__":
     parser.add_argument("--nr_vpoints", type=int, default=-1, help="number of volume points, by default all otherwise select n at random")
     parser.add_argument("--force", action='store_true', help="force to recompute volumes for already computed ones", default=False)
     parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=4)
-    parser.add_argument("-m", "--method", type=str, help="volume computation method", default="TINT")
+    parser.add_argument("-m", "--method", type=str, help="volume computation method", default="tint")
     args = parser.parse_args()
     
     ncores = args.ncores
