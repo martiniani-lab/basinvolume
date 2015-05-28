@@ -92,6 +92,10 @@ class ComputeEntropy(object):
     def __init__(self, packings_dir):
         self.analysis = BasinAnalysis(workspace=packings_dir)
         self.analysis.collect_data_all_set()
+        for (nr_particles, data_set) in self.analysis.packing_datasets:
+            self._compute_write_entropies(data_set)
+    def _compute_write_entropies(self, data_set):
+        print(nr_particles, data_set)
 
 def worker(packings_dir, kwargs):
     try:
@@ -106,6 +110,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
     parser.add_argument("-d", "--packings_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
     parser.add_argument("-j","--ncores", type=int, help="number of packings to produce", default=4)
+    parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
     args = parser.parse_args()
     
     ncores = args.ncores
