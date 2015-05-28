@@ -187,7 +187,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                  volume_file="mbar_volume_data", volume_title="VOLUME_MBAR"):
         super(ComputeVolumesMBARMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
                                                                 volume_file=volume_file, volume_title=volume_title)
-        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True)
+        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=False)
     
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
         self.series_collector(fname=fname,
@@ -195,7 +195,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                               packings_dir=packings_dir,
                               jammed_packings_dir=jammed_packings_dir,
                               base_dir='analysis',
-                              plot_data=True, frozen=self.experimental, 
+                              frozen=self.experimental, 
                               show=False, verbose=False)
 
 class ComputeVolumes(object):

@@ -36,20 +36,27 @@ def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cros
     hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
     return hist
 
+def find_eqtime(ts):
+    max_eq_time = ts.size // 2
+    time = detectEquilibration_binary_search(ts, bs_nodes=30)[0]
+    time = np.amin([max_eq_time, time]) #this should avoid detecting artifacts near the end of the series
+    return int(time)
+
 class mbar_compute_dos(object):
     """
     this is a class that implements _mbar_compute_dos class 
     """
     
-    def __init__(self, nbins=1000, bootstrap=False, kde=True):
+    def __init__(self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True):
         self.nbins = np.power(2, int(np.log2(nbins) + 0.5)) + 1#approximate to nearest power of 2 plus 1 (for rhomb integration)
         self.kde = kde
         self.bootstrap = bootstrap
+        self.plot_dos_data = plot_dos_data
         
     def __call__(self, fname='jammed_packing0', base_dir='analysis',
                  explore_dir='explore_bv_jammed_packing', packings_dir='packings', 
                  jammed_packings_dir='jammed_packings', frozen=False, show=False, 
-                 plot_data=True, verbose=True):
+                 verbose=True):
         self.fname = fname
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
@@ -77,7 +84,6 @@ class mbar_compute_dos(object):
         self.innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + fname + '.config')
         assert os.path.isfile(self.innersphere_configpath)
         
-        self.plot_data = plot_data
         self.show = show
         self.verbose = verbose
         self._import_config_files()
@@ -96,8 +102,8 @@ class mbar_compute_dos(object):
         self._import_ks()
         print "importing time series"
         self._import_pt_time_series()
-        #print "detecting equilibration point"
-        #self._find_eqtime(full=False) #commented out because this is switched off anyway
+        print "subtracting equilibration point"
+        self._subtract_eqtime()
         print "importing innersphre time series"
         self._import_ts_sphere()
         print "subsampling time series"
@@ -108,11 +114,12 @@ class mbar_compute_dos(object):
         self._mbar_compute_volume()
         self._compute_hs_fluid_volume()
         self._print_volumes()
-        print "plotting data"
-        self._build_histogram(kde=self.kde)
-        self._compute_dos()
-        self._plot_data()
-        #self._pmf()
+        if self.plot_dos_data:
+            print "plotting data"
+            self._build_histogram(kde=self.kde)
+            self._compute_dos()
+            self._plot_dos_data()
+            #self._pmf()
     
     def run_bs(self, nr_subsamples=10):
         base_directory = self.base_directory
@@ -121,8 +128,8 @@ class mbar_compute_dos(object):
         self._import_ks()
         print "importing time series"
         self._import_pt_time_series()
-        #print "detecting equilibration point"
-        #self._find_eqtime(full=False) #commented out because this is switched off anyway
+        print "subtracting equilibration point"
+        self._subtract_eqtime()
         print "importing innersphre time series"
         self._import_ts_sphere()
         print "subsampling time series"
@@ -133,34 +140,35 @@ class mbar_compute_dos(object):
         self._mbar_compute_volume()
         self._print_volumes()
         print "plotting data all"
-        self._build_histogram(kde=self.kde)
-        self._compute_dos()
-        #now bootstrap timeseries to compute error bars on dos
-        #the timeseries after find_eqtime has already discared the burn out region
-        full_flat_timeseries = np.copy(self.flat_timeseries)
-        self.logn_E_subs = self.logn_E.copy()
-        initial_f_k = np.array(self.mbar.f_k)
-        for iter in xrange(nr_subsamples):
-            print "sumbsapling - iteration {}".format(iter)
-            j = 0
-            for n_k in self.N_k:
-                idx = np.random.randint(0, n_k, size=n_k)
-                ts = full_flat_timeseries[j:j+n_k]
-                self.flat_timeseries[j:j+n_k] = ts[idx]
-                j+=n_k
-            start = time.time()
-            #self._build_mbar(verbose=False, maxiter=1000, reltol=1.0e-7, initial_f_k=initial_f_k, subsampling=16)
-            self._build_mbar(verbose=False, initial_f_k=initial_f_k)
-            print "t: ", time.time() - start
-            #compute the weights, skip the volume calculation
-            Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
-            self.w_i_final = -Deltaf_ij[0]
-            #now build histogram and compute dos
-            self._build_histogram(compute_binedges=False, kde=self.kde)
+        if self.plot_dos_data:
+            self._build_histogram(kde=self.kde)
             self._compute_dos()
-            self.logn_E_subs = np.vstack((self.logn_E_subs, self.logn_E))
-        #plot data
-        self._plot_data()
+            #now bootstrap timeseries to compute error bars on dos
+            #the timeseries after find_eqtime has already discared the burn out region
+            full_flat_timeseries = np.copy(self.flat_timeseries)
+            self.logn_E_subs = self.logn_E.copy()
+            initial_f_k = np.array(self.mbar.f_k)
+            for iter in xrange(nr_subsamples):
+                print "sumbsapling - iteration {}".format(iter)
+                j = 0
+                for n_k in self.N_k:
+                    idx = np.random.randint(0, n_k, size=n_k)
+                    ts = full_flat_timeseries[j:j+n_k]
+                    self.flat_timeseries[j:j+n_k] = ts[idx]
+                    j+=n_k
+                start = time.time()
+                #self._build_mbar(verbose=False, maxiter=1000, reltol=1.0e-7, initial_f_k=initial_f_k, subsampling=16)
+                self._build_mbar(verbose=False, initial_f_k=initial_f_k)
+                print "t: ", time.time() - start
+                #compute the weights, skip the volume calculation
+                Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
+                self.w_i_final = -Deltaf_ij[0]
+                #now build histogram and compute dos
+                self._build_histogram(compute_binedges=False, kde=self.kde)
+                self._compute_dos()
+                self.logn_E_subs = np.vstack((self.logn_E_subs, self.logn_E))
+            #plot data
+            self._plot_dos_data()
         
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
@@ -224,24 +232,15 @@ class mbar_compute_dos(object):
         X = np.array(timeseries)
         Y = series_order
         self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
-    
-    def _find_eqtime(self, full=False):
-        if full:
-            eq_time = 0
-            for i,ts in enumerate(self.timeseries):
-                max_eq_time = ts.size // 2
-                time = detectEquilibration_binary_search(ts, bs_nodes=20)[0]
-                time = np.amin([max_eq_time, time]) #this should avoid detecting artifacts near the end of the series
-                new_eq_time = np.amax([time, self.adjustf_niter]) #guarantees that eq_time is larger than the mcrunner adapted number of steps
-                if self.verbose:
-                    print "eq_time{}: {}".format(i, new_eq_time)
-                #gather values, find largest, then broadcast it
-                if new_eq_time > eq_time:
-                    eq_time = new_eq_time
-            eq_time = int(eq_time)
-            #remove equilibration region from pt timeseries
-            self.timeseries = self.timeseries[:,eq_time:]
-    
+        
+    def _subtract_eqtime(self):
+        #remove equilibration region from pt timeseries
+        results = Parallel(n_jobs=8)(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
+        #if self.verbose:
+        print "eq_times: ", results
+        eq_time = int(np.amax(results))
+        self.timeseries = self.timeseries[:,eq_time:]
+        
     def _build_u_kn(self, flat_timeseries):
         K, N = self.karray.size, flat_timeseries.size
         u_kn = np.empty((K, N))  
@@ -386,14 +385,13 @@ class mbar_compute_dos(object):
         ldos = dos_from_offsets(self.hist_visits, log_dos, self.w_i_final)
         self.logn_E = np.array(ldos)
     
-    def _plot_data(self):
-        if self.plot_data is False:
-            return
+    def _plot_dos_data(self):
         self._plot_raw()
         if self.bootstrap:
             self._plot_dos_bs()
         else:
             self._plot_dos()
+        plt.close('all')
         
     def _plot_raw(self):
         lines = ["-", "--", "-."]
@@ -454,7 +452,7 @@ class mbar_compute_dos(object):
         ax.plot(self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
-        plt.ylim((np.amin(rg),1.1*np.amax(rg)))
+        plt.ylim((min(np.amin(rg), np.amin(logn_E)), max(np.amax(rg),np.amax(logn_E)) ))
         plt.savefig(self.base_directory + '/log_dos.eps')
         write_csv_xy(self.bin_edges[:-1], logn_E, fname=os.path.join(self.base_directory, 'log_gr.csv'))
         write_csv_xy(self.bin_edges[:-1], rg, fname=os.path.join(self.base_directory, 'log_gr_ratio.csv'))
@@ -627,7 +625,7 @@ if __name__ == "__main__":
     if not os.path.isabs(fdir):
         fdir = os.path.join(wdir,fdir + fname)
     
-    sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde)
+    sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
     
     if (fname != None):
         sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show)
