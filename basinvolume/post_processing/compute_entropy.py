@@ -99,7 +99,9 @@ class ComputeEntropy(object):
             self._compute_write_entropies(data_set)
     def _compute_write_entropies(self, data_set):
         print("compute and write entropies for dataset with name", data_set.set_name)
-        print("data_set.free_energies", data_set.free_energies)
+        print("data_set.packing_data[0].configpath", data_set.packing_data[0].configpath)
+        volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath)
+        APF = APFEntropy(data_set.free_energies, volume_sanity_check)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")

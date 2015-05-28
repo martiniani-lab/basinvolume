@@ -80,7 +80,6 @@ class BasinAnalysis(object):
         for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
             if 'xyzd' in fname or 'xyd' in fname:
                 dname = self._get_dname(fname)
-                print("dname", dname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
