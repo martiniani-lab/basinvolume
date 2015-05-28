@@ -94,12 +94,11 @@ class ComputeEntropy(object):
         self.workspace = os.path.abspath(workspace)
         #
         self.analysis = BasinAnalysis(workspace=self.workspace)
-        self.analysis.collect_data_all_set()
-        print ("self.analysis.packing_datasets", self.analysis.packing_datasets)
-        for (nr_particles, data_set) in self.analysis.packing_datasets:
+        self.analysis.collect_data_all_set(no_pickle=True)
+        for data_set in self.analysis.packing_datasets:
             self._compute_write_entropies(data_set)
     def _compute_write_entropies(self, data_set):
-        print(nr_particles, data_set)
+        print("compute and write entropies for dataset with name", dataset.set_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
