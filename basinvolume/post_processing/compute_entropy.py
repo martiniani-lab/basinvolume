@@ -89,48 +89,20 @@ class ComputeEntropy(object):
     based on the name of the folder containing the MC data
     ("packings_dir").
     """
-    def __init__(self, packings_dir):
-        self.analysis = BasinAnalysis(workspace=packings_dir)
+    def __init__(self, workspace):
+        #
+        self.workspace = os.path.abspath(workspace)
+        #
+        self.analysis = BasinAnalysis(workspace=self.workspace)
         self.analysis.collect_data_all_set()
+        print ("self.analysis.packing_datasets", self.analysis.packing_datasets)
         for (nr_particles, data_set) in self.analysis.packing_datasets:
             self._compute_write_entropies(data_set)
     def _compute_write_entropies(self, data_set):
         print(nr_particles, data_set)
 
-def worker(packings_dir, kwargs):
-    try:
-        ComputeEntropy(packings_dir, **kwargs)
-    except:
-        print('find_k worker: %s' % (traceback.format_exc()))
-
-def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
-        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
-    parser.add_argument("-d", "--packings_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
-    parser.add_argument("-j","--ncores", type=int, help="number of packings to produce", default=4)
-    parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
+    parser.add_argument("-w", "--workspace", type=str, help="top-level dir containing the packings folders of format n32_phi88_2D", default=os.getcwd())
     args = parser.parse_args()
-    
-    ncores = args.ncores
-    kwargs = dict([])
-    
-    if not args.all:
-        packings_dir = os.path.abspath(args.packings_dir)
-        worker(packings_dir, kwargs)
-    else:
-        mypool = mp.Pool(ncores)
-        subdirs = get_immediate_subdirectories(os.getcwd())
-        try:
-            for folder in subdirs:
-                if folder[1].isdigit() and folder[-1] == "D":
-                    mypool.apply_async(worker, args=(os.path.abspath(folder),kwargs,))
-        except:
-            mypool.terminate()
-            mypool.join()
-            raise
-                    
-        mypool.close()
-        mypool.join()
-
+    ComputeEntropy(args.workspace)
