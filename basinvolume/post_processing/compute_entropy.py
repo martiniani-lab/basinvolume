@@ -98,7 +98,8 @@ class ComputeEntropy(object):
         for data_set in self.analysis.packing_datasets:
             self._compute_write_entropies(data_set)
     def _compute_write_entropies(self, data_set):
-        print("compute and write entropies for dataset with name", dataset.set_name)
+        print("compute and write entropies for dataset with name", data_set.set_name)
+        print("data_set.free_energies", data_set.free_energies)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")

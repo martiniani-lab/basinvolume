@@ -51,10 +51,13 @@ class PackingDataSet(object):
         """
         self.packing_data.extend(packing_data)
         for data in packing_data:
-            if data.F is not None and data.P is not None and data.Z is not None and data.boo is not None:
+            if data.F is not None:
                 self.free_energies.append(data.F)
+            if data.P is not None:
                 self.pressures.append(data.P)
+            if data.Z is not None:
                 self.contacts.append(data.Z)
+            if data.boo is not None:
                 self.boos.append(data.boo)
     
     def add_extras(self, extra):

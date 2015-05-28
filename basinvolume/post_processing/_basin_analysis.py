@@ -78,7 +78,6 @@ class BasinAnalysis(object):
         pd_list = []
         packing_dataset = PackingDataSet(set_path)
         for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
-            print("fname", fname)
             if 'xyzd' in fname or 'xyd' in fname:
                 dname = self._get_dname(fname)
                 print("dname", dname)
