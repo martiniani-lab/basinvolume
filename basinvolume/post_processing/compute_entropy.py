@@ -55,46 +55,49 @@ try:
     from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
     from basinvolume.post_processing import PTFailures, assert_pt_success
     from basinvolume.post_processing import BasinAnalysis
+    from joblib import Parallel, delayed
 except ImportError as err:
     print err
-    
+
+def _entropy(name, out_path, sanity_check, free_energies):
+    computer = name(free_energies, sanity_check)
+    try:
+        computer.compute_and_write_entropy(out_path)
+    except Exception as ex:
+        print("Exception occured in ", name)
+        print(ex)
+
+def _compute_write_entropies(data_set):
+    print("compute and write entropies for dataset with name", data_set.set_name)
+    entropy_base_output_path = os.path.join(data_set.set_path, 'entropy_analysis_all')
+    print("entropy_base_output_path", entropy_base_output_path)
+    trymakedir(entropy_base_output_path)
+    volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
+    unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(data_set.free_energies, entropy_base_output_path)
+    try:
+        unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
+    except Exception as ex:
+        print("Exception occured in unbiasing for log omega:", ex)
+    _entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, data_set.free_energies)
+    _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, data_set.free_energies)
+    _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, data_set.free_energies)
+
 class ComputeEntropy(object):
     """
     Read free energies with data set tools.
     Compute different entropies from them.
     """
-    def __init__(self, workspace):
+    def __init__(self, workspace, ncores=6):
         #
         self.workspace = os.path.abspath(workspace)
         #
         self.analysis = BasinAnalysis(workspace=self.workspace)
         self.analysis.collect_data_all_set(no_pickle=True)
-        for data_set in self.analysis.packing_datasets:
-            self._compute_write_entropies(data_set)
-    def _compute_write_entropies(self, data_set):
-        print("compute and write entropies for dataset with name", data_set.set_name)
-        entropy_base_output_path = os.path.join(data_set.set_path, 'entropy_analysis_all')
-        print("entropy_base_output_path", entropy_base_output_path)
-        trymakedir(entropy_base_output_path)
-        volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
-        unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(data_set.free_energies, entropy_base_output_path)
-        try:
-            unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
-        except Exception as ex:
-            print("Exception occured in unbiasing for log omega:", ex)
-        self._entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, data_set.free_energies)
-        self._entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, data_set.free_energies)
-        self._entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, data_set.free_energies)
-    def _entropy(self, name, out_path, sanity_check, free_energies):
-        computer = name(free_energies, sanity_check)
-        try:
-            computer.compute_and_write_entropy(out_path)
-        except Exception as ex:
-            print("Exception occured in ", name)
-            print(ex)
+        results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies)(data_set) for data_set in self.analysis.packing_datasets)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
     parser.add_argument("-w", "--workspace", type=str, help="top-level dir containing the packings folders of format n32_phi88_2D", default=os.getcwd())
+    parser.add_argument("-j", "--ncores", type=int, help="number of parallel jobs to run, default 6", default=6)
     args = parser.parse_args()
-    ComputeEntropy(args.workspace)
+    ComputeEntropy(args.workspace, ncores=args.ncores)
