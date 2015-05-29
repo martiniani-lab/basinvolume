@@ -58,33 +58,10 @@ try:
 except ImportError as err:
     print err
     
-"""
-def compute_entropy_etc(self):
-    print("---numerical packing---")
-    packing_configpath = self.get_packing_configpath(42)
-    volume_sanity_check = VolumeSanityCheck(packing_configpath, numerical_moments=self.numerical_moments)
-    # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
-    self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, volume_sanity_check)
-    self.kernel_density_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_kernel_density"))
-    # fit to cdf, numerical integration for un-biasing
-    self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
-    try:
-        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(volume_sanity_check)
-    except Exception, e:
-        print e
-    # fit to pdf with ML method
-    self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, volume_sanity_check)
-    try:
-        self.ML_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_ML_LogOmega"))
-    except Exception, e:
-        print e
-"""
-
 class ComputeEntropy(object):
     """
-    Use either ComputeEntropyNumerical or ComputeEntropyExperimental,
-    based on the name of the folder containing the MC data
-    ("packings_dir").
+    Read free energies with data set tools.
+    Compute different entropies from them.
     """
     def __init__(self, workspace):
         #
@@ -100,8 +77,14 @@ class ComputeEntropy(object):
         print("entropy_base_output_path", entropy_base_output_path)
         trymakedir(entropy_base_output_path)
         volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
+        unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(data_set.free_energies, entropy_base_output_path)
+        try:
+            unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
+        except Exception as ex:
+            print("Exception occured in unbiasing for log omega:", ex)
         self._entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, data_set.free_energies)
         self._entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, data_set.free_energies)
+        self._entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, data_set.free_energies)
     def _entropy(self, name, out_path, sanity_check, free_energies):
         computer = name(free_energies, sanity_check)
         try:
