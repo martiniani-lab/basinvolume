@@ -58,7 +58,7 @@ def _sort_pair(x,y):
 
 class EntropyData(object):
     def __init__(self, nparticles, path, 
-                 apf_file="entropy_AFP", apf_file_title="ENTROPY_APF",
+                 apf_file="entropy_APF", apf_file_title="ENTROPY_APF",
                  kd_file="entropy_kernel_density", kd_file_title="LOG_OMEGA_KERNEL_DENSITY",
                  lo_file="entropy_LogOmega", lo_file_title="ENTROPY_LOG_OMEGA",
                  loml_file="entropy_ML_LogOmega", loml_file_title="LOG_OMEGA_ML",
@@ -417,10 +417,12 @@ class plot_entropy(object):
     
                 
 if __name__ == "__main__":
+    show=True
+    savefig=False
     pe = plot_entropy()
     #pe.plot_single(show=True, savefig=True)
-    #pe.plot_compare_apf2D(show=True,savefig=True)
-    #pe.plot_all(show=False,savefig=True)
-    pe.plot_lo_param(show=True,savefig=False)
+    #pe.plot_compare_apf2D(show=show,savefig=savefig)
+    pe.plot_all(show=show,savefig=savefig)
+    pe.plot_lo_param(show=show,savefig=savefig)
 
 

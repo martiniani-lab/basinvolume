@@ -73,14 +73,16 @@ def _compute_write_entropies(data_set):
     print("entropy_base_output_path", entropy_base_output_path)
     trymakedir(entropy_base_output_path)
     volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
-    unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(data_set.free_energies, entropy_base_output_path)
+    outliers = OutlierDetection(data_set.free_energies, p=0.5, D=3*np.std(data_set.free_energies))
+    free_energies = np.array(data_set.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+    unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(free_energies, entropy_base_output_path)
     try:
         unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
     except Exception as ex:
         print("Exception occured in unbiasing for log omega:", ex)
-    _entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, data_set.free_energies)
-    _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, data_set.free_energies)
-    _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, data_set.free_energies)
+    _entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, free_energies)
+    _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, free_energies)
+    _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)
 
 class ComputeEntropy(object):
     """
