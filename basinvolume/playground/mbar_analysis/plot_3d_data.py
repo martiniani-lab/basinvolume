@@ -73,7 +73,7 @@ def plot(packing_datasets):
             x -= np.mean(x)
             y -= np.mean(y)
             ax.scatter(x, y, label=int(nparticles), color=color_cycle.next())
-            fit = np.polyfit(x, y,1)
+            fit = np.polyfit(x, y, 1)
             fit_fn = np.poly1d(fit)
             ax.plot(x, fit_fn(x), color='k')
             dataset.add_extras(fit)
@@ -86,20 +86,31 @@ def plot(packing_datasets):
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    x, y = [], []
+    x, y, y2 = [], [], []
     for dataset in sorted(packing_datasets, key=lambda data: data.nparticles):
         if len(dataset.free_energies) > 0:
             y.append(dataset.extras[0][0])
+            y2.append(dataset.extras[0][1])
             x.append(dataset.nparticles)
-    x, y = np.array(x), np.array(y)
+    x, y, y2 = np.array(x), np.array(y), np.array(y2)
     ax.plot(x,y, marker='o', ms=9)
-    #w = 1/np.array([data.nparticles for data in sorted(packing_datasets, key=lambda data: data.nparticles) if len(data.free_energies) > 0])
     popt, pcov = curve_fit(ff, x, y)
     print popt
     ax.plot(x, ff(x, popt[0]), label="F/log P = N/{:.3f}".format(1./popt[0]))
     ax.legend(frameon=False, loc="best")
     plt.xlabel(r"$ N $")
     plt.ylabel(r"$F/\log P$ (power law exponent)")
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(x,y2, marker='o', ms=9)
+    popt, pcov = curve_fit(ff, x, y2)
+    print popt
+    ax.plot(x, ff(x, popt[0]), label="q = {:.3f}N".format(popt[0]))
+    ax.legend(frameon=False, loc="best")
+    plt.xlabel(r"$ N $")
+    plt.ylabel(r"q (power law constant)")
+    
     
 #    fig = plt.figure()
 #    ax = fig.add_subplot(111)

@@ -47,11 +47,12 @@ class mbar_compute_dos(object):
     this is a class that implements _mbar_compute_dos class 
     """
     
-    def __init__(self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True):
+    def __init__(self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=8):
         self.nbins = np.power(2, int(np.log2(nbins) + 0.5)) + 1#approximate to nearest power of 2 plus 1 (for rhomb integration)
         self.kde = kde
         self.bootstrap = bootstrap
         self.plot_dos_data = plot_dos_data
+        self.ncores = ncores
         
     def __call__(self, fname='jammed_packing0', base_dir='analysis',
                  explore_dir='explore_bv_jammed_packing', packings_dir='packings', 
@@ -224,7 +225,7 @@ class mbar_compute_dos(object):
                     file_list = glob.glob(path + '/TimeSeries*')
                     file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
                     series_order.append(int(dir))
-                    results = Parallel(n_jobs=8)(delayed(read_txt)(series_path) for series_path in file_list) #DEBUG [len(file_list)//3:]
+                    results = Parallel(n_jobs=self.ncores)(delayed(read_txt)(series_path) for series_path in file_list) #DEBUG [len(file_list)//3:]
                     series = list(chain.from_iterable(results))
                     #shorten series to max series size, remove adjustf region and subsample
                     skip = max(1, len(series[int(self.adjustf_niter):])//max_series_size)
@@ -235,8 +236,7 @@ class mbar_compute_dos(object):
         
     def _subtract_eqtime(self):
         #remove equilibration region from pt timeseries
-        results = Parallel(n_jobs=8)(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
-        #if self.verbose:
+        results = Parallel(n_jobs=self.ncores)(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
         print "eq_times: ", results
         eq_time = int(np.amax(results))
         self.timeseries = self.timeseries[:,eq_time:]
@@ -347,7 +347,7 @@ class mbar_compute_dos(object):
         hist_visits = []
         hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
         hist_visits.append(hist)
-        results = Parallel(n_jobs=8)(delayed(np.histogram)(timeseries, bin_edges, normed=True) for timeseries in self.timeseries)
+        results = Parallel(n_jobs=self.ncores)(delayed(np.histogram)(timeseries, bin_edges, normed=True) for timeseries in self.timeseries)
         for hist in results:
             hist_visits.append(hist[0])
         return hist_visits
@@ -359,7 +359,7 @@ class mbar_compute_dos(object):
         kde_bin_edges += (kde_bin_edges[1]-kde_bin_edges[0])/2 
         hist = get_kde_hist(self.ts_sphere, kde_bin_edges, kernel="epanechnikov", bw=0.01)
         hist_visits.append(hist)
-        results = Parallel(n_jobs=8)(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
+        results = Parallel(n_jobs=self.ncores)(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
         print np.shape(results)
         for hist in results:
             hist_visits.append(hist)
