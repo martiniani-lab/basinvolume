@@ -51,21 +51,25 @@ class PackingDataSet(object):
         """
         self.packing_data.extend(packing_data)
         for data in packing_data:
-            if data.F is not None and data.P is not None and data.Z is not None and data.boo is not None:
+            if data.F is not None:
                 self.free_energies.append(data.F)
+            if data.P is not None:
                 self.pressures.append(data.P)
+            if data.Z is not None:
                 self.contacts.append(data.Z)
+            if data.boo is not None:
                 self.boos.append(data.boo)
     
     def add_extras(self, extra):
         self.extras.append(np.array(extra))
     
 class PackingData(object):
-    def __init__(self, name, configpath, packing_path=None):
+    def __init__(self, name, configpath, configpath_packing, packing_path=None):
         self.eps = 1.
         self.frozen = False
         self.name = name
         self.configpath = configpath
+        self.configpath_packing = configpath_packing
         self._import_packing_config_file(self.configpath)
         if packing_path is not None:
             self._import_packing_configuration(packing_path)

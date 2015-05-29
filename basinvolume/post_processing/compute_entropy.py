@@ -58,74 +58,43 @@ try:
 except ImportError as err:
     print err
     
-"""
-def compute_entropy_etc(self):
-    print("---numerical packing---")
-    packing_configpath = self.get_packing_configpath(42)
-    volume_sanity_check = VolumeSanityCheck(packing_configpath, numerical_moments=self.numerical_moments)
-    # -p log g entropy
-    self.APF_entropy = APFEntropy(self.F0_wo_outliers, volume_sanity_check)
-    self.APF_entropy.compute_and_write_entropy(os.path.join(self.output_path, "entropy_AFP"))
-    # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
-    self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, volume_sanity_check)
-    self.kernel_density_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_kernel_density"))
-    # fit to cdf, numerical integration for un-biasing
-    self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
-    try:
-        self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(volume_sanity_check)
-    except Exception, e:
-        print e
-    # fit to pdf with ML method
-    self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, volume_sanity_check)
-    try:
-        self.ML_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_ML_LogOmega"))
-    except Exception, e:
-        print e
-"""
-
 class ComputeEntropy(object):
     """
-    Use either ComputeEntropyNumerical or ComputeEntropyExperimental,
-    based on the name of the folder containing the MC data
-    ("packings_dir").
+    Read free energies with data set tools.
+    Compute different entropies from them.
     """
-    def __init__(self, packings_dir):
-        self.analysis = BasinAnalysis(workspace=packings_dir)
-        self.analysis.collect_data_all_set()
+    def __init__(self, workspace):
+        #
+        self.workspace = os.path.abspath(workspace)
+        #
+        self.analysis = BasinAnalysis(workspace=self.workspace)
+        self.analysis.collect_data_all_set(no_pickle=True)
+        for data_set in self.analysis.packing_datasets:
+            self._compute_write_entropies(data_set)
+    def _compute_write_entropies(self, data_set):
+        print("compute and write entropies for dataset with name", data_set.set_name)
+        entropy_base_output_path = os.path.join(data_set.set_path, 'entropy_analysis_all')
+        print("entropy_base_output_path", entropy_base_output_path)
+        trymakedir(entropy_base_output_path)
+        volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
+        unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(data_set.free_energies, entropy_base_output_path)
+        try:
+            unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
+        except Exception as ex:
+            print("Exception occured in unbiasing for log omega:", ex)
+        self._entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, data_set.free_energies)
+        self._entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, data_set.free_energies)
+        self._entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, data_set.free_energies)
+    def _entropy(self, name, out_path, sanity_check, free_energies):
+        computer = name(free_energies, sanity_check)
+        try:
+            computer.compute_and_write_entropy(out_path)
+        except Exception as ex:
+            print("Exception occured in ", name)
+            print(ex)
 
-def worker(packings_dir, kwargs):
-    try:
-        ComputeEntropy(packings_dir, **kwargs)
-    except:
-        print('find_k worker: %s' % (traceback.format_exc()))
-
-def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
-        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
-    parser.add_argument("-d", "--packings_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
-    parser.add_argument("-j","--ncores", type=int, help="number of packings to produce", default=4)
+    parser.add_argument("-w", "--workspace", type=str, help="top-level dir containing the packings folders of format n32_phi88_2D", default=os.getcwd())
     args = parser.parse_args()
-    
-    ncores = args.ncores
-    kwargs = dict([])
-    
-    if not args.all:
-        packings_dir = os.path.abspath(args.packings_dir)
-        worker(packings_dir, kwargs)
-    else:
-        mypool = mp.Pool(ncores)
-        subdirs = get_immediate_subdirectories(os.getcwd())
-        try:
-            for folder in subdirs:
-                if folder[1].isdigit() and folder[-1] == "D":
-                    mypool.apply_async(worker, args=(os.path.abspath(folder),kwargs,))
-        except:
-            mypool.terminate()
-            mypool.join()
-            raise
-                    
-        mypool.close()
-        mypool.join()
-
+    ComputeEntropy(args.workspace)
