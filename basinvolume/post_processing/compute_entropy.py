@@ -63,9 +63,6 @@ def compute_entropy_etc(self):
     print("---numerical packing---")
     packing_configpath = self.get_packing_configpath(42)
     volume_sanity_check = VolumeSanityCheck(packing_configpath, numerical_moments=self.numerical_moments)
-    # -p log g entropy
-    self.APF_entropy = APFEntropy(self.F0_wo_outliers, volume_sanity_check)
-    self.APF_entropy.compute_and_write_entropy(os.path.join(self.output_path, "entropy_AFP"))
     # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
     self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(self.F0_wo_outliers, volume_sanity_check)
     self.kernel_density_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_kernel_density"))
@@ -99,8 +96,19 @@ class ComputeEntropy(object):
             self._compute_write_entropies(data_set)
     def _compute_write_entropies(self, data_set):
         print("compute and write entropies for dataset with name", data_set.set_name)
+        entropy_base_output_path = os.path.join(data_set.set_path, 'entropy_analysis_all')
+        print("entropy_base_output_path", entropy_base_output_path)
+        trymakedir(entropy_base_output_path)
         volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
-        APF = APFEntropy(data_set.free_energies, volume_sanity_check)
+        self._entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, data_set.free_energies)
+        self._entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, data_set.free_energies)
+    def _entropy(self, name, out_path, sanity_check, free_energies):
+        computer = name(free_energies, sanity_check)
+        try:
+            computer.compute_and_write_entropy(out_path)
+        except Exception as ex:
+            print("Exception occured in ", name)
+            print(ex)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
