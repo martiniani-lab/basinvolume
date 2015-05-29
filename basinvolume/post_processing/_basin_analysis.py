@@ -52,6 +52,10 @@ class BasinAnalysis(object):
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
         return dname    
+        
+    def _get_dname_packing(self, inp):
+        jammed_dname = self._get_dname(inp)
+        return jammed_dname.split("_")[1]
     
     def collect_data_all_set(self, data_name="basin_analysis.pickle", no_pickle=False):
         listdir = glob.glob(os.path.join(self.workspace, 'n*_phi*_phi*_*D'))
@@ -80,10 +84,12 @@ class BasinAnalysis(object):
         for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
             if 'xyzd' in fname or 'xyd' in fname:
                 dname = self._get_dname(fname)
+                dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
-                    pd = PackingData(str(dname), configpath)
+                    configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
+                    pd = PackingData(str(dname), configpath, configpath_packing)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
                     pd.import_volume_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
