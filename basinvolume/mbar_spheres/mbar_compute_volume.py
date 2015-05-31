@@ -12,9 +12,9 @@ from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 import argparse
 from itertools import cycle, chain
-from joblib import Parallel, delayed
 try:
     import pylab as plt
+    from joblib import Parallel, delayed
 except ImportError as err:
     print err
 import time
