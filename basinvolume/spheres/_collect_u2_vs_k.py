@@ -377,7 +377,7 @@ if __name__ == "__main__":
     sim = _collect_u2_vs_k()
     
     if (fname != None):
-        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, plot_only=args.plotonly, show=args.show)
+        sim(fname=fname, explore_dir=fdir, frozen=args.frozen, plot_only=args.plotonly, show=args.show, verbose=True)
     else :
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:

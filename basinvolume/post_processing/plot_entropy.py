@@ -127,7 +127,7 @@ class EntropyData(object):
                     pass
 
 class plot_entropy(object):
-    def __init__(self, workdir=None, Nrange=(0,128)):
+    def __init__(self, workdir=None, analysis_folder="entropy_analysis_all", Nrange=(0,128)):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -135,7 +135,7 @@ class plot_entropy(object):
         self.workdir = workdir
         
         self.Nrange = Nrange
-        self.analysis_folder = "entropy_analysis_all"
+        self.analysis_folder = analysis_folder
         self.entropy_data = []
         markers = ["bo", "r^", "gs", "kx", "c+"]
         self.markercycler = cycle(markers)
@@ -419,10 +419,10 @@ class plot_entropy(object):
 if __name__ == "__main__":
     show=True
     savefig=False
-    pe = plot_entropy()
+    pe = plot_entropy(analysis_folder="entropy_analysis_all")
     #pe.plot_single(show=True, savefig=True)
-    #pe.plot_compare_apf2D(show=show,savefig=savefig)
-    pe.plot_all(show=show,savefig=savefig)
-    pe.plot_lo_param(show=show,savefig=savefig)
+    pe.plot_compare_apf2D(show=show,savefig=savefig)
+    #pe.plot_all(show=show,savefig=savefig)
+    #pe.plot_lo_param(show=show,savefig=savefig)
 
 

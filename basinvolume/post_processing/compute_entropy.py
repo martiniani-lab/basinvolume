@@ -84,6 +84,25 @@ def _compute_write_entropies(data_set):
     _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, free_energies)
     _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)
 
+def _compute_write_entropies_msf(data_set, ik=0.18878315, a=0.9807471):
+    print("compute and write entropies for dataset with name", data_set.set_name)
+    entropy_base_output_path = os.path.join(data_set.set_path, 'msf_entropy_analysis_all')
+    print("entropy_base_output_path", entropy_base_output_path)
+    trymakedir(entropy_base_output_path)
+    volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
+    outliers = OutlierDetection(data_set.free_energies, p=0.5, D=3*np.std(data_set.free_energies))
+    gamma = np.array(data_set.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+    #msf relation
+    free_energies = (data_set.nparticles*ik)*np.log(gamma) + a*data_set.nparticles
+    unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(free_energies, entropy_base_output_path)
+    try:
+        unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
+    except Exception as ex:
+        print("Exception occured in unbiasing for log omega:", ex)
+    _entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, free_energies)
+    _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, free_energies)
+    _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)
+
 class ComputeEntropy(object):
     """
     Read free energies with data set tools.
@@ -96,6 +115,7 @@ class ComputeEntropy(object):
         self.analysis = BasinAnalysis(workspace=self.workspace)
         self.analysis.collect_data_all_set(no_pickle=True)
         results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies)(data_set) for data_set in self.analysis.packing_datasets)
+        #results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies_msf)(data_set) for data_set in self.analysis.packing_datasets)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")

@@ -6,16 +6,21 @@ from basinvolume.utils import *
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
 from pele.potentials import HS_WCA
+import argparse
+import multiprocessing as mp
 
 class StructuralAnalysis(object):
     __metaclass__ = abc.ABCMeta
     #@abc.abstractmethod
     
-    def __init__(self, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
+    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
+        if not os.path.isabs(workspace):
+            workspace = os.path.abspath(workspace)
+        self.workspace = workspace
         if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+            packings_dir = os.path.join(self.workspace, packings_dir)
         if not os.path.isabs(jammed_packings_dir):
-            packings_dir = os.path.join(os.getcwd(), jammed_packings_dir)
+            jammed_packings_dir = os.path.join(self.workspace, jammed_packings_dir)
         self.packings_dir = packings_dir
         self.jammed_packings_dir = jammed_packings_dir
         self.analysis_dir = analysis_dir
@@ -40,7 +45,7 @@ class StructuralAnalysis(object):
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
         
     def _import_packing_configuration(self, fname):
-        path = os.path.join(self.packings_dir, fname)
+        path = os.path.join(self.jammed_packings_dir, fname)
         if self.bdim == 2:
             coords, hs_diameters, rattlers = read_xydr(path)
         elif self.bdim == 3:
@@ -59,8 +64,8 @@ class StructuralAnalysis(object):
         return dname
 
 class BondOrientationalOrder(StructuralAnalysis):
-    def __init__(self, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
-        super(BondOrientationalOrder,self).__init__(packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
+    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
+        super(BondOrientationalOrder,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
                                                     analysis_dir=analysis_dir)
     
     def run(self, deg=6, pinit=True, existing_only=True):
@@ -70,10 +75,10 @@ class BondOrientationalOrder(StructuralAnalysis):
         pinit : bool
             initialise printing
         """
-        for fname in os.listdir(self.packings_dir):
+        for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzd' in fname or 'xyd' in fname:
                 dname = self._get_dname(fname)
-                base_directory_path = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+                base_directory_path = os.path.join(self.workspace,'explore_bv_'+str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not existing_only:
@@ -182,9 +187,9 @@ class BondOrientationalOrder(StructuralAnalysis):
         return np.array(boo_list), np.array(z_list)
 
 class PressureTensor(StructuralAnalysis):
-    def __init__(self, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
-        super(PressureTensor,self).__init__(packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
-                                                    analysis_dir=analysis_dir)
+    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis'):
+        super(PressureTensor,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
+                                            analysis_dir=analysis_dir)
     
     def run(self, existing_only=True):
         """compute boo for packings
@@ -193,10 +198,10 @@ class PressureTensor(StructuralAnalysis):
         pinit : bool
             initialise printing
         """
-        for fname in os.listdir(self.packings_dir):
+        for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzd' in fname or 'xyd' in fname:
                 dname = self._get_dname(fname)
-                base_directory_path = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+                base_directory_path = os.path.join(self.workspace,'explore_bv_'+str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not existing_only:
@@ -217,9 +222,58 @@ class PressureTensor(StructuralAnalysis):
                             f.write('{:.16f} '.format(val))
                         f.write('\n')
 
+def worker_boo(workspace, kwargs):
+    try:
+        boo = BondOrientationalOrder(workspace, **kwargs)
+        boo.run_all()
+    except:
+        print('worker_boo worker: %s' % (traceback.format_exc()))
+
+def worker_pts(workspace, kwargs):
+    try:
+        pts = PressureTensor(workspace, **kwargs)
+        pts.run()
+    except:
+        print('worker_pts worker: %s' % (traceback.format_exc()))
+
+def get_immediate_subdirectories(dir):
+    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
+
 if __name__ == "__main__":
-    boo = BondOrientationalOrder()
-    #boo.run(deg=12)
-    boo.run_all()
-    pts = PressureTensor()
-    pts.run()
+    
+#    #boo.run(deg=12)
+#    boo.run_all()
+#    pts = PressureTensor()
+#    pts.run()
+
+    parser = argparse.ArgumentParser(description="Compute volumes from PT data, use either MBAR or TINT methods")
+    parser.add_argument("-d", "--workspace_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
+    parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
+    parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=4)
+    args = parser.parse_args()
+    
+    ncores = args.ncores
+    kwargs = dict()
+    
+    if not args.all:
+        if not os.path.isabs(args.workspace_dir):
+            workspace_dir = os.path.join(os.getcwd(), args.workspace_dir)
+        worker_boo(workspace_dir, kwargs)
+        worker_pts(workspace_dir, kwargs)
+    else:
+        mypool = mp.Pool(ncores)
+        if not os.path.isabs(args.workspace_dir):
+            workspace_dir = os.getcwd()
+        subdirs = get_immediate_subdirectories(workspace_dir)
+        try:
+            for folder in subdirs:
+                if folder[1].isdigit() and folder[-1] == "D":
+                    mypool.apply_async(worker_boo, args=(os.path.abspath(folder),kwargs,))
+                    mypool.apply_async(worker_pts, args=(os.path.abspath(folder),kwargs,))
+        except:
+            mypool.terminate()
+            mypool.join()
+            raise
+                    
+        mypool.close()
+        mypool.join()

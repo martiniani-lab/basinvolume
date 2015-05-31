@@ -43,14 +43,18 @@ for plotting a linear fit with intervals of confidence see http://nbviewer.ipyth
 def plot(packing_datasets):
     from scipy.optimize import curve_fit
     
+    #plot free energy vs PV for all packings
+    
     fig = plt.figure()
     ax = fig.add_subplot(111)
     for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
         if len(dataset.free_energies) > 0:
             nparticles = dataset.nparticles
+            print nparticles
             outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
             x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
             y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+            print len(x), len(y)
             x = np.log(x)
             ax.scatter(x, y, label=int(nparticles), color=color_cycle.next())
             fit = np.polyfit(x, y,1)
@@ -59,7 +63,9 @@ def plot(packing_datasets):
             dataset.add_extras(fit)
     ax.legend(frameon=False, loc="best")
     plt.ylabel(r"$F$")
-    plt.xlabel(r"$\log P$")
+    plt.xlabel(r"$\log PV$")
+    
+    #plot F-<F> vs PV-<PV> for all packings
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -79,10 +85,12 @@ def plot(packing_datasets):
             dataset.add_extras(fit)
     ax.legend(frameon=False, loc="best")
     plt.ylabel(r"$F - \langle F \rangle$")
-    plt.xlabel(r"$\log P - \langle \log P \rangle$")
+    plt.xlabel(r"$\log PV - \langle \log PV \rangle$")
     
     def ff(x, a):
         return a * x
+    
+    #plot power law exponent
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -96,10 +104,12 @@ def plot(packing_datasets):
     ax.plot(x,y, marker='o', ms=9)
     popt, pcov = curve_fit(ff, x, y)
     print popt
-    ax.plot(x, ff(x, popt[0]), label="F/log P = N/{:.3f}".format(1./popt[0]))
+    ax.plot(x, ff(x, popt[0]), label="F/log PV = N/{:.3f}".format(1./popt[0]))
     ax.legend(frameon=False, loc="best")
     plt.xlabel(r"$ N $")
-    plt.ylabel(r"$F/\log P$ (power law exponent)")
+    plt.ylabel(r"$F/\log PV$ (power law exponent)")
+    
+    #plot power law intercept
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -111,59 +121,100 @@ def plot(packing_datasets):
     plt.xlabel(r"$ N $")
     plt.ylabel(r"q (power law constant)")
     
+        
+    from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
+    if False:
+        #kde gammas
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
+            if len(dataset.free_energies) > 0:
+                nparticles = dataset.nparticles
+                outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+                x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
+                edges = np.linspace(np.amin(x)*0.5, np.amax(x)*1.5, 1000)
+                hist = get_pdf(x, edges, bandwidth=bw, kernel="gaussian")
+                ax.plot(edges, hist, label=int(nparticles), color=color_cycle.next(), linewidth=3)
+        ax.legend(frameon=False, loc="best")
+        plt.ylabel(r"$p(\Gamma)$")
+        plt.xlabel(r"$PV$")
+        
+        #kde unbiased gammas
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
+            if len(dataset.free_energies) > 0:
+                nparticles = dataset.nparticles
+                outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+                x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
+                edges = np.linspace(0, 1.7e4, 5000)
+                #unbias 
+                hist = get_pdf(x, edges, bandwidth=bw, kernel="gaussian")
+                hist *= (nparticles/5.0) * np.power(edges,(nparticles/5.0 - 1.0))
+                c = simps(hist, x=edges) 
+                ax.plot(edges, hist/c, label=int(nparticles), color=color_cycle.next(), linewidth=3)
+        ax.legend(frameon=False, loc="best")
+        plt.ylabel(r"$p(\Gamma)\frac{N}{\kappa}\Gamma^{(N-\kappa)/\kappa}$")
+        plt.xlabel(r"$PV$")
+        
+    #kde free energies predicted vs numerical
+    #note the x2 = (nparticles*0.18878315)*np.log(x2)+0.9807471*nparticles (should be just +N)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
+        if len(dataset.free_energies) > 0:
+            nparticles = dataset.nparticles
+            outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+            x = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+            bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
+            edges = np.linspace(np.amin(x)*0.5, np.amax(x)*1.5, 1000)
+            hist = get_pdf(x, edges, bandwidth=bw, kernel="gaussian")
+            ax.plot(edges, hist, label=int(nparticles), color=color_cycle.next(), linewidth=3)
+            
+            x2 = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+            x2 = (nparticles*0.18878315)*np.log(x2) + 0.9807471*nparticles
+            bw2 = get_bandwidth_estimate(np.array(x2), kernel="gaussian", method="cross_validation")
+            edges2 = np.linspace(np.amin(x2)*0.5, np.amax(x2)*1.5, 1000)
+            hist2 = get_pdf(x2, edges2, bandwidth=bw2, kernel="gaussian")
+            #hist2 *= edges2/(nparticles*0.18878315)
+            #hist2 /= simps(hist2, x=edges2)
+            ax.plot(edges2, hist2, '--', label=int(nparticles), color=color_cycle.next(), linewidth=3)
     
-#    fig = plt.figure()
-#    ax = fig.add_subplot(111)
-#    for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
-#        nparticles = dataset.nparticles
-#        if len(dataset.free_energies) > 0:
-#            outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
-#            x = np.array(dataset.contacts)[np.array(outliers.non_outliers_indexes, dtype="i")]
-#            y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-#            x = np.log(x)
-#            ax.scatter(x, y, label=int(nparticles), color=color_cycle.next())
-#            fit = np.polyfit(x, y,1)
-#            print fit
-#            fit_fn = np.poly1d(fit)
-#            ax.plot(x, fit_fn(x), color='k')
-#            #dataset.add_extras(fit)
-#    ax.legend(frameon=False, loc="best")
-#    plt.xlabel(r"$\log(z-z_{iso})$")
-#    plt.ylabel(r"$F$")
+    ax.legend(frameon=False, loc="best")
+    plt.ylabel(r"$p(F)$")
+    plt.xlabel(r"$F$")
     
-    plt.show()        
+    if False:
+        #fit the (N/k)\log(PV)+N model to each and compute the average of the kappas
+          
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        avg = 0
+        for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
+            if len(dataset.free_energies) > 0:
+                nparticles = dataset.nparticles
+                print nparticles
+                outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+                x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                print len(x), len(y)
+                x = np.log(x)
+                ax.scatter(x, y, color=color_cycle.next())
+                def ff_msf(x, a):
+                    return nparticles * (a * x + 1) 
+                popt, pcov = curve_fit(ff_msf, x, y)
+                ax.plot(x, ff_msf(x, popt[0]), label="F = N/{:.3f}log(PV) + N".format(1./popt[0]))
+                avg += popt[0]
+        avg /= (i+1)
+        print "avg kappa = ", 1/avg
+        ax.legend(frameon=False, loc="best")
+        plt.ylabel(r"$F$")
+        plt.xlabel(r"$\log PV$")
+    
         
-#        #THESE ARE JUST QUICK PLOTS, CLEAN THIS UP AND PUTH EVERYTHING IN APPROPRIATE FUNCTIONS
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        ax.scatter(self.free_energies, np.log(self.pressures))
-#        plt.xlabel("F")
-#        plt.ylabel("lnP")
-#        plt.show()
-#
-#        from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
-#        #kde pressures
-#        bw = get_bandwidth_estimate(np.array(self.pressures), kernel="gaussian", method="cross_validation")
-#        edges = np.linspace(np.amin(self.pressures), np.amax(self.pressures), 1000)
-#        hist = get_pdf(self.pressures, edges, bandwidth=bw, kernel="gaussian")
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        ax.plot(edges, hist)
-#        plt.xlabel("P")
-#        plt.show()
-#
-#        #kde free energies
-#        free_energies = np.array([f for f in self.free_energies if f is not None])
-#        bw = get_bandwidth_estimate(np.array(free_energies), kernel="gaussian", method="cross_validation")
-#        edges = np.linspace(np.amin(free_energies), np.amax(free_energies), 100)
-#        hist = get_pdf(free_energies, edges, bandwidth=bw, kernel="gaussian")
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        ax.plot(edges, hist)
-#        plt.xlabel("F")
-#        plt.show()
-        
-        
+    plt.show()    
 
 if __name__ == "__main__":
     pts = BasinAnalysis()
