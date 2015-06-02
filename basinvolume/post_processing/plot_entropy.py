@@ -166,13 +166,16 @@ class plot_entropy(object):
                                                          data.loml.parameters['mu'][0], data.loml.parameters['alpha'][0], 
                                                          data.loml.parameters['zeta'][0]) for data in self.entropy_data))
           
-    def _ploterr(self, entropy_array, xlabel=r"$N$", ylabel=r"$S$", raw=True, title=None, show=False):
+    def _ploterr(self, entropy_array, xlabel=r"$N$", ylabel=r"$S$", raw=True, title=None, 
+                 show=False, ax=None, color='b', marker='o', raw_color='r', raw_marker='^'):
         nparticles = np.array(entropy_array[0::3])
         nmax = np.amax(nparticles)
         trialx = np.linspace(0,nmax,1000)
-        fig = plt.figure()
         #extensive
-        ax = fig.add_subplot(111)
+        if ax is None:
+            print "here"
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
         y = np.array(entropy_array[1::3]) - log_factorial(np.array(nparticles))
         yerr = np.array(entropy_array[2::3])
         xa,y = _sort_pair(nparticles,y)
@@ -181,16 +184,16 @@ class plot_entropy(object):
         #print x,"\n", y
         fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
         ynew = trialx * fit[0] + fit[1]        
-        ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=9, label=r"$S^\star -\log N!$")
-        ax.plot(trialx,ynew,'b--', linewidth=2)
+        ax.errorbar(x, y, yerr=yerr, color=color, marker=marker, linestyle='', ms=9, label=r"$S^\star -\log N!$")
+        ax.plot(trialx,ynew,'--', color=color,linewidth=2)
         #raw
         if raw:
             y = np.array(entropy_array[1::3])
             x,y = _sort_pair(nparticles,y)
             fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
             ynew = trialx * fit[0] + fit[1] 
-            ax.errorbar(x, y, yerr=yerr, fmt='r^', ms=9, label=r"$S^\star$")
-            ax.plot(trialx,ynew,'r--', linewidth=2)
+            ax.errorbar(x, y, yerr=yerr, color=raw_color, marker=raw_marker, linestyle='', ms=9, label=r"$S^\star$")
+            ax.plot(trialx,ynew,'--', color=raw_color, linewidth=2)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         ax.legend(frameon=False, loc=2)
@@ -226,6 +229,14 @@ class plot_entropy(object):
             plt.title(title)
         if show:
             plt.show()
+        return ax
+    
+    def _plot_apf(self, ax=None, xlabel=r"$N$", ylabel=r"$S$", raw=False,
+                  color='b', marker='o', raw_color='r', raw_marker='^'):
+        entropy_array, label, plot_label = self.all_entropies_err[0]
+        ax = self._ploterr(entropy_array, xlabel=xlabel, ylabel=label, 
+                           raw=raw, ax=ax, color=color, marker=marker,
+                           raw_marker=raw_marker, raw_color=raw_color)
         return ax
     
     def plot_single(self, show=False, savefig=True):
@@ -420,9 +431,19 @@ if __name__ == "__main__":
     show=True
     savefig=False
     pe = plot_entropy(analysis_folder="entropy_analysis_all")
+    pe_msf = plot_entropy(analysis_folder="msf_entropy_analysis_all")
     #pe.plot_single(show=True, savefig=True)
-    pe.plot_compare_apf2D(show=show,savefig=savefig)
+    #pe.plot_compare_apf2D(show=show,savefig=savefig)
     #pe.plot_all(show=show,savefig=savefig)
     #pe.plot_lo_param(show=show,savefig=savefig)
-
+    
+    #COMPARE MSF TO NUMERICAL
+    raw=True
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    print ax
+    ax = pe._plot_apf(ax=ax, color='b', raw_color='b', raw=raw)
+    print ax
+    ax = pe_msf._plot_apf(ax=ax, color='g', raw_color='g', raw=raw)
+    plt.show()
 

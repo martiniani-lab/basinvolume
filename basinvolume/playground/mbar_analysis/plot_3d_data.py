@@ -123,7 +123,7 @@ def plot(packing_datasets):
     
         
     from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
-    if False:
+    if True:
         #kde gammas
         fig = plt.figure()
         ax = fig.add_subplot(111)

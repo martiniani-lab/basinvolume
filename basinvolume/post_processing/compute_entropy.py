@@ -85,6 +85,9 @@ def _compute_write_entropies(data_set):
     _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)
 
 def _compute_write_entropies_msf(data_set, ik=0.18878315, a=0.9807471):
+    """
+    compute free energy from pressure and use these to compute entropy
+    """
     print("compute and write entropies for dataset with name", data_set.set_name)
     entropy_base_output_path = os.path.join(data_set.set_path, 'msf_entropy_analysis_all')
     print("entropy_base_output_path", entropy_base_output_path)
