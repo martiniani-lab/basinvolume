@@ -77,25 +77,25 @@ class GeneralisedLogNormal(object):
         logx = np.log(x)
         return v_get_cdf(logx, mu, a, z)
     
-    def get_times_expx(self, x, mu, alpha_offset, zeta_offset):
+    def get_times_expx(self, x, mu, alpha_offset, zeta_offset, kappa, n):
         z = self.get_zeta(zeta_offset)
         a = self.get_alpha(alpha_offset)
         logx = np.log(x)
-        return z / (2**((z+1.0)/z) * a * gamma(1.0 / z) * x) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z) + x)
+        return z / (2**((z+1.0)/z) * a * gamma(1.0 / z) * x) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z) + (n/kappa-1)*logx)
     
-    def get_times_expx_with_pars(self, x, mu, alpha, zeta):
-        return self.get_times_expx(x, mu, alpha - self.alpha_min, zeta - self.zeta_min)
+    def get_times_expx_with_pars(self, x, mu, alpha, zeta, kappa, n):
+        return self.get_times_expx(x, mu, alpha - self.alpha_min, zeta - self.zeta_min, kappa, n)
     
     def get_fitted(self, x):
         return self.get(x, self.mu, self.alpha_offset, self.zeta_offset)
     
-    def get_fitted_times_expx(self, x):
-        return self.get_times_expx(x, self.mu, self.alpha_offset, self.zeta_offset)
+    def get_fitted_times_expx(self, x, kappa, n):
+        return self.get_times_expx(x, self.mu, self.alpha_offset, self.zeta_offset, kappa, n)
     
     def fit(self, data_x, data_y):
         mean = np.mean(np.log(x))
         var = np.var(np.log(x))
-        opt_gen, error_gen = curve_fit(self.get, data_x, data_y, [np.exp(mean+var/2), (np.exp(var)-1)*np.exp(2*mean+var), 2])
+        opt_gen, error_gen = curve_fit(self.get, data_x, data_y, [mean, var, 2])
         self.mu = opt_gen[0]
         self.alpha_offset = opt_gen[1]
         self.zeta_offset = opt_gen[2]
@@ -111,10 +111,10 @@ class GeneralisedLogNormal(object):
     def fit_cdf(self, x, cdf_x):
         mean = np.mean(np.log(x))
         var = np.var(np.log(x))
-        initial_mu = mean #np.exp(mean+var/2)
-        initial_zeta = 2
-        initial_alpha = var #(np.exp(var)-1)*np.exp(2*mean+var)
-        print [initial_mu, initial_alpha, initial_zeta]
+        initial_mu = mean
+        initial_zeta = 1.5
+        initial_alpha = var
+        print "initial guess [mu, alpha, zeta]:", [initial_mu, initial_alpha, initial_zeta]
         opt_gen, error_gen = curve_fit(self.get_cdf, x, cdf_x, [initial_mu, initial_alpha, initial_zeta])
         self.mu = opt_gen[0]
         self.alpha_offset = opt_gen[1]
@@ -284,10 +284,11 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
     and
     S = S^\star - \log(N!)
     """
-    def __init__(self, F0, output_path):
+    def __init__(self, F0, output_path, write=True):
         self.F0 = F0
         self.output_path = output_path
         self.entropy_file_path = self.output_path + "/entropy_LogOmega"
+        self.write = write
     def compute_log_omega_entropy(self, volume_sanity_check):
         self.alpha_min = 0.01
         self.zeta_min = 0.01
@@ -295,19 +296,21 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         self.generalised_gauss = GeneralisedGauss(alpha_min = self.alpha_min, zeta_min = self.zeta_min)
         bins = self.compute_desired_nr_bins(self.maximum_av_number_per_bin) 
         hist, bin_edges = np.histogram(self.F0, density = True, bins = bins)
-        plt.hist(self.F0, bins = bins, normed = True)
+        if self.write:
+            plt.hist(self.F0, bins = bins, normed = True)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
         cdf = CDFAccumulator()
         cdf.add_array(self.F0)
         x, cdf_x = cdf.get_vecdata()
         self.generalised_gauss.fit_cdf(x, cdf_x)
-        xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
-        plt.plot(xp, [self.generalised_gauss.get_fitted(xpi) for xpi in xp], "r", label = "Generalised Gaussian")
-        plt.legend(loc='best', fancybox=True, framealpha=0.5)
-        plt.xlabel(r"Free energy $F$")
-        plt.ylabel(r"Probability density")
-        save_pdf(plt, self.output_path + "/unbiasing_fit.pdf")
-        plt.close()
+        if self.write:
+            xp = np.linspace(bin_centres[0], bin_centres[-1], num = 500)
+            plt.plot(xp, [self.generalised_gauss.get_fitted(xpi) for xpi in xp], "r", label = "Generalised Gaussian")
+            plt.legend(loc='best', fancybox=True, framealpha=0.5)
+            plt.xlabel(r"Free energy $F$")
+            plt.ylabel(r"Probability density")
+            save_pdf(plt, self.output_path + "/unbiasing_fit.pdf")
+            plt.close()
         self.compute_integral(volume_sanity_check)
         self.S_star_no_jack = - volume_sanity_check.F0_acc + np.log(self.integral_no_jack)
         self.S_no_jack = self.S_star_no_jack - log_factorial(volume_sanity_check.nr_particles)
@@ -322,10 +325,12 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         self.alpha_error = self.jack_log_omega.alpha_error
         self.zeta = self.jack_log_omega.zeta
         self.zeta_error = self.jack_log_omega.zeta_error
-        self.write_to_file()
-        self.plot_unbiased_pdf_vs_data(volume_sanity_check)
         assert(self.S > 0)
         assert(self.S_star > 0)
+        if self.write:
+            self.write_to_file()
+            self.plot_unbiased_pdf_vs_data(volume_sanity_check)
+        
     def plot_unbiased_pdf_vs_data(self, volume_sanity_check):
         plt.xlabel(r"Free energy $F$")
         plt.ylabel(r"Un-biased PDF $\propto{P_\mathcal{B}(F)}\exp(F)$")
@@ -352,7 +357,10 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
             else:
                 return bins
     def compute_integral(self, volume_sanity_check):
-        self.integral_no_jack, self.integral_error = integrate.quad(self.generalised_gauss.get_fitted_times_expx, volume_sanity_check.F0_acc, np.amax(self.F0) * 100, points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
+        self.integral_no_jack, self.integral_error = integrate.quad(self.generalised_gauss.get_fitted_times_expx, 
+                                                                    volume_sanity_check.F0_acc, np.amax(self.F0) * 100, 
+                                                                    points = [np.amin(self.F0), np.amax(self.F0), 
+                                                                              self.generalised_gauss.mu])
         assert(self.integral_no_jack > 0)
     def write_to_file(self):
         def prnt(name, value, error):
