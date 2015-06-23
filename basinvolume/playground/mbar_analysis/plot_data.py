@@ -116,6 +116,11 @@ class plot_mbar_data(object):
         self.workdir = workdir
         self.explore_dir = explore_dir
         self.Nrange = Nrange
+#        NOTE: these need to be replaced with a list of folder names, and self.fcc_data and fcc_mono_data removes as they
+#        are all disordered. These changes must be reflected in the plot functions. Furthermore in collect data we need to
+#        import the pressure and test that all the data are available for the import to happen. In fact we should make the 
+#        mbar_data container derive from PackingData and make use of the already implemented functions to import structural
+#        factors and volumes
         self.fcc_data = mbar_data("fcc_poly0050")
         self.fcc_mono_data = mbar_data("fcc_mono")
         self.disordered_data = mbar_data("disordered")
@@ -348,7 +353,10 @@ class plot_mbar_data(object):
         elif plot_type == "m4_q6":
             ax.scatter(moments[:,4], boo[:,1], s=area, label=label, c=color, alpha=0.5)
             ylabel=r'$Q6$'
-            xlabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$' 
+            xlabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
+        
+        #NOTE: here add boo-pressure correlations
+        #NOTE: here add pressure-volume correlations
         
         return ax, xlabel, ylabel
     

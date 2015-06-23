@@ -77,20 +77,35 @@ class GeneralisedLogNormal(object):
         logx = np.log(x)
         return v_get_cdf(logx, mu, a, z)
     
-    def get_times_expx(self, x, mu, alpha_offset, zeta_offset, kappa, n):
+    def get_times_xpow(self, x, mu, alpha_offset, zeta_offset, kappa, n):
         z = self.get_zeta(zeta_offset)
         a = self.get_alpha(alpha_offset)
         logx = np.log(x)
         return z / (2**((z+1.0)/z) * a * gamma(1.0 / z) * x) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z) + (n/kappa-1)*logx)
     
-    def get_times_expx_with_pars(self, x, mu, alpha, zeta, kappa, n):
-        return self.get_times_expx(x, mu, alpha - self.alpha_min, zeta - self.zeta_min, kappa, n)
+    def get_log_times_xpow(self, x, mu, alpha_offset, zeta_offset, kappa, n):
+        """
+        returns the log of the probability
+        """
+        z = self.get_zeta(zeta_offset)
+        a = self.get_alpha(alpha_offset)
+        logx = np.log(x)
+        return np.log(z) - ((z+1.0)/z)*np.log(2) - np.log(a) - np.log(gamma(1.0 / z)) - logx - 0.5*np.power(np.abs((logx - mu) / a),z) + (n/kappa-1) * logx
+    
+    def get_times_xpow_with_pars(self, x, mu, alpha, zeta, kappa, n):
+        return self.get_times_xpow(x, mu, alpha - self.alpha_min, zeta - self.zeta_min, kappa, n)
     
     def get_fitted(self, x):
         return self.get(x, self.mu, self.alpha_offset, self.zeta_offset)
     
-    def get_fitted_times_expx(self, x, kappa, n):
-        return self.get_times_expx(x, self.mu, self.alpha_offset, self.zeta_offset, kappa, n)
+    def get_fitted_times_xpow(self, x, kappa, n):
+        return self.get_times_xpow(x, self.mu, self.alpha_offset, self.zeta_offset, kappa, n)
+    
+    def get_log_fitted_times_xpow(self, x, kappa, n):
+        """
+        returns the log of the probability with the fit parameters
+        """
+        return self.get_log_times_xpow(x, self.mu, self.alpha_offset, self.zeta_offset, kappa, n)
     
     def fit(self, data_x, data_y):
         mean = np.mean(np.log(x))
@@ -108,11 +123,11 @@ class GeneralisedLogNormal(object):
             print "self.alpha_offset", self.alpha_offset
             print "self.zeta_offset", self.zeta_offset
     
-    def fit_cdf(self, x, cdf_x):
+    def fit_cdf(self, x, cdf_x, initial_zeta=1.5):
         mean = np.mean(np.log(x))
         var = np.var(np.log(x))
         initial_mu = mean
-        initial_zeta = 1.5
+        initial_zeta = initial_zeta
         initial_alpha = var
         print "initial guess [mu, alpha, zeta]:", [initial_mu, initial_alpha, initial_zeta]
         opt_gen, error_gen = curve_fit(self.get_cdf, x, cdf_x, [initial_mu, initial_alpha, initial_zeta])
@@ -284,11 +299,12 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
     and
     S = S^\star - \log(N!)
     """
-    def __init__(self, F0, output_path, write=True):
+    def __init__(self, F0, output_path, write=True, run_jackknife=True):
         self.F0 = F0
         self.output_path = output_path
         self.entropy_file_path = self.output_path + "/entropy_LogOmega"
         self.write = write
+        self.run_jackknife = run_jackknife
     def compute_log_omega_entropy(self, volume_sanity_check):
         self.alpha_min = 0.01
         self.zeta_min = 0.01

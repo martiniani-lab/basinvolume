@@ -84,7 +84,7 @@ def _compute_write_entropies(data_set):
     _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, free_energies)
     _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)
 
-def _compute_write_entropies_msf(data_set, ik=0.18878315, a=0.9807471):
+def _compute_write_entropies_msf(data_set, ik=0.1834006350297304, a=0.9671020810552969):
     """
     compute free energy from pressure and use these to compute entropy
     """
@@ -111,18 +111,18 @@ class ComputeEntropy(object):
     Read free energies with data set tools.
     Compute different entropies from them.
     """
-    def __init__(self, workspace, ncores=6):
+    def __init__(self, workspace, ncores=7):
         #
         self.workspace = os.path.abspath(workspace)
         #
         self.analysis = BasinAnalysis(workspace=self.workspace)
         self.analysis.collect_data_all_set(no_pickle=True)
-        results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies)(data_set) for data_set in self.analysis.packing_datasets)
-        #results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies_msf)(data_set) for data_set in self.analysis.packing_datasets)
+        #results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies)(data_set) for data_set in self.analysis.packing_datasets)
+        results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies_msf)(data_set) for data_set in self.analysis.packing_datasets)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
     parser.add_argument("-w", "--workspace", type=str, help="top-level dir containing the packings folders of format n32_phi88_2D", default=os.getcwd())
-    parser.add_argument("-j", "--ncores", type=int, help="number of parallel jobs to run, default 6", default=6)
+    parser.add_argument("-j", "--ncores", type=int, help="number of parallel jobs to run, default 6", default=7)
     args = parser.parse_args()
     ComputeEntropy(args.workspace, ncores=args.ncores)

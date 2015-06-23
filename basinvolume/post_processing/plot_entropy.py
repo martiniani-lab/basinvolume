@@ -397,10 +397,10 @@ class plot_entropy(object):
         ax = self._ploterr(entropy_array, title="comparison to PRL 2D data", raw=False, show=False)
         trialx = np.linspace(0,128,1000)
         #d+1/d-1 equation
-        ynew = trialx * 1./2 
-        ax.plot(trialx, ynew,'r--', linewidth=2, label=r'$\frac{d-1}{d+1}f(\phi)N$')
-        ynew = trialx * 1./3 
-        ax.plot(trialx, ynew,'r--', linewidth=2)
+#        ynew = trialx * 1./2 
+#        ax.plot(trialx, ynew,'r--', linewidth=2, label=r'$\frac{d-1}{d+1}f(\phi)N$')
+#        ynew = trialx * 1./3 
+#        ax.plot(trialx, ynew,'r--', linewidth=2)
         #plot apf_prl
         if ax is None:
             fig = plt.figure()
@@ -425,25 +425,27 @@ class plot_entropy(object):
             plt.show()
         if savefig:
             plt.savefig('compare_apf_prl.pdf')
+        return ax
     
                 
 if __name__ == "__main__":
-    show=True
-    savefig=False
+    show=False
+    savefig=True
     pe = plot_entropy(analysis_folder="entropy_analysis_all")
     pe_msf = plot_entropy(analysis_folder="msf_entropy_analysis_all")
     #pe.plot_single(show=True, savefig=True)
-    #pe.plot_compare_apf2D(show=show,savefig=savefig)
-    #pe.plot_all(show=show,savefig=savefig)
-    #pe.plot_lo_param(show=show,savefig=savefig)
+    pe.plot_compare_apf2D(show=show,savefig=savefig)
+    pe.plot_all(show=show,savefig=savefig)
+    pe.plot_lo_param(show=show,savefig=savefig)
     
     #COMPARE MSF TO NUMERICAL
-    raw=True
+    raw=False
     fig = plt.figure()
     ax = fig.add_subplot(111)
     print ax
     ax = pe._plot_apf(ax=ax, color='b', raw_color='b', raw=raw)
     print ax
     ax = pe_msf._plot_apf(ax=ax, color='g', raw_color='g', raw=raw)
-    plt.show()
+    #plt.show()
+    plt.savefig("plot_apf_predicted.pdf")
 

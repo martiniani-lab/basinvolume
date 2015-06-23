@@ -40,6 +40,7 @@ class PackingDataSet(object):
         self.ss_phi, self.bdim = float('0.'+str_values[2]), float(str_values[3]) 
         self.packing_data = []
         self.free_energies = []
+        self.free_energies_err = []
         self.pressures = []
         self.contacts = []
         self.boos = []
@@ -52,14 +53,15 @@ class PackingDataSet(object):
         self.packing_data.extend(packing_data)
         for data in packing_data:
             #the reason why they must all be true is because we are interested in the realation among these variables
-            if data.F is not None and data.P is not None and data.Z is not None and data.boo is not None:
+            if data.F is not None and data.Ferr is not None and data.P is not None and data.Z is not None and data.boo is not None:
                 self.free_energies.append(data.F)
+                self.free_energies_err.append(data.Ferr)
                 self.pressures.append(data.P)
                 self.contacts.append(data.Z)
                 self.boos.append(data.boo)
     
     def add_extras(self, extra):
-        self.extras.append(np.array(extra))
+        self.extras.extend(np.array(extra).tolist())
     
 class PackingData(object):
     def __init__(self, name, configpath, configpath_packing, packing_path=None):
