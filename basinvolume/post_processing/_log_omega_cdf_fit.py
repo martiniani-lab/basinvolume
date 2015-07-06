@@ -81,7 +81,7 @@ class GeneralisedLogNormal(object):
         z = self.get_zeta(zeta_offset)
         a = self.get_alpha(alpha_offset)
         logx = np.log(x)
-        return z / (2**((z+1.0)/z) * a * gamma(1.0 / z) * x) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z) + (n/kappa-1)*logx)
+        return z / (2**((z+1.0)/z) * a * gamma(1.0 / z) * x) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z) + logx * n/kappa)
     
     def get_log_times_xpow(self, x, mu, alpha_offset, zeta_offset, kappa, n):
         """
@@ -90,7 +90,7 @@ class GeneralisedLogNormal(object):
         z = self.get_zeta(zeta_offset)
         a = self.get_alpha(alpha_offset)
         logx = np.log(x)
-        return np.log(z) - ((z+1.0)/z)*np.log(2) - np.log(a) - np.log(gamma(1.0 / z)) - logx - 0.5*np.power(np.abs((logx - mu) / a),z) + (n/kappa-1) * logx
+        return np.log(z) - ((z+1.0)/z)*np.log(2) - np.log(a) - np.log(gamma(1.0 / z)) - logx - 0.5*np.power(np.abs((logx - mu) / a),z) + logx * n/kappa
     
     def get_times_xpow_with_pars(self, x, mu, alpha, zeta, kappa, n):
         return self.get_times_xpow(x, mu, alpha - self.alpha_min, zeta - self.zeta_min, kappa, n)
@@ -117,7 +117,7 @@ class GeneralisedLogNormal(object):
         self.mu_fit = self.mu
         self.alpha_fit = self.get_alpha(self.alpha_offset)
         self.zeta_fit = self.get_zeta(self.zeta_offset)
-        self.fit_error = error_gen
+        self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
             print "self.mu", self.mu
             print "self.alpha_offset", self.alpha_offset
@@ -137,7 +137,7 @@ class GeneralisedLogNormal(object):
         self.mu_fit = self.mu
         self.alpha_fit = self.get_alpha(self.alpha_offset)
         self.zeta_fit = self.get_zeta(self.zeta_offset)
-        self.fit_error = error_gen
+        self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
             print "self.mu", self.mu
             print "self.alpha_offset", self.alpha_offset
@@ -202,7 +202,7 @@ class GeneralisedGauss(object):
         self.mu_fit = self.mu
         self.alpha_fit = self.get_alpha(self.alpha_offset)
         self.zeta_fit = self.get_zeta(self.zeta_offset)
-        self.fit_error = error_gen
+        self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
             print "self.mu", self.mu
             print "self.alpha_offset", self.alpha_offset
@@ -218,7 +218,7 @@ class GeneralisedGauss(object):
         self.mu_fit = self.mu
         self.alpha_fit = self.get_alpha(self.alpha_offset)
         self.zeta_fit = self.get_zeta(self.zeta_offset)
-        self.fit_error = error_gen
+        self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
             print "self.mu", self.mu
             print "self.alpha_offset", self.alpha_offset

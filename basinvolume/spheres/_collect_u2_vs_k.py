@@ -23,8 +23,25 @@ import sys
 from itertools import cycle
 try:
     import pylab as plt
+    from matplotlib import rc
 except ImportError as err:
     print err
+
+#######################SET LATEX OPTIONS###################
+rc('text', usetex=True)
+rc('font',**{'family':'serif','serif':['Computer Modern']})
+#rc('text.latex',preamble=r'\usepackage{times}')
+plt.rcParams.update({'font.size': 18})
+plt.rcParams['xtick.major.pad'] = 8
+plt.rcParams['ytick.major.pad'] = 8
+plt.rcParams.update({'figure.autolayout': True})
+##########################################################
+####SET COLOUR MAP######                                                               
+def get_color_cycle():
+    cm = plt.get_cmap('Set2')
+    color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
+    return color_cycle
+########################
     
 class _collect_u2_vs_k(object):
     """
@@ -262,7 +279,7 @@ class _collect_u2_vs_k(object):
         #plt.yscale('log')
         #plt.xscale('log')
         ax.legend(frameon=False, loc=1)
-        plt.savefig(os.path.join(self.base_directory, 'diffusion_logr_vs_logt.eps'))
+        plt.savefig(os.path.join(self.base_directory, 'diffusion_logr_vs_logt.pdf'))
         write_csv_xy(np.log(x), np.log(y), xerr=dx/x, yerr=dy/y, fit=pol(np.log(x)), 
                      fname=os.path.join(self.base_directory, 'diffusion_logr_vs_logt.csv'))
         if self.show:
@@ -273,7 +290,7 @@ class _collect_u2_vs_k(object):
         ax.set_ylabel(r'$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$')
         ax.set_xlabel(r'$\log (\Delta s)$')
         ax.legend(frameon=False, loc=1)
-        plt.savefig(os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.eps'))
+        plt.savefig(os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.pdf'))
         write_csv_xy(np.log(x), np.log(y)-0.5*np.log(x), xerr=dx/x+dy/y, yerr=dy/y, 
                      fname=os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.csv'))
         if self.show:
@@ -295,42 +312,55 @@ class _collect_u2_vs_k(object):
         u2_array_app = (cont_karray + (self.nparticles * self.bdim) / self.displ_k_min) / (self.nparticles * self.bdim)
         u2_array_app = 1.0 / u2_array_app
         
-        #timeseries
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        self._import_time_series()
-        for i,series in enumerate(self.timeseries):
-            ax.plot(series[::self.ts_skip], ls=next(linecycler), linewidth=1, label=str(i))
-        #plt.yscale('log')
-        #plt.xscale('log')
-        ax.legend(frameon=False, loc=1)
-        plt.savefig(self.base_directory + '/time_series.eps')
-        if self.show:
-            plt.show()       
-        #integrand
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.errorbar(self.tarray, self.farray, yerr=self.sigfarray)
-        ax.set_xlabel('t')
-        ax.set_ylabel('integrand')
-        plt.savefig(self.base_directory + '/integrand.eps')
-        write_csv_xy(self.tarray, self.farray, yerr=self.sigfarray, 
-                     fname=os.path.join(self.base_directory, 'integrand.csv'))
-        if self.show:
-            plt.show()
-        #plt.figure()
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(cont_karray, u2_array_app, '-')
-        ax.errorbar(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), marker='s', linestyle='')
-        ax.set_xlabel('k')
-        ax.set_ylabel('<u2>')
-        ax.set_ylim(bottom=0)
+        if True:
+            #timeseries
+            color_cycle = get_color_cycle()
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            self._import_time_series()
+            for i,series in enumerate(self.timeseries):
+                ax.plot(series[::self.ts_skip], ls=next(linecycler), color=color_cycle.next(), linewidth=1.8, label=str(i))
+            ax.set_ylabel(r'$|{\bf r} - {\bf r}_0|$', fontsize=18)
+            ax.set_xlabel('steps/{}'.format(self.ts_skip), fontsize=18)
+            ax.set_xlim((0,150))
+            #plt.yscale('log')
+            #plt.xscale('log')
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(handles[::-1], labels[::-1], frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, 
+                      markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1)
+            plt.savefig(self.base_directory + '/time_series.pdf')
+            if self.show:
+                plt.show()       
+        
+        #mean square displacement and integrand in inset
+        color_cycle = get_color_cycle()
+        fig2 = plt.figure()
+        ax2 = fig2.add_subplot(111)
+        (line, caps, _) = ax2.errorbar(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), marker='o', ms=9, linestyle='', 
+                     color=color_cycle.next(), clip_on=False, zorder=100, capsize=5, elinewidth=2)
+        for cap in caps:
+            cap.set_zorder(100)
+        line.set_zorder(100)
+        
+        ax2.plot(cont_karray, u2_array_app, '--', linewidth=2, color=color_cycle.next())
+        ax2.set_xlabel(r'$k$')
+        ax2.set_ylabel(r'$\langle u^2 \rangle$')
+        ax2.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
-        plt.savefig(self.base_directory + '/u2_vs_k.eps')
         write_csv_xy(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), 
                      fname=os.path.join(self.base_directory, 'u2_vs_k.csv'))
+        #inset
+        ax3 = fig2.add_axes([0.45,0.42,0.4,0.4], alpha=0.5)
+        ax3.errorbar(self.tarray, self.farray, yerr=self.sigfarray, marker='o', color=color_cycle.next())
+        ax3.set_xlabel(r'$t$', fontsize=18)
+        ax3.locator_params(axis = 'x', nbins = 4)
+        ax3.locator_params(axis = 'y', nbins = 4)
+        ax3.tick_params(axis='both', which='major', labelsize=18)
+        #ax3.set_ylabel('integrand')
+        write_csv_xy(self.tarray, self.farray, yerr=self.sigfarray, 
+                     fname=os.path.join(self.base_directory, 'integrand.csv'))
+        plt.savefig(self.base_directory + '/u2_vs_k.pdf')
         if self.show:
             plt.show()
             
