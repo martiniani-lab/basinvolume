@@ -152,6 +152,8 @@ def plot(packing_datasets, figdir="figures"):
         ax3 = fig3.add_subplot(111)
         fig4 = plt.figure()
         ax4 = fig4.add_subplot(111)
+        fig7 = plt.figure()
+        ax7 = fig7.add_subplot(111)
         fit_parameters = []
         fit_parameters_std = []
         s_maxima = []
@@ -159,8 +161,11 @@ def plot(packing_datasets, figdir="figures"):
         s_apf = []
         s_edw = []
         s_b = []
+        p_ens_avg = []
         for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             nparticles = dataset.nparticles
+            vcavity = dataset.packing_data[0].vcavity
+            print "vcavity", vcavity
             if len(dataset.free_energies) > 0:
                 print "n:", nparticles
                 outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
@@ -191,16 +196,16 @@ def plot(packing_datasets, figdir="figures"):
                                                               generalised_lognormal.zeta_offset), '--', color=color, linewidth=2)
                 #unbiased pdf
                 F0acc = Bunch(F0_acc=dataset.packing_data[0].Facc, nr_particles=nparticles)
-                log_omega = OutlierRemovalUnbiasingEntropyLogOmega(F0, "/scratch/sm958/Results/basinvolume_tests", write=False)
-                log_omega.compute_log_omega_entropy(F0acc)
-                avgv, avgv_error = log_omega.integral_no_jack, log_omega.integral_error
-                Sedw = log_omega.S_star - log_factorial(nparticles)
-                print "old avgv, avgerror ", avgv, avgv_error
-                print "Sedw", Sedw
-                Sapf = np.mean(F0) - F0acc['F0_acc'] - log_factorial(nparticles)
-                s_edw.append([nparticles, Sedw])
-                s_apf.append([nparticles, Sapf])
-                print "Sapf ", Sapf
+#                log_omega = OutlierRemovalUnbiasingEntropyLogOmega(F0, "/scratch/sm958/Results/basinvolume_tests", write=False)
+#                log_omega.compute_log_omega_entropy(F0acc)
+#                avgv, avgv_error = log_omega.integral_no_jack, log_omega.integral_error
+#                Sedw = log_omega.S_star - log_factorial(nparticles)
+#                print "old avgv, avgerror ", avgv, avgv_error
+#                print "Sedw", Sedw
+#                Sapf = np.mean(F0) - F0acc['F0_acc'] - log_factorial(nparticles)
+#                s_edw.append([nparticles, Sedw])
+#                s_apf.append([nparticles, Sapf])
+#                print "Sapf ", Sapf
                 xp = np.linspace(1, np.amax(x) * 100, 1e5)
                 fit = np.array([generalised_lognormal.get_fitted_times_xpow(xpi, glob_kappa, nparticles) for xpi in xp])
                 c, cerr = quad(generalised_lognormal.get_fitted_times_xpow, 1e-5, np.amax(x) * 100, args=(glob_kappa, nparticles), 
@@ -211,18 +216,37 @@ def plot(packing_datasets, figdir="figures"):
                 print "Sb ",Sb 
                 s_b.append([nparticles, Sb])
                 ax3.plot(xp, fit/c, label=int(nparticles), color=color, linewidth=3)
+                #compute p ensemble average
+                def weighted_pressure(x, ang):
+                    x /= vcavity
+                    return np.exp(ang*x*vcavity + np.log(x) + generalised_lognormal.get_log_fitted_times_xpow(xpi, glob_kappa, nparticles))
+                def weighted_pressure_norm(x, ang):
+                    x /= vcavity
+                    return np.exp(ang*x*vcavity + generalised_lognormal.get_log_fitted_times_xpow(xpi, glob_kappa, nparticles))
+                pea_array = []
+                ang_array = np.linspace(1e-2,2,num=100)
+                for ang in ang_array:
+                    Pea, Pea_err = quad(weighted_pressure, 1e-5, np.amax(x) * vcavity, args=(ang), 
+                                        points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]])
+                    Pea /= quad(weighted_pressure_norm, 1e-5, np.amax(x) * vcavity, args=(ang), 
+                                points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]])[0]
+                    pea_array.append([Pea, Pea_err])
+                pea_array = np.array(pea_array)
+                ax7.plot(ang_array, pea_array[:,0], label=int(nparticles), color=color, linewidth=3)
+                #print "ensemble average P, Perr", nparticles, pea_array
                 #S(V, P)
                 maxps = 2e6
                 minps = 10
                 nps = 5e5
                 ps = np.linspace(minps, maxps, nps)
                 dps = (maxps-minps)/nps
-                #vcavity = dataset.packing_data[0].vcavity
                 S = - F0acc.F0_acc + nparticles + np.array([generalised_lognormal.get_log_fitted_times_xpow(p, glob_kappa, nparticles) for p in ps]) + np.log(dps)
                 S  -= log_factorial(nparticles)
                 ax4.plot(ps, S, label=int(nparticles), color=color, linewidth=3)
                 s_maxima.append([nparticles, np.amax(S)])
                 s_p_maxima.append([nparticles, ps[np.argmax(S)]])
+                
+                 
         fit_parameters = np.array(fit_parameters)
         fit_parameters_std = np.array(fit_parameters_std)
         s_maxima = np.array(s_maxima)
@@ -234,6 +258,7 @@ def plot(packing_datasets, figdir="figures"):
         ax2.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25, handlelength=1)
         ax3.legend(frameon=False, loc="best", numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25)
         ax4.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25, handlelength=1)
+        ax7.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25, handlelength=1)
         ax.set_ylabel(r"$p(P)$")
         ax.set_xlabel(r"$\mathcal{P}$")
         ax2.set_ylabel(r"$c.d.f.(\mathcal{P})$", fontsize=18)
@@ -249,7 +274,10 @@ def plot(packing_datasets, figdir="figures"):
         #ax4.set_ylim(ymin=0)
         ax4.set_ylabel(r"$S(V,\mathcal{P})$")
         ax4.set_xlabel(r"$\mathcal{P}$")
-        
+        ax7.set_ylabel(r"$\alpha$")
+        ax7.set_ylabel(r"$ \langle p \rangle_{ens}$")
+        ax7.set_xscale('log')
+        #ax7.set_yscale('log')
         
         #plot fit parameters
         #fig5 = plt.figure()
@@ -315,7 +343,6 @@ def plot(packing_datasets, figdir="figures"):
         ax6.locator_params(axis = 'y', nbins = 4)
         ax6.tick_params(axis='both', which='major', labelsize=10)
         fig4.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_S"))
-        
     
     if False:
         #kde free energies predicted vs numerical
@@ -380,5 +407,5 @@ if __name__ == "__main__":
     pts = BasinAnalysis()
     pts.collect_data_all_set()
     plot(pts.packing_datasets)
-    #plt.show()
+    plt.show()
     plt.close()

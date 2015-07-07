@@ -6,7 +6,7 @@ try:
     import os
     import matplotlib.pyplot as plt
     from scipy.optimize import curve_fit
-    from scipy.special import gamma
+    from scipy.special import gamma, gammaln
     from basinvolume.utils import to_string, save_pdf, log_factorial
     from basinvolume.utils import ResultsFile, MomentsAcc, CDFAccumulator
     from scipy import integrate
@@ -59,7 +59,7 @@ class GeneralisedLogNormal(object):
         z = self.get_zeta(zeta_offset)
         a = self.get_alpha(alpha_offset)
         logx = np.log(x)
-        return z / (2**((z+1.0)/z) * a * gamma(1.0 / z) * x) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z))
+        return z / (2**((z+1.0)/z) * a * gamma(1.0 / z)) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z) - logx)
     
     def get_cdf(self, x, mu, alpha_offset, zeta_offset):
         """
@@ -81,7 +81,7 @@ class GeneralisedLogNormal(object):
         z = self.get_zeta(zeta_offset)
         a = self.get_alpha(alpha_offset)
         logx = np.log(x)
-        return z / (2**((z+1.0)/z) * a * gamma(1.0 / z) * x) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z) + logx * n/kappa)
+        return z / (2**((z+1.0)/z) * a * gamma(1.0 / z)) * np.exp(-0.5*np.power(np.abs((logx - mu) / a),z) + logx * (n/kappa - 1))
     
     def get_log_times_xpow(self, x, mu, alpha_offset, zeta_offset, kappa, n):
         """
@@ -90,7 +90,7 @@ class GeneralisedLogNormal(object):
         z = self.get_zeta(zeta_offset)
         a = self.get_alpha(alpha_offset)
         logx = np.log(x)
-        return np.log(z) - ((z+1.0)/z)*np.log(2) - np.log(a) - np.log(gamma(1.0 / z)) - logx - 0.5*np.power(np.abs((logx - mu) / a),z) + logx * n/kappa
+        return np.log(z) - ((z+1.0)/z)*np.log(2) - np.log(a) - gammaln(1.0 / z) - 0.5*np.power(np.abs((logx - mu) / a),z) + logx * (n/kappa - 1)
     
     def get_times_xpow_with_pars(self, x, mu, alpha, zeta, kappa, n):
         return self.get_times_xpow(x, mu, alpha - self.alpha_min, zeta - self.zeta_min, kappa, n)
