@@ -57,8 +57,9 @@ class BasinAnalysis(object):
         jammed_dname = self._get_dname(inp)
         return jammed_dname.split("_")[1]
     
-    def collect_data_all_set(self, data_name="basin_analysis.pickle", no_pickle=False):
-        listdir = glob.glob(os.path.join(self.workspace, 'n*_phi*_phi*_*D'))
+    def collect_data_every_set_all(self, data_name="basin_analysis.pickle", no_pickle=False, 
+                                   dir_signature='n*_phi*_phi*_*D'):
+        listdir = glob.glob(os.path.join(self.workspace, dir_signature))
         data_pickle = os.path.join(self.workspace, data_name)
         if os.path.isfile(data_pickle) and not no_pickle:
             self.packing_datasets = pickle.load( open(data_pickle, "rb") )
@@ -66,17 +67,17 @@ class BasinAnalysis(object):
             for set_path in listdir:
                 print("set_path", set_path)
                 print "collecting data from ", os.path.split(set_path)[1]
-                self.collect_data_single(set_path=set_path)
+                self.collect_data_single_all(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
             pickle.dump(self.packing_datasets, open( data_pickle, "wb" ) )
         
-    def collect_data_single(self, set_path=None):
+    def collect_data_single_all(self, set_path=None):
         if set_path is None:
             set_path = self.workspace
-        packing_dataset = self._collect_data_single(set_path)
+        packing_dataset = self._collect_data_single_all(set_path)
         self.packing_datasets.append(packing_dataset)
     
-    def _collect_data_single(self, set_path):
+    def _collect_data_single_all(self, set_path):
         """compute boo for packings
         """
         pd_list = []
@@ -97,10 +98,56 @@ class BasinAnalysis(object):
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
                     pd.import_structural_data(path)
                     pd_list.append(pd)
-        packing_dataset.add_data(pd_list)
+        packing_dataset.add_data_all(pd_list)
+        return packing_dataset
+    
+    def collect_data_every_set_structure(self, data_name="basin_analysis.pickle", no_pickle=False,
+                                         dir_signature='n*_phi*_phi*_*D'):
+        """
+        collect only structural data from all sets
+        """
+        listdir = glob.glob(os.path.join(self.workspace, dir_signature))
+        data_pickle = os.path.join(self.workspace, data_name)
+        if os.path.isfile(data_pickle) and not no_pickle:
+            self.packing_datasets = pickle.load( open(data_pickle, "rb") )
+        else: 
+            for set_path in listdir:
+                print("set_path", set_path)
+                print "collecting data from ", os.path.split(set_path)[1]
+                self.collect_data_single_structure(set_path=set_path)
+            self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
+            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ) )
+        
+    def collect_data_single_structure(self, set_path=None):
+        if set_path is None:
+            set_path = self.workspace
+        packing_dataset = self._collect_data_single_structure(set_path)
+        self.packing_datasets.append(packing_dataset)
+    
+    def _collect_data_single_structure(self, set_path):
+        """
+        """
+        pd_list = []
+        packing_dataset = PackingDataSet(set_path)
+        for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
+            if 'xyzd' in fname or 'xyd' in fname:
+                dname = self._get_dname(fname)
+                dname_packing = self._get_dname_packing(fname)
+                base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
+                if os.path.isdir(base_directory_path):
+                    configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
+                    configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
+                    pd = PackingData(str(dname), configpath, configpath_packing)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
+                    pd.import_pressure_data(path)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
+                    pd.import_structural_data(path)
+                    pd_list.append(pd)
+        packing_dataset.add_data_structure(pd_list)
         return packing_dataset
 
 if __name__ == "__main__":
     pts = BasinAnalysis()
-    pts.collect_data_all_set()
+    pts.collect_data_every_set_all()
+    pts.collect_data_every_set_strcture()
     

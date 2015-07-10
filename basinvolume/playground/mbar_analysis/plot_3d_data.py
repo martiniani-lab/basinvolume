@@ -12,9 +12,10 @@ try:
     from itertools import cycle
     from basinvolume.utils import *
     import scipy
+    from scipy.optimize import fmin
     from scipy.stats import t
     from scipy.interpolate import spline
-    from scipy.integrate import simps, quad
+    from scipy.integrate import romberg, simps, quad, cumtrapz, trapz
     import glob
     from itertools import chain
     import cPickle as pickle
@@ -141,7 +142,7 @@ def plot(packing_datasets, figdir="figures"):
     
     from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
     from basinvolume.post_processing import GeneralisedLogNormal, OutlierRemovalUnbiasingEntropyLogOmega
-    if True:
+    if False:
         #kde pressure
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -208,32 +209,29 @@ def plot(packing_datasets, figdir="figures"):
 #                print "Sapf ", Sapf
                 xp = np.linspace(1, np.amax(x) * 100, 1e5)
                 fit = np.array([generalised_lognormal.get_fitted_times_xpow(xpi, glob_kappa, nparticles) for xpi in xp])
-                c, cerr = quad(generalised_lognormal.get_fitted_times_xpow, 1e-5, np.amax(x) * 100, args=(glob_kappa, nparticles), 
-                         points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]]) 
+                c, cerr = quad(generalised_lognormal.get_fitted_times_xpow, 0, np.amax(x)*1e5, args=(glob_kappa, nparticles), limit=200, 
+                               points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]], epsabs=1.49e-11) 
                 c *= np.exp(nparticles)
                 Sb = - F0acc.F0_acc + np.log(c) - log_factorial(nparticles)
                 print "new avgs, avg_err from pressure", c, cerr
                 print "Sb ",Sb 
                 s_b.append([nparticles, Sb])
                 ax3.plot(xp, fit/c, label=int(nparticles), color=color, linewidth=3)
-                #compute p ensemble average
-                def weighted_pressure(x, ang):
-                    x /= vcavity
-                    return np.exp(ang*x*vcavity + np.log(x) + generalised_lognormal.get_log_fitted_times_xpow(xpi, glob_kappa, nparticles))
-                def weighted_pressure_norm(x, ang):
-                    x /= vcavity
-                    return np.exp(ang*x*vcavity + generalised_lognormal.get_log_fitted_times_xpow(xpi, glob_kappa, nparticles))
-                pea_array = []
-                ang_array = np.linspace(1e-2,2,num=100)
-                for ang in ang_array:
-                    Pea, Pea_err = quad(weighted_pressure, 1e-5, np.amax(x) * vcavity, args=(ang), 
-                                        points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]])
-                    Pea /= quad(weighted_pressure_norm, 1e-5, np.amax(x) * vcavity, args=(ang), 
-                                points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]])[0]
-                    pea_array.append([Pea, Pea_err])
-                pea_array = np.array(pea_array)
-                ax7.plot(ang_array, pea_array[:,0], label=int(nparticles), color=color, linewidth=3)
-                #print "ensemble average P, Perr", nparticles, pea_array
+#                test = simps(fit, xp)/c
+#                print "test", test
+#                #compute p ensemble average
+#                pea_array = []
+#                ang_array = np.linspace(-0.5,0.5,num=25)
+#                for ang in ang_array:
+##                    Pea, Pea_err = quad(weighted_pressure, 0, np.inf, args=(ang, 1), epsabs=1.49e-11)
+##                    zPea, zPea_err = quad(weighted_pressure_norm, 0, np.inf, args=(ang, 1), epsabs=1.49e-11)
+##                    Pea = np.log10(Pea)-np.log10(zPea) #normalise in log
+#                    print ang
+#                    Pea = generalised_lognormal.get_log_edwards_fitted_pressure_expectation(glob_kappa, nparticles, ang, vcavity)
+#                    pea_array.append([Pea, 0])
+#                pea_array = np.array(pea_array)
+#                ax7.plot(ang_array, pea_array[:,0], label=int(nparticles), color=color, linewidth=3)
+#                print "ensemble average P, Perr", nparticles, pea_array
                 #S(V, P)
                 maxps = 2e6
                 minps = 10
@@ -276,7 +274,7 @@ def plot(packing_datasets, figdir="figures"):
         ax4.set_xlabel(r"$\mathcal{P}$")
         ax7.set_ylabel(r"$\alpha$")
         ax7.set_ylabel(r"$ \langle p \rangle_{ens}$")
-        ax7.set_xscale('log')
+        #ax7.set_xscale('symlog')
         #ax7.set_yscale('log')
         
         #plot fit parameters
@@ -405,7 +403,7 @@ def plot(packing_datasets, figdir="figures"):
 
 if __name__ == "__main__":
     pts = BasinAnalysis()
-    pts.collect_data_all_set()
+    pts.collect_data_every_set_all()
     plot(pts.packing_datasets)
     plt.show()
     plt.close()

@@ -142,6 +142,33 @@ class GeneralisedLogNormal(object):
             print "self.mu", self.mu
             print "self.alpha_offset", self.alpha_offset
             print "self.zeta_offset", self.zeta_offset
+    
+#    def get_log_edwards_fitted_pressure_expectation(self, kappa, n, ang, vcavity):
+#        """
+#        get pressure expectation value
+#        """
+#        from mpmath import mp
+#        mp.dps = 100
+#        z = mp.mpf(self.get_zeta(self.zeta_offset))
+#        a = mp.mpf(self.get_alpha(self.alpha_offset))
+#        mu = mp.mpf(self.mu)
+#        ang = mp.mpf(ang)
+#        def integrand_nom(t):
+#            t = mp.mpf(t)
+#            t /= mp.mpf(vcavity)
+#            logt = mp.log(t)
+#            logintegrand = - ang*t*vcavity + mp.mpf(0.5)*mp.power(mp.mpf(abs((logt - mu) / a)),z) + logt * mp.mpf(n)/mp.mpf(kappa)
+#            return mp.exp(logintegrand)
+#        def integrand_den(t):
+#            t = mp.mpf(t)
+#            t /= mp.mpf(vcavity)
+#            logt = mp.log(t)
+#            logintegrand = - ang*t*vcavity + mp.mpf(0.5)*mp.power(mp.mpf(abs((logt - mu) / a)),z) + logt * (mp.mpf(n)/mp.mpf(kappa) - mp.mpf(1))
+#            return mp.exp(logintegrand)
+#        Pea = mp.quadgl(integrand_nom, [0, mp.inf])
+#        zPea = mp.quadgl(integrand_den, [0, mp.inf])
+#        print Pea, zPea
+#        return float(mp.log(Pea/zPea))
             
 class GeneralisedGauss(object):
     """

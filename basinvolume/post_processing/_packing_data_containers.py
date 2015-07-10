@@ -46,7 +46,7 @@ class PackingDataSet(object):
         self.boos = []
         self.extras = []
     
-    def add_data(self, packing_data):
+    def add_data_all(self, packing_data):
         """
         packing data is a list of PackingData objects
         """
@@ -56,6 +56,18 @@ class PackingDataSet(object):
             if data.F is not None and data.Ferr is not None and data.P is not None and data.Z is not None and data.boo is not None:
                 self.free_energies.append(data.F)
                 self.free_energies_err.append(data.Ferr)
+                self.pressures.append(data.P)
+                self.contacts.append(data.Z)
+                self.boos.append(data.boo)
+    
+    def add_data_structure(self, packing_data):
+        """
+        packing data is a list of PackingData objects
+        """
+        self.packing_data.extend(packing_data)
+        for data in packing_data:
+            #the reason why they must all be true is because we are interested in the realation among these variables
+            if data.P is not None and data.Z is not None and data.boo is not None:
                 self.pressures.append(data.P)
                 self.contacts.append(data.Z)
                 self.boos.append(data.boo)

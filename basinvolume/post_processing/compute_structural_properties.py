@@ -14,7 +14,7 @@ class StructuralAnalysis(object):
     #@abc.abstractmethod
     
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis',
-                 force=False):
+                 force=False, existing_only=True):
         if not os.path.isabs(workspace):
             workspace = os.path.abspath(workspace)
         self.workspace = workspace
@@ -29,6 +29,7 @@ class StructuralAnalysis(object):
         self.eps = 1.
         self.frozen = False
         self.force = force
+        self.existing_only = existing_only
     
     def _import_packing_config_file(self, configpath):
         configf = ConfigParser.ConfigParser()
@@ -66,11 +67,12 @@ class StructuralAnalysis(object):
         return dname
 
 class BondOrientationalOrder(StructuralAnalysis):
-    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', force=False):
+    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
+                 force=False, existing_only=True):
         super(BondOrientationalOrder,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
-                                                    analysis_dir=analysis_dir, force=force)
+                                                    analysis_dir=analysis_dir, force=force, existing_only=existing_only)
     
-    def run(self, deg=6, pinit=True, existing_only=True):
+    def run(self, deg=6, pinit=True):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
         exisisting_only: bool
             run on already existing packings only
@@ -84,7 +86,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                 base_directory_path = os.path.join(self.workspace,'explore_bv_'+str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 self._import_packing_config_file(configpath)
-                if os.path.isdir(base_directory_path) or not existing_only:
+                if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
                     boo_fname = os.path.join(analysis_dir_path,'boo_deg{}'.format(deg))
@@ -115,9 +117,9 @@ class BondOrientationalOrder(StructuralAnalysis):
                                 f.write('[BOO] \n')
                             f.write('Q{}: {:.16f} \n'.format(deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
     
-    def run_all(self, deg_list=[4,6,8,10,12], existing_only=True):
+    def run_all(self, deg_list=[4,6,8,10,12]):
         for i,deg in enumerate(deg_list):
-            self.run(deg, pinit=i<1, existing_only=existing_only)
+            self.run(deg, pinit=i<1)
     
     def _cartesian_to_polar(self, vector):
         vector = np.array(vector)
@@ -200,11 +202,12 @@ class BondOrientationalOrder(StructuralAnalysis):
         return np.array(boo_list), np.array(z_list)
 
 class PressureTensor(StructuralAnalysis):
-    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', force=False):
+    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
+                 force=False, existing_only=True):
         super(PressureTensor,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
-                                            analysis_dir=analysis_dir, force=force)
+                                            analysis_dir=analysis_dir, force=force, existing_only=existing_only)
     
-    def run(self, existing_only=True):
+    def run(self):
         """compute boo for packings
         exisisting_only: bool
             run on already existing packings only
@@ -218,7 +221,7 @@ class PressureTensor(StructuralAnalysis):
                 base_directory_path = os.path.join(self.workspace,'explore_bv_'+str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 self._import_packing_config_file(configpath)
-                if os.path.isdir(base_directory_path) or not existing_only:
+                if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir) 
                     pressure_fname = os.path.join(analysis_dir_path,'pressure_data')
@@ -269,30 +272,33 @@ if __name__ == "__main__":
 #    pts.run()
 
     parser = argparse.ArgumentParser(description="Compute volumes from PT data, use either MBAR or TINT methods")
-    parser.add_argument("-d", "--workspace_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D", default=os.getcwd())
+    parser.add_argument("-d", "--workspace_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
     parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
     parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=7)
     parser.add_argument("--force", action='store_true', help="force to run on all packings", default=False)
+    parser.add_argument("--nonex", action='store_false', help="run also the non packings for which there aren't working folders", default=True)
     args = parser.parse_args()
     
     ncores = args.ncores
-    kwargs = dict(force=args.force)
+    kwargs = dict(force=args.force, existing_only=args.nonex)
     
     if not args.all:
-        if not os.path.isabs(args.workspace_dir):
-            workspace_dir = os.path.join(os.getcwd(), args.workspace_dir)
+        if not args.workspace_dir:
+            workspace_dir = os.getcwd()
+        else:
+            workspace_dir = os.path.abspath(args.workspace_dir)
         worker_boo(workspace_dir, kwargs)
         worker_pts(workspace_dir, kwargs)
     else:
         mypool = mp.Pool(ncores)
-        if not os.path.isabs(args.workspace_dir):
+        if not args.workspace_dir:
             workspace_dir = os.getcwd()
         else:
-            workspace_dir = args.workspace_dir
+            workspace_dir = os.path.abspath(args.workspace_dir)
         subdirs = get_immediate_subdirectories(workspace_dir)
         try:
             for folder in subdirs:
-                if folder[1].isdigit() and folder[-1] == "D":
+                if folder[1].isdigit() and "phi" in folder and "D" in folder:
                     mypool.apply_async(worker_boo, args=(os.path.abspath(folder),kwargs,))
                     mypool.apply_async(worker_pts, args=(os.path.abspath(folder),kwargs,))
         except:

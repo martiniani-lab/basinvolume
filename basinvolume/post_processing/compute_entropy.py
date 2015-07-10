@@ -116,7 +116,7 @@ class ComputeEntropy(object):
         self.workspace = os.path.abspath(workspace)
         #
         self.analysis = BasinAnalysis(workspace=self.workspace)
-        self.analysis.collect_data_all_set(no_pickle=True)
+        self.analysis.collect_data_every_set_all(no_pickle=True)
         results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies)(data_set) for data_set in self.analysis.packing_datasets)
         results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies_msf)(data_set) for data_set in self.analysis.packing_datasets)
 
