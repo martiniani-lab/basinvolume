@@ -12,8 +12,8 @@ from _volume_processing_utils import PackingFailureStatistics, VolumeSanityCheck
 from _volume_processing_utils import GLPTNotUsedStatistics, BestIntegrationSelection
 from _volume_processing_utils import PTFailures, assert_pt_success
 from _p_log_p import F0MeanError, APFEntropy
-from _log_omega_cdf_fit import GeneralisedGauss, JackLogOmega, GeneralisedLogNormal
-from _log_omega_cdf_fit import OutlierRemovalUnbiasingEntropyLogOmega
+from _probability_distributions import GeneralisedGauss, GeneralisedLogNormal, LogNormal
+from _log_omega_cdf_fit import JackLogOmega, OutlierRemovalUnbiasingEntropyLogOmega
 from _ML_log_omega import MLLogOmega
 from _non_parametric_log_omega import KernelDensityLogOmega
 from _non_parametric_log_omega import KernelDensityLogOmegaJackKnife

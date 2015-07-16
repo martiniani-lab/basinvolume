@@ -149,9 +149,13 @@ class PackingData(object):
         if os.path.isfile(path):
             configf = ConfigParser.ConfigParser()
             configf.read(path)
-            Q4, Q6 = configf.getfloat(title_boo,'Q4'), configf.getfloat(title_boo,'Q6')
-            Q8, Q10 = configf.getfloat(title_boo,'Q8'), configf.getfloat(title_boo,'Q10')
-            Q12 = configf.getfloat(title_boo,'Q12')
-            self.boo = Bunch(Q4=Q4, Q6=Q6, Q8=Q8, Q10=Q10, Q12=Q12)
+            if self.bdim == 3:
+                Q4, Q6 = configf.getfloat(title_boo,'Q4'), configf.getfloat(title_boo,'Q6')
+                Q8, Q10 = configf.getfloat(title_boo,'Q8'), configf.getfloat(title_boo,'Q10')
+                Q12 = configf.getfloat(title_boo,'Q12')
+                self.boo = Bunch(Q4=Q4, Q6=Q6, Q8=Q8, Q10=Q10, Q12=Q12)
+            elif self.bdim == 2:
+                Q6 = configf.getfloat(title_boo,'Q6')
+                self.boo = Bunch(Q6=Q6)
             z = configf.getfloat(title_z,'Z')
             self.Z = z

@@ -118,15 +118,28 @@ class BondOrientationalOrder(StructuralAnalysis):
                             f.write('Q{}: {:.16f} \n'.format(deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
     
     def run_all(self, deg_list=[4,6,8,10,12]):
-        for i,deg in enumerate(deg_list):
-            self.run(deg, pinit=i<1)
+        print "here"
+        if any('xyzd' in fname for fname in os.listdir(self.jammed_packings_dir)):
+            for i,deg in enumerate(deg_list):
+                self.run(deg, pinit=i<1)
+                assert self.bdim == 3
+        elif any('xyd' in fname for fname in os.listdir(self.jammed_packings_dir)):
+            print "here"
+            self.run(6, pinit=True)
+            assert self.bdim == 2
     
-    def _cartesian_to_polar(self, vector):
+    def _cartesian_to_polar3d(self, vector):
         vector = np.array(vector)
         r = np.linalg.norm(vector)
         theta = np.arctan2(vector[1], vector[0])
         phi = np.arccos(vector[2]/r)
         return r, theta, phi
+    
+    def _cartesian_to_polar2d(self, vector):
+        vector = np.array(vector)
+        r = np.linalg.norm(vector)
+        theta = np.arctan2(vector[1], vector[0])
+        return r, theta
 
     def _qsum(self, nnatoms_vec, order, ndim=3, deg=6):
         """
@@ -140,14 +153,41 @@ class BondOrientationalOrder(StructuralAnalysis):
         deg: int
             degree of the spherical harmonic (l)
         """
-        assert ndim == 3, "2 dimensional case not implemented yet"
         n = len(nnatoms_vec)
         qsum = np.complex(0.,0.)
-        for vector in nnatoms_vec:
-            r, theta, phi = self._cartesian_to_polar(vector)
-            Y = sph_harm(order, deg, theta, phi)
-            qsum += Y
+        if ndim == 3:
+            for vector in nnatoms_vec:
+                r, theta, phi = self._cartesian_to_polar3d(vector)
+                Y = sph_harm(order, deg, theta, phi)
+                qsum += Y
+        elif ndim == 2:
+            assert deg == 6, "boo only meaningful for exhatic phase in 2d"
+            for vector in nnatoms_vec:
+                r, theta = self._cartesian_to_polar2d(vector)
+                Y = np.exp(np.complex(0.,deg*theta))
+                qsum += Y
+        else:
+            raise Exception('ndim not implemented')
         return qsum / n
+    
+    def _bond_orientational_order3d(self, nnatoms_vec, deg=6):
+        q = 0.
+        for m in xrange(-deg,deg):
+            c = self._qsum(nnatoms_vec, m, ndim=3, deg=deg)
+            q += np.absolute(c)**2
+        return np.sqrt(q * 4 * np.pi / (2*deg+1))
+    
+    def _bond_orientational_order2d(self, nnatoms_vec, deg=6):
+        c = self._qsum(nnatoms_vec, 0, ndim=2, deg=deg)
+        return np.absolute(c)
+    
+    def _bond_orientational_order(self, nnatoms_vec, ndim=3, deg=6):
+        if ndim == 3:
+            return self._bond_orientational_order3d(nnatoms_vec, deg=deg)
+        elif ndim == 2:
+            return self._bond_orientational_order2d(nnatoms_vec, deg=deg)
+        else:
+            raise Exception('ndim not implemented')
     
     def find_nearest_neighbors(self, coords, hs_radii):
         nparticles = hs_radii.size
@@ -166,13 +206,6 @@ class BondOrientationalOrder(StructuralAnalysis):
                         nnatoms_list[i].append(dij)
                         nnatoms_list[j].append(-dij)
         return nnatoms_list
-    
-    def _bond_orientational_order(self, nnatoms_vec, ndim=3, deg=6):
-        q = 0.
-        for m in xrange(-deg,deg):
-            c = self._qsum(nnatoms_vec, m, ndim=ndim, deg=deg)
-            q += np.absolute(c)**2
-        return np.sqrt(q * 4 * np.pi / (2*deg+1))
     
     def bond_orientation_order_single(self, coords, hs_radii, atom_index, ndim=3, deg=6):
         nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)

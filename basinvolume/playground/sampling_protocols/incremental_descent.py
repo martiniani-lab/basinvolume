@@ -27,14 +27,14 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
-    def __init__(self, packing_frac=0.7, nincrements=5, rattler_eval_tol=1.,packings_dir='packings', use_cell_lists=False, show=False):
+    def __init__(self, packing_frac=0.7, nincrements=1, rattler_eval_tol=1.,packings_dir='packings', use_cell_lists=False, show=False):
         super(Incremental_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, rattler_eval_tol=rattler_eval_tol,
                                                                  packings_dir=packings_dir, use_cell_lists=use_cell_lists, 
                                                                  show=show)
         self.nincrements = nincrements
         print "nincrements", self.nincrements
     
-    def one_iteration(self, fname):
+    def one_iteration(self, fname, rd=3.0):
         """perform one iteration
         """
         self._import_single_packing_config_file(fname)
@@ -50,12 +50,15 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
         
+        #test change radius
+        self.hs_radii /= rd #test half the radius
+        self.imp_packing_frac = self._get_particles_volume()/np.prod(self.boxv)
+        
         ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
-        #self.imp_packing_frac
-        phi_increments = np.linspace(0.65, self.packing_frac, self.nincrements)
+        phi_increments = np.linspace(self.imp_packing_frac, self.packing_frac, self.nincrements+1)[1:] 
         for i, phi in enumerate(phi_increments):
+            new_phi = phi
             self._compute_sca(phi)
-            print phi
             rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
             if self.use_cell_lists:
                 if np.amin(self.boxv) // rcut <= 3:
@@ -69,6 +72,12 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
             success = self._generate_packing_coords(i) #returns false if saddle
             if not success:
                 break
+        
+        #test change radius back
+        self.hs_radii *= rd #test half the radius
+        self.imp_packing_frac = self._get_particles_volume()/np.prod(self.boxv)
+        self._compute_sca(new_phi)
+        success = self._generate_packing_coords(0) #returns false if saddle
         
         if success:
             self._find_rattlers()
