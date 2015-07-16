@@ -14,24 +14,27 @@ try:
     from scipy.interpolate import spline
     from scipy.integrate import simps
     import glob
-    from basinvolume.post_processing import PackingData, PackingDataSet
+    from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
 except ImportError as err:
     print err
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 #rc('text.latex',preamble=r'\usepackage{times}')
-plt.rcParams.update({'font.size': 16})
+plt.rcParams.update({'font.size': 18})
 plt.rcParams['xtick.major.pad'] = 8
 plt.rcParams['ytick.major.pad'] = 8
+plt.rcParams.update({'figure.autolayout': True})
 ##########################################################
 ####SET COLOUR MAP######                                                               
-cm = plt.get_cmap('Dark2')
+def get_color_cycle():
+    cm = plt.get_cmap('Set2')
+    color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
+    return color_cycle
 ########################
 #####################LINE STYLE CYCLER####################                             
-lines = ["-","--","-."]
+lines = ["-","--","-.", ":", "_"]
 linecycler = cycle(lines)
-color_cycle=cycle([cm(1. * i / 6) for i in xrange(6)])
 ##########################################################
 """
 for plotting a linear fit with intervals of confidence see http://nbviewer.ipython.org/url/bagrow.com/dsv/LEC10_notes_2014-02-13.ipynb
@@ -46,9 +49,14 @@ def _read_nparticles(folder):
     nparticles = int(nparticles)
     return nparticles
 
-class MbarPackingData(PackingData):
+class MBARPackingData(PackingData):
     def __init__(self, name, configpath, configpath_packing, packing_path=None):
-        super(MbarPackingData, self).__init__(name, configpath, configpath_packing, packing_path=packing_path)
+        super(MBARPackingData, self).__init__(name, configpath, configpath_packing, packing_path=packing_path)
+        str_values = re.findall('\d+', self.set_name)
+        try:
+            self.poly = str_values[4]
+        except Exception:
+            self.poly = 0 #mono
         self.log_gr = None
         self.log_gr_ratio = None
         self.gr_ratio = None
@@ -81,9 +89,9 @@ class MbarPackingData(PackingData):
             x, xerr, y, yerr, fit = read_csv_xy(fpath)
             self.dos = np.transpose(np.array([x, xerr, y, yerr, fit]))
 
-class MbarPackingDataSet(PackingDataSet):
+class MBARPackingDataSet(PackingDataSet):
     def __init__(self, set_path):
-        super(MbarPackingDataSet, self).__init__(set_path)
+        super(MBARPackingDataSet, self).__init__(set_path)
         self.log_gr_data = []
         self.log_gr_ratio_data = [] 
         self.gr_ratio_data = []
@@ -149,148 +157,46 @@ class MbarPackingDataSet(PackingDataSet):
             kurtosis = np.average((x-mean)**4, weights=y) / var**2
             self.dos_moments.append((mode, mean, var, skewness, kurtosis))
 
-class mbar_data(object):
-    def __init__(self, label, analysis_folder = "analysis", log_gr_file = "log_gr.csv", 
-                 log_gr_ratio_file = "log_gr_ratio.csv", gr_ratio_file = "gr_ratio.csv",
-                 dos_file = "dos.csv", volume_file="mbar_volume_data", boo_file='glob_boo'):
-        self.label = label
-        self.analysis_folder = analysis_folder
-        self.volume_file = volume_file
-        self.log_gr_file = log_gr_file
-        self.log_gr_ratio_file = log_gr_ratio_file
-        self.gr_ratio_file = gr_ratio_file
-        self.dos_file = dos_file
-        self.boo_file = boo_file
-        self.free_energies = []
-        self.acc_free_energies = []
-        self.log_gr = []
-        self.log_gr_ratio = []
-        self.gr_ratio = []
-        self.dos = []
-        self.dos_mean = []
-        self.log_gr_mean = []
-        self.log_gr_ratio_mean = []
-        self.gr_ratio_mean = []
-        self.dos_moments = []
-        self.boo = [] #Q4, Q6, Q8, Q10, Q12
-        self.z_numbers = [] #average coordination number
-        
-    def compute_mean(self):
-        self.log_gr_mean = np.mean(self.log_gr_mean, axis=0).tolist()
-        x, xerr, y, yerr, fit = self.log_gr[0]
-        self.log_gr_mean = [(x, xerr, self.log_gr_mean, yerr, fit)]
-        
-        self.log_gr_ratio_mean = np.mean(self.log_gr_ratio_mean, axis=0).tolist()
-        x, xerr, y, yerr, fit = self.log_gr_ratio[0]
-        self.log_gr_ratio_mean = [(x, xerr, self.log_gr_ratio_mean, yerr, fit)]
-        
-        self.gr_ratio_mean = np.mean(self.gr_ratio_mean, axis=0).tolist()
-        x, xerr, y, yerr, fit = self.gr_ratio[0]
-        self.gr_ratio_mean = [(x, xerr, self.gr_ratio_mean, yerr, fit)]
-        
-        self.dos_mean = np.mean(self.dos_mean, axis=0).tolist()
-        x, xerr, y, yerr, fit = self.dos[0]
-        self.dos_mean = [(x, xerr, self.dos_mean, yerr, fit)]
-    
-    def _normalize_dist(self, y, x):
-        area = simps(y, x)
-        y = np.array(y) / area
-        area = simps(y, x)
-        y = np.array(y) / area
-        return y
-    
-    def compute_dos_moments(self):
-        for csv_tuple in self.dos:
-            (x, xerr, y, yerr, fit) = csv_tuple
-            y = self._normalize_dist(y, x)
-            mode =  x[np.argmax(y)]
-            mean = np.average(x, weights=y)
-            var = np.average((x-mean)**2, weights=y)
-            std = np.sqrt(var)
-            skewness = np.average((x-mean)**3, weights=y) / std**3
-            kurtosis = np.average((x-mean)**4, weights=y) / var**2
-            self.dos_moments.append((mode, mean, var, skewness, kurtosis))
+class MBARBasinAnalysis(BasinAnalysis):
+    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
+                 analysis_dir='analysis', volume_file="mbar_volume", pressure_file="pressure_data", 
+                 zboo_file="glob_boo", volume_title = "MBAR_VOLUME"):
+        super(MBARBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir, 
+                                                jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir, 
+                                                volume_file=volume_file, pressure_file=pressure_file, 
+                                                zboo_file=zboo_file, volume_title=volume_title)
+    def _collect_data_single_all(self, set_path):
+        pd_list = []
+        packing_dataset = MBARPackingDataSet(set_path)
+        for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
+            if 'xyzd' in fname or 'xyd' in fname:
+                dname = self._get_dname(fname)
+                dname_packing = self._get_dname_packing(fname)
+                base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
+                if os.path.isdir(base_directory_path):
+                    configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
+                    configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
+                    pd = MBARPackingData(str(dname), configpath, configpath_packing)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
+                    pd.import_volume_data(path)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
+                    pd.import_pressure_data(path)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
+                    pd.import_structural_data(path)
+                    path = os.path.join(base_directory_path, self.analysis_dir)
+                    pd.import_dos_data()                   
+                    pd_list.append(pd)
+        packing_dataset.add_data_all(pd_list)
+        packing_dataset.compute_mean()
+        packing_dataset.compute_moments()
+        return packing_dataset
 
 class plot_mbar_data(object):
-    def __init__(self, workdir=None, explore_dir='explore_bv_jammed_packing', Nrange=(0,1000)):
-        if not workdir:
-            workdir = os.getcwd() 
-        if not os.path.isabs(workdir):
-            workdir = os.path.abspath(workdir)
-        self.workdir = workdir
-        self.explore_dir = explore_dir
-        self.Nrange = Nrange
-#        NOTE: these need to be replaced with a list of folder names, and self.fcc_data and fcc_mono_data removes as they
-#        are all disordered. These changes must be reflected in the plot functions. Furthermore in collect data we need to
-#        import the pressure and test that all the data are available for the import to happen. In fact we should make the 
-#        mbar_data container derive from PackingData and make use of the already implemented functions to import structural
-#        factors and volumes
-        self.fcc_data = mbar_data("fcc_poly0050")
-        self.fcc_mono_data = mbar_data("fcc_mono")
-        self.disordered_data = mbar_data("disordered")
-        markers = ["bo", "r^", "gs", "kx", "c+"]
-        self.markercycler = cycle(markers)
-        self._collect_data(self.fcc_data)
-        self._collect_data(self.fcc_mono_data)
-        self._collect_data(self.disordered_data)
-        self.fcc_mono_data.compute_dos_moments()
-        self.fcc_data.compute_dos_moments()
-        self.disordered_data.compute_dos_moments()
-    
-    def _collect_data(self, mbar_data):
-        subdirs = get_immediate_subdirectories(os.path.join(self.workdir, mbar_data.label))
-        for folder in subdirs:
-            if self.explore_dir in folder:
-                path = os.path.join(self.workdir, mbar_data.label, folder, mbar_data.analysis_folder)
-                if os.path.isdir(path):
-                    npack = int(re.findall('\d+', folder)[0])
-                    if self.Nrange[0] <= npack <= self.Nrange[1]:
-                        #collect volume
-                        configf = ConfigParser.ConfigParser()
-                        fpath = os.path.join(path, mbar_data.volume_file)
-                        if os.path.isfile(fpath):
-                            configf.read(fpath)
-                            F, Ferr = configf.getfloat('VOLUME_MBAR','F0'), configf.getfloat('VOLUME_MBAR','sigF0')
-                            Facc = configf.getfloat('VOLUME_HS_FLUID','F0_acc')
-                            mbar_data.free_energies.append((F, Ferr))
-                            mbar_data.acc_free_energies.append(Facc)
-                        #collect boo (bond orientational order parameter)
-                        configf = ConfigParser.ConfigParser()
-                        fpath = os.path.join(path, mbar_data.boo_file)
-                        if os.path.isfile(fpath):
-                            configf.read(fpath)
-                            Q4, Q6 = configf.getfloat('BOO','Q4'), configf.getfloat('BOO','Q6')
-                            Q8, Q10 = configf.getfloat('BOO','Q8'), configf.getfloat('BOO','Q10')
-                            Q12 = configf.getfloat('BOO','Q12')
-                            mbar_data.boo.append((Q4, Q6, Q8, Q10, Q12))
-                            z = configf.getfloat('Z','Z')
-                            mbar_data.z_numbers.append(z)
-                        #log_gr
-                        fpath = os.path.join(path, mbar_data.log_gr_file)
-                        if os.path.isfile(fpath):
-                            x, xerr, y, yerr, fit = read_csv_xy(fpath)
-                            mbar_data.log_gr.append((x,xerr,y,yerr,fit))
-                            mbar_data.log_gr_mean.append(y)
-                        #log_gr_ratio
-                        fpath = os.path.join(path, mbar_data.log_gr_ratio_file)
-                        if os.path.isfile(fpath):
-                            x, xerr, y, yerr, fit = read_csv_xy(fpath)
-                            y -= np.amax(y)
-                            mbar_data.log_gr_ratio.append((x,xerr,y,yerr,fit))
-                            mbar_data.log_gr_ratio_mean.append(y)
-                        #gr_ratio
-                        fpath = os.path.join(path, mbar_data.gr_ratio_file)
-                        if os.path.isfile(fpath):
-                            x, xerr, y, yerr, fit = read_csv_xy(fpath)
-                            mbar_data.gr_ratio.append((x,xerr,y,yerr,fit))
-                            mbar_data.gr_ratio_mean.append(y)
-                        #dos
-                        fpath = os.path.join(path, mbar_data.dos_file)
-                        if os.path.isfile(fpath):
-                            x, xerr, y, yerr, fit = read_csv_xy(fpath)
-                            mbar_data.dos.append((x,xerr,y,yerr,fit))
-                            mbar_data.dos_mean.append(y)
-        mbar_data.compute_mean()
+    def __init__(self, packing_datasets, figdir="figures"):
+        from scipy.optimize import curve_fit
+        if not os.path.isabs(figdir):
+            figdir = os.path.join(os.getcwd(), figdir)
+        trymakedir(figdir)
     
     def _plot(self, ax, csv_tuple, label=None, plot_err=False, plot_fit=False, normalize=False):
         (x, xerr, y, yerr, fit) = csv_tuple
@@ -491,181 +397,13 @@ class plot_mbar_data(object):
             plt.savefig(figname)
         if show:
             plt.show()
-
-class diffusion_data(object):
-    def __init__(self, label, analysis_folder = "diffusion"):
-        self.label = label
-        self.analysis_folder = analysis_folder
-        self.step_timeseries_mean_path = []
-        self.step_timeseries_mean_path_std = [] 
-        self.step_timeseries_mean_eucdist = []
-        self.step_timeseries_mean_eucdist_std = []
-
-class plot_diffusion_data(object):
-    def __init__(self, workdir=None, explore_dir='explore_bv_jammed_packing', Nrange=(0,1000)):
-        if not workdir:
-            workdir = os.getcwd() 
-        if not os.path.isabs(workdir):
-            workdir = os.path.abspath(workdir)
-        self.workdir = workdir
-        self.explore_dir = explore_dir
-        self.Nrange = Nrange
-        self.fcc_data = diffusion_data("fcc")
-        self.fcc_mono_data = diffusion_data("fcc_mono")
-        self.disordered_data = diffusion_data("disordered")
-        markers = ["bo", "r^", "gs", "kx", "c+"]
-        self.markercycler = cycle(markers)
-        self._collect_diffusion_data(self.fcc_data)
-        self._collect_diffusion_data(self.fcc_mono_data)
-        self._collect_diffusion_data(self.disordered_data)
     
-    def _collect_diffusion_data(self, diffusion_data):
-        subdirs = get_immediate_subdirectories(os.path.join(self.workdir, diffusion_data.label))
-        for folder in subdirs:
-            if self.explore_dir in folder:
-                self._import_steps_time_series_diffusion(folder, diffusion_data)
-                
-    def _import_steps_time_series_diffusion(self, folder, diffusion_data, eqtime=2.5e5):
-        timeseries = []
-        series_order = []
-        path = os.path.join(self.workdir, diffusion_data.label, folder, diffusion_data.analysis_folder)
-        if os.path.isdir(path):
-            npack = int(re.findall('\d+', folder)[0])
-            if self.Nrange[0] <= npack <= self.Nrange[1]:
-                file_list = glob.glob(os.path.join(path,'StepsTimeSeries*'))
-                file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
-                for series_path in file_list:
-                    fname = str(os.path.split(series_path)[-1].split())
-                    digits = map(int, re.findall(r'\d+', fname))
-                    series_order.append(digits[-1])
-                    timeseries.append(read_txt(series_path))
-                X = np.array(timeseries)
-                Y = series_order
-                step_timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
-                step_timeseries_order =  np.sort(series_order)
-                step_timeseries_mean_path = []
-                step_timeseries_mean_path_std = []
-                step_timeseries_mean_eucdist = []
-                step_timeseries_mean_eucdist_std = []
-                for i,n in enumerate(step_timeseries_order[1:]):
-                    #step_timeseries[0] is the timeseries recorded at every step, we use this to compute the path length
-                    #the other step_timeseries are recrded every nth entry and tells us what distance we have covered since
-                    #the last nth step 
-                    mean_arr = []
-                    nsubs = step_timeseries[0][eqtime:].size // n
-                    for j in xrange(nsubs):
-                        mean_arr.append(np.sum(step_timeseries[0][eqtime+j*n:eqtime+(j+1)*n]))
-                    mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
-                    step_timeseries_mean_path.append(mean)
-                    step_timeseries_mean_path_std.append(stdev/np.sqrt(len(mean_arr)))
-                    step_timeseries_mean_eucdist.append(np.mean(step_timeseries[i+1][eqtime//n:]))
-                    step_timeseries_mean_eucdist_std.append(np.std(step_timeseries[i+1][eqtime//n:])/np.sqrt(len(step_timeseries[i+1])))
-                diffusion_data.step_timeseries_mean_path.append(step_timeseries_mean_path)
-                diffusion_data.step_timeseries_mean_path_std.append(step_timeseries_mean_path_std)
-                diffusion_data.step_timeseries_mean_eucdist.append(step_timeseries_mean_eucdist)
-                diffusion_data.step_timeseries_mean_eucdist_std.append(step_timeseries_mean_eucdist_std)
-    
-    def _plot(self, ax, csv_tuple, label=None, plot_err=False, plot_fit=False, normalize=False):
-        (x, xerr, y, yerr, fit) = csv_tuple
-        color = color_cycle.next()
-        if normalize:
-            area = simps(y, x)
-            y = np.array(y) / area
-        if plot_err:
-            ax.errorbar(x, y, yerr=yerr, xerr=xerr, c=color, fmt='o', ms=6, label=label)
-        else:
-            ax.plot(x, y, label=label, linewidth=2.5)
-        if plot_fit:
-            ax.plot(x,fit,'--', c=color, linewidth=2)
-        return ax
-    
-    def _plot_all(self, ax, diffusion_data, plot_type="logr_vs_logt", label=None):
-        X, DX = diffusion_data.step_timeseries_mean_path, diffusion_data.step_timeseries_mean_path_std
-        Y, DY = diffusion_data.step_timeseries_mean_eucdist, diffusion_data.step_timeseries_mean_eucdist_std
-        i = 0
-        for x, dx, y, dy in zip(X, DX, Y, DY):
-            x, dx, y, dy = np.array(x), np.array(dx), np.array(y), np.array(dy)
-            
-            if plot_type == "logr_vs_logt" and x.size > 0:
-                pol = np.poly1d(np.polyfit(np.log(x)[:3], np.log(y)[:3], 1,  w=(y/dy)[:3])) #[5:-1]
-                w = np.polyfit(np.log(x)[:3], np.log(y)[:3], 1)
-                print w
-                fit = pol(np.log(x))
-                csv_tuple = (np.log(x), dx/x, np.log(y), dy/y, fit)
-                ax = self._plot(ax, csv_tuple, label=label, plot_err=True, plot_fit=True)
-                ylabel = r'$\log(\Delta r)$'
-                xlabel = r'$\log (\Delta s)$'
-            if plot_type == "red_logr_vs_logt" and x.size > 0:
-                redy = np.log(y)-0.5*np.log(x)
-                csv_tuple = (np.log(x), dx/x+dy/y, redy - np.amax(redy), dy/y, np.zeros(len(x)))
-                ax = self._plot(ax, csv_tuple, label=label, plot_err=True, plot_fit=False)
-                ylabel = (r'$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$')
-                xlabel = (r'$\log (\Delta s)$')
-        return ax, xlabel, ylabel
-                
-                
-    
-    def plot_all(self, plot_type="logr_vs_logt", figname=None, title=None, show=False, savefig=False):
-        dlabel = None
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        
-        ax, xlabel, ylabel = self._plot_all(ax, self.fcc_data, plot_type=plot_type, label=r"fcc")
-        ax, xlabel, ylabel = self._plot_all(ax, self.fcc_mono_data, plot_type=plot_type, label=r"fcc mono")
-        ax, xlabel, ylabel = self._plot_all(ax, self.disordered_data, plot_type=plot_type, label=dlabel)
-        
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        try:
-            ax.legend(frameon=False, loc="best")
-        except Exception, e:
-            print e
-            
-        if title:
-            plt.title(title)
-        if figname is None:
-            figname = plot_type + "_all.eps"
-        if savefig:
-            plt.savefig(figname)
-        if show:
-            plt.show()
-     
 if __name__ == "__main__":
-    show = False
-    pe = plot_mbar_data(Nrange=(0,1000))
-#    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True)
-#    pe.plot_all(plot_type="log_gr", show=show, savefig=True)
-#    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True)
-#    pe.plot_all(plot_type="dos", show=show, savefig=True)
-#    pe.plot_all(plot_type="log_gr_ratio", show=show, savefig=True, average=True)
-#    pe.plot_all(plot_type="log_gr", show=show, savefig=True, average=True)
-#    pe.plot_all(plot_type="gr_ratio", show=show, savefig=True, average=True)
-#    pe.plot_all(plot_type="dos", show=show, savefig=True, average=True)
-
-#    pe.plot_correlations(plot_type="f_m0", show=False, savefig=True)
-    pe.plot_correlations(plot_type="f_m1", show=False, savefig=True)
-    pe.plot_correlations(plot_type="f_m2", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="f_m3", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="f_m4", show=False, savefig=True)
-    pe.plot_correlations(plot_type="m1_m2", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="m3_m4", show=False, savefig=True)
-
-    pe.plot_correlations(plot_type="f_z", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="f_q4", show=False, savefig=True)
-    pe.plot_correlations(plot_type="f_q6", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="f_q8", show=False, savefig=True)
-#    pe.plot_correlations(plot_type="f_q10", show=False, savefig=True)
-    pe.plot_correlations(plot_type="f_q12", show=False, savefig=True)
-
-    logx=True
-    logy=True
-#    pe.plot_correlations(plot_type="m0_q6", logx=logx, logy=logy, show=False, savefig=True)
-    pe.plot_correlations(plot_type="m1_q6", logx=logx, logy=logy, show=False, savefig=True)
-    pe.plot_correlations(plot_type="m2_q6", logx=logx, logy=logy, show=False, savefig=True)
-#    pe.plot_correlations(plot_type="m3_q6", logx=logx, logy=logy, show=False, savefig=True)
-#    pe.plot_correlations(plot_type="m4_q6", logx=logx, logy=logy, show=False, savefig=True)
+    show = True
     
-#    diff = plot_diffusion_data(Nrange=(0,1000))
-#    diff.plot_all("logr_vs_logt", show=show, savefig=True)
-#    diff.plot_all("red_logr_vs_logt", show=show, savefig=True)
-    plt.show()
+    pts = BasinAnalysis()
+    pts.collect_data_every_set_all(dir_signature='fcc_*')
+    #plot_mbar_data(pts.packing_datasets)
+    if show:
+        plt.show()
+    plt.close()
