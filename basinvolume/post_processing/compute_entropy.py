@@ -118,7 +118,7 @@ class ComputeEntropy(object):
         self.analysis = BasinAnalysis(workspace=self.workspace)
         self.analysis.collect_data_every_set_all(no_pickle=True)
         results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies)(data_set) for data_set in self.analysis.packing_datasets)
-        results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies_msf)(data_set) for data_set in self.analysis.packing_datasets)
+        #results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies_msf)(data_set) for data_set in self.analysis.packing_datasets)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")

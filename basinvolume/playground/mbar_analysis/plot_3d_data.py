@@ -152,7 +152,7 @@ def plot(packing_datasets, figdir="figures"):
         print "extras", dataset.extras
         
         #subplots
-        if True:
+        if False:
             def ff(x, a):
                 return a * x
             
@@ -214,7 +214,7 @@ def plot(packing_datasets, figdir="figures"):
             xticks[-1].label1.set_visible(False)
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
     
-    if True:
+    if False:
         #kde pressure
         color_cycle = get_color_cycle()
         fig = plt.figure()

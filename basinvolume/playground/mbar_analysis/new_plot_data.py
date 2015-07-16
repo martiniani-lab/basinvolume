@@ -14,6 +14,7 @@ try:
     from scipy.interpolate import spline
     from scipy.integrate import simps
     import glob
+    from basinvolume.post_processing import PackingData, PackingDataSet
 except ImportError as err:
     print err
 #######################SET LATEX OPTIONS###################
@@ -44,6 +45,109 @@ def _read_nparticles(folder):
         nparticles+=char
     nparticles = int(nparticles)
     return nparticles
+
+class MbarPackingData(PackingData):
+    def __init__(self, name, configpath, configpath_packing, packing_path=None):
+        super(MbarPackingData, self).__init__(name, configpath, configpath_packing, packing_path=packing_path)
+        self.log_gr = None
+        self.log_gr_ratio = None
+        self.gr_ratio = None
+        self.dos = None
+        
+    def import_dos_data(self, path, log_gr_file = "log_gr.csv", log_gr_ratio_file = "log_gr_ratio.csv", 
+                        gr_ratio_file = "gr_ratio.csv", dos_file = "dos.csv"): 
+        """
+        I have removed mean, that can be added to the set
+        """
+        #log_gr
+        fpath = os.path.join(path, log_gr_file)
+        if os.path.isfile(fpath):
+            x, xerr, y, yerr, fit = read_csv_xy(fpath)
+            self.log_gr = np.transpose(np.array([x, xerr, y, yerr, fit]))
+        #log_gr_ratio
+        fpath = os.path.join(path, log_gr_ratio_file)
+        if os.path.isfile(fpath):
+            x, xerr, y, yerr, fit = read_csv_xy(fpath)
+            y -= np.amax(y)
+            self.log_gr_ratio = np.transpose(np.array([x, xerr, y, yerr, fit]))
+        #gr_ratio
+        fpath = os.path.join(path, gr_ratio_file)
+        if os.path.isfile(fpath):
+            x, xerr, y, yerr, fit = read_csv_xy(fpath)
+            self.gr_ratio = np.transpose(np.array([x, xerr, y, yerr, fit]))
+        #dos
+        fpath = os.path.join(path, dos_file)
+        if os.path.isfile(fpath):
+            x, xerr, y, yerr, fit = read_csv_xy(fpath)
+            self.dos = np.transpose(np.array([x, xerr, y, yerr, fit]))
+
+class MbarPackingDataSet(PackingDataSet):
+    def __init__(self, set_path):
+        super(MbarPackingDataSet, self).__init__(set_path)
+        self.log_gr_data = []
+        self.log_gr_ratio_data = [] 
+        self.gr_ratio_data = []
+        self.dos_data = []
+        self.dos_mean = []
+        self.log_gr_mean = []
+        self.log_gr_ratio_mean = []
+        self.gr_ratio_mean = []
+        self.dos_moments = []
+        
+    def add_data_all(self, packing_data):
+        """
+        packing data is a list of PackingData objects
+        """
+        self.packing_data.extend(packing_data)
+        for data in packing_data:
+            #the reason why they must all be true is because we are interested in the relation among these variables
+            if (data.F is not None and data.P is not None and data.Z is not None and data.boo is not None and
+                data.log_gr is not None and data.log_gr_ratio is not None and data.gr_ratio is not None and
+                data.dos is not None):
+                self.free_energies.append(data.F)
+                self.pressures.append(data.P)
+                self.contacts.append(data.Z)
+                self.boos.append(data.boo)
+                self.log_gr_data.append(data.log_gr)
+                self.log_gr_ratio_data.append(data.log_gr_ratio) 
+                self.gr_ratio_data.append(data.gr_ratio)
+                self.dos_data.append(data.dos)
+
+    def compute_mean(self):
+        def get_mean(data):
+            xref = data[0][:,0]
+            all = []
+            for arr in data:
+                x, y = arr[:,0], arr[:,2]
+                assert x.size == xref.size, 'x array size mismatches'
+                assert np.allclose(x, xref), 'mismatching x arrays'
+                all.append(y)
+            mu = np.mean(all, axis=0)
+            std = np.std(all, axis=0)
+            return np.transpose(np.array([x, data[0][:,1], mu, std, data[0][:,3]]))
+        
+        self.log_gr_mean = get_mean(self.log_gr_data)
+        self.log_gr_ratio_mean = get_mean(self.log_gr_ratio_data)
+        self.gr_ratio_mean = get_mean(self.gr_ratio_data)  
+        self.dos_mean = get_mean(self.dos_data)
+    
+    def compute_dos_moments(self):
+        def normalize_dist(self, y, x):
+            area = simps(y, x)
+            y = np.array(y) / area
+            area = simps(y, x)
+            y = np.array(y) / area
+            return y
+        for arr in self.dos:
+            x, y = arr[:,0], arr[:,2]
+            y = normalize_dist(y, x)
+            mode =  x[np.argmax(y)]
+            mean = np.average(x, weights=y)
+            var = np.average((x-mean)**2, weights=y)
+            std = np.sqrt(var)
+            skewness = np.average((x-mean)**3, weights=y) / std**3
+            kurtosis = np.average((x-mean)**4, weights=y) / var**2
+            self.dos_moments.append((mode, mean, var, skewness, kurtosis))
 
 class mbar_data(object):
     def __init__(self, label, analysis_folder = "analysis", log_gr_file = "log_gr.csv", 
@@ -88,16 +192,17 @@ class mbar_data(object):
         x, xerr, y, yerr, fit = self.dos[0]
         self.dos_mean = [(x, xerr, self.dos_mean, yerr, fit)]
     
+    def _normalize_dist(self, y, x):
+        area = simps(y, x)
+        y = np.array(y) / area
+        area = simps(y, x)
+        y = np.array(y) / area
+        return y
+    
     def compute_dos_moments(self):
-        def normalize_dist(self, y, x):
-            area = simps(y, x)
-            y = np.array(y) / area
-            area = simps(y, x)
-            y = np.array(y) / area
-            return y
         for csv_tuple in self.dos:
             (x, xerr, y, yerr, fit) = csv_tuple
-            y = normalize_dist(y, x)
+            y = self._normalize_dist(y, x)
             mode =  x[np.argmax(y)]
             mean = np.average(x, weights=y)
             var = np.average((x-mean)**2, weights=y)
