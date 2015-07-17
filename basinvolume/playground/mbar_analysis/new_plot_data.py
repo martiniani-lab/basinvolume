@@ -52,11 +52,6 @@ def _read_nparticles(folder):
 class MBARPackingData(PackingData):
     def __init__(self, name, configpath, configpath_packing, packing_path=None):
         super(MBARPackingData, self).__init__(name, configpath, configpath_packing, packing_path=packing_path)
-        str_values = re.findall('\d+', self.set_name)
-        try:
-            self.poly = str_values[4]
-        except Exception:
-            self.poly = 0 #mono
         self.log_gr = None
         self.log_gr_ratio = None
         self.gr_ratio = None
@@ -402,7 +397,8 @@ if __name__ == "__main__":
     show = True
     
     pts = BasinAnalysis()
-    pts.collect_data_every_set_all(dir_signature='fcc_*')
+    pts.collect_data_every_set_all(dir_signature='n*phi*phi*fcc*')
+    #print pts.free_energies
     #plot_mbar_data(pts.packing_datasets)
     if show:
         plt.show()

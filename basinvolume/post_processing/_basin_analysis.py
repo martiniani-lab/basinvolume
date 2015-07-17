@@ -60,6 +60,7 @@ class BasinAnalysis(object):
     def collect_data_every_set_all(self, data_name="basin_analysis.pickle", no_pickle=False, 
                                    dir_signature='n*_phi*_phi*_*D'):
         listdir = glob.glob(os.path.join(self.workspace, dir_signature))
+        print listdir
         data_pickle = os.path.join(self.workspace, data_name)
         if os.path.isfile(data_pickle) and not no_pickle:
             self.packing_datasets = pickle.load( open(data_pickle, "rb") )

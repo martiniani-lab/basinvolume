@@ -20,6 +20,7 @@ try:
     import traceback
     import copy
     import abc
+    import glob
     import multiprocessing as mp
     import pele.utils.fix_multiprocessing
     from scipy import integrate
@@ -187,7 +188,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                  volume_file="mbar_volume_data", volume_title="VOLUME_MBAR"):
         super(ComputeVolumesMBARMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
                                                                 volume_file=volume_file, volume_title=volume_title)
-        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=False)
+        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=4)
     
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
         self.series_collector(fname=fname,
@@ -242,16 +243,20 @@ if __name__ == "__main__":
         workspace_dir = os.path.abspath(args.workspace_dir)
         worker(workspace_dir, kwargs)
     else:
-        mypool = mp.Pool(ncores)
-        subdirs = get_immediate_subdirectories(os.getcwd())
-        try:
-            for folder in subdirs:
-                if folder[1].isdigit() and folder[-1] == "D":
+        subdirs = glob.glob(os.path.join(os.getcwd(), "n*phi*phi*D*"))
+        if args.ncores > 1 and args.method != 'mbar':
+            mypool = mp.Pool(ncores)
+            try:
+                for folder in subdirs:
                     mypool.apply_async(worker, args=(os.path.abspath(folder),kwargs,))
-        except:
-            mypool.terminate()
+            except:
+                mypool.terminate()
+                mypool.join()
+                raise
+                        
+            mypool.close()
             mypool.join()
-            raise
-                    
-        mypool.close()
-        mypool.join()
+        else:
+            for folder in subdirs:
+                ComputeVolumes(os.path.abspath(folder), **kwargs)
+            

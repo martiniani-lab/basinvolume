@@ -225,11 +225,12 @@ class mbar_compute_dos(object):
                     file_list = glob.glob(path + '/TimeSeries*')
                     file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
                     series_order.append(int(dir))
-                    results = Parallel(n_jobs=self.ncores)(delayed(read_txt)(series_path) for series_path in file_list) #DEBUG [len(file_list)//3:]
+                    results = Parallel(n_jobs=self.ncores)(delayed(read_txt)(series_path, self.adjustf_niter, max_series_size) for series_path in file_list) #DEBUG [len(file_list)//3:]
                     series = list(chain.from_iterable(results))
+                    timeseries.append(series)
                     #shorten series to max series size, remove adjustf region and subsample
-                    skip = max(1, len(series[int(self.adjustf_niter):])//max_series_size)
-                    timeseries.append(series[int(self.adjustf_niter)::int(skip)])
+                    #skip = max(1, len(series[int(self.adjustf_niter):])//max_series_size)
+                    #timeseries.append(series[int(self.adjustf_niter)::int(skip)])        
         X = np.array(timeseries)
         Y = series_order
         self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])

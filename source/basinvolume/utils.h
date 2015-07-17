@@ -53,11 +53,29 @@ inline double get_distance_com(const pele::Array<double>& coords,
     return d;
 }
 
-Array<double> cread_txt(const std::string fname){
+size_t get_file_length(std::string fname){
+    std::ifstream is;
+    is.open(fname.c_str(), std::ios::binary);
+    is.seekg(0, std::ios::end);
+    return (size_t) is.tellg();
+}
+
+Array<double> cread_txt(const std::string fname, const size_t ncrop, const size_t nmax){
+    double x;
+    size_t nevery = 1;
+    size_t i = 0;
+    size_t l = get_file_length(fname);
+    if (nmax > 0 && l>nmax){
+        nevery = (int) l / nmax;
+    }
     std::ifstream input(fname,  std::ifstream::in);
     std::vector<double> data;
-    double x;
-    while(input >> x){data.push_back(x);}
+    while(input >> x){
+        if (i >= ncrop && i % nevery == 0){
+            data.push_back(x);
+        };
+        ++i;
+    }
     return Array<double>(data).copy();
 }
 

@@ -20,8 +20,8 @@ def get_dist_com(coords, origin, bdim):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def read_txt(fname):
-    cdef _pele.Array[double] cseries = cread_txt(fname)
+def read_txt(fname, ncrop=0, nmax=0):
+    cdef _pele.Array[double] cseries = cread_txt(fname, ncrop, nmax)
     cdef double *seriesdata = cseries.data()
     cdef size_t ndof = cseries.size()
     cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(ndof)

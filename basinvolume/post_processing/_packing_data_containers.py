@@ -82,7 +82,7 @@ class PackingData(object):
         self.name = name
         self.configpath = configpath
         self.configpath_packing = configpath_packing
-        self._import_packing_config_file(self.configpath)
+        self._import_packing_config_file(self.configpath, self.configpath_packing)
         if packing_path is not None:
             self._import_packing_configuration(packing_path)
         self.F = None 
@@ -93,7 +93,7 @@ class PackingData(object):
         self.Z = None
         self.boo = None
         
-    def _import_packing_config_file(self, configpath):
+    def _import_packing_config_file(self, configpath, configpath_packing):
         configf = ConfigParser.ConfigParser()
         configf.read(str(configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
@@ -108,6 +108,10 @@ class PackingData(object):
             self.vcavity = np.prod(self.boxv)
         self.packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
+        #import hs packing info
+        configf.read(str(configpath_packing))
+        self.hs_mean = configf.getfloat('PACKING','radii_mean')
+        self.hs_stdev = configf.getfloat('PACKING','radii_stdev')
     
     def _import_packing_configuration(self, path):
         #path = os.path.join(self.packings_dir, fname)
