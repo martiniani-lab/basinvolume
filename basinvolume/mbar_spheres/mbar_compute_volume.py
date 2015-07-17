@@ -56,6 +56,12 @@ def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cros
         print "bandwidth ", bw
         bw *= 3
     hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
+    from scipy.integrate import simps
+    area = simps(hist, bin_edges)
+    print "kde pdf area", area
+    hist /= area
+    area = simps(hist, bin_edges)
+    print "kde pdf area", area
     return hist
 
 def find_eqtime(ts):
@@ -245,14 +251,12 @@ class mbar_compute_dos(object):
             self.timeseries = np.array(df.values)
         except Exception, e:
             print e
-            store = pd.HDFStore(tsframe)
             self._import_pt_time_series_raw()
             nind , ncol = self.timeseries.shape
             ind = [i for i in xrange(nind)]
             col = [i for i in xrange(ncol)]
-            frame = pd.DataFrame(np.array(self.timeseries), index=ind, columns=col)
-            store['ts'] = frame
-            store.close()
+            df = pd.DataFrame(np.array(self.timeseries), index=ind, columns=col)
+            df.to_hdf(tsframe,'ts')
             
     def _import_pt_time_series_raw(self, max_series_size=int(3e6)):
         timeseries = []
@@ -406,7 +410,7 @@ class mbar_compute_dos(object):
         kde_bin_edges += (kde_bin_edges[1]-kde_bin_edges[0])/2 
         hist = get_kde_hist(self.ts_sphere, kde_bin_edges, kernel="epanechnikov", bw=0.01)
         hist_visits.append(hist)
-        results = Parallel(n_jobs=self.ncores)(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
+        results = Parallel(n_jobs=self.ncores//2)(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
         print np.shape(results)
         for hist in results:
             hist_visits.append(hist)
