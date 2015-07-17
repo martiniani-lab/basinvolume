@@ -268,14 +268,23 @@ class BestIntegrationSelection(object):
 
 def assert_pt_success(path, fname):
     pt_path = os.path.join(path, "explore_" + fname + ".config")
+    kmax_path = os.path.join(path, "findk_" + fname + ".config")
     if not os.path.isfile(pt_path):
         return False
     configf = ConfigParser.ConfigParser()
+#    try:
+#        configf.read(str(kmax_path))
+#        kmax = configf.getfloat("FINDK", "kmax")
+#        if kmax > 5e4:
+#            return False
+#    except:
+#        return False
     try:
         configf.read(str(pt_path))
         success_dict = dict(configf.items('STATUS'))
     except:
         return False
+    configf.read(str(kmax_path))    
     for key, value in success_dict.iteritems():
         if not (value == "True"):
             return False

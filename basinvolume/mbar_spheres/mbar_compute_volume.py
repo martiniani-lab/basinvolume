@@ -12,12 +12,33 @@ from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 import argparse
 from itertools import cycle, chain
+from matplotlib import rc
+import pandas as pd
 try:
     import pylab as plt
     from joblib import Parallel, delayed
 except ImportError as err:
     print err
 import time
+#######################SET LATEX OPTIONS###################
+rc('text', usetex=True)
+rc('font',**{'family':'serif','serif':['Computer Modern']})
+#rc('text.latex',preamble=r'\usepackage{times}')
+plt.rcParams.update({'font.size': 18})
+plt.rcParams['xtick.major.pad'] = 8
+plt.rcParams['ytick.major.pad'] = 8
+plt.rcParams.update({'figure.autolayout': True})
+##########################################################
+####SET COLOUR MAP######                                                               
+def get_color_cycle():
+    cm = plt.get_cmap('Set2')
+    color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
+    return color_cycle
+########################
+#####################LINE STYLE CYCLER####################                             
+lines = ["-","--","-.", ":", "_"]
+linecycler = cycle(lines)
+##########################################################
 
 def dos_from_offsets(visits, log_dos_all, offsets, nodata_value=0.):
     log_dos_all = log_dos_all + offsets[:,np.newaxis]
@@ -30,9 +51,10 @@ def dos_from_offsets(visits, log_dos_all, offsets, nodata_value=0.):
 def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cross_validation", skip=1):
     if kernel == "gaussian":
         if method == "cross_validation":
-            skip = len(timeseries)//1e4
+            skip = max(1, len(timeseries)//1e4)
         bw = get_bandwidth_estimate(np.array(timeseries[::skip]), kernel="gaussian", method=method)
         print "bandwidth ", bw
+        bw *= 3
     hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
     return hist
 
@@ -98,6 +120,7 @@ class mbar_compute_dos(object):
         Full volume computation, assuming that PT data is available
         """
         base_directory = self.base_directory
+        print "analysing ", self.explore_dir
         trymakedir(base_directory)
         print "importing k array"
         self._import_ks()
@@ -124,6 +147,7 @@ class mbar_compute_dos(object):
     
     def run_bs(self, nr_subsamples=10):
         base_directory = self.base_directory
+        print "analysing ", self.explore_dir
         trymakedir(base_directory)
         #first compute the volume using the full set of data
         self._import_ks()
@@ -214,19 +238,41 @@ class mbar_compute_dos(object):
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray==0.)[0][0]
         
-    def _import_pt_time_series(self, max_series_size=3e6):
+    def _import_pt_time_series(self):
+        tsframe = os.path.join(self.base_directory, 'timeseries.h5')
+        try:
+            df = pd.read_hdf(tsframe, 'ts')
+            self.timeseries = np.array(df.values)
+        except Exception, e:
+            print e
+            store = pd.HDFStore(tsframe)
+            self._import_pt_time_series_raw()
+            nind , ncol = self.timeseries.shape
+            ind = [i for i in xrange(nind)]
+            col = [i for i in xrange(ncol)]
+            frame = pd.DataFrame(np.array(self.timeseries), index=ind, columns=col)
+            store['ts'] = frame
+            store.close()
+            
+    def _import_pt_time_series_raw(self, max_series_size=int(3e6)):
         timeseries = []
         series_order = []
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
                     print "importing replica ", dir
+                    series_order.append(int(dir))
                     path = os.path.join(self.explore_dir, dir)
                     file_list = glob.glob(path + '/TimeSeries*')
                     file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
-                    series_order.append(int(dir))
-                    results = Parallel(n_jobs=self.ncores)(delayed(read_txt)(series_path, self.adjustf_niter, max_series_size) for series_path in file_list) #DEBUG [len(file_list)//3:]
-                    series = list(chain.from_iterable(results))
+                    tot_size = int(file_list[-1].split(".")[1]) - self.adjustf_niter
+                    init_size = int(file_list[0].split(".")[1]) - self.adjustf_niter
+                    init_max_size = int(max_series_size*init_size/tot_size)
+                    other_max_size = int((max_series_size-init_max_size)/len(file_list[1:]))
+                    series = []
+                    series.extend( read_txt(file_list[0], self.adjustf_niter, max_series_size).tolist() )
+                    results = Parallel(n_jobs=self.ncores)(delayed(read_txt)(series_path, 0, other_max_size) for series_path in file_list[1:])
+                    series.extend( list(chain.from_iterable(results)) )
                     timeseries.append(series)
                     #shorten series to max series size, remove adjustf region and subsample
                     #skip = max(1, len(series[int(self.adjustf_niter):])//max_series_size)
@@ -237,7 +283,7 @@ class mbar_compute_dos(object):
         
     def _subtract_eqtime(self):
         #remove equilibration region from pt timeseries
-        results = Parallel(n_jobs=self.ncores)(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
+        results = Parallel(n_jobs=self.ncores//2)(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
         print "eq_times: ", results
         eq_time = int(np.amax(results))
         self.timeseries = self.timeseries[:,eq_time:]
@@ -397,7 +443,25 @@ class mbar_compute_dos(object):
     def _plot_raw(self):
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
-                
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        color_cycle = get_color_cycle()
+        skip = max(1, int(len(self.timeseries[0])/1e3))
+        for i,series in enumerate(self.timeseries):
+            ax.plot(series[::skip], ls=next(linecycler), color=color_cycle.next(), linewidth=1.8, label=str(i))
+        ax.set_ylabel(r'$|{\bf r} - {\bf r}_0|$', fontsize=18)
+        ax.set_xlabel('steps/{}'.format(skip), fontsize=18)
+        ax.set_xlim((0,150))
+        #plt.yscale('log')
+        #plt.xscale('log')
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles[::-1], labels[::-1], frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, 
+                  markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1)
+        plt.savefig(self.base_directory + '/time_series.pdf')
+        if self.show:
+            plt.show()
+        
         fig = plt.figure()
         ax = fig.add_subplot(111)
         herr = []
