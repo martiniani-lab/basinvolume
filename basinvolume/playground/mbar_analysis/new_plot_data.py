@@ -11,10 +11,11 @@ try:
     from basinvolume.utils import *
     import scipy
     from scipy.stats import t
-    from scipy.interpolate import spline
+    from scipy.interpolate import splrep, splev, interp1d
     from scipy.integrate import simps
     import glob
     from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
+    from scipy.optimize import curve_fit
 except ImportError as err:
     print err
 #######################SET LATEX OPTIONS###################
@@ -87,6 +88,12 @@ class MBARPackingData(PackingData):
 class MBARPackingDataSet(PackingDataSet):
     def __init__(self, set_path):
         super(MBARPackingDataSet, self).__init__(set_path)
+        str_values = re.findall('\d+', self.set_name)
+        try:
+            self.hs_poly =  float('0.'+str_values[4][1:])
+        except Exception:
+            print "can't pick up polydispersity, setting to 0. Folder name: ", self.set_name
+            self.hs_poly = 0.
         self.log_gr_data = []
         self.log_gr_ratio_data = [] 
         self.gr_ratio_data = []
@@ -108,6 +115,7 @@ class MBARPackingDataSet(PackingDataSet):
                 data.log_gr is not None and data.log_gr_ratio is not None and data.gr_ratio is not None and
                 data.dos is not None):
                 self.free_energies.append(data.F)
+                self.free_energies_err.append(data.Ferr)
                 self.pressures.append(data.P)
                 self.contacts.append(data.Z)
                 self.boos.append(data.boo)
@@ -116,32 +124,51 @@ class MBARPackingDataSet(PackingDataSet):
                 self.gr_ratio_data.append(data.gr_ratio)
                 self.dos_data.append(data.dos)
 
-    def compute_mean(self):
+    def _compute_mean(self):
         def get_mean(data):
-            xref = data[0][:,0]
+            xmin, xmax = data[0][0,0], data[0][-1,0]
+            for arr in data:
+                nxmin, nxmax = arr[0,0], arr[-1,0]
+                if nxmin < xmin:
+                    xmin = nxmin
+                if nxmax > xmax:
+                    xmax = nxmax
+            xref = np.linspace(xmin, xmax, len(data[0][:,0]))
             all = []
             for arr in data:
                 x, y = arr[:,0], arr[:,2]
                 assert x.size == xref.size, 'x array size mismatches'
-                assert np.allclose(x, xref), 'mismatching x arrays'
-                all.append(y)
+                #tcky = splev(x, splrep(x, y, s=0), der=0)
+                f = interp1d(x, y, bounds_error=False)
+                all.append(f(xref))
+            all = np.array(all)
+            wsum = np.sum(all, axis=0)
+            keep = np.nonzero(np.asarray(np.isfinite(wsum) * np.array([np.abs(x) > 1e-16 for x in wsum]), dtype='i'))
+            all = all[:, keep[0]]
+            xref = xref[keep[0]]
+            assert xref.size == all.shape[1]
             mu = np.mean(all, axis=0)
             std = np.std(all, axis=0)
-            return np.transpose(np.array([x, data[0][:,1], mu, std, data[0][:,3]]))
+            return np.transpose(np.array([xref, np.zeros(xref.size), mu, std, np.zeros(xref.size)]))
         
         self.log_gr_mean = get_mean(self.log_gr_data)
-        self.log_gr_ratio_mean = get_mean(self.log_gr_ratio_data)
-        self.gr_ratio_mean = get_mean(self.gr_ratio_data)  
+        self.log_gr_ratio_mean = get_mean(self.log_gr_ratio_data)  
         self.dos_mean = get_mean(self.dos_data)
+        for i,arr in enumerate(self.gr_ratio_data):
+            x, y = arr[:,0], arr[:,2]
+            j = next(xp[0] for xp in enumerate(x) if xp[1] > 0.1)
+            y /= np.mean(y[:j])
+            self.gr_ratio_data[i][:,2] = y
+        self.gr_ratio_mean = get_mean(self.gr_ratio_data)
     
-    def compute_dos_moments(self):
-        def normalize_dist(self, y, x):
+    def _compute_dos_moments(self):
+        def normalize_dist(y, x):
             area = simps(y, x)
             y = np.array(y) / area
             area = simps(y, x)
             y = np.array(y) / area
             return y
-        for arr in self.dos:
+        for arr in self.dos_data:
             x, y = arr[:,0], arr[:,2]
             y = normalize_dist(y, x)
             mode =  x[np.argmax(y)]
@@ -152,14 +179,21 @@ class MBARPackingDataSet(PackingDataSet):
             kurtosis = np.average((x-mean)**4, weights=y) / var**2
             self.dos_moments.append((mode, mean, var, skewness, kurtosis))
 
+    def compute_mean_and_moments(self):
+        if len(self.log_gr_data) > 0 and len(self.log_gr_ratio_data) > 0 \
+        and len(self.gr_ratio_data) > 0 and len(self.dos_data) > 0:
+            self._compute_mean()
+            self._compute_dos_moments()
+
 class MBARBasinAnalysis(BasinAnalysis):
     def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
-                 analysis_dir='analysis', volume_file="mbar_volume", pressure_file="pressure_data", 
-                 zboo_file="glob_boo", volume_title = "MBAR_VOLUME"):
+                 analysis_dir='analysis', volume_file="mbar_volume_data", pressure_file="pressure_data", 
+                 zboo_file="glob_boo", volume_title = "VOLUME_MBAR"):
         super(MBARBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir, 
                                                 jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir, 
                                                 volume_file=volume_file, pressure_file=pressure_file, 
                                                 zboo_file=zboo_file, volume_title=volume_title)
+        print self.volume_title
     def _collect_data_single_all(self, set_path):
         pd_list = []
         packing_dataset = MBARPackingDataSet(set_path)
@@ -173,91 +207,67 @@ class MBARBasinAnalysis(BasinAnalysis):
                     configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
                     pd = MBARPackingData(str(dname), configpath, configpath_packing)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
-                    pd.import_volume_data(path)
+                    pd.import_volume_data(path, title=self.volume_title)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
                     pd.import_structural_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir)
-                    pd.import_dos_data()                   
+                    pd.import_dos_data(path)                   
                     pd_list.append(pd)
         packing_dataset.add_data_all(pd_list)
-        packing_dataset.compute_mean()
-        packing_dataset.compute_moments()
+        packing_dataset.compute_mean_and_moments()    
         return packing_dataset
 
 class plot_mbar_data(object):
     def __init__(self, packing_datasets, figdir="figures"):
-        from scipy.optimize import curve_fit
         if not os.path.isabs(figdir):
             figdir = os.path.join(os.getcwd(), figdir)
         trymakedir(figdir)
+        self.packing_datasets = packing_datasets
     
-    def _plot(self, ax, csv_tuple, label=None, plot_err=False, plot_fit=False, normalize=False):
-        (x, xerr, y, yerr, fit) = csv_tuple
-        if normalize:
-            area = simps(y, x)
-            y = np.array(y) / area
-        if plot_err:
-            ax.errorbar(x, y, yerr=yerr, fmt='bo', ms=9, label=label)
-        else:
-            ax.plot(x, y, label=label, linewidth=2.5)
-        if plot_fit:
-            ax.plot(x,fit,'b--', linewidth=2)
-        return ax
+    def __call__(self):
+        if False:
+            color_cycle = get_color_cycle()
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+                if len(dataset.free_energies) > 1:
+                    poly = dataset.hs_poly
+                    print poly
+                    outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+                    x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    #weights = 1./np.array(dataset.free_energies_err)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    weights = np.ones(len(dataset.free_energies))[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    print len(x), len(y)
+                    x = np.log(x)
+                    ax.scatter(x, y, label=poly, color=color_cycle.next())
+                    fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
+                    fit_err = np.sqrt(np.diag(cov))
+                    fit_fn = np.poly1d(fit)
+                    ax.plot(x, fit_fn(x), color='k')
+                    dataset.add_extras((fit, fit_err))
+                    print dataset.extras
+            ax.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
+                      handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+            plt.ylabel(r"$F$")
+            plt.xlabel(r"$\log \mathcal{P}$")
+        if True:
+            self.plot_all(plot_type="log_gr", average=True)
+            self.plot_all(plot_type="log_gr_ratio", average=True)
+            self.plot_all(plot_type="gr_ratio", average=True)
+            self.plot_all(plot_type="dos", average=True)
     
-    def _plot_all(self, ax, mbar_data, plot_type="log_gr", label=None, average=False):
-        if plot_type == "log_gr":
-            if average:
-                log_gr = mbar_data.log_gr_mean
-            else:
-                log_gr = mbar_data.log_gr
-            for csv_tuple in log_gr:
-                ax = self._plot(ax, csv_tuple, label=label, plot_err=False, plot_fit=False)
-            xlabel=r'r'
-            ylabel=r'$\log(g(r))$'
-        if plot_type == "log_gr_ratio":
-            if average:
-                log_gr_ratio = mbar_data.log_gr_ratio_mean
-            else:
-                log_gr_ratio = mbar_data.log_gr_ratio
-            for csv_tuple in log_gr_ratio:
-                ax = self._plot(ax, csv_tuple, label=label, plot_err=False, plot_fit=False)
-            xlabel=r'r'
-            ylabel=r'$\log(g(r)/r^{N-1})$'
-        if plot_type == "gr_ratio":
-            if average:
-                gr_ratio = mbar_data.gr_ratio_mean
-            else:
-                gr_ratio = mbar_data.gr_ratio
-            for csv_tuple in gr_ratio:
-                ax = self._plot(ax, csv_tuple, label=label, plot_err=False, plot_fit=False)
-            xlabel=r'r'
-            ylabel=r'$g(r)/r^{N-1}$'
-            ax.set_xlim((0,1))
-        if plot_type == "dos":
-            if average:
-                dos = mbar_data.dos_mean
-            else:
-                dos = mbar_data.dos
-            for csv_tuple in dos:
-                ax = self._plot(ax, csv_tuple, label=label, plot_err=False, plot_fit=False, normalize=True)
-            xlabel=r'r'
-            ylabel=r'$g(r)$'
-            ax.set_xlim((0.5,4))
-        
-        return ax, xlabel, ylabel
-    
-    def plot_all(self, plot_type="log_gr", figname=None, title=None, show=False, savefig=False, average=False):
-        dlabel = None
-        if average:
-            dlabel = "disordered"
+    def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         
-        ax, xlabel, ylabel = self._plot_all(ax, self.fcc_data, plot_type=plot_type, average=average, label=r"fcc $s=0.05$")
-        ax, xlabel, ylabel = self._plot_all(ax, self.fcc_mono_data, plot_type=plot_type, average=average, label=r"fcc mono")
-        ax, xlabel, ylabel = self._plot_all(ax, self.disordered_data, plot_type=plot_type, average=average, label=dlabel)
+        color_cycle = get_color_cycle()
+        for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+                if len(dataset.free_energies) > 0:
+                    ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type, 
+                                                        average=average, label=dataset.hs_poly, color=color_cycle.next())
         
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -277,6 +287,73 @@ class plot_mbar_data(object):
             plt.savefig(figname)
         if show:
             plt.show()
+        
+    def _plot_all(self, ax, mbar_data, plot_type="log_gr", label=None, average=False, color='k'):
+        if plot_type == "log_gr":
+            if average:
+                log_gr = mbar_data.log_gr_mean
+                ax = self._plot(ax, log_gr, label=label, plot_err=False, plot_fit=False, color=color)
+            else:
+                log_gr = mbar_data.log_gr_data
+                for i,arr in enumerate(log_gr):
+                    if i > 0:
+                        label = None
+                    ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, color=color)
+            xlabel=r'r'
+            ylabel=r'$\log(g(r))$'
+        if plot_type == "log_gr_ratio":
+            if average:
+                log_gr_ratio = mbar_data.log_gr_ratio_mean
+                ax = self._plot(ax, log_gr_ratio, label=label, plot_err=False, plot_fit=False, color=color)
+            else:
+                log_gr_ratio = mbar_data.log_gr_ratio_data
+                for i,arr in enumerate(log_gr_ratio):
+                    if i > 0:
+                        label = None
+                    ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, color=color)
+            xlabel=r'r'
+            ylabel=r'$\log(g(r)/r^{N-1})$'
+        if plot_type == "gr_ratio":
+            if average:
+                gr_ratio = mbar_data.gr_ratio_mean
+                ax = self._plot(ax, gr_ratio, label=label, plot_err=False, plot_fit=False, color=color)
+            else:
+                gr_ratio = mbar_data.gr_ratio_data
+                for i,arr in enumerate(gr_ratio):
+                    if i > 0:
+                        label = None
+                    ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, color=color)
+            xlabel=r'r'
+            ylabel=r'$g(r)/r^{N-1}$'
+            ax.set_xlim((0,1))
+        if plot_type == "dos":
+            if average:
+                dos = mbar_data.dos_mean
+                ax = self._plot(ax, dos, label=label, plot_err=False, plot_fit=False, normalize=True, color=color)
+            else:
+                dos = mbar_data.dos_data
+                for i,arr in enumerate(dos):
+                    if i > 0:
+                        label = None
+                    ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, normalize=True, color=color)
+            xlabel=r'r'
+            ylabel=r'$g(r)$'
+            ax.set_xlim((0.5,4))
+            
+        return ax, xlabel, ylabel
+    
+    def _plot(self, ax, arr, label=None, plot_err=False, plot_fit=False, normalize=False, color='k', marker='o'):
+        (x, xerr, y, yerr, fit) = arr[:,0], arr[:,1], arr[:,2], arr[:,3], arr[:,4]
+        if normalize:
+            area = simps(y, x)
+            y = np.array(y) / area
+        if plot_err:
+            ax.errorbar(x, y, yerr=yerr, ms=9, label=label, marker=marker, color=color)
+        else:
+            ax.plot(x, y, label=label, linewidth=2.5, color=color)
+        if plot_fit:
+            ax.plot(x,fit, linestyle='--', linewidth=2, color=color)
+        return ax
     
     def _plot_correlations(self, ax, mbar_data, plot_type="f_m1", label=None, color='b'):
         moments = np.reshape(mbar_data.dos_moments, (-1,5))
@@ -396,10 +473,10 @@ class plot_mbar_data(object):
 if __name__ == "__main__":
     show = True
     
-    pts = BasinAnalysis()
+    pts = MBARBasinAnalysis()
     pts.collect_data_every_set_all(dir_signature='n*phi*phi*fcc*')
-    #print pts.free_energies
-    #plot_mbar_data(pts.packing_datasets)
+    pmd = plot_mbar_data(pts.packing_datasets)
+    pmd()
     if show:
         plt.show()
     plt.close()

@@ -118,13 +118,11 @@ class BondOrientationalOrder(StructuralAnalysis):
                             f.write('Q{}: {:.16f} \n'.format(deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
     
     def run_all(self, deg_list=[4,6,8,10,12]):
-        print "here"
         if any('xyzd' in fname for fname in os.listdir(self.jammed_packings_dir)):
             for i,deg in enumerate(deg_list):
                 self.run(deg, pinit=i<1)
                 assert self.bdim == 3
         elif any('xyd' in fname for fname in os.listdir(self.jammed_packings_dir)):
-            print "here"
             self.run(6, pinit=True)
             assert self.bdim == 2
     

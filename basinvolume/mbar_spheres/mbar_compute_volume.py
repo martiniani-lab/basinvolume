@@ -14,6 +14,7 @@ import argparse
 from itertools import cycle, chain
 from matplotlib import rc
 import pandas as pd
+import pele.utils.fix_multiprocessing
 try:
     import pylab as plt
     from joblib import Parallel, delayed
@@ -51,17 +52,18 @@ def dos_from_offsets(visits, log_dos_all, offsets, nodata_value=0.):
 def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cross_validation", skip=1):
     if kernel == "gaussian":
         if method == "cross_validation":
-            skip = max(1, len(timeseries)//1e4)
+            skip = max(1, len(timeseries)//1e5)
         bw = get_bandwidth_estimate(np.array(timeseries[::skip]), kernel="gaussian", method=method)
         print "bandwidth ", bw
-        bw *= 3
+        #bw *= 3
     hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
     from scipy.integrate import simps
     area = simps(hist, bin_edges)
     print "kde pdf area", area
-    hist /= area
-    area = simps(hist, bin_edges)
-    print "kde pdf area", area
+#    normalise again by hand
+#    hist /= area
+#    area = simps(hist, bin_edges)
+#    print "kde pdf area", area
     return hist
 
 def find_eqtime(ts):
@@ -70,12 +72,15 @@ def find_eqtime(ts):
     time = np.amin([max_eq_time, time]) #this should avoid detecting artifacts near the end of the series
     return int(time)
 
+#def run_parallel(func, *args):
+    
+
 class mbar_compute_dos(object):
     """
     this is a class that implements _mbar_compute_dos class 
     """
     
-    def __init__(self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=8):
+    def __init__(self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=7):
         self.nbins = np.power(2, int(np.log2(nbins) + 0.5)) + 1#approximate to nearest power of 2 plus 1 (for rhomb integration)
         self.kde = kde
         self.bootstrap = bootstrap
@@ -258,7 +263,7 @@ class mbar_compute_dos(object):
             df = pd.DataFrame(np.array(self.timeseries), index=ind, columns=col)
             df.to_hdf(tsframe,'ts')
             
-    def _import_pt_time_series_raw(self, max_series_size=int(3e6)):
+    def _import_pt_time_series_raw(self, max_series_size=int(1e5)):
         timeseries = []
         series_order = []
         for subdir, dirs, files in os.walk(self.explore_dir):
@@ -287,7 +292,7 @@ class mbar_compute_dos(object):
         
     def _subtract_eqtime(self):
         #remove equilibration region from pt timeseries
-        results = Parallel(n_jobs=self.ncores//2)(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
+        results = Parallel(n_jobs=max(1,self.ncores))(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
         print "eq_times: ", results
         eq_time = int(np.amax(results))
         self.timeseries = self.timeseries[:,eq_time:]
@@ -408,9 +413,9 @@ class mbar_compute_dos(object):
         #hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
         kde_bin_edges = np.array(bin_edges[:-1])
         kde_bin_edges += (kde_bin_edges[1]-kde_bin_edges[0])/2 
-        hist = get_kde_hist(self.ts_sphere, kde_bin_edges, kernel="epanechnikov", bw=0.01)
+        hist = get_kde_hist(self.ts_sphere, kde_bin_edges, kernel="epanechnikov", bw=0.001)
         hist_visits.append(hist)
-        results = Parallel(n_jobs=self.ncores//2)(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
+        results = Parallel(n_jobs=max(1,self.ncores))(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
         print np.shape(results)
         for hist in results:
             hist_visits.append(hist)

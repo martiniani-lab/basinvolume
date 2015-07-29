@@ -37,7 +37,7 @@ class PackingDataSet(object):
         self.set_name = os.path.split(self.set_path)[1]
         str_values = re.findall('\d+', self.set_name)
         self.nparticles, self.hs_phi = float(str_values[0]), float('0.'+str_values[1])
-        self.ss_phi, self.bdim = float('0.'+str_values[2]), float(str_values[3]) 
+        self.ss_phi, self.bdim = float('0.'+str_values[2]), float(str_values[3])
         self.packing_data = []
         self.free_energies = []
         self.free_energies_err = []

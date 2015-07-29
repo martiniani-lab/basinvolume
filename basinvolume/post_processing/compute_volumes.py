@@ -23,6 +23,7 @@ try:
     import glob
     import multiprocessing as mp
     import pele.utils.fix_multiprocessing
+    import gc
     from scipy import integrate
     from basinvolume.utils import to_string, ResultsFile, MomentsAcc, trymakedir, OutlierDetection
     from basinvolume.post_processing import PTFailures, assert_pt_success, VolumeSanityCheck
@@ -94,6 +95,7 @@ class ComputeVolumesCommon(object):
                                              os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))
                 except Exception, e:
                     print "Exception: ", e
+                    print(traceback.format_exc())
                     print "failed packing!"
                     print "name: ", fname
                     print "path:", path
@@ -188,7 +190,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                  volume_file="mbar_volume_data", volume_title="VOLUME_MBAR"):
         super(ComputeVolumesMBARMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
                                                                 volume_file=volume_file, volume_title=volume_title)
-        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=8)
+        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=7)
     
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
         self.series_collector(fname=fname,
@@ -203,18 +205,18 @@ class ComputeVolumes(object):
     def __init__(self, workspace_dir, nr_volume_points=-1,
                  force_run=False, method="mbar"):
         self.method = method
-        self.experimental = "exp" in workspace_dir
+        self.experimental = "exp" in workspace_dir    
         if self.method == "mbar":
             print("using MBAR method")
             self.computer = ComputeVolumesMBARMultiConfigFile(workspace_dir, nr_volume_points, force_run, method)
-            self.computer.run_analysis()
         elif self.method == "tint":
             print("using thermodynamic integration method")
             self.computer = ComputeVolumesTINTMultiConfigFile(workspace_dir, nr_volume_points, force_run, method)
-            self.computer.run_analysis()
         else:
             raise Exception("ComputeVolumes: illegal choice of method, should be MBAR or TINT")
-
+    def __call__(self):
+        self.computer.run_analysis()
+            
 def worker(workspace_dir, kwargs):
     try:
         ComputeVolumes(workspace_dir, **kwargs)
@@ -258,5 +260,7 @@ if __name__ == "__main__":
             mypool.join()
         else:
             for folder in subdirs:
-                ComputeVolumes(os.path.abspath(folder), **kwargs)
+                cv = ComputeVolumes(os.path.abspath(folder), **kwargs)
+                cv()
+                del cv
             
