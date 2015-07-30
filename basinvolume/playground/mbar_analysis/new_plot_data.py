@@ -177,7 +177,7 @@ class MBARPackingDataSet(PackingDataSet):
             std = np.sqrt(var)
             skewness = np.average((x-mean)**3, weights=y) / std**3
             kurtosis = np.average((x-mean)**4, weights=y) / var**2
-            self.dos_moments.append((mode, mean, var, skewness, kurtosis))
+            self.dos_moments.append([mode, mean, var, skewness, kurtosis])
 
     def compute_mean_and_moments(self):
         if len(self.log_gr_data) > 0 and len(self.log_gr_ratio_data) > 0 \
@@ -246,7 +246,7 @@ class plot_mbar_data(object):
                     fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
                     fit_err = np.sqrt(np.diag(cov))
                     fit_fn = np.poly1d(fit)
-                    ax.plot(x, fit_fn(x), color='k')
+                    #ax.plot(x, fit_fn(x), color='k')
                     dataset.add_extras((fit, fit_err))
                     print dataset.extras
             ax.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
@@ -256,9 +256,52 @@ class plot_mbar_data(object):
         if True:
             self.plot_all(plot_type="log_gr", average=True)
             self.plot_all(plot_type="log_gr_ratio", average=True)
-            self.plot_all(plot_type="gr_ratio", average=True)
+            #self.plot_all(plot_type="gr_ratio", average=True)
             self.plot_all(plot_type="dos", average=True)
-    
+        if False:
+            self.plot_correlations(plot_type="m0_q6")
+        if True:
+            color_cycle = get_color_cycle()
+            fig = plt.figure()
+            fig1 = plt.figure()
+            fig2 = plt.figure()
+            ax = fig.add_subplot(111)
+            ax1 = fig1.add_subplot(111)
+            ax2 = fig2.add_subplot(111)
+            x, y, yerr = [], [], []
+            y1, y1err = [], []
+            for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+                if len(dataset.free_energies) > 1:
+                    boo = []
+                    for bunch in dataset.boos:
+                        boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
+                    boo6 = np.array(boo)[:,1]
+                    y.append(np.mean(boo6))
+                    yerr.append(np.std(boo6))
+                    y1.append(np.mean(dataset.contacts))
+                    y1err.append(np.std(dataset.contacts))
+                    x.append(dataset.hs_poly)
+            ax.errorbar(x, y, yerr=yerr, fmt='bo')        
+            ax.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
+                      handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+            ax.set_xscale('log')
+            ax.set_xlabel(r"$\eta$")
+            ax.set_ylabel(r"$Q6$")
+            
+            ax1.errorbar(x, y1, yerr=y1err, fmt='bo')        
+            ax1.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
+                      handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+            ax1.set_xscale('log')
+            ax1.set_xlabel(r"$\eta$")
+            ax1.set_ylabel(r"$\mathcal{P}$")
+            
+            ax2.errorbar(y1, y, yerr=yerr, xerr=y1err, fmt='bo')        
+            ax2.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
+                      handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+            ax2.set_ylabel(r"$Q6$")
+            ax2.set_xlabel(r"$\mathcal{P}$")
+            
+        
     def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True):
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -304,7 +347,7 @@ class plot_mbar_data(object):
         if plot_type == "log_gr_ratio":
             if average:
                 log_gr_ratio = mbar_data.log_gr_ratio_mean
-                ax = self._plot(ax, log_gr_ratio, label=label, plot_err=False, plot_fit=False, color=color)
+                ax = self._plot(ax, log_gr_ratio, label=label, plot_err=True, plot_fit=False, color=color)
             else:
                 log_gr_ratio = mbar_data.log_gr_ratio_data
                 for i,arr in enumerate(log_gr_ratio):
@@ -348,38 +391,71 @@ class plot_mbar_data(object):
             area = simps(y, x)
             y = np.array(y) / area
         if plot_err:
-            ax.errorbar(x, y, yerr=yerr, ms=9, label=label, marker=marker, color=color)
+            ax.errorbar(x, y, yerr=yerr, ms=6, label=label, marker=marker, color=color)
         else:
             ax.plot(x, y, label=label, linewidth=2.5, color=color)
         if plot_fit:
             ax.plot(x,fit, linestyle='--', linewidth=2, color=color)
         return ax
     
-    def _plot_correlations(self, ax, mbar_data, plot_type="f_m1", label=None, color='b'):
-        moments = np.reshape(mbar_data.dos_moments, (-1,5))
-        free_energies = np.reshape(mbar_data.free_energies, (-1,2))
-        free_energies[:,0] += np.array(mbar_data.acc_free_energies) #this gives the -log probability of being in a basin
+    def plot_correlations(self, plot_type="f_m1", figname=None, title=None, show=False, savefig=False, logx=False, logy=False):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
         
-        #free_energies[:,0] = np.exp(-free_energies[:,0])
-        boo = np.reshape(mbar_data.boo, (-1,5))
-        z_numbers = mbar_data.z_numbers
+        color_cycle = get_color_cycle()
+        for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+                if len(dataset.free_energies) > 0:
+                    ax, xlabel, ylabel = self._plot_correlations(ax, dataset, plot_type=plot_type, 
+                                                                  label=dataset.hs_poly, color=color_cycle.next())
+        
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        try:
+            ax.legend(frameon=False, loc="best", numpoints=1)
+        except Exception, e:
+            print e
+        if logx:
+            ax.set_xscale('log')
+        if logy:
+            ax.set_yscale('log')
+        if title:
+            plt.title(title)
+        if figname is None:
+            figname = plot_type + ".eps"
+        if savefig:
+            plt.savefig(figname)
+        if show:
+            plt.show()
+    
+    def _plot_correlations(self, ax, mbar_data, plot_type="f_m1", label=None, color='b'):
+        moments = np.array(mbar_data.dos_moments)
+        free_energies = np.array(mbar_data.free_energies)
+        #this gives the -log probability of being in a basin
+        #for i,packing in enumerate(mbar_data.packing_data):
+        #    free_energies[i] += packing.Facc 
+        
+        boo = []
+        for bunch in mbar_data.boos:
+            boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
+        boo = np.array(boo)
+        z_numbers = mbar_data.contacts
         xlabel=r'$-\log(p)=f_i+f_{acc}$'
         
         #volume-moments correlations
         if plot_type == "f_m0":
-            ax.scatter(free_energies[:,0], np.log(moments[:,0]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(moments[:,0]), label=label, c=color, alpha=0.5)
             ylabel=r'$\max[g(r)]$'
         elif plot_type == "f_m1":
-            ax.scatter(free_energies[:,0], np.log(moments[:,1]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(moments[:,1]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\langle r \rangle)$'
         elif plot_type == "f_m2":
-            ax.scatter(free_energies[:,0], np.log(moments[:,2]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(moments[:,2]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\langle (r - \langle r \rangle)^2 \rangle)$'
         elif plot_type == "f_m3":
-            ax.scatter(free_energies[:,0], np.log(moments[:,3]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(moments[:,3]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}})$'
         elif plot_type == "f_m4":
-            ax.scatter(free_energies[:,0], np.log(moments[:,4]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(moments[:,4]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}})$'
         
         #moment-moment correlations
@@ -397,22 +473,22 @@ class plot_mbar_data(object):
         
         #boo-volume correlations
         if plot_type == "f_z":
-            ax.scatter(free_energies[:,0], np.log(z_numbers), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(z_numbers), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Z)$'
         elif plot_type == "f_q4":
-            ax.scatter(free_energies[:,0], np.log(boo[:,0]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(boo[:,0]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q4)$'
         elif plot_type == "f_q6":
-            ax.scatter(free_energies[:,0], np.log(boo[:,1]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(boo[:,1]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q6)$'
         elif plot_type == "f_q8":
-            ax.scatter(free_energies[:,0], np.log(boo[:,2]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(boo[:,2]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q8)$'
         elif plot_type == "f_q10":
-            ax.scatter(free_energies[:,0], np.log(boo[:,3]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(boo[:,3]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q10)$'
         elif plot_type == "f_q12":
-            ax.scatter(free_energies[:,0], np.log(boo[:,4]), label=label, c=color, alpha=0.5)
+            ax.scatter(free_energies, np.log(boo[:,4]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q12)$'
         
         #boo-moments correlations
@@ -441,34 +517,6 @@ class plot_mbar_data(object):
         #NOTE: here add pressure-volume correlations
         
         return ax, xlabel, ylabel
-    
-    def plot_correlations(self, plot_type="f_m1", figname=None, title=None, show=False, savefig=False, logx=False, logy=False):
-        dlabel = None
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        
-        ax, xlabel, ylabel = self._plot_correlations(ax, self.fcc_data, plot_type=plot_type, label=r"fcc", color='g')
-        ax, xlabel, ylabel = self._plot_correlations(ax, self.fcc_mono_data, plot_type=plot_type, label=r"fcc mono", color='r')
-        ax, xlabel, ylabel = self._plot_correlations(ax, self.disordered_data, plot_type=plot_type, label=dlabel)
-        
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        try:
-            ax.legend(frameon=False, loc="best", numpoints=1)
-        except Exception, e:
-            print e
-        if logx:
-            ax.set_xscale('log')
-        if logy:
-            ax.set_yscale('log')
-        if title:
-            plt.title(title)
-        if figname is None:
-            figname = plot_type + ".eps"
-        if savefig:
-            plt.savefig(figname)
-        if show:
-            plt.show()
     
 if __name__ == "__main__":
     show = True
