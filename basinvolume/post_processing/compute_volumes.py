@@ -219,7 +219,8 @@ class ComputeVolumes(object):
             
 def worker(workspace_dir, kwargs):
     try:
-        ComputeVolumes(workspace_dir, **kwargs)
+        cv = ComputeVolumes(workspace_dir, **kwargs)
+        cv()
     except:
         print('find_k worker: %s' % (traceback.format_exc()))
 
@@ -246,6 +247,7 @@ if __name__ == "__main__":
         worker(workspace_dir, kwargs)
     else:
         subdirs = glob.glob(os.path.join(os.getcwd(), "n*phi*phi*D*"))
+        print subdirs
         if args.ncores > 1 and args.method != 'mbar':
             mypool = mp.Pool(ncores)
             try:

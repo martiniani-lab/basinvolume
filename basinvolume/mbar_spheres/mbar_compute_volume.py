@@ -4,7 +4,7 @@ import os
 import re
 import glob
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, read_txt, volume_nball, surface_nball, write_csv_xy
+from basinvolume.utils import to_string, read_txt, log_volume_nball, surface_nball, write_csv_xy
 from basinvolume.post_processing import VolumeSanityCheck
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
@@ -351,9 +351,10 @@ class mbar_compute_dos(object):
         #print "effective sample number", self.mbar.computeEffectiveSampleNumber()
         
         rmin = 1./np.sqrt(self.kmax) #we choose rmin to be 1/sqrt(k_max)
+        print "kmax", self.kmax
         print "rmin", rmin
-        vmin = volume_nball(rmin, self.ndof)
-        Fmin = -np.log(vmin) 
+        logvmin = log_volume_nball(rmin, self.ndof)
+        Fmin = -logvmin 
         
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries

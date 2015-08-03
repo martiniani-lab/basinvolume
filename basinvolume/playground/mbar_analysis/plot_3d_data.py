@@ -95,8 +95,8 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         y = np.array([log_integrand_nom([xi], maxy) for xi in x])
         end = next(i for i,yy in enumerate(y[argmax:]) if yy<np.log(1e-5))
         end += argmax
-        plt.plot(x, y)
-        plt.show()
+        #plt.plot(x, y)
+        #plt.show()
         
         if ang > 1e-6:
             self.glob_x = x[max(zend, end)+1]
@@ -152,7 +152,7 @@ def plot(packing_datasets, figdir="figures"):
         print "extras", dataset.extras
         
         #subplots
-        if False:
+        if True:
             def ff(x, a):
                 return a * x
             
@@ -214,7 +214,7 @@ def plot(packing_datasets, figdir="figures"):
             xticks[-1].label1.set_visible(False)
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
     
-    if False:
+    if True:
         #kde pressure
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -253,7 +253,7 @@ def plot(packing_datasets, figdir="figures"):
                 ax.plot(edges, hist, label=int(nparticles), color=color, linewidth=3)
                 #fit log normal
                 #assume that zeta_min=2
-                generalised_lognormal = GeneralisedLogNormal(alpha_min=0.0001, zeta_min=1.0)
+                generalised_lognormal = EdwardsGeneralisedLogNormal(alpha_min=0.0001, zeta_min=1.0)
                 cdf = CDFAccumulator()
                 cdf.add_array(x)
                 x, cdf_x = cdf.get_vecdata()
@@ -294,7 +294,7 @@ def plot(packing_datasets, figdir="figures"):
                 #use lognormal from now on
                 #compute p ensemble average
                 #####################################################################
-                ang_array = np.linspace(0,4,num=100)
+                ang_array = np.linspace(0,4,num=1000)
                 #ang_array = [0.]
                 pea_array = []
                 for ang in ang_array:
@@ -352,6 +352,7 @@ def plot(packing_datasets, figdir="figures"):
         for i,arr in enumerate(pea_array_all):
             color = color_cycle.next()
             ax7.errorbar(ang_array, arr[:,0], yerr=arr[:,1], color=color, linewidth=2, label=int(angoricities[i,0]))
+            ax7.arrow(0.1, arr[0,0], -0.05, 0, ec=color, fc=color, head_width=0.3, head_length=0.05)
         ax7.set_ylabel(r"$\log \langle\mathcal{P}\rangle_{ens}$")
         ax7.set_xlabel(r"$\alpha$")
         ax7.legend(frameon=False, loc=(0.2,0.53), prop={'size':18}, numpoints=1, markerscale=0.5, 
