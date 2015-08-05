@@ -19,6 +19,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.utils import ResultsFile
 from basinvolume.utils import to_string
 from basinvolume.utils import volume_nball
+from basinvolume.utils import trymakedir
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
@@ -308,6 +309,7 @@ class GaussianBenchmark(object):
         """
         /home/kjs73/projects/basinvolume/gaussian_sum/config0.gauss
         """
+        trymakedir(self.basic_config_path)
         f = open(os.path.join(self.basic_config_path, configuration_name), "w")
         for x in self.origin:
             f.write(to_string(x) + "\n")
