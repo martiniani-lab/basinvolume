@@ -490,3 +490,6 @@ if __name__ == "__main__":
     bm.run_PT()
     bm.compute_volume()
     bm.print_nr_function_calls()
+    print("direct MC result")
+    print("bf.basin_volume", bf.basin_volume)
+    print("bf.error_basin_volume", bf.error_basin_volume)

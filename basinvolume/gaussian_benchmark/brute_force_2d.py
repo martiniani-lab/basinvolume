@@ -5,6 +5,7 @@ from pele.potentials import SumGaussianPot
 from pele.optimize import ModifiedFireCPP
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import NullPotential
+from mcpele.monte_carlo import UniformSphericalSampling
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.utils import volume_nball
 
@@ -60,10 +61,10 @@ class BruteForce2D(object):
         self.temperature = 1
         self.potential = NullPotential()
         self.mc = MC(self.potential, self.origin, self.temperature, self.nr_samples)
-        self.step = UniformSphericalSampling(seed=42, radius=self.radius_container, ndof=self.boxdim)
+        self.step = UniformSphericalSampling(42, self.radius_container)
         self.mc.set_takestep(self.step)
         self.mc.set_report_steps(0)
-        self.mc.add_conftest(self.conftest_check_same_minimum)
+        self.mc.add_conf_test(self.conftest_check_same_minimum)
     def find_origin(self):
         self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
         print("Gaussian center coords", self.means[self.minimum_index][:])
@@ -80,8 +81,12 @@ class BruteForce2D(object):
         return origin_result 
     def compute_volume(self):
         print("compute volume")
-        self.mc.print_progress()
+        self.mc.set_print_progress()
         self.mc.run()
         print("self.mc.get_accepted_fraction()", self.mc.get_accepted_fraction())
-        print("basin volume", self.mc.get_accepted_fraction() * volume_nball(self.radius_container, self.bdim))
+        p = self.mc.get_accepted_fraction()
+        self.basin_volume = p * volume_nball(self.radius_container, self.bdim)
+        self.error_basin_volume = np.sqrt(p * (1 - p) / self.nr_samples) * self.basin_volume
+        print("basin volume", self.basin_volume)
+        print("error bar", self.error_basin_volume)
         print("done")
