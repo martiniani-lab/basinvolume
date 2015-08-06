@@ -1,6 +1,8 @@
 from __future__ import division
 import numpy as np
+import copy
 from pele.potentials import SumGaussianPot
+from pele.optimize import ModifiedFireCPP
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import NullPotential
 from basinvolume.monte_carlo import CheckSameMinimumConfig
@@ -20,6 +22,7 @@ class BruteForce2D(object):
                  opt_dtmax=1,
                  opt_tol=1e-7,
                  opt_nsteps=1e5,
+                 opt_maxstep=1,
                  csm_dtol=1e-5
                  ):
         #
@@ -31,6 +34,7 @@ class BruteForce2D(object):
         self.opt_dtmax = opt_dtmax
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
+        self.opt_maxstep = opt_maxstep
         self.csm_dtol=csm_dtol
         #
         self.ngaussians = self.means.shape[0]
