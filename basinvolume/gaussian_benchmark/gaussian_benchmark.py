@@ -23,6 +23,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
+from brute_force_2d import BruteForce2D
 try:
     from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
     from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
@@ -487,3 +488,5 @@ if __name__ == "__main__":
     bm.run_PT()
     bm.compute_volume()
     bm.print_nr_function_calls()
+    bf = BruteForce2D(means=means, cov=cov, minimum_index=0)
+    bf.compute_volume()
