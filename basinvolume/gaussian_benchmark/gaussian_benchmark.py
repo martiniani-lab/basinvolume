@@ -145,7 +145,7 @@ class GaussianBenchmark(object):
         self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
         print("Gaussian center coords", self.means[self.minimum_index][:])
         print("corresponding mimimum position (origin)", self.origin)
-        self.print_minimum_coords_file(configuration_name="config0.gauss")
+        self.print_minimum_coords_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def get_local_minimum(self, mean_index=0):
         initial_position = self.means[self.minimum_index][:]
         print("initial_position", initial_position)
@@ -249,12 +249,12 @@ class GaussianBenchmark(object):
         self.print_kmin_config_file()
     def run_PT(self):
         print("run PT")
-        configuration_name="config0.gauss"
+        configuration_name="config{}.gauss".format(self.minimum_index)
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
         full_path_to_pt_run_script = os.path.join(os.path.dirname(basinvolume.__file__), "gaussian_benchmark", "gaussian_benchmark_pt_run.py")
         cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4}"
-        cmd = cmd_base_str.format(self.nprocs, "config0.gauss", base_pt_path, int(self.totniter), self.nparticles)
+        cmd = cmd_base_str.format(self.nprocs, "config{}.gauss".format(self.minimum_index), base_pt_path, int(self.totniter), self.nparticles)
         if self.harmonic_well:
             cmd += " --harmonic_well"
         p = subprocess.call(shlex.split(cmd))
@@ -521,5 +521,5 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
-    compute_volume([0, 1])
+    compute_volume(range(0, 1))
     
