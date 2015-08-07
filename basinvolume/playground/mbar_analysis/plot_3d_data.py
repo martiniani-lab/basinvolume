@@ -128,7 +128,7 @@ def plot(packing_datasets, figdir="figures"):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
+        for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             if len(dataset.free_energies) > 0:
                 nparticles = dataset.nparticles
                 print nparticles
@@ -214,7 +214,7 @@ def plot(packing_datasets, figdir="figures"):
             xticks[-1].label1.set_visible(False)
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
     
-    if True:
+    if False:
         #kde pressure
         color_cycle = get_color_cycle()
         fig = plt.figure()

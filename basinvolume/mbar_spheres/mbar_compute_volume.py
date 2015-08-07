@@ -479,8 +479,11 @@ class mbar_compute_dos(object):
             var = (1-hist/np.sum(hist))*hist/np.sum(hist)
             herr.append(np.sqrt(var)/(np.amax(self.bin_edges)-np.amin(self.bin_edges)))
         herr = np.array(herr)
-        for hist, err in zip(self.hist_visits, herr):
-            ax.errorbar(self.bin_edges[:-1], hist, yerr=err, linewidth=2)
+        for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
+            ax.errorbar(self.bin_edges[:-1], hist, yerr=err, linewidth=2, label='k={:.1f}'.format(self.karray[i]))
+        ax.legend(frameon=False, loc="best", prop={'size':18}, numpoints=1, scatterpoints=1, 
+                  markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1)
+        ax.set_xlabel(r'$|{\bf r} - {\bf r}_0|$', fontsize=18)
         plt.savefig(self.base_directory + '/histograms.eps')
         if self.show:
             plt.show()
@@ -519,12 +522,13 @@ class mbar_compute_dos(object):
         logn_E = self.logn_E - np.amax(self.logn_E)
         dos = np.exp(logn_E)
         
+        color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], logn_E, label=r'$\log(g(r))$')
+        ax.plot(self.bin_edges[:-1], logn_E, label=r'$\log(\xi(r))$', color=color_cycle.next(), linewidth=2)
         #dx = self.bin_edges[1] - self.bin_edges[0]
         rg = logn_E - (self.ndof-1)*np.log(self.bin_edges[:-1])
-        ax.plot(self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
+        ax.plot(self.bin_edges[:-1], rg, label=r'$\log(\xi(r)/r^{N-1})$', color=color_cycle.next(), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
         plt.ylim((min(np.amin(rg), np.amin(logn_E)), max(np.amax(rg),np.amax(logn_E)) ))
@@ -538,7 +542,7 @@ class mbar_compute_dos(object):
         ax = fig.add_subplot(111)
         ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)))
         ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel(r'$g(r)/r^{N-1}$')
+        ax.set_ylabel(r'$\xi(r)/r^{N-1}$')
         plt.savefig(self.base_directory + '/ratio_g.eps')
         write_csv_xy(self.bin_edges[:-1], np.exp(rg-np.amax(rg)), fname=os.path.join(self.base_directory, 'gr_ratio.csv'))
         if self.show:
@@ -548,7 +552,7 @@ class mbar_compute_dos(object):
         ax = fig.add_subplot(111)
         ax.plot(self.bin_edges[:-1], rg-np.amax(rg))
         ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel(r'$\log(g(r)/r^{N-1})$')
+        ax.set_ylabel(r'$\log(\xi(r)/r^{N-1})$')
         ax.set_xscale('log')
         plt.savefig(self.base_directory + '/ratio_g_loglog.eps')
         if self.show:
@@ -568,9 +572,10 @@ class mbar_compute_dos(object):
 #        if self.show:
 #            plt.show()
         
+        color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], dos)
+        ax.plot(self.bin_edges[:-1], dos, color=color_cycle.next(), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel('DOS')
         plt.savefig(self.base_directory + '/dos.eps')

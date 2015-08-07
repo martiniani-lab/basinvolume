@@ -15,6 +15,7 @@ import glob
 from itertools import chain
 import cPickle as pickle
 from basinvolume.post_processing import PackingData, PackingDataSet
+import copy
 try:
     
     import matplotlib.pyplot as plt
