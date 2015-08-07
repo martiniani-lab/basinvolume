@@ -21,8 +21,7 @@ include_directories(${basinvolume_include})
 message("basinvolume include directory ${basinvolume_include}")
 
 # set the PyCG_DESCENT include directory
-set(pycgd_include /home/sm958/Work/PyCG_DESCENT/source)
-#set(cgd_include /home/sm958/Work/PyCG_DESCENT/source/CG_DESCENT6.7)
+set(pycgd_include ../../../PyCG_DESCENT/source)
 include_directories(${pycgd_include})
 #include_directories(${cgd_include})
 message("pycgd_include include directory ${pycgd_include}")

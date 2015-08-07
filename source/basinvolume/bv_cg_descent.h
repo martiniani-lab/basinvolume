@@ -9,7 +9,7 @@
  * from the origin
 */
 
-namespace bv{
+namespace bv {
 
 class BvCGDescent : public pycgd::CGDescent {
 protected:
@@ -26,12 +26,12 @@ public:
             pele::Array<double> rattlers, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, double tol=1e-4,
             double dtol=1e-4, size_t maxiter=1e6, size_t PrintLevel=0);
 
-    virtual ~BvCGDescent(){}
+    virtual ~BvCGDescent() {}
     virtual bool test_convergence(double energy, pele::Array<double> x, pele::Array<double> g);
-    inline double get_d2(){return m_d2;};
-    inline double get_rmsd2(){return m_rmsd2;};
+    inline double get_d2() { return m_d2; }
+    inline double get_rmsd2() { return m_rmsd2; }
 };
 
-}
+} // namespace bv
 
-#endif
+#endif // #ifndef _BV_CGD_H__

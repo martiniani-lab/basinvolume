@@ -19,9 +19,11 @@ from basinvolume.utils import trymakedir
 from basinvolume.utils import ResultsFile
 from basinvolume.utils import to_string
 from basinvolume.utils import volume_nball
+from basinvolume.utils import trymakedir
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
+from brute_force_2d import BruteForce2D
 try:
     from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
     from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
@@ -308,6 +310,7 @@ class GaussianBenchmark(object):
         """
         /home/kjs73/projects/basinvolume/gaussian_sum/config0.gauss
         """
+        trymakedir(self.basic_config_path)
         f = open(os.path.join(self.basic_config_path, configuration_name), "w")
         for x in self.origin:
             f.write(to_string(x) + "\n")
@@ -478,10 +481,33 @@ if __name__ == "__main__":
         plt.plot(X_circ1, Y_circ1_neg, 'c')
         plt.show()
         plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
-    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=0, simple_integrator=False)
-    #bm = GaussianBenchmark(minimum_index=0, harmonic_well=False, simple_integrator=False)
+    minimum_index = 0
+    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
+    #bm = GaussianBenchmark(minimum_index=minimum_index, harmonic_well=False, simple_integrator=False)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
     bm.compute_volume()
     bm.print_nr_function_calls()
+    bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
+    bf.compute_volume()
+    f = open(os.path.join(os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis", "volume_data")))
+    lf = list(f)
+    F0 = lf[2]
+    print("F0", F0)
+    eF0 = lf[3]
+    print("eF0", eF0)
+    F0 = float(F0.split()[1])
+    eF0 = float(eF0.split()[1])
+    f.close()
+    print("F0", F0)
+    print("eF0", eF0)
+    ti_vol = np.exp(-F0)
+    e_ti_vol = ti_vol * eF0
+    print("---direct MC result---")
+    print("bf.basin_volume", bf.basin_volume)
+    print("bf.error_basin_volume", bf.error_basin_volume)
+    print("---Thermodynamic integration result---")
+    print("TI volume", ti_vol)
+    print("error TI volume", e_ti_vol)
+    

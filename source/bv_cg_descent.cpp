@@ -5,24 +5,24 @@
  * from the origin
 */
 
-namespace bv{
+namespace bv {
 
 BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const pele::Array<double> x0, pele::Array<double> origin,
             pele::Array<double> rattlers, size_t ndim, std::shared_ptr<pele::DistanceInterface> dist, double tol,
-            double dtol, size_t maxiter, size_t PrintLevel):
-            pycgd::CGDescent(potential, x0, tol, PrintLevel),
-            m_origin(origin.copy()),
-            m_rattlers(rattlers.copy()),
-            m_distance(origin.size()),
-            m_dtol2(dtol*dtol),
-            m_d2(0),
-            m_rmsd2(0),
-            m_rmsgtol(tol),
-            m_ndim(ndim),
-            m_nparticles(origin.size() / ndim),
-            m_maxiter(maxiter),
-            m_Nnoratt(0),
-            m_dist_policy(dist)
+            double dtol, size_t maxiter, size_t PrintLevel)
+    : pycgd::CGDescent(potential, x0, tol, PrintLevel),
+      m_origin(origin.copy()),
+      m_rattlers(rattlers.copy()),
+      m_distance(origin.size()),
+      m_dtol2(dtol*dtol),
+      m_d2(0),
+      m_rmsd2(0),
+      m_rmsgtol(tol),
+      m_ndim(ndim),
+      m_nparticles(origin.size() / ndim),
+      m_maxiter(maxiter),
+      m_Nnoratt(0),
+      m_dist_policy(dist)
 {
             if (m_dist_policy == NULL) {
                 throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: distance policy uninitialised");
@@ -33,13 +33,13 @@ BvCGDescent::BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const p
             if (m_origin.size() % m_ndim) {
                 throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: illegal input: origin vs boxdimension");
             }
-            for (size_t i = 0; i < m_origin.size(); i +=m_ndim) {
-                if (m_rattlers[i] != 0){
+            for (size_t i = 0; i < m_origin.size(); i += m_ndim) {
+                if (m_rattlers[i] != 0) {
                     m_inoratt = i / m_ndim;
                     break;
                 }
             }
-            for (size_t i = 0; i < m_origin.size(); i +=m_ndim) {
+            for (size_t i = 0; i < m_origin.size(); i += m_ndim) {
                 m_Nnoratt += m_rattlers[i];
             }
             this->set_maxit(m_maxiter);
@@ -89,4 +89,4 @@ bool BvCGDescent::test_convergence(double energy, pele::Array<double> x, pele::A
         m_rmsd2 = m_d2 / m_Nnoratt;
         return (m_rmsd2 < m_dtol2);
     }
-}
+} // namespace bv
