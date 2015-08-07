@@ -94,6 +94,13 @@ class MBARPackingDataSet(PackingDataSet):
         except Exception:
             print "can't pick up polydispersity, setting to 0. Folder name: ", self.set_name
             self.hs_poly = 0.
+        if 'fcc' in self.set_name:
+            self.structural_label = 'fcc'
+        elif 'disordered' in self.set_name:
+            self.structural_label = 'disordered'
+        else:
+            self.structural_label = None
+            print "cannot recognise structural label (fcc or disordered), set to None"
         self.log_gr_data = []
         self.log_gr_ratio_data = [] 
         self.gr_ratio_data = []
