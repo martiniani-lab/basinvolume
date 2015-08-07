@@ -203,7 +203,7 @@ class GaussianBenchmark(object):
         print("kmax_run.get_nfev()", kmax_run.get_neval())
         self.total_neval += kmax_run.get_neval()
         self.harmonic_energy_calls += kmax_run.get_iterations_count()
-        self.print_findk_config_file()
+        self.print_findk_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def run_kmin(self):
         print("run kmin")
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
@@ -246,7 +246,7 @@ class GaussianBenchmark(object):
         self.total_neval += kmin_run.get_neval()
         self.harmonic_energy_calls += kmin_run.get_iterations_count()
         print("self.total_neval, kmin, kmax", self.total_neval)
-        self.print_kmin_config_file()
+        self.print_kmin_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def run_PT(self):
         print("run PT")
         configuration_name="config{}.gauss".format(self.minimum_index)
@@ -521,5 +521,5 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
-    compute_volume(range(0, 1))
+    compute_volume(range(0, 2))
     
