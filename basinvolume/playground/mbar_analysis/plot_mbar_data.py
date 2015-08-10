@@ -133,12 +133,13 @@ class MBARPackingDataSet(PackingDataSet):
 
     def _compute_mean(self):
         def get_mean(data):
+            #pick the smallest range that works for all curves
             xmin, xmax = data[0][0,0], data[0][-1,0]
             for arr in data:
                 nxmin, nxmax = arr[0,0], arr[-1,0]
-                if nxmin < xmin:
+                if nxmin > xmin:
                     xmin = nxmin
-                if nxmax > xmax:
+                if nxmax < xmax:
                     xmax = nxmax
             xref = np.linspace(xmin, xmax, len(data[0][:,0]))
             all = []
@@ -150,7 +151,7 @@ class MBARPackingDataSet(PackingDataSet):
                 all.append(f(xref))
             all = np.array(all)
             wsum = np.sum(all, axis=0)
-            keep = np.nonzero(np.asarray(np.isfinite(wsum) * np.array([np.abs(x) > 1e-16 for x in wsum]), dtype='i'))
+            keep = np.nonzero(np.asarray(np.isfinite(wsum), dtype='i')) # * np.array([np.abs(x) > 1e-16 for x in wsum]), dtype='i')
             all = all[:, keep[0]]
             xref = xref[keep[0]]
             assert xref.size == all.shape[1]
@@ -241,6 +242,7 @@ class plot_mbar_data(object):
             for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 1:
                     poly = dataset.hs_poly
+                    structural_label = dataset.structural_label 
                     print poly
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
                     x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
@@ -249,7 +251,7 @@ class plot_mbar_data(object):
                     weights = np.ones(len(dataset.free_energies))[np.array(outliers.non_outliers_indexes, dtype="i")]
                     print len(x), len(y)
                     x = np.log(x)
-                    ax.scatter(x, y, label=poly, color=color_cycle.next())
+                    ax.scatter(x, y, label='{} {}'.format(structural_label, poly), color=color_cycle.next())
                     fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
                     fit_err = np.sqrt(np.diag(cov))
                     fit_fn = np.poly1d(fit)
@@ -263,8 +265,13 @@ class plot_mbar_data(object):
         if True:
             self.plot_all(plot_type="log_gr", average=True)
             self.plot_all(plot_type="log_gr_ratio", average=True)
-            #self.plot_all(plot_type="gr_ratio", average=True)
+            self.plot_all(plot_type="gr_ratio", average=True)
             self.plot_all(plot_type="dos", average=True)
+        if True:
+            self.plot_all(plot_type="log_gr", average=False)
+            self.plot_all(plot_type="log_gr_ratio", average=False)
+            self.plot_all(plot_type="gr_ratio", average=False)
+            self.plot_all(plot_type="dos", average=False)
         if False:
             self.plot_correlations(plot_type="m0_q6")
         if True:
@@ -282,9 +289,9 @@ class plot_mbar_data(object):
                     boo = []
                     for bunch in dataset.boos:
                         boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
-                    boo6 = np.array(boo)[:,1]
-                    y.append(np.mean(boo6))
-                    yerr.append(np.std(boo6))
+                    boo12 = np.array(boo)[:,4]
+                    y.append(np.mean(boo12))
+                    yerr.append(np.std(boo12))
                     y1.append(np.mean(dataset.contacts))
                     y1err.append(np.std(dataset.contacts))
                     x.append(dataset.hs_poly)
@@ -293,7 +300,7 @@ class plot_mbar_data(object):
                       handletextpad=0, bbox_to_anchor=[0.08, 0.3])
             ax.set_xscale('log')
             ax.set_xlabel(r"$\eta$")
-            ax.set_ylabel(r"$Q6$")
+            ax.set_ylabel(r"$Q12$")
             
             ax1.errorbar(x, y1, yerr=y1err, fmt='bo')        
             ax1.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
@@ -305,7 +312,7 @@ class plot_mbar_data(object):
             ax2.errorbar(y1, y, yerr=yerr, xerr=y1err, fmt='bo')        
             ax2.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
                       handletextpad=0, bbox_to_anchor=[0.08, 0.3])
-            ax2.set_ylabel(r"$Q6$")
+            ax2.set_ylabel(r"$Q12$")
             ax2.set_xlabel(r"$\mathcal{P}$")
             
         
@@ -317,7 +324,8 @@ class plot_mbar_data(object):
         for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 0:
                     ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type, 
-                                                        average=average, label=dataset.hs_poly, color=color_cycle.next())
+                                                        average=average, label='{} {}'.format(dataset.structural_label, dataset.poly), 
+                                                        color=color_cycle.next())
         
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -338,7 +346,7 @@ class plot_mbar_data(object):
         if show:
             plt.show()
         
-    def _plot_all(self, ax, mbar_data, plot_type="log_gr", label=None, average=False, color='k'):
+    def _plot_all(self, ax, mbar_data, plot_type="log_gr", label=None, average=False, color='k', ndof=None):
         if plot_type == "log_gr":
             if average:
                 log_gr = mbar_data.log_gr_mean
@@ -529,7 +537,7 @@ if __name__ == "__main__":
     show = True
     
     pts = MBARBasinAnalysis()
-    pts.collect_data_every_set_all(dir_signature='n*phi*phi*fcc*')
+    pts.collect_data_every_set_all(dir_signature='n*phi*phi*3D*')
     pmd = plot_mbar_data(pts.packing_datasets)
     pmd()
     if show:

@@ -15,6 +15,7 @@ from itertools import cycle, chain
 from matplotlib import rc
 import pandas as pd
 import pele.utils.fix_multiprocessing
+from scipy.integrate import simps
 try:
     import pylab as plt
     from joblib import Parallel, delayed
@@ -57,7 +58,6 @@ def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cros
         print "bandwidth ", bw
         #bw *= 3
     hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
-    from scipy.integrate import simps
     area = simps(hist, bin_edges)
     print "kde pdf area", area
 #    normalise again by hand
@@ -521,6 +521,8 @@ class mbar_compute_dos(object):
         
         logn_E = self.logn_E - np.amax(self.logn_E)
         dos = np.exp(logn_E)
+        dos /= simps(dos, self.bin_edges[:-1])
+        logn_E = np.log(dos)
         
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -528,6 +530,7 @@ class mbar_compute_dos(object):
         ax.plot(self.bin_edges[:-1], logn_E, label=r'$\log(\xi(r))$', color=color_cycle.next(), linewidth=2)
         #dx = self.bin_edges[1] - self.bin_edges[0]
         rg = logn_E - (self.ndof-1)*np.log(self.bin_edges[:-1])
+        rg -= np.mean(rg[:3])
         ax.plot(self.bin_edges[:-1], rg, label=r'$\log(\xi(r)/r^{N-1})$', color=color_cycle.next(), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
@@ -540,17 +543,17 @@ class mbar_compute_dos(object):
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)))
+        ax.plot(self.bin_edges[:-1], np.exp(rg)) #-np.amax(rg)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel(r'$\xi(r)/r^{N-1}$')
         plt.savefig(self.base_directory + '/ratio_g.eps')
-        write_csv_xy(self.bin_edges[:-1], np.exp(rg-np.amax(rg)), fname=os.path.join(self.base_directory, 'gr_ratio.csv'))
+        write_csv_xy(self.bin_edges[:-1], np.exp(rg), fname=os.path.join(self.base_directory, 'gr_ratio.csv')) # -np.amax(rg)
         if self.show:
             plt.show()
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], rg-np.amax(rg))
+        ax.plot(self.bin_edges[:-1], rg) # -np.amax(rg)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel(r'$\log(\xi(r)/r^{N-1})$')
         ax.set_xscale('log')

@@ -6,7 +6,7 @@ import sys
 from scipy.special import gamma
 from mcrunner import HS_MCrunner, HS_MCrunnerOptDiffusion
 from pele.potentials import HS_WCA, WCA, InversePower
-from pele.optimize._quench import lbfgs_cpp
+from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
 from basinvolume.utils import *
 from numpy.random import RandomState
 import argparse
@@ -348,17 +348,34 @@ class HS_Generate_Packing(_Generate_Packing):
         """
         #sigma =  min(self.boxv) / np.power(2,1./6) #set sigma such that the the wca radius is the same as the box smallest side length
         #pot = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of sigma might have to be different
-        pot = InversePower(10, self.eps, self.hs_radii * 2.2, ndim=self.bdim, boxvec=self.boxv)
+        pot = HS_WCA(use_periodic=True, eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         
         overlap = True    
         while overlap == True:
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords,pot,nsteps=10000)
+            res = lbfgs_cpp(coords, pot, nsteps=1e5, tol=1e-8)
+            #res = lbfgs_cpp(coords,pot,nsteps=10000)
             #assert(res.success is True) #checks that a minimum configuration has been found
             self.coords = np.array(res.coords)
 #            print "generated new start coords "
 #            sort radii in cavity
 #            self._sort_radii_in_cavities()
+            #check that no two particles are overlapping (using nearest image convention)
+            overlap = not self._check_no_overlaps()
+            print "overlap",overlap
+    
+    def _generate_packing_coords_direct(self):
+        """
+        it generates an initial set of coordinates from a LJ quench,
+        the LJ particles are then substitued by HS based on the size of
+        the gap 
+        """
+        pot = HS_WCA(use_periodic=True, eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        overlap = True    
+        while overlap == True:
+            coords = self._sample_random_coords()
+            res = lbfgs_cpp(coords, pot, nsteps=1e6, tol=1e-8)
+            self.coords = np.array(res.coords)
             #check that no two particles are overlapping (using nearest image convention)
             overlap = not self._check_no_overlaps()
             print "overlap",overlap
@@ -559,20 +576,6 @@ class HS_Generate_Packing(_Generate_Packing):
             hs_radii[dmap[i]] = sorted_radii[i]
         self.hs_radii = hs_radii.copy()
         #print 'new radii',self.hs_radii
-             
-    def _generate_packing_coords_direct(self):
-        """
-        it generates an initial set of coordinates from a LJ quench,
-        the LJ particles are then substitued by HS based on the size of
-        the gap 
-        """
-        no_overlap = False
-        while no_overlap == False:
-            no_overlap = True 
-            self.coords = self._sample_random_coords()
-            print "generated new7 start coords "
-            #check that no two particles are overlapping (using nearest image convention)
-            no_overlap = self._check_no_overlaps()
     
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
@@ -680,7 +683,7 @@ if __name__ == "__main__":
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
-    parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
+    parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
     args = parser.parse_args()
     print args

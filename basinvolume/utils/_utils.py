@@ -62,6 +62,10 @@ def volume_nball(radius, n):
 def surface_nball(radius, n):
     return 2*np.pi*volume_nball(radius, n-1)
 
+def log_surface_nball(radius, n):
+    log_surface = np.log(2*np.pi) + log_volume_nball(radius, n-1)
+    return log_surface
+
 def log_volume_nball(radius, n):
     log_volume = n / 2.0 * np.log(np.pi) + n * np.log(radius) - gammaln(n / 2 + 1)
     return log_volume
