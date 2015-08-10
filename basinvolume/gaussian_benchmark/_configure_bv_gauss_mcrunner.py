@@ -163,6 +163,7 @@ class configure_bv_gauss_mcrunner(object):
         if base_dir is None:
             base_directory = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
             print("assert existence of base disrctory:", base_directory)
+            trymakedir(base_directory)
             assert(os.path.exists(base_directory))
         else:
             if not os.path.isabs(base_dir):

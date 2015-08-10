@@ -145,7 +145,7 @@ class GaussianBenchmark(object):
         self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
         print("Gaussian center coords", self.means[self.minimum_index][:])
         print("corresponding mimimum position (origin)", self.origin)
-        self.print_minimum_coords_file(configuration_name="config0.gauss")
+        self.print_minimum_coords_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def get_local_minimum(self, mean_index=0):
         initial_position = self.means[self.minimum_index][:]
         print("initial_position", initial_position)
@@ -203,7 +203,7 @@ class GaussianBenchmark(object):
         print("kmax_run.get_nfev()", kmax_run.get_neval())
         self.total_neval += kmax_run.get_neval()
         self.harmonic_energy_calls += kmax_run.get_iterations_count()
-        self.print_findk_config_file()
+        self.print_findk_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def run_kmin(self):
         print("run kmin")
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
@@ -246,15 +246,15 @@ class GaussianBenchmark(object):
         self.total_neval += kmin_run.get_neval()
         self.harmonic_energy_calls += kmin_run.get_iterations_count()
         print("self.total_neval, kmin, kmax", self.total_neval)
-        self.print_kmin_config_file()
+        self.print_kmin_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def run_PT(self):
         print("run PT")
-        configuration_name="config0.gauss"
+        configuration_name="config{}.gauss".format(self.minimum_index)
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
         full_path_to_pt_run_script = os.path.join(os.path.dirname(basinvolume.__file__), "gaussian_benchmark", "gaussian_benchmark_pt_run.py")
         cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4}"
-        cmd = cmd_base_str.format(self.nprocs, "config0.gauss", base_pt_path, int(self.totniter), self.nparticles)
+        cmd = cmd_base_str.format(self.nprocs, "config{}.gauss".format(self.minimum_index), base_pt_path, int(self.totniter), self.nparticles)
         if self.harmonic_well:
             cmd += " --harmonic_well"
         p = subprocess.call(shlex.split(cmd))
@@ -422,6 +422,80 @@ class GaussianBenchmark(object):
             _to_file("sigF0unc", self.sigF0unc)
         f.close()
 
+def plot_potential(means, cov):    
+    import matplotlib.pyplot as plt
+    
+    N = 200
+    xx = np.linspace(-10, 10, N)
+    U = np.zeros((N, N))
+    pot = SumGaussianPot(means, cov)
+    R = 10
+    
+    for i in xrange(0, N):
+        for j in xrange(0, N):
+            U[i, j] = pot.getEnergy(np.array([xx[j], xx[i]]))
+
+    plot_axes = R + 1
+    plt.figure(1)
+    plt.clf()
+    plt.axes(aspect='equal')
+    plt.contourf(xx, xx, U, 30)
+    plt.colorbar()
+    plt.axis([-plot_axes, plot_axes, -plot_axes, plot_axes])
+    plt.hold(True)
+    plt.xlabel('$x$')
+    plt.ylabel('$y$')
+
+    centre1 = np.array([0, 0])
+    X_circ1 = np.linspace(centre1[0] - R, centre1[0] + R, N)
+    Y_circ1_pos = centre1[1] + np.sqrt(R ** 2 - (X_circ1 - centre1[0]) ** 2)
+    Y_circ1_neg = centre1[1] - np.sqrt(R ** 2 - (X_circ1 - centre1[0]) ** 2)
+
+    plt.plot(X_circ1, Y_circ1_pos, 'c')
+    plt.plot(X_circ1, Y_circ1_neg, 'c')
+    plt.show()
+    plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
+
+def compute_volume(indices=0):
+    res = []
+    for i in indices:
+        minimum_index = i
+        bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
+        #bm = GaussianBenchmark(minimum_index=minimum_index, harmonic_well=False, simple_integrator=False)
+        bm.find_kmax()
+        bm.run_kmin()
+        bm.run_PT()
+        bm.compute_volume()
+        bm.print_nr_function_calls()
+        bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
+        bf.compute_volume()
+        f = open(os.path.join(os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis", "volume_data")))
+        lf = list(f)
+        F0 = lf[2]
+        print("F0", F0)
+        eF0 = lf[3]
+        print("eF0", eF0)
+        F0 = float(F0.split()[1])
+        eF0 = float(eF0.split()[1])
+        f.close()
+        print("F0", F0)
+        print("eF0", eF0)
+        ti_vol = np.exp(-F0)
+        e_ti_vol = ti_vol * eF0
+        print("---direct MC result---")
+        print("bf.basin_volume", bf.basin_volume)
+        print("bf.error_basin_volume", bf.error_basin_volume)
+        print("---Thermodynamic integration result---")
+        print("TI volume", ti_vol)
+        print("error TI volume", e_ti_vol)
+        fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison{}".format(minimum_index)))
+        fout.set_heading("DIRECT REJECTION SAMPLING")
+        fout.to_file("bf.basin_volume", bf.basin_volume)
+        fout.to_file("bf.error_basin_volume", bf.error_basin_volume)
+        fout.set_heading("THERMODYNAMIC INTEGRATION")
+        fout.to_file("TI volume", ti_vol)
+        fout.to_file("error TI volume", e_ti_vol)
+
 if __name__ == "__main__":
     means = np.asarray([
     [-0.66188835, -4.90248303],
@@ -447,67 +521,5 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
-
-    def plot_potential(means, cov):    
-        import matplotlib.pyplot as plt
-        
-        N = 200
-        xx = np.linspace(-10, 10, N)
-        U = np.zeros((N, N))
-        pot = SumGaussianPot(means, cov)
-        R = 10
-        
-        for i in xrange(0, N):
-            for j in xrange(0, N):
-                U[i, j] = pot.getEnergy(np.array([xx[j], xx[i]]))
-    
-        plot_axes = R + 1
-        plt.figure(1)
-        plt.clf()
-        plt.axes(aspect='equal')
-        plt.contourf(xx, xx, U, 30)
-        plt.colorbar()
-        plt.axis([-plot_axes, plot_axes, -plot_axes, plot_axes])
-        plt.hold(True)
-        plt.xlabel('$x$')
-        plt.ylabel('$y$')
-    
-        centre1 = np.array([0, 0])
-        X_circ1 = np.linspace(centre1[0] - R, centre1[0] + R, N)
-        Y_circ1_pos = centre1[1] + np.sqrt(R ** 2 - (X_circ1 - centre1[0]) ** 2)
-        Y_circ1_neg = centre1[1] - np.sqrt(R ** 2 - (X_circ1 - centre1[0]) ** 2)
-    
-        plt.plot(X_circ1, Y_circ1_pos, 'c')
-        plt.plot(X_circ1, Y_circ1_neg, 'c')
-        plt.show()
-        plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
-    minimum_index = 0
-    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
-    #bm = GaussianBenchmark(minimum_index=minimum_index, harmonic_well=False, simple_integrator=False)
-    bm.find_kmax()
-    bm.run_kmin()
-    bm.run_PT()
-    bm.compute_volume()
-    bm.print_nr_function_calls()
-    bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
-    bf.compute_volume()
-    f = open(os.path.join(os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis", "volume_data")))
-    lf = list(f)
-    F0 = lf[2]
-    print("F0", F0)
-    eF0 = lf[3]
-    print("eF0", eF0)
-    F0 = float(F0.split()[1])
-    eF0 = float(eF0.split()[1])
-    f.close()
-    print("F0", F0)
-    print("eF0", eF0)
-    ti_vol = np.exp(-F0)
-    e_ti_vol = ti_vol * eF0
-    print("---direct MC result---")
-    print("bf.basin_volume", bf.basin_volume)
-    print("bf.error_basin_volume", bf.error_basin_volume)
-    print("---Thermodynamic integration result---")
-    print("TI volume", ti_vol)
-    print("error TI volume", e_ti_vol)
+    compute_volume(range(0, 2))
     
