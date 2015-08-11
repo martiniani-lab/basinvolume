@@ -521,5 +521,5 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
-    compute_volume(range(0, 2))
+    compute_volume(range(0, 3))
     
