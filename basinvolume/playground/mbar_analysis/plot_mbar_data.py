@@ -97,6 +97,8 @@ class MBARPackingDataSet(PackingDataSet):
             self.structural_label = 'fcc'
         elif 'disordered' in self.set_name:
             self.structural_label = 'disordered'
+        elif 'fluid' in self.set_name:
+            self.structural_label = 'fluid'
         else:
             self.structural_label = None
             print "cannot recognise structural label (fcc or disordered), set to None"
@@ -265,12 +267,12 @@ class plot_mbar_data(object):
             #self.plot_all(plot_type="log_gr", average=True)
             self.plot_all(plot_type="log_gr_ratio", average=True)
             #self.plot_all(plot_type="gr_ratio", average=True)
-            #self.plot_all(plot_type="dos", average=True)
-        if False:
+            self.plot_all(plot_type="dos", average=True)
+        if True:
             #self.plot_all(plot_type="log_gr", average=False)
             self.plot_all(plot_type="log_gr_ratio", average=False)
             #self.plot_all(plot_type="gr_ratio", average=False)
-            #self.plot_all(plot_type="dos", average=False)
+            self.plot_all(plot_type="dos", average=False)
         if False:
             self.plot_correlations(plot_type="m0_q6")
         if True:
@@ -289,28 +291,31 @@ class plot_mbar_data(object):
                     for bunch in dataset.boos:
                         boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
                     boo12 = np.array(boo)[:,4]
-                    y.append(np.mean(boo12))
-                    yerr.append(np.std(boo12))
-                    y1.append(np.mean(dataset.pressures))
-                    y1err.append(np.std(dataset.pressures))
-                    x.append(dataset.hs_poly)
-            ax.errorbar(x, y, yerr=yerr, fmt='bo')        
-            ax.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                      columnspacing=0.25, labelspacing=0.25, handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+                    y = [np.mean(boo12)]
+                    yerr = [np.std(boo12)]
+                    y1 = [np.mean(dataset.pressures)]
+                    y1err = [np.std(dataset.pressures)]
+                    x = [dataset.hs_poly]
+                    
+                    color=color_cycle.next()
+                    ax.errorbar(x, y, yerr=yerr, marker='o', label='{} {}'.format(dataset.structural_label, x[0]), color=color)        
+                    ax1.errorbar(x, y1, yerr=y1err, marker='o', label='{} {}'.format(dataset.structural_label, x[0]), color=color)
+                    ax2.errorbar(y1, y, yerr=yerr, xerr=y1err, marker='o', label='{} {}'.format(dataset.structural_label, x[0]), color=color)
+            
+            ax.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
             ax.set_xscale('log')
             ax.set_xlabel(r"$\eta$")
             ax.set_ylabel(r"$Q12$")
-            
-            ax1.errorbar(x, y1, yerr=y1err, fmt='bo')        
-            ax1.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                       columnspacing=0.25, labelspacing=0.25, handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+                    
+            ax1.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
             ax1.set_xscale('log')
             ax1.set_xlabel(r"$\eta$")
             ax1.set_ylabel(r"$\mathcal{P}$")
-            
-            ax2.errorbar(y1, y, yerr=yerr, xerr=y1err, fmt='bo')        
-            ax2.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                       columnspacing=0.25, labelspacing=0.25, handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+                    
+            ax2.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
             ax2.set_ylabel(r"$Q12$")
             ax2.set_xlabel(r"$\mathcal{P}$")
         if True:
@@ -348,7 +353,7 @@ class plot_mbar_data(object):
                         arr = packing.log_gr_ratio
                         if arr is not None:
                             (x, xerr, y, yerr, fit) = arr[:,0], arr[:,1], arr[:,2], arr[:,3], arr[:,4]
-                            j = next(idx for idx, value in enumerate(y) if value < -0.22) #-0.22 was chosen arbitrarily
+                            j = next(idx for idx, value in enumerate(y) if value < -0.5) #-0.5 was chosen arbitrarily
                             log_core_vol.append(log_volume_nball(x[j], (packing.nparticles-1)*packing.bdim))
                             log_tot_vol.append(packing.F)
                         else:
