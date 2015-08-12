@@ -262,18 +262,18 @@ class plot_mbar_data(object):
             plt.ylabel(r"$F$")
             plt.xlabel(r"$\log \mathcal{P}$")
         if True:
-            self.plot_all(plot_type="log_gr", average=True)
+            #self.plot_all(plot_type="log_gr", average=True)
             self.plot_all(plot_type="log_gr_ratio", average=True)
-            self.plot_all(plot_type="gr_ratio", average=True)
-            self.plot_all(plot_type="dos", average=True)
-        if True:
-            self.plot_all(plot_type="log_gr", average=False)
+            #self.plot_all(plot_type="gr_ratio", average=True)
+            #self.plot_all(plot_type="dos", average=True)
+        if False:
+            #self.plot_all(plot_type="log_gr", average=False)
             self.plot_all(plot_type="log_gr_ratio", average=False)
-            self.plot_all(plot_type="gr_ratio", average=False)
-            self.plot_all(plot_type="dos", average=False)
+            #self.plot_all(plot_type="gr_ratio", average=False)
+            #self.plot_all(plot_type="dos", average=False)
         if False:
             self.plot_correlations(plot_type="m0_q6")
-        if False:
+        if True:
             color_cycle = get_color_cycle()
             fig = plt.figure()
             fig1 = plt.figure()
@@ -291,50 +291,95 @@ class plot_mbar_data(object):
                     boo12 = np.array(boo)[:,4]
                     y.append(np.mean(boo12))
                     yerr.append(np.std(boo12))
-                    y1.append(np.mean(dataset.contacts))
-                    y1err.append(np.std(dataset.contacts))
+                    y1.append(np.mean(dataset.pressures))
+                    y1err.append(np.std(dataset.pressures))
                     x.append(dataset.hs_poly)
             ax.errorbar(x, y, yerr=yerr, fmt='bo')        
-            ax.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
-                      handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+            ax.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.25, labelspacing=0.25, handletextpad=0, bbox_to_anchor=[0.08, 0.3])
             ax.set_xscale('log')
             ax.set_xlabel(r"$\eta$")
             ax.set_ylabel(r"$Q12$")
             
             ax1.errorbar(x, y1, yerr=y1err, fmt='bo')        
-            ax1.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
-                      handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+            ax1.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.25, labelspacing=0.25, handletextpad=0, bbox_to_anchor=[0.08, 0.3])
             ax1.set_xscale('log')
             ax1.set_xlabel(r"$\eta$")
             ax1.set_ylabel(r"$\mathcal{P}$")
             
             ax2.errorbar(y1, y, yerr=yerr, xerr=y1err, fmt='bo')        
-            ax2.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
-                      handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+            ax2.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.25, labelspacing=0.25, handletextpad=0, bbox_to_anchor=[0.08, 0.3])
             ax2.set_ylabel(r"$Q12$")
             ax2.set_xlabel(r"$\mathcal{P}$")
-            
+        if True:
+            #plot cdf of maximum r value visited by pt simulation
+            color_cycle = get_color_cycle()
+            fig3 = plt.figure()
+            ax3 = fig3.add_subplot(111)
+            for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+                if len(dataset.free_energies) > 1:
+                    x = []
+                    for arr in dataset.log_gr_ratio_data: 
+                        x.append(arr[-1,0])
+                    cdf = CDFAccumulator()
+                    cdf.add_array(x)
+                    x, cdf_x = cdf.get_vecdata()
+                    f = interp1d(x, cdf_x, bounds_error=True)
+                    xref = np.linspace(x[0],x[-1],1000)
+                    ax3.plot(xref, f(xref), label='{} {}'.format(dataset.structural_label, dataset.hs_poly),
+                            linewidth=2, color=color_cycle.next())
+            ax3.set_xlabel(r'$r_{max}$')
+            ax3.set_ylabel(r'$c.d.f.$')
+            ax3.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         
+        if True:
+            #plot correlation between volume and volume of core region
+            color_cycle = get_color_cycle()
+            fig4 = plt.figure()
+            ax4 = fig4.add_subplot(111)
+            for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+                if len(dataset.free_energies) > 0:
+                    log_core_vol = []
+                    log_tot_vol = []
+                    for packing in dataset.packing_data: 
+                        arr = packing.log_gr_ratio
+                        if arr is not None:
+                            (x, xerr, y, yerr, fit) = arr[:,0], arr[:,1], arr[:,2], arr[:,3], arr[:,4]
+                            j = next(idx for idx, value in enumerate(y) if value < -0.22) #-0.22 was chosen arbitrarily
+                            log_core_vol.append(log_volume_nball(x[j], (packing.nparticles-1)*packing.bdim))
+                            log_tot_vol.append(packing.F)
+                        else:
+                            print packing.configpath_packing
+                    ax4.scatter(-np.array(log_core_vol), np.array(log_tot_vol), color=color_cycle.next(), 
+                                label='{} {}'.format(dataset.structural_label, dataset.hs_poly))
+            ax4.set_xlabel(r'$-\log(V_{c})$')
+            ax4.set_ylabel(r'$-\log(V_{t})$')
+            ax4.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            
     def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         
         color_cycle = get_color_cycle()
         for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
-                if len(dataset.free_energies) > 0:
+                if len(dataset.free_energies) > 1:
                     ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type, 
                                                         average=average, label='{} {}'.format(dataset.structural_label, dataset.hs_poly), 
                                                         color=color_cycle.next())
         
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
         try:
             ax.legend(frameon=False, loc="best")
         except Exception, e:
             print e
             
         if title:
-            plt.title(title)
+            ax.set_title(title)
         if figname is None:
             if average:
                 figname = plot_type + "_average.eps"
