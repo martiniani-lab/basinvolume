@@ -72,7 +72,6 @@ class MBARPackingData(PackingData):
         fpath = os.path.join(path, log_gr_ratio_file)
         if os.path.isfile(fpath):
             x, xerr, y, yerr, fit = read_csv_xy(fpath)
-            y -= np.amax(y)
             self.log_gr_ratio = np.transpose(np.array([x, xerr, y, yerr, fit]))
         #gr_ratio
         fpath = os.path.join(path, gr_ratio_file)
@@ -147,7 +146,7 @@ class MBARPackingDataSet(PackingDataSet):
                 x, y = arr[:,0], arr[:,2]
                 assert x.size == xref.size, 'x array size mismatches'
                 #tcky = splev(x, splrep(x, y, s=0), der=0)
-                f = interp1d(x, y, bounds_error=False)
+                f = interp1d(x, y, bounds_error=True)
                 all.append(f(xref))
             all = np.array(all)
             wsum = np.sum(all, axis=0)
@@ -274,7 +273,7 @@ class plot_mbar_data(object):
             self.plot_all(plot_type="dos", average=False)
         if False:
             self.plot_correlations(plot_type="m0_q6")
-        if True:
+        if False:
             color_cycle = get_color_cycle()
             fig = plt.figure()
             fig1 = plt.figure()
@@ -324,7 +323,7 @@ class plot_mbar_data(object):
         for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 0:
                     ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type, 
-                                                        average=average, label='{} {}'.format(dataset.structural_label, dataset.poly), 
+                                                        average=average, label='{} {}'.format(dataset.structural_label, dataset.hs_poly), 
                                                         color=color_cycle.next())
         
         plt.xlabel(xlabel)

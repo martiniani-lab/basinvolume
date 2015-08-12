@@ -190,7 +190,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                  volume_file="mbar_volume_data", volume_title="VOLUME_MBAR"):
         super(ComputeVolumesMBARMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
                                                                 volume_file=volume_file, volume_title=volume_title)
-        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=7)
+        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=8)
     
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
         self.series_collector(fname=fname,
@@ -200,6 +200,42 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                               base_dir='analysis',
                               frozen=self.experimental, 
                               show=False, verbose=False)
+    def run_analysis(self):
+        """
+        replace with approapriate method (this tests also if the dos calculation was succesfull)
+        """
+        self.pt_failures = PTFailures()
+        for (path, fname) in zip(self.explore_dirs, self.packing_strings):
+            if not (assert_pt_success(path, fname)):
+                # PT runs failed.
+                self.pt_failures.add_failure(fname)
+            else:
+                # PT runs successful.
+                self.pt_failures.add_success()
+                try:
+                    log_gr_ratio_file = "log_gr_ratio.csv"
+                    if not self.force_run and os.path.isfile(os.path.join(path, self.analysis_dir, self.volume_file)) \
+                    and os.path.isfile(os.path.join(path, self.analysis_dir, log_gr_ratio_file)):
+                        try:
+                            volf = ConfigParser.ConfigParser()
+                            volf.read(os.path.join(path, self.analysis_dir, self.volume_file))
+                            F0 = volf.getfloat(self.volume_title, 'F0')
+                        except Exception, e:
+                            print "run_analysis Exception: ", e
+                            self._compute_volume(fname, path,
+                                                os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
+                                                os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))    
+                    else:
+                        self._compute_volume(fname, path,
+                                             os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
+                                             os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))
+                except Exception, e:
+                    print "Exception: ", e
+                    print(traceback.format_exc())
+                    print "failed packing!"
+                    print "name: ", fname
+                    print "path:", path
+        self.pt_failures.print_failure_info()
 
 class ComputeVolumes(object):
     def __init__(self, workspace_dir, nr_volume_points=-1,

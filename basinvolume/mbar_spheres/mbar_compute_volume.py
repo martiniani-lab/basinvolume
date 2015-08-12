@@ -519,7 +519,7 @@ class mbar_compute_dos(object):
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
         
-        logn_E = self.logn_E - np.amax(self.logn_E)
+        logn_E = np.array(self.logn_E - np.amax(self.logn_E))
         dos = np.exp(logn_E)
         dos /= simps(dos, self.bin_edges[:-1])
         logn_E = np.log(dos)
@@ -529,8 +529,10 @@ class mbar_compute_dos(object):
         ax = fig.add_subplot(111)
         ax.plot(self.bin_edges[:-1], logn_E, label=r'$\log(\xi(r))$', color=color_cycle.next(), linewidth=2)
         #dx = self.bin_edges[1] - self.bin_edges[0]
-        rg = logn_E - (self.ndof-1)*np.log(self.bin_edges[:-1])
+        rg = np.array(logn_E)
+        rg -= (self.ndof-1)*np.log(self.bin_edges[:-1])
         rg -= np.mean(rg[:3])
+        assert(abs(np.mean(rg[:3])) < 1e-8)
         ax.plot(self.bin_edges[:-1], rg, label=r'$\log(\xi(r)/r^{N-1})$', color=color_cycle.next(), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
