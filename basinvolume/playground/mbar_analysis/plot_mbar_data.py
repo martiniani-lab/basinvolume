@@ -84,9 +84,9 @@ class MBARPackingData(PackingData):
             x, xerr, y, yerr, fit = read_csv_xy(fpath)
             self.dos = np.transpose(np.array([x, xerr, y, yerr, fit]))
 
-class MBARPackingDataSet(PackingDataSet):
+class PolyPackingDataSet(PackingDataSet):
     def __init__(self, set_path):
-        super(MBARPackingDataSet, self).__init__(set_path)
+        super(PolyPackingDataSet, self).__init__(set_path)
         str_values = re.findall('\d+', self.set_name)
         try:
             self.hs_poly =  float('0.'+str_values[4][1:])
@@ -102,6 +102,42 @@ class MBARPackingDataSet(PackingDataSet):
         else:
             self.structural_label = None
             print "cannot recognise structural label (fcc or disordered), set to None"
+
+class TINTBasinAnalysis(BasinAnalysis):
+    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
+                 analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data", 
+                 zboo_file="glob_boo", volume_title = "VOLUME_FULL_PT"):
+        super(TINTBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir, 
+                                                jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir, 
+                                                volume_file=volume_file, pressure_file=pressure_file, 
+                                                zboo_file=zboo_file, volume_title=volume_title)
+        print self.volume_title
+    def _collect_data_single_all(self, set_path):
+        pd_list = []
+        packing_dataset = PolyPackingDataSet(set_path)
+        for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
+            if 'xyzd' in fname or 'xyd' in fname:
+                dname = self._get_dname(fname)
+                dname_packing = self._get_dname_packing(fname)
+                base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
+                if os.path.isdir(base_directory_path):
+                    configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
+                    configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
+                    pd = PackingData(str(dname), configpath, configpath_packing)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
+                    pd.import_volume_data(path, title=self.volume_title)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
+                    pd.import_pressure_data(path)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
+                    pd.import_structural_data(path)                   
+                    pd_list.append(pd)
+        packing_dataset.add_data_all(pd_list)
+        return packing_dataset
+
+
+class MBARPackingDataSet(PolyPackingDataSet):
+    def __init__(self, set_path):
+        super(MBARPackingDataSet, self).__init__(set_path)
         self.log_gr_data = []
         self.log_gr_ratio_data = [] 
         self.gr_ratio_data = []
@@ -229,18 +265,19 @@ class MBARBasinAnalysis(BasinAnalysis):
         return packing_dataset
 
 class plot_mbar_data(object):
-    def __init__(self, packing_datasets, figdir="figures"):
+    def __init__(self, mbar_packing_datasets, tint_packing_datasets, figdir="figures"):
         if not os.path.isabs(figdir):
             figdir = os.path.join(os.getcwd(), figdir)
         trymakedir(figdir)
-        self.packing_datasets = packing_datasets
+        self.mbar_packing_datasets = mbar_packing_datasets
+        self.tint_packing_datasets = tint_packing_datasets
     
     def __call__(self):
         if False:
             color_cycle = get_color_cycle()
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+            for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 1:
                     poly = dataset.hs_poly
                     structural_label = dataset.structural_label 
@@ -275,7 +312,7 @@ class plot_mbar_data(object):
             self.plot_all(plot_type="dos", average=False)
         if False:
             self.plot_correlations(plot_type="m0_q6")
-        if True:
+        if False:
             color_cycle = get_color_cycle()
             fig = plt.figure()
             fig1 = plt.figure()
@@ -285,7 +322,7 @@ class plot_mbar_data(object):
             ax2 = fig2.add_subplot(111)
             x, y, yerr = [], [], []
             y1, y1err = [], []
-            for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+            for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 1:
                     boo = []
                     for bunch in dataset.boos:
@@ -318,12 +355,13 @@ class plot_mbar_data(object):
                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
             ax2.set_ylabel(r"$Q12$")
             ax2.set_xlabel(r"$\mathcal{P}$")
-        if True:
+        
+        if False:
             #plot cdf of maximum r value visited by pt simulation
             color_cycle = get_color_cycle()
             fig3 = plt.figure()
             ax3 = fig3.add_subplot(111)
-            for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+            for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 1:
                     x = []
                     for arr in dataset.log_gr_ratio_data: 
@@ -340,12 +378,12 @@ class plot_mbar_data(object):
             ax3.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         
-        if True:
+        if False:
             #plot correlation between volume and volume of core region
             color_cycle = get_color_cycle()
             fig4 = plt.figure()
             ax4 = fig4.add_subplot(111)
-            for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+            for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 0:
                     log_core_vol = []
                     log_tot_vol = []
@@ -364,13 +402,30 @@ class plot_mbar_data(object):
             ax4.set_ylabel(r'$-\log(V_{t})$')
             ax4.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        if True:
+            color_cycle = get_color_cycle()
+            fig5 = plt.figure()
+            ax5 = fig5.add_subplot(111)
+            for mbar_dataset, tint_dataset in zip(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly), 
+                                                  sorted(self.tint_packing_datasets, key=lambda data: data.hs_poly)):
+                if len(mbar_dataset.free_energies) > 0 and len(tint_dataset.free_energies) > 0:
+                    assert mbar_dataset.structural_label == tint_dataset.structural_label
+                    assert mbar_dataset.hs_poly == tint_dataset.hs_poly 
+                    assert len(mbar_dataset.free_energies) == len(tint_dataset.free_energies)
+                    ax5.scatter(mbar_dataset.free_energies, tint_dataset.free_energies, color=color_cycle.next(),
+                                label='{} {}'.format(mbar_dataset.structural_label, mbar_dataset.hs_poly))
+            ax5.set_xlabel(r'$-\log(V_{mbar})$')
+            ax5.set_ylabel(r'$-\log(V_{tint})$')
+            ax5.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            
             
     def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         
         color_cycle = get_color_cycle()
-        for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+        for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 1:
                     ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type, 
                                                         average=average, label='{} {}'.format(dataset.structural_label, dataset.hs_poly), 
@@ -467,7 +522,7 @@ class plot_mbar_data(object):
         ax = fig.add_subplot(111)
         
         color_cycle = get_color_cycle()
-        for i,dataset in enumerate(sorted(self.packing_datasets, key=lambda data: data.hs_poly)):
+        for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 0:
                     ax, xlabel, ylabel = self._plot_correlations(ax, dataset, plot_type=plot_type, 
                                                                   label=dataset.hs_poly, color=color_cycle.next())
@@ -585,9 +640,11 @@ class plot_mbar_data(object):
 if __name__ == "__main__":
     show = True
     
-    pts = MBARBasinAnalysis()
-    pts.collect_data_every_set_all(dir_signature='n*phi*phi*3D*')
-    pmd = plot_mbar_data(pts.packing_datasets)
+    pts_mbar = MBARBasinAnalysis()
+    pts_tint = TINTBasinAnalysis()
+    pts_mbar.collect_data_every_set_all(data_name="mbar_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
+    pts_tint.collect_data_every_set_all(data_name="tint_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
+    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets)
     pmd()
     if show:
         plt.show()

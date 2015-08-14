@@ -98,6 +98,7 @@ class _collect_u2_vs_k(object):
             else:
                 self._import_ks()
                 self._import_u2_reverse()
+                self._remove_negative_k()
                 self._print_u2_vs_k()
                 self._compute_hs_fluid_volume() # Maybe we can move this to the entropy computation part, 
                 self._compute_volume()          # there is no reason to also compute the accessible volume at this point.
@@ -174,7 +175,19 @@ class _collect_u2_vs_k(object):
         self.u2_array = np.array(self.u2_array[::-1], dtype='d')
         self.var_array = np.array(self.var_array[::-1], dtype='d')
         self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
-        
+    
+    def _remove_negative_k(self):
+        try:
+            k0_idx = next(idx for idx, value in enumerate(self.karray) if value == 0)
+        except Exception:
+            k0_idx = -1 
+        if k0_idx >= 0:
+            self.karray = self.karray[k0_idx:]
+            assert all(k >= 0 for k in self.karray), "karray not all positive"
+            self.u2_array = self.u2_array[k0_idx:]
+            self.var_array = self.var_array[k0_idx:]
+            self.std_error_array = self.std_error_array[k0_idx:]
+            
     def _import_time_series(self):
         timeseries = []
         series_order = []
