@@ -349,7 +349,7 @@ class _collect_u2_vs_k(object):
         color_cycle = get_color_cycle()
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
-        (line, caps, _) = ax2.errorbar(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), marker='o', ms=9, linestyle='', 
+        (line, caps, _) = ax2.errorbar(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), marker='o', ms=12, linestyle='', 
                      color=color_cycle.next(), clip_on=False, zorder=100, capsize=5, elinewidth=2)
         for cap in caps:
             cap.set_zorder(100)
@@ -357,7 +357,7 @@ class _collect_u2_vs_k(object):
         
         ax2.plot(cont_karray, u2_array_app, '--', linewidth=2, color=color_cycle.next())
         ax2.set_xlabel(r'$k$')
-        ax2.set_ylabel(r'$\langle u^2 \rangle$')
+        ax2.set_ylabel(r'$\langle |\mathbf{r} - \mathbf{r}_0|^2\rangle_k $')
         ax2.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
@@ -365,7 +365,7 @@ class _collect_u2_vs_k(object):
                      fname=os.path.join(self.base_directory, 'u2_vs_k.csv'))
         #inset
         ax3 = fig2.add_axes([0.45,0.42,0.4,0.4], alpha=0.5)
-        ax3.errorbar(self.tarray, self.farray, yerr=self.sigfarray, marker='o', color=color_cycle.next())
+        ax3.errorbar(self.tarray, self.farray, yerr=self.sigfarray, marker='o', color=color_cycle.next(), ms=12, clip_on=False, zorder=100)
         ax3.set_xlabel(r'$t$', fontsize=18)
         ax3.locator_params(axis = 'x', nbins = 4)
         ax3.locator_params(axis = 'y', nbins = 4)

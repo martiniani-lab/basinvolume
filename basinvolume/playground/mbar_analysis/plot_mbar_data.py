@@ -5,6 +5,8 @@ try:
     import ConfigParser
     import os
     import re
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib import rc
     from itertools import cycle
@@ -22,15 +24,16 @@ except ImportError as err:
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 #rc('text.latex',preamble=r'\usepackage{times}')
-plt.rcParams.update({'font.size': 18})
+plt.rcParams.update({'font.size': 28})
 plt.rcParams['xtick.major.pad'] = 8
 plt.rcParams['ytick.major.pad'] = 8
 plt.rcParams.update({'figure.autolayout': True})
+plt.rcParams['figure.figsize'] = 10, 7.7
 ##########################################################
 ####SET COLOUR MAP######                                                               
 def get_color_cycle():
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
+    color_cycle=cycle([cm(1. * i / 13) for i in xrange(13)])
     return color_cycle
 ########################
 #####################LINE STYLE CYCLER####################                             
@@ -178,11 +181,11 @@ class MBARPackingDataSet(PolyPackingDataSet):
                     xmin = nxmin
                 if nxmax < xmax:
                     xmax = nxmax
-            xref = np.linspace(xmin, xmax, len(data[0][:,0]))
+            xref = np.linspace(xmin, xmax, 100)
             all = []
             for arr in data:
                 x, y = arr[:,0], arr[:,2]
-                assert x.size == xref.size, 'x array size mismatches'
+                #assert x.size == xref.size, 'x array size mismatches'
                 #tcky = splev(x, splrep(x, y, s=0), der=0)
                 f = interp1d(x, y, bounds_error=True)
                 all.append(f(xref))
@@ -265,12 +268,14 @@ class MBARBasinAnalysis(BasinAnalysis):
         return packing_dataset
 
 class plot_mbar_data(object):
-    def __init__(self, mbar_packing_datasets, tint_packing_datasets, figdir="figures"):
+    def __init__(self, mbar_packing_datasets, tint_packing_datasets, figdir="figures", show=False):
         if not os.path.isabs(figdir):
             figdir = os.path.join(os.getcwd(), figdir)
         trymakedir(figdir)
+        self.figdir = figdir
         self.mbar_packing_datasets = mbar_packing_datasets
         self.tint_packing_datasets = tint_packing_datasets
+        self.show = show
     
     def __call__(self):
         if False:
@@ -281,35 +286,33 @@ class plot_mbar_data(object):
                 if len(dataset.free_energies) > 1:
                     poly = dataset.hs_poly
                     structural_label = dataset.structural_label 
-                    print poly
+                    print structural_label, poly
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
                     x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                     y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    #weights = 1./np.array(dataset.free_energies_err)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    weights = np.ones(len(dataset.free_energies))[np.array(outliers.non_outliers_indexes, dtype="i")]
                     print len(x), len(y)
                     x = np.log(x)
                     ax.scatter(x, y, label='{} {}'.format(structural_label, poly), color=color_cycle.next())
-                    fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
-                    fit_err = np.sqrt(np.diag(cov))
-                    fit_fn = np.poly1d(fit)
+                    #fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
+                    #fit_err = np.sqrt(np.diag(cov))
+                    #fit_fn = np.poly1d(fit)
                     #ax.plot(x, fit_fn(x), color='k')
-                    dataset.add_extras((fit, fit_err))
-                    print dataset.extras
-            ax.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
-                      handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+                    #dataset.add_extras((fit, fit_err))
+                    #print dataset.extras
+            ax.legend(frameon=False, loc='center', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.5, labelspacing=0.5,
+                      handletextpad=0.25, bbox_to_anchor=[0.08, 0.3])
             plt.ylabel(r"$F$")
             plt.xlabel(r"$\log \mathcal{P}$")
         if True:
             #self.plot_all(plot_type="log_gr", average=True)
-            self.plot_all(plot_type="log_gr_ratio", average=True)
+            self.plot_all(plot_type="log_gr_ratio", average=True, savefig=True, show=self.show)
             #self.plot_all(plot_type="gr_ratio", average=True)
-            self.plot_all(plot_type="dos", average=True)
+            self.plot_all(plot_type="dos", average=True, savefig=True, show=self.show)
         if True:
             #self.plot_all(plot_type="log_gr", average=False)
-            self.plot_all(plot_type="log_gr_ratio", average=False)
+            self.plot_all(plot_type="log_gr_ratio", average=False, savefig=True, show=self.show)
             #self.plot_all(plot_type="gr_ratio", average=False)
-            self.plot_all(plot_type="dos", average=False)
+            self.plot_all(plot_type="dos", average=False, savefig=True, show=self.show)
         if False:
             self.plot_correlations(plot_type="m0_q6")
         if False:
@@ -339,24 +342,24 @@ class plot_mbar_data(object):
                     ax1.errorbar(x, y1, yerr=y1err, marker='o', label='{} {}'.format(dataset.structural_label, x[0]), color=color)
                     ax2.errorbar(y1, y, yerr=yerr, xerr=y1err, marker='o', label='{} {}'.format(dataset.structural_label, x[0]), color=color)
             
-            ax.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             ax.set_xscale('log')
             ax.set_xlabel(r"$\eta$")
             ax.set_ylabel(r"$Q12$")
                     
-            ax1.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            ax1.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             ax1.set_xscale('log')
             ax1.set_xlabel(r"$\eta$")
             ax1.set_ylabel(r"$\mathcal{P}$")
                     
-            ax2.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            ax2.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             ax2.set_ylabel(r"$Q12$")
             ax2.set_xlabel(r"$\mathcal{P}$")
         
-        if False:
+        if True:
             #plot cdf of maximum r value visited by pt simulation
             color_cycle = get_color_cycle()
             fig3 = plt.figure()
@@ -371,14 +374,15 @@ class plot_mbar_data(object):
                     x, cdf_x = cdf.get_vecdata()
                     f = interp1d(x, cdf_x, bounds_error=True)
                     xref = np.linspace(x[0],x[-1],1000)
-                    ax3.plot(xref, f(xref), label='{} {}'.format(dataset.structural_label, dataset.hs_poly),
+                    ax3.plot(xref, f(xref), label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly),
                             linewidth=2, color=color_cycle.next())
             ax3.set_xlabel(r'$r_{max}$')
-            ax3.set_ylabel(r'$c.d.f.$')
-            ax3.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        
-        if False:
+            ax3.set_ylabel(r'$\mathrm{cdf}[\mathrm{max}_r(h(r)/r^{N-1})]$')
+            ax3.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
+            fig3.savefig(os.path.join(self.figdir, 'maxr_cdf.eps'))
+            
+        if True:
             #plot correlation between volume and volume of core region
             color_cycle = get_color_cycle()
             fig4 = plt.figure()
@@ -397,11 +401,12 @@ class plot_mbar_data(object):
                         else:
                             print packing.configpath_packing
                     ax4.scatter(-np.array(log_core_vol), np.array(log_tot_vol), color=color_cycle.next(), 
-                                label='{} {}'.format(dataset.structural_label, dataset.hs_poly))
+                                label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly))
             ax4.set_xlabel(r'$-\log(V_{c})$')
             ax4.set_ylabel(r'$-\log(V_{t})$')
-            ax4.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            ax4.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
+            fig4.savefig(os.path.join(self.figdir, 'core_tot_vol_correlations.eps'))
         if True:
             color_cycle = get_color_cycle()
             fig5 = plt.figure()
@@ -412,12 +417,16 @@ class plot_mbar_data(object):
                     assert mbar_dataset.structural_label == tint_dataset.structural_label
                     assert mbar_dataset.hs_poly == tint_dataset.hs_poly 
                     assert len(mbar_dataset.free_energies) == len(tint_dataset.free_energies)
-                    ax5.scatter(mbar_dataset.free_energies, tint_dataset.free_energies, color=color_cycle.next(),
-                                label='{} {}'.format(mbar_dataset.structural_label, mbar_dataset.hs_poly))
+                    ax5.errorbar(mbar_dataset.free_energies, tint_dataset.free_energies, 
+                                 xerr=mbar_dataset.free_energies_err, yerr=tint_dataset.free_energies_err, 
+                                 color=color_cycle.next(), linestyle="None", marker='o', markersize=6,
+                                label='{} {:.3E}'.format(mbar_dataset.structural_label, mbar_dataset.hs_poly))
+            ax5.plot(np.linspace(75,110,10),np.linspace(75,110,10),color='k',linestyle='-')
             ax5.set_xlabel(r'$-\log(V_{mbar})$')
             ax5.set_ylabel(r'$-\log(V_{tint})$')
-            ax5.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
-                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            ax5.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
+            fig5.savefig(os.path.join(self.figdir, 'mbar_tint_comparison.eps'))
             
             
     def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True):
@@ -426,15 +435,18 @@ class plot_mbar_data(object):
         
         color_cycle = get_color_cycle()
         for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
+                print '{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly)
+                print len(dataset.free_energies)
                 if len(dataset.free_energies) > 1:
                     ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type, 
-                                                        average=average, label='{} {}'.format(dataset.structural_label, dataset.hs_poly), 
+                                                        average=average, label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly), 
                                                         color=color_cycle.next())
         
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         try:
-            ax.legend(frameon=False, loc="best")
+            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
         except Exception, e:
             print e
             
@@ -446,7 +458,7 @@ class plot_mbar_data(object):
             else:
                 figname = plot_type + "_all.eps"
         if savefig:
-            plt.savefig(figname)
+            plt.savefig(os.path.join(self.figdir, figname))
         if show:
             plt.show()
         
@@ -461,20 +473,23 @@ class plot_mbar_data(object):
                     if i > 0:
                         label = None
                     ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, color=color)
-            xlabel=r'r'
-            ylabel=r'$\log(g(r))$'
+            xlabel=r'$r$'
+            ylabel=r'$\log(h(r))$'
         if plot_type == "log_gr_ratio":
             if average:
                 log_gr_ratio = mbar_data.log_gr_ratio_mean
-                ax = self._plot(ax, log_gr_ratio, label=label, plot_err=True, plot_fit=False, color=color)
+                ax = self._plot(ax, log_gr_ratio, label=label, plot_err=True, plot_fit=False, color=color, marker='')
             else:
                 log_gr_ratio = mbar_data.log_gr_ratio_data
                 for i,arr in enumerate(log_gr_ratio):
                     if i > 0:
                         label = None
                     ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, color=color)
-            xlabel=r'r'
-            ylabel=r'$\log(g(r)/r^{N-1})$'
+            xlabel=r'$r$'
+            ylabel=r'$\log(h(r)/r^{N-1})$'
+            if average:
+                ax.set_ylim((-60,2))
+                ax.set_xlim((0,2))
         if plot_type == "gr_ratio":
             if average:
                 gr_ratio = mbar_data.gr_ratio_mean
@@ -485,8 +500,8 @@ class plot_mbar_data(object):
                     if i > 0:
                         label = None
                     ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, color=color)
-            xlabel=r'r'
-            ylabel=r'$g(r)/r^{N-1}$'
+            xlabel=r'$r$'
+            ylabel=r'$h(r)/r^{N-1}$'
             ax.set_xlim((0,1))
         if plot_type == "dos":
             if average:
@@ -498,10 +513,11 @@ class plot_mbar_data(object):
                     if i > 0:
                         label = None
                     ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, normalize=True, color=color)
-            xlabel=r'r'
-            ylabel=r'$g(r)$'
-            ax.set_xlim((0.5,4))
-            
+            xlabel=r'$r$'
+            ylabel=r'$h(r)$'
+            ax.set_xlim((0.5,8))
+            ax.set_ylim((1e-27,3))
+            ax.set_yscale('log')
         return ax, xlabel, ylabel
     
     def _plot(self, ax, arr, label=None, plot_err=False, plot_fit=False, normalize=False, color='k', marker='o'):
@@ -530,7 +546,8 @@ class plot_mbar_data(object):
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         try:
-            ax.legend(frameon=False, loc="best", numpoints=1)
+            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
         except Exception, e:
             print e
         if logx:
@@ -542,7 +559,7 @@ class plot_mbar_data(object):
         if figname is None:
             figname = plot_type + ".eps"
         if savefig:
-            plt.savefig(figname)
+            plt.savefig(os.path.join(self.figdir, figname))
         if show:
             plt.show()
     
@@ -563,7 +580,7 @@ class plot_mbar_data(object):
         #volume-moments correlations
         if plot_type == "f_m0":
             ax.scatter(free_energies, np.log(moments[:,0]), label=label, c=color, alpha=0.5)
-            ylabel=r'$\max[g(r)]$'
+            ylabel=r'$\max[h(r)]$'
         elif plot_type == "f_m1":
             ax.scatter(free_energies, np.log(moments[:,1]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\langle r \rangle)$'
@@ -614,7 +631,7 @@ class plot_mbar_data(object):
         if plot_type == "m0_q6":
             ax.scatter(moments[:,0], boo[:,1], s=area, label=label, c=color, alpha=0.5)
             ylabel=r'$Q6$'
-            xlabel=r'$\max[g(r)]$'
+            xlabel=r'$\max[h(r)]$'
         elif plot_type == "m1_q6":
             ax.scatter(moments[:,1], boo[:,1], s=area, label=label, c=color, alpha=0.5)
             ylabel=r'$Q6$'
@@ -644,8 +661,6 @@ if __name__ == "__main__":
     pts_tint = TINTBasinAnalysis()
     pts_mbar.collect_data_every_set_all(data_name="mbar_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
     pts_tint.collect_data_every_set_all(data_name="tint_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
-    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets)
+    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets, show=show)
     pmd()
-    if show:
-        plt.show()
     plt.close()

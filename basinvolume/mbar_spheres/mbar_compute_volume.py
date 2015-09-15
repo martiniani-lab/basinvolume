@@ -12,12 +12,14 @@ from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 import argparse
 from itertools import cycle, chain
-from matplotlib import rc
 import pandas as pd
 import pele.utils.fix_multiprocessing
 from scipy.integrate import simps
 try:
-    import pylab as plt
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib import rc
     from joblib import Parallel, delayed
 except ImportError as err:
     print err
@@ -26,15 +28,16 @@ import time
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 #rc('text.latex',preamble=r'\usepackage{times}')
-plt.rcParams.update({'font.size': 18})
+plt.rcParams.update({'font.size': 28})
 plt.rcParams['xtick.major.pad'] = 8
 plt.rcParams['ytick.major.pad'] = 8
 plt.rcParams.update({'figure.autolayout': True})
+plt.rcParams['figure.figsize'] = 10, 7.7
 ##########################################################
 ####SET COLOUR MAP######                                                               
-def get_color_cycle():
+def get_color_cycle(ncol=7):
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
+    color_cycle=cycle([cm(1. * i / ncol) for i in xrange(ncol)])
     return color_cycle
 ########################
 #####################LINE STYLE CYCLER####################                             
@@ -460,8 +463,8 @@ class mbar_compute_dos(object):
         skip = max(1, int(len(self.timeseries[0])/1e3))
         for i,series in enumerate(self.timeseries):
             ax.plot(series[::skip], ls=next(linecycler), color=color_cycle.next(), linewidth=1.8, label=str(i))
-        ax.set_ylabel(r'$|{\bf r} - {\bf r}_0|$', fontsize=18)
-        ax.set_xlabel('steps/{}'.format(skip), fontsize=18)
+        ax.set_ylabel(r'$r$', fontsize=28)
+        ax.set_xlabel('steps/{}'.format(skip), fontsize=28)
         ax.set_xlim((0,150))
         #plt.yscale('log')
         #plt.xscale('log')
@@ -474,16 +477,18 @@ class mbar_compute_dos(object):
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
+        color_cycle = get_color_cycle(ncol=32)
         herr = []
         for i,hist in enumerate(self.hist_visits):
             var = (1-hist/np.sum(hist))*hist/np.sum(hist)
             herr.append(np.sqrt(var)/(np.amax(self.bin_edges)-np.amin(self.bin_edges)))
         herr = np.array(herr)
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
-            ax.errorbar(self.bin_edges[:-1], hist, yerr=err, linewidth=2, label='k={:.1f}'.format(self.karray[i]))
-        ax.legend(frameon=False, loc="best", prop={'size':18}, numpoints=1, scatterpoints=1, 
-                  markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1)
-        ax.set_xlabel(r'$|{\bf r} - {\bf r}_0|$', fontsize=18)
+            ax.errorbar(self.bin_edges[:-1], hist, linewidth=2, color=color_cycle.next(), 
+                        label='{:.1f}'.format(self.karray[i])) #yerr=err
+        ax.legend(frameon=False, loc="best", prop={'size':17}, numpoints=1, scatterpoints=1, 
+                  markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1, ncol=2)
+        ax.set_xlabel(r'$r$', fontsize=28)
         plt.savefig(self.base_directory + '/histograms.eps')
         if self.show:
             plt.show()

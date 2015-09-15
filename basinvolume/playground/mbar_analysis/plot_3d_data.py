@@ -21,6 +21,7 @@ try:
     from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
     from basinvolume.post_processing import GeneralisedLogNormal, LogNormal, OutlierRemovalUnbiasingEntropyLogOmega
     import vegas
+    from joblib import Parallel, delayed
 except ImportError as err:
     print err
 #######################SET LATEX OPTIONS###################
@@ -124,10 +125,13 @@ def plot(packing_datasets, figdir="figures"):
     trymakedir(figdir)
     
     if True:
+        import matplotlib.gridspec as gridspec
         #plot free energy vs P for all packings
         color_cycle = get_color_cycle()
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
+        fig = plt.figure(figsize=(8,8))
+        gs = gridspec.GridSpec(7,2)
+        #ax = fig.add_subplot(211)
+        ax = fig.add_subplot(gs[:4,:])
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             if len(dataset.free_energies) > 0:
                 nparticles = dataset.nparticles
@@ -145,8 +149,8 @@ def plot(packing_datasets, figdir="figures"):
                 ax.plot(x, fit_fn(x), color='k')
                 dataset.add_extras((fit, fit_err))
                 print dataset.extras
-        ax.legend(frameon=False, loc='center', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
-                  handletextpad=0, bbox_to_anchor=[0.08, 0.3])
+        ax.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
+                  handletextpad=0) # bbox_to_anchor=[0.08, 0.3]
         plt.ylabel(r"$F$")
         plt.xlabel(r"$\log \mathcal{P}$")
         print "extras", dataset.extras
@@ -162,8 +166,9 @@ def plot(packing_datasets, figdir="figures"):
             color_fit = color_cycle.next()
             #fig = plt.figure()
             #ax = fig.add_subplot(111)
-            ax3 = fig.add_axes([0.1,0.695,0.27,0.27], alpha=0.5)
-                   
+            #ax3 = fig.add_axes([0.1,0.695,0.27,0.27], alpha=0.5)
+            #ax3 = fig.add_subplot(2,2,3)
+            ax3 = fig.add_subplot(gs[4:, 0])      
             x, y, yerr, y2, y2err = [], [], [], [], []
             for dataset in sorted(packing_datasets, key=lambda data: data.nparticles):
                 if len(dataset.free_energies) > 0:
@@ -174,16 +179,17 @@ def plot(packing_datasets, figdir="figures"):
                     x.append(dataset.nparticles)
             x, y, yerr, y2, y2err = np.array(x), np.array(y), np.array(yerr), np.array(y2), np.array(y2err)
             
-            ax3.errorbar(x,y, yerr, marker='o', linestyle='', ms=9, color=color_marker)
+            ax3.errorbar(x,y, yerr, marker='o', linestyle='', ms=12, color=color_marker)
             popt, pcov = curve_fit(ff, x, y, sigma=yerr, absolute_sigma=True)
             print "1/kappa {:.16f}".format(popt[0])
             glob_kappa = 1./popt[0]
             ax3.plot(x, ff(x, popt[0]), label="exponent = N/({:.3f} +/- {:.3f})".format(1./popt[0], np.sqrt(float(pcov[0]))), color=color_fit)
-            ax3.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':8}, labelspacing=0.25, 
-                       columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
+            #ax3.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25, 
+            #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
+            ax3.set_title(r'$N/\kappa$', size=18)
             ax3.locator_params(axis = 'x', nbins = 4)
             ax3.locator_params(axis = 'y', nbins = 4)
-            ax3.tick_params(axis='both', which='major', labelsize=10)
+            ax3.tick_params(axis='both', which='major', labelsize=18)
             #plt.xlabel(r"$ N $")
             #plt.ylabel(r"power law exponent")
             
@@ -193,28 +199,32 @@ def plot(packing_datasets, figdir="figures"):
             
             #fig = plt.figure()
             #ax = fig.add_subplot(111)
-            ax4 = fig.add_axes([0.71,0.695,0.27,0.27], alpha=0.5)
-            ax4.errorbar(x,y2, y2err, marker='o', linestyle='', ms=9, color=color_marker)
+            #ax4 = fig.add_axes([0.71,0.695,0.27,0.27], alpha=0.5)
+            #ax4 = fig.add_subplot(2,2,4)
+            ax4 = fig.add_subplot(gs[4:, 1])
+            ax4.errorbar(x,y2, y2err, marker='o', linestyle='', ms=12, color=color_marker)
             popt, pcov = curve_fit(ff, x, y2, sigma=y2err, absolute_sigma=True)
             print "intercept {:.16f}".format(popt[0])
             glob_interc = popt[0]
             ax4.plot(x, ff(x, popt[0]), label="intercept = ({:.3f} +/- {:.3f})N".format(popt[0], np.sqrt(float(pcov[0]))), color=color_fit)
-            ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':8}, labelspacing=0.25, 
-                       columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
+            #ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25, 
+            #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
+            ax4.set_title(r'$\mathcal{C}(N)$', size=18)
             ax4.locator_params(axis = 'x', nbins = 4)
             ax4.locator_params(axis = 'y', nbins = 4)
-            ax4.tick_params(axis='both', which='major', labelsize=10)
+            ax4.tick_params(axis='both', which='major', labelsize=18)
             #plt.xlabel(r"$ N $")
             #plt.ylabel(r"power law intercept")
             #fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "intercept"))
             
-            xticks = ax.yaxis.get_major_ticks()
-            xticks[-3].label1.set_visible(False)
-            xticks[-2].label1.set_visible(False)
-            xticks[-1].label1.set_visible(False)
+            #xticks = ax.yaxis.get_major_ticks()
+            #xticks[-3].label1.set_visible(False)
+            #xticks[-2].label1.set_visible(False)
+            #xticks[-1].label1.set_visible(False)
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
     
-    if False:
+    if True:
+        ens_average = True
         #kde pressure
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -223,10 +233,11 @@ def plot(packing_datasets, figdir="figures"):
         ax2 = fig2.add_subplot(111)
         fig3 = plt.figure()
         ax3 = fig3.add_subplot(111)
-        fig4 = plt.figure()
-        ax4 = fig4.add_subplot(111)
-        fig7 = plt.figure()
-        ax7 = fig7.add_subplot(111)
+        fig4 = plt.figure(figsize=(8,8))
+        gs = gridspec.GridSpec(8,2)
+        ax4 = fig4.add_subplot(gs[:5,:])
+        #fig4 = plt.figure()
+        #ax4 = fig4.add_subplot(111)
         fit_parameters = []
         fit_parameters_std = []
         s_maxima = []
@@ -264,8 +275,12 @@ def plot(packing_datasets, figdir="figures"):
                 fit_parameters.append(parameters)
                 fit_parameters_std.append(generalised_lognormal.fit_error.tolist())
                 #plot cdf
-                ax2.plot(x, 1-np.array(cdf_x), label=int(nparticles), color=color, linewidth=3)
-                ax2.plot(edges, 1-generalised_lognormal.get_cdf(edges, generalised_lognormal.mu_fit, 
+                avgP = np.mean(x)
+                #avgP, erravgP = generalised_lognormal.get_log_edwards_fitted_pressure_expectation(1, 0, 0, 0)
+                #avgP = np.exp(avgP)
+                #print "pressure ensavg {}+/-{} mean {}".format(avgP, np.exp(erravgP), np.mean(x))
+                ax2.plot(x/avgP, 1-np.array(cdf_x), label=int(nparticles), color=color, linewidth=3)
+                ax2.plot(edges/avgP, 1-generalised_lognormal.get_cdf(edges, generalised_lognormal.mu_fit, 
                                                               generalised_lognormal.alpha_offset, 
                                                               generalised_lognormal.zeta_offset), '--', color=color, linewidth=2)
                 #unbiased pdf
@@ -290,19 +305,6 @@ def plot(packing_datasets, figdir="figures"):
                 print "Sb ",Sb 
                 s_b.append([nparticles, Sb])
                 ax3.plot(xp, fit/c, label=int(nparticles), color=color, linewidth=3)
-                #####################################################################
-                #use lognormal from now on
-                #compute p ensemble average
-                #####################################################################
-                ang_array = np.linspace(0,4,num=1000)
-                #ang_array = [0.]
-                pea_array = []
-                for ang in ang_array:
-                    Pea, errPea = generalised_lognormal.get_log_edwards_fitted_pressure_expectation(glob_kappa, nparticles, ang, vcavity)
-                    pea_array.append([Pea, errPea])
-                    print "ensemble average P ,Perr ", nparticles, Pea, errPea
-                pea_array_all.append(np.array(pea_array))
-                generalised_lognormal.glob_x = 100
                 #S(V, P)
                 maxps = 2e6
                 minps = 10
@@ -311,14 +313,30 @@ def plot(packing_datasets, figdir="figures"):
                 dps = (maxps-minps)/nps
                 S = - F0acc.F0_acc + nparticles + np.array([generalised_lognormal.get_log_fitted_times_xpow(p, glob_kappa, nparticles) for p in ps]) + np.log(dps)
                 S  -= log_factorial(nparticles)
-                ax4.plot(ps, S, label=int(nparticles), color=color, linewidth=3)
+                avgP, erravgP = generalised_lognormal.get_log_edwards_fitted_pressure_expectation(glob_kappa, nparticles, 0, 0)
+                avgP = np.exp(avgP)
+                ax4.plot(ps/avgP, S, label=int(nparticles), color=color, linewidth=3)
                 s_maxima.append([nparticles, np.amax(S)])
-                ensidx = next(i for i,yy in enumerate(ps) if yy>=np.exp(pea_array[0][0])) - 1
-                #s_p_maxima.append([nparticles, ps[ensidx]])
-                j = ensidx
-                angor = (-S[j+2] + 8*S[j+1] - 8*S[j-1] + S[j-2])/(12*dps*vcavity)
-                angoricities.append([nparticles, angor])
-        
+                if ens_average:
+                    #####################################################################
+                    #use lognormal from now on
+                    #compute p ensemble average
+                    #####################################################################
+                    ang_array = np.linspace(0,2,num=1000)
+                    #ang_array = [0.]
+                    pea_array = []
+                    for ang in ang_array:
+                        Pea, errPea = generalised_lognormal.get_log_edwards_fitted_pressure_expectation(glob_kappa, nparticles, ang, vcavity)
+                        pea_array.append([Pea, errPea])
+                        print "ensemble average P ,Perr ", nparticles, Pea, errPea
+                    #pea_array = Parallel(n_jobs=8)(delayed(generalised_lognormal.get_log_edwards_fitted_pressure_expectation)(glob_kappa, nparticles, ang, vcavity) for ang in ang_array)
+                    pea_array_all.append(np.array(pea_array))
+                    generalised_lognormal.glob_x = 100
+                    ensidx = next(i for i,yy in enumerate(ps) if yy>=np.exp(pea_array[0][0])) - 1
+                    #s_p_maxima.append([nparticles, ps[ensidx]])
+                    j = ensidx
+                    angor = (-S[j+2] + 8*S[j+1] - 8*S[j-1] + S[j-2])/(12*dps*vcavity)
+                    angoricities.append([nparticles, angor])
         fit_parameters = np.array(fit_parameters)
         fit_parameters_std = np.array(fit_parameters_std)
         s_maxima = np.array(s_maxima)
@@ -327,119 +345,126 @@ def plot(packing_datasets, figdir="figures"):
         s_apf = np.array(s_apf)
         s_edw = np.array(s_edw)
         s_b = np.array(s_b)
-        pea_array = np.array(pea_array)
-        ax.legend(frameon=False, loc="best", numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25)
-        ax2.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25, handlelength=1)
-        ax3.legend(frameon=False, loc="best", numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25)
-        ax4.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25, handlelength=1)
+        ax.legend(frameon=False, loc="best", numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25)
+        ax2.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25, handlelength=1)
+        ax3.legend(frameon=False, loc="best", numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25)
+        ax4.legend(frameon=False, loc="best", prop={'size':18}, numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25, handlelength=1)
         ax.set_ylabel(r"$p(P)$")
         ax.set_xlabel(r"$\mathcal{P}$")
         ax2.set_ylabel(r"$c.d.f.(\mathcal{P})$", fontsize=18)
-        ax2.set_xlabel(r"$\mathcal{P}$", fontsize=18)
+        ax2.set_xlabel(r"$\mathcal{P}/\langle \mathcal{P} \rangle$", fontsize=18)
         ax2.set_xscale('log')
-        ax2.set_xlim((100,1e5))
+        ax2.set_xlim((0.12,10))
         ax3.set_ylabel(r"unbiased $p(\mathcal{P})$")
         ax3.set_xlabel(r"$P$")
         ax3.set_xscale('log')
         ax3.set_yscale('log')
         ax4.set_xscale('log')
-        ax4.set_yscale('log')
-        #ax4.set_ylim(ymin=0)
+        #ax4.set_yscale('log')
+        ax4.set_ylim((0,80)) #0.05
+        ax4.set_xlim((0.007,80))
         ax4.set_ylabel(r"$S_B(V,\mathcal{P})$")
-        ax4.set_xlabel(r"$\mathcal{P}$")
-        
-        color_cycle = get_color_cycle()
-        for i,arr in enumerate(pea_array_all):
-            color = color_cycle.next()
-            ax7.errorbar(ang_array, arr[:,0], yerr=arr[:,1], color=color, linewidth=2, label=int(angoricities[i,0]))
-            ax7.arrow(0.1, arr[0,0], -0.05, 0, ec=color, fc=color, head_width=0.3, head_length=0.05)
-        ax7.set_ylabel(r"$\log \langle\mathcal{P}\rangle_{ens}$")
+        ax4.set_xlabel(r"$\mathcal{P}/\langle \mathcal{P}\rangle^{(ens)}_0$")
+        ax7 = fig4.add_subplot(gs[5:, 1])
+        ax7.set_ylabel(r"$\log \langle\mathcal{P}\rangle_{\alpha}^{(ens)}$")
         ax7.set_xlabel(r"$\alpha$")
-        ax7.legend(frameon=False, loc=(0.2,0.53), prop={'size':18}, numpoints=1, markerscale=0.5, 
-                   columnspacing=0.25, labelspacing=0.25, handlelength=1)
-        ax8 = fig7.add_axes([0.65,0.62,0.27,0.27], alpha=0.5)
-        color_cycle = get_color_cycle()
-        color = color_cycle.next()
-        ax8.plot(np.linspace(0,150,150), np.zeros(150), linestyle='-', marker='', color='k', linewidth=1.0)
-        color = color_cycle.next()
-        ax8.plot(angoricities[:,0], angoricities[:,1], marker='o', linestyle='', color=color, ms=9)
-        ax8.set_ylabel(r"$\alpha = \frac{1}{V}\frac{\partial S_B}{\partial \langle \mathcal{P} \rangle_{ens}}$")
-        plt.rc('font', size=12)
-        ax8.set_xlabel(r"$N$")
-        ax8.set_xlim((0,150))
-        ax8.set_ylim((-6e-7,3e-7))
-        ax8.ticklabel_format(style='sci',axis='y', scilimits=(0,0))
-        ax8.locator_params(axis = 'x', nbins = 4)
-        ax8.locator_params(axis = 'y', nbins = 4)
-        plt.rc('font', size=18)
-        fig7.savefig('{0}/plot_{1}.pdf'.format(figdir, "ens_avg_angoricity"))
-        ax7.set_xscale('symlog')
-        fig7.savefig('{0}/plot_{1}.pdf'.format(figdir, "ens_avg_angoricity_log"))
+        ax7.locator_params(axis = 'x', nbins = 4)
+        ax7.locator_params(axis = 'y', nbins = 4)
+        if ens_average:
+            pea_array = np.array(pea_array)
+            color_cycle = get_color_cycle()
+            for i,arr in enumerate(pea_array_all):
+                color = color_cycle.next()
+                ax7.errorbar(ang_array, arr[:,0], yerr=arr[:,1], color=color, linewidth=2, label=int(angoricities[i,0]))
+                ax7.arrow(0.25, arr[0,0], -0.25, 0, length_includes_head=True, ec=color, fc=color, head_width=0.8, head_length=0.1)
+            #ax7.legend(frameon=False, loc="best", prop={'size':14}, numpoints=1, markerscale=0.5, 
+            #           columnspacing=0.25, labelspacing=0.25, handlelength=1) #loc (0.2,0.53)
+            ax7.set_xlim((0,2))
+#            ax8 = ax7.add_axes([0.65,0.62,0.27,0.27], alpha=0.5)
+#            color_cycle = get_color_cycle()
+#            color = color_cycle.next()
+#            ax8.plot(np.linspace(0,150,150), np.zeros(150), linestyle='-', marker='', color='k', linewidth=1.0)
+#            color = color_cycle.next()
+#            ax8.plot(angoricities[:,0], angoricities[:,1], marker='o', linestyle='', color=color, ms=12)
+#            ax8.set_ylabel(r"$\alpha = \frac{1}{V}\frac{\partial S_B}{\partial \langle \mathcal{P} \rangle_{ens}}$")
+#            plt.rc('font', size=12)
+#            ax8.set_xlabel(r"$N$")
+#            ax8.set_xlim((0,150))
+#            ax8.set_ylim((-6e-7,3e-7))
+#            ax8.ticklabel_format(style='sci',axis='y', scilimits=(0,0))
+#            ax8.locator_params(axis = 'x', nbins = 4)
+#            ax8.locator_params(axis = 'y', nbins = 4)
+#            plt.rc('font', size=18)
+#            fig7.savefig('{0}/plot_{1}.pdf'.format(figdir, "ens_avg_angoricity"))
+#            ax7.set_xscale('symlog')
+#            fig7.savefig('{0}/plot_{1}.pdf'.format(figdir, "ens_avg_angoricity_log"))
         
         
         #plot fit parameters
         #fig5 = plt.figure()
-        ax5 = fig2.add_axes([0.65,0.25,0.27,0.27], alpha=0.5)
+        ax5 = fig2.add_axes([0.57,0.25,0.35,0.35], alpha=0.5)
         color_cycle = get_color_cycle()
         #mu plot
         color = color_cycle.next()
-        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,1], fit_parameters_std[:,0], marker='o', linestyle='', ms=9, color=color, label=r'$\mu$')
+        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,1], fit_parameters_std[:,0], marker='o', linestyle='', ms=12, color=color, label=r'$\mu$')
         fit, cov = np.polyfit(1./fit_parameters[:,0], fit_parameters[:,1], 1, w=1./fit_parameters_std[:,0], cov=True)
         fit_fn = np.poly1d(fit)
         fit_std = np.sqrt(np.diag(cov))
         ax5.plot(1./fit_parameters[:,0], fit_fn(1./fit_parameters[:,0]), linestyle='--', color=color, linewidth=2.0)#, label=str(fit)+"+/-"+str(fit_std))
         #alpha plot
         color = color_cycle.next()
-        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,2], fit_parameters_std[:,1], marker='o', linestyle='', ms=9, color=color, label=r'$\sigma$')
+        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,2], fit_parameters_std[:,1], marker='o', linestyle='', ms=12, color=color, label=r'$\sigma$')
         fit, cov = np.polyfit(1./fit_parameters[:,0], fit_parameters[:,2], 1, w=1./fit_parameters_std[:,1], cov=True)
         fit_std = np.sqrt(np.diag(cov))
         fit_fn = np.poly1d(fit)
         ax5.plot(1./fit_parameters[:,0], fit_fn(1./fit_parameters[:,0]), linestyle='--', color=color, linewidth=2.0)#, label=str(fit)+"+/-"+str(fit_std))
         #zeta plot
         color = color_cycle.next()
-        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,3], fit_parameters_std[:,2], marker='o', linestyle='', ms=9, color=color, label=r'$\zeta$')
+        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,3], fit_parameters_std[:,2], marker='o', linestyle='', ms=12, color=color, label=r'$\zeta$')
         fit, cov = np.polyfit(1./fit_parameters[:,0], fit_parameters[:,3], 1, w=1./fit_parameters_std[:,2], cov=True)
         fit_fn = np.poly1d(fit)
         fit_std = np.sqrt(np.diag(cov))
         ax5.plot(1./fit_parameters[:,0], fit_fn(1./fit_parameters[:,0]), linestyle='--', color=color, linewidth=2.0)#, label=str(fit)+"+/-"+str(fit_std))
-        ax5.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':8}, labelspacing=0.25, 
-                   columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
-        plt.rc('font', size=12)
-        ax5.set_xlabel(r"$1/N$", fontsize=12)
+        ax5.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':16}, labelspacing=0.25, 
+                   columnspacing=0.25, numpoints=1, markerscale=1, handlelength=0.4)
+        #plt.rc('font', size=12)
+        ax5.set_xlabel(r"$1/N$", fontsize=16)
         ax5.set_ylabel("\t")
         ax5.ticklabel_format(style='sci',axis='x', scilimits=(0,0))
         #fig5.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_cdf_fit_parameters"))
         ax5.locator_params(axis = 'x', nbins = 4)
         ax5.locator_params(axis = 'y', nbins = 4)
-        ax5.tick_params(axis='both', which='major', labelsize=10)
+        ax5.tick_params(axis='both', which='major', labelsize=14)
         ax2.tick_params(axis='both', which='major', labelsize=18)
         fig2.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_cdf_fit"))
-        plt.rc('font', size=18)
+        #plt.rc('font', size=18)
         
         #plot fit parameters
         #fig6 = plt.figure()
         #ax6 = fig6.add_subplot(111)
         #inset
         color_cycle = get_color_cycle()
-        ax6=fig4.add_axes([0.2,0.25,0.27,0.27], alpha=0.5)
+        #ax6=fig4.add_axes([0.18,0.2,0.3,0.3], alpha=0.5)
+        ax6 = fig4.add_subplot(gs[5:, 0]) 
         color = color_cycle.next()
-        ax6.plot(s_maxima[:,0], s_maxima[:,1], marker='o', linestyle='', ms=9, color=color, label=r"$\max(S_B(\mathcal{P},V))$")
+        ax6.plot(s_maxima[:,0], s_maxima[:,1], marker='o', linestyle='', ms=12, color=color, label=r"$\max(S_B(\mathcal{P},V))$")
         fit = np.polyfit(s_maxima[:,0], s_maxima[:,1], 1)
         fit_fn = np.poly1d(fit)
         ax6.plot(np.linspace(0,np.amax(s_maxima[:,0])), fit_fn(np.linspace(0,np.amax(s_maxima[:,0]))), linestyle='--', linewidth=2.0, color=color)
-        #ax6.plot(s_p_maxima[:,0], s_p_maxima[:,1], marker='o', linestyle='', ms=9, color=color, label=r"$\max_P(S_B(\mathcal{P},V))$")
+        #ax6.plot(s_p_maxima[:,0], s_p_maxima[:,1], marker='o', linestyle='', ms=12, color=color, label=r"$\max_P(S_B(\mathcal{P},V))$")
         color = color_cycle.next()
-        ax6.plot(s_b[:,0], s_b[:,1], marker='^', linestyle='', color=color, ms=9, label=r'$S_{B}$')
+        ax6.plot(s_b[:,0], s_b[:,1], marker='^', linestyle='', color=color, ms=12, label=r'$S_{B}$')
         fit = np.polyfit(s_b[:,0], s_b[:,1], 1)
         fit_fn = np.poly1d(fit)
         ax6.plot(np.linspace(0,np.amax(s_b[:,0])), fit_fn(np.linspace(0,np.amax(s_b[:,0]))), linestyle='--', linewidth=2.0, color=color)
-        ax6.set_xlabel(r"$N$", fontsize=12)
+        ax6.set_xlabel(r"$N$", fontsize=18)
         #ax6.set_ylabel(r"$\max_S(S_B(\mathcal{P},V))$")
-        ax6.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25, columnspacing=0.25, numpoints=1, markerscale=0.5)
+        ax6.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':14}, labelspacing=0.25, columnspacing=0.25, 
+                   numpoints=1, markerscale=1)
         #fig6.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_entropy_maxima"))
         ax6.locator_params(axis = 'x', nbins = 4)
         ax6.locator_params(axis = 'y', nbins = 4)
-        ax6.tick_params(axis='both', which='major', labelsize=10)
+        #ax6.tick_params(axis='both', which='major', labelsize=18)
         fig4.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_S"))
     
     if False:

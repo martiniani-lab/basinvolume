@@ -137,7 +137,7 @@ class GeneralisedLogNormal(object):
             print "self.mu", self.mu
             print "self.alpha_offset", self.alpha_offset
             print "self.zeta_offset", self.zeta_offset
-
+        
 class LogNormal(GeneralisedLogNormal):
     def __init__(self, mu_initial = 1, alpha_initial = 1, alpha_min = 1e-10, verbose = False):
         super(LogNormal, self).__init__(mu_initial=mu_initial, alpha_initial=alpha_initial, 

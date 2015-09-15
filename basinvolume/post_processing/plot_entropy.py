@@ -19,7 +19,7 @@ except ImportError as err:
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 #rc('text.latex',preamble=r'\usepackage{times}')
-plt.rcParams.update({'font.size': 28})
+plt.rcParams.update({'font.size': 20})
 plt.rcParams['xtick.major.pad'] = 8
 plt.rcParams['ytick.major.pad'] = 8
 plt.rcParams.update({'figure.autolayout': True})
@@ -68,7 +68,7 @@ class EntropyData(object):
                  apf_file="entropy_APF", apf_file_title="ENTROPY_APF",
                  kd_file="entropy_kernel_density", kd_file_title="LOG_OMEGA_KERNEL_DENSITY",
                  lo_file="entropy_LogOmega", lo_file_title="ENTROPY_LOG_OMEGA",
-                 loml_file="entropy_ML_LogOmega", loml_file_title="LOG_OMEGA_ML",
+                 loml_file="entropy_ML_LogOmega", loml_file_title="LOG_OMEGA_ML", 
                  gen_gaussian_param_names = [("mu","mu_error"), ("alpha","alpha_error"), ("zeta","zeta_error")]):
         self.nparticles = nparticles
         self.path = path
@@ -78,7 +78,7 @@ class EntropyData(object):
         self.lo = Bunch(file=lo_file, title=lo_file_title, entropy=[0.,0.], parameters=parameters)        #parameters are mu,alpha,zeta
         self.loml = Bunch(file=loml_file, title=loml_file_title, entropy=[0.,0.], parameters=parameters)  #parameters are mu,alpha,zeta
         self.gen_gaussian_param_names = gen_gaussian_param_names
-    
+        
     def add_all_entropy(self):
         self.add_entropy(self.apf)
         self.add_entropy(self.kd)
@@ -156,7 +156,16 @@ class plot_entropy(object):
                     if self.Nrange[0] <= n <= self.Nrange[1]:
                         data = EntropyData(n, path)
                         data.add_all_entropy()
-                        self.entropy_data.append(data)
+#                        #this is a hack to get the volume cavity
+#                        configf = ConfigParser.ConfigParser()
+#                        configf.read(os.path.join(workdir,folder, 'jammed_packings', 'jammed_packing0.config'))
+#                        boxv = configf.get('JAMMED_PACKING','boxv')
+#                        boxv = np.array([float(x) for x in boxv.split()])
+#                        boxv = np.prod(boxv)
+#                        data.lo.parameters['mu'][0] += n * np.log(boxv)
+#                        data.loml.parameters['mu'][0] += n * np.log(boxv)
+#                        ####
+                        self.entropy_data.append(data)                
         self.apf_entropy = list(chain.from_iterable((data.nparticles, data.apf.entropy[0], data.apf.entropy[1]) for data in self.entropy_data))
         self.kd_entropy = list(chain.from_iterable((data.nparticles, data.kd.entropy[0], data.kd.entropy[1]) for data in self.entropy_data))
         self.lo_entropy = list(chain.from_iterable((data.nparticles, data.lo.entropy[0], data.lo.entropy[1]) for data in self.entropy_data))
@@ -164,7 +173,6 @@ class plot_entropy(object):
         self.all_entropies_err = [(self.apf_entropy,r"$\sum p \ln p$","apf"), (self.kd_entropy,r"$\log \Omega_{KDE}$","kde"), 
                              (self.lo_entropy,r"$\log \Omega_G$", "logomega")]
         self.all_entropies = [(self.loml_entropy,r"$\log \Omega_{GML}$","logomegaml")]
-        
         self.lo_parameters = list(chain.from_iterable((data.nparticles, 
                                                        data.lo.parameters['mu'][0], data.lo.parameters['mu'][1], 
                                                        data.lo.parameters['alpha'][0], data.lo.parameters['alpha'][1], 
@@ -172,7 +180,7 @@ class plot_entropy(object):
         self.loml_parameters = list(chain.from_iterable((data.nparticles,
                                                          data.loml.parameters['mu'][0], data.loml.parameters['alpha'][0], 
                                                          data.loml.parameters['zeta'][0]) for data in self.entropy_data))
-          
+        
     def _ploterr(self, entropy_array, xlabel=r"$N$", ylabel=r"$S$", raw=True, title=None, 
                  show=False, ax=None, marker='o', raw_marker='^'):
         color_cycle = get_color_cycle()
@@ -268,7 +276,7 @@ class plot_entropy(object):
         if show:
             plt.show()
     
-    def plot_all(self, xlabel=r"$N$", ylabel=r"$S^\star -\log N!$", title=None, show=False, savefig=False):
+    def plot_all(self, xlabel=r"$N$", ylabel=r"$S$", title=None, show=False, savefig=False):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -315,7 +323,7 @@ class plot_entropy(object):
             plt.savefig('compare_all.pdf')
         return ax
     
-    def plot_lo_param(self, xlabel=r"$N$", show=False, savefig=False):
+    def plot_lo_param(self, xlabel=r"$N$", show=False, savefig=False, mlplot=False):
         nparticles = np.array(self.lo_parameters[::7])
         nparticlesml = np.array(self.loml_parameters[::4])
         nmax = np.amax(np.append(nparticles,nparticlesml))
@@ -335,15 +343,16 @@ class plot_entropy(object):
         ynew = trialx * fit[0] + fit[1] 
         ax.plot(trialx,ynew,'--', color=color, linewidth=2)
         #muML
-        mu = np.array(self.loml_parameters[1::4])
-        x,mu = _sort_pair(nparticlesml,mu)
-        color = color_cycle.next()
-        ax.errorbar(x, mu, marker='^', linestyle='', color=color, ms=14, label=r"$\mu_{ML}$")        
-        fit = np.polyfit(x, mu, 1)
-        ynew = trialx * fit[0] + fit[1] 
-        ax.plot(trialx,ynew,'r--', color=color, linewidth=2)
-        ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        if mlplot:
+            mu = np.array(self.loml_parameters[1::4])
+            x,mu = _sort_pair(nparticlesml,mu)
+            color = color_cycle.next()
+            ax.errorbar(x, mu, marker='^', linestyle='', color=color, ms=14, label=r"$\mu_{ML}$")        
+            fit = np.polyfit(x, mu, 1)
+            ynew = trialx * fit[0] + fit[1] 
+            ax.plot(trialx,ynew,'r--', color=color, linewidth=2)
+            ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         plt.xlabel(xlabel) #plot
         plt.ylabel(r"$\mu$")
         if savefig:
@@ -362,15 +371,16 @@ class plot_entropy(object):
         ynew = trialx * fit[0] + fit[1] 
         ax.plot(trialx,ynew,'--', color=color, linewidth=2)
         #alphaML
-        alpha = np.array(self.loml_parameters[2::4])
-        x,alpha = _sort_pair(nparticlesml, alpha)
-        color = color_cycle.next()
-        ax.errorbar(x, alpha, marker='^', linestyle='', color=color, ms=14, label=r"$\sigma_{ML}$")        
-        fit = np.polyfit(x, alpha, 1)
-        ynew = trialx * fit[0] + fit[1] 
-        ax.plot(trialx,ynew,'--', color=color, linewidth=2)
-        ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        if mlplot:
+            alpha = np.array(self.loml_parameters[2::4])
+            x,alpha = _sort_pair(nparticlesml, alpha)
+            color = color_cycle.next()
+            ax.errorbar(x, alpha, marker='^', linestyle='', color=color, ms=14, label=r"$\sigma_{ML}$")        
+            fit = np.polyfit(x, alpha, 1)
+            ynew = trialx * fit[0] + fit[1] 
+            ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+            ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         plt.xlabel(xlabel)
         plt.ylabel(r"$\sigma$")
         if savefig:
@@ -391,22 +401,19 @@ class plot_entropy(object):
         ynew = trialx * fit[0] + fit[1]
         ax.plot(trialx,ynew,'--', color=color, linewidth=2)
         #zetaML
-        zeta = np.array(self.loml_parameters[3::4])
-        x, zeta = _sort_pair(nparticlesml, zeta)
-        szeta = 2-zeta
-        color = color_cycle.next()
-        ax.errorbar(1./x, szeta, marker='^', linestyle='', color=color, ms=14, label=r"$2-\zeta_{ML}$")        
-        fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
-        ynew = trialx * fit[0] + fit[1] 
-        plt.xlabel(xlabel)
-        plt.ylabel(r"$\zeta_{ML}$")
-        ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+        if mlplot:
+            zeta = np.array(self.loml_parameters[3::4])
+            x, zeta = _sort_pair(nparticlesml, zeta)
+            szeta = 2-zeta
+            color = color_cycle.next()
+            ax.errorbar(1./x, szeta, marker='^', linestyle='', color=color, ms=14, label=r"$2-\zeta_{ML}$")        
+            fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
+            ynew = trialx * fit[0] + fit[1]
+            ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+            ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
+                      columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         plt.xlabel(r"1/N")
         plt.ylabel(r"$2-\zeta$")
-        ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         plt.ticklabel_format(style='sci',axis='x', scilimits=(0,0))
         if show:
             plt.show()
@@ -417,6 +424,7 @@ class plot_entropy(object):
         """
         plot a comparison to the data provided by D. Asenjo for 2D packings
         for data with soft to hard ration 1.12
+        ##### N, mean, err_mean, alpha^2, err_alpha^2, beta, err_beta
         """
         fpath = os.path.join(self.workdir, 'apf_prl_data/N_mean_alpha_beta_dense.dat')
         if not os.path.isfile(fpath):
@@ -461,6 +469,265 @@ class plot_entropy(object):
             plt.savefig('compare_apf_prl.pdf')
         return ax
     
+    def plot_lo_param_compareAPF(self, xlabel=r"$N$", show=False, savefig=False):
+        """
+        N, mean, err_mean, alpha^2, err_alpha^2, beta, err_beta
+        """
+        fpath = os.path.join(self.workdir, 'apf_prl_data/N_mean_alpha_beta_dense.dat')
+        if not os.path.isfile(fpath):
+            raise Exception("{} not a file".format(fpath))
+        dat_dense = np.loadtxt(fpath)
+        
+        nparticles = np.array(self.lo_parameters[::7])
+        nparticlesml = np.array(self.loml_parameters[::4])
+        nmax = np.amax(np.append(nparticles,nparticlesml))
+        nmin = np.amin(np.append(nparticles,nparticlesml))
+        trialx = np.linspace(0,nmax,1000)
+        #mu
+        color_cycle = get_color_cycle()
+        mu = np.array(self.lo_parameters[1::7])
+        mu_err = np.array(self.lo_parameters[2::7])
+        xa, mu = _sort_pair(nparticles,mu)
+        x, mu_err = _sort_pair(nparticles,mu_err)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        color = color_cycle.next()
+        ax.errorbar(x, mu, yerr=mu_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")        
+        fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+        #muAPF
+        x = np.array(dat_dense[:,0])
+        mu = np.array(dat_dense[:,1])
+        mu_err = np.array(dat_dense[:,4])
+        color = color_cycle.next()
+        ax.errorbar(x, mu, yerr=mu_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")        
+        fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'r--', color=color, linewidth=2)
+        ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        plt.xlabel(xlabel) #plot
+        plt.ylabel(r"$\mu$")
+        if savefig:
+            plt.savefig('lo_mu_compare.pdf')
+        #alpha
+        color_cycle = get_color_cycle()
+        alpha = np.array(self.lo_parameters[3::7])
+        alpha_err = np.array(self.lo_parameters[4::7])
+        xa,alpha = _sort_pair(nparticles,alpha)
+        x, alpha_err = _sort_pair(nparticles,alpha_err)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        color = color_cycle.next()
+        ax.errorbar(x, alpha, yerr=alpha_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")        
+        fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+        #alphaAPF
+        alpha = np.sqrt(np.array(dat_dense[:,3]))
+        alpha_err = np.sqrt(np.array(dat_dense[:,4]))
+        x = np.array(dat_dense[:,0])
+        color = color_cycle.next()
+        ax.errorbar(x, alpha, yerr=alpha_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")        
+        fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+        ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        plt.xlabel(xlabel)
+        plt.ylabel(r"$\sigma$")
+        if savefig:
+            plt.savefig('lo_alpha_compare.pdf')
+        #zeta
+        color_cycle = get_color_cycle()
+        trialx = np.linspace(0,1/nmin,1000)
+        zeta = np.array(self.lo_parameters[5::7])
+        zeta_err = np.array(self.lo_parameters[6::7])
+        xa,zeta = _sort_pair(nparticles, zeta)
+        x, zeta_err = _sort_pair(nparticles, zeta_err)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        szeta = 2-zeta
+        color = color_cycle.next()        
+        ax.errorbar(1./x, szeta, yerr=zeta_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")
+        fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
+        ynew = trialx * fit[0] + fit[1]
+        ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+        #zetaAPF
+        zeta = np.array(dat_dense[:,5])
+        zeta_err = np.array(dat_dense[:,6])
+        x = np.array(dat_dense[:,0])
+        szeta = 2-zeta
+        color = color_cycle.next()
+        ax.errorbar(1./x, szeta, yerr=zeta_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")        
+        fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
+        trialx = np.linspace(0,1/np.amin(x),1000)
+        ynew = trialx * fit[0] + fit[1]
+        ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+        ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        plt.xlabel(r"1/N")
+        plt.ylabel(r"$2-\zeta$")
+        plt.ticklabel_format(style='sci',axis='x', scilimits=(0,0))
+        if show:
+            plt.show()
+        if savefig:
+            plt.savefig('lo_zeta_compare.pdf')
+    
+    def plot_paper_all(self, show=False, savefig=False):
+        fpath = os.path.join(self.workdir, 'apf_prl_data/N_mean_alpha_beta_dense.dat')
+        if not os.path.isfile(fpath):
+            raise Exception("{} not a file".format(fpath))
+        dat_dense = np.loadtxt(fpath)
+        
+        nparticles = np.array(self.lo_parameters[::7])
+        nparticlesml = np.array(self.loml_parameters[::4])
+        nmax = np.amax(np.append(nparticles,nparticlesml))
+        nmin = np.amin(np.append(nparticles,nparticlesml))
+        trialx = np.linspace(0,nmax,1000)
+        fig = plt.figure(figsize=(10,8))
+        #mu
+        color_cycle = get_color_cycle()
+        mu = np.array(self.lo_parameters[1::7])
+        mu_err = np.array(self.lo_parameters[2::7])
+        xa, mu = _sort_pair(nparticles,mu)
+        x, mu_err = _sort_pair(nparticles,mu_err)
+        ax1 = fig.add_subplot(222)
+        color = color_cycle.next()
+        ax1.errorbar(x, mu, yerr=mu_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")        
+        fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax1.plot(trialx,ynew,'--', color=color, linewidth=2)
+        #muAPF
+        x = np.array(dat_dense[:,0])
+        mu = np.array(dat_dense[:,1]) - x*np.log(x*np.pi*(1.12**2)/0.88)
+        mu_err = np.array(dat_dense[:,4])
+        color = color_cycle.next()
+        ax1.errorbar(x, mu, yerr=mu_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")        
+        fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax1.plot(trialx,ynew,'r--', color=color, linewidth=2)
+        ax1.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax1.set_xlabel(r'$N$') #plot
+        ax1.set_ylabel(r"$\mu$")
+        ax1.locator_params(axis = 'x', nbins = 4)
+        ax1.locator_params(axis = 'y', nbins = 4)
+        ax1.set_ylim((0,320))
+        ax1.set_xlim((0,140))
+        #alpha
+        color_cycle = get_color_cycle()
+        alpha = np.array(self.lo_parameters[3::7])
+        alpha_err = np.array(self.lo_parameters[4::7])
+        xa,alpha = _sort_pair(nparticles,alpha)
+        x, alpha_err = _sort_pair(nparticles,alpha_err)
+        ax2 = fig.add_subplot(223)
+        color = color_cycle.next()
+        ax2.errorbar(x, alpha, yerr=alpha_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")        
+        fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax2.plot(trialx,ynew,'--', color=color, linewidth=2)
+        #alphaAPF
+        alpha = np.sqrt(np.array(dat_dense[:,3]))
+        alpha_err = np.sqrt(np.array(dat_dense[:,4]))
+        x = np.array(dat_dense[:,0])
+        color = color_cycle.next()
+        ax2.errorbar(x, alpha, yerr=alpha_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")        
+        fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
+        ynew = trialx * fit[0] + fit[1] 
+        ax2.plot(trialx,ynew,'--', color=color, linewidth=2)
+        ax2.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax2.set_xlabel(r'$N$')
+        ax2.set_ylabel(r"$\sigma$")
+        ax2.locator_params(axis = 'x', nbins = 4)
+        ax2.locator_params(axis = 'y', nbins = 4)
+        ax2.set_xlim((0,140))
+        #zeta
+        color_cycle = get_color_cycle()
+        trialx = np.linspace(0,1/nmin,1000)
+        zeta = np.array(self.lo_parameters[5::7])
+        zeta_err = np.array(self.lo_parameters[6::7])
+        xa,zeta = _sort_pair(nparticles, zeta)
+        x, zeta_err = _sort_pair(nparticles, zeta_err)
+        ax3 = fig.add_subplot(224)
+        szeta = 2-zeta
+        color = color_cycle.next()        
+        ax3.errorbar(1./x, szeta, yerr=zeta_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")
+        fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
+        ynew = trialx * fit[0] + fit[1]
+        ax3.plot(trialx,ynew,'--', color=color, linewidth=2)
+        #zetaAPF
+        zeta = np.array(dat_dense[:,5])
+        zeta_err = np.array(dat_dense[:,6])
+        x = np.array(dat_dense[:,0])
+        szeta = 2-zeta
+        color = color_cycle.next()
+        ax3.errorbar(1./x, szeta, yerr=zeta_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")        
+        fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
+        trialx = np.linspace(0,1/np.amin(x),1000)
+        ynew = trialx * fit[0] + fit[1]
+        ax3.plot(trialx,ynew,'--', color=color, linewidth=2)
+        ax3.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax3.set_xlabel(r"1/N")
+        ax3.set_ylabel(r"$2-\zeta$")
+        ax3.ticklabel_format(style='sci',axis='x', scilimits=(0,0))
+        ax3.locator_params(axis = 'x', nbins = 4)
+        ax3.locator_params(axis = 'y', nbins = 4)
+        ax3.set_xlim((0,0.07))
+        ax3.set_ylim((-1,1.5))
+        #plt.ticklabel_format(style='sci',axis='x', scilimits=(0,0))
+        
+        ax = fig.add_subplot(221)
+        color_cycle = get_color_cycle()
+        markers = ["o", "^", "s", "x", "+"]
+        self.markercycler = cycle(markers)
+        for item in self.all_entropies_err:
+            entropy_array, label, plot_label = item
+            nparticles = np.array(entropy_array[0::3])
+            nmax = np.amax(nparticles)
+            trialx = np.linspace(0,nmax,1000)
+            #extensive
+            y = np.array(entropy_array[1::3]) - log_factorial(np.array(nparticles))
+            yerr = np.array(entropy_array[2::3])
+            xa,y = _sort_pair(nparticles,y)
+            x, yerr = _sort_pair(nparticles,yerr)
+            fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
+            ynew = trialx * fit[0] + fit[1]
+            m = next(self.markercycler)
+            color = color_cycle.next()
+            ax.errorbar(x, y, yerr=yerr, marker=m, linestyle='', color=color, ms=14, label=label)
+            ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+        #loop over entropies without an associated error
+        for item in self.all_entropies:
+            entropy_array, label, plot_label = item
+            nparticles = np.array(entropy_array[0::2])
+            nmax = np.amax(nparticles)
+            trialx = np.linspace(0,nmax,1000)
+            #extensive
+            y = np.array(entropy_array[1::2]) - log_factorial(np.array(nparticles))
+            x,y = _sort_pair(nparticles,y)
+            fit = np.polyfit(x, y, 1)
+            ynew = trialx * fit[0] + fit[1]
+            m = next(self.markercycler)
+            color = color_cycle.next()
+            ax.errorbar(x, y, marker=m, linestyle='', color=color, ms=14, mew=2, label=label)
+            ax.plot(trialx,ynew, '--', color=color, linewidth=2)
+        plt.xlabel(r'$N$')
+        plt.ylabel(r'$S$')
+        ax.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, 
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax.locator_params(axis = 'x', nbins = 4)
+        ax.locator_params(axis = 'y', nbins = 4)
+        ax.set_ylim((0,120))
+        ax.set_xlim((0,140))
+        if show:
+            plt.show()
+        if savefig:
+            plt.savefig('entropy_all_paper.pdf')
+    
                 
 if __name__ == "__main__":
     show=False
@@ -471,7 +738,8 @@ if __name__ == "__main__":
     pe.plot_compare_apf2D(show=show,savefig=savefig)
     pe.plot_all(show=show,savefig=savefig)
     pe.plot_lo_param(show=show,savefig=savefig)
-    
+    pe.plot_lo_param_compareAPF(show=show,savefig=savefig)
+    pe.plot_paper_all(show=show,savefig=savefig)
 #    #COMPARE MSF TO NUMERICAL
 #    raw=False
 #    fig = plt.figure()

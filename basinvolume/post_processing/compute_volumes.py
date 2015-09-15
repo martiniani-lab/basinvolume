@@ -241,7 +241,7 @@ class ComputeVolumes(object):
     def __init__(self, workspace_dir, nr_volume_points=-1,
                  force_run=False, method="mbar"):
         self.method = method
-        self.experimental = "exp" in workspace_dir    
+        self.experimental = "exp" in workspace_dir #THIS SHOULD BE IMPROVED
         if self.method == "mbar":
             print("using MBAR method")
             self.computer = ComputeVolumesMBARMultiConfigFile(workspace_dir, nr_volume_points, force_run, method)
