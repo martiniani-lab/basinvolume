@@ -95,6 +95,9 @@ class _kmin_mcrunner(_configure_mcrunner):
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
+        self.diffusion_dir = os.path.join(self.base_directory,"diffusion")
+        diffusion_configfname = 'diffusion_' + dname
+        self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)
     
     def _import_packing_config_files(self):
         configf = ConfigParser.ConfigParser()
@@ -116,6 +119,15 @@ class _kmin_mcrunner(_configure_mcrunner):
         trymakedir(base_directory)
         if not self.print_diffusion_only:
             self._print_parameters()
+        if bool(self.mc_params['record_steps_timeseries']):            
+            self._print_diffusion_params()
+            
+    def _print_diffusion_params(self):
+        trymakedir(self.diffusion_dir)
+        fname = '{}.{}.config'.format(self.diffusion_configfname, int(self.mc_params['niter']))
+        f = open(fname, 'w')
+        self._write_sim_params(f)
+        f.close()
     
     def _write_sim_params(self, f):
         """
@@ -157,9 +169,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         self._dump_timeseries()
     
     def _dump_timeseries(self):
-        path = os.path.join(self.base_directory,"diffusion")
-        trymakedir(path)
-        fname = "{0}/StepsTimeSeries.{1}".format(path,int(self.mc_params['niter']))
+        fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params['niter']))
         print fname
         if bool(self.mc_params['record_steps_timeseries']):
             self.mcrunner.dump_steps_timeseries(fname, clear=True)

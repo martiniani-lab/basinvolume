@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("fname", type=str, help="packing file name")
     parser.add_argument("-p","--packingsdir", type=str, help="protocol to generate packings, assume in cwd", default="jammed_packings")
     parser.add_argument("-n","--niter", type=float, help="number of energy evaluation, default: 1e5",default=1e5)
+    parser.add_argument("--adjustf-niter", type=float, help="number of steps to adjust stepsize, default: 1e5",default=1e4)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--cgd", action='store_true', help="use CG_DESCENT, default: False",default=False)
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     if args.rsts_only:
         args.rsts = True
     kmin_kwargs = dict(k=0, stepsize=1e-1, niter=args.niter, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1, 
-                       acceptance=0.2, adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100,
+                       acceptance=0.2, adjustf=0.9, adjustf_niter=args.adjustf_niter, adjustf_navg=100,
                        opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, packings_dir=packings_dir,
                        use_cell_lists=args.nocell, single=single, use_cgd=args.cgd, verbose=args.verbose,
                        record_steps_timeseries=args.rsts, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],

@@ -10,7 +10,7 @@ dest="sm958@dexter:/frenkelscratch/sm958/crystal_dos/n32_phi52705938645472294_ph
 echo "transferring data"
 for dname in $(ls $wdir)
 do
-    if [[ -d $dname ]] && [[ $dname == "n32_phi52705938645472294_phi74148048969306102_3D_"* ]]; then
+    if [[ -d $wdir$dname ]] && [[ $dname == "n32_phi52705938645472294_phi74148048969306102_3D_"* ]]; then
     echo "destination $dest$dname"
     (cd $wdir$dname && yes | nohup sh $attempt_move_all  $dest$dname > $wdir$dname"/transfer_output.txt" 2>&1 &)
     fi

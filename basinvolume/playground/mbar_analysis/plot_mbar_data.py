@@ -6,7 +6,7 @@ try:
     import os
     import re
     import matplotlib
-    matplotlib.use('Agg')
+    #matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib import rc
     from itertools import cycle
@@ -448,8 +448,7 @@ class plot_mbar_data(object):
             ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
         except Exception, e:
-            print e
-            
+            print e    
         if title:
             ax.set_title(title)
         if figname is None:
@@ -661,6 +660,8 @@ if __name__ == "__main__":
     pts_tint = TINTBasinAnalysis()
     pts_mbar.collect_data_every_set_all(data_name="mbar_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
     pts_tint.collect_data_every_set_all(data_name="tint_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
-    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets, show=show)
+    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets)
     pmd()
+    if show:
+        plt.show()
     plt.close()
