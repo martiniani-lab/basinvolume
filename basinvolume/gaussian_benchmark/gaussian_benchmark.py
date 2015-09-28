@@ -1,4 +1,5 @@
 from __future__ import division
+import argparse
 import os
 import copy
 import subprocess
@@ -456,54 +457,51 @@ def plot_potential(means, cov):
     plt.show()
     plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
 
-def compute_volume(indices=None, means=None, cov=None):
+def compute_volume(minimum_index=None, means=None, cov=None):
     res = []
-    for i in indices:
-        # Set up path variables
-        minimum_index = i
-        config = 'config{}.gauss'.format(minimum_index)
-        # Thermodynamic integration computation of volume of minimum i.
-        bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
-        bm.find_kmax()
-        bm.run_kmin()
-        bm.run_PT()
-        bm.compute_volume(configuration_name=config)
-        bm.print_nr_function_calls()
-        # Brute force rejection sampling computation of volume i.
-        bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
-        bf.compute_volume()
-        # Read in thermodynamic integration volume results.
-        analysis_path = os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis")
-        volume_data_path = os.path.join(analysis_path, "volume_data")
-        f = open(volume_data_path)
-        lf = list(f)
-        F0 = lf[2]
-        print("F0", F0)
-        eF0 = lf[3]
-        print("eF0", eF0)
-        F0 = float(F0.split()[1])
-        eF0 = float(eF0.split()[1])
-        f.close()
-        print("F0", F0)
-        print("eF0", eF0)
-        ti_vol = np.exp(-F0)
-        e_ti_vol = ti_vol * eF0
-        # Print all volumes to screen.
-        print("---direct MC result---")
-        print("bf.basin_volume", bf.basin_volume)
-        print("bf.error_basin_volume", bf.error_basin_volume)
-        print("---Thermodynamic integration result---")
-        print("TI volume", ti_vol)
-        print("error TI volume", e_ti_vol)
-        # Print all volumes to file.
-        fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison{}".format(minimum_index)))
-        fout.set_heading("DIRECT REJECTION SAMPLING")
-        fout.to_file("bf.basin_volume", bf.basin_volume)
-        fout.to_file("bf.error_basin_volume", bf.error_basin_volume)
-        fout.set_heading("THERMODYNAMIC INTEGRATION")
-        fout.to_file("TI volume", ti_vol)
-        fout.to_file("error TI volume", e_ti_vol)
-        fout.close()
+    config = 'config{}.gauss'.format(minimum_index)
+    # Thermodynamic integration computation of volume of minimum i.
+    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
+    bm.find_kmax()
+    bm.run_kmin()
+    bm.run_PT()
+    bm.compute_volume(configuration_name=config)
+    bm.print_nr_function_calls()
+    # Brute force rejection sampling computation of volume i.
+    bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
+    bf.compute_volume()
+    # Read in thermodynamic integration volume results.
+    analysis_path = os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis")
+    volume_data_path = os.path.join(analysis_path, "volume_data")
+    f = open(volume_data_path)
+    lf = list(f)
+    F0 = lf[2]
+    print("F0", F0)
+    eF0 = lf[3]
+    print("eF0", eF0)
+    F0 = float(F0.split()[1])
+    eF0 = float(eF0.split()[1])
+    f.close()
+    print("F0", F0)
+    print("eF0", eF0)
+    ti_vol = np.exp(-F0)
+    e_ti_vol = ti_vol * eF0
+    # Print all volumes to screen.
+    print("---direct MC result---")
+    print("bf.basin_volume", bf.basin_volume)
+    print("bf.error_basin_volume", bf.error_basin_volume)
+    print("---Thermodynamic integration result---")
+    print("TI volume", ti_vol)
+    print("error TI volume", e_ti_vol)
+    # Print all volumes to file.
+    fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison{}".format(minimum_index)))
+    fout.set_heading("DIRECT REJECTION SAMPLING")
+    fout.to_file("bf.basin_volume", bf.basin_volume)
+    fout.to_file("bf.error_basin_volume", bf.error_basin_volume)
+    fout.set_heading("THERMODYNAMIC INTEGRATION")
+    fout.to_file("TI volume", ti_vol)
+    fout.to_file("error TI volume", e_ti_vol)
+    fout.close()
 
 if __name__ == "__main__":
     means = np.asarray([
@@ -530,5 +528,8 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
-    compute_volume(indices=range(0, 4), means=means, cov=cov)
+    parser = argparse.ArgumentParser(description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method")
+    parser.add_argument("--index", type=int, default=0)
+    args = parser.parse_args()
+    compute_volume(minimum_index=args.index, means=means, cov=cov)
     
