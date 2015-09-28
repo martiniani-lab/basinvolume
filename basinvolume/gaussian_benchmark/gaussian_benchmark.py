@@ -460,6 +460,7 @@ def compute_volume(indices=0):
     res = []
     for i in indices:
         minimum_index = i
+        # Thermodynamic integration computation of volume of minimum i.
         config = 'config{}.gauss'.format(minimum_index)
         bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
         bm.find_kmax()
@@ -467,10 +468,12 @@ def compute_volume(indices=0):
         bm.run_PT()
         bm.compute_volume(configuration_name=config)
         bm.print_nr_function_calls()
+        # Brute force rejection sampling computation of volume i.
         bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
         bf.compute_volume()
         analysis_path = os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis")
         volume_data_path = os.path.join(analysis_path, "volume_data")
+        # Read in thermodynamic integration volume results.
         f = open(volume_data_path)
         lf = list(f)
         F0 = lf[2]
@@ -484,12 +487,14 @@ def compute_volume(indices=0):
         print("eF0", eF0)
         ti_vol = np.exp(-F0)
         e_ti_vol = ti_vol * eF0
+        # Print all volumes to screen.
         print("---direct MC result---")
         print("bf.basin_volume", bf.basin_volume)
         print("bf.error_basin_volume", bf.error_basin_volume)
         print("---Thermodynamic integration result---")
         print("TI volume", ti_vol)
         print("error TI volume", e_ti_vol)
+        # Print all volumes to file.
         fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison{}".format(minimum_index)))
         fout.set_heading("DIRECT REJECTION SAMPLING")
         fout.to_file("bf.basin_volume", bf.basin_volume)
