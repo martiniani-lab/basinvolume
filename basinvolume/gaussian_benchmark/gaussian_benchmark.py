@@ -15,7 +15,6 @@ import basinvolume
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
-from basinvolume.utils import trymakedir
 from basinvolume.utils import ResultsFile
 from basinvolume.utils import to_string
 from basinvolume.utils import volume_nball
@@ -110,7 +109,7 @@ class GaussianBenchmark(object):
                                          dtmax=self.opt_dtmax,
                                          maxstep=self.opt_maxstep,
                                          tol=self.opt_tol, 
-                                         nsteps=opt_nsteps, verbosity=1)
+                                         nsteps=opt_nsteps, verbosity=0)
         self.find_origin()
         print("self.origin.size", self.origin.size)
         self.rattlers = np.ones(self.origin.size)
@@ -412,6 +411,7 @@ class GaussianBenchmark(object):
     def _print_volumes(self):
         dname = 'volume_data'
         fname = '{}/{}'.format(self.base_directory, dname)
+        print("writing volume data to the following path", fname)
         f = open(fname, 'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         def _to_file(name, value):
@@ -460,16 +460,18 @@ def compute_volume(indices=0):
     res = []
     for i in indices:
         minimum_index = i
+        config = 'config{}.gauss'.format(minimum_index)
         bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
-        #bm = GaussianBenchmark(minimum_index=minimum_index, harmonic_well=False, simple_integrator=False)
         bm.find_kmax()
         bm.run_kmin()
         bm.run_PT()
-        bm.compute_volume()
+        bm.compute_volume(configuration_name=config)
         bm.print_nr_function_calls()
         bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
         bf.compute_volume()
-        f = open(os.path.join(os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis", "volume_data")))
+        analysis_path = os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis")
+        volume_data_path = os.path.join(analysis_path, "volume_data")
+        f = open(volume_data_path)
         lf = list(f)
         F0 = lf[2]
         print("F0", F0)
@@ -521,5 +523,5 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
-    compute_volume(range(0, 3))
+    compute_volume(xrange(1, 2))
     

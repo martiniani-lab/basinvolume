@@ -18,7 +18,7 @@ class GaussianBenchmarkPTRun(object):
                  nocell=True,
                  nocollectminima=True,
                  cgd=False,
-                 verbose=True,
+                 verbose=False,
                  nparticles=None,
                  harmonic_well=False
                  ):

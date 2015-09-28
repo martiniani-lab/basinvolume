@@ -48,7 +48,7 @@ class BruteForce2D(object):
                                          maxstep=self.opt_maxstep,
                                          tol=self.opt_tol, 
                                          nsteps=opt_nsteps,
-                                         verbosity=1)
+                                         verbosity=0)
         self.find_origin()
         self.rattlers = np.ones(self.origin.size)
         self.use_cgd = False
