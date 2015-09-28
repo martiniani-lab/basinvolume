@@ -459,9 +459,10 @@ def plot_potential(means, cov):
 def compute_volume(indices=0):
     res = []
     for i in indices:
+        # Set up path variables
         minimum_index = i
-        # Thermodynamic integration computation of volume of minimum i.
         config = 'config{}.gauss'.format(minimum_index)
+        # Thermodynamic integration computation of volume of minimum i.
         bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
         bm.find_kmax()
         bm.run_kmin()
@@ -471,9 +472,9 @@ def compute_volume(indices=0):
         # Brute force rejection sampling computation of volume i.
         bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
         bf.compute_volume()
+        # Read in thermodynamic integration volume results.
         analysis_path = os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis")
         volume_data_path = os.path.join(analysis_path, "volume_data")
-        # Read in thermodynamic integration volume results.
         f = open(volume_data_path)
         lf = list(f)
         F0 = lf[2]
