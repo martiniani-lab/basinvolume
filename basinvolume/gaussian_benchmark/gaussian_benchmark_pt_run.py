@@ -24,7 +24,9 @@ class GaussianBenchmarkPTRun(object):
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
+        print("self.configuration_name", self.configuration_name)
         self.base_directory = base_directory
+        print("self.base_directory", self.base_directory)
         self.totniter = totniter
         self.nocell = nocell
         self.nocollectminima = nocollectminima
@@ -124,7 +126,10 @@ class GaussianBenchmarkPTRun(object):
         try:
             ptrunner.run()
             sim.print_success_all(True)
-        except:
+        except Exception as e:
+            print("self.configuration_name", self.configuration_name)
+            print("self.base_directory", self.base_directory)
+            print("Exception", e)
             view_traceback()
             try:
                 sim.print_success_all(False)

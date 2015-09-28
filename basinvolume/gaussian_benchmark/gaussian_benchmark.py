@@ -456,7 +456,7 @@ def plot_potential(means, cov):
     plt.show()
     plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
 
-def compute_volume(indices=0):
+def compute_volume(indices=None, means=None, cov=None):
     res = []
     for i in indices:
         # Set up path variables
@@ -503,6 +503,7 @@ def compute_volume(indices=0):
         fout.set_heading("THERMODYNAMIC INTEGRATION")
         fout.to_file("TI volume", ti_vol)
         fout.to_file("error TI volume", e_ti_vol)
+        fout.close()
 
 if __name__ == "__main__":
     means = np.asarray([
@@ -529,5 +530,5 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
-    compute_volume(xrange(1, 2))
+    compute_volume(indices=range(0, 4), means=means, cov=cov)
     
