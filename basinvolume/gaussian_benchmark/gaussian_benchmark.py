@@ -460,8 +460,8 @@ def plot_potential(means, cov):
 def compute_volume(minimum_index=None, means=None, cov=None):
     if minimum_index >= means.shape[0] or minimum_index < 0:
         raise Exception("illegal input: index of minimum")
-    if mean.shape is not cov.shape:
-        raise Exception("illegal input: mean shape is not cov shape")
+    if not means.shape == cov.shape:
+        raise Exception("illegal input: means shape is not cov shape")
     res = []
     config = 'config{}.gauss'.format(minimum_index)
     # Thermodynamic integration computation of volume of minimum i.

@@ -9,6 +9,10 @@ from mcpele.monte_carlo import UniformSphericalSampling
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.utils import volume_nball
 
+class EvalCounter(object):
+    def __init__(self):
+        self.count = 0
+
 class MC(_BaseMCRunner):
     def set_control(self, temp):
         self.set_temperature(temp)
@@ -38,7 +42,7 @@ class BruteForce2D(object):
         self.opt_maxstep = opt_maxstep
         self.csm_dtol=csm_dtol
         #
-        self.nr_evaluations = 0
+        self.nr_evaluations = EvalCounter()
         self.ngaussians = self.means.shape[0]
         self.gdim = self.means.shape[1]
         self.bdim = self.gdim
@@ -79,7 +83,7 @@ class BruteForce2D(object):
         origin_result = result.coords
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         print("self.optimizer.get_result().nfev", self.optimizer.get_result().nfev)
-        self.nr_evaluations += self.optimizer.get_result().nfev
+        self.nr_evaluations.count += self.optimizer.get_result().nfev
         self.optimizer.reset(origin_result)
         print("reset: self.optimizer.get_result().nfev", self.optimizer.get_result().nfev)
         return origin_result 
@@ -89,10 +93,10 @@ class BruteForce2D(object):
         self.mc.run()
         print("self.mc.get_accepted_fraction()", self.mc.get_accepted_fraction())
         p = self.mc.get_accepted_fraction()
-        self.nr_evaluations += self.mc.get_nfev()
+        self.nr_evaluations.count += self.conftest_check_same_minimum.get_nfev()
         self.basin_volume = p * volume_nball(self.radius_container, self.bdim)
         self.error_basin_volume = np.sqrt(p * (1 - p) / self.nr_samples) * self.basin_volume
         print("basin volume", self.basin_volume)
         print("error bar", self.error_basin_volume)
-        print("nr evaluations", self.nr_evaluations)
+        print("nr evaluations", self.nr_evaluations.count)
         print("done")
