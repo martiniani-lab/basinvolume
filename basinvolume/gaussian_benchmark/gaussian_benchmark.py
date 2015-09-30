@@ -30,6 +30,10 @@ try:
     from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
 except:
     print("gaussian import failed")
+    
+class EvalCounter(object):
+    def __init__(self):
+        self.count = 0
 
 class GaussianBenchmark(object):
     def __init__(self,
@@ -95,6 +99,7 @@ class GaussianBenchmark(object):
         self.gdim = self.means.shape[1]
         self.bdim = self.gdim
         self.nparticles = 1
+        self.nfev = EvalCounter()
         #####
         if self.harmonic_well:
             self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim, com=False)
@@ -247,6 +252,7 @@ class GaussianBenchmark(object):
         self.harmonic_energy_calls += kmin_run.get_iterations_count()
         print("self.total_neval, kmin, kmax", self.total_neval)
         self.print_kmin_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
+        self.nfev.count += self.conftest_check_same_minimum.get_nfev()
     def run_PT(self):
         print("run PT")
         configuration_name="config{}.gauss".format(self.minimum_index)
@@ -490,6 +496,7 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     print("eF0", eF0)
     ti_vol = np.exp(-F0)
     e_ti_vol = ti_vol * eF0
+    ti_nfev = bm.nfev.count
     # Print all volumes to screen.
     print("---direct MC result---")
     print("bf.basin_volume", bf.basin_volume)
@@ -506,6 +513,7 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     fout.set_heading("THERMODYNAMIC INTEGRATION")
     fout.to_file("TI volume", ti_vol)
     fout.to_file("error TI volume", e_ti_vol)
+    fout.to_file("ti_nfev", ti_nfev)
     fout.close()
 
 def get_means_cov(gauss_path):
@@ -513,12 +521,14 @@ def get_means_cov(gauss_path):
     print("gauss_path", gauss_path)
     mean = []
     cov = []
-    for line in open(gauss_path, "r").readlines():
+    f = open(gauss_path, "r")
+    for line in f.readlines():
         if line.startswith("["):
             m = map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split())
             c = map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split())
             mean.append(m)
             cov.append(c)
+    f.close()
     return np.asarray(mean), np.asarray(cov)
 
 if __name__ == "__main__":

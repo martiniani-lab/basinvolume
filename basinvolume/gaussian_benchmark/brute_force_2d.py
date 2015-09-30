@@ -83,7 +83,7 @@ class BruteForce2D(object):
         origin_result = result.coords
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         print("self.optimizer.get_result().nfev", self.optimizer.get_result().nfev)
-        self.nr_evaluations.count += self.optimizer.get_result().nfev
+        #self.nr_evaluations.count += self.optimizer.get_result().nfev
         self.optimizer.reset(origin_result)
         print("reset: self.optimizer.get_result().nfev", self.optimizer.get_result().nfev)
         return origin_result 
