@@ -502,6 +502,7 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     fout.set_heading("DIRECT REJECTION SAMPLING")
     fout.to_file("bf.basin_volume", bf.basin_volume)
     fout.to_file("bf.error_basin_volume", bf.error_basin_volume)
+    fout.to_file("bf.nfev", bf.nfev)
     fout.set_heading("THERMODYNAMIC INTEGRATION")
     fout.to_file("TI volume", ti_vol)
     fout.to_file("error TI volume", e_ti_vol)

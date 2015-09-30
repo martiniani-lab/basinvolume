@@ -93,10 +93,12 @@ class BruteForce2D(object):
         self.mc.run()
         print("self.mc.get_accepted_fraction()", self.mc.get_accepted_fraction())
         p = self.mc.get_accepted_fraction()
+        print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
         self.nr_evaluations.count += self.conftest_check_same_minimum.get_nfev()
         self.basin_volume = p * volume_nball(self.radius_container, self.bdim)
         self.error_basin_volume = np.sqrt(p * (1 - p) / self.nr_samples) * self.basin_volume
+        self.nfev = self.nr_evaluations.count
         print("basin volume", self.basin_volume)
         print("error bar", self.error_basin_volume)
-        print("nr evaluations", self.nr_evaluations.count)
+        print("nr evaluations", self.nfev)
         print("done")

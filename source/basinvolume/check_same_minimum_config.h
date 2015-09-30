@@ -14,7 +14,8 @@ public:
         : m_optimizer(optimizer),
           m_potential(potential),
           m_origin(origin),
-          m_dtol(dtol)
+          m_dtol(dtol),
+          m_nfev(0)
     {}
     bool conf_test(pele::Array<double>& trial_coords, mcpele::MC* mc)
     {
@@ -32,16 +33,22 @@ public:
     {
         m_optimizer->reset(trial_coords);
         m_optimizer->run();
+        m_nfev += m_optimizer->get_nfev();
         pele::Array<double> delta_orig = m_optimizer->get_x();
         delta_orig -= m_origin;
         dist_orig_2 = pele::dot(delta_orig, delta_orig);
         return m_optimizer->success();
+    }
+    size_t get_nfev() const
+    {
+        return m_nfev;
     }
 private:    
     std::shared_ptr<pele::GradientOptimizer> m_optimizer;
     std::shared_ptr<pele::BasePotential> m_potential;
     pele::Array<double> m_origin;
     const double m_dtol;
+    size_t m_nfev;
 };
 
 } // namespace bv

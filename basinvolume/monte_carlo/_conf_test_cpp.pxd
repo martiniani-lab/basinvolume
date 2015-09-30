@@ -57,6 +57,7 @@ cdef extern from "basinvolume/minimum.h" namespace "bv":
 
 cdef extern from "basinvolume/check_same_minimum_config.h" namespace "bv":
     cdef cppclass cppCheckSameMinimumConfig "bv::CheckSameMinimumConfig":
+        size_t get_nfev() except +
         cppCheckSameMinimumConfig(shared_ptr[_pele_opt.cGradientOptimizer],
                                   shared_ptr[_pele.cBasePotential], _pele.Array[double],
                                   double) except +

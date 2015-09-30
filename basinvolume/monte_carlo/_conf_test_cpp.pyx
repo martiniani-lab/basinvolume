@@ -208,6 +208,10 @@ cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
         self.optimizer = opt
         self.potential = pot
         self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumConfig(self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size), dtol))
+        self.newptr = <cppCheckSameMinimumConfig*>self.thisptr.get()
+    def get_nfev(self):
+        nfev = self.newptr.get_nfev()
+        return nfev
                                                
                                                
 class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):
