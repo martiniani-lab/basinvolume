@@ -458,6 +458,10 @@ def plot_potential(means, cov):
     plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
 
 def compute_volume(minimum_index=None, means=None, cov=None):
+    if minimum_index >= means.shape[0] or minimum_index < 0:
+        raise Exception("illegal input: index of minimum")
+    if mean.shape is not cov.shape:
+        raise Exception("illegal input: mean shape is not cov shape")
     res = []
     config = 'config{}.gauss'.format(minimum_index)
     # Thermodynamic integration computation of volume of minimum i.
@@ -503,7 +507,21 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     fout.to_file("error TI volume", e_ti_vol)
     fout.close()
 
+def get_means_cov(gauss_path):
+    print("reading means, cov from the following gauss path")
+    print("gauss_path", gauss_path)
+    mean = []
+    cov = []
+    for line in open(gauss_path, "r").readlines():
+        if line.startswith("["):
+            m = map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split())
+            c = map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split())
+            mean.append(m)
+            cov.append(c)
+    return np.asarray(mean), np.asarray(cov)
+
 if __name__ == "__main__":
+    """
     means = np.asarray([
     [-0.66188835, -4.90248303],
     [-2.50068746,  1.00984605],
@@ -528,8 +546,13 @@ if __name__ == "__main__":
     [ 1.97514666,  1.97514666],
     [ 1.62236091,  1.62236091]
     ])
+    """
     parser = argparse.ArgumentParser(description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method")
+    parser.add_argument("--gauss_path", type=str, default=os.getcwd())
     parser.add_argument("--index", type=int, default=0)
     args = parser.parse_args()
+    means, cov = get_means_cov(args.gauss_path)
+    print("means", means)
+    print("cov", cov)
     compute_volume(minimum_index=args.index, means=means, cov=cov)
     
