@@ -23,7 +23,6 @@ from basinvolume.utils import trymakedir
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
-from brute_force_2d import BruteForce2D
 try:
     from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
     from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
@@ -477,9 +476,6 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     bm.run_PT()
     bm.compute_volume(configuration_name=config)
     bm.print_nr_function_calls()
-    # Brute force rejection sampling computation of volume i.
-    bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
-    bf.compute_volume()
     # Read in thermodynamic integration volume results.
     analysis_path = os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis")
     volume_data_path = os.path.join(analysis_path, "volume_data")
@@ -498,18 +494,11 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     e_ti_vol = ti_vol * eF0
     ti_nfev = bm.nfev.count
     # Print all volumes to screen.
-    print("---direct MC result---")
-    print("bf.basin_volume", bf.basin_volume)
-    print("bf.error_basin_volume", bf.error_basin_volume)
     print("---Thermodynamic integration result---")
     print("TI volume", ti_vol)
     print("error TI volume", e_ti_vol)
     # Print all volumes to file.
-    fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison{}".format(minimum_index)))
-    fout.set_heading("DIRECT REJECTION SAMPLING")
-    fout.to_file("bf.basin_volume", bf.basin_volume)
-    fout.to_file("bf.error_basin_volume", bf.error_basin_volume)
-    fout.to_file("bf.nfev", bf.nfev)
+    fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison_ti{}".format(minimum_index)))
     fout.set_heading("THERMODYNAMIC INTEGRATION")
     fout.to_file("TI volume", ti_vol)
     fout.to_file("error TI volume", e_ti_vol)
