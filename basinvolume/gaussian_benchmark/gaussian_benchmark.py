@@ -27,6 +27,7 @@ try:
     from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
     from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
     from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
+    from utils import get_means_cov
 except:
     print("gaussian import failed")
     
@@ -504,21 +505,6 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     fout.to_file("error TI volume", e_ti_vol)
     fout.to_file("ti_nfev", int(ti_nfev))
     fout.close()
-
-def get_means_cov(gauss_path):
-    print("reading means, cov from the following gauss path")
-    print("gauss_path", gauss_path)
-    mean = []
-    cov = []
-    f = open(gauss_path, "r")
-    for line in f.readlines():
-        if line.startswith("["):
-            m = map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split())
-            c = map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split())
-            mean.append(m)
-            cov.append(c)
-    f.close()
-    return np.asarray(mean), np.asarray(cov)
 
 if __name__ == "__main__":
     """
