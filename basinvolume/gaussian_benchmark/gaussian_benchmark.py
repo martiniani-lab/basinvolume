@@ -502,7 +502,7 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     fout.set_heading("THERMODYNAMIC INTEGRATION")
     fout.to_file("TI volume", ti_vol)
     fout.to_file("error TI volume", e_ti_vol)
-    fout.to_file("ti_nfev", ti_nfev)
+    fout.to_file("ti_nfev", int(ti_nfev))
     fout.close()
 
 def get_means_cov(gauss_path):

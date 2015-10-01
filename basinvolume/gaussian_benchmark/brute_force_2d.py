@@ -16,6 +16,9 @@ class EvalCounter(object):
 class MC(_BaseMCRunner):
     def set_control(self, temp):
         self.set_temperature(temp)
+    def run(self, nr_iterations):
+        for _ in xrange(nr_iterations):
+            self.one_iteration()
 
 class BruteForce2D(object):
     def __init__(self,
@@ -23,24 +26,30 @@ class BruteForce2D(object):
                  cov=8*np.ones((10, 2)),
                  minimum_index=0,
                  radius_container=10,
-                 nr_samples=1e5,
+                 max_nr_samples=1e14,
+                 min_nr_samples=1e5,
+                 nr_samples_increment=1e2,
                  opt_dtmax=1,
                  opt_tol=1e-7,
                  opt_nsteps=1e5,
                  opt_maxstep=1,
-                 csm_dtol=1e-5
+                 csm_dtol=1e-5,
+                 convergence_delta_threshold=1e-2
                  ):
         #
         self.means = means
         self.cov = cov
-        self.minimum_index = minimum_index
+        self.minimum_index = int(minimum_index)
         self.radius_container = radius_container
-        self.nr_samples = nr_samples
+        self.max_nr_samples = int(max_nr_samples)
+        self.min_nr_samples = int(min_nr_samples)
+        self.nr_samples_increment = int(nr_samples_increment)
         self.opt_dtmax = opt_dtmax
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
         self.opt_maxstep = opt_maxstep
         self.csm_dtol=csm_dtol
+        self.convergence_delta_threshold = convergence_delta_threshold
         #
         self.nr_evaluations = EvalCounter()
         self.ngaussians = self.means.shape[0]
@@ -65,7 +74,7 @@ class BruteForce2D(object):
                                            opt_maxiter=self.opt_nsteps)
         self.temperature = 1
         self.potential = NullPotential()
-        self.mc = MC(self.potential, self.origin, self.temperature, self.nr_samples)
+        self.mc = MC(self.potential, self.origin, self.temperature, self.max_nr_samples)
         self.step = UniformSphericalSampling(42, self.radius_container)
         self.mc.set_takestep(self.step)
         self.mc.set_report_steps(0)
@@ -90,15 +99,33 @@ class BruteForce2D(object):
     def compute_volume(self):
         print("compute volume")
         self.mc.set_print_progress()
-        self.mc.run()
-        print("self.mc.get_accepted_fraction()", self.mc.get_accepted_fraction())
-        p = self.mc.get_accepted_fraction()
-        print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+        self.prev_basin_volume = 0
+        keep_running = True
+        while keep_running:
+            self.mc.run(self.nr_samples_increment)
+            print("self.mc.get_accepted_fraction()", self.mc.get_accepted_fraction())
+            p = self.mc.get_accepted_fraction()
+            print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+            self.basin_volume = p * volume_nball(self.radius_container, self.bdim)
+            self.error_basin_volume = np.sqrt(p * (1 - p) / self.mc.get_iterations_count()) * self.basin_volume
+            print("self.basin_volume", self.basin_volume)
+            print("self.error_basin_volume", self.error_basin_volume)
+            keep_running = self.check_not_converged()
         self.nr_evaluations.count += self.conftest_check_same_minimum.get_nfev()
-        self.basin_volume = p * volume_nball(self.radius_container, self.bdim)
-        self.error_basin_volume = np.sqrt(p * (1 - p) / self.nr_samples) * self.basin_volume
         self.nfev = self.nr_evaluations.count
         print("basin volume", self.basin_volume)
         print("error bar", self.error_basin_volume)
         print("nr evaluations", self.nfev)
         print("done")
+    def check_not_converged(self):
+        delta = np.absolute(self.basin_volume - self.prev_basin_volume) / self.basin_volume
+        self.prev_basin_volume = self.basin_volume
+        print("delta", delta)
+        not_converged = None
+        if self.mc.get_iterations_count() < self.min_nr_samples:
+            not_converged = True
+        elif self.mc.get_iterations_count() >= self.max_nr_samples:
+            not_converged = False
+        else:
+            not_converged = delta > self.convergence_delta_threshold
+        return not_converged

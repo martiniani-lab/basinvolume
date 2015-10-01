@@ -43,7 +43,7 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     fout.set_heading("DIRECT REJECTION SAMPLING")
     fout.to_file("bf.basin_volume", bf.basin_volume)
     fout.to_file("bf.error_basin_volume", bf.error_basin_volume)
-    fout.to_file("bf.nfev", bf.nfev)
+    fout.to_file("bf.nfev", int(bf.nfev))
     fout.close()
 
 def get_means_cov(gauss_path):
