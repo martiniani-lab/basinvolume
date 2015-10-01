@@ -27,7 +27,7 @@ try:
     from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
     from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
     from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
-    from utils import get_means_cov
+    from utils import *
 except:
     print("gaussian import failed")
     

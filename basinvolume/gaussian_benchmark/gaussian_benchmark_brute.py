@@ -20,7 +20,7 @@ from basinvolume.utils import volume_nball
 from basinvolume.utils import trymakedir
 from brute_force_2d import BruteForce2D
 try:
-    from utils import get_means_cov
+    from utils import *
 except Exception as e:
     print e
 
