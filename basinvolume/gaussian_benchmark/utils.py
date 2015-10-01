@@ -23,6 +23,7 @@ class LineStitcher(object):
                     tmp = [s.replace("]", "],") for s in tmp]
                     tmp = np.asarray(tmp)
                     tmp = tmp.flatten()
+                    
                     self.lines.append(tmp.squeeze())
                     tmp = []
             else:
