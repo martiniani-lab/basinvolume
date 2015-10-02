@@ -37,12 +37,20 @@ def get_means_cov(gauss_path):
     mean = []
     cov = []
     f = open(gauss_path, "r")
-    stitched_lines = LineStitcher(f.readlines())
-    f.close()
-    for line in stitched_lines.lines:
+    #stitched_lines = LineStitcher(f.readlines())
+    #for line in stitched_lines.lines:
+    for line in f.readlines():
         if line.startswith("["):
-            m = map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split())
-            c = map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split())
+            m = None
+            c = None
+            print("line", line)
+            if "," in line:
+                m = map(float, (line.split(",")[0].replace("[", "")).replace("]", "").split())
+                c = map(float, (line.split(",")[1].replace("[", "")).replace("]", "").split())
+            else:
+                m = map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split())
+                c = map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split())
             mean.append(m)
             cov.append(c)
+    f.close()
     return np.asarray(mean), np.asarray(cov)

@@ -27,14 +27,14 @@ class BruteForce2D(object):
                  minimum_index=0,
                  radius_container=10,
                  max_nr_samples=1e14,
-                 min_nr_samples=1e5,
-                 nr_samples_increment=1e2,
+                 min_nr_samples=1e3,
+                 nr_samples_increment=1e3,
                  opt_dtmax=1,
                  opt_tol=1e-7,
                  opt_nsteps=1e5,
                  opt_maxstep=1,
                  csm_dtol=1e-5,
-                 convergence_delta_threshold=1e-2
+                 convergence_delta_threshold=1e-5
                  ):
         #
         self.means = means
@@ -122,7 +122,11 @@ class BruteForce2D(object):
         self.prev_basin_volume = self.basin_volume
         print("delta", delta)
         not_converged = None
-        if self.mc.get_iterations_count() < self.min_nr_samples:
+        if self.basin_volume == 0:
+            not_converged = True
+        elif delta == 0:
+            not_converged = True
+        elif self.mc.get_iterations_count() < self.min_nr_samples:
             not_converged = True
         elif self.mc.get_iterations_count() >= self.max_nr_samples:
             not_converged = False
