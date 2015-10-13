@@ -37,10 +37,10 @@ class GaussianBenchmarkPTRun(object):
             raise Exception("illegal input")
         path = self.base_directory
         fname = self.configuration_name
-        single = True
+        single = False
         tot_niter = self.totniter
-        #ptiter = int(tot_niter * 0.1) #10% PT swaps
-        ptiter = int(tot_niter * 1e-2) #1% PT swaps
+        ptiter = int(tot_niter * 0.1) #10% PT swaps
+        #ptiter = int(tot_niter * 1e-2) #1% PT swaps
         niter = int((tot_niter - ptiter) / ptiter) #90% MCMC walk        
         adjustf_niter = int(tot_niter * 0.1) #equilibrate for the first 1/10th of total steps        
         nskip = int(adjustf_niter / niter) #don't swap while adjusting the step-size        
