@@ -102,7 +102,7 @@ class GaussianBenchmark(object):
         self.nfev = EvalCounter()
         #####
         if self.harmonic_well:
-            self.pot_optimizer = Harmonic(np.asarray([0.0, 0.0]), 42, bdim=self.bdim, com=False)
+            self.pot_optimizer = Harmonic(np.zeros(self.bdim), 42, bdim=self.bdim, com=False)
         else:
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
@@ -463,7 +463,7 @@ def plot_potential(means, cov):
     plt.show()
     plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
 
-def compute_volume(minimum_index=None, means=None, cov=None):
+def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False):
     if minimum_index >= means.shape[0] or minimum_index < 0:
         raise Exception("illegal input: index of minimum")
     if not means.shape == cov.shape:
@@ -471,7 +471,7 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     res = []
     config = 'config{}.gauss'.format(minimum_index)
     # Thermodynamic integration computation of volume of minimum i.
-    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False)
+    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False, harmonic_well=harmonic_well)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
@@ -533,6 +533,7 @@ if __name__ == "__main__":
     [ 1.62236091,  1.62236091]
     ])
     """
+    harmonic_well = True
     parser = argparse.ArgumentParser(description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method")
     parser.add_argument("--gauss_path", type=str, default=os.getcwd())
     parser.add_argument("--index", type=int, default=0)
@@ -540,5 +541,5 @@ if __name__ == "__main__":
     means, cov = get_means_cov(args.gauss_path)
     print("means", means)
     print("cov", cov)
-    compute_volume(minimum_index=args.index, means=means, cov=cov)
+    compute_volume(minimum_index=args.index, means=means, cov=cov, harmonic_well=harmonic_well)
     
