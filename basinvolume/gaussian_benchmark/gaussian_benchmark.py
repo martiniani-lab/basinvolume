@@ -41,13 +41,13 @@ class GaussianBenchmark(object):
                  cov=8*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
-                 opt_maxstep=1,
+                 opt_maxstep=0.01,
                  opt_tol=1e-7,
                  opt_nsteps=1e5,
                  radius_container=10,
                  bdim=1,
                  avgcount=1e5,
-                 ktarget=0.85,
+                 ktarget=0.8,
                  knavg=500,
                  ktol=0.05,
                  hmin=0,
@@ -107,7 +107,8 @@ class GaussianBenchmark(object):
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
             print "Energy", self.pot_optimizer.getEnergy(minimum)
-        print("ENERGY", self.pot_optimizer.getEnergy(np.asarray([10.0, 10.0])))
+        if self.bdim == 2:
+            print("ENERGY", self.pot_optimizer.getEnergy(np.asarray([10.0, 10.0])))
         #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         #####
         self.optimizer = ModifiedFireCPP(self.means[self.minimum_index][:],
@@ -533,7 +534,7 @@ if __name__ == "__main__":
     [ 1.62236091,  1.62236091]
     ])
     """
-    harmonic_well = True
+    harmonic_well = False
     parser = argparse.ArgumentParser(description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method")
     parser.add_argument("--gauss_path", type=str, default=os.getcwd())
     parser.add_argument("--index", type=int, default=0)
