@@ -26,14 +26,23 @@ class BruteForce2D(object):
                  cov=8*np.ones((10, 2)),
                  minimum_index=0,
                  radius_container=10,
+                 #max_nr_samples=1e14,
                  max_nr_samples=1e14,
+                 #min_nr_samples=1e3,
                  min_nr_samples=1e3,
+                 #nr_samples_increment=1e3,
                  nr_samples_increment=1e3,
+                 #opt_dtmax=1,
                  opt_dtmax=1,
-                 opt_tol=1e-7,
-                 opt_nsteps=1e5,
-                 opt_maxstep=1,
-                 csm_dtol=1e-5,
+                 #opt_tol=1e-8,
+                 opt_tol=1e-8,
+                 #opt_nsteps=1e8,
+                 opt_nsteps=1e8,
+                 #opt_maxstep=0.01,
+                 opt_maxstep=0.1,
+                 #csm_dtol=1e-6,
+                 csm_dtol=3,
+                 #convergence_delta_threshold=1e-5
                  convergence_delta_threshold=1e-5
                  ):
         #

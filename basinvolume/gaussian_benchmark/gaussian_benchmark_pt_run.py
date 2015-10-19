@@ -20,7 +20,8 @@ class GaussianBenchmarkPTRun(object):
                  cgd=False,
                  verbose=False,
                  nparticles=None,
-                 harmonic_well=False
+                 harmonic_well=False,
+                 use_lbfgs=False
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
@@ -75,9 +76,9 @@ class GaussianBenchmarkPTRun(object):
         mcrunner = sim(fname,
                        niter=niter,
                        stepsize=1e-1,
-                       dtol=1e-4,
+                       dtol=3,
                        opt_tol=1e-8,
-                       opt_nsteps=1e5,
+                       opt_nsteps=1e8,
                        hmin=0,
                        hmax=1000,
                        hbinsize=1e-1,
@@ -95,7 +96,8 @@ class GaussianBenchmarkPTRun(object):
                        use_cell_lists=self.nocell,
                        single=single,
                        record_histogram=record_histogram,
-                       harmonic_well=self.harmonic_well)
+                       harmonic_well=self.harmonic_well,
+                       use_lbfgs=use_lbfgs)
         mcrunner.set_report_steps(adjustf_niter)
         #prepare PT runner
         kmin = 0
@@ -150,6 +152,8 @@ if __name__ == "__main__":
     parser.add_argument("totniter", type=int)
     parser.add_argument("nparticles", type=int)
     parser.add_argument("--harmonic_well", action='store_true', help="use harmonic well potential for energy landscape", default=False)
+    parser.add_argument("--use_cgd", action="store_true", help="flag for use of cgd opt", default=False)
+    parser.add_argument("--use_lbfgs", action="store_true", help="flag for use of lbfgs opt", default=False)
     #parser.add_argument("harmonic_well", type=bool)
     args = parser.parse_args()
     print("args", args)
@@ -158,7 +162,8 @@ if __name__ == "__main__":
                            totniter=args.totniter,
                            nocell=True,
                            nocollectminima=True,
-                           cgd=False,
+                           cgd=args.use_cgd,
                            verbose=True,
                            nparticles=args.nparticles,
-                           harmonic_well=args.harmonic_well)
+                           harmonic_well=args.harmonic_well,
+                           use_lbfgs=args.use_lbfgs)

@@ -6,7 +6,8 @@ import subprocess
 import shlex
 import shutil
 import numpy as np
-from pele.optimize import ModifiedFireCPP
+from PyCG_DESCENT import CGDescent
+from pele.optimize import LBFGS_CPP
 from pele.potentials import SumGaussianPot
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import CheckSphericalContainer
@@ -41,9 +42,9 @@ class GaussianBenchmark(object):
                  cov=8*np.ones((10, 2)),
                  minimum_index=0,
                  opt_dtmax=1,
-                 opt_maxstep=0.01,
-                 opt_tol=1e-7,
-                 opt_nsteps=1e5,
+                 opt_maxstep=0.1,
+                 opt_tol=1e-8,
+                 opt_nsteps=1e8,
                  radius_container=10,
                  bdim=1,
                  avgcount=1e5,
@@ -53,7 +54,7 @@ class GaussianBenchmark(object):
                  hmin=0,
                  hmax=1,
                  binsize=0.005,
-                 dtol=1e-5,
+                 dtol=3,
                  adjustf_niter=1e4,
                  pt_eq_niter=1e4,
                  seeds=None,
@@ -63,7 +64,9 @@ class GaussianBenchmark(object):
                  kmin_niter=1e5,
                  harmonic_well=False,
                  kmax_niter=2e5,
-                 simple_integrator=False):
+                 simple_integrator=False,
+                 use_cgd=False,
+                 use_lbfgs=False):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -90,6 +93,8 @@ class GaussianBenchmark(object):
         self.harmonic_well = harmonic_well
         self.kmax_niter = kmax_niter
         self.simple_integrator = simple_integrator
+        self.use_cgd = use_cgd
+        self.use_lbfgs = use_lbfgs
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -111,16 +116,28 @@ class GaussianBenchmark(object):
             print("ENERGY", self.pot_optimizer.getEnergy(np.asarray([10.0, 10.0])))
         #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         #####
-        self.optimizer = ModifiedFireCPP(self.means[self.minimum_index][:],
-                                         self.pot_optimizer,
-                                         dtmax=self.opt_dtmax,
-                                         maxstep=self.opt_maxstep,
-                                         tol=self.opt_tol, 
-                                         nsteps=opt_nsteps, verbosity=0)
+        if self.use_cgd:
+            self.optimizer = CGDescent(self.means[self.minimum_index][:],
+                                       self.pot_optimizer,
+                                       tol=self.opt_tol,
+                                       nsteps=self.opt_nsteps)
+        elif self.use_lbfgs:
+            self.optimizer = LBFGS_CPP(self.means[self.minimum_index][:],
+                                       self.pot_optimizer,
+                                       tol=self.opt_tol,
+                                       nsteps=self.opt_nsteps,
+                                       maxstep=self.opt_maxstep)
+        else:
+            from pele.optimize import ModifiedFireCPP
+            self.optimizer = ModifiedFireCPP(self.means[self.minimum_index][:],
+                                             self.pot_optimizer,
+                                             dtmax=self.opt_dtmax,
+                                             maxstep=self.opt_maxstep,
+                                             tol=self.opt_tol, 
+                                             nsteps=opt_nsteps, verbosity=0)
         self.find_origin()
         print("self.origin.size", self.origin.size)
         self.rattlers = np.ones(self.origin.size)
-        self.use_cgd = False
         self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
         self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer,
                                            self.origin, self.dtol,
@@ -159,7 +176,6 @@ class GaussianBenchmark(object):
         result = self.optimizer.run()
         print("initial optimization", result.success)
         origin_result = result.coords
-        print("self.optimizer.get_niter()", self.optimizer.get_niter())
         self.optimizer.reset(origin_result)
         return origin_result
     def find_kmax(self):
@@ -264,6 +280,10 @@ class GaussianBenchmark(object):
         cmd = cmd_base_str.format(self.nprocs, "config{}.gauss".format(self.minimum_index), base_pt_path, int(self.totniter), self.nparticles)
         if self.harmonic_well:
             cmd += " --harmonic_well"
+        if self.use_cgd:
+            cmd += " --use_cgd"
+        if self.use_lbfgs:
+            cmd += " --use_lbfgs"
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
@@ -464,7 +484,7 @@ def plot_potential(means, cov):
     plt.show()
     plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
 
-def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False):
+def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False, use_cgd=False, use_lbfgs=False):
     if minimum_index >= means.shape[0] or minimum_index < 0:
         raise Exception("illegal input: index of minimum")
     if not means.shape == cov.shape:
@@ -472,7 +492,7 @@ def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False
     res = []
     config = 'config{}.gauss'.format(minimum_index)
     # Thermodynamic integration computation of volume of minimum i.
-    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False, harmonic_well=harmonic_well)
+    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False, harmonic_well=harmonic_well, use_cgd=use_cgd, use_lbfgs=use_lbfgs)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
@@ -535,6 +555,8 @@ if __name__ == "__main__":
     ])
     """
     harmonic_well = False
+    use_cgd = False
+    use_lbfgs = False
     parser = argparse.ArgumentParser(description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method")
     parser.add_argument("--gauss_path", type=str, default=os.getcwd())
     parser.add_argument("--index", type=int, default=0)
@@ -542,5 +564,5 @@ if __name__ == "__main__":
     means, cov = get_means_cov(args.gauss_path)
     print("means", means)
     print("cov", cov)
-    compute_volume(minimum_index=args.index, means=means, cov=cov, harmonic_well=harmonic_well)
+    compute_volume(minimum_index=args.index, means=means, cov=cov, harmonic_well=harmonic_well, use_cgd=use_cgd, use_lbfgs=use_lbfgs)
     

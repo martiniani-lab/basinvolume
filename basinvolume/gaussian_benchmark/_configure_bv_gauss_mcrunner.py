@@ -5,7 +5,7 @@ import time
 import copy
 import cPickle as pickle
 import numpy as np
-from pele.optimize import ModifiedFireCPP
+from pele.optimize import LBFGS_CPP
 from pele.potentials import SumGaussianPot
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import CheckSphericalContainerConfig
@@ -33,8 +33,8 @@ class configure_bv_gauss_mcrunner(object):
                  k=1.0,
                  temperature=1.0,
                  stepsize=1e-1,
-                 niter=2e4,
-                 dtol=1e-4,
+                 niter=10,
+                 dtol=3,
                  eps=1.,
                  hmin=0, 
                  hmax=100,
@@ -47,9 +47,9 @@ class configure_bv_gauss_mcrunner(object):
                  ts_niter=None,
                  ts_freq=1,
                  opt_dtmax=1,
-                 opt_maxstep=None, 
+                 opt_maxstep=0.1, 
                  opt_tol=1e-8,
-                 opt_nsteps=1e5,
+                 opt_nsteps=1e8,
                  perform_convergence_test=False,
                  collect_minima_list=False, 
                  single=False,
@@ -61,7 +61,8 @@ class configure_bv_gauss_mcrunner(object):
                  base_dir=None,
                  verbose=False,
                  harmonic_com_flag=False,
-                 harmonic_well=False):
+                 harmonic_well=False,
+                 use_lbfgs=False):
         self.harmonic_well = harmonic_well
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
@@ -81,13 +82,15 @@ class configure_bv_gauss_mcrunner(object):
         self.opt_maxstep = opt_maxstep
         self.eps = eps
         self.harmonic_com_flag = harmonic_com_flag
+        self.use_cgd = use_cgd
+        self.use_lbfgs = use_lbfgs
         self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':self.eps,
                           'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,
                           'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,'pt_eq_niter':pt_eq_niter,
                           'ts_niter':ts_niter, 'ts_freq':ts_freq,'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
                           'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,'perform_convergence_test':perform_convergence_test, 
                           'collect_minima_list':collect_minima_list, 'record_histogram':record_histogram,
-                          'single':single, 'use_cell_lists':use_cell_lists, 'use_cgd':use_cgd}
+                          'single':single, 'use_cell_lists':use_cell_lists, 'use_cgd':use_cgd, "use_lbfgs":use_lbfgs}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -126,7 +129,20 @@ class configure_bv_gauss_mcrunner(object):
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")
         self._initialise()
         print(self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps)
-        self.optimizer = ModifiedFireCPP(self.origin,
+        if self.use_cgd:
+            self.optimizer = CGDescent(self.origin,
+                                       self.pot_optimizer,
+                                       tol=self.opt_tol,
+                                       nsteps=self.opt_nsteps)
+        elif self.use_lbfgs:
+            self.optimizer = LBFGS_CPP(self.origin,
+                                       self.pot_optimizer,
+                                       tol=self.opt_tol,
+                                       nsteps=self.opt_nsteps,
+                                       maxstep=self.opt_maxstep)
+        else:
+            from pele.optimize import ModifiedFireCPP
+            self.optimizer = ModifiedFireCPP(self.origin,
                                     self.pot_optimizer,
                                     dtmax=self.opt_dtmax,
                                     maxstep=self.opt_maxstep,
