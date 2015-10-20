@@ -41,7 +41,7 @@ class BruteForce2D(object):
                  #opt_maxstep=0.01,
                  opt_maxstep=0.1,
                  #csm_dtol=1e-6,
-                 csm_dtol=3,
+                 csm_dtol=1,
                  #convergence_delta_threshold=1e-5
                  convergence_delta_threshold=1e-5
                  ):

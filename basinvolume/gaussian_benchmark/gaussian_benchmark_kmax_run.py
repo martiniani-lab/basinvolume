@@ -49,7 +49,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_conf_test(self.conftest_check_same_minimum)
         self.add_action(self.action_findk)
-        self.add_action(self.action_record_displ_kmax)
+        #self.add_action(self.action_record_displ_kmax)
     def get_stepsize(self):
         return self.takestep.get_stepsize()
     def get_displ2(self):

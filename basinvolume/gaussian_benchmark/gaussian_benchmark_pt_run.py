@@ -76,7 +76,7 @@ class GaussianBenchmarkPTRun(object):
         mcrunner = sim(fname,
                        niter=niter,
                        stepsize=1e-1,
-                       dtol=3,
+                       dtol=1,
                        opt_tol=1e-8,
                        opt_nsteps=1e8,
                        hmin=0,

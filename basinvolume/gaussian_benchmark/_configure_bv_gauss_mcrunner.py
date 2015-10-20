@@ -34,7 +34,7 @@ class configure_bv_gauss_mcrunner(object):
                  temperature=1.0,
                  stepsize=1e-1,
                  niter=10,
-                 dtol=3,
+                 dtol=1,
                  eps=1.,
                  hmin=0, 
                  hmax=100,

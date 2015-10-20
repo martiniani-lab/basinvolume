@@ -54,16 +54,16 @@ class GaussianBenchmark(object):
                  hmin=0,
                  hmax=1,
                  binsize=0.005,
-                 dtol=3,
+                 dtol=1,
                  adjustf_niter=1e4,
                  pt_eq_niter=1e4,
                  seeds=None,
                  nprocs=7,
-                 totniter=1e5,
+                 totniter=5e5,
                  harmonic_com_flag=False,
                  kmin_niter=1e5,
                  harmonic_well=False,
-                 kmax_niter=2e5,
+                 kmax_niter=1e5,
                  simple_integrator=False,
                  use_cgd=False,
                  use_lbfgs=False):
@@ -184,7 +184,8 @@ class GaussianBenchmark(object):
         hmin = 0
         hmax = 1
         hbinsize = 0.001
-        action_record_displ_kmax = RecordDisp2Histogram(self.origin,
+        #"""
+        self.action_record_displ_kmax = RecordDisp2Histogram(self.origin,
                                                         self.rattlers,
                                                         self.bdim,
                                                         hmin,
@@ -192,7 +193,8 @@ class GaussianBenchmark(object):
                                                         hbinsize,
                                                         self.kmax_niter - self.avgcount,
                                                         fix_com=self.harmonic_com_flag)
-        action_findk = Findk(self.origin,
+        #"""
+        self.action_findk = Findk(self.origin,
                              self.rattlers,
                              self.bdim,
                              self.avgcount,
@@ -203,28 +205,28 @@ class GaussianBenchmark(object):
                              self.hmax,
                              self.binsize,
                              fix_com=self.harmonic_com_flag)
-        kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer,
+        self.kmax_run = GaussianBenchmarkKmaxRun(pot_optimizer=self.pot_optimizer,
                                            origin=self.origin,
                                            optimizer=self.optimizer,
                                            conftest_outer_sphere=self.conftest_outer_sphere,
                                            conftest_check_same_minimum=self.conftest_check_same_minimum,
-                                           action_findk=action_findk,
-                                           action_record_displ_kmax=action_record_displ_kmax,
+                                           action_findk=self.action_findk,
+                                           action_record_displ_kmax=self.action_record_displ_kmax,
                                            niter=self.kmax_niter,
                                            avgcount=self.avgcount)
-        kmax_run.run()
-        self.kmax = kmax_run.get_k()
-        self.kmax_displ2 = kmax_run.get_displ2()
-        self.prob_kmax = kmax_run.get_prob_kmax()
-        self.var_displ_kmax = kmax_run.get_var_displ_kmax()
-        self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
+        self.kmax_run.run()
+        self.kmax = self.kmax_run.get_k()
+        self.kmax_displ2 = self.kmax_run.get_displ2()
+        self.prob_kmax = self.kmax_run.get_prob_kmax()
+        self.var_displ_kmax = self.kmax_run.get_var_displ_kmax()
+        #self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
-        print("kmax_displ2 samples", action_record_displ_kmax.get_count())
+        #print("kmax_displ2 samples", action_record_displ_kmax.get_count())
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
-        print("kmax_run.get_nfev()", kmax_run.get_neval())
-        self.total_neval += kmax_run.get_neval()
-        self.harmonic_energy_calls += kmax_run.get_iterations_count()
+        print("kmax_run.get_nfev()", self.kmax_run.get_neval())
+        self.total_neval += self.kmax_run.get_neval()
+        self.harmonic_energy_calls += self.kmax_run.get_iterations_count()
         self.print_findk_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def run_kmin(self):
         print("run kmin")
