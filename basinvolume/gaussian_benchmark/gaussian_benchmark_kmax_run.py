@@ -17,7 +17,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
                  conftest_check_same_minimum=None,
                  action_findk=None,
                  niter=1e8,
-                 stepsize=1e-1,
+                 stepsize=1,
                  action_record_displ_kmax=None,
                  avgcount=1e4):
         self.pot_optimizer = pot_optimizer
@@ -43,7 +43,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
                                         stepsize, self.origin)
         self.rattlers = np.ones(self.origin.size)
         self.add_modules_to_mc()
-        self.set_report_steps(self.niter - self.avgcount)
+        #self.set_report_steps(self.niter - self.avgcount)
     def add_modules_to_mc(self):
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest_outer_sphere)
@@ -60,6 +60,8 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         #return self.action_record_displ_kmax.get_mean_variance()[1]
         displ_k_max, var_displ_k_max = self.action_findk.get_mean_variance()
         return var_displ_k_max
+    def get_entries(self):
+        return self.action_findk.get_entries()
     def get_prob_kmax(self):
         return self.action_findk.get_prob()
     def get_k(self):

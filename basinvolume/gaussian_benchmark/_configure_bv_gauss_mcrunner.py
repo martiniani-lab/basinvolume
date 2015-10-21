@@ -103,29 +103,26 @@ class configure_bv_gauss_mcrunner(object):
             seeds = dict(seed_takestep=np.random.randint(i32max),
                     seed_metropolis=np.random.randint(i32max))
         self.seeds = seeds
-        #stepsize = 0.1
-        stepsize = 1
-        #adjustf_navg = 20
-        adjustf_navg = 200
+        stepsize = 0.1
+        #stepsize = 1
+        adjustf_navg = 20
+        #adjustf_navg = 200
         acceptance = 0.2
         adjustf = 0.5
         single = False
-        
-        ######
-        """
-            rseed, stepsize, report_interval=100, factor=0.9,
-                  min_acc_ratio=0.2, max_acc_ratio=0.5, single=False,
-                  nparticles=0, bdim=0)
-        """
-        ######
-        
-        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
-                                                  factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
-                                                  single=single, bdim=self.bdim)
+        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'],
+                                                 stepsize,
+                                                 report_interval=adjustf_navg,
+                                                 factor=adjustf,
+                                                 min_acc_ratio=acceptance,
+                                                 max_acc_ratio=acceptance,
+                                                 single=single,
+                                                 bdim=self.bdim)
         if self.harmonic_well:
             self.pot_optimizer = Harmonic(np.zeros(3), 42, bdim=self.bdim, com=False)
         else:
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)
+        self.opt_maxstep = 0.1
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")
         self._initialise()
         print(self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps)

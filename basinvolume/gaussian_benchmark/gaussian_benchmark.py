@@ -47,7 +47,7 @@ class GaussianBenchmark(object):
                  opt_nsteps=1e8,
                  radius_container=10,
                  bdim=1,
-                 avgcount=1e5,
+                 avgcount=1e4,
                  ktarget=0.8,
                  knavg=500,
                  ktol=0.05,
@@ -56,12 +56,13 @@ class GaussianBenchmark(object):
                  binsize=0.005,
                  dtol=1,
                  adjustf_niter=1e4,
-                 pt_eq_niter=1e4,
+                 pt_eq_niter=1e5,
                  seeds=None,
                  nprocs=7,
-                 totniter=5e5,
+                 totniter=2e5,
                  harmonic_com_flag=False,
-                 kmin_niter=1e5,
+                 kmin_niter=2e5,
+                 ki_niter=2e5,
                  harmonic_well=False,
                  kmax_niter=1e5,
                  simple_integrator=False,
@@ -90,6 +91,7 @@ class GaussianBenchmark(object):
         self.totniter = totniter
         self.harmonic_com_flag = harmonic_com_flag
         self.kmin_niter = kmin_niter
+        self.ki_niter = ki_niter
         self.harmonic_well = harmonic_well
         self.kmax_niter = kmax_niter
         self.simple_integrator = simple_integrator
@@ -219,10 +221,10 @@ class GaussianBenchmark(object):
         self.kmax_displ2 = self.kmax_run.get_displ2()
         self.prob_kmax = self.kmax_run.get_prob_kmax()
         self.var_displ_kmax = self.kmax_run.get_var_displ_kmax()
-        #self.kmax_displ2_nr_samples = action_record_displ_kmax.get_count()
+        self.kmax_displ2_nr_samples = self.kmax_run.get_entries()
         print("kmax", self.kmax)
         print("kmax_displ2", self.kmax_displ2)
-        #print("kmax_displ2 samples", action_record_displ_kmax.get_count())
+        print("self.kmax_run.get_entries()", self.kmax_run.get_entries())
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         print("kmax_run.get_nfev()", self.kmax_run.get_neval())
         self.total_neval += self.kmax_run.get_neval()
@@ -271,8 +273,54 @@ class GaussianBenchmark(object):
         self.harmonic_energy_calls += kmin_run.get_iterations_count()
         print("self.total_neval, kmin, kmax", self.total_neval)
         self.print_kmin_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
-        self.nfev.count += self.conftest_check_same_minimum.get_nfev()
     def run_PT(self):
+        #This is not PT because the basins here are not glassy and our PT implementation is hard to understand.
+        configuration_name="config{}.gauss".format(self.minimum_index)
+        dname = configuration_name[0:-6]
+        base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+        self.direct_k_values = ......
+        self.direct_k_u2_means = []
+        self.direct_k_u2_variances = []
+        for i, k in enumerate(self.direct_k_values):
+            run_biased_random_walk_in_basin(i)
+        self.nfev.count += self.conftest_check_same_minimum.get_nfev()
+        print("self.direct_k_values", self.direct_k_values)
+        print("self.direct_k_u2_means", self.direct_k_u2_means)
+        print("self.direct_k_u2_variances", self.direct_k_u2_variances)
+        assert(False)
+    def run_biased_random_walk_in_basin(self, k_index):
+        k_value = self.direct_k_values[k_index]
+        hmin = 0
+        hmax = 1
+        hbinsize = 0.1
+        action_record_displ_ki = RecordDisp2Histogram(self.origin,
+                                                        self.rattlers,
+                                                        self.bdim,
+                                                        hmin,
+                                                        hmax,
+                                                        hbinsize,
+                                                        self.equilibration_steps,
+                                                        fix_com=self.harmonic_com_flag)
+        ki_run = GaussianBenchmarkKminRun(pot_optimizer=self.pot_optimizer,
+                                            origin=self.origin,
+                                            optimizer=self.optimizer,
+                                            conftest_outer_sphere=self.conftest_outer_sphere,
+                                            conftest_check_same_minimum=self.conftest_check_same_minimum,
+                                            action_record_displ=action_record_displ_ki,
+                                            adjustf_niter=self.adjustf_niter,
+                                            pt_eq_niter=self.pt_eq_niter,
+                                            equilibration_steps=self.equilibration_steps,
+                                            metropolis=self.metropolis,
+                                            takestep=self.takestep,
+                                            potential=self.potential,
+                                            niter=self.ki_niter,
+                                            nparticles=self.nparticles)
+        ki_run.set_control(k_value)
+        ki_run.run()
+        m, v = ki_run.get_displ2_kmin()
+        self.direct_k_u2_means.append(m)
+        self.direct_k_u2_variances.append(v)
+    def run_PT_old(self):
         print("run PT")
         configuration_name="config{}.gauss".format(self.minimum_index)
         dname = configuration_name[0:-6]

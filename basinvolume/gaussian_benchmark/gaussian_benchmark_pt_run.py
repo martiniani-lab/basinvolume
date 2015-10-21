@@ -79,6 +79,7 @@ class GaussianBenchmarkPTRun(object):
                        dtol=1,
                        opt_tol=1e-8,
                        opt_nsteps=1e8,
+                       opt_maxstep=0.1,
                        hmin=0,
                        hmax=1000,
                        hbinsize=1e-1,
@@ -163,7 +164,7 @@ if __name__ == "__main__":
                            nocell=True,
                            nocollectminima=True,
                            cgd=args.use_cgd,
-                           verbose=True,
+                           verbose=False,
                            nparticles=args.nparticles,
                            harmonic_well=args.harmonic_well,
                            use_lbfgs=args.use_lbfgs)
