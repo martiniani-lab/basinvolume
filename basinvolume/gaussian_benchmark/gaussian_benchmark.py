@@ -24,6 +24,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
+from basinvolume.post_processing import spring_constants_variable_transform
 try:
     from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
     from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
@@ -278,7 +279,8 @@ class GaussianBenchmark(object):
         configuration_name="config{}.gauss".format(self.minimum_index)
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
-        self.direct_k_values = ......
+        self.all_k_values = spring_constants_variable_transform(self.nprocs + 1, self.kmax, self.nparticles, self.bdim)
+        self.direct_k_values = self.all_k_values[:-1]
         self.direct_k_u2_means = []
         self.direct_k_u2_variances = []
         for i, k in enumerate(self.direct_k_values):
@@ -393,6 +395,36 @@ class GaussianBenchmark(object):
             f.write(to_string(x) + "\n")
         f.close()
     def compute_volume(self, configuration_name="config0.gauss"):
+        print("computing volume")
+        """
+        Set analysis base directory.
+        """
+        self.explore_dir = os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6]))
+        self.base_directory = os.path.join(os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6])), "analysis")
+        base_directory = self.base_directory
+        trymakedir(base_directory)
+        self.karray = self.all_k_values
+        ##
+        
+        ####
+        """
+        self.displ_k_max = self.kmax_displ2
+        self.var_displ_k_max = self.var_displ_kmax
+        self.u2_array.insert(0, self.displ_k_max)
+        self.var_array.insert(0, self.var_displ_k_max)
+        self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
+        self.std_error_array.insert(0, self.std_error_kmax)
+        self.u2_array = np.array(self.u2_array[::-1], dtype='d')
+        self.var_array = np.array(self.var_array[::-1], dtype='d')
+        self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
+        """
+        ####
+        
+        self.u2_array = 
+        self.var_array = 
+        self.std_error_array = 
+        ##
+    def compute_volume_old(self, configuration_name="config0.gauss"):
         print("computing volume")
         """
         Set analysis base directory.
