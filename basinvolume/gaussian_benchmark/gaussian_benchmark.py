@@ -408,21 +408,24 @@ class GaussianBenchmark(object):
         
         ####
         """
-        self.displ_k_max = self.kmax_displ2
-        self.var_displ_k_max = self.var_displ_kmax
-        self.u2_array.insert(0, self.displ_k_max)
-        self.var_array.insert(0, self.var_displ_k_max)
-        self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
+        
+        
         self.std_error_array.insert(0, self.std_error_kmax)
         self.u2_array = np.array(self.u2_array[::-1], dtype='d')
         self.var_array = np.array(self.var_array[::-1], dtype='d')
         self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
         """
         ####
+        self.displ_k_max = self.kmax_displ2
+        self.var_displ_k_max = self.var_displ_kmax
+        self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
         
         self.u2_array = 
         self.var_array = 
         self.std_error_array = 
+        self.u2_array.append(self.displ_k_max)
+        self.var_array.append(self.var_displ_k_max)
+        self.
         ##
     def compute_volume_old(self, configuration_name="config0.gauss"):
         print("computing volume")
