@@ -85,6 +85,7 @@ class PackingData(object):
         self._import_packing_config_file(self.configpath, self.configpath_packing)
         if packing_path is not None:
             self._import_packing_configuration(packing_path)
+        self.jammed_packing_name = os.path.split(os.path.splitext(self.configpath)[0])[1]
         self.F = None 
         self.Ferr = None
         self.P = None

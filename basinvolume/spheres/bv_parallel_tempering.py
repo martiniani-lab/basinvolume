@@ -5,7 +5,7 @@ from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
 from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 import time
 from mpi4py import MPI
-from basinvolume.utils import view_traceback, check_kmax_reasonable
+from basinvolume.utils import view_traceback, check_kmax_reasonable, import_pt_time_series
 import sys
 
 if __name__ == "__main__":
@@ -113,6 +113,13 @@ if __name__ == "__main__":
     print 'core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter, 
                                                                                        ptrunner.ptiter, adjustf_niter, 
                                                                                        ptrunner.skip, ptrunner.pfreq)
+    print 'convert timeseries to hf5...'
+    if rank == 0:
+        #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
+        #reduce the amount of occupied memory and i/o speed without loosing any information
+        timeseries = import_pt_time_series(sim.base_directory, int(sim.mc_params['adjustf_niter']), 
+                                           max_series_size=0, ncores=1, del_raw=True)
+    print 'done'
     print 'elapsed time',end-start
     
     

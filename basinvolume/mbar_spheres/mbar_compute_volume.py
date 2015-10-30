@@ -4,7 +4,7 @@ import os
 import re
 import glob
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, read_txt, log_volume_nball, surface_nball, write_csv_xy
+from basinvolume.utils import to_string, read_txt, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
 from basinvolume.post_processing import VolumeSanityCheck
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
@@ -82,7 +82,6 @@ class mbar_compute_dos(object):
     """
     this is a class that implements _mbar_compute_dos class 
     """
-    
     def __init__(self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=7):
         self.nbins = np.power(2, int(np.log2(nbins) + 0.5)) + 1#approximate to nearest power of 2 plus 1 (for rhomb integration)
         self.kde = kde
@@ -253,45 +252,9 @@ class mbar_compute_dos(object):
         self.k0_index = np.where(self.karray==0.)[0][0]
         
     def _import_pt_time_series(self):
-        tsframe = os.path.join(self.base_directory, 'timeseries.h5')
-        try:
-            df = pd.read_hdf(tsframe, 'ts')
-            self.timeseries = np.array(df.values)
-        except Exception, e:
-            print e
-            self._import_pt_time_series_raw()
-            nind , ncol = self.timeseries.shape
-            ind = [i for i in xrange(nind)]
-            col = [i for i in xrange(ncol)]
-            df = pd.DataFrame(np.array(self.timeseries), index=ind, columns=col)
-            df.to_hdf(tsframe,'ts')
-            
-    def _import_pt_time_series_raw(self, max_series_size=int(1e5)):
-        timeseries = []
-        series_order = []
-        for subdir, dirs, files in os.walk(self.explore_dir):
-            for dir in dirs:
-                if dir.isdigit():
-                    print "importing replica ", dir
-                    series_order.append(int(dir))
-                    path = os.path.join(self.explore_dir, dir)
-                    file_list = glob.glob(path + '/TimeSeries*')
-                    file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
-                    tot_size = int(file_list[-1].split(".")[1]) - self.adjustf_niter
-                    init_size = int(file_list[0].split(".")[1]) - self.adjustf_niter
-                    init_max_size = int(max_series_size*init_size/tot_size)
-                    other_max_size = int((max_series_size-init_max_size)/len(file_list[1:]))
-                    series = []
-                    series.extend( read_txt(file_list[0], self.adjustf_niter, max_series_size).tolist() )
-                    results = Parallel(n_jobs=self.ncores)(delayed(read_txt)(series_path, 0, other_max_size) for series_path in file_list[1:])
-                    series.extend( list(chain.from_iterable(results)) )
-                    timeseries.append(series)
-                    #shorten series to max series size, remove adjustf region and subsample
-                    #skip = max(1, len(series[int(self.adjustf_niter):])//max_series_size)
-                    #timeseries.append(series[int(self.adjustf_niter)::int(skip)])        
-        X = np.array(timeseries)
-        Y = series_order
-        self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
+        self.timeseries = import_pt_time_series(self.explore_dir, self.adjustf_niter, 
+                                                max_series_size=int(1e5), ncores=self.ncores, 
+                                                crop_adjustf_niter=False, del_raw=True)
         
     def _subtract_eqtime(self):
         #remove equilibration region from pt timeseries

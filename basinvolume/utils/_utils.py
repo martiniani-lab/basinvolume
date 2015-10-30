@@ -13,6 +13,12 @@ import sys, traceback
 from bisect import bisect_left
 import ConfigParser
 import csv
+import pandas as pd
+import glob
+from joblib import Parallel, delayed
+from basinvolume.utils._utils_cpp import read_txt
+from itertools import cycle, chain
+import shutil
 try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
@@ -687,3 +693,105 @@ def query_yes_no(question, default="yes"):
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
+
+def import_pt_time_series(explore_dir, adjustf_niter, 
+                          max_series_size=0, ncores=7, 
+                          del_raw=False, crop_adjustf_niter=False):
+        """
+        to import without loss of data set max_series_size=0 and crop_adjustf_niter=False
+        if max_series_size=0 and raw timeseries are imported then the timeseries will not be cropped
+        therefore max_series_size=0 indicates that there is no loss from raw to hf5.
+        If want to remove the equilibration region when importing the full dataset in hf5 format set
+        crop_adjustf_niter=True
+        
+        explore_dir string
+            path to the directory containing raw data
+        max_series_size int
+            maximum size of array to import, set to 0 to import the whole thing
+        adjustf_niter int
+            number of steps to remove from timeseries because used to adjust
+            stepsize
+        delraw bool
+            delete raw timeseries
+        """
+        tsframe = os.path.join(explore_dir, 'timeseries.h5')
+        try:
+            df = pd.read_hdf(tsframe, 'ts')
+            timeseries = np.array(df.values)
+            if crop_adjustf_niter: 
+                print 'cropping adjustf_niter'
+                timeseries = timeseries[:,adjustf_niter:]
+            print 'timeseries shape ', np.shape(timeseries)
+            if max_series_size > 0 and  np.shape(timeseries)[1] > max_series_size:
+                #need subsample and probably crop
+                tsl = np.shape(timeseries)[1]
+                print 'subsampling timeseries because np.shape(timeseries)[1] > max_series_size'
+                print 'subsampling every {} steps'.format(int(tsl/max_series_size))
+                timeseries = timeseries[:, ::max(int(tsl/max_series_size),1)]
+        except Exception:
+            traceback.print_exc(file=sys.stdout)
+            try:
+                timeseries = import_pt_time_series_raw(explore_dir, adjustf_niter, 
+                                                       max_series_size=max_series_size,
+                                                       ncores=ncores)
+                nind , ncol = timeseries.shape
+                ind = [i for i in xrange(nind)]
+                col = [i for i in xrange(ncol)]
+                df = pd.DataFrame(np.array(timeseries), index=ind, columns=col)
+                df.to_hdf(tsframe,'ts')
+            except Exception:
+                traceback.print_exc(file=sys.stdout)
+                sys.exit(0)
+        if del_raw:
+            try:
+                del_pt_time_series_raw(explore_dir)
+            except Exception:
+                traceback.print_exc(file=sys.stdout)
+                sys.exit(0)
+        return timeseries
+            
+def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, ncores=7):
+    """
+    max_series_size int
+        when set to 0 the whole time series is imported and there is a lossless conversion from
+        raw to hf5, otherwise the equilibration region needs to be necessarily removed
+    """
+    timeseries = []
+    series_order = []
+    for subdir, dirs, files in os.walk(explore_dir):
+        for dir in dirs:
+            if dir.isdigit():
+                print "importing replica ", dir
+                series_order.append(int(dir))
+                path = os.path.join(explore_dir, dir)
+                file_list = glob.glob(path + '/TimeSeries*')
+                file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
+                tot_size = int(file_list[-1].split(".")[1]) - adjustf_niter
+                init_size = int(file_list[0].split(".")[1]) - adjustf_niter
+                if max_series_size > 0:
+                    init_max_size = int(max_series_size*init_size/tot_size)
+                    other_max_size = int((max_series_size-init_max_size)/len(file_list[1:]))
+                else:
+                    #import all and don't crop
+                    other_max_size = 0
+                    adjustf_niter = 0
+                series = []
+                series.extend( read_txt(file_list[0], adjustf_niter, max_series_size).tolist() )
+                results = Parallel(n_jobs=ncores)(delayed(read_txt)(series_path, 0, other_max_size) for series_path in file_list[1:])
+                series.extend( list(chain.from_iterable(results)) )
+                timeseries.append(series)        
+    X = np.array(timeseries)
+    Y = series_order
+    timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
+    return timeseries
+
+def del_pt_time_series_raw(explore_dir):
+    for subdir, dirs, files in os.walk(explore_dir):
+        for dir in dirs:
+            if dir.isdigit():
+                print "del replica raw replica timeseries ", dir
+                path = os.path.join(explore_dir, dir)
+                filelist = glob.glob(os.path.join(path, "TimeSeries.*"))
+                for f in filelist:
+                    os.remove(f)
+

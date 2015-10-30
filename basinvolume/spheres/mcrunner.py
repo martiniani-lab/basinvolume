@@ -135,6 +135,14 @@ class HS_MCrunner(_BaseMCRunner):
     
     def get_stepsize(self):
         return self.takestep_displacement.get_stepsize()
+    
+    def get_status(self):
+        """
+        overloading the base class method to include stepsize
+        """
+        status = super(BV_MCrunner, self).get_status()
+        status.stepsize = self.get_stepsize()
+        return status
 
 class HS_MCrunnerOptDiffusion(HS_MCrunner):
     """HS_MCrunnerOptDiffusion
@@ -421,6 +429,14 @@ class BV_MCrunner(_BaseMCRunner):
     def get_stepsize(self):
         return self.takestep.get_stepsize()
     
+    def get_status(self):
+        """
+        overloading the base class method to include stepsize
+        """
+        status = super(BV_MCrunner, self).get_status()
+        status.stepsize = self.get_stepsize()
+        return status
+            
     def dump_histogram(self, fname):
         """write histogram to fname"""
         Emin, Emax = self.histogram.get_bounds_val()
@@ -678,6 +694,14 @@ class Findk_MCrunner(_BaseMCRunner):
     
     def get_stepsize(self):
         return self.takestep.get_stepsize()
+    
+    def get_status(self):
+        """
+        overloading the base class method to include stepsize
+        """
+        status = super(BV_MCrunner, self).get_status()
+        status.stepsize = self.get_stepsize()
+        return status
     
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""

@@ -366,9 +366,8 @@ class HS_Generate_Packing(_Generate_Packing):
     
     def _generate_packing_coords_direct(self):
         """
-        it generates an initial set of coordinates from a LJ quench,
-        the LJ particles are then substitued by HS based on the size of
-        the gap 
+        it generates an initial set of coordinates from a HSWCA quench,
+        the HSWCA particles are then substitued by HS
         """
         pot = HS_WCA(use_periodic=True, eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         overlap = True    

@@ -20,6 +20,7 @@ class _kmin_mcrunner(_configure_mcrunner):
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     *print_diffusion_only: bool
         print diffusion data only and none of the other configuration files
+    *base_directory is the path to explore_bv_* folders, set by default as cwd/explore_bv_*
     """
         
     def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
@@ -27,12 +28,18 @@ class _kmin_mcrunner(_configure_mcrunner):
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  record_steps_timeseries=False, record_steps_timeseries_every=[1], print_diffusion_only=False,
                  perform_convergence_test=False, collect_minima_list=False, single=False, 
-                 seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', verbose=False):
+                 seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', 
+                 verbose=False, workspace=None):
                 
         self.fname = fname
         self.temperature=1.0
         self.eps = eps
         self.print_diffusion_only = print_diffusion_only
+        self.record_steps_timeseries = record_steps_timeseries
+        if workspace is None:
+            self.workspace = os.getcwd()
+        else:
+            self.workspace = os.path.abspath(workspace)
         
         self._set_paths(packings_dir)
         self._import_packing_config_files()
@@ -87,15 +94,15 @@ class _kmin_mcrunner(_configure_mcrunner):
             dname = dname[:-6]
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
-        self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+        self.base_directory = os.path.join(self.workspace,'explore_bv_'+str(dname))
         if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+            packings_dir = os.path.join(self.workspace,packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir,'{}.config'.format(dname))
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
-        self.diffusion_dir = os.path.join(self.base_directory,"diffusion")
+        self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = 'diffusion_' + dname
         self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)
     
@@ -119,7 +126,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         trymakedir(base_directory)
         if not self.print_diffusion_only:
             self._print_parameters()
-        if bool(self.mc_params['record_steps_timeseries']):            
+        if self.record_steps_timeseries:
             self._print_diffusion_params()
             
     def _print_diffusion_params(self):
@@ -150,43 +157,55 @@ class _kmin_mcrunner(_configure_mcrunner):
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value))
     
-    def _print_results(self):
+    def _print_results_once(self, fname):
         """
         note that self.displ_k_min *= 1.5 to account for the limited computation time, 
         this is just an approximation 
         """
-        if not self.print_diffusion_only:
-            fname = self.configfile
-            f = open(fname,'a')
-            f.write('[KMIN_MCRUNNER_STATUS]\n')
-            status = self.mcrunner.get_status()
-            for key, value in status.iteritems() :
-                f.write('{}: {}\n'.format(key,value))
-            f.write('[KMIN]\n')
-            f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
-            f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
-            f.close()
-        self._dump_timeseries()
+        f = open(fname,'a')
+        f.write('[KMIN_MCRUNNER_STATUS]\n')
+        status = self.mcrunner.get_status()
+        for key, value in status.iteritems() :
+            f.write('{}: {}\n'.format(key,value))
+        f.write('[KMIN]\n')
+        f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
+        f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
+        f.close()
     
-    def _dump_timeseries(self):
+    def _dump_diffusion_timeseries(self):
         fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params['niter']))
-        print fname
-        if bool(self.mc_params['record_steps_timeseries']):
-            self.mcrunner.dump_steps_timeseries(fname, clear=True)
+        print "fname", fname
+        self.mcrunner.dump_steps_timeseries(fname, clear=True)
     
-    def _print_success(self, success):
+    def _print_results(self):
+        if not self.print_diffusion_only:
+            assert(hasattr(self, 'configfile'))
+            self._print_results_once(self.configfile)
+        if self.record_steps_timeseries:
+            configfile = '{}.{}.config'.format(self.diffusion_configfname, int(self.mc_params['niter']))
+            assert(os.path.isfile(configfile))
+            self._print_results_once(configfile)
+            self._dump_diffusion_timeseries()
+    
+    def _print_success_once(self, success, fname):
         """
         print whether calculation has completed successfully
         this method is overloaded her to check whether this is a 
         diffusion only calculations 
         """
+        f = open(fname, 'a')
+        f.write('[STATUS]\n')
+        f.write('success: {}\n'.format(str(success)))
+        f.close()
+    
+    def _print_success(self, success):
         if not self.print_diffusion_only:
             assert(hasattr(self, 'configfile'))
-            fname = self.configfile
-            f = open(fname, 'a')
-            f.write('[STATUS]\n')
-            f.write('success: {}\n'.format(str(success)))
-            f.close()
+            self._print_success_once(success, self.configfile)
+        if self.record_steps_timeseries:
+            configfile = '{}.{}.config'.format(self.diffusion_configfname, int(self.mc_params['niter']))
+            assert(os.path.isfile(configfile))
+            self._print_success_once(success, configfile)
     
 if __name__ == "__main__":
     

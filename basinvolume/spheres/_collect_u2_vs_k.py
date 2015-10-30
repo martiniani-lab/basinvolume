@@ -18,6 +18,7 @@ from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import VolumeSanityCheck
+import traceback
 import argparse
 import sys
 from itertools import cycle
@@ -206,7 +207,7 @@ class _collect_u2_vs_k(object):
         Y = series_order
         self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
 
-    def _import_steps_time_series_diffusion(self, eqtime=2e5):
+    def _import_steps_time_series_diffusion(self, eqtime=int(2e5)):
         import re
         timeseries = []
         series_order = []
@@ -219,8 +220,8 @@ class _collect_u2_vs_k(object):
             digits = map(int, re.findall(r'\d+', fname))
             series_order.append(digits[-1])
             timeseries.append(read_txt(series_path))
-        X = np.array(timeseries)
         Y = series_order
+        X = np.array(timeseries)
         step_timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
         step_timeseries_order =  np.sort(series_order)
         step_timeseries_mean_path = []
@@ -319,7 +320,8 @@ class _collect_u2_vs_k(object):
         try:
             self._plot_diffusion()
         except Exception, e:
-            print e 
+            print e
+            print('_collect_u2_vs_k diffusion: %s' % (traceback.format_exc()))
         
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
         u2_array_app = (cont_karray + (self.nparticles * self.bdim) / self.displ_k_min) / (self.nparticles * self.bdim)

@@ -59,7 +59,7 @@ class BasinAnalysis(object):
         return jammed_dname.split("_")[1]
     
     def collect_data_every_set_all(self, data_name="basin_analysis.pickle", no_pickle=False, 
-                                   dir_signature='n*_phi*_phi*_*D'):
+                                   dir_signature='n*_phi*_phi*_*D*'):
         listdir = glob.glob(os.path.join(self.workspace, dir_signature))
         #print listdir
         data_pickle = os.path.join(self.workspace, data_name)
@@ -104,7 +104,7 @@ class BasinAnalysis(object):
         return packing_dataset
     
     def collect_data_every_set_structure(self, data_name="basin_analysis.pickle", no_pickle=False,
-                                         dir_signature='n*_phi*_phi*_*D'):
+                                         dir_signature='n*_phi*_phi*_*D*'):
         """
         collect only structural data from all sets
         """
