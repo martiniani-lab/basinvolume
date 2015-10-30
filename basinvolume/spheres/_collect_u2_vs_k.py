@@ -12,7 +12,7 @@ import glob
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
-from basinvolume.utils import to_string, read_txt, write_csv_xy
+from basinvolume.utils import to_string, read_txt, write_csv_xy, import_pt_time_series
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
@@ -73,6 +73,8 @@ class _collect_u2_vs_k(object):
         assert os.path.isfile(self.findk_configpath)
         self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
         assert os.path.isfile(self.kmin_configpath)
+        self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + fname + '.config')
+        assert os.path.isfile(self.pt_configpath)
         self.verbose = verbose
         if self.verbose:
             print("self.packing_configpath", self.packing_configpath)
@@ -137,6 +139,8 @@ class _collect_u2_vs_k(object):
         self.kmin = configf.getfloat('KMIN_MCRUNNER', 'k')
         self.displ_k_min = configf.getfloat('KMIN', 'displ_k_min')
         self.var_displ_k_min = configf.getfloat('KMIN', 'var_displ_k_min')
+        configf.read(str(self.pt_configpath))
+        self.adjustf_niter = configf.getfloat('MCRUNNER', 'adjustf_niter')
     
     def _import_ks(self):
         """
@@ -190,22 +194,9 @@ class _collect_u2_vs_k(object):
             self.std_error_array = self.std_error_array[k0_idx:]
             
     def _import_time_series(self):
-        timeseries = []
-        series_order = []
-        for subdir, dirs, files in os.walk(self.explore_dir):
-            for dir in dirs:
-                if dir.isdigit():
-                    path = os.path.join(self.explore_dir, dir)
-                    file_list = glob.glob(path + '/TimeSeries*')
-                    file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
-                    series_order.append(int(dir))
-                    series = []
-                    for series_path in file_list:
-                        series.extend(read_txt(series_path))
-                    timeseries.append(series)
-        X = np.array(timeseries)
-        Y = series_order
-        self.timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
+        self.timeseries = import_pt_time_series(self.explore_dir, self.adjustf_niter, 
+                                                max_series_size=0, ncores=4, 
+                                                crop_adjustf_niter=False, del_raw=True)
 
     def _import_steps_time_series_diffusion(self, eqtime=int(2e5)):
         import re

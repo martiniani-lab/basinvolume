@@ -695,7 +695,7 @@ def query_yes_no(question, default="yes"):
                              "(or 'y' or 'n').\n")
 
 def import_pt_time_series(explore_dir, adjustf_niter, 
-                          max_series_size=0, ncores=7, 
+                          max_series_size=0, ncores=4, 
                           del_raw=False, crop_adjustf_niter=False):
         """
         to import without loss of data set max_series_size=0 and crop_adjustf_niter=False
