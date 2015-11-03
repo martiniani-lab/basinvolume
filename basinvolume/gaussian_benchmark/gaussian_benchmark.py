@@ -289,7 +289,6 @@ class GaussianBenchmark(object):
         print("self.direct_k_values", self.direct_k_values)
         print("self.direct_k_u2_means", self.direct_k_u2_means)
         print("self.direct_k_u2_variances", self.direct_k_u2_variances)
-        assert(False)
     def run_biased_random_walk_in_basin(self, k_index):
         k_value = self.direct_k_values[k_index]
         hmin = 0
