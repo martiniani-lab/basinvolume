@@ -395,9 +395,6 @@ class GaussianBenchmark(object):
         f.close()
     def compute_volume(self, configuration_name="config0.gauss"):
         print("computing volume")
-        """
-        Set analysis base directory.
-        """
         self.explore_dir = os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6]))
         self.base_directory = os.path.join(os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6])), "analysis")
         base_directory = self.base_directory
@@ -410,7 +407,11 @@ class GaussianBenchmark(object):
         self.var_array = copy.deepcopy(self.direct_k_u2_variances)
         self.u2_array.append(self.displ_k_max)
         self.var_array.append(self.var_displ_k_max)
-        self.std_error_array = np.ones(self.var_array) #We are not using that error bar for the current analysis. The code will be run until a certain precision to the total is reached.
+        self.std_error_array = np.ones(len(self.var_array)) #We are not using that error bar for the current analysis. The code will be run until a certain precision to the total is reached.
+        print("printing computing volume data")
+        self._print_u2_vs_k()
+        self._compute_volume()
+        self._print_volumes()
     def compute_volume_old(self, configuration_name="config0.gauss"):
         print("computing volume")
         """
