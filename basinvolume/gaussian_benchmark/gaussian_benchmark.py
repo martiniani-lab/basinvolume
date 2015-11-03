@@ -279,7 +279,7 @@ class GaussianBenchmark(object):
         configuration_name="config{}.gauss".format(self.minimum_index)
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
-        self.all_k_values = spring_constants_variable_transform(self.nprocs + 1, self.kmax, self.nparticles, self.bdim)
+        self.all_k_values = spring_constants_variable_transform(self.nprocs + 1, self.kmax, self.displ2_kmin_mean, self.nparticles, self.bdim)
         self.direct_k_values = self.all_k_values[:-1]
         self.direct_k_u2_means = []
         self.direct_k_u2_variances = []
@@ -404,29 +404,14 @@ class GaussianBenchmark(object):
         base_directory = self.base_directory
         trymakedir(base_directory)
         self.karray = self.all_k_values
-        ##
-        
-        ####
-        """
-        
-        
-        self.std_error_array.insert(0, self.std_error_kmax)
-        self.u2_array = np.array(self.u2_array[::-1], dtype='d')
-        self.var_array = np.array(self.var_array[::-1], dtype='d')
-        self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
-        """
-        ####
         self.displ_k_max = self.kmax_displ2
         self.var_displ_k_max = self.var_displ_kmax
         self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
-        
-        self.u2_array = 
-        self.var_array = 
-        self.std_error_array = 
+        self.u2_array = copy.deepcopy(self.direct_k_u2_means)
+        self.var_array = copy.deepcopy(self.direct_k_u2_variances)
         self.u2_array.append(self.displ_k_max)
         self.var_array.append(self.var_displ_k_max)
-        self.
-        ##
+        self.std_error_array = np.ones(self.var_array) #We are not using that error bar for the current analysis. The code will be run until a certain precision to the total is reached.
     def compute_volume_old(self, configuration_name="config0.gauss"):
         print("computing volume")
         """
