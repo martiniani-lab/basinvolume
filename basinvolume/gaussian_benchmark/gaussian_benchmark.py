@@ -284,7 +284,7 @@ class GaussianBenchmark(object):
         self.direct_k_u2_means = []
         self.direct_k_u2_variances = []
         for i, k in enumerate(self.direct_k_values):
-            run_biased_random_walk_in_basin(i)
+            self.run_biased_random_walk_in_basin(i)
         self.nfev.count += self.conftest_check_same_minimum.get_nfev()
         print("self.direct_k_values", self.direct_k_values)
         print("self.direct_k_u2_means", self.direct_k_u2_means)
