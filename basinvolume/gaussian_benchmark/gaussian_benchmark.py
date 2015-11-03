@@ -342,11 +342,6 @@ class GaussianBenchmark(object):
         print("compute volume")
         print("k", self.k)
         print("displ2", self.displ2)
-    def print_nr_function_calls(self):
-        #print("total nr function calls PES")
-        #print("self.optimizer.get_niter()", self.optimizer.get_niter())
-        print("self.total_neval", self.total_neval)
-        print("self.harmonic_energy_calls", self.harmonic_energy_calls)
     def print_gaussian_sum_config_file(self):
         print("trymakedir", self.basic_config_path)
         trymakedir(self.basic_config_path)
@@ -567,7 +562,6 @@ def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False
     bm.run_kmin()
     bm.run_PT()
     bm.compute_volume(configuration_name=config)
-    bm.print_nr_function_calls()
     # Read in thermodynamic integration volume results.
     analysis_path = os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis")
     volume_data_path = os.path.join(analysis_path, "volume_data")
