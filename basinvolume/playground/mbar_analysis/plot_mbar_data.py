@@ -542,7 +542,6 @@ class plot_mbar_data(object):
             ax7 = fig7.add_subplot(111)
             for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 0:
-                    print np.array(dataset.step_timeseries_stepsize)
                     X, DX = dataset.step_timeseries_mean_path_data, dataset.step_timeseries_mean_path_std_data
                     Y, DY = dataset.step_timeseries_mean_eucdist_data, dataset.step_timeseries_mean_eucdist_std_data
                     label = '{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly)

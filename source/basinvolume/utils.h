@@ -68,7 +68,7 @@ Array<double> cread_txt(const std::string fname, const size_t ncrop, const size_
     size_t l = get_file_length(fname);
     //std::cout<<"file_length "<<fname<<" "<<l<<std::endl;
     if (nmax > 0 && (l-ncrop)>nmax){
-        nevery = (int) (l-ncrop) / nmax;
+        nevery = std::max<int>((int) (l-ncrop) / nmax, 1);
     }
     std::ifstream input(fname,  std::ifstream::in);
     std::vector<double> data;

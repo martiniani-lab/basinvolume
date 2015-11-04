@@ -21,13 +21,28 @@ cdef class _Cdef_CheckHyperSphericalContainer(_Cdef_ConfTest):
     """
     cdef cppCheckHyperSphericalContainer* newptr
     def __cinit__(self, origin, radius, ndim):
-        cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
-        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckHyperSphericalContainer(_pele.Array[double](<double*> orginc.data, orginc.size), radius, ndim))
+        cdef _pele.Array[double] ori_ = array_wrap_np(origin)
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckHyperSphericalContainer(ori_, radius, ndim))
         self.newptr = <cppCheckHyperSphericalContainer*> self.thisptr.get()
         
 class CheckHyperSphericalContainer(_Cdef_CheckHyperSphericalContainer):
     """This class is the python interface for the c++ CheckHyperSphericalContainer implementation."""
 
+#===============================================================================
+# Check hyper spherical container
+#===============================================================================
+
+cdef class _Cdef_CheckHyperCubicContainer(_Cdef_ConfTest):
+    """This class is the python interface for the c++ pele::CheckHyperCubicContainer configuration test class implementation
+    """
+    cdef cppCheckHyperCubicContainer* newptr
+    def __cinit__(self, origin, sidelength, ndim):
+        cdef _pele.Array[double] ori_ = array_wrap_np(origin)
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckHyperCubicContainer(ori_, sidelength, ndim))
+        self.newptr = <cppCheckHyperCubicContainer*> self.thisptr.get()
+        
+class CheckHyperCubicContainer(_Cdef_CheckHyperCubicContainer):
+    """This class is the python interface for the c++ CheckHyperCubicContainer implementation."""
 
 #===============================================================================
 # Check Overlap Periodic
