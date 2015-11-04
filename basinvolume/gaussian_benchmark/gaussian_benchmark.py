@@ -279,17 +279,16 @@ class GaussianBenchmark(object):
         configuration_name="config{}.gauss".format(self.minimum_index)
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
-        self.all_k_values = spring_constants_variable_transform(self.nprocs + 1, self.kmax, self.nparticles, self.bdim)
+        self.all_k_values = spring_constants_variable_transform(self.nprocs + 1, self.kmax, self.displ2_kmin_mean, self.nparticles, self.bdim)
         self.direct_k_values = self.all_k_values[:-1]
         self.direct_k_u2_means = []
         self.direct_k_u2_variances = []
         for i, k in enumerate(self.direct_k_values):
-            run_biased_random_walk_in_basin(i)
+            self.run_biased_random_walk_in_basin(i)
         self.nfev.count += self.conftest_check_same_minimum.get_nfev()
         print("self.direct_k_values", self.direct_k_values)
         print("self.direct_k_u2_means", self.direct_k_u2_means)
         print("self.direct_k_u2_variances", self.direct_k_u2_variances)
-        assert(False)
     def run_biased_random_walk_in_basin(self, k_index):
         k_value = self.direct_k_values[k_index]
         hmin = 0
@@ -343,11 +342,6 @@ class GaussianBenchmark(object):
         print("compute volume")
         print("k", self.k)
         print("displ2", self.displ2)
-    def print_nr_function_calls(self):
-        #print("total nr function calls PES")
-        #print("self.optimizer.get_niter()", self.optimizer.get_niter())
-        print("self.total_neval", self.total_neval)
-        print("self.harmonic_energy_calls", self.harmonic_energy_calls)
     def print_gaussian_sum_config_file(self):
         print("trymakedir", self.basic_config_path)
         trymakedir(self.basic_config_path)
@@ -396,37 +390,23 @@ class GaussianBenchmark(object):
         f.close()
     def compute_volume(self, configuration_name="config0.gauss"):
         print("computing volume")
-        """
-        Set analysis base directory.
-        """
         self.explore_dir = os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6]))
         self.base_directory = os.path.join(os.path.join(os.getcwd(), 'explore_bv_' + str(configuration_name[0:-6])), "analysis")
         base_directory = self.base_directory
         trymakedir(base_directory)
         self.karray = self.all_k_values
-        ##
-        
-        ####
-        """
-        
-        
-        self.std_error_array.insert(0, self.std_error_kmax)
-        self.u2_array = np.array(self.u2_array[::-1], dtype='d')
-        self.var_array = np.array(self.var_array[::-1], dtype='d')
-        self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
-        """
-        ####
         self.displ_k_max = self.kmax_displ2
         self.var_displ_k_max = self.var_displ_kmax
         self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
-        
-        self.u2_array = 
-        self.var_array = 
-        self.std_error_array = 
+        self.u2_array = copy.deepcopy(self.direct_k_u2_means)
+        self.var_array = copy.deepcopy(self.direct_k_u2_variances)
         self.u2_array.append(self.displ_k_max)
         self.var_array.append(self.var_displ_k_max)
-        self.
-        ##
+        self.std_error_array = np.ones(len(self.var_array)) #We are not using that error bar for the current analysis. The code will be run until a certain precision to the total is reached.
+        print("printing computing volume data")
+        self._print_u2_vs_k()
+        self._compute_volume()
+        self._print_volumes()
     def compute_volume_old(self, configuration_name="config0.gauss"):
         print("computing volume")
         """
@@ -582,7 +562,6 @@ def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False
     bm.run_kmin()
     bm.run_PT()
     bm.compute_volume(configuration_name=config)
-    bm.print_nr_function_calls()
     # Read in thermodynamic integration volume results.
     analysis_path = os.path.join(os.getcwd(), 'explore_bv_config{}'.format(minimum_index), "analysis")
     volume_data_path = os.path.join(analysis_path, "volume_data")
