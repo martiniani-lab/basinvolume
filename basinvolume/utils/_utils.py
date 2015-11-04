@@ -714,6 +714,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
         delraw bool
             delete raw timeseries
         """
+        assert (max_series_size > 0 and crop_adjustf_niter is True) or (max_series_size == 0 and crop_adjustf_niter is False)
         tsframe = os.path.join(explore_dir, 'timeseries.h5')
         try:
             df = pd.read_hdf(tsframe, 'ts')
