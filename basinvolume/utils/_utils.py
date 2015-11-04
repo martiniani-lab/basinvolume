@@ -773,7 +773,7 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
                     init_max_size = int(max_series_size*init_size/tot_size)
                     other_max_size = int((max_series_size-init_max_size)/len(file_list[1:]))
                 else:
-                    #import all and don't crop
+                    #import all and don't crop (this is a bit hacky)
                     other_max_size = 0
                     adjustf_niter = 0
                 series = []

@@ -8,6 +8,10 @@ cdef extern from "basinvolume/check_hyper_spherical_container.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
         cppCheckHyperSphericalContainer(_pele.Array[double], double, size_t) except +
 
+cdef extern from "basinvolume/check_hyper_cubic_container.h" namespace "bv":
+    cdef cppclass cppCheckHyperCubicContainer "bv::CheckHyperCubicContainer":
+        cppCheckHyperCubicContainer(_pele.Array[double], double, size_t) except +
+
 # cython has no support for integer template argument.  This is a hack to get around it
 # https://groups.google.com/forum/#!topic/cython-users/xAZxdCFw6Xs
 # Basically you fool cython into thinking INT2 is the type integer,
