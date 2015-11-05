@@ -15,11 +15,11 @@ import ConfigParser
 import csv
 import pandas as pd
 import glob
-from joblib import Parallel, delayed
 from basinvolume.utils._utils_cpp import read_txt
 from itertools import cycle, chain
 import shutil
 try:
+    from joblib import Parallel, delayed
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
