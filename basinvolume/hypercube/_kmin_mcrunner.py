@@ -46,7 +46,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         potential = Harmonic(self.coords, k, bdim=self.ndof, com=False)
-        self.mcrunner = HypercubeMCrunner(potential, self.coords, self.temperature, self.sidelength/100, niter, self.coords, 
+        self.mcrunner = HypercubeMCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
                                           sidelength=self.sidelength, k=k, acceptance=acceptance, adjustf=adjustf, 
                                           adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg,
                                           hmin=hmin, hmax=hmax, hbinsize=hbinsize, 
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    ndof = 100
+    ndof = 2
     sim = _hypercube_kmin_mcrunner(ndof, niter=1e6, k=0, seeds=seeds,
                          single=True, verbose=True, hmax=1, hbinsize=0.001)
     #record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)

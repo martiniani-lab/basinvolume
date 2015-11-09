@@ -10,7 +10,7 @@ import ConfigParser
 import time
 import cPickle as pickle
 
-class configure_bv_mcrunner(_configure_mcrunner):
+class _hypercube_bv_mcrunner(_configure_mcrunner):
     """
     """
     
@@ -18,7 +18,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
         self.rank = rank
         self.nprocs = nprocs
     
-    def __call__(self, base_dir, k=1.0, stepsize=1e-1, niter=2e4, hmin=0, 
+    def __call__(self, base_dir, k=1.0, stepsize=1e-3, niter=2e4, hmin=0, 
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter=5e3, adjustf_navg=100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, single=False, seeds=None, 
                  record_histogram=False,verbose=False):
@@ -139,8 +139,8 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = configure_bv_mcrunner(0, 1)
-    mcrunner = sim('explore_bv_hypercube_n2_l1', seeds=seeds, verbose=True)
+    sim = _hypercube_bv_mcrunner(0, 1)
+    mcrunner = sim('explore_bv_hypercube_n2_l1', seeds=seeds, verbose=True, niter=1e6)
     print 'simulation started'
     start=time.time()
     mcrunner.run()

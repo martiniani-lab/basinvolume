@@ -5,6 +5,7 @@ from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
 from basinvolume.utils import get_dist_com, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
+from basinvolume.hypercube import HypercubeMCrunner
 from pymbar.timeseries import detectEquilibration_binary_search
 import copy, warnings, time
 try:
@@ -45,7 +46,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, fast_ct=False, 
                  rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False, 
-                 base_directory=None, verbose=False, bs_nodes=100, eq_min_ptiter=None, eq_max_ptiter=None):
+                 base_directory=None, verbose=False, bs_nodes=100, eq_min_ptiter=None, eq_max_ptiter=None, fix_com=True):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip, 
                                                    print_status=print_status, base_directory=base_directory, verbose=verbose)
         self.u2meank0 = u2meank0
@@ -68,6 +69,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.bs_nodes = int(bs_nodes)
         self.numnegk = int(numnegk)
         self.lownegk = int(lownegk)
+        self.fix_com = fix_com
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
@@ -262,9 +264,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         *red_origin is just the origin for systems with pbc and is the reduced set of coordinates for systems with frozen coordinates 
         """
         #compute dx with com correction for each replica
-        assert isinstance(self.mcrunner, BV_MCrunner) or isinstance(self.mcrunner, GaussianBenchmarkKminRun)
-        dx = get_dist_com(np.array(self.config,dtype='d'),np.array(self.mcrunner.red_origin,dtype='d'),self.mcrunner.bdim)
-        
+        assert (isinstance(self.mcrunner, BV_MCrunner) or isinstance(self.mcrunner, HypercubeMCrunner))
+        if self.fix_com:
+            dx = get_dist_com(np.array(self.config,dtype='d'),np.array(self.mcrunner.red_origin,dtype='d'),self.mcrunner.bdim)
+        else:
+            dx = np.linalg.norm(np.array(self.config,dtype='d') - np.array(self.mcrunner.red_origin,dtype='d'))
         #gather dx, only root will do so
         dx_array = self._gather_energies(dx)
         if self.verbose:

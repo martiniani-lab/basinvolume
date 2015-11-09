@@ -24,6 +24,7 @@ class HypercubeMCrunner(_BaseMCRunner):
         self.bdim = len(full_coords)
         self.ndof = self.bdim
         self.origin = np.array(origin)
+        self.red_origin = origin #necessary for pt
         self.rattlers = np.ones(self.bdim)
         self.sidelength = sidelength
         self.set_control(k)
@@ -103,9 +104,6 @@ class HypercubeMCrunner(_BaseMCRunner):
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.action_record_displ.check_convergence(nr_steps_to_check=nr_steps_to_check,
                                                    rel_std_threshold=rel_std_threshold)
-    def _import_packing_config_files(self):
-        """import packings configuration file"""
-        pass
 
 class HypercubeFindkMCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,

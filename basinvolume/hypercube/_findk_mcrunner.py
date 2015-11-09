@@ -72,7 +72,8 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-    
+        self._print_parameters()
+        
     def _write_sim_params(self, f):
         """
         write simulation parameters
@@ -88,7 +89,7 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
     
     def _print_results(self):
         fname = self.configfile
-        f = open(fname, 'w')
+        f = open(fname, 'a')
         f.write('[FINDK_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
         for key, value in status.iteritems():
@@ -109,8 +110,8 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    ndof = 3
-    sim = _hypercube_findk_mcrunner(ndof=3, avgcount=1e4, k=25, ktarget=0.9, knavg=1e3,
+    ndof = 2
+    sim = _hypercube_findk_mcrunner(ndof, avgcount=1e4, k=25, ktarget=0.9, knavg=1e3,
                                     seeds=seeds, verbose=True)
     print 'simulation started'
     start=time.time() 
