@@ -269,7 +269,7 @@ class mbar_compute_dos(object):
         
         for i in xrange(K):
             if i == 0:
-                u_kn[i] = ((self.nparticles-1)*self.bdim-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
+                u_kn[i] = (self.ndof-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
             else:
                 u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
         assert self.karray.size == u_kn.shape[0]
@@ -391,7 +391,7 @@ class mbar_compute_dos(object):
     
     def _unbias_histogram(self):
         hist_unbiased = np.outer(0.5*self.karray[1:], self.bin_edges[:-1]**2)
-        hist_unbiased = np.vstack((((self.nparticles-1)*self.bdim-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[0]*self.bin_edges[:-1]**2, hist_unbiased))
+        hist_unbiased = np.vstack(((self.ndof-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[0]*self.bin_edges[:-1]**2, hist_unbiased))
         self.hist_unbiased = hist_unbiased
         assert self.hist_visits.shape == self.hist_unbiased.shape
         assert self.hist_visits.shape[0] == self.karray.size
@@ -536,7 +536,7 @@ class mbar_compute_dos(object):
 #        ax = fig.add_subplot(111)
 #        A = surface_nball(1.,self.ndof)
 #        Vrat = np.exp(self.F0 - self.nparticles*self.bdim*np.log(self.vcavity))
-#        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)) * (self.bin_edges[:-1]**(self.nparticles*self.bdim-1)))
+#        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)) * (self.bin_edges[:-1]**self.ndof)
 #        ax.set_xlabel(r'$\Delta r$')
 #        ax.set_ylabel(r'$S_n^{\Gamma}$')
 #        #ax.set_yscale('log')

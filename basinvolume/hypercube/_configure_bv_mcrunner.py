@@ -31,7 +31,7 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
                 
         #set parameters
         #self.mc_params = dict(k=k, temperature=temperature, )
-        self.mc_params = {'ndof':self.ndof, 'sidelength':self.sidelength, 'k':k,'temperature':self.temperature,'niter':niter,
+        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,
                           'stepsize':stepsize, 'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,
                           'adjustf':adjustf, 'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,'pt_eq_niter':pt_eq_niter,
                           'ts_niter':ts_niter, 'ts_freq':ts_freq, 'record_histogram':record_histogram, 'single':single}
@@ -95,6 +95,9 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
         """    
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Explore_Jammed_Packings wrapper class input parameters\n')
+        f.write('[BV_HYPERCUBE]\n')
+        f.write('ndof: {}\n'.format(self.ndof))
+        f.write('sidelength: {}\n'.format(self.sidelength))
         f.write('[MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value))

@@ -28,7 +28,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
             self.niter = niter
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
-        self.mc_params = {'ndof':self.ndof, 'sidelength':self.sidelength, 'k':self.k,'temperature':self.temperature,
+        self.mc_params = {'k':self.k,'temperature':self.temperature,
                           'niter':self.niter,'stepsize':self.stepsize, 'hmin':hmin,'hmax':hmax, 'hbinsize':hbinsize, 
                           'record_histogram':record_histogram}
         #add seeds dictionary to mc_params
@@ -103,6 +103,9 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         """
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Explore_Jammed_Packings wrapper class input parameters\n')
+        f.write('[INNERSPHERE_HYPERCUBE]\n')
+        f.write('ndof: {}\n'.format(self.ndof))
+        f.write('sidelength: {}\n'.format(self.sidelength))
         f.write('[INNERSPHERE_MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value))
