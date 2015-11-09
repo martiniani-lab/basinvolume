@@ -20,3 +20,4 @@ from _non_parametric_log_omega import KernelDensityLogOmegaJackKnife
 from _packing_data_containers import *
 from _basin_analysis import *
 from compute_structural_properties import StructuralAnalysis
+from compute_volumes import ComputeVolumesMBARMultiConfigFile, ComputeVolumesTINTMultiConfigFile
