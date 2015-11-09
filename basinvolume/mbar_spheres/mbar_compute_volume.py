@@ -486,44 +486,50 @@ class mbar_compute_dos(object):
     def _plot_dos(self):
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
-        
+              
+        #bin_edges=self.bin_edges[:-1]
         logn_E = np.array(self.logn_E - np.amax(self.logn_E))
         dos = np.exp(logn_E)
         dos /= simps(dos, self.bin_edges[:-1])
         logn_E = np.log(dos)
         
+        finindx = np.where(np.isfinite(self.logn_E))[0]
+        logn_E = np.array([self.logn_E[i] for i in finindx])
+        bin_edges = np.array([self.bin_edges[i] for i in finindx])
+        
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], logn_E, label=r'$\log(\xi(r))$', color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, logn_E, label=r'$\log(\xi(r))$', color=color_cycle.next(), linewidth=2)
         #dx = self.bin_edges[1] - self.bin_edges[0]
         rg = np.array(logn_E)
-        rg -= (self.ndof-1)*np.log(self.bin_edges[:-1])
+        rg -= (self.ndof-1)*np.log(bin_edges)
         rg -= np.mean(rg[:3])
+        #print  "mean(rg[:3])= ", np.mean([rg[finindx[0]],rg[finindx[1]],rg[finindx[2]]])
         assert(abs(np.mean(rg[:3])) < 1e-8)
-        ax.plot(self.bin_edges[:-1], rg, label=r'$\log(\xi(r)/r^{N-1})$', color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=color_cycle.next(), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
         plt.ylim((min(np.amin(rg), np.amin(logn_E)), max(np.amax(rg),np.amax(logn_E)) ))
         plt.savefig(self.base_directory + '/log_dos.eps')
-        write_csv_xy(self.bin_edges[:-1], logn_E, fname=os.path.join(self.base_directory, 'log_gr.csv'))
-        write_csv_xy(self.bin_edges[:-1], rg, fname=os.path.join(self.base_directory, 'log_gr_ratio.csv'))
+        write_csv_xy(bin_edges, logn_E, fname=os.path.join(self.base_directory, 'log_gr.csv'))
+        write_csv_xy(bin_edges, rg, fname=os.path.join(self.base_directory, 'log_gr_ratio.csv'))
         if self.show:
             plt.show()
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], np.exp(rg)) #-np.amax(rg)
+        ax.plot(bin_edges, np.exp(rg)) #-np.amax(rg)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel(r'$\xi(r)/r^{N-1}$')
         plt.savefig(self.base_directory + '/ratio_g.eps')
-        write_csv_xy(self.bin_edges[:-1], np.exp(rg), fname=os.path.join(self.base_directory, 'gr_ratio.csv')) # -np.amax(rg)
+        write_csv_xy(bin_edges, np.exp(rg), fname=os.path.join(self.base_directory, 'gr_ratio.csv')) # -np.amax(rg)
         if self.show:
             plt.show()
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], rg) # -np.amax(rg)
+        ax.plot(bin_edges, rg) # -np.amax(rg)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel(r'$\log(\xi(r)/r^{N-1})$')
         ax.set_xscale('log')
@@ -536,7 +542,7 @@ class mbar_compute_dos(object):
 #        ax = fig.add_subplot(111)
 #        A = surface_nball(1.,self.ndof)
 #        Vrat = np.exp(self.F0 - self.nparticles*self.bdim*np.log(self.vcavity))
-#        ax.plot(self.bin_edges[:-1], np.exp(rg-np.amax(rg)) * (self.bin_edges[:-1]**self.ndof)
+#        ax.plot(bin_edges, np.exp(rg-np.amax(rg)) * (bin_edges**self.ndof)
 #        ax.set_xlabel(r'$\Delta r$')
 #        ax.set_ylabel(r'$S_n^{\Gamma}$')
 #        #ax.set_yscale('log')
@@ -548,11 +554,11 @@ class mbar_compute_dos(object):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], dos, color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, dos, color=color_cycle.next(), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel('DOS')
         plt.savefig(self.base_directory + '/dos.eps')
-        write_csv_xy(self.bin_edges[:-1], dos, fname=os.path.join(self.base_directory, 'dos.csv'))
+        write_csv_xy(bin_edges, dos, fname=os.path.join(self.base_directory, 'dos.csv'))
         if self.show:
             plt.show()
     

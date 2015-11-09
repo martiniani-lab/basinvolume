@@ -130,7 +130,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n2_l1', niter=1e5, seeds=seeds, verbose=False)
+    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n300_l1', niter=1e5, seeds=seeds, verbose=False)
     print 'simulation started'
     start=time.time()
     sim.run()
