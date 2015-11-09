@@ -228,6 +228,7 @@ class GaussianBenchmark(object):
         print("self.kmax_run.get_entries()", self.kmax_run.get_entries())
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
         print("kmax_run.get_nfev()", self.kmax_run.get_neval())
+        #self.nfev.count += self.kmax_run.get_neval() #That is included in the nfev count as obtained from the config test.
         self.total_neval += self.kmax_run.get_neval()
         self.harmonic_energy_calls += self.kmax_run.get_iterations_count()
         self.print_findk_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
@@ -270,13 +271,14 @@ class GaussianBenchmark(object):
         print("displ2_kmin", self.displ2_kmin_mean)
         print("displ2_kmin_variance", self.displ2_kmin_variance)
         print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        #self.nfev.count += kmin_run.get_neval() #Contribution is contained in nfev as obtained from config test, should not be added here.
         self.total_neval += kmin_run.get_neval()
         self.harmonic_energy_calls += kmin_run.get_iterations_count()
         print("self.total_neval, kmin, kmax", self.total_neval)
         self.print_kmin_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def run_PT(self):
         #This is not PT because the basins here are not glassy and our PT implementation is hard to understand.
-        configuration_name="config{}.gauss".format(self.minimum_index)
+        configuration_name = "config{}.gauss".format(self.minimum_index)
         dname = configuration_name[0:-6]
         base_pt_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
         self.all_k_values = spring_constants_variable_transform(self.nprocs + 1, self.kmax, self.displ2_kmin_mean, self.nparticles, self.bdim)
