@@ -4,7 +4,7 @@ import sys
 
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, NullPotential
-from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckHyperCubicContainer, RecordStepsTimeseries
+from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckHyperCubicContainer, RecordStepsTimeseries, RecordDisp2Histogram
 from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement
 from mcpele.monte_carlo import SampleGaussian
 from basinvolume.monte_carlo import Findk
@@ -12,10 +12,11 @@ from basinvolume.monte_carlo import Findk
 class HypercubeMCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  sidelength=1, k=1.0, acceptance=0.2, adjustf=0.9,
+                 hmin=0, hmax=1, hbinsize=0.001,
                  adjustf_niter=1e4, adjustf_navg=100, pt_eq_niter=0,
                  ts_niter=None, ts_freq=1, seeds=None, 
                  record_steps_timeseries=False, record_steps_timeseries_every=[1], 
-                 single=False):
+                 single=False, record_histogram=False):
         #construct base class
         super(HypercubeMCrunner, self).__init__(potential, full_coords, temperature, niter)
         
@@ -36,9 +37,10 @@ class HypercubeMCrunner(_BaseMCRunner):
             seeds = dict(seed_takestep=np.random.randint(i32max),
                     seed_metropolis=np.random.randint(i32max))
         self.seeds = seeds
-        
+            
         self.conftest = CheckHyperCubicContainer(self.origin, sidelength, self.bdim)
-        self.action_record_displ = RecordDisplacementTimeseries(self.origin, self.bdim, ts_niter, ts_freq)
+        self.action_record_displ = RecordDisplacementTimeseries(self.origin, self.bdim, ts_niter, 
+                                                                ts_freq, fix_com=False)
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         
         self.set_report_steps(adjustf_niter)
@@ -46,6 +48,12 @@ class HypercubeMCrunner(_BaseMCRunner):
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, nparticles=self.nparticles, bdim=self.bdim)
         
+        if record_histogram:
+            self.binsize = hbinsize
+            self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,
+                                                  self.binsize, self.equilibration_steps, fix_com=False)
+            self.add_action(self.histogram)
+            
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_accept_test(self.metropolis) #metropolis uses the harmonic potential
@@ -76,8 +84,8 @@ class HypercubeMCrunner(_BaseMCRunner):
         print("coords final", self.get_coords())
     
     def get_displ2_kmin(self):
-        print("recorded steps for displ2", self.action_record_displ.get_count())
-        return self.action_record_displ.get_mean_variance()
+        print("recorded steps for displ2", self.histogram.get_count())
+        return self.histogram.get_mean_variance()
     
     def dump_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
@@ -95,6 +103,9 @@ class HypercubeMCrunner(_BaseMCRunner):
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.action_record_displ.check_convergence(nr_steps_to_check=nr_steps_to_check,
                                                    rel_std_threshold=rel_std_threshold)
+    def _import_packing_config_files(self):
+        """import packings configuration file"""
+        pass
 
 class HypercubeFindkMCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
@@ -129,7 +140,8 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
         self.conftest = CheckHyperCubicContainer(self.origin, sidelength, self.bdim)
         self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
-                           self.knavg, self.ktol, self.hmin, self.hmax, self.hbinsize)
+                           self.knavg, self.ktol, self.hmin, self.hmax, self.hbinsize,
+                           fix_com=False)
         
         #set up pele:MC
         self.set_takestep(self.takestep)
@@ -181,10 +193,11 @@ if __name__ == "__main__":
         print(end - start)
     if True:
         potential = Harmonic(origin, k, bdim=ndim, com=False)
-        test = HypercubeMCrunner(potential, full_coords, 1, stepsize, int(1e5), origin, sidelength=1)
+        test = HypercubeMCrunner(potential, full_coords, 1, stepsize, int(1e5), origin, sidelength=1, record_histogram=True)
         start = time.time()
         test.run()
         end = time.time()
+        print('displ2_kmin', test.get_displ2_kmin())
         print(end - start)
         
         
