@@ -164,7 +164,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    ndof = 300
+    ndof = 3
     sim = _hypercube_kmin_mcrunner(ndof, niter=1e6, k=0, seeds=seeds,
                          single=True, verbose=True, hmax=1, hbinsize=0.001)
     #record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)

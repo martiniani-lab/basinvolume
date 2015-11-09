@@ -110,7 +110,7 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    ndof = 300
+    ndof = 3
     sim = _hypercube_findk_mcrunner(ndof, avgcount=1e4, k=50, ktarget=0.9, knavg=1e3,
                                     seeds=seeds, verbose=True)
     print 'simulation started'
