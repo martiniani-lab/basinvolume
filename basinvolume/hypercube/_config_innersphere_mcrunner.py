@@ -42,7 +42,8 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         potential = NullPotential()
         self.mcrunner = HypercubeInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, 
                                                      self.niter, self.coords, hmin=hmin, hmax=hmax, hbinsize=hbinsize, 
-                                                     seeds=seeds, record_histogram=record_histogram)
+                                                     seeds=seeds, record_histogram=record_histogram, 
+                                                     sidelength=self.sidelength)
         
         self._initialise()
         
@@ -52,6 +53,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
             self._print_results()
             self._print_success(True)
         except:
+            view_traceback()
             self._print_success(False)
     
     def _set_paths(self, base_dir):
@@ -130,7 +132,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n3_l1', niter=1e5, seeds=seeds, verbose=False)
+    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n93_l1', niter=1e5, seeds=seeds, verbose=False)
     print 'simulation started'
     start=time.time()
     sim.run()

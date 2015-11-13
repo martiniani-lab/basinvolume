@@ -71,6 +71,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
             self._print_results()
             self._print_success(True)
         except:
+            view_traceback()
             self._print_success(False)
     
     def _set_paths(self, packings_dir):

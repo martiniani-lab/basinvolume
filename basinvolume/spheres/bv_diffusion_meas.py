@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute kmax and minimum average displacement for kmin for all jammed packings")
     parser.add_argument("-j","--ncores", type=int, help="number of packings to produce",default=4)
     parser.add_argument("-n","--niter", type=int, help="number of iterations",default=int(1e6))
+    parser.add_argument("-f","--force", action='store_true', help="run all", default=False)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity", default=False)
     args = parser.parse_args()
         
@@ -41,7 +42,10 @@ if __name__ == "__main__":
             packings_dir = os.path.join(dir_path, "jammed_packings")
             explore_dir_list = listdir = glob.glob(os.path.join(dir_path, "explore_bv_jammed_packing*"))
             for explore_dir_path in explore_dir_list:
-                tst = [] #glob.glob(os.path.join(explore_dir_path, "diffusion/StepsTimeSeries.{}*".format(niter)))
+                if args.force:
+                    tst=[]
+                else:
+                    tst = glob.glob(os.path.join(explore_dir_path, "diffusion/StepsTimeSeries.{}*".format(niter)))
                 if len(tst) < 1:
                     explore_dir_name = os.path.split(explore_dir_path)[1]
                     packing_number = re.findall('\d+', explore_dir_name)[0]

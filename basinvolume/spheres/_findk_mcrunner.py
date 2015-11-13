@@ -6,7 +6,7 @@ from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
-from basinvolume.utils import get_git_version, get_python_version, get_cython_version
+from basinvolume.utils import get_git_version, get_python_version, get_cython_version, view_traceback
 import ConfigParser
 import time
 import copy
@@ -71,6 +71,7 @@ class _findk_mcrunner(_configure_mcrunner):
             self._print_results()
             self._print_success(True)
         except:
+            view_traceback()
             self._print_success(False)
     
     def _set_paths(self, packings_dir):

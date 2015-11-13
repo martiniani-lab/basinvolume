@@ -83,9 +83,12 @@ class _kmin_mcrunner(_configure_mcrunner):
         try:
             self.mcrunner.run()
             self.displ_k_min, self.var_displ_k_min = self.mcrunner.histogram.get_mean_variance()
+            mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
+            self.mean_coord_dist, self.var_coord_dist = np.linalg.norm(mean_coord-self.mcrunner.origin), np.sum(var_coord)
             self._print_results()
             self._print_success(True)
         except:
+            view_traceback()
             self._print_success(False)
     
     def _set_paths(self, packings_dir):
@@ -170,6 +173,8 @@ class _kmin_mcrunner(_configure_mcrunner):
         f.write('[KMIN]\n')
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
         f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
+        f.write('mean_coord_dist: {:.16f}\n'.format(self.mean_coord_dist))
+        f.write('var_coord_dist: {:.16f}\n'.format(self.var_coord_dist))
         f.close()
     
     def _dump_diffusion_timeseries(self):
@@ -225,6 +230,8 @@ if __name__ == "__main__":
     print status
     print 'd2 kmin: ',sim.displ_k_min
     print 'var: ',sim.var_displ_k_min
+    print 'mean_coord_dist: ',sim.mean_coord_dist
+    print 'var_coord_dist: ', sim.var_coord_dist
     #sim.mcrunner.show_histogram_kmax()
     
     

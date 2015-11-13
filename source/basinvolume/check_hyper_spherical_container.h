@@ -14,9 +14,9 @@ namespace bv{
 class CheckHyperSphericalContainer:public mcpele::ConfTest{
 protected:
     void _get_vec_distance(const pele::Array<double>& coords);
-    pele::Array<double> _origin, _distance;
-    double _radius2;
-    size_t _ndim,_N;
+    pele::Array<double> m_origin, m_distance;
+    double m_radius2;
+    size_t m_ndim,m_N;
 public:
     CheckHyperSphericalContainer(pele::Array<double> origin, double radius, size_t ndim);
     virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc);

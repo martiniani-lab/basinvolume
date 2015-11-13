@@ -7,7 +7,7 @@ from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest, CheckSphericalContainer 
-from mcpele.monte_carlo import SampleGaussian
+from mcpele.monte_carlo import SampleGaussian, RecordMeanCoordVector
 from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
@@ -402,7 +402,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, nparticles=self.nparticles, bdim=self.bdim)
-        
+        self.record_mcv = RecordMeanCoordVector(self.ndim, self.equilibration_steps)
         #set up pele:MC
         self.set_takestep(self.takestep)
         if self.use_frozen:
@@ -412,6 +412,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.time_series)
+        self.add_action(self.record_mcv)
         if record_steps_timeseries:
             self.steps_timeseries_list = []
             self.record_steps_timeseries_every = record_steps_timeseries_every
@@ -525,6 +526,13 @@ class BV_MCrunner(_BaseMCRunner):
         plt.tight_layout()
         plt.savefig('kmax_histogram.eps')
         plt.show()
+    
+    def get_mean_variance_coordinate_vector(self):
+        """
+        returns the average coordinate vector from the sampling and the elementwise variance
+        """
+        mean_coord, var_coord = self.record_mcv.get_mean_variance_coordinate_vector()
+        return mean_coord, var_coord
         
 class Findk_MCrunner(_BaseMCRunner):
     """Findk MCrunner

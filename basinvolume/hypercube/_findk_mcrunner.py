@@ -4,7 +4,7 @@ import abc
 import os
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
-from basinvolume.utils import get_git_version, get_python_version, get_cython_version
+from basinvolume.utils import get_git_version, get_python_version, get_cython_version, view_traceback
 from mcpele.monte_carlo import NullPotential
 from basinvolume.hypercube import HypercubeFindkMCrunner
 import ConfigParser
@@ -58,6 +58,7 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
             self._print_results()
             self._print_success(True)
         except:
+            view_traceback()
             self._print_success(False)
     
     def _set_paths(self):
@@ -110,8 +111,8 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    ndof = 3
-    sim = _hypercube_findk_mcrunner(ndof, avgcount=1e4, k=50, ktarget=0.9, knavg=1e3,
+    ndof = 93
+    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, avgcount=1e4, k=50, ktarget=0.9, knavg=1e3,
                                     seeds=seeds, verbose=True)
     print 'simulation started'
     start=time.time() 

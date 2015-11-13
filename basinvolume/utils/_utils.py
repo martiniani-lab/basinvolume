@@ -103,6 +103,9 @@ def trymakedir(path):
 
 def view_traceback():
     ex_type, ex, tb = sys.exc_info()
+    print 'exception type:', ex_type
+    print 'exception:', ex
+    print 'Traceback:'
     traceback.print_tb(tb)
     del tb
 
@@ -694,6 +697,20 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
+
+def write_2d_array_to_hf5(array, key, path):
+    assert array.ndim == 2
+    nind , ncol = array.shape
+    ind = [i for i in xrange(nind)]
+    col = [i for i in xrange(ncol)]
+    df = pd.DataFrame(np.array(array), index=ind, columns=col)
+    df.to_hdf(path, key)
+
+def read_hf5_to_2d_array(path, key):
+    df = pd.read_hdf(path, key)
+    array = np.array(df.values)
+    return array
+
 def import_pt_time_series(explore_dir, adjustf_niter, 
                           max_series_size=0, ncores=4, 
                           del_raw=False, crop_adjustf_niter=False):
@@ -717,8 +734,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
         assert (max_series_size > 0 and crop_adjustf_niter is True) or (max_series_size == 0 and crop_adjustf_niter is False)
         tsframe = os.path.join(explore_dir, 'timeseries.h5')
         try:
-            df = pd.read_hdf(tsframe, 'ts')
-            timeseries = np.array(df.values)
+            timeseries = read_hf5_to_2d_array(tsframe, 'ts')
             if crop_adjustf_niter: 
                 print 'cropping adjustf_niter'
                 timeseries = timeseries[:,adjustf_niter:]
@@ -735,11 +751,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
                 timeseries = import_pt_time_series_raw(explore_dir, adjustf_niter, 
                                                        max_series_size=max_series_size,
                                                        ncores=ncores)
-                nind , ncol = timeseries.shape
-                ind = [i for i in xrange(nind)]
-                col = [i for i in xrange(ncol)]
-                df = pd.DataFrame(np.array(timeseries), index=ind, columns=col)
-                df.to_hdf(tsframe,'ts')
+                write_2d_array_to_hf5(timeseries, 'ts', tsframe)
             except Exception:
                 traceback.print_exc(file=sys.stdout)
                 sys.exit(0)
@@ -766,9 +778,9 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
                 series_order.append(int(dir))
                 path = os.path.join(explore_dir, dir)
                 file_list = glob.glob(path + '/TimeSeries*')
-                file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
-                tot_size = int(file_list[-1].split(".")[1]) - adjustf_niter
-                init_size = int(file_list[0].split(".")[1]) - adjustf_niter
+                file_list = sorted(file_list, key = lambda x: int(x.split(".")[-1]))
+                tot_size = int(file_list[-1].split(".")[-1]) - adjustf_niter
+                init_size = int(file_list[0].split(".")[-1]) - adjustf_niter
                 if max_series_size > 0:
                     init_max_size = int(max_series_size*init_size/tot_size)
                     other_max_size = int((max_series_size-init_max_size)/len(file_list[1:]))

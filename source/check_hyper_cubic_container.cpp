@@ -10,7 +10,11 @@ CheckHyperCubicContainer::CheckHyperCubicContainer(pele::Array<double> origin, d
     m_halfside(sidelength/2.0),
     m_ndim(ndim),
     m_N((origin.size()/ndim))
-{}
+{
+    std::cout<<"m_halfside" <<m_halfside<<std::endl;
+    std::cout<<"m_origin.size() "<<m_origin.size()<<std::endl;
+    std::cout<<"m_distance.size() "<<m_distance.size()<<std::endl;
+}
 
 bool CheckHyperCubicContainer::conf_test(Array<double> &trial_coords, mcpele::MC * mc)
 {

@@ -60,9 +60,12 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         try:
             self.mcrunner.run()
             self.displ_k_min, self.var_displ_k_min = self.mcrunner.histogram.get_mean_variance()
+            mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
+            self.mean_coord_dist, self.var_coord_dist = np.linalg.norm(mean_coord-self.mcrunner.origin), np.sum(var_coord)
             self._print_results()
             self._print_success(True)
         except:
+            view_traceback()
             self._print_success(False)
     
     def _set_paths(self):
@@ -118,7 +121,18 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         f.write('[KMIN]\n')
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min))
         f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
+        f.write('mean_coord_dist: {:.16f}\n'.format(self.mean_coord_dist))
+        f.write('var_coord_dist: {:.16f}\n'.format(self.var_coord_dist))
         f.close()
+        try:
+            self._dump_trajectory()
+        except:
+            view_traceback()
+    
+    def _dump_trajectory(self):
+        path = os.path.join(self.base_directory, 'kmin_trajectory.h5')
+        traj = self.mcrunner.get_trajectory()
+        write_2d_array_to_hf5(traj, 'trajectory', path)
     
     def _dump_diffusion_timeseries(self):
         fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params['niter']))
@@ -164,9 +178,9 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    ndof = 3
-    sim = _hypercube_kmin_mcrunner(ndof, niter=1e6, k=0, seeds=seeds,
-                         single=True, verbose=True, hmax=1, hbinsize=0.001)
+    ndof = 93
+    sim = _hypercube_kmin_mcrunner(ndof, sidelength=1, niter=1e8, k=0, seeds=seeds,
+                         single=True, verbose=True, hmax=15, hbinsize=0.001)
     #record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
     print 'simulation started'
     start=time.time()
@@ -177,12 +191,34 @@ if __name__ == "__main__":
     print status
     print 'd2 kmin: ',sim.displ_k_min
     print 'var: ',sim.var_displ_k_min
+    print 'mean_coord_dist: ',sim.mean_coord_dist
+    print 'var_coord_dist: ', sim.var_coord_dist
+    traj = sim.mcrunner.get_trajectory()
+    print np.shape(traj)
     #sim.mcrunner.show_histogram_kmax()
+#    from matplotlib import pyplot as plt
+#    from mpl_toolkits.mplot3d import Axes3D
+#    from mpl_toolkits.mplot3d import proj3d
+#    fig = plt.figure(figsize=(8,8))
+#    ax = fig.add_subplot(111, projection='3d')
+#    ax.plot(traj[:,0],traj[:,1],traj[:,2])
+#    plt.show()
+#    from sklearn.decomposition import PCA
+#    pca = PCA(n_components=0.5)
+#    pca.fit(traj)
+#    print(pca.explained_variance_ratio_)        
+    mean_traj = np.mean(traj, axis=0)
+    scatter_matrix = np.zeros((mean_traj.size, mean_traj.size))
+    for x in traj:
+        scatter_matrix += np.outer(x-mean_traj, x-mean_traj)
+    cov_mat = np.cov([traj[0,:], traj[1,:], traj[2,:]])
+    print scatter_matrix
+    print cov_mat
+    eig_val_sc, eig_vec_sc = np.linalg.eig(scatter_matrix)
+    eig_val_cov, eig_vec_cov = np.linalg.eig(cov_mat)
+    n, bins, patches = plt.hist(eig_val_sc, 50, facecolor='green', alpha=0.75)
+    plt.show()
     
-    
-        
-                
-            
               
                 
                 

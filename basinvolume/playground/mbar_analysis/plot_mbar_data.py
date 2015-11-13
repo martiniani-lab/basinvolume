@@ -57,6 +57,40 @@ def _read_nparticles(folder):
     nparticles = int(nparticles)
     return nparticles
 
+
+class MBARHypercubeData(object):
+    def __init__(self):
+        self.log_gr = None
+        self.log_gr_ratio = None
+        self.gr_ratio = None
+        self.dos = None
+    
+    def import_dos_data(self, path, log_gr_file = "log_gr.csv", log_gr_ratio_file = "log_gr_ratio.csv", 
+                        gr_ratio_file = "gr_ratio.csv", dos_file = "dos.csv"): 
+        """
+        I have removed mean, that can be added to the set
+        """
+        #log_gr
+        fpath = os.path.join(path, log_gr_file)
+        if os.path.isfile(fpath):
+            x, xerr, y, yerr, fit = read_csv_xy(fpath)
+            self.log_gr = np.transpose(np.array([x, xerr, y, yerr, fit]))
+        #log_gr_ratio
+        fpath = os.path.join(path, log_gr_ratio_file)
+        if os.path.isfile(fpath):
+            x, xerr, y, yerr, fit = read_csv_xy(fpath)
+            self.log_gr_ratio = np.transpose(np.array([x, xerr, y, yerr, fit]))
+        #gr_ratio
+        fpath = os.path.join(path, gr_ratio_file)
+        if os.path.isfile(fpath):
+            x, xerr, y, yerr, fit = read_csv_xy(fpath)
+            self.gr_ratio = np.transpose(np.array([x, xerr, y, yerr, fit]))
+        #dos
+        fpath = os.path.join(path, dos_file)
+        if os.path.isfile(fpath):
+            x, xerr, y, yerr, fit = read_csv_xy(fpath)
+            self.dos = np.transpose(np.array([x, xerr, y, yerr, fit]))
+
 class MBARPackingData(PackingData):
     def __init__(self, name, configpath, configpath_packing, packing_path=None):
         super(MBARPackingData, self).__init__(name, configpath, configpath_packing, packing_path=packing_path)
@@ -216,11 +250,34 @@ class MBARPackingDataSet(PolyPackingDataSet):
         self.step_timeseries_mean_eucdist_data = []
         self.step_timeseries_mean_eucdist_std_data = []
         self.step_timeseries_stepsize_data = []
-        
-    def add_data_all(self, packing_data):
+    
+    def add_data_all(self, packing_data, import_diffusion=False):
         """
         packing data is a list of PackingData objects
         """
+        if import_diffusion:
+            self._add_data_all_diffusion(packing_data)
+        else:
+            self._add_data_all(packing_data)
+    
+    def _add_data_all(self, packing_data):
+        self.packing_data.extend(packing_data)
+        for data in packing_data:
+            #the reason why they must all be true is because we are interested in the relation among these variables
+            if (data.F is not None and data.P is not None and data.Z is not None and data.boo is not None and
+                data.log_gr is not None and data.log_gr_ratio is not None and data.gr_ratio is not None and
+                data.dos is not None):
+                self.free_energies.append(data.F)
+                self.free_energies_err.append(data.Ferr)
+                self.pressures.append(data.P)
+                self.contacts.append(data.Z)
+                self.boos.append(data.boo)
+                self.log_gr_data.append(data.log_gr)
+                self.log_gr_ratio_data.append(data.log_gr_ratio) 
+                self.gr_ratio_data.append(data.gr_ratio)
+                self.dos_data.append(data.dos)
+    
+    def _add_data_all_diffusion(self, packing_data):
         self.packing_data.extend(packing_data)
         for data in packing_data:
             #the reason why they must all be true is because we are interested in the relation among these variables
@@ -308,12 +365,14 @@ class MBARPackingDataSet(PolyPackingDataSet):
 class MBARBasinAnalysis(BasinAnalysis):
     def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
                  analysis_dir='analysis', volume_file="mbar_volume_data", pressure_file="pressure_data", 
-                 zboo_file="glob_boo", volume_title = "VOLUME_MBAR", diffusion_dir="diffusion"):
+                 zboo_file="glob_boo", volume_title = "VOLUME_MBAR", diffusion_dir="diffusion", 
+                 import_diffusion=False):
         super(MBARBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir, 
                                                 jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir, 
                                                 volume_file=volume_file, pressure_file=pressure_file, 
                                                 zboo_file=zboo_file, volume_title=volume_title)
         self.diffusion_dir = diffusion_dir
+        self.import_diffusion = import_diffusion
         print self.volume_title
     
     def _collect_data_single_all(self, set_path):
@@ -336,15 +395,17 @@ class MBARBasinAnalysis(BasinAnalysis):
                     pd.import_structural_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir)
                     pd.import_dos_data(path)
-                    path = os.path.join(base_directory_path, self.diffusion_dir)
-                    pd.import_steps_time_series_diffusion(path)                   
+                    if self.import_diffusion:
+                        path = os.path.join(base_directory_path, self.diffusion_dir)
+                        pd.import_steps_time_series_diffusion(path)                   
                     pd_list.append(pd)
-        packing_dataset.add_data_all(pd_list)
+        packing_dataset.add_data_all(pd_list, import_diffusion=self.import_diffusion)
         packing_dataset.compute_mean_and_moments()    
         return packing_dataset
 
 class plot_mbar_data(object):
-    def __init__(self, mbar_packing_datasets, tint_packing_datasets, figdir="figures", show=False):
+    def __init__(self, mbar_packing_datasets, tint_packing_datasets, hypercube_data=None, 
+                 figdir="figures", show=False):
         if not os.path.isabs(figdir):
             figdir = os.path.join(os.getcwd(), figdir)
         trymakedir(figdir)
@@ -352,9 +413,10 @@ class plot_mbar_data(object):
         self.mbar_packing_datasets = mbar_packing_datasets
         self.tint_packing_datasets = tint_packing_datasets
         self.show = show
+        self.hypercube_data = hypercube_data
     
     def __call__(self):
-        if True:
+        if False:
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
             fig = plt.figure()
@@ -388,13 +450,13 @@ class plot_mbar_data(object):
             #self.plot_all(plot_type="gr_ratio", average=True)
             self.plot_all(plot_type="dos", average=True, savefig=True, show=self.show)
         if True:
-            self.plot_all(plot_type="log_gr", average=False)
-            self.plot_all(plot_type="log_gr_ratio", average=False, savefig=True, show=self.show)
-            self.plot_all(plot_type="gr_ratio", average=False)
-            self.plot_all(plot_type="dos", average=False, savefig=True, show=self.show)
+            #self.plot_all(plot_type="log_gr", average=False)
+            self.plot_all(plot_type="log_gr_ratio", average=False, savefig=True, show=self.show, logx=False)
+            #self.plot_all(plot_type="gr_ratio", average=False)
+            #self.plot_all(plot_type="dos", average=False, savefig=True, show=self.show)
         if False:
             self.plot_correlations(plot_type="m0_q6")
-        if True:
+        if False:
             #plot Q12 vs poly and pressure vs poly
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
@@ -447,7 +509,7 @@ class plot_mbar_data(object):
             ax2.set_xlabel(r"$\mathcal{P}$")
             fig2.savefig(os.path.join(self.figdir, 'q12_p.pdf'))
         
-        if True:
+        if False:
             #plot cdf of maximum r value visited by pt simulation
             color_cycle = get_color_cycle()
             line_cycle = get_line_cycle()
@@ -471,7 +533,7 @@ class plot_mbar_data(object):
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig3.savefig(os.path.join(self.figdir, 'maxr_cdf.pdf'))
             
-        if True:
+        if False:
             #plot correlation between volume and volume of core region
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
@@ -531,7 +593,7 @@ class plot_mbar_data(object):
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig5.savefig(os.path.join(self.figdir, 'mbar_tint_comparison.pdf'))
         
-        if True:
+        if False:
             #plot diffusion curves 
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
@@ -576,9 +638,47 @@ class plot_mbar_data(object):
             ax7.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig7.savefig(os.path.join(self.figdir, 'diffusion_logs_logr_red.pdf'))
+        
+        if True:
+            #plot comparison between fcc and hypercube (rescaled), also comput lengthscale
+            assert self.hypercube_data is not None
+            color_cycle = get_color_cycle()
+            marker_cycle = get_marker_cycle()
+            line_cycle = get_line_cycle()
+            fig8 = plt.figure()
+            ax8 = fig8.add_subplot(111)
+            #hypercube data
+            hc_arr = self.hypercube_data.log_gr_ratio
+            (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
+            hcj = next(idx for idx, value in enumerate(hcy) if value < -0.3) #-0.5 was chosen arbitrarily
+            #packings data
+            poly = 1.8816764231589208e-06
+            mbar_packing_datasets = sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)
+            #print [x.hs_poly for x in mbar_packing_datasets]
+            dataset =  next(x for x in self.mbar_packing_datasets if (np.isclose(x.hs_poly, poly) and 'fcc' in x.structural_label))
+            print dataset.hs_poly
+            for packing in dataset.packing_data: 
+                arr = packing.log_gr_ratio
+                if arr is not None:
+                    marker = marker_cycle.next()
+                    color = color_cycle.next()
+                    ls = line_cycle.next()
+                    (x, xerr, y, yerr, fit) = arr[:,0], arr[:,1], arr[:,2], arr[:,3], arr[:,4]
+                    j = next(idx for idx, value in enumerate(y) if value < -0.3) #-0.5 was chosen arbitrarily
+                    #resc = x[j]/hcx[hcj]
+                    #print "resc: ",resc
+                    csv_tuple = np.array([x, xerr, y, yerr, fit]).transpose() 
+                    ax8 = self._plot(ax8, csv_tuple, label=None, 
+                                     plot_err=True, plot_fit=False, color=color, 
+                                     marker=None, ls=ls)
+            csv_tuple = np.array([hcx, hcxerr, hcy, hcyerr, hcfit]).transpose() 
+            ax8 = self._plot(ax8, csv_tuple, label='hypercube', 
+                             plot_err=True, plot_fit=False, color='k', 
+                             marker=None, ls='-')
+            ax8.set_xscale('log')
+            fig8.savefig(os.path.join(self.figdir, 'hypercube_fcc_comparison.pdf')) 
             
-            
-    def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True):
+    def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True, logx=False):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         
@@ -595,6 +695,8 @@ class plot_mbar_data(object):
         
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
+        if logx:
+            ax.set_xscale('log')
         try:
             ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
@@ -811,7 +913,9 @@ if __name__ == "__main__":
     pts_tint = TINTBasinAnalysis()
     pts_mbar.collect_data_every_set_all(data_name="mbar_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
     pts_tint.collect_data_every_set_all(data_name="tint_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
-    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets)
+    hypercube_data = MBARHypercubeData()
+    hypercube_data.import_dos_data('/home/sm958/Work/basinvolume/basinvolume/hypercube/one_cube/explore_bv_hypercube_n93_l1/analysis')
+    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets, hypercube_data=hypercube_data)
     pmd()
     if show:
         plt.show()

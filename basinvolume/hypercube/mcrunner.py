@@ -4,8 +4,8 @@ import sys
 
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, NullPotential
-from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckHyperCubicContainer, RecordStepsTimeseries, RecordDisp2Histogram
-from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement
+from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckHyperCubicContainer, CheckHyperSphericalContainer, RecordStepsTimeseries, RecordDisp2Histogram
+from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement, RecordMeanCoordVector, RecordCoordsTimeseries
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
 from mcpele.monte_carlo import SampleGaussian, ConfTestOR
 from basinvolume.monte_carlo import Findk
@@ -59,7 +59,7 @@ class HypercubeMCrunner(_BaseMCRunner):
         self.equilibration_steps = adjustf_niter + pt_eq_niter
         if ts_niter is None:
             ts_niter = niter
-        
+        print(self.sidelength)
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
@@ -69,10 +69,10 @@ class HypercubeMCrunner(_BaseMCRunner):
             
         
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(self.origin, sidelength, self.bdim)
+        conftest = CheckHyperCubicContainer(self.origin, self.sidelength, self.bdim)
         self.conftest.add_test(conftest) 
-        conftest2 = CheckHyperCubicContainer(np.array(self.origin+0.25), sidelength, self.bdim)
-        self.conftest.add_test(conftest2)
+        #conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
+        #self.conftest.add_test(conftest2)
         
         self.action_record_displ = RecordDisplacementTimeseries(self.origin, self.bdim, ts_niter, 
                                                                 ts_freq, fix_com=False)
@@ -88,12 +88,16 @@ class HypercubeMCrunner(_BaseMCRunner):
             self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,
                                                   self.binsize, self.equilibration_steps, fix_com=False)
             self.add_action(self.histogram)
+        self.record_mcv = RecordMeanCoordVector(self.ndim, self.equilibration_steps)
+        self.record_trajectory = RecordCoordsTimeseries(int((self.niter-self.equilibration_steps)/100), self.equilibration_steps)
             
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_accept_test(self.metropolis) #metropolis uses the harmonic potential
         self.add_late_conf_test(self.conftest)
         self.add_action(self.action_record_displ)
+        self.add_action(self.record_mcv)
+        self.add_action(self.record_trajectory)
         if record_steps_timeseries:
             self.steps_timeseries_list = []
             self.record_steps_timeseries_every = record_steps_timeseries_every
@@ -138,7 +142,21 @@ class HypercubeMCrunner(_BaseMCRunner):
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.action_record_displ.check_convergence(nr_steps_to_check=nr_steps_to_check,
                                                    rel_std_threshold=rel_std_threshold)
-
+    
+    def get_mean_variance_coordinate_vector(self):
+        """
+        returns the average coordinate vector from the sampling and the elementwise variance
+        """
+        mean_coord, var_coord = self.record_mcv.get_mean_variance_coordinate_vector()
+        return mean_coord, var_coord
+    
+    def get_trajectory(self):
+        trajectory = self.record_trajectory.get_time_series()
+        return trajectory
+    
+    def clear_trajectory(self):
+        self.record_trajectory.clear()
+        
 class HypercubeFindkMCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  sidelength=1, ktarget = 0.9, knavg=500, ktol=0.05, avgcount=1e6,
@@ -172,10 +190,10 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
         
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(self.origin, sidelength, self.bdim)
+        conftest = CheckHyperCubicContainer(self.origin, self.sidelength, self.bdim)
         self.conftest.add_test(conftest) 
-        conftest2 = CheckHyperCubicContainer(np.array(self.origin+0.25), sidelength, self.bdim)
-        self.conftest.add_test(conftest2)
+        #conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
+        #self.conftest.add_test(conftest2)
         
         self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
                            self.knavg, self.ktol, self.hmin, self.hmax, self.hbinsize,
@@ -246,10 +264,10 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
             self.add_action(self.histogram)
         
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(self.origin, sidelength, self.bdim)
+        conftest = CheckHyperCubicContainer(self.origin, self.sidelength, self.bdim)
         self.conftest.add_test(conftest) 
-        conftest2 = CheckHyperCubicContainer(np.array(self.origin+0.25), sidelength, self.bdim)
-        self.conftest.add_test(conftest2)
+        #conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
+        #self.conftest.add_test(conftest2)
         
         self.time_series = RecordDisplacementTimeseries(self.origin, self.ndof, ts_niter, ts_freq, fix_com=False)
         
