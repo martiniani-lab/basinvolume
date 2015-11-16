@@ -49,7 +49,7 @@ if __name__ == "__main__":
                        opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, packings_dir=packings_dir,
                        use_cell_lists=args.nocell, single=single, use_cgd=args.cgd, verbose=args.verbose,
                        record_steps_timeseries=args.rsts, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
-                       print_diffusion_only=args.rsts_only)
+                       print_diffusion_only=args.rsts_only, record_trajectory_npoints=int(1e4))
     
     i32max = np.iinfo(np.int32).max
     seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))

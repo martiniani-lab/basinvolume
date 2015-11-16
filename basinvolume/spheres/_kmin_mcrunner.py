@@ -27,6 +27,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                  hmax=0.01, hbinsize=0.0005, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  record_steps_timeseries=False, record_steps_timeseries_every=[1], print_diffusion_only=False,
+                 record_trajectory=True, record_trajectory_npoints=1e4,
                  perform_convergence_test=False, collect_minima_list=False, single=False, 
                  seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', 
                  verbose=False, workspace=None):
@@ -73,6 +74,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                     record_steps_timeseries=record_steps_timeseries, 
                                     record_steps_timeseries_every=record_steps_timeseries_every,
+                                    record_trajectory=record_trajectory, record_trajectory_npoints=record_trajectory_npoints, 
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
                                     use_cgd=use_cgd, use_periodic=True, use_frozen=False) 
@@ -83,13 +85,19 @@ class _kmin_mcrunner(_configure_mcrunner):
         try:
             self.mcrunner.run()
             self.displ_k_min, self.var_displ_k_min = self.mcrunner.histogram.get_mean_variance()
-            mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
-            self.mean_coord_dist, self.var_coord_dist = np.linalg.norm(mean_coord-self.mcrunner.origin), np.sum(var_coord)
+            self._collect_trajectory()
             self._print_results()
             self._print_success(True)
         except:
             view_traceback()
             self._print_success(False)
+    
+    def _collect_trajectory(self):
+        mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
+        self.mean_coord_dist, self.var_coord_dist = np.linalg.norm(mean_coord-self.mcrunner.origin), np.sum(var_coord)
+        self.trajectory = self.mcrunner.dump_trajectory(self.trajectory_path, clear=True)
+        self.traj_eval, self.traj_evec = trajectory_pca(self.trajectory)
+        self.pca_asphericity = asphericity_factor(self.traj_eval)
     
     def _set_paths(self, packings_dir):
         dname = self.fname
@@ -105,6 +113,8 @@ class _kmin_mcrunner(_configure_mcrunner):
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
+        trajectory_fname = 'kmin_trajectory_' + dname
+        self.trajectory_path = '{}/{}.config'.format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = 'diffusion_' + dname
         self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)
@@ -175,6 +185,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
         f.write('mean_coord_dist: {:.16f}\n'.format(self.mean_coord_dist))
         f.write('var_coord_dist: {:.16f}\n'.format(self.var_coord_dist))
+        f.write('pca_asphericity: {:.16f}\n'.format(self.pca_asphericity))
         f.close()
     
     def _dump_diffusion_timeseries(self):
