@@ -5,10 +5,11 @@ import sys
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, NullPotential
 from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckHyperCubicContainer, CheckHyperSphericalContainer, RecordStepsTimeseries, RecordDisp2Histogram
-from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement, RecordMeanCoordVector, RecordCoordsTimeseries
+from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement, RecordCoordsTimeseries
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
 from mcpele.monte_carlo import SampleGaussian, ConfTestOR
 from basinvolume.monte_carlo import Findk
+from basinvolume.utils import write_2d_array_to_hf5
 
 #for plotting histogram
 from itertools import cycle
@@ -88,15 +89,15 @@ class HypercubeMCrunner(_BaseMCRunner):
             self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax,
                                                   self.binsize, self.equilibration_steps, fix_com=False)
             self.add_action(self.histogram)
-        self.record_mcv = RecordMeanCoordVector(self.ndim, self.equilibration_steps)
-        self.record_trajectory = RecordCoordsTimeseries(int((self.niter-self.equilibration_steps)/100), self.equilibration_steps)
+        self.record_trajectory = RecordCoordsTimeseries(self.ndim, 
+                                                        record_every=max(int((self.niter-self.equilibration_steps)/1e4),1), 
+                                                        eqsteps=self.equilibration_steps)
             
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_accept_test(self.metropolis) #metropolis uses the harmonic potential
         self.add_late_conf_test(self.conftest)
         self.add_action(self.action_record_displ)
-        self.add_action(self.record_mcv)
         self.add_action(self.record_trajectory)
         if record_steps_timeseries:
             self.steps_timeseries_list = []
@@ -147,8 +148,16 @@ class HypercubeMCrunner(_BaseMCRunner):
         """
         returns the average coordinate vector from the sampling and the elementwise variance
         """
-        mean_coord, var_coord = self.record_mcv.get_mean_variance_coordinate_vector()
+        mean_coord, var_coord = self.record_trajectory.get_mean_variance_time_series()
         return mean_coord, var_coord
+    
+    def dump_trajectory(self, fname, clear=True):
+        """write time series to fname, returns the timeseries"""
+        trajectory = self.get_trajectory()
+        write_2d_array_to_hf5(trajectory, 'trajectory', fname)
+        if clear:
+            self.clear_trajectory()
+        return trajectory
     
     def get_trajectory(self):
         trajectory = self.record_trajectory.get_time_series()

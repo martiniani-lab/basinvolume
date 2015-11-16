@@ -60,7 +60,8 @@ if __name__ == "__main__":
                                        use_cell_lists=True, single=True, use_cgd=True, verbose=args.verbose,
                                        record_steps_timeseries=True, 
                                        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(28)],
-                                       print_diffusion_only=True, workspace=dir_path)
+                                       print_diffusion_only=True, workspace=dir_path,
+                                       record_trajectory_npoints=int(1e4))
                     seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
                     seeds = dict(seeds=seeds_dict)
                     kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))

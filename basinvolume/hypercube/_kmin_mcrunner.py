@@ -6,6 +6,7 @@ from pele.potentials import Harmonic
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.hypercube import HypercubeMCrunner
 from basinvolume.utils import *
+from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 import ConfigParser
 import time
 
@@ -16,7 +17,8 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
     def __init__(self, ndof, sidelength=1, k=0.0, stepsize=5e-1, niter=5e4, acceptance=0.2, 
                  adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, hmin=0, 
                  hmax=0.01, hbinsize=0.0005, record_steps_timeseries=False, 
-                 record_steps_timeseries_every=[1], print_diffusion_only=False, single=True, 
+                 record_steps_timeseries_every=[1],
+                 print_diffusion_only=False, single=True, 
                  seeds=None, verbose=False, workspace=None):
                 
         self.temperature=1.0
@@ -60,19 +62,27 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         try:
             self.mcrunner.run()
             self.displ_k_min, self.var_displ_k_min = self.mcrunner.histogram.get_mean_variance()
-            mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
-            self.mean_coord_dist, self.var_coord_dist = np.linalg.norm(mean_coord-self.mcrunner.origin), np.sum(var_coord)
+            self._collect_trajectory()
             self._print_results()
             self._print_success(True)
         except:
             view_traceback()
             self._print_success(False)
     
+    def _collect_trajectory(self):
+        mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
+        self.mean_coord_dist, self.var_coord_dist = np.linalg.norm(mean_coord-self.mcrunner.origin), np.sum(var_coord)
+        self.trajectory = self.mcrunner.dump_trajectory(self.trajectory_path, clear=True)
+        self.traj_eval, self.traj_evec = trajectory_pca(self.trajectory)
+        self.asphericity = asphericity_factor(self.traj_eval)
+    
     def _set_paths(self):
         dname = 'hypercube_n'+str(self.ndof)+'_l'+str(self.sidelength)
         self.base_directory = os.path.join(self.workspace,'explore_bv_'+dname)
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
+        trajectory_fname = 'kmin_trajectory_' + dname
+        self.trajectory_path = '{}/{}.config'.format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = 'diffusion_' + dname
         self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)
@@ -123,16 +133,12 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
         f.write('mean_coord_dist: {:.16f}\n'.format(self.mean_coord_dist))
         f.write('var_coord_dist: {:.16f}\n'.format(self.var_coord_dist))
+        f.write('pca_asphericity: {:.16f}\n'.format(self.pca_asphericity))
         f.close()
         try:
             self._dump_trajectory()
         except:
             view_traceback()
-    
-    def _dump_trajectory(self):
-        path = os.path.join(self.base_directory, 'kmin_trajectory.h5')
-        traj = self.mcrunner.get_trajectory()
-        write_2d_array_to_hf5(traj, 'trajectory', path)
     
     def _dump_diffusion_timeseries(self):
         fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params['niter']))
@@ -175,11 +181,12 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
     
 if __name__ == "__main__":
     
-    pppn = [2,6,42,1806,47058,2214502422,52495396602]
-    seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
-    
+    #pppn = [2,6,42,1806,47058,2214502422,52495396602]
+    #seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
+    i32max = np.iinfo(np.int32).max
+    seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
     ndof = 93
-    sim = _hypercube_kmin_mcrunner(ndof, sidelength=1, niter=1e8, k=0, seeds=seeds,
+    sim = _hypercube_kmin_mcrunner(ndof, sidelength=1, niter=1e6, k=0, seeds=seeds,
                          single=True, verbose=True, hmax=15, hbinsize=0.001)
     #record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
     print 'simulation started'
@@ -193,7 +200,7 @@ if __name__ == "__main__":
     print 'var: ',sim.var_displ_k_min
     print 'mean_coord_dist: ',sim.mean_coord_dist
     print 'var_coord_dist: ', sim.var_coord_dist
-    traj = sim.mcrunner.get_trajectory()
+    traj = sim.trajectory
     print np.shape(traj)
     #sim.mcrunner.show_histogram_kmax()
 #    from matplotlib import pyplot as plt
@@ -206,19 +213,17 @@ if __name__ == "__main__":
 #    from sklearn.decomposition import PCA
 #    pca = PCA(n_components=0.5)
 #    pca.fit(traj)
-#    print(pca.explained_variance_ratio_)        
-    mean_traj = np.mean(traj, axis=0)
-    scatter_matrix = np.zeros((mean_traj.size, mean_traj.size))
-    for x in traj:
-        scatter_matrix += np.outer(x-mean_traj, x-mean_traj)
-    cov_mat = np.cov([traj[0,:], traj[1,:], traj[2,:]])
-    print scatter_matrix
-    print cov_mat
-    eig_val_sc, eig_vec_sc = np.linalg.eig(scatter_matrix)
-    eig_val_cov, eig_vec_cov = np.linalg.eig(cov_mat)
-    n, bins, patches = plt.hist(eig_val_sc, 50, facecolor='green', alpha=0.75)
-    plt.show()
+#    print(pca.explained_variance_ratio_)
     
+    plt.plot(sim.traj_eval/np.amax(sim.traj_eval))
+    #print "eigenvalues", eig_val_cov
+    #print "eigenvectors \n", eig_vec_cov
+    print "asphericity factor", sim.asphericity
+    #bw = get_bandwidth_estimate(np.array(eig_val_cov), kernel="gaussian", method="cross_validation")
+    #edges = np.linspace(np.amin(eig_val_cov), np.amax(eig_val_cov), 1000)
+    #hist = get_pdf(eig_val_cov, edges, bandwidth=bw, kernel="tophat")
+    #plt.plot(edges, hist, color='k', linewidth=3)
+    plt.show()
               
                 
                 

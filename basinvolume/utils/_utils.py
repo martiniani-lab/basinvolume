@@ -697,13 +697,53 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
+def asphericity_factor(evals):
+    """
+    A measure of the gross anisotropy in a random walk.
+    Asphericity has 0 as its lower bound, achieved for a walk that is
+    spherical, and has an upper bound of 1, achieved when the walk is extended
+    in one dimension only.
+    
+    Parameters
+    ----------
+    evals : array
+        list of eigenvalues obtained from PCA of random walk
+    """
+    evals = np.sort(np.array(evals))[::-1]
+    ndof = evals.size
+    A = 0.
+    for i in xrange(ndof):
+        for j in xrange(i,ndof):
+            A += (evals[i]-evals[j])**2
+    A /= (ndof-1)*np.sum(evals)**2
+    return A
+
+def trajectory_pca(traj):
+    """
+    Perform Principal Component Analysis
+    
+    returns eigenvalues and eigenvectors from 
+    principal componenent analysis of a trajectory
+    
+    Parameters
+    ----------
+    traj : 2d array
+        array of containing trajectory with shape (npoints, ndof)
+    """
+    ndof = np.shape(traj)[1]
+    cov_mat = np.cov([traj[:,i] for i in xrange(ndof)])
+    eig_val_cov, eig_vec_cov = np.linalg.eig(cov_mat)
+    idx = eig_val_cov.argsort()[::-1]   
+    eig_val_cov = eig_val_cov[idx]
+    eig_vec_cov = eig_vec_cov[:,idx]
+    return eig_val_cov, eig_vec_cov
 
 def write_2d_array_to_hf5(array, key, path):
     assert array.ndim == 2
     nind , ncol = array.shape
     ind = [i for i in xrange(nind)]
     col = [i for i in xrange(ncol)]
-    df = pd.DataFrame(np.array(array), index=ind, columns=col)
+    df = pd.DataFrame(array, index=ind, columns=col)
     df.to_hdf(path, key)
 
 def read_hf5_to_2d_array(path, key):

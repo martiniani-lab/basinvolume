@@ -7,7 +7,7 @@ from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest, CheckSphericalContainer 
-from mcpele.monte_carlo import SampleGaussian, RecordMeanCoordVector
+from mcpele.monte_carlo import SampleGaussian, RecordCoordsTimeseries
 from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
@@ -17,7 +17,7 @@ from basinvolume.monte_carlo import RecordDisplacementTimeseries, RecordStepsTim
 from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.gui import HSWCASystem
-from basinvolume.utils import reduce_coordinates, full_coordinates
+from basinvolume.utils import reduce_coordinates, full_coordinates, write_2d_array_to_hf5
 
 #for plotting histogram
 from itertools import cycle
@@ -278,7 +278,9 @@ class BV_MCrunner(_BaseMCRunner):
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, record_steps_timeseries=False, 
-                 record_steps_timeseries_every=[1], 
+                 record_steps_timeseries_every=[1],
+                 record_trajectory=False,
+                 record_trajectory_npoints=1e4,
                  single=False, use_periodic=True, use_frozen=False, 
                  frozen_atoms=None, rcontainer=None, use_cgd=False):
         #construct base class
@@ -402,7 +404,11 @@ class BV_MCrunner(_BaseMCRunner):
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, nparticles=self.nparticles, bdim=self.bdim)
-        self.record_mcv = RecordMeanCoordVector(self.ndim, self.equilibration_steps)
+        if record_trajectory:
+            rte = max(int((self.niter-self.equilibration_steps)/record_trajectory_npoints),1)
+            self.record_trajectory = RecordCoordsTimeseries(self.ndim, 
+                                                            record_every=rte, 
+                                                            eqsteps=self.equilibration_steps)
         #set up pele:MC
         self.set_takestep(self.takestep)
         if self.use_frozen:
@@ -412,7 +418,7 @@ class BV_MCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.time_series)
-        self.add_action(self.record_mcv)
+        self.add_action(self.record_trajectory)
         if record_steps_timeseries:
             self.steps_timeseries_list = []
             self.record_steps_timeseries_every = record_steps_timeseries_every
@@ -531,8 +537,23 @@ class BV_MCrunner(_BaseMCRunner):
         """
         returns the average coordinate vector from the sampling and the elementwise variance
         """
-        mean_coord, var_coord = self.record_mcv.get_mean_variance_coordinate_vector()
+        mean_coord, var_coord = self.record_trajectory.get_mean_variance_time_series()
         return mean_coord, var_coord
+    
+    def dump_trajectory(self, fname, clear=True):
+        """write time series to fname, returns the timeseries"""
+        trajectory = self.get_trajectory()
+        write_2d_array_to_hf5(trajectory, 'trajectory', fname)
+        if clear:
+            self.clear_trajectory()
+        return trajectory
+    
+    def get_trajectory(self):
+        trajectory = self.record_trajectory.get_time_series()
+        return trajectory
+    
+    def clear_trajectory(self):
+        self.record_trajectory.clear()
         
 class Findk_MCrunner(_BaseMCRunner):
     """Findk MCrunner
