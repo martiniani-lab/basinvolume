@@ -17,6 +17,7 @@ def generate_potentials(potential_dir, nr_gaussians, nr_dimensions, nr_samples):
         The file format is supposed to be as follows:
         potentials/nr_gaussians/nr_dimensions/pot_index/pot.txt
         potentials/nr_gaussians/nr_dimensions/pot_index/large_basin_index.txt
+        potentials/nr_gaussians/nr_dimensions/pot_index/small_basin_index.txt
         
     nr_gaussians : integer
         Number of gaussians (i.e., number of minima) in the potential energy surface.
