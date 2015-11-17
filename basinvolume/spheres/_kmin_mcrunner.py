@@ -114,7 +114,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
         trajectory_fname = 'kmin_trajectory_' + dname
-        self.trajectory_path = '{}/{}.config'.format(self.base_directory, trajectory_fname)
+        self.trajectory_path = '{}/{}.h5'.format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = 'diffusion_' + dname
         self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)

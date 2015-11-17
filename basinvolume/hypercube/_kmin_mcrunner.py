@@ -18,6 +18,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
                  adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100, hmin=0, 
                  hmax=0.01, hbinsize=0.0005, record_steps_timeseries=False, 
                  record_steps_timeseries_every=[1],
+                 record_trajectory=True, record_trajectory_npoints=1e4,
                  print_diffusion_only=False, single=True, 
                  seeds=None, verbose=False, workspace=None):
                 
@@ -26,7 +27,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         self.record_steps_timeseries = record_steps_timeseries
         self.ndof = ndof
         self.sidelength = sidelength
-        self.coords = np.zeros(self.ndof)
+        self.coords = np.ones(self.ndof)*0.3 #CHANGE THIS: I have shifted the centre to see the effect
         if workspace is None:
             self.workspace = os.getcwd()
         else:
@@ -54,6 +55,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
                                           hmin=hmin, hmax=hmax, hbinsize=hbinsize, 
                                           record_steps_timeseries=record_steps_timeseries, 
                                           record_steps_timeseries_every=record_steps_timeseries_every,
+                                          record_trajectory=record_trajectory, record_trajectory_npoints=record_trajectory_npoints,
                                           seeds=seeds, single=single, record_histogram=True) 
         
         self._initialise()
@@ -82,7 +84,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
         trajectory_fname = 'kmin_trajectory_' + dname
-        self.trajectory_path = '{}/{}.config'.format(self.base_directory, trajectory_fname)
+        self.trajectory_path = '{}/{}.h5'.format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = 'diffusion_' + dname
         self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)

@@ -7,8 +7,8 @@ try:
     import re
     import matplotlib
     #matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
     from matplotlib import rc
+    import matplotlib.pyplot as plt
     from itertools import cycle
     from basinvolume.utils import *
     import scipy
@@ -23,24 +23,29 @@ except ImportError as err:
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
-#rc('text.latex',preamble=r'\usepackage{times}')
-plt.rcParams.update({'font.size': 28})
-plt.rcParams['xtick.major.pad'] = 8
-plt.rcParams['ytick.major.pad'] = 8
-plt.rcParams.update({'figure.autolayout': True})
-plt.rcParams['figure.figsize'] = 10, 7.7
+params = {'backend': 'pdf',
+          'text.latex.preamble': ['\usepackage{gensymb}'],
+          'font.size': 18,
+          'xtick.major.pad':18,
+          'ytick.major.pad':18,
+          'text.usetex': True,
+          'figure.tight_layout': True,
+          'figure.autolayout': True
+          #'figure.figsize': [10,7.7],
+}
+matplotlib.rcParams.update(params)
 ##########################################################
 ####SET COLOUR MAP######                                                               
 def get_color_cycle():
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / 13) for i in xrange(13)])
+    color_cycle=cycle([cm(1. * i / 12) for i in xrange(12)][::-1])
     return color_cycle
 def get_marker_cycle():
     markers = ["o","v","s","x","^","8","p","<","*","D",">",]
     markercycle = cycle(markers)
     return markercycle
 def get_line_cycle():
-    lines = ["-","--","-."]
+    lines = ["--","-"]
     linecycle = cycle(lines)
     return linecycle
 ###########################################################
@@ -416,7 +421,7 @@ class plot_mbar_data(object):
         self.hypercube_data = hypercube_data
     
     def __call__(self):
-        if False:
+        if True:
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
             fig = plt.figure()
@@ -444,16 +449,16 @@ class plot_mbar_data(object):
             plt.ylabel(r"$F$")
             plt.xlabel(r"$\log \mathcal{P}$")
             fig.savefig(os.path.join(self.figdir, 'f_logp.pdf'))
-        if True:
+        if False:
             #self.plot_all(plot_type="log_gr", average=True)
             self.plot_all(plot_type="log_gr_ratio", average=True, savefig=True, show=self.show)
             #self.plot_all(plot_type="gr_ratio", average=True)
             self.plot_all(plot_type="dos", average=True, savefig=True, show=self.show)
-        if True:
+        if False:
             #self.plot_all(plot_type="log_gr", average=False)
-            self.plot_all(plot_type="log_gr_ratio", average=False, savefig=True, show=self.show, logx=False)
+            #self.plot_all(plot_type="log_gr_ratio", average=False, savefig=True, show=self.show, logx=True)
             #self.plot_all(plot_type="gr_ratio", average=False)
-            #self.plot_all(plot_type="dos", average=False, savefig=True, show=self.show)
+            self.plot_all(plot_type="dos", average=False, savefig=True, show=self.show)
         if False:
             self.plot_correlations(plot_type="m0_q6")
         if False:
@@ -495,7 +500,6 @@ class plot_mbar_data(object):
             ax.set_xlabel(r"$\eta$")
             ax.set_ylabel(r"$Q12$")
             fig.savefig(os.path.join(self.figdir, 'poly_q12.pdf'))
-
             ax1.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             ax1.set_xscale('log')
@@ -640,43 +644,77 @@ class plot_mbar_data(object):
             fig7.savefig(os.path.join(self.figdir, 'diffusion_logs_logr_red.pdf'))
         
         if True:
-            #plot comparison between fcc and hypercube (rescaled), also comput lengthscale
+            import matplotlib.gridspec as gridspec
+            #plot comparison between fcc and hypercube (rescaled), also compute lengthscale
             assert self.hypercube_data is not None
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
             line_cycle = get_line_cycle()
-            fig8 = plt.figure()
-            ax8 = fig8.add_subplot(111)
-            #hypercube data
-            hc_arr = self.hypercube_data.log_gr_ratio
-            (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
-            hcj = next(idx for idx, value in enumerate(hcy) if value < -0.3) #-0.5 was chosen arbitrarily
-            #packings data
-            poly = 1.8816764231589208e-06
-            mbar_packing_datasets = sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)
-            #print [x.hs_poly for x in mbar_packing_datasets]
-            dataset =  next(x for x in self.mbar_packing_datasets if (np.isclose(x.hs_poly, poly) and 'fcc' in x.structural_label))
-            print dataset.hs_poly
-            for packing in dataset.packing_data: 
-                arr = packing.log_gr_ratio
-                if arr is not None:
-                    marker = marker_cycle.next()
+            gs = gridspec.GridSpec(8,1)
+            fig8 = plt.figure(figsize=(9,11))
+            ax8 = fig8.add_subplot(gs[4:,:])
+            ax9 = fig8.add_subplot(gs[:4,:])
+            ax10 = fig8.add_axes([0.61,0.62,0.3,0.3], alpha=0.5)
+            fig8.subplots_adjust(hspace=0)
+            
+            #packing data
+            for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
+                print '{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly)
+                print len(dataset.free_energies)
+                if len(dataset.free_energies) > 1:
                     color = color_cycle.next()
                     ls = line_cycle.next()
-                    (x, xerr, y, yerr, fit) = arr[:,0], arr[:,1], arr[:,2], arr[:,3], arr[:,4]
-                    j = next(idx for idx, value in enumerate(y) if value < -0.3) #-0.5 was chosen arbitrarily
-                    #resc = x[j]/hcx[hcj]
-                    #print "resc: ",resc
-                    csv_tuple = np.array([x, xerr, y, yerr, fit]).transpose() 
-                    ax8 = self._plot(ax8, csv_tuple, label=None, 
-                                     plot_err=True, plot_fit=False, color=color, 
-                                     marker=None, ls=ls)
-            csv_tuple = np.array([hcx, hcxerr, hcy, hcyerr, hcfit]).transpose() 
+                    ax8, xlabel, ylabel = self._plot_all(ax8, dataset, plot_type="log_gr_ratio", 
+                                                        average=False, 
+                                                        label='{} {:.3E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
+                                                        color=color, ls=ls)
+                    ax9, xlabel, ylabel = self._plot_all(ax9, dataset, plot_type="dos", 
+                                                        average=False, 
+                                                        label='{} {:.3E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
+                                                        color=color, ls=ls)
+                    x = []
+                    for arr in dataset.log_gr_ratio_data: 
+                        x.append(arr[-1,0])
+                    cdf = CDFAccumulator()
+                    cdf.add_array(x)
+                    x, cdf_x = cdf.get_vecdata()
+                    f = interp1d(x, cdf_x, bounds_error=True)
+                    xref = np.linspace(x[0],x[-1],1000)
+                    ax10.plot(xref, f(xref), label='{} {:.3E}'.format(dataset.structural_label[:3], dataset.hs_poly),
+                              linewidth=3, color=color, linestyle=ls)
+            
+            ax10.set_xlabel(r'$r_{max}$')
+            ax10.set_ylabel(r'$\mathrm{cdf}[\mathrm{max}_r(h(r)/r^{N-1})]$')
+            #hypercube data logr
+            hc_arr = self.hypercube_data.log_gr_ratio
+            (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
+            csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose() 
             ax8 = self._plot(ax8, csv_tuple, label='hypercube', 
-                             plot_err=True, plot_fit=False, color='k', 
+                             plot_err=False, plot_fit=False, color='k', 
                              marker=None, ls='-')
-            ax8.set_xscale('log')
-            fig8.savefig(os.path.join(self.figdir, 'hypercube_fcc_comparison.pdf')) 
+            #hypercube data dos
+            hc_arr = self.hypercube_data.dos
+            (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
+            csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose() 
+            ax9 = self._plot(ax9, csv_tuple, label='hypercube', 
+                             plot_err=False, plot_fit=False, color='k', 
+                             marker=None, ls='-')
+            #ax8.set_xscale('log')
+            ax8.set_ylim((-265,5))
+            ax9.set_xlim((0,8))
+            ax8.set_xlabel(r'$r$')
+            ax8.set_ylabel(r'$\log(h(r)/r^{N-1})$')
+            ax8.legend(frameon=False, loc="best", prop={'size':18}, numpoints=1, markerscale=1, 
+                       columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=2)
+            #ax9.set_xlabel(r'$r$')
+            ax9.set_ylabel(r'$h(r)$')
+            fig8.subplots_adjust(hspace=0)
+            plt.setp([a.get_xticklabels() for a in fig8.axes[1:]], visible=False)
+            
+            
+            
+            fig8.savefig(os.path.join(self.figdir, 'hypercube_logr_comparison.pdf')) 
+                 
             
     def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True, logx=False):
         fig = plt.figure()
@@ -908,13 +946,12 @@ class plot_mbar_data(object):
     
 if __name__ == "__main__":
     show = True
-    
     pts_mbar = MBARBasinAnalysis()
     pts_tint = TINTBasinAnalysis()
     pts_mbar.collect_data_every_set_all(data_name="mbar_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
     pts_tint.collect_data_every_set_all(data_name="tint_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
     hypercube_data = MBARHypercubeData()
-    hypercube_data.import_dos_data('/home/sm958/Work/basinvolume/basinvolume/hypercube/one_cube/explore_bv_hypercube_n93_l1/analysis')
+    hypercube_data.import_dos_data('/home/sm958/Work/basinvolume/basinvolume/hypercube/one_cube/explore_bv_hypercube_n93_l1_tmp2/analysis')
     pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets, hypercube_data=hypercube_data)
     pmd()
     if show:
