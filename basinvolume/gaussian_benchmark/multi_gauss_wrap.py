@@ -47,40 +47,40 @@ class MultiGaussWrap(object):
         self.RefRadius = RefRadius
         self.R = R
         
-    def this_path(self, g, d, i):
-        return os.path.join(self.potential_path, str(g), str(d), str(i))
+    def this_path(self, nr_gaussians, nr_dimensions, index):
+        return os.path.join(self.potential_path, str(nr_gaussians), str(nr_dimensions), str(index))
         
-    def this_pot_path(self, g, d, i):
-        return os.path.join(self.this_path(g, d, i), "pot.txt")
+    def this_pot_path(self, nr_gaussians, nr_dimensions, index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, index), "pot.txt")
         
-    def this_large_index_path(self, g, d, i):
-        return os.path.join(self.this_path(g, d, i), "large_basin_index.txt")
+    def this_large_index_path(self, nr_gaussians, nr_dimensions, index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, index), "large_basin_index.txt")
         
-    def this_small_index_path(self, g, d, i):
-        return os.path.join(self.this_path(g, d, i), "small_basin_index.txt")
+    def this_small_index_path(self, nr_gaussians, nr_dimensions, index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, index), "small_basin_index.txt")
         
-    def exists(self, g, d, i):
-        return os.path.exists(self.this_path(g, d, i))
+    def exists(self, nr_gaussians, nr_dimensions, index):
+        return os.path.exists(self.this_path(nr_gaussians, nr_dimensions, index))
     
-    def generate(self, g, d, i):
-        means = MinGenerator(g, d, self.R, self.RefRadius, min_sep=5 * self.RefRadius)
+    def generate(self, nr_gaussians, nr_dimensions, index):
+        means = MinGenerator(nr_gaussians, nr_dimensions, self.R, self.RefRadius, min_sep=5 * self.RefRadius)
         covMatrixDiags = []
         for i in xrange(len(means)):
-            covMatrixDiags.append(np.absolute(np.random.normal(loc=4, scale=2)) * np.ones(d))
-        f = open(self.this_pot_path(g, d, i), "w")
+            covMatrixDiags.append(np.absolute(np.random.normal(loc=4, scale=2)) * np.ones(nr_dimensions))
+        f = open(self.this_pot_path(nr_gaussians, nr_dimensions, index), "w")
         f.write('\n\nMeans:\t\t\t\tCov:\n')
         for i in xrange(len(means)):
             f.write(str(means[i]) + '\t' + str(covMatrixDiags[i]) + '\n')
         f.close()
         
-    def select_benchmark_basins(self, g, d, i):
+    def select_benchmark_basins(self, nr_gaussians, nr_dimensions, index):
         # Sample one point in the sphere of radius R uniformly at random
-        start = get_uniform_in_sphere(self.R, d)
+        start = get_uniform_in_sphere(self.R, nr_dimensions)
         # Minimise from there
         end = get_local_minimum(start)
         # Determine basin index
         self.large_basin_index = get_basin_index(end)
         # Write corresponding large basin index to file
-        np.writetxt(self.this_large_index_path(g, d, i), self.large_basin_index)
+        np.writetxt(self.this_large_index_path(nr_gaussians, nr_dimensions, index), self.large_basin_index)
         # Write default / input small basin index to file
-        np.writetxt(self.this_small_index_path(g, d, i), self.small_basin_index)
+        np.writetxt(self.this_small_index_path(nr_gaussians, nr_dimensions, index), self.small_basin_index)
