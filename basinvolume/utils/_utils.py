@@ -848,3 +848,7 @@ def del_pt_time_series_raw(explore_dir):
                 for f in filelist:
                     os.remove(f)
 
+def get_uniform_in_sphere(radius, dim):
+    x = np.random.normal(0, 1, dim)
+    return x / np.linalg.norm(x) * radius * np.power(np.random.uniform(0, 1), 1 / dim)
+    

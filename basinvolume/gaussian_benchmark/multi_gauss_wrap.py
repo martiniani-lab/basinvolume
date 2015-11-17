@@ -2,6 +2,8 @@ from __future__ import division
 
 import numpy as np
 
+from basinvolume.utils import get_uniform_in_sphere
+
 def MinGenerator(nmeans, dimension, System_R, Ref_R, min_sep=None):
     """
     This is taken from Shang's code, in the trajectories project:
