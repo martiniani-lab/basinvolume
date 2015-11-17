@@ -3,6 +3,9 @@ from __future__ import division
 import numpy as np
 import os
 
+from pele.potentials import SumGaussianPot
+from pele.optimize import ModifiedFireCPP
+
 from basinvolume.utils import get_uniform_in_sphere
 from basinvolume.utils import trymakedir
 
@@ -79,10 +82,28 @@ class MultiGaussWrap(object):
         # Sample one point in the sphere of radius R uniformly at random
         start = get_uniform_in_sphere(self.R, nr_dimensions)
         # Minimise from there
-        end = get_local_minimum(start)
+        end = self.get_local_minimum(nr_gaussians, nr_dimensions, index, start)
         # Determine basin index
-        self.large_basin_index = get_basin_index(end)
+        self.large_basin_index = self.get_basin_index(nr_gaussians, nr_dimensions, index, end)
         # Write corresponding large basin index to file
         np.writetxt(self.this_large_index_path(nr_gaussians, nr_dimensions, index), self.large_basin_index)
         # Write default / input small basin index to file
         np.writetxt(self.this_small_index_path(nr_gaussians, nr_dimensions, index), self.small_basin_index)
+        
+    def get_local_minimum(self, nr_gaussians, nr_dimensions, index, start):
+        pot = self.get_pot(nr_gaussians, nr_dimensions, index)
+        optimizer = ModifiedFireCPP(start, pot, dtmax=1, maxstep=1e-1, tol=1e-8, nsteps=1e8, verbosity=0)
+        optimizer.reset(start)
+        result = optimizer.run()
+        return result.coords
+        
+    def get_pot(self, nr_gaussians, nr_dimensions, index):
+        means, cov = self.get_mean_cov(nr_gaussians, nr_dimensions, index)
+        return SumGaussianPot(means, cov)
+        
+    def get_mean_cov(self, nr_gaussians, nr_dimensions, index):
+        from utils import get_means_cov
+        return get_means_cov(self.this_pot_path(nr_gaussians, nr_dimensions, index))
+        
+    #def get_basin_index(nr_gaussians, nr_dimensions, index, end):
+        
