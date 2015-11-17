@@ -85,10 +85,14 @@ class MultiGaussWrap(object):
         end = self.get_local_minimum(nr_gaussians, nr_dimensions, index, start)
         # Determine basin index
         self.large_basin_index = self.get_basin_index(nr_gaussians, nr_dimensions, index, end)
+        def to_file(name, number):
+            f = open(name, "w")
+            f.write(str(number) + "\n")
+            f.close()
         # Write corresponding large basin index to file
-        np.writetxt(self.this_large_index_path(nr_gaussians, nr_dimensions, index), self.large_basin_index)
+        to_file(self.this_large_index_path(nr_gaussians, nr_dimensions, index), int(self.large_basin_index))
         # Write default / input small basin index to file
-        np.writetxt(self.this_small_index_path(nr_gaussians, nr_dimensions, index), self.small_basin_index)
+        to_file(self.this_small_index_path(nr_gaussians, nr_dimensions, index), int(self.small_basin_index))
         
     def get_local_minimum(self, nr_gaussians, nr_dimensions, index, start):
         pot = self.get_pot(nr_gaussians, nr_dimensions, index)
@@ -105,5 +109,15 @@ class MultiGaussWrap(object):
         from utils import get_means_cov
         return get_means_cov(self.this_pot_path(nr_gaussians, nr_dimensions, index))
         
-    #def get_basin_index(nr_gaussians, nr_dimensions, index, end):
+    def get_basin_index(self, nr_gaussians, nr_dimensions, index, end):
+        """
+        Map coordinates in 'end' to minimum index.
         
+        Return index k, such that the local minimum reached from mean(k)
+        has smallest euclidean distance to 'end'.
+        """
+        means, cov = self.get_mean_cov(nr_gaussians, nr_dimensions, index)
+        minima = [self.get_local_minimum(nr_gaussians, nr_dimensions, index, means[i][:]) for i in xrange(nr_gaussians)]
+        distances = [np.linalg.norm(minima[i][:] - end) for i in xrange(nr_gaussians)]
+        basin_index = np.argmin(distances)
+        return basin_index
