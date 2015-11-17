@@ -4,6 +4,7 @@ import numpy as np
 import os
 
 from basinvolume.utils import get_uniform_in_sphere
+from basinvolume.utils import trymakedir
 
 def MinGenerator(nmeans, dimension, System_R, Ref_R, min_sep=None):
     """
@@ -67,6 +68,7 @@ class MultiGaussWrap(object):
         covMatrixDiags = []
         for i in xrange(len(means)):
             covMatrixDiags.append(np.absolute(np.random.normal(loc=4, scale=2)) * np.ones(nr_dimensions))
+        trymakedir(self.this_path(nr_gaussians, nr_dimensions, index))
         f = open(self.this_pot_path(nr_gaussians, nr_dimensions, index), "w")
         f.write('\n\nMeans:\t\t\t\tCov:\n')
         for i in xrange(len(means)):
