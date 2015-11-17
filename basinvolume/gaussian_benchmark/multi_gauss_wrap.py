@@ -1,6 +1,7 @@
 from __future__ import division
 
 import numpy as np
+import os
 
 from basinvolume.utils import get_uniform_in_sphere
 
@@ -46,23 +47,23 @@ class MultiGaussWrap(object):
         self.RefRadius = RefRadius
         self.R = R
         
-    def this_path(g, d, i):
-        return os.path.join(self.potential_path, g, d, i)
+    def this_path(self, g, d, i):
+        return os.path.join(self.potential_path, str(g), str(d), str(i))
         
-    def this_pot_path(g, d, i):
+    def this_pot_path(self, g, d, i):
         return os.path.join(self.this_path(g, d, i), "pot.txt")
         
-    def this_large_index_path(g, d, i):
+    def this_large_index_path(self, g, d, i):
         return os.path.join(self.this_path(g, d, i), "large_basin_index.txt")
         
-    def this_small_index_path(g, d, i):
+    def this_small_index_path(self, g, d, i):
         return os.path.join(self.this_path(g, d, i), "small_basin_index.txt")
         
     def exists(self, g, d, i):
         return os.path.exists(self.this_path(g, d, i))
     
     def generate(self, g, d, i):
-        means = MinGenerator(g, d, self.R, self.RefRadius, min_sep=5 * RefRadius)
+        means = MinGenerator(g, d, self.R, self.RefRadius, min_sep=5 * self.RefRadius)
         covMatrixDiags = []
         for i in xrange(len(means)):
             covMatrixDiags.append(np.absolute(np.random.normal(loc=4, scale=2)) * np.ones(d))
