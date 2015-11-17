@@ -50,6 +50,12 @@ class MultiGaussWrap(object):
     def this_pot_path(g, d, i):
         return os.path.join(self.this_path(g, d, i), "pot.txt")
         
+    def this_large_index_path(g, d, i):
+        return os.path.join(self.this_path(g, d, i), "large_basin_index.txt")
+        
+    def this_small_index_path(g, d, i):
+        return os.path.join(self.this_path(g, d, i), "small_basin_index.txt")
+        
     def exists(self, g, d, i):
         return os.path.exists(self.this_path(g, d, i))
     
@@ -65,4 +71,13 @@ class MultiGaussWrap(object):
         f.close()
         
     def select_benchmark_basins(self, g, d, i):
-        
+        # Sample one point in the sphere of radius R uniformly at random
+        start = get_uniform_in_sphere(self.R, d)
+        # Minimise from there
+        end = get_local_minimum(start)
+        # Determine basin index
+        self.large_basin_index = get_basin_index(end)
+        # Write corresponding large basin index to file
+        np.writetxt(self.this_large_index_path(g, d, i), self.large_basin_index)
+        # Write default / input small basin index to file
+        np.writetxt(self.this_small_index_path(g, d, i), self.small_basin_index)
