@@ -15,11 +15,12 @@ class ComputerCommon(object):
     function calls and writing it to disk.
     """
     def __init__(self, results_path, opt_parameters, pes_parameters,
-        vol_parameters):
+        vol_parameters, method_parameters):
         self.results_path = results_path
         self.opt_parameters = opt_parameters
         self.pes_parameters = pes_parameters
         self.vol_parameters = vol_parameters
+        self.method_parameters = method_parameters
         self.iterations = []
         self.evaluations = []
         self.volume = []
@@ -62,7 +63,7 @@ class ComputerCommon(object):
 
 def run_computer(potential_dir, results_dir, large_or_small_flag,
     nr_gaussians, nr_dimensions, nr_samples, ComputerMethod,
-    opt_parameters, pes_parameters, vol_parameters):
+    opt_parameters, pes_parameters, vol_parameters, method_parameters):
     """
     Run ComputerMethod volume computation on gaussian landscapes.
     
@@ -107,6 +108,6 @@ def run_computer(potential_dir, results_dir, large_or_small_flag,
     for pot_index in xrange(nr_samples):
         pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
         computer = ComputerMethod(results_dir, opt_parameters,
-            pes_parameters, vol_parameters)
+            pes_parameters, vol_parameters, method_parameters)
         computer.compute_volume(pot, large_or_small_flag)
         computer.print_results(nr_gaussians, nr_dimensions, pot_index)

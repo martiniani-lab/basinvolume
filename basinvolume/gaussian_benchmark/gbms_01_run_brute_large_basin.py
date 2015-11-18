@@ -6,6 +6,34 @@ import os
 from computer_common import ComputerCommon
 from computer_common import run_computer
 
+class MC(_BaseMCRunner):
+    def set_control(self, tmp):
+        self.set_temperature(tmp)
+    def run(self, nr_iterations):
+        for _ in xrange(nr_iterations):
+            self.one_iteration()
+
+class BruteEngine(object):
+    """
+    Engine to do iteration-wise computation of basin volume by brute
+    force rejection.
+    """
+    def __init__(self, brute_parameters):
+        self.brute_parameters = brute_parameters
+        self.mc_parameters = dict([("origin", np.zeros(self.pes_parameters["nr_dimensions"])),
+            ("temperature", 1), ("max_nr_samples", 1e14)])
+        self.mc = MC(self.potential, self.mc_parameters["origin"],
+            self.mc_parameters["temperature"],
+            self.mc_parameters["max_nr_samples"])
+        self.evaluations = 0
+        self.volume = 0
+    
+    def one_iteration(self):
+        self.mc.run(self.brute_parameters["nr_samples_increment"])
+        p = self.mc.get_accepted_fraction()
+        self.volume = p * volume_nball(self.pes_parameters["radius_container"], self.pes_parameters["nr_dimensions"])
+    
+
 class BruteComputer(ComputerCommon):
     """
     Compute volume of a basin in the gaussian landscape by brute force,
@@ -13,16 +41,18 @@ class BruteComputer(ComputerCommon):
     disk.
     """
     def __init__(self, results_dir, opt_parameters, pes_parameters,
-        vol_parameters):
+        vol_parameters, method_parameters):
         super(BruteComputer, self).__init__(results_dir, opt_parameters,
-            pes_parameters, vol_parameters)
+            pes_parameters, vol_parameters, method_parameters)
+        self.brute_engine = BruteEngine(self.method_parameters)
         
     def get_method_label(self):
         return "brute"
         
     def get_evaluations_volume_one_iteration(self):
-        evaluations = 42
-        volume = 44
+        self.brute_engine.one_iteration()
+        evaluations = self.brute_engine.evaluations
+        volume = self.brute_engine.volume
         return evaluations, volume
         
 
@@ -31,10 +61,12 @@ if __name__ == "__main__":
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8), ("opt_nsteps", 1e8), ("opt_maxstep", 0.1)])
     pes_parameters = dict([("cms_dtol", 1)])
     vol_parameters = dict([("max_iterations", 100)])
+    brute_parameters = dict([("nr_samples_increment", 1e3)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     large_basin_results_dir = os.path.join(os.getcwd(), "large_basin_results")
     for nr_gaussians in [5]:
         for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
             run_computer(potential_dir, large_basin_results_dir, "large",
                 nr_gaussians, nr_dimensions, nr_samples, BruteComputer,
-                opt_parameters, pes_parameters, vol_parameters)
+                opt_parameters, pes_parameters, vol_parameters,
+                brute_parameters)
