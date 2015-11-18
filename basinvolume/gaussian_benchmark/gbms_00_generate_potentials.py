@@ -1,5 +1,7 @@
 from __future__ import division
 
+import os
+
 from multi_gauss_wrap import MultiGaussWrap
 
 def generate_potentials(potential_dir, nr_gaussians, nr_dimensions, nr_samples):
