@@ -20,6 +20,23 @@ def get_dist_com(coords, origin, bdim):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_dist_vec_com(coords, origin, bdim):
+    cdef np.ndarray[double, ndim=1] coordsc = np.array(coords, dtype=float)
+    cdef np.ndarray[double, ndim=1] originc = np.array(origin, dtype=float)
+    cdef size_t cbdim = bdim
+    
+    cdef _pele.Array[double] cdist = get_distance_vec_com(_pele.Array[double](<double*> coordsc.data, coordsc.size),
+                                                          _pele.Array[double](<double*> originc.data, originc.size), cbdim)
+    cdef double *distdata = cdist.data()
+    cdef size_t ndof = cdist.size()
+    cdef np.ndarray[double, ndim=1, mode="c"] dist = np.zeros(ndof)
+    cdef size_t i
+    for i in xrange(ndof):
+        dist[i] = distdata[i]
+    return dist
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def read_txt(fname, ncrop=0, nmax=0):
     cdef _pele.Array[double] cseries = cread_txt(fname, ncrop, nmax)
     cdef double *seriesdata = cseries.data()

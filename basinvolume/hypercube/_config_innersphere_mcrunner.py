@@ -23,7 +23,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         self._import_packing_config_files()
         self.k = 1.0 / self.u2_k0
         self.stepsize = 1./np.sqrt(self.k)
-        self.coords = np.zeros(self.ndof)
+        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if niter is not None:
             self.niter = niter
         

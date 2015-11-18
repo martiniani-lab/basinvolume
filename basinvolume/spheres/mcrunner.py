@@ -404,11 +404,6 @@ class BV_MCrunner(_BaseMCRunner):
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
                                                   factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
                                                   single=single, nparticles=self.nparticles, bdim=self.bdim)
-        if record_trajectory:
-            rte = max(int((self.niter-self.equilibration_steps)/record_trajectory_npoints),1)
-            self.record_trajectory = RecordCoordsTimeseries(self.ndim, 
-                                                            record_every=rte, 
-                                                            eqsteps=self.equilibration_steps)
         #set up pele:MC
         self.set_takestep(self.takestep)
         if self.use_frozen:
@@ -418,7 +413,12 @@ class BV_MCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.time_series)
-        self.add_action(self.record_trajectory)
+        if record_trajectory:
+            rte = max(int((self.niter-self.equilibration_steps)/record_trajectory_npoints),1)
+            self.record_trajectory = RecordCoordsTimeseries(self.ndim, 
+                                                            record_every=rte, 
+                                                            eqsteps=self.equilibration_steps)
+            self.add_action(self.record_trajectory)
         if record_steps_timeseries:
             self.steps_timeseries_list = []
             self.record_steps_timeseries_every = record_steps_timeseries_every

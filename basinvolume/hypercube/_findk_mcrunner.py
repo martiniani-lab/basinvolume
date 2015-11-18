@@ -22,7 +22,7 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         self.temperature=1.0
         self.ndof = ndof
         self.sidelength = sidelength
-        self.coords = np.zeros(self.ndof)
+        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if workspace is None:
             self.workspace = os.getcwd()
         else:

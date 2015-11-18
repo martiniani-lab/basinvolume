@@ -92,10 +92,13 @@ class _kmin_mcrunner(_configure_mcrunner):
             view_traceback()
             self._print_success(False)
     
-    def _collect_trajectory(self):
+    def _collect_trajectory(self, fix_com=True):
         mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
-        self.mean_coord_dist, self.var_coord_dist = np.linalg.norm(mean_coord-self.mcrunner.origin), np.sum(var_coord)
+        self.mean_coord_dist, self.var_coord_dist = get_dist_com(mean_coord, self.mcrunner.origin, self.bdim), np.sum(var_coord)
         self.trajectory = self.mcrunner.dump_trajectory(self.trajectory_path, clear=True)
+        if fix_com:
+            for i,coords in enumerate(self.trajectory):
+                self.trajectory[i] = get_dist_vec_com(coords, self.mcrunner.origin, self.mcrunner.bdim)        
         self.traj_eval, self.traj_evec = trajectory_pca(self.trajectory)
         self.pca_asphericity = asphericity_factor(self.traj_eval)
     
@@ -114,7 +117,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
         trajectory_fname = 'kmin_trajectory_' + dname
-        self.trajectory_path = '{}/{}.config'.format(self.base_directory, trajectory_fname)
+        self.trajectory_path = '{}/{}.h5'.format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = 'diffusion_' + dname
         self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)

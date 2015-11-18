@@ -21,12 +21,13 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
     def __call__(self, base_dir, k=1.0, stepsize=1e-3, niter=2e4, hmin=0, 
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter=5e3, adjustf_navg=100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, single=False, seeds=None, 
+                 record_trajectory=False, record_trajectory_npoints=1e4,
                  record_histogram=False,verbose=False):
                 
         self.temperature=1.0
         self._set_paths(base_dir)
         self._import_packing_config_files()
-        self.coords = np.zeros(self.ndof)
+        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         hbinsize = self._get_histogram_bin(k)
                 
         #set parameters
@@ -52,6 +53,7 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
                                      adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg,
                                      pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq,
                                      hmin=hmin, hmax=hmax, hbinsize=hbinsize, 
+                                     record_trajectory=record_trajectory, record_trajectory_npoints=record_trajectory_npoints,
                                      seeds=seeds, single=single, record_histogram=record_histogram)
         return mcrunner 
     
