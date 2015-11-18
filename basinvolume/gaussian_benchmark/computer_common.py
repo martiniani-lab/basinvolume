@@ -14,16 +14,20 @@ class ComputerCommon(object):
     Basic structure for computing basin voulme as function of number of
     function calls and writing it to disk.
     """
-    def __init__(self, results_path):
+    def __init__(self, results_path, opt_parameters, pes_parameters,
+        vol_parameters):
         self.results_path = results_path
+        self.opt_parameters = opt_parameters
+        self.pes_parameters = pes_parameters
+        self.vol_parameters = vol_parameters
         self.iterations = []
         self.evaluations = []
         self.volume = []
         
     def compute_volume(self, pot, large_small_flag):
-        for i in xrange(self.max_iterations):
+        for i in xrange(self.vol_parameters["max_iterations"]):
             self.iterations.append(i + 1)
-            evaluations, volume = self.volume_iteration()
+            evaluations, volume = self.get_evaluations_volume_one_iteration()
             self.evaluations.append(evaluations)
             self.volume.append(volume)
             
@@ -56,7 +60,9 @@ class ComputerCommon(object):
         return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_volume.txt")
 
 
-def run_computer(potential_dir, results_dir, large_or_small_flag, nr_gaussians, nr_dimensions, nr_samples, ComputerMethod):
+def run_computer(potential_dir, results_dir, large_or_small_flag,
+    nr_gaussians, nr_dimensions, nr_samples, ComputerMethod,
+    opt_parameters, pes_parameters, vol_parameters):
     """
     Run ComputerMethod volume computation on gaussian landscapes.
     
@@ -100,6 +106,7 @@ def run_computer(potential_dir, results_dir, large_or_small_flag, nr_gaussians, 
     pot_wrapper = MultiGaussWrap(potential_dir)
     for pot_index in xrange(nr_samples):
         pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
-        computer = ComputerMethod(results_dir)
+        computer = ComputerMethod(results_dir, opt_parameters,
+            pes_parameters, vol_parameters)
         computer.compute_volume(pot, large_or_small_flag)
         computer.print_results(nr_gaussians, nr_dimensions, pot_index)
