@@ -1,6 +1,7 @@
 from __future__ import division
 
 import numpy as np
+import os
 
 from computer_common import ComputerCommon
 from computer_common import run_computer
@@ -13,6 +14,7 @@ class BruteComputer(ComputerCommon):
     """
     def __init__(self, results_dir):
         super(BruteComputer, self).__init__(results_dir)
+        self.max_iterations = 100
         
     def get_method_label(self):
         return "brute"

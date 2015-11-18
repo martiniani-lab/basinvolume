@@ -1,5 +1,10 @@
 from __future__ import division
 
+import numpy as np
+import os
+
+from multi_gauss_wrap import MultiGaussWrap
+
 class ComputerCommon(object):
     """
     Common functionality of volume computers for benchmark purposes.
