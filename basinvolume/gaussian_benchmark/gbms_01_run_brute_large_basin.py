@@ -19,6 +19,9 @@ class BruteComputer(ComputerCommon):
     def get_method_label(self):
         return "brute"
         
+    def volume_iteration(self):
+        return 42, 44
+        
 
 if __name__ == "__main__":
     nr_samples = 20

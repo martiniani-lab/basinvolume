@@ -3,6 +3,8 @@ from __future__ import division
 import numpy as np
 import os
 
+from basinvolume.utils import trymakedir
+
 from multi_gauss_wrap import MultiGaussWrap
 
 class ComputerCommon(object):
@@ -25,7 +27,7 @@ class ComputerCommon(object):
             self.evaluations.append(evaluations)
             self.volume.append(volume)
             
-    def print_results(self, nr_gaussians, nr_dimensions, nr_samples):
+    def print_results(self, nr_gaussians, nr_dimensions, pot_index):
         """
         Print 3 arrays, iterations, evaluations, volume.
         
@@ -36,22 +38,22 @@ class ComputerCommon(object):
         smallest number of evaluations, such that volume is close to
         asymptotic volume within, say, 2%.
         """
-        trymkdir(self.this_path(nr_gaussians, nr_dimensions, nr_samples))
-        np.savetxt(self.this_iterations_path(nr_gaussians, nr_dimensions, nr_samples), self.iterations)
-        np.savetxt(self.this_evaluations_path(nr_gaussians, nr_dimensions, nr_samples), self.evaluations)
-        np.savetxt(self.this_volume_path(nr_gaussians, nr_dimensions, nr_samples), self.volume)
+        trymakedir(self.this_path(nr_gaussians, nr_dimensions, pot_index))
+        np.savetxt(self.this_iterations_path(nr_gaussians, nr_dimensions, pot_index), self.iterations)
+        np.savetxt(self.this_evaluations_path(nr_gaussians, nr_dimensions, pot_index), self.evaluations)
+        np.savetxt(self.this_volume_path(nr_gaussians, nr_dimensions, pot_index), self.volume)
     
-    def this_path(self, nr_gaussians, nr_dimensions, nr_samples):
-        return os.path.join(self.results_path, str(nr_gaussians), str(nr_dimensions), str(index))
+    def this_path(self, nr_gaussians, nr_dimensions, pot_index):
+        return os.path.join(self.results_path, str(nr_gaussians), str(nr_dimensions), str(pot_index))
         
-    def this_iterations_path(self, large_or_small_flag, nr_gaussians, nr_dimensions, nr_samples):
-        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, nr_samples), self.get_method_label() + "_iterations.txt")
+    def this_iterations_path(self, nr_gaussians, nr_dimensions, pot_index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_iterations.txt")
         
-    def this_evaluations_path(self, large_or_small_flag, nr_gaussians, nr_dimensions, nr_samples):
-        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, nr_samples), self.get_method_label() + "_evaluations.txt")
+    def this_evaluations_path(self, nr_gaussians, nr_dimensions, pot_index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_evaluations.txt")
         
-    def this_volume_path(self, large_or_small_flag, nr_gaussians, nr_dimensions, nr_samples):
-        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, nr_samples), self.get_method_label() + "_volume.txt")
+    def this_volume_path(self, nr_gaussians, nr_dimensions, pot_index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_volume.txt")
 
 
 def run_computer(potential_dir, results_dir, large_or_small_flag, nr_gaussians, nr_dimensions, nr_samples, ComputerMethod):
@@ -100,4 +102,4 @@ def run_computer(potential_dir, results_dir, large_or_small_flag, nr_gaussians, 
         pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
         computer = ComputerMethod(results_dir)
         computer.compute_volume(pot, large_or_small_flag)
-        computer.print_results(nr_gaussians, nr_dimensions, nr_samples)
+        computer.print_results(nr_gaussians, nr_dimensions, pot_index)
