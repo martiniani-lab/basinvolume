@@ -129,14 +129,14 @@ class BondOrientationalOrder(StructuralAnalysis):
     def _cartesian_to_polar3d(self, vector):
         vector = np.array(vector)
         r = np.linalg.norm(vector)
-        theta = np.arctan2(vector[1], vector[0])
-        phi = np.arccos(vector[2]/r)
+        theta = np.arctan2(vector[1], vector[0]) + np.pi    #[0, 2*pi]
+        phi = np.arccos(vector[2]/r)                        #[0, pi]
         return r, theta, phi
     
     def _cartesian_to_polar2d(self, vector):
         vector = np.array(vector)
         r = np.linalg.norm(vector)
-        theta = np.arctan2(vector[1], vector[0])
+        theta = np.arctan2(vector[1], vector[0]) + np.pi
         return r, theta
 
     def _qsum(self, nnatoms_vec, order, ndim=3, deg=6):
@@ -156,7 +156,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         if ndim == 3:
             for vector in nnatoms_vec:
                 r, theta, phi = self._cartesian_to_polar3d(vector)
-                Y = sph_harm(order, deg, theta, phi)
+                Y = sph_harm(order, deg, theta, phi) #theta, phi
                 qsum += Y
         elif ndim == 2:
             assert deg == 6, "boo only meaningful for exhatic phase in 2d"
@@ -170,7 +170,7 @@ class BondOrientationalOrder(StructuralAnalysis):
     
     def _bond_orientational_order3d(self, nnatoms_vec, deg=6):
         q = 0.
-        for m in xrange(-deg,deg):
+        for m in xrange(-deg,deg+1):
             c = self._qsum(nnatoms_vec, m, ndim=3, deg=deg)
             q += np.absolute(c)**2
         return np.sqrt(q * 4 * np.pi / (2*deg+1))

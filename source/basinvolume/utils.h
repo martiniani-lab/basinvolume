@@ -54,6 +54,34 @@ inline double get_distance_com(const pele::Array<double>& coords,
     return d;
 }
 
+inline pele::Array<double> get_distance_vec_com(const pele::Array<double>& coords,
+        const pele::Array<double>& origin, const size_t ndim)
+{
+    pele::Array<double> delta_com(ndim, 0);
+    pele::Array<double> distance(coords.size());
+    size_t nparticles = coords.size() / ndim;
+
+    for(size_t i=0; i<nparticles; ++i) {
+        size_t const i1 = i*ndim;
+        for(size_t j=0; j<ndim; ++j) {
+            double const d = (coords[i1+j] - origin[i1+j]);
+            distance[i1+j] = d;
+            delta_com[j] += d;
+        }
+    }
+
+    delta_com /= nparticles;
+
+    for(size_t i=0;i < nparticles; ++i) {
+        size_t const i1 = i*ndim;
+        for(size_t j=0; j<ndim; ++j) {
+            distance[i1+j] -= delta_com[j];
+        }
+    }
+
+    return distance.copy();
+}
+
 size_t get_file_length(std::string fname){
     double x;
     std::ifstream input(fname);

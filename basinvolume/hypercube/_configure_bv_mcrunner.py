@@ -27,7 +27,7 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
         self.temperature=1.0
         self._set_paths(base_dir)
         self._import_packing_config_files()
-        self.coords = np.ones(self.ndof)*0.3 #CHANGE THIS: I have shifted the centre to see the effect
+        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         hbinsize = self._get_histogram_bin(k)
                 
         #set parameters

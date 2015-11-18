@@ -27,7 +27,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         self.record_steps_timeseries = record_steps_timeseries
         self.ndof = ndof
         self.sidelength = sidelength
-        self.coords = np.ones(self.ndof)*0.3 #CHANGE THIS: I have shifted the centre to see the effect
+        self.coords = np.zeros(self.ndof) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if workspace is None:
             self.workspace = os.getcwd()
         else:
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     #seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
-    ndof = 93
+    ndof = 100
     sim = _hypercube_kmin_mcrunner(ndof, sidelength=1, niter=1e6, k=0, seeds=seeds,
                          single=True, verbose=True, hmax=15, hbinsize=0.001)
     #record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     print 'time elapsed', end-start
     status = sim.mcrunner.get_status()
     print status
-    print 'd2 kmin: ',sim.displ_k_min
+    print 'd kmin: ',sim.displ_k_min
     print 'var: ',sim.var_displ_k_min
     print 'mean_coord_dist: ',sim.mean_coord_dist
     print 'var_coord_dist: ', sim.var_coord_dist

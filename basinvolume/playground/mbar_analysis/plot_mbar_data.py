@@ -25,9 +25,9 @@ rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 params = {'backend': 'pdf',
           'text.latex.preamble': ['\usepackage{gensymb}'],
-          'font.size': 18,
-          'xtick.major.pad':18,
-          'ytick.major.pad':18,
+          'font.size': 20,
+          'xtick.major.pad':8,
+          'ytick.major.pad':8,
           'text.usetex': True,
           'figure.tight_layout': True,
           'figure.autolayout': True
@@ -39,6 +39,10 @@ matplotlib.rcParams.update(params)
 def get_color_cycle():
     cm = plt.get_cmap('Set2')
     color_cycle=cycle([cm(1. * i / 12) for i in xrange(12)][::-1])
+    return color_cycle
+def get_color_cycle2():
+    cm = plt.get_cmap('Set2')
+    color_cycle=cycle([cm(1. * i / 12) for i in xrange(12)][::2])
     return color_cycle
 def get_marker_cycle():
     markers = ["o","v","s","x","^","8","p","<","*","D",">",]
@@ -147,6 +151,9 @@ class MBARPackingData(PackingData):
             assert(os.path.isfile(diffusion_configfile))
             configf.read(diffusion_configfile)
             self.step_timeseries_stepsize = configf.getfloat('KMIN_MCRUNNER_STATUS', 'stepsize')
+            self.pca_asphericity = configf.getfloat('KMIN', 'pca_asphericity')
+            self.mean_coord_dist = configf.getfloat('KMIN', 'mean_coord_dist')
+            self.var_coord_dist = configf.getfloat('KMIN', 'var_coord_dist')
             #import timeseries
             file_list = glob.glob(os.path.join(path,'StepsTimeSeries.{}.*'.format(niter)))
             file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
@@ -459,8 +466,8 @@ class plot_mbar_data(object):
             #self.plot_all(plot_type="log_gr_ratio", average=False, savefig=True, show=self.show, logx=True)
             #self.plot_all(plot_type="gr_ratio", average=False)
             self.plot_all(plot_type="dos", average=False, savefig=True, show=self.show)
-        if False:
-            self.plot_correlations(plot_type="m0_q6")
+        if True:
+            self.plot_correlations(plot_type="m1_q6")
         if False:
             #plot Q12 vs poly and pressure vs poly
             color_cycle = get_color_cycle()
@@ -645,6 +652,8 @@ class plot_mbar_data(object):
         
         if True:
             import matplotlib.gridspec as gridspec
+            from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
+            from mpl_toolkits.axes_grid1.inset_locator import mark_inset
             #plot comparison between fcc and hypercube (rescaled), also compute lengthscale
             assert self.hypercube_data is not None
             color_cycle = get_color_cycle()
@@ -654,8 +663,27 @@ class plot_mbar_data(object):
             fig8 = plt.figure(figsize=(9,11))
             ax8 = fig8.add_subplot(gs[4:,:])
             ax9 = fig8.add_subplot(gs[:4,:])
-            ax10 = fig8.add_axes([0.61,0.62,0.3,0.3], alpha=0.5)
+            ax10 = fig8.add_axes([0.68,0.68,0.25,0.25], alpha=0.5)
             fig8.subplots_adjust(hspace=0)
+            axins = zoomed_inset_axes(ax8, 500, bbox_to_anchor=(0.4, 0.13), bbox_transform=plt.gcf().transFigure) # zoom = 6
+            
+            #hypercube data logr
+            hyp_label = ['iso-hcube','hcube']
+            for i,hd in enumerate(self.hypercube_data):
+                ls = line_cycle.next()
+                hc_arr = hd.log_gr_ratio
+                (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
+                csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose() 
+                ax8 = self._plot(ax8, csv_tuple, label=hyp_label[i], 
+                                 plot_err=False, plot_fit=False, color='slategray', 
+                                 marker=None, ls=ls)
+                #hypercube data dos
+                hc_arr = hd.dos
+                (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
+                csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose() 
+                ax9 = self._plot(ax9, csv_tuple, label=hyp_label[i], 
+                                 plot_err=False, plot_fit=False, color='slategray', 
+                                 marker=None, ls=ls)
             
             #packing data
             for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
@@ -666,12 +694,16 @@ class plot_mbar_data(object):
                     ls = line_cycle.next()
                     ax8, xlabel, ylabel = self._plot_all(ax8, dataset, plot_type="log_gr_ratio", 
                                                         average=False, 
-                                                        label='{} {:.3E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
+                                                        label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
                                                         color=color, ls=ls)
                     ax9, xlabel, ylabel = self._plot_all(ax9, dataset, plot_type="dos", 
                                                         average=False, 
-                                                        label='{} {:.3E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
+                                                        label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
                                                         color=color, ls=ls)
+                    axins, xlabel, ylabel = self._plot_all(axins, dataset, plot_type="log_gr_ratio", 
+                                                           average=False, 
+                                                           label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
+                                                           color=color, ls=ls)
                     x = []
                     for arr in dataset.log_gr_ratio_data: 
                         x.append(arr[-1,0])
@@ -680,41 +712,96 @@ class plot_mbar_data(object):
                     x, cdf_x = cdf.get_vecdata()
                     f = interp1d(x, cdf_x, bounds_error=True)
                     xref = np.linspace(x[0],x[-1],1000)
-                    ax10.plot(xref, f(xref), label='{} {:.3E}'.format(dataset.structural_label[:3], dataset.hs_poly),
+                    ax10.plot(xref, 1-f(xref), label='{} {:.2E}'.format(dataset.structural_label[:3], dataset.hs_poly),
                               linewidth=3, color=color, linestyle=ls)
             
-            ax10.set_xlabel(r'$r_{max}$')
-            ax10.set_ylabel(r'$\mathrm{cdf}[\mathrm{max}_r(h(r)/r^{N-1})]$')
-            #hypercube data logr
-            hc_arr = self.hypercube_data.log_gr_ratio
-            (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
-            csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose() 
-            ax8 = self._plot(ax8, csv_tuple, label='hypercube', 
-                             plot_err=False, plot_fit=False, color='k', 
-                             marker=None, ls='-')
-            #hypercube data dos
-            hc_arr = self.hypercube_data.dos
-            (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
-            csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose() 
-            ax9 = self._plot(ax9, csv_tuple, label='hypercube', 
-                             plot_err=False, plot_fit=False, color='k', 
-                             marker=None, ls='-')
+            ax10.set_xlabel(r'$r_{\mathrm{max}}$')
+            ax10.set_ylabel(r'$\mathrm{cdf}(r_{\mathrm{max}})$')
+            ax10.yaxis.labelpad = 0.
+            ax10.locator_params(axis = 'y', nbins = 1)
+            ax10.locator_params(axis = 'x', nbins = 3)
+            #ax10.set_xlim((3,8))
+
             #ax8.set_xscale('log')
             ax8.set_ylim((-265,5))
             ax9.set_xlim((0,8))
             ax8.set_xlabel(r'$r$')
             ax8.set_ylabel(r'$\log(h(r)/r^{N-1})$')
-            ax8.legend(frameon=False, loc="best", prop={'size':18}, numpoints=1, markerscale=1, 
-                       columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=2)
+            ax8.legend(fancybox=True, framealpha=0.5, loc="best", prop={'size':18}, numpoints=1, markerscale=1, 
+                       columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=1)
             #ax9.set_xlabel(r'$r$')
             ax9.set_ylabel(r'$h(r)$')
             fig8.subplots_adjust(hspace=0)
-            plt.setp([a.get_xticklabels() for a in fig8.axes[1:]], visible=False)
+            axins.axis([0.97, 0.974, -10.45, -10.65])
+            axins.set_yticks([])
+            axins.set_xticks([])
+            mark_inset(ax8, axins, loc1=3, loc2=4, fc="none", ec="0.0", zorder=3)
+            plt.setp([a.get_xticklabels() for a in fig8.axes[1:-2]], visible=False)
             
             
             
-            fig8.savefig(os.path.join(self.figdir, 'hypercube_logr_comparison.pdf')) 
-                 
+            fig8.savefig(os.path.join(self.figdir, 'hypercube_logr_comparison.pdf'))
+        
+        if True:
+            #plot Q12 vs poly and pressure vs poly
+            from mpl_toolkits.axes_grid1 import host_subplot
+            import mpl_toolkits.axisartist as AA
+            color_cycle = get_color_cycle2()
+            marker_cycle = get_marker_cycle()
+            
+            fig9 = plt.figure(figsize=(8,5))
+            host = host_subplot(111, axes_class=AA.Axes)
+            host.set_aspect('auto')
+            plt.subplots_adjust(right=0.75)
+        
+            par1 = host.twinx()
+            par2 = host.twinx()
+        
+            offset = 68
+            new_fixed_axis = par2.get_grid_helper().new_fixed_axis
+            par2.axis["right"] = new_fixed_axis(loc="right",
+                                                axes=par2,
+                                                offset=(offset, 0))
+        
+            par2.axis["right"].toggle(all=True)
+            
+            color = [color_cycle.next(), color_cycle.next(), color_cycle.next()]
+            marker = [marker_cycle.next(), marker_cycle.next(), marker_cycle.next()]
+            for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
+                if len(dataset.free_energies) > 1:
+                    boo = []
+                    for bunch in dataset.boos:
+                        boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
+                    boo12 = np.array(boo)[:,4]
+                    y = [np.mean(boo12)]
+                    yerr = [np.std(boo12)]
+                    y1 = [np.mean(dataset.pressures)]
+                    y1err = [np.std(dataset.pressures)]
+                    x = [dataset.hs_poly]
+                    
+                    p1, caplines1, barlinecols1 =  host.errorbar(x, [np.mean(np.array(boo)[:,4])], yerr=yerr, 
+                                                                 marker=marker[0], ms=9, label=None, color=color[0], 
+                                                                 markeredgecolor=color[0])
+                    p2, caplines2, barlinecols2 = par1.errorbar(x, [np.mean(np.array(boo)[:,3])], yerr=yerr, 
+                                                                marker=marker[1], ms=9, label=None, color=color[1],
+                                                                markeredgecolor=color[1])
+                    p3, caplines3, barlinecols3 = par2.errorbar(x, [np.mean(np.array(boo)[:,1])], yerr=yerr, 
+                                                                marker=marker[2], ms=9, label=None, color=color[2],
+                                                                markeredgecolor=color[2])
+            host.axis["left"].label.set_color(p1.get_color())
+            par1.axis["right"].label.set_color(p2.get_color())
+            par2.axis["right"].label.set_color(p3.get_color())       
+                    
+            #host.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            #          columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
+            host.set_xscale('log')
+            par1.set_xscale('log')
+            par2.set_xscale('log')
+            host.set_xlabel(r"$\eta$")
+            host.set_ylabel(r"$Q12$")
+            par1.set_ylabel(r"$Q10$")
+            par2.set_ylabel(r"$Q6$")
+            fig9.savefig(os.path.join(self.figdir, 'poly_q12.pdf'))
             
     def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True, logx=False):
         fig = plt.figure()
@@ -946,13 +1033,15 @@ class plot_mbar_data(object):
     
 if __name__ == "__main__":
     show = True
-    pts_mbar = MBARBasinAnalysis()
+    pts_mbar = MBARBasinAnalysis(import_diffusion=False)
     pts_tint = TINTBasinAnalysis()
     pts_mbar.collect_data_every_set_all(data_name="mbar_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
     pts_tint.collect_data_every_set_all(data_name="tint_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')
     hypercube_data = MBARHypercubeData()
+    hypercube_data2 = MBARHypercubeData()
     hypercube_data.import_dos_data('/home/sm958/Work/basinvolume/basinvolume/hypercube/one_cube/explore_bv_hypercube_n93_l1_tmp2/analysis')
-    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets, hypercube_data=hypercube_data)
+    hypercube_data2.import_dos_data('/home/sm958/Work/basinvolume/basinvolume/hypercube/one_cube/explore_bv_hypercube_n93_l1_tmp3/analysis') 
+    pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets, hypercube_data=[hypercube_data, hypercube_data2] )
     pmd()
     if show:
         plt.show()
