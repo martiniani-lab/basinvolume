@@ -3,6 +3,8 @@ from __future__ import division
 import numpy as np
 import os
 
+from pele.optimize import ModifiedFireCPP
+
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import UniformSphericalSampling
 from mcpele.monte_carlo import NullPotential
@@ -25,10 +27,11 @@ class BruteEngine(object):
     Engine to do iteration-wise computation of basin volume by brute
     force rejection.
     """
-    def __init__(self, brute_parameters, pes_parameters, potential):
+    def __init__(self, brute_parameters, pes_parameters, potential, opt_parameters):
         self.brute_parameters = brute_parameters
         self.pes_parameters = pes_parameters
         self.potential = potential
+        self.opt_parameters = opt_parameters
         self.mc_parameters = dict([("temperature", 1),
             ("max_nr_samples", 1e14)])
         self.mc_potential = NullPotential()
@@ -38,6 +41,12 @@ class BruteEngine(object):
         self.step = UniformSphericalSampling(42, self.pes_parameters["radius_container"])
         self.mc.set_takestep(self.step)
         self.mc.set_report_steps(0)
+        self.optimizer = ModifiedFireCPP(self.pes_parameters["origin"],
+            self.potential, dtmax=self.opt_parameters["opt_dtmax"],
+            maxstep=self.opt_parameters["opt_maxstep"],
+            tol=self.opt_parameters["opt_tol"],
+            nsteps=self.opt_parameters["opt_nsteps"],
+            verbosity=self.opt_parameters["verbosity"])
         self.conftest_check_same_minimum = CheckSameMinimumConfig(self.potential,
             self.pes_parameters["origin"], self.pes_parameters["csm_dtol"],
             opt=self.optimizer, opt_tol=self.opt_parameters["opt_tol"],
@@ -49,7 +58,8 @@ class BruteEngine(object):
     def one_iteration(self):
         self.mc.run(self.brute_parameters["nr_samples_increment"])
         p = self.mc.get_accepted_fraction()
-        self.volume = p * volume_nball(self.pes_parameters["radius_container"], self.pes_parameters["nr_dimensions"])
+        self.volume = p * volume_nball(self.pes_parameters["radius_container"],
+            self.pes_parameters["nr_dimensions"])
     
 
 class BruteComputer(ComputerCommon):
@@ -62,7 +72,8 @@ class BruteComputer(ComputerCommon):
         vol_parameters, method_parameters, pot):
         super(BruteComputer, self).__init__(results_dir, opt_parameters,
             pes_parameters, vol_parameters, method_parameters, pot)
-        self.brute_engine = BruteEngine(self.method_parameters, self.pes_parameters, self.pot)
+        self.brute_engine = BruteEngine(self.method_parameters,
+            self.pes_parameters, self.pot, self.opt_parameters)
         
     def get_method_label(self):
         return "brute"
@@ -76,7 +87,8 @@ class BruteComputer(ComputerCommon):
 
 if __name__ == "__main__":
     nr_samples = 20
-    opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8), ("opt_nsteps", 1e8), ("opt_maxstep", 0.1)])
+    opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
+        ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
     vol_parameters = dict([("max_iterations", 100)])
     brute_parameters = dict([("nr_samples_increment", 1000)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
