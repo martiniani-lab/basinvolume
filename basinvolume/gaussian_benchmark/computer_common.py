@@ -108,6 +108,8 @@ def run_computer(potential_dir, results_dir, large_or_small_flag,
     pot_wrapper = MultiGaussWrap(potential_dir)
     for pot_index in xrange(nr_samples):
         pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
+        pes_parameters["origin"] = pot_wrapper.get_origin(nr_gaussians,
+            nr_dimensions, pot_index, large_or_small_flag)
         computer = ComputerMethod(results_dir, opt_parameters,
             pes_parameters, vol_parameters, method_parameters, pot)
         computer.compute_volume()

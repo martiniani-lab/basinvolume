@@ -4,6 +4,11 @@ import numpy as np
 import os
 
 from mcpele.monte_carlo import _BaseMCRunner
+from mcpele.monte_carlo import UniformSphericalSampling
+from mcpele.monte_carlo import NullPotential
+
+from basinvolume.monte_carlo import CheckSameMinimumConfig
+from basinvolume.utils import volume_nball
 
 from computer_common import ComputerCommon
 from computer_common import run_computer
@@ -24,11 +29,20 @@ class BruteEngine(object):
         self.brute_parameters = brute_parameters
         self.pes_parameters = pes_parameters
         self.potential = potential
-        self.mc_parameters = dict([("origin", np.zeros(self.pes_parameters["nr_dimensions"])),
-            ("temperature", 1), ("max_nr_samples", 1e14)])
-        self.mc = MC(self.potential, self.mc_parameters["origin"],
+        self.mc_parameters = dict([("temperature", 1),
+            ("max_nr_samples", 1e14)])
+        self.mc_potential = NullPotential()
+        self.mc = MC(self.mc_potential, self.pes_parameters["origin"],
             self.mc_parameters["temperature"],
             self.mc_parameters["max_nr_samples"])
+        self.step = UniformSphericalSampling(42, self.pes_parameters["radius_container"])
+        self.mc.set_takestep(self.step)
+        self.mc.set_report_steps(0)
+        self.conftest_check_same_minimum = CheckSameMinimumConfig(self.potential,
+            self.pes_parameters["origin"], self.pes_parameters["csm_dtol"],
+            opt=self.optimizer, opt_tol=self.opt_parameters["opt_tol"],
+            opt_maxiter=self.opt_parameters["opt_nsteps"])
+        self.mc.add_conf_test(self.conftest_check_same_minimum)
         self.evaluations = 0
         self.volume = 0
     
@@ -69,7 +83,9 @@ if __name__ == "__main__":
     large_basin_results_dir = os.path.join(os.getcwd(), "large_basin_results")
     for nr_gaussians in [5]:
         for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
-            pes_parameters = dict([("cms_dtol", 1), ("nr_dimensions", nr_dimensions)])
+            pes_parameters = dict([("cms_dtol", 1),
+                ("nr_dimensions", nr_dimensions),
+                ("radius_container", 10)])
             run_computer(potential_dir, large_basin_results_dir, "large",
                 nr_gaussians, nr_dimensions, nr_samples, BruteComputer,
                 opt_parameters, pes_parameters, vol_parameters,
