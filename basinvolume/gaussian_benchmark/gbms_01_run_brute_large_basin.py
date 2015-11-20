@@ -83,7 +83,7 @@ if __name__ == "__main__":
     large_basin_results_dir = os.path.join(os.getcwd(), "large_basin_results")
     for nr_gaussians in [5]:
         for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
-            pes_parameters = dict([("cms_dtol", 1),
+            pes_parameters = dict([("csm_dtol", 1),
                 ("nr_dimensions", nr_dimensions),
                 ("radius_container", 10)])
             run_computer(potential_dir, large_basin_results_dir, "large",
