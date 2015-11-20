@@ -3,6 +3,8 @@ from __future__ import division
 import numpy as np
 import os
 
+from mcpele.monte_carlo import _BaseMCRunner
+
 from computer_common import ComputerCommon
 from computer_common import run_computer
 
@@ -18,8 +20,10 @@ class BruteEngine(object):
     Engine to do iteration-wise computation of basin volume by brute
     force rejection.
     """
-    def __init__(self, brute_parameters):
+    def __init__(self, brute_parameters, pes_parameters, potential):
         self.brute_parameters = brute_parameters
+        self.pes_parameters = pes_parameters
+        self.potential = potential
         self.mc_parameters = dict([("origin", np.zeros(self.pes_parameters["nr_dimensions"])),
             ("temperature", 1), ("max_nr_samples", 1e14)])
         self.mc = MC(self.potential, self.mc_parameters["origin"],
@@ -41,10 +45,10 @@ class BruteComputer(ComputerCommon):
     disk.
     """
     def __init__(self, results_dir, opt_parameters, pes_parameters,
-        vol_parameters, method_parameters):
+        vol_parameters, method_parameters, pot):
         super(BruteComputer, self).__init__(results_dir, opt_parameters,
-            pes_parameters, vol_parameters, method_parameters)
-        self.brute_engine = BruteEngine(self.method_parameters)
+            pes_parameters, vol_parameters, method_parameters, pot)
+        self.brute_engine = BruteEngine(self.method_parameters, self.pes_parameters, self.pot)
         
     def get_method_label(self):
         return "brute"
@@ -59,13 +63,13 @@ class BruteComputer(ComputerCommon):
 if __name__ == "__main__":
     nr_samples = 20
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8), ("opt_nsteps", 1e8), ("opt_maxstep", 0.1)])
-    pes_parameters = dict([("cms_dtol", 1)])
     vol_parameters = dict([("max_iterations", 100)])
-    brute_parameters = dict([("nr_samples_increment", 1e3)])
+    brute_parameters = dict([("nr_samples_increment", 1000)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     large_basin_results_dir = os.path.join(os.getcwd(), "large_basin_results")
     for nr_gaussians in [5]:
         for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
+            pes_parameters = dict([("cms_dtol", 1), ("nr_dimensions", nr_dimensions)])
             run_computer(potential_dir, large_basin_results_dir, "large",
                 nr_gaussians, nr_dimensions, nr_samples, BruteComputer,
                 opt_parameters, pes_parameters, vol_parameters,

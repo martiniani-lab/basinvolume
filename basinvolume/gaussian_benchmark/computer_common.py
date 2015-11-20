@@ -15,17 +15,18 @@ class ComputerCommon(object):
     function calls and writing it to disk.
     """
     def __init__(self, results_path, opt_parameters, pes_parameters,
-        vol_parameters, method_parameters):
+        vol_parameters, method_parameters, pot):
         self.results_path = results_path
         self.opt_parameters = opt_parameters
         self.pes_parameters = pes_parameters
         self.vol_parameters = vol_parameters
         self.method_parameters = method_parameters
+        self.pot = pot
         self.iterations = []
         self.evaluations = []
         self.volume = []
         
-    def compute_volume(self, pot, large_small_flag):
+    def compute_volume(self):
         for i in xrange(self.vol_parameters["max_iterations"]):
             self.iterations.append(i + 1)
             evaluations, volume = self.get_evaluations_volume_one_iteration()
@@ -108,6 +109,6 @@ def run_computer(potential_dir, results_dir, large_or_small_flag,
     for pot_index in xrange(nr_samples):
         pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
         computer = ComputerMethod(results_dir, opt_parameters,
-            pes_parameters, vol_parameters, method_parameters)
-        computer.compute_volume(pot, large_or_small_flag)
+            pes_parameters, vol_parameters, method_parameters, pot)
+        computer.compute_volume()
         computer.print_results(nr_gaussians, nr_dimensions, pot_index)
