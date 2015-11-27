@@ -3,7 +3,28 @@ from __future__ import division
 from computer_common import ComputerCommon
 from computer_common import run_computer
 
-
+class TIEngine(object):
+    """
+    Engine to do iteration-wise computation of basin volume by TI method.
+    """
+    def __init__(self, ti_parameters, pes_parameters, potential, opt_parameters):
+        self.ti_parameters = ti_parameters
+        self.pes_parameters = pes_parameters
+        self.potential = potential
+        self.opt_parameters = opt_parameters
+        self.setup_ti_kmax_kmin()
+        
+    def one_iteration(self):
+        self.continue_walk()
+        self.volume = self.compute_volume()
+        self.evaluations = self.conftest_check_same_minimum.get_nfev()
+        
+    def setup_ti_kmax_kmin(self):
+    
+    def continue_walk(self):
+        
+    def compute_volume(self):
+        
 
 class TIComputer(ComputerCommon):
     """
