@@ -60,6 +60,7 @@ class BruteEngine(object):
         p = self.mc.get_accepted_fraction()
         self.volume = p * volume_nball(self.pes_parameters["radius_container"],
             self.pes_parameters["nr_dimensions"])
+        self.evaluations = self.conftest_check_same_minimum.get_nfev()
     
 
 class BruteComputer(ComputerCommon):
