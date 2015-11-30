@@ -1,5 +1,11 @@
 from __future__ import division
 
+from pele.optimize import ModifiedFireCPP
+
+from mcpele.monte_carlo import CheckSphericalContainer
+
+from basinvolume.monte_carlo import CheckSameMinimumConfig
+
 from computer_common import ComputerCommon
 from computer_common import run_computer
 
@@ -12,16 +18,69 @@ class TIEngine(object):
         self.pes_parameters = pes_parameters
         self.potential = potential
         self.opt_parameters = opt_parameters
-        self.setup_ti_kmax_kmin()
+        self.setup()
+        """
+        bm.find_kmax()
+        bm.run_kmin()
+        bm.run_PT()
+        bm.compute_volume()
+        """
+        
+    def setup(self):
+        self.optimizer = ModifiedFireCPP(self.pes_parameters["origin"],
+            self.potential, dtmax=self.opt_parameters["opt_dtmax"],
+            maxstep=self.opt_parameters["opt_maxstep"],
+            tol=self.opt_parameters["opt_tol"],
+            nsteps=self.opt_parameters["opt_nsteps"],
+            verbosity=self.opt_parameters["verbosity"])
+        self.conftest_check_same_minimum = CheckSameMinimumConfig(self.potential,
+            self.pes_parameters["origin"], self.pes_parameters["csm_dtol"],
+            opt=self.optimizer, opt_tol=self.opt_parameters["opt_tol"],
+            opt_maxiter=self.opt_parameters["opt_nsteps"])
+        self.conftest_outer_sphere = CheckSphericalContainer(self.pes_parameters["radius_container"],
+            self.pes_parameters["nr_dimensions"])
+        self.evaluations = 0
+        self.volume = 0
+        self.setup_ti_kmax()
+        self.setup_ti_kmin()
+        self.setup_ti_pt_walks()
         
     def one_iteration(self):
-        self.continue_walk()
+        self.continue_pt_walks()
         self.volume = self.compute_volume()
         self.evaluations = self.conftest_check_same_minimum.get_nfev()
         
-    def setup_ti_kmax_kmin(self):
+    def setup_ti_kmax(self):
+        potential = NullPotential()
+        coords = self.pes_parameters["origin"]
+        temperature = 1
+        setpsize = 1
+        niter = self.ti_parameters["kmax_niter"]
+        self.action_findk = 
+        self.kmax_run = GaussianBenchmarkKmaxRun(potential,
+                                                   coords,
+                                                   temperature,
+                                                   setpsize,
+                                                   niter,
+                                                   pot_optimizer=self.potential,
+                                                   optimizer=self.optimizer,
+                                                   seeds=None,
+                                                   conftest_outer_sphere=self.conftest_outer_sphere,
+                                                   conftest_check_same_minimum=self.conftest_check_same_minimum,
+                                                   action_findk=self.action_findk,
+                                                   avgcount=self.ti_parameters["kmax_avgcount"])
+        self.kmax_run.run()
+        self.kmax = self.kmax_run.get_k()
+        self.kmax_displ2 = self.kmax_run.get_displ2()
+        self.prob_kmax = self.kmax_run.get_prob_kmax()
+        self.var_displ_kmax = self.kmax_run.get_var_displ_kmax()
+        self.kmax_displ2_nr_samples = self.kmax_run.get_entries()
+        
+    def setup_ti_kmin(self):
+        
+    def setup_ti_pt_walks(self):
     
-    def continue_walk(self):
+    def continue_pt_walks(self):
         
     def compute_volume(self):
         
