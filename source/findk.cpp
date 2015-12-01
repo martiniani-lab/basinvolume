@@ -24,8 +24,8 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
       _nrejected(0),
       _start(0),
       _converged(false),
-      _hist(min, max, bin),
-      m_fix_com(fix_com)
+      m_fix_com(fix_com),
+      _hist(min, max, bin)
 {}
 
 void Findk::_get_vec_distance(const pele::Array<double>& x)
