@@ -56,15 +56,15 @@ class TIEngine(EngineCommonOpt):
         self.kmax_run = GaussianBenchmarkKmaxRun(NullPotential(),
                                                  self.pes_parameters["origin"],
                                                  1,
-                                                 self.ti_parameters["kmax_niter"],
-                                                 pot_optimizer=self.potential,
-                                                 origin=self.pes_parameters["origin"],
-                                                 optimizer=self.optimizer,
-                                                 seeds=None,
-                                                 conftest_outer_sphere=self.conftest_outer_sphere,
-                                                 conftest_check_same_minimum=self.conftest_check_same_minimum,
-                                                 action_findk=self.action_findk,
-                                                 avgcount=self.ti_parameters["kmax_avgcount"])
+                                                 self.ti_parameters["kmax_niter"])
+        self.kmax_run.setup(pot_optimizer=self.potential,
+                            origin=self.pes_parameters["origin"],
+                            seeds=None,
+                            conftest_outer_sphere=self.conftest_outer_sphere,
+                            conftest_check_same_minimum=self.conftest_check_same_minimum,
+                            action_findk=self.action_findk,
+                            avgcount=self.ti_parameters["kmax_avgcount"],
+                            niter=self.ti_parameters["kmax_niter"])
         self.kmax_run.run()
         self.kmax = self.kmax_run.get_k()
         self.kmax_displ2 = self.kmax_run.get_displ2()

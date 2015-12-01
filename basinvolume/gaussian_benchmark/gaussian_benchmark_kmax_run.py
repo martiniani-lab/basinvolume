@@ -8,36 +8,23 @@ from mcpele.monte_carlo import SampleGaussian
 from basinvolume.monte_carlo import CheckSameMinimum
 
 class GaussianBenchmarkKmaxRun(_BaseMCRunner):
-    def __init__(self,
-                 potential,
-                 coords,
-                 temperature,
-                 niter,
-                 pot_optimizer=None,
-                 origin=None,
-                 optimizer=None,
-                 seeds=None,
-                 conftest_outer_sphere=None,
-                 conftest_check_same_minimum=None,
-                 action_findk=None,
-                 avgcount=1e4):
-        super(GaussianBenchmarkKmaxRun, self).__init__(potential, coords, temperature, niter)
+    def __init__(self, a, b, c, d):
+        super(GaussianBenchmarkKmaxRun, self).__init__(a, b, c, d)
+    def setup(self, pot_optimizer=None, origin=None, seeds=None,
+        conftest_outer_sphere=None, conftest_check_same_minimum=None,
+        action_findk=None, avgcount=1e4, niter=None):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
-        self.optimizer = optimizer
         self.conftest_outer_sphere = conftest_outer_sphere
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.action_findk = action_findk
         self.niter = niter
         self.avgcount = avgcount
-        self.stepsize = 1000
-        #
+        self.stepsize = 1
         if self.pot_optimizer is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: pot_optimizer")
         if self.origin is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: origin")
-        if self.optimizer is None:
-            raise Exception("GaussianBenchmarkKmaxRun: illegal input: optimizer")
         if self.conftest_outer_sphere is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: conftest_outer_sphere")
         if self.conftest_check_same_minimum is None:
@@ -56,7 +43,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
     def add_modules_to_mc(self):
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest_outer_sphere)
-        self.add_conf_test(self.conftest_check_same_minimum)
+        self.add_late_conf_test(self.conftest_check_same_minimum)
         self.add_action(self.action_findk)
     def get_stepsize(self):
         return self.takestep.get_stepsize()
