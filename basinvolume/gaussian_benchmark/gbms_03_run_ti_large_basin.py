@@ -18,6 +18,7 @@ class TIEngine(object):
         self.pes_parameters = pes_parameters
         self.potential = potential
         self.opt_parameters = opt_parameters
+        self.pes_parameters["rattlers"] = np.pnes(self.pes_parameters["origin"].size)
         self.setup()
         """
         bm.find_kmax()
@@ -56,19 +57,29 @@ class TIEngine(object):
         temperature = 1
         setpsize = 1
         niter = self.ti_parameters["kmax_niter"]
-        self.action_findk = 
+        self.action_findk = Findk(self.pes_parameters["origin"],
+                                  self.pes_parameters["rattlers"],
+                                  self.pes_parameters["nr_dimensions"],
+                                  self.ti_parameters["kmax_avgcount"],
+                                  self.ti_parameters["ktarget"],
+                                  self.ti_parameters["knavg"],
+                                  self.ti_parameters["ktol"],
+                                  self.ti_parameters["hmin"],
+                                  self.ti_parameters["hmax"],
+                                  self.ti_parameters["binsize"],
+                                  fix_com=self.ti_parameters["harmonic_com_flag"])
         self.kmax_run = GaussianBenchmarkKmaxRun(potential,
-                                                   coords,
-                                                   temperature,
-                                                   setpsize,
-                                                   niter,
-                                                   pot_optimizer=self.potential,
-                                                   optimizer=self.optimizer,
-                                                   seeds=None,
-                                                   conftest_outer_sphere=self.conftest_outer_sphere,
-                                                   conftest_check_same_minimum=self.conftest_check_same_minimum,
-                                                   action_findk=self.action_findk,
-                                                   avgcount=self.ti_parameters["kmax_avgcount"])
+                                                 coords,
+                                                 temperature,
+                                                 setpsize,
+                                                 niter,
+                                                 pot_optimizer=self.potential,
+                                                 optimizer=self.optimizer,
+                                                 seeds=None,
+                                                 conftest_outer_sphere=self.conftest_outer_sphere,
+                                                 conftest_check_same_minimum=self.conftest_check_same_minimum,
+                                                 action_findk=self.action_findk,
+                                                 avgcount=self.ti_parameters["kmax_avgcount"])
         self.kmax_run.run()
         self.kmax = self.kmax_run.get_k()
         self.kmax_displ2 = self.kmax_run.get_displ2()
@@ -122,7 +133,9 @@ def run_ti(ls_basin_label):
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
         ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
     vol_parameters = dict([("max_iterations", 100)])
-    ti_parameters = dict([("nr_samples_increment", 1000)])
+    ti_parameters = dict([("nr_samples_increment", 1000),
+        ("ktarget", 0.8), ("knavg", 500), ("ktol", 0.05), ("hmin", 0),
+        ("hmax", 1), ("binsize", 0.005), ("harmonic_com_flag", False)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
