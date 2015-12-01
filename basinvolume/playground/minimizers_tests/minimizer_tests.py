@@ -8,7 +8,11 @@ from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *
 import time
-from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp, cg_descent, steepest_descent
+from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp, steepest_descent
+try:
+    from PyCG_DESCENT import CGDescent
+except Exception as e:
+    print(e)
 """
 run tests in 
 /scratch/sm958/Results/basinvolume_tests/n32_phi88_2D
@@ -140,7 +144,7 @@ def test1(X, potential, origin, nconf, maxstep, fname="test"):
     lbfgs_Xbool, lbfgs_count, lbfgs_nfev = test_minimizer(lbfgs_cpp, potential, X[:nconf], origin,
                                              tol=1e-7, M=1, maxErise=1e-4, maxstep=maxstep/10, 
                                              nsteps=int(1e6))
-    cgd_Xbool, cgd_count, cgd_nfev = test_minimizer(cg_descent, potential, X[:nconf], origin,
+    cgd_Xbool, cgd_count, cgd_nfev = test_minimizer(CGDescent, potential, X[:nconf], origin,
                                              tol=1e-7, nsteps=int(1e6))
     
     print "accuracy: fire {} lbfgs {} cgd {} ".format(fire_count/nconf, 
@@ -369,7 +373,7 @@ def _walk_eig_direction(sim, index_evec=-1, stepsize=0.001, distance_array=[], t
         d += stepsize
         success = _check_no_overlaps(x, sim.mcrunner.hs_radii, sim.mcrunner.boxv)
         if success:
-            success = test_minimizer_single(cg_descent, sim.mcrunner.pot_optimizer, x, origin, tol=1e-7, nsteps=int(1e6))
+            success = test_minimizer_single(CGDescent, sim.mcrunner.pot_optimizer, x, origin, tol=1e-7, nsteps=int(1e6))
             #success = test_minimizer_single(modifiedfire_cpp, sim.mcrunner.pot_optimizer, x, origin, tol=1e-7, maxstep=0.01, nsteps=int(1e6))
         #print success, stepsize
         if not success and backtrack_count < 10:

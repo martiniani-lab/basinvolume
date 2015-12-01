@@ -20,7 +20,6 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.action_findk = action_findk
         self.niter = niter
         self.avgcount = avgcount
-        self.stepsize = 1
         if self.pot_optimizer is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: pot_optimizer")
         if self.origin is None:
@@ -35,8 +34,9 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max))
         self.seeds = seeds
+        stepsize = 1
         self.takestep = SampleGaussian(self.seeds['seed_takestep'],
-                                        self.stepsize, self.origin)
+                                        stepsize, self.origin)
         self.add_modules_to_mc()
         #self.set_report_steps(self.niter - self.avgcount)
         self.check_components()
