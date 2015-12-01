@@ -5,40 +5,30 @@ import os
 
 from pele.optimize import ModifiedFireCPP
 
-from mcpele.monte_carlo import CheckSphericalContainer
 from mcpele.monte_carlo import NullPotential
 
+from basinvolume.monte_carlo import CheckHyperSphericalContainer
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import Findk
 
 from computer_common import ComputerCommon
 from computer_common import run_computer
 from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
+from gbms_01_run_brute_large_basin import EngineCommonOpt
 
-class TIEngine(object):
+class TIEngine(EngineCommonOpt):
     """
     Engine to do iteration-wise computation of basin volume by TI method.
     """
     def __init__(self, ti_parameters, pes_parameters, potential, opt_parameters):
+        super(TIEngine, self).__init__(pes_parameters, potential, opt_parameters)
         self.ti_parameters = ti_parameters
-        self.pes_parameters = pes_parameters
-        self.potential = potential
-        self.opt_parameters = opt_parameters
         self.pes_parameters["rattlers"] = np.ones(self.pes_parameters["origin"].size)
         self.setup()
         
     def setup(self):
-        self.optimizer = ModifiedFireCPP(self.pes_parameters["origin"],
-            self.potential, dtmax=self.opt_parameters["opt_dtmax"],
-            maxstep=self.opt_parameters["opt_maxstep"],
-            tol=self.opt_parameters["opt_tol"],
-            nsteps=self.opt_parameters["opt_nsteps"],
-            verbosity=self.opt_parameters["verbosity"])
-        self.conftest_check_same_minimum = CheckSameMinimumConfig(self.potential,
-            self.pes_parameters["origin"], self.pes_parameters["csm_dtol"],
-            opt=self.optimizer, opt_tol=self.opt_parameters["opt_tol"],
-            opt_maxiter=self.opt_parameters["opt_nsteps"])
-        self.conftest_outer_sphere = CheckSphericalContainer(self.pes_parameters["radius_container"],
+        self.conftest_outer_sphere = CheckHyperSphericalContainer(np.zeros(self.pes_parameters["nr_dimensions"]),
+            self.pes_parameters["radius_container"],
             self.pes_parameters["nr_dimensions"])
         self.evaluations = 0
         self.volume = 0
@@ -52,11 +42,6 @@ class TIEngine(object):
         self.evaluations = self.conftest_check_same_minimum.get_nfev()
         
     def setup_ti_kmax(self):
-        potential = NullPotential()
-        coords = self.pes_parameters["origin"]
-        temperature = 1
-        stepsize = 100
-        niter = self.ti_parameters["kmax_niter"]
         self.action_findk = Findk(self.pes_parameters["origin"],
                                   self.pes_parameters["rattlers"],
                                   self.pes_parameters["nr_dimensions"],
@@ -68,11 +53,10 @@ class TIEngine(object):
                                   self.ti_parameters["hmax"],
                                   self.ti_parameters["binsize"],
                                   fix_com=self.ti_parameters["harmonic_com_flag"])
-        self.kmax_run = GaussianBenchmarkKmaxRun(potential,
-                                                 coords,
-                                                 temperature,
-                                                 stepsize,
-                                                 niter,
+        self.kmax_run = GaussianBenchmarkKmaxRun(NullPotential(),
+                                                 self.pes_parameters["origin"],
+                                                 1,
+                                                 self.ti_parameters["kmax_niter"],
                                                  pot_optimizer=self.potential,
                                                  origin=self.pes_parameters["origin"],
                                                  optimizer=self.optimizer,

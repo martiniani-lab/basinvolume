@@ -21,26 +21,15 @@ class MC(_BaseMCRunner):
     def run(self, nr_iterations):
         for _ in xrange(nr_iterations):
             self.one_iteration()
-
-class BruteEngine(object):
+            
+class EngineCommonOpt(object):
     """
-    Engine to do iteration-wise computation of basin volume by brute
-    force rejection.
+    Common parts of volume engines for Brute and TI engines.
     """
-    def __init__(self, brute_parameters, pes_parameters, potential, opt_parameters):
-        self.brute_parameters = brute_parameters
+    def __init__(self, pes_parameters, potential, opt_parameters):
         self.pes_parameters = pes_parameters
         self.potential = potential
         self.opt_parameters = opt_parameters
-        self.mc_parameters = dict([("temperature", 1),
-            ("max_nr_samples", 1e14)])
-        self.mc_potential = NullPotential()
-        self.mc = MC(self.mc_potential, self.pes_parameters["origin"],
-            self.mc_parameters["temperature"],
-            self.mc_parameters["max_nr_samples"])
-        self.step = UniformSphericalSampling(42, self.pes_parameters["radius_container"])
-        self.mc.set_takestep(self.step)
-        self.mc.set_report_steps(0)
         self.optimizer = ModifiedFireCPP(self.pes_parameters["origin"],
             self.potential, dtmax=self.opt_parameters["opt_dtmax"],
             maxstep=self.opt_parameters["opt_maxstep"],
@@ -51,6 +40,24 @@ class BruteEngine(object):
             self.pes_parameters["origin"], self.pes_parameters["csm_dtol"],
             opt=self.optimizer, opt_tol=self.opt_parameters["opt_tol"],
             opt_maxiter=self.opt_parameters["opt_nsteps"])
+
+class BruteEngine(EngineCommonOpt):
+    """
+    Engine to do iteration-wise computation of basin volume by brute
+    force rejection.
+    """
+    def __init__(self, brute_parameters, pes_parameters, potential, opt_parameters):
+        super(BruteEngine, self).__init__(pes_parameters, potential, opt_parameters)
+        self.brute_parameters = brute_parameters
+        self.mc_parameters = dict([("temperature", 1),
+            ("max_nr_samples", 1e14)])
+        self.mc_potential = NullPotential()
+        self.mc = MC(self.mc_potential, self.pes_parameters["origin"],
+            self.mc_parameters["temperature"],
+            self.mc_parameters["max_nr_samples"])
+        self.step = UniformSphericalSampling(42, self.pes_parameters["radius_container"])
+        self.mc.set_takestep(self.step)
+        self.mc.set_report_steps(0)
         self.mc.add_conf_test(self.conftest_check_same_minimum)
         self.evaluations = 0
         self.volume = 0
@@ -106,8 +113,7 @@ def run_brute(ls_basin_label):
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
-        #for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
-        for nr_dimensions in [2]:
+        for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
             pes_parameters = dict([("csm_dtol", 1),
                 ("nr_dimensions", nr_dimensions),
                 ("radius_container", 10)])

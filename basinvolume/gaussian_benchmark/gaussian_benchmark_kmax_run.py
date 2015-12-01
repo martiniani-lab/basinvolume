@@ -12,7 +12,6 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
                  potential,
                  coords,
                  temperature,
-                 stepsize,
                  niter,
                  pot_optimizer=None,
                  origin=None,
@@ -22,6 +21,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
                  conftest_check_same_minimum=None,
                  action_findk=None,
                  avgcount=1e4):
+        super(GaussianBenchmarkKmaxRun, self).__init__(potential, coords, temperature, niter)
         self.pot_optimizer = pot_optimizer
         self.origin = origin
         self.optimizer = optimizer
@@ -30,6 +30,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.action_findk = action_findk
         self.niter = niter
         self.avgcount = avgcount
+        self.stepsize = 1000
         #
         if self.pot_optimizer is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: pot_optimizer")
@@ -43,15 +44,12 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: conftest_check_same_minimum")
         if self.action_findk is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: action_findk")
-        fake_potential = NullPotential()
-        super(GaussianBenchmarkKmaxRun, self).__init__(fake_potential,
-                                            self.origin, 1, self.niter)
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max))
         self.seeds = seeds
         self.takestep = SampleGaussian(self.seeds['seed_takestep'],
-                                        stepsize, self.origin)
+                                        self.stepsize, self.origin)
         self.rattlers = np.ones(self.origin.size)
         self.add_modules_to_mc()
         #self.set_report_steps(self.niter - self.avgcount)
