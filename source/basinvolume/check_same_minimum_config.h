@@ -51,6 +51,10 @@ public:
     {
         return static_cast<double>(m_nr_failed_quenches) / static_cast<double>(m_nr_total_quenches);
     }
+    pele::Array<double> get_origin() const
+    {
+        return m_origin;
+    }
 private:    
     std::shared_ptr<pele::GradientOptimizer> m_optimizer;
     std::shared_ptr<pele::BasePotential> m_potential;

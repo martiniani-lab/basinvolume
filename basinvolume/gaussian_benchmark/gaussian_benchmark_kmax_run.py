@@ -39,6 +39,10 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
                                         stepsize, self.origin)
         self.add_modules_to_mc()
         #self.set_report_steps(self.niter - self.avgcount)
+        in_origin = self.origin
+        used_origin = self.conftest_check_same_minimum.get_origin()
+        print("in_origin", in_origin)
+        print("used_origin", used_origin)
     def add_modules_to_mc(self):
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest_outer_sphere)

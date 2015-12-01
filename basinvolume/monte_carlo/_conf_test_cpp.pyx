@@ -230,7 +230,14 @@ cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
     def get_failed_quench_fraction(self):
         failed_quench_fraction = self.newptr.get_failed_quench_fraction()
         return failed_quench_fraction
-                                               
+    def get_origin(self):
+        cdef _pele.Array[double] origin = self.newptr.get_origin()
+        cdef double* origin_data = origin.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] origin_result = np.zeros(origin.size())
+        cdef size_t i
+        for i in xrange(origin.size()):
+            origin_result[i] = origin_data[i]
+        return origin_result
                                                
 class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):
     """interface

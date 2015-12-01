@@ -63,6 +63,7 @@ cdef extern from "basinvolume/check_same_minimum_config.h" namespace "bv":
     cdef cppclass cppCheckSameMinimumConfig "bv::CheckSameMinimumConfig":
         size_t get_nfev() except +
         double get_failed_quench_fraction() except +
+        _pele.Array[double] get_origin() except +
         cppCheckSameMinimumConfig(shared_ptr[_pele_opt.cGradientOptimizer],
                                   shared_ptr[_pele.cBasePotential], _pele.Array[double],
                                   double) except +
