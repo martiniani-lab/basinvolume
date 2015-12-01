@@ -71,6 +71,7 @@ class TIEngine(EngineCommonOpt):
         self.prob_kmax = self.kmax_run.get_prob_kmax()
         self.var_displ_kmax = self.kmax_run.get_var_displ_kmax()
         self.kmax_displ2_nr_samples = self.kmax_run.get_entries()
+        print("check same minimum failed quench fraction:", self.conftest_check_same_minimum.get_failed_quench_fraction())
         assert(False)
         
     #def setup_ti_kmin(self):

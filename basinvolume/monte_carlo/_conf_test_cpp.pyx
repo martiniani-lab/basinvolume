@@ -227,6 +227,9 @@ cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
     def get_nfev(self):
         nfev = self.newptr.get_nfev()
         return nfev
+    def get_failed_quench_fraction(self):
+        failed_quench_fraction = self.newptr.get_failed_quench_fraction()
+        return failed_quench_fraction
                                                
                                                
 class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):
