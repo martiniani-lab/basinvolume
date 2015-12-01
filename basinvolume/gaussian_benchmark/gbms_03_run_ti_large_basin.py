@@ -10,6 +10,7 @@ from mcpele.monte_carlo import NullPotential
 from basinvolume.monte_carlo import CheckHyperSphericalContainer
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import Findk
+from basinvolume.monte_carlo import RecordDisp2Histogram
 
 from computer_common import ComputerCommon
 from computer_common import run_computer
@@ -24,6 +25,7 @@ class TIEngine(EngineCommonOpt):
         super(TIEngine, self).__init__(pes_parameters, potential, opt_parameters)
         self.ti_parameters = ti_parameters
         self.pes_parameters["rattlers"] = np.ones(self.pes_parameters["origin"].size)
+        self.ti_parameters["equilibration_steps"] = ...
         self.setup()
         
     def setup(self):
@@ -71,9 +73,17 @@ class TIEngine(EngineCommonOpt):
         self.prob_kmax = self.kmax_run.get_prob_kmax()
         self.var_displ_kmax = self.kmax_run.get_var_displ_kmax()
         self.kmax_displ2_nr_samples = self.kmax_run.get_entries()
-        assert(False)
         
-    #def setup_ti_kmin(self):
+    def setup_ti_kmin(self):
+        self.action_record_displ_kmin = RecordDisp2Histogram(self.pes_parameters["origin"],
+                                                             self.pes_parameters["rattlers"],
+                                                             self.pes_parameters["nr_dimensions"],
+                                                             self.ti_parameters["hmin"],
+                                                             self.ti_parameters["hmax"],
+                                                             self.ti_parameters["binsize"],
+                                                             self.ti_parameters["equilibration_steps"],
+                                                             fix_com=self.ti_parameters["harmonic_com_flag"])
+        assert(False)
         
     #def setup_ti_pt_walks(self):
     
