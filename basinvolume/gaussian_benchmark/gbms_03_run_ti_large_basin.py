@@ -1,13 +1,19 @@
 from __future__ import division
 
+import numpy as np
+import os
+
 from pele.optimize import ModifiedFireCPP
 
 from mcpele.monte_carlo import CheckSphericalContainer
+from mcpele.monte_carlo import NullPotential
 
 from basinvolume.monte_carlo import CheckSameMinimumConfig
+from basinvolume.monte_carlo import Findk
 
 from computer_common import ComputerCommon
 from computer_common import run_computer
+from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 
 class TIEngine(object):
     """
@@ -18,7 +24,7 @@ class TIEngine(object):
         self.pes_parameters = pes_parameters
         self.potential = potential
         self.opt_parameters = opt_parameters
-        self.pes_parameters["rattlers"] = np.pnes(self.pes_parameters["origin"].size)
+        self.pes_parameters["rattlers"] = np.ones(self.pes_parameters["origin"].size)
         self.setup()
         
     def setup(self):
@@ -49,7 +55,7 @@ class TIEngine(object):
         potential = NullPotential()
         coords = self.pes_parameters["origin"]
         temperature = 1
-        setpsize = 1
+        stepsize = 1
         niter = self.ti_parameters["kmax_niter"]
         self.action_findk = Findk(self.pes_parameters["origin"],
                                   self.pes_parameters["rattlers"],
@@ -65,9 +71,10 @@ class TIEngine(object):
         self.kmax_run = GaussianBenchmarkKmaxRun(potential,
                                                  coords,
                                                  temperature,
-                                                 setpsize,
+                                                 stepsize,
                                                  niter,
                                                  pot_optimizer=self.potential,
+                                                 origin=self.pes_parameters["origin"],
                                                  optimizer=self.optimizer,
                                                  seeds=None,
                                                  conftest_outer_sphere=self.conftest_outer_sphere,
@@ -80,14 +87,15 @@ class TIEngine(object):
         self.prob_kmax = self.kmax_run.get_prob_kmax()
         self.var_displ_kmax = self.kmax_run.get_var_displ_kmax()
         self.kmax_displ2_nr_samples = self.kmax_run.get_entries()
+        assert(False)
         
-    def setup_ti_kmin(self):
+    #def setup_ti_kmin(self):
         
-    def setup_ti_pt_walks(self):
+    #def setup_ti_pt_walks(self):
     
-    def continue_pt_walks(self):
+    #def continue_pt_walks(self):
         
-    def compute_volume(self):
+    #def compute_volume(self):
         
 
 class TIComputer(ComputerCommon):
@@ -129,7 +137,8 @@ def run_ti(ls_basin_label):
     vol_parameters = dict([("max_iterations", 100)])
     ti_parameters = dict([("nr_samples_increment", 1000),
         ("ktarget", 0.8), ("knavg", 500), ("ktol", 0.05), ("hmin", 0),
-        ("hmax", 1), ("binsize", 0.005), ("harmonic_com_flag", False)])
+        ("hmax", 1), ("binsize", 0.005), ("harmonic_com_flag", False),
+        ("kmax_niter", 1e5), ("kmax_avgcount", 1e4)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:

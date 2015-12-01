@@ -8,7 +8,12 @@ from mcpele.monte_carlo import SampleGaussian
 from basinvolume.monte_carlo import CheckSameMinimum
 
 class GaussianBenchmarkKmaxRun(_BaseMCRunner):
-    def __init__(self, potential, coords, temperature, setpsize, niter,
+    def __init__(self,
+                 potential,
+                 coords,
+                 temperature,
+                 stepsize,
+                 niter,
                  pot_optimizer=None,
                  origin=None,
                  optimizer=None,
@@ -16,9 +21,6 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
                  conftest_outer_sphere=None,
                  conftest_check_same_minimum=None,
                  action_findk=None,
-                 niter=1e8,
-                 stepsize=1,
-                 action_record_displ_kmax=None,
                  avgcount=1e4):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
@@ -27,11 +29,20 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.action_findk = action_findk
         self.niter = niter
-        self.action_record_displ_kmax = action_record_displ_kmax
         self.avgcount = avgcount
         #
-        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_findk is None or self.action_record_displ_kmax is None:
-            raise Exception("GaussianBenchmarkKmaxRun: illegal input")
+        if self.pot_optimizer is None:
+            raise Exception("GaussianBenchmarkKmaxRun: illegal input: pot_optimizer")
+        if self.origin is None:
+            raise Exception("GaussianBenchmarkKmaxRun: illegal input: origin")
+        if self.optimizer is None:
+            raise Exception("GaussianBenchmarkKmaxRun: illegal input: optimizer")
+        if self.conftest_outer_sphere is None:
+            raise Exception("GaussianBenchmarkKmaxRun: illegal input: conftest_outer_sphere")
+        if self.conftest_check_same_minimum is None:
+            raise Exception("GaussianBenchmarkKmaxRun: illegal input: conftest_check_same_minimum")
+        if self.action_findk is None:
+            raise Exception("GaussianBenchmarkKmaxRun: illegal input: action_findk")
         fake_potential = NullPotential()
         super(GaussianBenchmarkKmaxRun, self).__init__(fake_potential,
                                             self.origin, 1, self.niter)
@@ -49,15 +60,12 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_conf_test(self.conftest_check_same_minimum)
         self.add_action(self.action_findk)
-        #self.add_action(self.action_record_displ_kmax)
     def get_stepsize(self):
         return self.takestep.get_stepsize()
     def get_displ2(self):
-        #return self.action_record_displ_kmax.get_mean_variance()[0]
         displ_k_max, var_displ_k_max = self.action_findk.get_mean_variance()
         return displ_k_max
     def get_var_displ_kmax(self):
-        #return self.action_record_displ_kmax.get_mean_variance()[1]
         displ_k_max, var_displ_k_max = self.action_findk.get_mean_variance()
         return var_displ_k_max
     def get_entries(self):
@@ -94,7 +102,6 @@ class GaussianBenchmarkKmaxRunOLD(_BaseMCRunner):
                  action_findk=None,
                  niter=1e8,
                  stepsize=1,
-                 action_record_displ_kmax=None,
                  avgcount=1e4):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
@@ -103,10 +110,9 @@ class GaussianBenchmarkKmaxRunOLD(_BaseMCRunner):
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.action_findk = action_findk
         self.niter = niter
-        self.action_record_displ_kmax = action_record_displ_kmax
         self.avgcount = avgcount
         #
-        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_findk is None or self.action_record_displ_kmax is None:
+        if self.pot_optimizer is None or self.origin is None or self.optimizer is None or self.conftest_outer_sphere is None or self.conftest_check_same_minimum is None or self.action_findk is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input")
         fake_potential = NullPotential()
         super(GaussianBenchmarkKmaxRun, self).__init__(fake_potential,
@@ -125,15 +131,12 @@ class GaussianBenchmarkKmaxRunOLD(_BaseMCRunner):
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_conf_test(self.conftest_check_same_minimum)
         self.add_action(self.action_findk)
-        #self.add_action(self.action_record_displ_kmax)
     def get_stepsize(self):
         return self.takestep.get_stepsize()
     def get_displ2(self):
-        #return self.action_record_displ_kmax.get_mean_variance()[0]
         displ_k_max, var_displ_k_max = self.action_findk.get_mean_variance()
         return displ_k_max
     def get_var_displ_kmax(self):
-        #return self.action_record_displ_kmax.get_mean_variance()[1]
         displ_k_max, var_displ_k_max = self.action_findk.get_mean_variance()
         return var_displ_k_max
     def get_entries(self):
