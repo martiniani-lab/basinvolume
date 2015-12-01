@@ -55,7 +55,7 @@ class TIEngine(object):
         potential = NullPotential()
         coords = self.pes_parameters["origin"]
         temperature = 1
-        stepsize = 1
+        stepsize = 100
         niter = self.ti_parameters["kmax_niter"]
         self.action_findk = Findk(self.pes_parameters["origin"],
                                   self.pes_parameters["rattlers"],
