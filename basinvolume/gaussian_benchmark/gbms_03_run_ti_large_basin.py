@@ -20,12 +20,6 @@ class TIEngine(object):
         self.opt_parameters = opt_parameters
         self.pes_parameters["rattlers"] = np.pnes(self.pes_parameters["origin"].size)
         self.setup()
-        """
-        bm.find_kmax()
-        bm.run_kmin()
-        bm.run_PT()
-        bm.compute_volume()
-        """
         
     def setup(self):
         self.optimizer = ModifiedFireCPP(self.pes_parameters["origin"],
