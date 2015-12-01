@@ -13,7 +13,7 @@ public:
                            double dtol)
         : m_optimizer(optimizer),
           m_potential(potential),
-          m_origin(origin),
+          m_origin(origin.copy()),
           m_dtol(dtol),
           m_nfev(0),
           m_nr_failed_quenches(0),
