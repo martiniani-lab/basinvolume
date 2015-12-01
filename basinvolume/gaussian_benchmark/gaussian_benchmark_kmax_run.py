@@ -37,14 +37,16 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         self.seeds = seeds
         self.takestep = SampleGaussian(self.seeds['seed_takestep'],
                                         self.stepsize, self.origin)
-        self.rattlers = np.ones(self.origin.size)
         self.add_modules_to_mc()
         #self.set_report_steps(self.niter - self.avgcount)
+        self.check_components()
     def add_modules_to_mc(self):
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest_outer_sphere)
         self.add_late_conf_test(self.conftest_check_same_minimum)
         self.add_action(self.action_findk)
+    def check_components(self):
+        assert(self.takestep.get_stepsize() == self.stepsize)
     def get_stepsize(self):
         return self.takestep.get_stepsize()
     def get_displ2(self):
