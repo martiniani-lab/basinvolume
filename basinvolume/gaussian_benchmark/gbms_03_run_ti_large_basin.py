@@ -1,5 +1,6 @@
 from __future__ import division
 
+import copy
 import numpy as np
 import os
 
@@ -21,6 +22,38 @@ from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 from gbms_01_run_brute_large_basin import EngineCommonOpt
 
+class TIVolumeComputer(object):
+    """
+    Take information obtained in Ti related simulations and return volume.
+    
+    Initially this takes the results of the kmax and kmin runs, then,
+    after each biased random walk iteration, it takes the updated displ2
+    array and computes the volume. The output is intended for the volume
+    computation benchmark, where the volume estimate is analysed as
+    function of the number of calls to the potential energy function.
+    """
+    def __init__(self, karray, displ_k_max, bdim, nparticles, prob_kmax,
+        displ2_kmin_mean):
+        self.karray = copy.deepcopy(karray)
+        self.displ_k_max = displ_k_max
+        self.bdim = bdim
+        self.nparticles = nparticles
+        self.prob_kmax = prob_kmax
+        self.displ2_kmin_mean = displ2_kmin_mean
+        
+    def compute_volume(self, direct_k_u2_means):
+        self.u2_array = copy.deepcopy(direct_k_u2_means)
+        self.u2_array.append(self.displ_k_max)
+        sqared_std_errors = np.ones(len(self.u2_array))
+        self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc = F_Basin_From_MC_Data_Free_COM(self.bdim,
+                                                                                                     self.nparticles,
+                                                                                                     self.karray,
+                                                                                                     self.u2_array,
+                                                                                                     self.prob_kmax,
+                                                                                                     displ_k_min_trafo=self.displ2_kmin_mean,
+                                                                                                     simple_integrator=self.simple_integrator).get_free_energy_F0(sqared_std_errors)
+        return np.exp(-self.F0unc)
+        
 class TIEngine(EngineCommonOpt):
     """
     Engine to do iteration-wise computation of basin volume by TI method.
@@ -54,11 +87,6 @@ class TIEngine(EngineCommonOpt):
             com=self.ti_parameters["harmonic_com_flag"])
         self.setup_ti_kmin()
         self.setup_ti_pt_walks()
-        
-    def one_iteration(self):
-        self.continue_pt_walks()
-        self.volume = self.compute_volume()
-        self.evaluations = self.conftest_check_same_minimum.get_nfev()
         
     def setup_ti_kmax(self):
         self.action_findk = Findk(self.pes_parameters["origin"],
@@ -117,14 +145,19 @@ class TIEngine(EngineCommonOpt):
         self.displ2_kmin_mean, self.displ2_kmin_variance = self.kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin_mean)
         print("displ2_kmin_variance", self.displ2_kmin_variance)
-        assert(False)
         
     #def setup_ti_pt_walks(self):
     
-    #def continue_pt_walks(self):
-        
-    #def compute_volume(self):
-        
+    def one_iteration(self):
+        self.continue_pt_walks()
+        self.volume = self.volume_computer.compute_volume(self.direct_k_u2_means)
+        self.evaluations = self.conftest_check_same_minimum.get_nfev()
+    
+    def continue_pt_walks(self):
+        for i in xrange(self.direct_k_values):
+            m, v = self.direct_k_walkers[i].one_iteration_walk()
+            self.direct_k_u2_means[i] = m
+            self.direct_k_u2_variances[i] = v
 
 class TIComputer(ComputerCommon):
     """
