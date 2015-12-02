@@ -15,12 +15,18 @@ from basinvolume.monte_carlo import CheckHyperSphericalContainer
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisp2Histogram
+from basinvolume.post_processing import F_Basin_From_MC_Data
+from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
+from basinvolume.post_processing import spring_constants_variable_transform
 
-from computer_common import ComputerCommon
-from computer_common import run_computer
-from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
-from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
-from gbms_01_run_brute_large_basin import EngineCommonOpt
+try:
+    from computer_common import ComputerCommon
+    from computer_common import run_computer
+    from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
+    from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
+    from gbms_01_run_brute_large_basin import EngineCommonOpt
+except Exception as e:
+    print(e)
 
 class TIVolumeComputer(object):
     """
@@ -146,7 +152,21 @@ class TIEngine(EngineCommonOpt):
         print("displ2_kmin", self.displ2_kmin_mean)
         print("displ2_kmin_variance", self.displ2_kmin_variance)
         
-    #def setup_ti_pt_walks(self):
+    def setup_ti_pt_walks(self):
+        self.all_k_values = spring_constants_variable_transform(self.ti_parameters["nprocs"] + 1,
+                                                                self.kmax,
+                                                                self.displ2_kmin_mean,
+                                                                1,
+                                                                self.pes_parameters["nr_dimensions"])
+        self.volume_computer = TIVolumeComputer(self.all_k_values,
+                                                self.kmax_displ2,
+                                                self.pes_parameters["nr_dimensions"],
+                                                1,
+                                                self.prob_kmax,
+                                                self.displ2_kmin_mean)
+        self.direct_k_values = self.all_k_values[:-1]
+        self.direct_k_u2_means = np.zeros(len(self.direct_k_values))
+        self.direct_k_u2_variances = np.zeros(len(self.direct_k_values))
     
     def one_iteration(self):
         self.continue_pt_walks()
@@ -154,7 +174,7 @@ class TIEngine(EngineCommonOpt):
         self.evaluations = self.conftest_check_same_minimum.get_nfev()
     
     def continue_pt_walks(self):
-        for i in xrange(self.direct_k_values):
+        for i in xrange(len(self.direct_k_values)):
             m, v = self.direct_k_walkers[i].one_iteration_walk()
             self.direct_k_u2_means[i] = m
             self.direct_k_u2_variances[i] = v
@@ -201,7 +221,7 @@ def run_ti(ls_basin_label):
         ("hmax", 1), ("binsize", 0.005), ("harmonic_com_flag", False),
         ("kmax_niter", 1e5), ("kmax_avgcount", 1e4),
         ("adjustf_niter", 1e4), ("pt_eq_niter", 1e5),
-        ("kmin_niter", 2e5)])
+        ("kmin_niter", 2e5), ("nprocs", 7)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
