@@ -57,7 +57,7 @@ public:
             size_t navg, double tol, double min, double max, double bin, const bool fix_com=true);
     virtual ~Findk() {}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
-    double get_prob() const { return _acceptedf; }
+    double get_prob() const { return static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected)); }
     double get_k() const { return _k; }
     int get_entries() const { return _hist.get_count(); }
     double get_mean() const { return _hist.get_mean(); }

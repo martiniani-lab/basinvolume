@@ -59,6 +59,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
     def get_entries(self):
         return self.action_findk.get_entries()
     def get_prob_kmax(self):
+        print("p", self.action_findk.get_prob())
         return self.action_findk.get_prob()
     def get_k(self):
         """ The MC potential is just a placeholder. 

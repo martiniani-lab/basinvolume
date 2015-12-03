@@ -108,7 +108,7 @@ def run_brute(ls_basin_label):
     nr_samples = 20
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
         ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
-    vol_parameters = dict([("max_iterations", 100)])
+    vol_parameters = dict([("max_iterations", 1000)])
     brute_parameters = dict([("nr_samples_increment", 1000)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")

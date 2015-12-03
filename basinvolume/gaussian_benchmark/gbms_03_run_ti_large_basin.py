@@ -49,7 +49,7 @@ class TIVolumeComputer(object):
         
     def compute_volume(self, direct_k_u2_means):
         self.u2_array = copy.deepcopy(direct_k_u2_means)
-        self.u2_array.append(self.displ_k_max)
+        self.u2_array = np.append(self.u2_array, self.displ_k_max)
         sqared_std_errors = np.ones(len(self.u2_array))
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc = F_Basin_From_MC_Data_Free_COM(self.bdim,
                                                                                                      self.nparticles,
@@ -57,7 +57,7 @@ class TIVolumeComputer(object):
                                                                                                      self.u2_array,
                                                                                                      self.prob_kmax,
                                                                                                      displ_k_min_trafo=self.displ2_kmin_mean,
-                                                                                                     simple_integrator=self.simple_integrator).get_free_energy_F0(sqared_std_errors)
+                                                                                                     simple_integrator=False).get_free_energy_F0(sqared_std_errors)
         return np.exp(-self.F0unc)
         
 class TIEngine(EngineCommonOpt):
@@ -84,7 +84,7 @@ class TIEngine(EngineCommonOpt):
         self.seeds = seeds
         self.setup_ti_kmax()
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'],
-            5, report_interval=100, factor=0.9, min_acc_ratio=0.2,
+            5, report_interval=500, factor=0.95, min_acc_ratio=0.2,
             max_acc_ratio=0.2, single=False,
             bdim=self.pes_parameters["nr_dimensions"])
         self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
@@ -151,6 +151,7 @@ class TIEngine(EngineCommonOpt):
         self.displ2_kmin_mean, self.displ2_kmin_variance = self.kmin_run.get_displ2_kmin()
         print("displ2_kmin", self.displ2_kmin_mean)
         print("displ2_kmin_variance", self.displ2_kmin_variance)
+        print("kmin niter:", self.kmin_run.get_iterations_count())
         
     def setup_ti_pt_walks(self):
         self.all_k_values = spring_constants_variable_transform(self.ti_parameters["nprocs"] + 1,
@@ -204,7 +205,7 @@ class DirectKWalker(object):
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.seeds = seeds
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'] + k_index,
-            5, report_interval=100, factor=0.9, min_acc_ratio=0.2,
+            5, report_interval=500, factor=0.95, min_acc_ratio=0.2,
             max_acc_ratio=0.2, single=False,
             bdim=self.pes_parameters["nr_dimensions"])
         self.harmonic_potential = Harmonic(self.pes_parameters["origin"],
@@ -240,10 +241,27 @@ class DirectKWalker(object):
         such that later each iteration can simply add a fixed number of
         Monte Carlo steps to the biased walk.
         """
-        assert(False)
+        print("step_choice_equilibration: number of MC iterations before:", self.ki_run.get_iterations_count())
+        self.ki_run.niter = self.ti_parameters["equilibration_steps"]
+        self.ki_run.run()
+        print("equilibration_steps", self.ti_parameters["equilibration_steps"])
+        print("self.k_value", self.k_value)
+        print("self.takestep.get_stepsize()", self.takestep.get_stepsize())
+        print("self.ki_run.get_accepted_fraction()", self.ki_run.get_accepted_fraction())
+        print("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count())
+        print("step_choice_equilibration: number of MC iterations after:", self.ki_run.get_iterations_count())
+        print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+        print("------")
         
     def one_iteration_walk(self):
-        assert(False)
+        print("one_iteration_walk: number of MC iterations before:", self.ki_run.get_iterations_count())
+        self.ki_run.niter = self.ti_parameters["nr_samples_increment"]
+        self.ki_run.run()
+        print("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count())
+        print("one_iteration_walk: number of MC iterations after:", self.ki_run.get_iterations_count())
+        print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+        return self.ki_run.get_displ2_kmin()
+
 
 class TIComputer(ComputerCommon):
     """
@@ -257,7 +275,7 @@ class TIComputer(ComputerCommon):
         self.ti_engine = TIEngine(self.method_parameters,
             self.pes_parameters, self.pot, self.opt_parameters)
             
-    def get_method_labels(self):
+    def get_method_label(self):
         return "ti"
         
     def get_evaluations_volume_one_iteration(self):
@@ -281,13 +299,14 @@ def run_ti(ls_basin_label):
     nr_samples = 20
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
         ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
-    vol_parameters = dict([("max_iterations", 100)])
-    ti_parameters = dict([("nr_samples_increment", 1000),
-        ("ktarget", 0.8), ("knavg", 500), ("ktol", 0.05), ("hmin", 0),
+    vol_parameters = dict([("max_iterations", 1000)])
+    ti_parameters = dict([("nr_samples_increment", 5000),
+        ("ktarget", 0.9), ("knavg", 5000), ("ktol", 0.05), ("hmin", 0),
         ("hmax", 1), ("binsize", 0.005), ("harmonic_com_flag", False),
-        ("kmax_niter", 1e5), ("kmax_avgcount", 1e4),
-        ("adjustf_niter", 1e4), ("pt_eq_niter", 1e5),
-        ("kmin_niter", 2e5), ("nprocs", 7)])
+        ("kmax_niter", 2e5), ("kmax_avgcount", 1e5),
+        ("adjustf_niter", 5e4), ("pt_eq_niter", 1e5),
+        ("kmin_niter", 2e5), ("nprocs", 7),
+        ("nr_samples_increment", 100)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
