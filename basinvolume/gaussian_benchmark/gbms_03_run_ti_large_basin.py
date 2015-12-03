@@ -167,6 +167,13 @@ class TIEngine(EngineCommonOpt):
         self.direct_k_values = self.all_k_values[:-1]
         self.direct_k_u2_means = np.zeros(len(self.direct_k_values))
         self.direct_k_u2_variances = np.zeros(len(self.direct_k_values))
+        self.direct_k_walkers = []
+        for k_index, k_value in enumerate(self.direct_k_values):
+            self.direct_k_walkers.append(DirectKWalker(k_index, k_value,
+                self.pes_parameters, self.ti_parameters, self.potential, 
+                self.conftest_outer_sphere, self.metropolis,
+                self.conftest_check_same_minimum, self.seeds))
+            self.direct_k_walkers[k_index].step_choice_equilibration()
     
     def one_iteration(self):
         self.continue_pt_walks()
@@ -178,6 +185,65 @@ class TIEngine(EngineCommonOpt):
             m, v = self.direct_k_walkers[i].one_iteration_walk()
             self.direct_k_u2_means[i] = m
             self.direct_k_u2_variances[i] = v
+            
+class DirectKWalker(object):
+    """
+    Perform biased random walk in basin with spring constant k; setup is
+    like for kmin, but with kmin = k > 0.
+    """
+    def __init__(self, k_index, k_value, pes_parameters, ti_parameters,
+        potential, conftest_outer_sphere, metropolis,
+        conftest_check_same_minimum, seeds):
+        self.k_index = k_index
+        self.k_value = k_value
+        self.pes_parameters = pes_parameters
+        self.ti_parameters = ti_parameters
+        self.potential = potential
+        self.conftest_outer_sphere = conftest_outer_sphere
+        self.metropolis = metropolis
+        self.conftest_check_same_minimum = conftest_check_same_minimum
+        self.seeds = seeds
+        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'] + k_index,
+            5, report_interval=100, factor=0.9, min_acc_ratio=0.2,
+            max_acc_ratio=0.2, single=False,
+            bdim=self.pes_parameters["nr_dimensions"])
+        self.harmonic_potential = Harmonic(self.pes_parameters["origin"],
+            k_value, bdim=self.pes_parameters["nr_dimensions"],
+            com=self.ti_parameters["harmonic_com_flag"])
+        self.action_record_displ_ki = RecordDisp2Histogram(self.pes_parameters["origin"],
+                                                           self.pes_parameters["rattlers"],
+                                                           self.pes_parameters["nr_dimensions"],
+                                                           self.ti_parameters["hmin"],
+                                                           self.ti_parameters["hmax"],
+                                                           self.ti_parameters["binsize"],
+                                                           self.ti_parameters["equilibration_steps"],
+                                                           fix_com=self.ti_parameters["harmonic_com_flag"])
+        self.ki_run = GaussianBenchmarkKminRun(pot_optimizer=self.potential,
+                                               origin=self.pes_parameters["origin"],
+                                               conftest_outer_sphere=self.conftest_outer_sphere,
+                                               conftest_check_same_minimum=self.conftest_check_same_minimum,
+                                               action_record_displ=self.action_record_displ_ki,
+                                               adjustf_niter=self.ti_parameters["adjustf_niter"],
+                                               pt_eq_niter=self.ti_parameters["pt_eq_niter"],
+                                               equilibration_steps=self.ti_parameters["equilibration_steps"],
+                                               metropolis=self.metropolis,
+                                               takestep=self.takestep,
+                                               potential=self.harmonic_potential,
+                                               niter=self.ti_parameters["kmin_niter"],
+                                               nparticles=1)
+        self.ki_run.set_control(self.k_value)
+        
+    def step_choice_equilibration(self):
+        """
+        Adapt stepsize to obtain around 20% acceptance probability and
+        run equilibration steps with that stepsize. This is done here
+        such that later each iteration can simply add a fixed number of
+        Monte Carlo steps to the biased walk.
+        """
+        assert(False)
+        
+    def one_iteration_walk(self):
+        assert(False)
 
 class TIComputer(ComputerCommon):
     """
