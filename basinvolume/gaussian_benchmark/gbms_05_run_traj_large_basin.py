@@ -3,6 +3,9 @@ from __future__ import division
 import numpy as np
 import os
 
+from computer_common import ComputerCommon
+from computer_common import run_computer
+
 def run_traj(ls_basin_label):
     """
     Execute trajectory method basin computation for large or small basin.
