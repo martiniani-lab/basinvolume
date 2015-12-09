@@ -4,7 +4,7 @@ import os
 import re
 import glob
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, read_txt, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
+from basinvolume.utils import to_string, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
 from basinvolume.post_processing import VolumeSanityCheck
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft

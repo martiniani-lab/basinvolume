@@ -19,13 +19,13 @@ def worker_kmin(fname, kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute kmax and minimum average displacement for kmin for all jammed packings")
     parser.add_argument("-j","--ncores", type=int, help="number of packings to produce",default=4)
-    parser.add_argument("-n","--niter", type=int, help="number of iterations",default=int(1e6))
+    parser.add_argument("-n","--niter", type=int, help="number of iterations",default=int(1e7))
     parser.add_argument("-f","--force", action='store_true', help="run all", default=False)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity", default=False)
     args = parser.parse_args()
         
-    ncores = args.ncores
-    niter = args.niter
+    ncores = int(args.ncores)
+    niter = int(args.niter)
     mypool = mp.Pool(ncores)
     
     i32max = np.iinfo(np.int32).max 
@@ -66,6 +66,7 @@ if __name__ == "__main__":
                     seeds = dict(seeds=seeds_dict)
                     kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))
                     mypool.apply_async(worker_kmin, args=(fname,kmin_kwargs_s,))
+                    print "performing diffusion measurement for: \n", explore_dir_path
     except:
         mypool.terminate()
         mypool.join()

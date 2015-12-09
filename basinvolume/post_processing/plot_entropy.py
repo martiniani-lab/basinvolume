@@ -12,6 +12,7 @@ try:
     from scipy.stats import t
     from scipy.interpolate import spline
     from itertools import chain
+    from scipy.optimize import curve_fit
 except ImportError as err:
     print err
 
@@ -186,7 +187,7 @@ class plot_entropy(object):
         color_cycle = get_color_cycle()
         nparticles = np.array(entropy_array[0::3])
         nmax = np.amax(nparticles)
-        trialx = np.linspace(0,nmax,1000)
+        trialx = np.linspace(0,nmax+2,1000)
         #extensive
         if ax is None:
             print "here"
@@ -198,19 +199,25 @@ class plot_entropy(object):
         x, yerr = _sort_pair(nparticles,yerr)
         #print ylabel, len(x), len(y)
         #print x,"\n", y
-        fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
-        ynew = trialx * fit[0] + fit[1]    
+        #fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
+        #ynew = trialx * fit[0] + fit[1] 
+        def ff(x, a):
+            return a * x
+        popt, pcov = curve_fit(ff, x, y, sigma=yerr, absolute_sigma=True)
+        ynew = ff(trialx, popt[0])
         color = color_cycle.next()    
-        ax.errorbar(x, y, yerr=yerr, color=color_cycle.next(), marker=marker, linestyle='', ms=14, label=r"$S^\star -\log N!$")
+        ax.errorbar(x, y, yerr=yerr, color=color, marker=marker, linestyle='', ms=14, label=r"$S^\star -\log N!$")
         ax.plot(trialx,ynew,'--', color=color,linewidth=2)
         #raw
         if raw:
             y = np.array(entropy_array[1::3])
             x,y = _sort_pair(nparticles,y)
-            fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
-            ynew = trialx * fit[0] + fit[1] 
-            raw_color = color_cycle.next()
-            ax.errorbar(x, y, yerr=yerr, color=raw_color, marker=raw_marker, linestyle='', ms=14, label=r"$S^\star$")
+            #fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
+            #ynew = trialx * fit[0] + fit[1] 
+            popt, pcov = curve_fit(ff, x, y, sigma=yerr, absolute_sigma=True)
+            ynew = ff(trialx, popt[0])
+            raw_color = color #color_cycle.next()
+            ax.errorbar(x, y, yerr=yerr, color=raw_color, marker=raw_marker, linestyle='', ms=14)
             ax.plot(trialx,ynew,'--', color=raw_color, linewidth=2)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -435,8 +442,9 @@ class plot_entropy(object):
         f0_dense = dat_dense[-1,1] / 128. - f_ex_dense
         #plot all
         entropy_array, label, plot_label = self.all_entropies_err[0] 
-        ax = self._ploterr(entropy_array, title="comparison to PRL 2D data", raw=False, show=False)
-        trialx = np.linspace(0,128,1000)
+        
+        ax = self._ploterr(entropy_array, title=None, raw=False, raw_marker='o', show=False)
+        trialx = np.linspace(0,130,1000)
         #d+1/d-1 equation
 #        ynew = trialx * 1./2 
 #        ax.plot(trialx, ynew,'r--', linewidth=2, label=r'$\frac{d-1}{d+1}f(\phi)N$')
@@ -451,22 +459,42 @@ class plot_entropy(object):
         dat_dense[:,0] - np.log(dat_dense[:,0]) + np.log(2.*np.pi/kmax_dense)
         y_lo = dat_dense[:,7] + dat_dense[:,1] - dat_dense[:,0] * f_ex_dense - (dat_dense[:,0] * np.log(dat_dense[:,0])) + \
         dat_dense[:,0] - np.log(dat_dense[:,0]) + np.log(2.*np.pi/kmax_dense)
+        y_apf_err = dat_dense[:,2]
         #2D apf
-        ax.plot(x, y_apf, 'b*', markersize=15, label=r"$PRL(\sum p \ln p)_{2D}$")
-        fit = np.polyfit(x, y_apf, 1)
-        ynew = trialx * fit[0] + fit[1] 
-        ax.plot(trialx,ynew,'b--', linewidth=2)
+        color_cycle = get_color_cycle()
+        color = color_cycle.next()
+        color = color_cycle.next()
+        ax.errorbar(x, y_apf, marker='^', yerr=y_apf_err, color=color, linestyle='', markersize=15, label=r"$S^\star_{2D} -\log N!$")
+        #fit = np.polyfit(x, y_apf, 1)
+        #ynew = trialx * fit[0] + fit[1] 
+        def ff(x, a):
+            return a * x
+        popt, pcov = curve_fit(ff, x, y_apf, sigma=y_apf_err, absolute_sigma=True)
+        ynew = ff(trialx, popt[0])
+        ax.plot(trialx,ynew,'--', color=color, linewidth=2)
+        #raw
+        if False:
+            y_apf = dat_dense[:,1] - dat_dense[:,0] * f_ex_dense - np.log(dat_dense[:,0]) + np.log(2.*np.pi/kmax_dense)
+            color_cycle = get_color_cycle()
+            ax.errorbar(x, y_apf, marker='^', yerr=y_apf_err, color=color, markersize=15)
+            #fit = np.polyfit(x, y_apf, 1)
+            #ynew = trialx * fit[0] + fit[1] 
+            popt, pcov = curve_fit(ff, x, y_apf, sigma=y_apf_err, absolute_sigma=True)
+            ynew = ff(trialx, popt[0])
+            ax.plot(trialx,ynew,'--', color=color, linewidth=2)
         #2D LogOmega
 #        ax.plot(x, y_lo, 'g*', markersize=15, label=r"PRL(\ln \Omega_G)_{2D}")
 #        fit = np.polyfit(x, y_lo, 1)
 #        ynew = trialx * fit[0] + fit[1] 
 #        ax.plot(trialx,ynew,'g--', linewidth=2)
-        ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
+        L = ax.legend(frameon=False, loc='best', prop={'size':28}, numpoints=1, scatterpoints=1, markerscale=1, 
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        L.get_texts()[1].set_text('2D')
+        L.get_texts()[0].set_text('3D')
         if show:
             plt.show()
         if savefig:
-            plt.savefig('compare_apf_prl.pdf')
+            plt.savefig('compare_entropy.pdf')
         return ax
     
     def plot_lo_param_compareAPF(self, xlabel=r"$N$", show=False, savefig=False):
@@ -736,10 +764,10 @@ if __name__ == "__main__":
     pe_msf = plot_entropy(analysis_folder="msf_entropy_analysis_all")
     #pe.plot_single(show=True, savefig=True)
     pe.plot_compare_apf2D(show=show,savefig=savefig)
-    pe.plot_all(show=show,savefig=savefig)
-    pe.plot_lo_param(show=show,savefig=savefig)
-    pe.plot_lo_param_compareAPF(show=show,savefig=savefig)
-    pe.plot_paper_all(show=show,savefig=savefig)
+    #pe.plot_all(show=show,savefig=savefig)
+    #pe.plot_lo_param(show=show,savefig=savefig)
+    #pe.plot_lo_param_compareAPF(show=show,savefig=savefig)
+    #pe.plot_paper_all(show=show,savefig=savefig)
 #    #COMPARE MSF TO NUMERICAL
 #    raw=False
 #    fig = plt.figure()

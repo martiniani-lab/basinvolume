@@ -15,9 +15,9 @@ import ConfigParser
 import csv
 import pandas as pd
 import glob
-from basinvolume.utils._utils_cpp import read_txt
 from itertools import cycle, chain
 import shutil
+from basinvolume.utils import read_txt
 try:
     from joblib import Parallel, delayed
     import matplotlib.pyplot as plt
@@ -649,7 +649,7 @@ def simple_overlap_check(coords, radii, boxlength):
                 return True # At least one overlap.
     return False # No overlap.
 
-def check_kmax_reasonable(kmax_configpath, max_kmax=1e8):
+def check_kmax_reasonable(kmax_configpath, max_kmax=5e5):
     """
     checks whether the value for kmax is reasonable. If it can't
     read kmax then it assumes that it is reasonable. It is essential
@@ -829,7 +829,7 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
                     other_max_size = 0
                     adjustf_niter = 0
                 series = []
-                series.extend( read_txt(file_list[0], adjustf_niter, max_series_size).tolist() )
+                series.extend(read_txt(file_list[0], adjustf_niter, max_series_size).tolist() )
                 results = Parallel(n_jobs=ncores)(delayed(read_txt)(series_path, 0, other_max_size) for series_path in file_list[1:])
                 series.extend( list(chain.from_iterable(results)) )
                 timeseries.append(series)        
