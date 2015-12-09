@@ -60,8 +60,14 @@ class MultiGaussWrap(object):
     def this_large_index_path(self, nr_gaussians, nr_dimensions, index):
         return os.path.join(self.this_path(nr_gaussians, nr_dimensions, index), "large_basin_index.txt")
         
+    def this_large_origin_path(self, nr_gaussians, nr_dimensions, index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, index), "large_basin_origin.txt")
+    
     def this_small_index_path(self, nr_gaussians, nr_dimensions, index):
         return os.path.join(self.this_path(nr_gaussians, nr_dimensions, index), "small_basin_index.txt")
+        
+    def this_small_origin_path(self, nr_gaussians, nr_dimensions, index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, index), "small_basin_origin.txt")
         
     def exists(self, nr_gaussians, nr_dimensions, index):
         return os.path.exists(self.this_path(nr_gaussians, nr_dimensions, index))
@@ -91,9 +97,21 @@ class MultiGaussWrap(object):
             f.close()
         # Write corresponding large basin index to file
         to_file(self.this_large_index_path(nr_gaussians, nr_dimensions, index), int(self.large_basin_index))
+        # Write corresponding large basin origin to file
+        np.savetxt(self.this_large_origin_path(nr_gaussians, nr_dimensions, index), end)
         # Write default / input small basin index to file
         to_file(self.this_small_index_path(nr_gaussians, nr_dimensions, index), int(self.small_basin_index))
+        # Write default / input small basin origin to file
+        means, cov = self.get_mean_cov(nr_gaussians, nr_dimensions, index)
+        np.savetxt(self.this_small_origin_path(nr_gaussians, nr_dimensions, index),
+            self.get_local_minimum(nr_gaussians, nr_dimensions, index, means[self.small_basin_index]))
         
+    def get_large_basin_origin(self, nr_gaussians, nr_dimensions, index):
+        return np.loadtxt(self.this_large_origin_path(nr_gaussians, nr_dimensions, index))
+        
+    def get_small_basin_origin(self, nr_gaussians, nr_dimensions, index):
+        return np.loadtxt(self.this_small_origin_path(nr_gaussians, nr_dimensions, index))
+    
     def get_local_minimum(self, nr_gaussians, nr_dimensions, index, start):
         pot = self.get_pot(nr_gaussians, nr_dimensions, index)
         optimizer = ModifiedFireCPP(start, pot, dtmax=1, maxstep=1e-1, tol=1e-8, nsteps=1e8, verbosity=0)
@@ -121,3 +139,12 @@ class MultiGaussWrap(object):
         distances = [np.linalg.norm(minima[i][:] - end) for i in xrange(nr_gaussians)]
         basin_index = np.argmin(distances)
         return basin_index
+        
+    def get_origin(self, nr_gaussians, nr_dimensions, index, large_small_flag):
+        if large_small_flag == "large":
+            return self.get_large_basin_origin(nr_gaussians, nr_dimensions, index)
+        elif large_small_flag == "small":
+            return self.get_small_basin_origin(nr_gaussians, nr_dimensions, index)
+        else:
+            raise Exception("get_origin: large_small_flag is illegal")
+            

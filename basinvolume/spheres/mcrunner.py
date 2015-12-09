@@ -7,7 +7,7 @@ from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest, CheckSphericalContainer 
-from mcpele.monte_carlo import SampleGaussian, RecordCoordsTimeseries
+from mcpele.monte_carlo import SampleGaussian
 from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
 from basinvolume.monte_carlo import Findk
@@ -18,6 +18,11 @@ from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.gui import HSWCASystem
 from basinvolume.utils import reduce_coordinates, full_coordinates, write_2d_array_to_hf5
+
+try:
+    from mcpele.monte_carlo import RecordCoordsTimeseries
+except Exception as e:
+    print(e)
 
 #for plotting histogram
 from itertools import cycle

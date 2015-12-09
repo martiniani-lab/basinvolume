@@ -13,15 +13,19 @@ public:
                            double dtol)
         : m_optimizer(optimizer),
           m_potential(potential),
-          m_origin(origin),
+          m_origin(origin.copy()),
           m_dtol(dtol),
-          m_nfev(0)
+          m_nfev(0),
+          m_nr_failed_quenches(0),
+          m_nr_total_quenches(0)
     {}
     bool conf_test(pele::Array<double>& trial_coords, mcpele::MC* mc)
     {
         double dist_orig_2;
         const bool quench_success = quench(trial_coords, dist_orig_2);
+        ++m_nr_total_quenches;
         if (!quench_success) {
+            ++m_nr_failed_quenches;
             return false;
         }
         if (dist_orig_2 > m_dtol * m_dtol) {
@@ -43,12 +47,22 @@ public:
     {
         return m_nfev;
     }
+    double get_failed_quench_fraction() const
+    {
+        return static_cast<double>(m_nr_failed_quenches) / static_cast<double>(m_nr_total_quenches);
+    }
+    pele::Array<double> get_origin() const
+    {
+        return m_origin;
+    }
 private:    
     std::shared_ptr<pele::GradientOptimizer> m_optimizer;
     std::shared_ptr<pele::BasePotential> m_potential;
     pele::Array<double> m_origin;
     const double m_dtol;
     size_t m_nfev;
+    size_t m_nr_failed_quenches;
+    size_t m_nr_total_quenches;
 };
 
 } // namespace bv

@@ -1,8 +1,74 @@
 from __future__ import division
 
 import numpy as np
+import os
+
+from pele.optimize import ModifiedFireCPP
+
+from mcpele.monte_carlo import _BaseMCRunner
+from mcpele.monte_carlo import UniformSphericalSampling
+from mcpele.monte_carlo import NullPotential
+
+from basinvolume.monte_carlo import CheckSameMinimumConfig
+from basinvolume.utils import volume_nball
 
 from computer_common import ComputerCommon
+from computer_common import run_computer
+
+class MC(_BaseMCRunner):
+    def set_control(self, tmp):
+        self.set_temperature(tmp)
+    def run(self, nr_iterations):
+        for _ in xrange(nr_iterations):
+            self.one_iteration()
+            
+class EngineCommonOpt(object):
+    """
+    Common parts of volume engines for Brute and TI engines.
+    """
+    def __init__(self, pes_parameters, potential, opt_parameters):
+        self.pes_parameters = pes_parameters
+        self.potential = potential
+        self.opt_parameters = opt_parameters
+        self.optimizer = ModifiedFireCPP(self.pes_parameters["origin"],
+            self.potential, dtmax=self.opt_parameters["opt_dtmax"],
+            maxstep=self.opt_parameters["opt_maxstep"],
+            tol=self.opt_parameters["opt_tol"],
+            nsteps=self.opt_parameters["opt_nsteps"],
+            verbosity=self.opt_parameters["verbosity"])
+        self.conftest_check_same_minimum = CheckSameMinimumConfig(self.potential,
+            self.pes_parameters["origin"], self.pes_parameters["csm_dtol"],
+            opt=self.optimizer, opt_tol=self.opt_parameters["opt_tol"],
+            opt_maxiter=self.opt_parameters["opt_nsteps"])
+
+class BruteEngine(EngineCommonOpt):
+    """
+    Engine to do iteration-wise computation of basin volume by brute
+    force rejection.
+    """
+    def __init__(self, brute_parameters, pes_parameters, potential, opt_parameters):
+        super(BruteEngine, self).__init__(pes_parameters, potential, opt_parameters)
+        self.brute_parameters = brute_parameters
+        self.mc_parameters = dict([("temperature", 1),
+            ("max_nr_samples", 1e14)])
+        self.mc_potential = NullPotential()
+        self.mc = MC(self.mc_potential, self.pes_parameters["origin"],
+            self.mc_parameters["temperature"],
+            self.mc_parameters["max_nr_samples"])
+        self.step = UniformSphericalSampling(42, self.pes_parameters["radius_container"])
+        self.mc.set_takestep(self.step)
+        self.mc.set_report_steps(0)
+        self.mc.add_conf_test(self.conftest_check_same_minimum)
+        self.evaluations = 0
+        self.volume = 0
+    
+    def one_iteration(self):
+        self.mc.run(self.brute_parameters["nr_samples_increment"])
+        p = self.mc.get_accepted_fraction()
+        self.volume = p * volume_nball(self.pes_parameters["radius_container"],
+            self.pes_parameters["nr_dimensions"])
+        self.evaluations = self.conftest_check_same_minimum.get_nfev()
+    
 
 class BruteComputer(ComputerCommon):
     """
@@ -10,80 +76,51 @@ class BruteComputer(ComputerCommon):
     as function of the number of function calls, and print it to the
     disk.
     """
-    def __init__(self, results_dir):
-        super(BruteComputer, self).__init__(results_dir)
-        self.iterations = []
-        self.evaluations = []
-        self.volume = []
+    def __init__(self, results_dir, opt_parameters, pes_parameters,
+        vol_parameters, method_parameters, pot):
+        super(BruteComputer, self).__init__(results_dir, opt_parameters,
+            pes_parameters, vol_parameters, method_parameters, pot)
+        self.brute_engine = BruteEngine(self.method_parameters,
+            self.pes_parameters, self.pot, self.opt_parameters)
         
-    def compute_volume(self, pot, large_small_flag):
-        for i in xrange(self.max_iterations):
-            self.iterations.append(i + 1)
-            evaluations_, volume_ = self.volume_iteration()
-            self.evaluations.append(evaluations_)
-            self.volume.append(volume_)
-            
-    def print_results(self):
-        """
-        Print 3 arrays, iterations, evaluations, volume.
+    def get_method_label(self):
+        return "brute"
         
-        For all methods, volume should agree for large number of
-        iterations.
-        Evaluations should be different in general.
-        Then arrays can also be analysed to find for each method the
-        smallest number of evaluations, such that volume is close to
-        asymptotic volume within, say, 2%.
-        """
+    def get_evaluations_volume_one_iteration(self):
+        self.brute_engine.one_iteration()
+        evaluations = self.brute_engine.evaluations
+        volume = self.brute_engine.volume
+        return evaluations, volume
+        
 
-def run_brute(potential_dir, results_dir, large_or_small_flag, nr_gaussians, nr_dimensions, nr_samples):
+def run_brute(ls_basin_label):
     """
-    Run brute force volume computation on gaussian landscapes.
+    Execute brute force basin computation for large or small basin.
     
-    Computes volume by brute force rejection as function of number of
-    potential energy function calls.
+    Parameter
+    ---------
     
-    Parameters
-    ----------
-    
-    potential_dir : string
-        Directory where the potentials shall be written to.
-        The file format is supposed to be as follows:
-        potentials/nr_gaussians/nr_dimensions/pot_index/pot.txt
-        potentials/nr_gaussians/nr_dimensions/pot_index/large_basin_index.txt
-        potentials/nr_gaussians/nr_dimensions/pot_index/small_basin_index.txt
-        
-    results_dir : string
-        Directory where the results shall be written to.
-        The file format is supposed to be as follows:
-        results_dir/nr_gaussians/nr_dimensions/pot_index/brute.txt
-        
-    large_or_small_flag : string
-        Flag to indicate if the large or the small basin should be computed.
-        Large means sampled uniformly at random (done before).
-        Small means with fixed index (fixed to 0 for now).
-        
-    nr_gaussians : integer
-        Number of gaussians (i.e., number of minima) in the potential
-        energy surface.
-        
-    nr_dimensions : integer
-        Euclidean dimension of the space mapping on the potential energy
-        surface, i.e., number of degrees of freedom.
-        
-    nr_samples : integer
-        Number of different potential energy landscapes sampled at each
-        (nr_gaussians, nr_dimensions).
+    ls_basin_label : string
+        Needs to be "large" or "small" and indicates size label of basin to be computed.
     """
-    pot_wrapper = MultiGaussWrap(potential_dir)
-    for pot_index in xrange(nr_samples):
-        pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
-        computer = BruteComputer(results_dir)
-        computer.compute_volume(pot, large_or_small_flag)
-
-if __name__ == "__main__":
+    if ls_basin_label is not "large" and ls_basin_label is not "small":
+        raise Exception("ls_basin_label: illegal input, can be large or small only")
     nr_samples = 20
+    opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
+        ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
+    vol_parameters = dict([("max_iterations", 1000)])
+    brute_parameters = dict([("nr_samples_increment", 1000)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
-    large_basin_results_dir = os.path.join(os.getcwd(), "large_basin_results")
+    ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
         for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
-            run_brute(potential_dir, large_basin_results_dir, "large", nr_gaussians, nr_dimensions, nr_samples)
+            pes_parameters = dict([("csm_dtol", 1),
+                ("nr_dimensions", nr_dimensions),
+                ("radius_container", 10)])
+            run_computer(potential_dir, ls_basin_results_dir, ls_basin_label,
+                nr_gaussians, nr_dimensions, nr_samples, BruteComputer,
+                opt_parameters, pes_parameters, vol_parameters,
+                brute_parameters)
+
+if __name__ == "__main__":
+    run_brute("large")

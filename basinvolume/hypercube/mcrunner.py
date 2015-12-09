@@ -5,11 +5,17 @@ import sys
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, NullPotential
 from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckHyperCubicContainer, CheckHyperSphericalContainer, RecordStepsTimeseries, RecordDisp2Histogram
-from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement, RecordCoordsTimeseries
+from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
-from mcpele.monte_carlo import SampleGaussian, ConfTestOR
+from mcpele.monte_carlo import SampleGaussian
 from basinvolume.monte_carlo import Findk
 from basinvolume.utils import write_2d_array_to_hf5
+
+try:
+    from mcpele.monte_carlo import ConfTestOR
+    from mcpele.monte_carlo import RecordCoordsTimeseries
+except Exception as e:
+    print(e)
 
 #for plotting histogram
 from itertools import cycle
