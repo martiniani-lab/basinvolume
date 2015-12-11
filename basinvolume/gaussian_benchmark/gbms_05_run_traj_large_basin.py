@@ -6,6 +6,13 @@ import os
 from computer_common import ComputerCommon
 from computer_common import run_computer
 
+class TrajEngine(object):
+    """
+    Engine to do iteration-wise computation of basin volume with traj
+    method.
+    """
+    
+
 class TrajComputer(ComputerCommon):
     """
     Compute volume of basin in the gaussian landscape by trajectory 
