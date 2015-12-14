@@ -33,7 +33,8 @@ class ComputerCommon(object):
             setup though.
             """
             self.traj_engine.compute_volume_traj()
-            assert(False)
+            self.volume = self.traj_engine.volume
+            self.evaluations = self.traj_engine.evaluations
         else:
             """This only works for TI and brute force.
             """
