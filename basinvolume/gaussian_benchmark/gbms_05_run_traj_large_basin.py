@@ -28,7 +28,20 @@ class TrajEngine(object):
             ntraj_max=self.traj_parameters["nr_samples_increment"]*self.vol_parameters["max_iterations"])
         
     def compute_volume_traj(self):
-        return
+        self.walk.run(self.pot, self.pes_parameters["origin"],
+            WalkOrigin=None, RefRadius=self.pes_parameters["csm_dtol"],
+            MinAtStartCoord=True,
+            quench_dt=self.traj_parameters["quench_dt"],
+            quench_maxsteps=self.traj_parameters["quench_maxsteps"],
+            quench_tol=self.traj_parameters["quench_tol"],
+            quench_hessiantol=self.traj_parameters["quench_hessiantol"],
+            quench_backtrack=self.traj_parameters["quench_backtrack"],
+            targetaccept=self.traj_parameters["targetaccept"],
+            check_RefRadius=True,
+            convergence_repeats=self.traj_parameters["convergence_repeats"],
+            convergence_tol=self.traj_parameters["convergence_tol"],
+            convergence_fraction=self.traj_parameters["convergence_fraction"])
+        self.volume = self.walk.EstimatedVolume
 
 class TrajComputer(ComputerCommon):
     """
