@@ -6,12 +6,33 @@ import os
 from computer_common import ComputerCommon
 from computer_common import run_computer
 
+try:
+    import trajectories.volcalc_onthefly_no_store_2 as vc
+except Exception as e:
+    print(e)
+
 class TrajEngine(object):
     """
     Engine to do iteration-wise computation of basin volume with traj
     method.
     """
-    
+    def __init__(self, traj_parameters, pes_parameters, pot, opt_parameters):
+        self.traj_parameters = traj_parameters
+        self.pes_parameters = pes_parameters
+        self.pot = pot
+        self.opt_parameters = opt_parameters
+        """
+        self.walk = vc.Volcalc_onthefly(stepsize=self.traj_parameters["stepsize"],
+            primesteps=self.traj_parameters["primesteps"],
+            ntraj_inc=self.traj_parameters["nr_samples_increment"],
+            ntraj_max=self.traj_parameters["nr_samples_increment"]*self.vol_parameters["max_iterations"])
+        
+        """
+        self.evaluations = 0
+        self.volume = 0
+        
+    def compute_volume_traj(self):
+        return
 
 class TrajComputer(ComputerCommon):
     """
@@ -19,7 +40,7 @@ class TrajComputer(ComputerCommon):
     method as function of the number of function calls and print to
     disk.
     """
-    def __ini__(self, results_dir, opt_parameters, pes_parameters,
+    def __init__(self, results_dir, opt_parameters, pes_parameters,
         vol_parameters, method_parameters, pot):
         super(TrajComputer, self).__init__(results_dir, opt_parameters,
             pes_parameters, vol_parameters, method_parameters, pot)
@@ -28,12 +49,6 @@ class TrajComputer(ComputerCommon):
             
     def get_method_label(self):
         return "traj"
-        
-    def get_evaluations_volume_one_iteration(self):
-        self.traj_engine.one_iteration()
-        evaluations = self.traj_engine.evaluations
-        volume = self.traj_engine.volume
-        return evaluations, volume
 
 def run_traj(ls_basin_label):
     """
@@ -42,7 +57,7 @@ def run_traj(ls_basin_label):
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
     nr_samples = 20
-    opt_parameters = None
+    opt_parameters = dict([("quench_tol", 1e-8)])
     vol_parameters = dict([("max_iterations", 1000)])
     traj_parameters = dict([("nr_samples_increment", 1000)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
