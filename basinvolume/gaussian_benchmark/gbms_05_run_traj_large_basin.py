@@ -21,15 +21,10 @@ class TrajEngine(object):
         self.pes_parameters = pes_parameters
         self.pot = pot
         self.opt_parameters = opt_parameters
-        """
         self.walk = vc.Volcalc_onthefly(stepsize=self.traj_parameters["stepsize"],
             primesteps=self.traj_parameters["primesteps"],
             ntraj_inc=self.traj_parameters["nr_samples_increment"],
             ntraj_max=self.traj_parameters["nr_samples_increment"]*self.vol_parameters["max_iterations"])
-        
-        """
-        self.evaluations = 0
-        self.volume = 0
         
     def compute_volume_traj(self):
         return
