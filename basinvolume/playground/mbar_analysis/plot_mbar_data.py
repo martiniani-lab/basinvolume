@@ -29,7 +29,7 @@ params = {'backend': 'pdf',
           'xtick.major.pad':8,
           'ytick.major.pad':8,
           'text.usetex': True,
-          'figure.tight_layout': True,
+          #'figure.tight_layout': True,
           'figure.autolayout': True
           #'figure.figsize': [10,7.7],
 }
@@ -840,7 +840,7 @@ class plot_mbar_data(object):
             par2.set_ylabel(r"$|\langle \bf{x} \rangle - \bf{x}_0|$")
             par3.set_ylabel(r"$Z$")
             host.set_xlim((1e-6,2e-1))
-            par1.set_ylim((0,0.15))
+            par1.set_ylim((0,0.25))
             par2.set_ylim((0,1.3))
             par3.set_ylim((7.5,12.5))
             fig9.savefig(os.path.join(self.figdir, 'poly_q12.pdf'))
