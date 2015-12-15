@@ -67,10 +67,18 @@ def run_traj(ls_basin_label):
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
     nr_samples = 20
-    opt_parameters = dict([("quench_tol", 1e-8)])
+    opt_parameters = None
     vol_parameters = dict([("max_iterations", 1000)])
-    traj_parameters = dict([("nr_samples_increment", 1000),
-        ("stepsize", 2), ("primesteps", 3000)])
+    traj_parameters = dict([("nr_samples_increment", 100),
+        ("stepsize", 2), ("primesteps", 3000),
+        ("quench_maxsteps", 1e18),
+        ("quench_tol", 1e-8),
+        ("quench_hessiantol", 0.01),
+        ("quench_backtrack", True),
+        ("targetaccept", 0.25),
+        ("convergence_repeats", 20),
+        ("convergence_tol", 0.01),
+        ("convergence_fraction", 0.05)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
@@ -78,6 +86,7 @@ def run_traj(ls_basin_label):
             pes_parameters = dict([("csm_dtol", 1),
                 ("nr_dimensions", nr_dimensions),
                 ("radius_container", 10)])
+            traj_parameters["quench_dt"] = 0.038 * nr_dimensions ** -1.027
             run_computer(potential_dir, ls_basin_results_dir,
                 ls_basin_label, nr_gaussians, nr_dimensions, nr_samples,
                 TrajComputer, opt_parameters, pes_parameters,
