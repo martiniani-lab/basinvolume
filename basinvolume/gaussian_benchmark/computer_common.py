@@ -27,11 +27,22 @@ class ComputerCommon(object):
         self.volume = []
         
     def compute_volume(self):
-        for i in xrange(self.vol_parameters["max_iterations"]):
-            self.iterations.append(i + 1)
-            evaluations, volume = self.get_evaluations_volume_one_iteration()
-            self.evaluations.append(evaluations)
-            self.volume.append(volume)
+        if self.get_method_label() == "traj":
+            """For the traj method it is the safest to use Shang's
+            implementation. Then we can not use directly the iterations
+            setup though.
+            """
+            self.traj_engine.compute_volume_traj()
+            self.volume = self.traj_engine.volume
+            self.evaluations = self.traj_engine.evaluations
+        else:
+            """This only works for TI and brute force.
+            """
+            for i in xrange(self.vol_parameters["max_iterations"]):
+                self.iterations.append(i + 1)
+                evaluations, volume = self.get_evaluations_volume_one_iteration()
+                self.evaluations.append(evaluations)
+                self.volume.append(volume)
             
     def print_results(self, nr_gaussians, nr_dimensions, pot_index):
         """
