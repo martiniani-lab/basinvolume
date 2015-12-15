@@ -205,6 +205,12 @@ cxx_modules = [
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends_bv,
               ),
+    Extension("basinvolume.utils._cross_validation_cost_cpp",
+              ["basinvolume/utils/_cross_validation_cost_cpp.cxx"],
+              include_dirs=include_dirs,
+              extra_compile_args=extra_compile_args,
+              language="c++", depends=depends_bv,
+              ),
                ]
 
 setup(ext_modules=cxx_modules,

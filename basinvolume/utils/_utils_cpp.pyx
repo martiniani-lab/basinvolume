@@ -1,4 +1,5 @@
 # distutils: language = c++
+
 import numpy as np
 cimport numpy as np
 from pele.potentials import _pele

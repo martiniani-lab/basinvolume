@@ -21,7 +21,6 @@ try:
     from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
     from basinvolume.post_processing import GeneralisedLogNormal, LogNormal, OutlierRemovalUnbiasingEntropyLogOmega
     import vegas
-    from joblib import Parallel, delayed
 except ImportError as err:
     print err
 #######################SET LATEX OPTIONS###################
