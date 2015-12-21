@@ -38,10 +38,12 @@ class TrajEngine(object):
             quench_backtrack=self.traj_parameters["quench_backtrack"],
             targetaccept=self.traj_parameters["targetaccept"],
             check_RefRadius=True,
+            fn_call_counter=vc.Counter(),
             convergence_repeats=self.traj_parameters["convergence_repeats"],
             convergence_tol=self.traj_parameters["convergence_tol"],
             convergence_fraction=self.traj_parameters["convergence_fraction"])
         self.volume = self.walk.EstimatedVolume
+        self.evaluations = self.walk.evaluations
 
 class TrajComputer(ComputerCommon):
     """
@@ -68,8 +70,8 @@ def run_traj(ls_basin_label):
         raise Exception("ls_basin_label: illegal input, can be large or small only")
     nr_samples = 20
     opt_parameters = None
-    vol_parameters = dict([("max_iterations", 10)])
-    traj_parameters = dict([("nr_samples_increment", 10),
+    vol_parameters = dict([("max_iterations", 1000)])
+    traj_parameters = dict([("nr_samples_increment", 1000),
         ("stepsize", 2), ("primesteps", 3000),
         ("quench_maxsteps", 1e18),
         ("quench_tol", 1e-8),
@@ -77,7 +79,7 @@ def run_traj(ls_basin_label):
         ("quench_backtrack", True),
         ("targetaccept", 0.25),
         ("convergence_repeats", 20),
-        ("convergence_tol", 0.01),
+        ("convergence_tol", 0),
         ("convergence_fraction", 0.05)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
