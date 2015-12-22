@@ -41,7 +41,8 @@ class TrajEngine(object):
             fn_call_counter=vc.Counter(),
             convergence_repeats=self.traj_parameters["convergence_repeats"],
             convergence_tol=self.traj_parameters["convergence_tol"],
-            convergence_fraction=self.traj_parameters["convergence_fraction"])
+            convergence_fraction=self.traj_parameters["convergence_fraction"],
+            old_backtracker_descent=self.traj_parameters["old_backtracker_descent"])
         self.volume = self.walk.EstimatedVolume
         self.evaluations = self.walk.evaluations
 
@@ -71,7 +72,7 @@ def run_traj(ls_basin_label):
     nr_samples = 20
     opt_parameters = None
     vol_parameters = dict([("max_iterations", 1000)])
-    traj_parameters = dict([("nr_samples_increment", 1000),
+    traj_parameters = dict([("nr_samples_increment", 10),
         ("stepsize", 2), ("primesteps", 3000),
         ("quench_maxsteps", 1e18),
         ("quench_tol", 1e-8),
@@ -80,7 +81,8 @@ def run_traj(ls_basin_label):
         ("targetaccept", 0.25),
         ("convergence_repeats", 20),
         ("convergence_tol", 0),
-        ("convergence_fraction", 0.05)])
+        ("convergence_fraction", 0.05),
+        ("old_backtracker_descent", False)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:

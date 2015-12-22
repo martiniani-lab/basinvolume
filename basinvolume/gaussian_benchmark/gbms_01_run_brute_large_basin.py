@@ -10,7 +10,7 @@ from mcpele.monte_carlo import UniformSphericalSampling
 from mcpele.monte_carlo import NullPotential
 
 from basinvolume.monte_carlo import CheckSameMinimumConfig
-from basinvolume.utils import volume_nball
+from basinvolume.utils import log_volume_nball
 
 from computer_common import ComputerCommon
 from computer_common import run_computer
@@ -65,8 +65,9 @@ class BruteEngine(EngineCommonOpt):
     def one_iteration(self):
         self.mc.run(self.brute_parameters["nr_samples_increment"])
         p = self.mc.get_accepted_fraction()
-        self.volume = p * volume_nball(self.pes_parameters["radius_container"],
-            self.pes_parameters["nr_dimensions"])
+        self.volume = np.exp(np.log(p) +
+            log_volume_nball(self.pes_parameters["radius_container"],
+            self.pes_parameters["nr_dimensions"]))
         self.evaluations = self.conftest_check_same_minimum.get_nfev()
     
 
