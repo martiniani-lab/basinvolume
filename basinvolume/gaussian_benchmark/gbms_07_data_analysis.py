@@ -3,6 +3,8 @@ from __future__ import division
 from collections import defaultdict
 import copy
 
+from basic_plot import BasicPlot
+
 def run_preprocessing(gauss_parameters, analysis_parameters, dimension):
     """
     Determine number of evaluations for 
@@ -19,6 +21,24 @@ def run_preprocessing(gauss_parameters, analysis_parameters, dimension):
     dimension : int
         Number of Euclidean dimensions.
     """
+
+class BenchmarkPlot(BasicPlot):
+    """
+    Makes benchmark plot.
+    """
+    def __init__(self, gauss_parameters, analysis_parameters):
+        self.gauss_parameters = gauss_parameters
+        self.analysis_parameters = analysis_parameters
+        self.evaluations = dict([(m, []) for m in analysis_parameters["methods"]])
+        self.evaluations_error = copy.deepcopy(self.evaluations)
+        self.get_data()
+        
+    def get_data(self):
+        return
+    
+    def make_plot(self):
+        return
+        
     
 def make_plot(gauss_parameters, analysis_parameters):
     """
@@ -33,10 +53,8 @@ def make_plot(gauss_parameters, analysis_parameters):
     analysis_parameters : dict
         Parameters of analysis method.
     """
-    evaluations = dict([(m, []) for m in analysis_parameters["methods"]])
-    evaluations_error = copy.deepcopy(evaluations)
-    for m in evaluations.keys():
-        e, ee = get_evals_error(gauss_pa)
+    plot = BenchmarkPlot(gauss_parameters, analysis_parameters)
+    plot.make_plot()
 
 def run_analysis(ls_basin_label):
     """
