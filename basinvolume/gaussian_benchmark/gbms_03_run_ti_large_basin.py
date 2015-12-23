@@ -299,13 +299,13 @@ def run_ti(ls_basin_label):
     nr_samples = 20
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
         ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
-    vol_parameters = dict([("max_iterations", 1000)])
-    ti_parameters = dict([("nr_samples_increment", 1000),
-        ("ktarget", 0.9), ("knavg", 5000), ("ktol", 0.05), ("hmin", 0),
+    vol_parameters = dict([("max_iterations", 10000)])
+    ti_parameters = dict([("nr_samples_increment", 1),
+        ("ktarget", 0.9), ("knavg", 100), ("ktol", 0.05), ("hmin", 0),
         ("hmax", 1), ("binsize", 0.005), ("harmonic_com_flag", False),
-        ("kmax_niter", 2e5), ("kmax_avgcount", 1e5),
-        ("adjustf_niter", 5e4), ("pt_eq_niter", 1e5),
-        ("kmin_niter", 5e5), ("nprocs", 7)])
+        ("kmax_niter", 2e4), ("kmax_avgcount", 1e4),
+        ("adjustf_niter", 5e3), ("pt_eq_niter", 3e3),
+        ("kmin_niter", 1e4), ("nprocs", 7)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
