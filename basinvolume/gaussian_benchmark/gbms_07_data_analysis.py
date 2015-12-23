@@ -1,5 +1,8 @@
 from __future__ import division
 
+from collections import defaultdict
+import copy
+
 def run_preprocessing(gauss_parameters, analysis_parameters, dimension):
     """
     Determine number of evaluations for 
@@ -30,6 +33,10 @@ def make_plot(gauss_parameters, analysis_parameters):
     analysis_parameters : dict
         Parameters of analysis method.
     """
+    evaluations = dict([(m, []) for m in analysis_parameters["methods"]])
+    evaluations_error = copy.deepcopy(evaluations)
+    for m in evaluations.keys():
+        e, ee = get_evals_error(gauss_pa)
 
 def run_analysis(ls_basin_label):
     """
@@ -47,7 +54,8 @@ def run_analysis(ls_basin_label):
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
-    analysis_parameters = dict([("target_relative_error", 0.05)])
+    analysis_parameters = dict([("target_relative_error", 0.05),
+                                ("methods", ["traj", "ti", "brute"])])
     for dimension in gauss_parameters["dimensions"]:
         run_preprocessing(gauss_parameters, analysis_parameters, dimension)
     make_plot(gauss_parameters, analysis_parameters)
