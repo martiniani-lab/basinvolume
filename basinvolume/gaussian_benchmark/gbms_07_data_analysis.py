@@ -1,6 +1,5 @@
 from __future__ import division
 
-from collections import defaultdict
 import copy
 
 from basinvolume.utils import BasicPlot
@@ -37,11 +36,13 @@ class BenchmarkPlot(BasicPlot):
         for m in self.evaluations.keys():
             for d in self.evaulations[m].keys():
                 e, ee = self.get_evaluations_error(m, d)
-                self.evaluations[m][d] = e
-                self.evaluations_error[m][d] = ee
+                self.evaluations[m]append(e)
+                self.evaluations_error[m].append(ee)
     
     def make_plot(self):
         self.out_name = "gbms_07_data_analysis.pdf"
+        for i, m in enumerate(self.evaluations.keys()):
+            plt.errorbar(self.self.evaluations[m], self.evaluations_error[m])
         self.save_and_close()
     
 def make_plot(gauss_parameters, analysis_parameters):
