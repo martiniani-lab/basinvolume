@@ -3,7 +3,7 @@ from __future__ import division
 from collections import defaultdict
 import copy
 
-from basic_plot import BasicPlot
+from basinvolume.utils import BasicPlot
 
 def run_preprocessing(gauss_parameters, analysis_parameters, dimension):
     """
@@ -34,11 +34,15 @@ class BenchmarkPlot(BasicPlot):
         self.get_data()
         
     def get_data(self):
-        return
+        for m in self.evaluations.keys():
+            for d in self.evaulations[m].keys():
+                e, ee = self.get_evaluations_error(m, d)
+                self.evaluations[m][d] = e
+                self.evaluations_error[m][d] = ee
     
     def make_plot(self):
-        return
-        
+        self.out_name = "gbms_07_data_analysis.pdf"
+        self.save_and_close()
     
 def make_plot(gauss_parameters, analysis_parameters):
     """
