@@ -30,19 +30,21 @@ class BenchmarkPlot(BasicPlot):
         self.analysis_parameters = analysis_parameters
         self.evaluations = dict([(m, []) for m in analysis_parameters["methods"]])
         self.evaluations_error = copy.deepcopy(self.evaluations)
+        self.dimensions = [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]
         self.get_data()
         
     def get_data(self):
         for m in self.evaluations.keys():
-            for d in self.evaulations[m].keys():
+            for d in self.dimensions:
                 e, ee = self.get_evaluations_error(m, d)
                 self.evaluations[m]append(e)
                 self.evaluations_error[m].append(ee)
     
     def make_plot(self):
         self.out_name = "gbms_07_data_analysis.pdf"
+        symbols = ["o", "s", "^"]
         for i, m in enumerate(self.evaluations.keys()):
-            plt.errorbar(self.self.evaluations[m], self.evaluations_error[m])
+            plt.errorbar(self.dimensions, self.self.evaluations[m], yerr=self.evaluations_error[m], fmt=symbols[i], label=m)
         self.save_and_close()
     
 def make_plot(gauss_parameters, analysis_parameters):
