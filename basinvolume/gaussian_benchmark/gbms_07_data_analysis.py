@@ -6,7 +6,8 @@ from basinvolume.utils import BasicPlot
 
 def run_preprocessing(gauss_parameters, analysis_parameters, dimension):
     """
-    Determine number of evaluations for 
+    Subtract equilibration steps.
+    Find number needed eval etc.
     
     Parameters
     ----------
@@ -39,6 +40,11 @@ class BenchmarkPlot(BasicPlot):
                 e, ee = self.get_evaluations_error(m, d)
                 self.evaluations[m]append(e)
                 self.evaluations_error[m].append(ee)
+                
+    def get_evaluations_error(self, method, dim):
+        """
+        Read evaluations needed of that method
+        """
     
     def make_plot(self):
         self.out_name = "gbms_07_data_analysis.pdf"
