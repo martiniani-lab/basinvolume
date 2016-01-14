@@ -85,7 +85,7 @@ def run_analysis(ls_basin_label):
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
-    analysis_parameters = dict([("target_relative_error", 0.05),
+    analysis_parameters = dict([("target_relative_error", 0.10),
                                 ("methods", ["traj", "ti", "brute"])])
     for dimension in gauss_parameters["dimensions"]:
         run_preprocessing(gauss_parameters, analysis_parameters, dimension)
