@@ -318,8 +318,7 @@ def run_ti(ls_basin_label):
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
-        #for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
-        for nr_dimensions in [2]:
+        for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
             pes_parameters = dict([("csm_dtol", 1),
                 ("nr_dimensions", nr_dimensions),
                 ("radius_container", 10)])
