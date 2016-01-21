@@ -45,6 +45,7 @@ class TrajEngine(object):
             old_backtracker_descent=self.traj_parameters["old_backtracker_descent"])
         self.volume = self.walk.EstimatedVolume
         self.evaluations = self.walk.evaluations
+        self.ini_evals = self.walk.ini_evals
 
 class TrajComputer(ComputerCommon):
     """

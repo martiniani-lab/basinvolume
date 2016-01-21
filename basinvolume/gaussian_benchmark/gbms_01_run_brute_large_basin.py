@@ -83,6 +83,7 @@ class BruteComputer(ComputerCommon):
             pes_parameters, vol_parameters, method_parameters, pot)
         self.brute_engine = BruteEngine(self.method_parameters,
             self.pes_parameters, self.pot, self.opt_parameters)
+        self.ini_evals = 0 # Brute force does not need initialisation.
         
     def get_method_label(self):
         return "brute"

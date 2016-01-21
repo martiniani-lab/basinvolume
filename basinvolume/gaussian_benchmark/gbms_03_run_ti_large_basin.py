@@ -281,6 +281,7 @@ class TIComputer(ComputerCommon):
             pes_parameters, vol_parameters, method_parameters, pot)
         self.ti_engine = TIEngine(self.method_parameters,
             self.pes_parameters, self.pot, self.opt_parameters)
+        self.ini_evals = self.ti_engine.ini_evals
             
     def get_method_label(self):
         return "ti"

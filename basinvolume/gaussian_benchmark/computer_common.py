@@ -35,6 +35,7 @@ class ComputerCommon(object):
             self.traj_engine.compute_volume_traj()
             self.volume = self.traj_engine.volume
             self.evaluations = self.traj_engine.evaluations
+            self.ini_evals = self.traj_engine.ini_evals
         else:
             """This only works for TI and brute force.
             """
@@ -59,6 +60,7 @@ class ComputerCommon(object):
         np.savetxt(self.this_iterations_path(nr_gaussians, nr_dimensions, pot_index), self.iterations)
         np.savetxt(self.this_evaluations_path(nr_gaussians, nr_dimensions, pot_index), self.evaluations)
         np.savetxt(self.this_volume_path(nr_gaussians, nr_dimensions, pot_index), self.volume)
+        np.savetxt(self.this_ini_evals_path(nr_gaussians, nr_dimensions, pot_index), np.asarray([self.ini_evals]))
     
     def this_path(self, nr_gaussians, nr_dimensions, pot_index):
         return os.path.join(self.results_path, str(nr_gaussians), str(nr_dimensions), str(pot_index))
@@ -71,6 +73,9 @@ class ComputerCommon(object):
         
     def this_volume_path(self, nr_gaussians, nr_dimensions, pot_index):
         return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_volume.txt")
+        
+    def this_ini_evals_path(self, nr_gaussians, nr_dimensions, pot_index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_ini_evals.txt")
 
 
 def run_computer(potential_dir, results_dir, large_or_small_flag,
