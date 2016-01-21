@@ -94,6 +94,7 @@ class TIEngine(EngineCommonOpt):
             com=self.ti_parameters["harmonic_com_flag"])
         self.setup_ti_kmin()
         self.setup_ti_pt_walks()
+        self.ini_evals = self.conftest_check_same_minimum.get_nfev()
         
     def setup_ti_kmax(self):
         self.action_findk = Findk(self.pes_parameters["origin"],
