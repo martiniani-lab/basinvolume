@@ -70,7 +70,7 @@ def run_traj(ls_basin_label):
     """
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
-    nr_samples = 20
+    nr_samples = 10
     opt_parameters = None
     vol_parameters = dict([("max_iterations", 10000)])
     traj_parameters = dict([("nr_samples_increment", 1),

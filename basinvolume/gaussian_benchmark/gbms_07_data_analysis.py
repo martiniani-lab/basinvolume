@@ -82,7 +82,7 @@ def run_analysis(ls_basin_label):
     """
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
-    gauss_parameters = dict([("nr_samples", 20),
+    gauss_parameters = dict([("nr_samples", 10),
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])

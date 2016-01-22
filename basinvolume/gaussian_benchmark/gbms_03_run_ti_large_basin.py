@@ -305,7 +305,7 @@ def run_ti(ls_basin_label):
     """
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
-    nr_samples = 20
+    nr_samples = 10
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
         ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
     vol_parameters = dict([("max_iterations", 10000)])
