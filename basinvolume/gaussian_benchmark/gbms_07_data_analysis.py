@@ -3,8 +3,9 @@ from __future__ import division
 import copy
 
 from basinvolume.utils import BasicPlot
+from basinvolume.utils import trymakedir
 
-def run_preprocessing(gauss_parameters, analysis_parameters, dimension):
+def run_preprocessing(gauss_parameters, analysis_parameters, dirs):
     """
     Subtract equilibration steps.
     Find number needed eval etc.
@@ -18,9 +19,10 @@ def run_preprocessing(gauss_parameters, analysis_parameters, dimension):
     analysis_parameters : dict
         Parameters of analysis method.
         
-    dimension : int
-        Number of Euclidean dimensions.
+    dirs : dict
+        Path parameters for simulation results and analysis output.
     """
+    trymakedir(dirs["analysis_dir"])
     
 
 class BenchmarkPlot(BasicPlot):
@@ -32,7 +34,7 @@ class BenchmarkPlot(BasicPlot):
         self.analysis_parameters = analysis_parameters
         self.evaluations = dict([(m, []) for m in analysis_parameters["methods"]])
         self.evaluations_error = copy.deepcopy(self.evaluations)
-        self.dimensions = [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]
+        self.dimensions = self.gauss_parameters["dimensions"]
         self.get_data()
         
     def get_data(self):
@@ -54,7 +56,7 @@ class BenchmarkPlot(BasicPlot):
             plt.errorbar(self.dimensions, self.self.evaluations[m], yerr=self.evaluations_error[m], fmt=symbols[i], label=m)
         self.save_and_close()
     
-def make_plot(gauss_parameters, analysis_parameters):
+def make_plot(gauss_parameters, analysis_parameters, dirs):
     """
     Given preprocessing results, turn these into plots.
     
@@ -88,9 +90,11 @@ def run_analysis(ls_basin_label):
                              ("ls_basin_label", ls_basin_label)])
     analysis_parameters = dict([("target_relative_error", 0.10),
                                 ("methods", ["traj", "ti", "brute"])])
-    for dimension in gauss_parameters["dimensions"]:
-        run_preprocessing(gauss_parameters, analysis_parameters, dimension)
-    make_plot(gauss_parameters, analysis_parameters)
+    dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials"),
+                 ("ls_basin_results_dir", os.path.join(os.getcwd(), ls_basin_label + "_basin_results")),
+                 ("analysis_dir", os.path.join(os.getcwd(), ls_basin_label + "_basin_analysis"))])
+    run_preprocessing(gauss_parameters, analysis_parameters, dirs)
+    make_plot(gauss_parameters, analysis_parameters, dirs)
 
 if __name__ == "__main__":
     run_analysis("large")
