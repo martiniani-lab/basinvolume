@@ -23,7 +23,9 @@ def run_preprocessing(gauss_parameters, analysis_parameters, dirs):
         Path parameters for simulation results and analysis output.
     """
     trymakedir(dirs["analysis_dir"])
-    
+    for m in analysis_parameters["methods"]:
+        for d in gauss_parameters["dimensions"]:
+            # run for (m,d,pars)
 
 class BenchmarkPlot(BasicPlot):
     """
