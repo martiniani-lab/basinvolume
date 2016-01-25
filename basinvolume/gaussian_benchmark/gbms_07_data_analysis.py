@@ -5,6 +5,32 @@ import copy
 from basinvolume.utils import BasicPlot
 from basinvolume.utils import trymakedir
 
+class NrFunctionCallsStatistics(object):
+    """
+    Compute and write number of function call information for fixed
+    (m, d, gauss_parameters).
+    """
+    def __init__(self, m, d, gauss_parameters, analysis_parameters, dirs):
+        self.m = m
+        self.d = d
+        self.gauss_parameters = gauss_parameters
+        self.analysis_parameters = analysis_parameters
+        self.dirs = dirs
+        
+    def run_analysis(self):
+        """
+        Collect data files for (m, d, gauss_parameters), compute number
+        of function calls and error.
+        """
+        
+        
+    def print_results(self):
+        """
+        Write nr function calls results to disk.
+        """
+        
+        
+
 def run_preprocessing(gauss_parameters, analysis_parameters, dirs):
     """
     Subtract equilibration steps.
@@ -25,7 +51,9 @@ def run_preprocessing(gauss_parameters, analysis_parameters, dirs):
     trymakedir(dirs["analysis_dir"])
     for m in analysis_parameters["methods"]:
         for d in gauss_parameters["dimensions"]:
-            # run for (m,d,pars)
+            stat = NrFunctionCallsStatistics(m, d, gauss_parameters, analysis_parameters, dirs)
+            stat.run_analysis()
+            stat.print_results()
 
 class BenchmarkPlot(BasicPlot):
     """
@@ -91,6 +119,7 @@ def run_analysis(ls_basin_label):
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
     analysis_parameters = dict([("target_relative_error", 0.10),
+                                ("subtract_ini_evals", True),
                                 ("methods", ["traj", "ti", "brute"])])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials"),
                  ("ls_basin_results_dir", os.path.join(os.getcwd(), ls_basin_label + "_basin_results")),
