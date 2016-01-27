@@ -79,7 +79,17 @@ class SeriesComparison(object):
         result = self.get_converged_evaluation_basic(method, converged_iteration)
         if self.analysis_parameters["subtract_ini_evals"]:
             result -= self.get_ini_evals(method)
+        print("converged_evaluation", result)
         return result
+        
+    def get_converged_evaluation_basic(self, method, converged_iteration):
+        return np.loadtxt(os.path.join(self.three_series_dir, method + "_evaluations.txt"))[converged_iteration]
+        
+    def get_ini_evals(self, method):
+        ini_path = os.path.join(self.three_series_dir, method + "_ini_evals.txt")
+        if not os.path.exists(ini_path):
+            raise Exception("Ini evals file not found", self.three_series_path, method)
+        return np.loadtxt(ini_path)
 
 class BenchmarkPlot(BasicPlot):
     """
@@ -91,7 +101,7 @@ class BenchmarkPlot(BasicPlot):
         self.dirs = dirs
         self.evaluations = dict([(m, []) for m in analysis_parameters["methods"]])
         self.evaluations_error = copy.deepcopy(self.evaluations)
-        self.dimensions = copy.deepcopy(self.evaluations)
+        self.dimensions = []
         self.get_data()
         self.make_plot()
         
@@ -101,10 +111,24 @@ class BenchmarkPlot(BasicPlot):
             str(self.gauss_parameters["nr_gaussians"]))
         for dim in os.listdir(base_dir):
             # large_basin_results/5/2/
+            add_dim = False
             for index in os.listdir(os.path.join(base_dir, dim)):
                 # large_basin_results/5/2/0
                 three_series_dir = os.path.join(base_dir, dim, index)
                 self.run_three_series_analysis(three_series_dir)
+                if "brute_res_evals.txt" in os.listdir(three_series_dir) and dim not in self.dimensions:
+                    add_dim = True
+            if add_dim:
+                self.dimensions.append(int(dim))
+        self.dimensions = sorted(self.dimensions)
+        print("self.dimenisons", self.dimensions)
+        #large_basin_results/5/2/0/brute_res_evals.txt
+        for d in self.dimensions:
+            for m in self.evaluations.keys():
+                evals_list = [np.loadtxt(os.path.join(base_dir, str(dim), i, m + "_res_evals.txt")) for i in os.listdir(os.path.join(base_dir, str(dim)))]
+                print("evals_list", evals_list)
+                self.evaluations[m].append(np.mean(evals_list))
+                self.evaluations_error[m].append(np.std(evals_list) / np.sqrt(len(evals_list) - 1))
     
     def run_three_series_analysis(self, three_series_dir):
         print(three_series_dir)
@@ -139,12 +163,11 @@ def run_analysis(ls_basin_label):
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
-    analysis_parameters = dict([("target_relative_error", 0.10),
+    analysis_parameters = dict([("target_relative_error", 0.30),
                                 ("subtract_ini_evals", True),
                                 ("methods", ["traj", "ti", "brute"])])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),
-                 ("ls_basin_results_dir", os.path.join(os.getcwd(), ls_basin_label + "_basin_results")),
-                 ("analysis_dir", os.path.join(os.getcwd(), ls_basin_label + "_basin_analysis"))])
+                 ("ls_basin_results_dir", os.path.join(os.getcwd(), ls_basin_label + "_basin_results"))])
     BenchmarkPlot(gauss_parameters, analysis_parameters, dirs)
 
 if __name__ == "__main__":
