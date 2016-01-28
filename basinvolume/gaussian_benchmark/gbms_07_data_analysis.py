@@ -140,7 +140,7 @@ class BenchmarkPlot(BasicPlot):
         sc.analyse()
     
     def make_plot(self):
-        self.out_name = "gbms_07_data_analysis.pdf"
+        self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
         symbols = ["o", "s", "^"]
         for i, m in enumerate(self.evaluations.keys()):
             plt.errorbar(self.dimensions, self.evaluations[m],
