@@ -62,7 +62,13 @@ class SeriesComparison(object):
     def analyse(self):
         if self.incomplete:
             raise Exception("This assumes that the three-series-set is complete.")
-        comp = TimeSeriesComparison(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+        comp = None
+        try:
+            comp = TimeSeriesComparison(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+        except Exception as e:
+            print(e)
+            print("self.three_series_dir", self.three_series_dir)
+            exit(42)
         for m in self.methods:
             converged_iteration = comp.latest_converged_iteration[m]
             self.write_converged_evaluation(m, converged_iteration)
@@ -74,12 +80,12 @@ class SeriesComparison(object):
         np.savetxt(os.path.join(self.three_series_dir, method + "_res_evals.txt"), np.asarray([self.get_converged_evaluation(method, converged_iteration)]))
         
     def get_converged_evaluation(self, method, converged_iteration):
-        print("method", method)
-        print("converged_iteration", converged_iteration)
+        #print("method", method)
+        #print("converged_iteration", converged_iteration)
         result = self.get_converged_evaluation_basic(method, converged_iteration)
         if self.analysis_parameters["subtract_ini_evals"]:
             result -= self.get_ini_evals(method)
-        print("converged_evaluation", result)
+        #print("converged_evaluation", result)
         return result
         
     def get_converged_evaluation_basic(self, method, converged_iteration):
@@ -101,7 +107,8 @@ class BenchmarkPlot(BasicPlot):
         self.dirs = dirs
         self.evaluations = dict([(m, []) for m in analysis_parameters["methods"]])
         self.evaluations_error = copy.deepcopy(self.evaluations)
-        self.dimensions = []
+        self.nr_samples = copy.deepcopy(self.evaluations)
+        self.converged_sets = dict()
         self.get_data()
         self.make_plot()
         
@@ -111,38 +118,44 @@ class BenchmarkPlot(BasicPlot):
             str(self.gauss_parameters["nr_gaussians"]))
         for dim in os.listdir(base_dir):
             # large_basin_results/5/2/
-            add_dim = False
             for index in os.listdir(os.path.join(base_dir, dim)):
                 # large_basin_results/5/2/0
                 three_series_dir = os.path.join(base_dir, dim, index)
                 self.run_three_series_analysis(three_series_dir)
-                if "brute_res_evals.txt" in os.listdir(three_series_dir) and dim not in self.dimensions:
-                    add_dim = True
-            if add_dim:
-                self.dimensions.append(int(dim))
-        self.dimensions = sorted(self.dimensions)
-        print("self.dimenisons", self.dimensions)
+                if "brute_res_evals.txt" in os.listdir(three_series_dir):
+                    if not int(dim) in self.converged_sets:
+                        self.converged_sets[int(dim)] = []
+                    self.converged_sets[int(dim)].append(index)
+        self.dimensions = sorted(self.converged_sets.keys())
+        print("self.converged_sets", self.converged_sets)
         #large_basin_results/5/2/0/brute_res_evals.txt
-        for d in self.dimensions:
+        for dim in self.dimensions:
             for m in self.evaluations.keys():
-                evals_list = [np.loadtxt(os.path.join(base_dir, str(dim), i, m + "_res_evals.txt")) for i in os.listdir(os.path.join(base_dir, str(dim)))]
-                print("evals_list", evals_list)
+                evals_list = [np.loadtxt(os.path.join(base_dir,
+                    str(dim), i, m + "_res_evals.txt")) for i in self.converged_sets[dim]]
+                #print("evals_list", evals_list)
+                assert(len(evals_list) == len(self.converged_sets[dim]))
+                self.nr_samples[m].append(len(evals_list))
                 self.evaluations[m].append(np.mean(evals_list))
                 self.evaluations_error[m].append(np.std(evals_list) / np.sqrt(len(evals_list) - 1))
     
     def run_three_series_analysis(self, three_series_dir):
-        print(three_series_dir)
+        #print(three_series_dir)
         sc = SeriesComparison(three_series_dir, self.analysis_parameters)
         if sc.incomplete:
-            print("incomplete")
+            #print("incomplete")
             return
-        print("complete")
+        #print("complete")
         sc.analyse()
     
     def make_plot(self):
         self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
+        plt.yscale("log")
         symbols = ["o", "s", "^"]
         for i, m in enumerate(self.evaluations.keys()):
+            print("self.dimensions", self.dimensions)
+            print("self.evaluations[m]", self.evaluations[m])
+            print("self.nr_samples[m]", self.nr_samples[m])
             plt.errorbar(self.dimensions, self.evaluations[m],
                 yerr=self.evaluations_error[m], fmt=symbols[i], label=m)
         self.save_and_close()
@@ -163,7 +176,7 @@ def run_analysis(ls_basin_label):
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
-    analysis_parameters = dict([("target_relative_error", 0.30),
+    analysis_parameters = dict([("target_relative_error", 0.20),
                                 ("subtract_ini_evals", True),
                                 ("methods", ["traj", "ti", "brute"])])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),
