@@ -151,6 +151,7 @@ class TIEngine(EngineCommonOpt):
                                                  nparticles=1)
         self.kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = self.kmin_run.get_displ2_kmin()
+        print("TI ko step", self.takestep.get_stepsize())
         if self.verbose:
             print("displ2_kmin", self.displ2_kmin_mean)
             print("displ2_kmin_variance", self.displ2_kmin_variance)
