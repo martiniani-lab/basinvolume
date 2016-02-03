@@ -17,14 +17,8 @@ class MC(_BaseMCRunner):
     def run(self, nr_iterations):
         for _ in xrange(nr_iterations):
             self.one_iteration()
-            
-def run_brute(common_pars):
-    """
-    Run brute force basin computation for LJ crystal.
-    """
-    run_basin_computer(BruteComputer, common_pars)
 
 if __name__ == "__main__":
     common_pars = dict([("nr_samples", int(1e5)),
         ("nr_particles", 16)])
-    run_brute()
+    run_basin_computer(BruteComputer, common_pars)
