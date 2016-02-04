@@ -14,11 +14,28 @@ from basinvolume.monte_carlo import CheckSameMinimum
 class MC(_BaseMCRunner):
     def set_control(self, tmp):
         self.set_temperature(tmp)
-    def run(self, nr_iterations):
-        for _ in xrange(nr_iterations):
-            self.one_iteration()
+            
+class BruteComptuer(object):
+    def __init__(self, common_pars):
+        self.common_pars = common_pars
+        self.optimizer_potential = 
+        self.optimizer = 
+        self.conftest_check_same_minimum = 
+        self.mc_potential = NullPotential()
+        self.mc = 
+        self.step = 
+        self.mc.set_takestep(self.step)
+        self.mc.add_conf_test(self.conftest_check_same_minimum)
+        
+    def run_bv(self):
+        self.mc.run()
+        p = self.mc.get_accepted_fraction()
+        self.volume = np.exp(np.log(p) + self.common_pars["log_accessible_volume"])
 
 if __name__ == "__main__":
     common_pars = dict([("nr_samples", int(1e5)),
-        ("nr_particles", 16)])
-    run_basin_computer(BruteComputer, common_pars)
+        ("nr_particles", 16), ("log_accessible_volume", 42)])
+    c = BruteComputer(common_pars)
+    c.run_bv()
+    print("common_pars", common_pars)
+    print("volume", c.volume)
