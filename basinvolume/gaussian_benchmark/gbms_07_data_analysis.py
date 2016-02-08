@@ -176,7 +176,7 @@ def run_analysis(ls_basin_label):
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
-    analysis_parameters = dict([("target_relative_error", 0.3),
+    analysis_parameters = dict([("target_relative_error", 0.08),
                                 ("subtract_ini_evals", True),
                                 ("methods", ["traj", "ti", "brute"])])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),

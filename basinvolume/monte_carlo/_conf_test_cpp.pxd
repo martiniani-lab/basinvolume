@@ -68,6 +68,10 @@ cdef extern from "basinvolume/check_same_minimum_config.h" namespace "bv":
                                   shared_ptr[_pele.cBasePotential], _pele.Array[double],
                                   double) except +
 
+cdef extern from "basinvolume/check_minimum_is_hcp.h" namespace "bv":
+    def cppclass cppCheckMinimumIsHCP "bv:CheckMinimumIsHCP":
+        cppCheckMinimumIsHCP(shared_ptr[_pele_opt.cGradientOptimizer], double) except+
+
 cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
     cdef cppclass cppCheckSameMinimumInterface "bv::CheckSameMinimumInterface":
         size_t ml_nr_distinct_minima() except +
