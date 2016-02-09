@@ -3,6 +3,30 @@
 
 #import "Y4m.h"
 
+/*
+ 
+:<math>Y_{4}^{-4}(\theta,\varphi)={3\over 16}\sqrt{35\over 2\pi}\cdot e^{-4i\varphi}\cdot\sin^{4}\theta
+= \frac{3}{16} \sqrt{\frac{35}{2 \pi}} \cdot \frac{(x - i y)^4}{r^4}</math>
+:<math>Y_{4}^{-3}(\theta,\varphi)={3\over 8}\sqrt{35\over \pi}\cdot e^{-3i\varphi}\cdot\sin^{3}\theta\cdot\cos\theta
+= \frac{3}{8} \sqrt{\frac{35}{\pi}} \cdot \frac{(x - i y)^3 z}{r^4}</math>
+:<math>Y_{4}^{-2}(\theta,\varphi)={3\over 8}\sqrt{5\over 2\pi}\cdot e^{-2i\varphi}\cdot\sin^{2}\theta\cdot(7\cos^{2}\theta-1)
+= \frac{3}{8} \sqrt{\frac{5}{2 \pi}} \cdot \frac{(x - i y)^2 \cdot (7 z^2 - r^2)}{r^4}</math>
+:<math>Y_{4}^{-1}(\theta,\varphi)={3\over 8}\sqrt{5\over \pi}\cdot e^{-i\varphi}\cdot\sin\theta\cdot(7\cos^{3}\theta-3\cos\theta)
+= \frac{3}{8} \sqrt{\frac{5}{\pi}} \cdot \frac{(x - i y) \cdot z \cdot (7 z^2 - 3 r^2)}{r^4}</math>
+:<math>Y_{4}^{0}(\theta,\varphi)={3\over 16}\sqrt{1\over \pi}\cdot(35\cos^{4}\theta-30\cos^{2}\theta+3)
+= \frac{3}{16} \sqrt{\frac{1}{\pi}} \cdot \frac{(35 z^4 - 30 z^2 r^2 + 3 r^4)}{r^4}</math>
+:<math>Y_{4}^{1}(\theta,\varphi)={-3\over 8}\sqrt{5\over \pi}\cdot e^{i\varphi}\cdot\sin\theta\cdot(7\cos^{3}\theta-3\cos\theta)
+= \frac{- 3}{8} \sqrt{\frac{5}{\pi}} \cdot \frac{(x + i y) \cdot z \cdot (7 z^2 - 3 r^2)}{r^4}</math>
+:<math>Y_{4}^{2}(\theta,\varphi)={3\over 8}\sqrt{5\over 2\pi}\cdot e^{2i\varphi}\cdot\sin^{2}\theta\cdot(7\cos^{2}\theta-1)
+= \frac{3}{8} \sqrt{\frac{5}{2 \pi}} \cdot \frac{(x + i y)^2 \cdot (7 z^2 - r^2)}{r^4}</math>
+:<math>Y_{4}^{3}(\theta,\varphi)={-3\over 8}\sqrt{35\over \pi}\cdot e^{3i\varphi}\cdot\sin^{3}\theta\cdot\cos\theta
+= \frac{- 3}{8} \sqrt{\frac{35}{\pi}} \cdot \frac{(x + i y)^3 z}{r^4}</math>
+:<math>Y_{4}^{4}(\theta,\varphi)={3\over 16}\sqrt{35\over 2\pi}\cdot e^{4i\varphi}\cdot\sin^{4}\theta
+= \frac{3}{16} \sqrt{\frac{35}{2 \pi}} \cdot \frac{(x + i y)^4}{r^4}</math>
+
+
+ * */
+
 namespace bv {
     
 class CheckMinimumIsHCP : public mcpele::ConfTest {

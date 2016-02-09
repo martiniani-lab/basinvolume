@@ -151,6 +151,8 @@ class BenchmarkPlot(BasicPlot):
     def make_plot(self):
         self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
         plt.yscale("log")
+        plt.xlabel(r"Potential dimensionality, $D$")
+        plt.ylabel(r"Number of function calls, $N_{EFE}$")
         symbols = ["o", "s", "^"]
         for i, m in enumerate(self.evaluations.keys()):
             print("self.dimensions", self.dimensions)
@@ -176,7 +178,7 @@ def run_analysis(ls_basin_label):
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
-    analysis_parameters = dict([("target_relative_error", 0.08),
+    analysis_parameters = dict([("target_relative_error", 0.10),
                                 ("subtract_ini_evals", True),
                                 ("methods", ["traj", "ti", "brute"])])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),
