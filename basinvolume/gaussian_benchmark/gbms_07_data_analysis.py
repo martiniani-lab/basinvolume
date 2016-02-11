@@ -149,17 +149,21 @@ class BenchmarkPlot(BasicPlot):
         sc.analyse()
     
     def make_plot(self):
+        self.methods_for_plot = [m for m in self.evaluations.keys() if m is not "brute"]
+        self.methods_label_names = dict([("traj", "Trajectories"),
+                                         ("ti", "Thermodynamic integration")])
         self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
-        plt.yscale("log")
+        if self.analysis_parameters["logy"]:
+            plt.yscale("log")
         plt.xlabel(r"Potential dimensionality, $D$")
         plt.ylabel(r"Number of function calls, $N_{EFE}$")
         symbols = ["o", "s", "^"]
-        for i, m in enumerate(self.evaluations.keys()):
+        for i, m in enumerate(self.methods_for_plot):
             print("self.dimensions", self.dimensions)
             print("self.evaluations[m]", self.evaluations[m])
             print("self.nr_samples[m]", self.nr_samples[m])
             plt.errorbar(self.dimensions, self.evaluations[m],
-                yerr=self.evaluations_error[m], fmt=symbols[i], label=m)
+                yerr=self.evaluations_error[m], fmt=symbols[i], label=self.methods_label_names[m])
         self.save_and_close()
     
 def run_analysis(ls_basin_label):
@@ -180,6 +184,7 @@ def run_analysis(ls_basin_label):
                              ("ls_basin_label", ls_basin_label)])
     analysis_parameters = dict([("target_relative_error", 0.10),
                                 ("subtract_ini_evals", True),
+                                ("logy", False),
                                 ("methods", ["traj", "ti", "brute"])])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),
                  ("ls_basin_results_dir", os.path.join(os.getcwd(), ls_basin_label + "_basin_results"))])
