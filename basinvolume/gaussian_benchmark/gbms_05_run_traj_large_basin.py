@@ -71,7 +71,7 @@ def run_traj(ls_basin_label):
     """
     arg = ap.ArgumentParser()
     arg.add_argument("--nr_dimensions", type=int, help="Euclidean dimension of potential landscape")
-    arg.add_argument("--sample_index", type=int, help"Index of landscape to measure")
+    arg.add_argument("--sample_index", type=int, help="Index of landscape to measure")
     arg.add_argument("--nr_iterations", type=int, help="Maximum nr of iterations to consider for volume measurement")
     arg = arg.parse_args()
     nr_dimensions = arg.nr_dimensions
