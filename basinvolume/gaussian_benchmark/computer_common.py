@@ -79,7 +79,7 @@ class ComputerCommon(object):
 
 
 def run_computer(potential_dir, results_dir, large_or_small_flag,
-    nr_gaussians, nr_dimensions, nr_samples, ComputerMethod,
+    nr_gaussians, nr_dimensions, pot_index, ComputerMethod,
     opt_parameters, pes_parameters, vol_parameters, method_parameters, is_traj=False):
     """
     Run ComputerMethod volume computation on gaussian landscapes.
@@ -117,23 +117,21 @@ def run_computer(potential_dir, results_dir, large_or_small_flag,
         Euclidean dimension of the space mapping on the potential energy
         surface, i.e., number of degrees of freedom.
         
-    nr_samples : integer
-        Number of different potential energy landscapes sampled at each
-        (nr_gaussians, nr_dimensions).
+    pot_index : integer
+        Index of considered energy landscape sample.
     """
     pot_wrapper = MultiGaussWrap(potential_dir)
-    for pot_index in xrange(nr_samples):
-        pot = None
-        if is_traj:
-            from trajectories.potential import SumGaussianPot
-            m, c = pot_wrapper.get_mean_cov(nr_gaussians, nr_dimensions, pot_index)
-            pot = SumGaussianPot(m, c, pot_wrapper.R)
-        else:
-            pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
-        print("pot", pot)
-        pes_parameters["origin"] = pot_wrapper.get_origin(nr_gaussians,
-            nr_dimensions, pot_index, large_or_small_flag)
-        computer = ComputerMethod(results_dir, opt_parameters,
-            pes_parameters, vol_parameters, method_parameters, pot)
-        computer.compute_volume()
-        computer.print_results(nr_gaussians, nr_dimensions, pot_index)
+    pot = None
+    if is_traj:
+        from trajectories.potential import SumGaussianPot
+        m, c = pot_wrapper.get_mean_cov(nr_gaussians, nr_dimensions, pot_index)
+        pot = SumGaussianPot(m, c, pot_wrapper.R)
+    else:
+        pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
+    print("pot", pot)
+    pes_parameters["origin"] = pot_wrapper.get_origin(nr_gaussians,
+        nr_dimensions, pot_index, large_or_small_flag)
+    computer = ComputerMethod(results_dir, opt_parameters,
+        pes_parameters, vol_parameters, method_parameters, pot)
+    computer.compute_volume()
+    computer.print_results(nr_gaussians, nr_dimensions, pot_index)
