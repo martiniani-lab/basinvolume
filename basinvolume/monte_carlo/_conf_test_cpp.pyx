@@ -242,7 +242,8 @@ cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
 class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):
     """interface
     """
-    
+
+"""
 #===============================================================================
 # Check HCP compatible
 #===============================================================================
@@ -258,8 +259,7 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
         self.newptr = <cppcppCheckMinimumIsHCP*> self.thisptr.get()
         
 class CheckMinimumIsHCP(_Cdef_CheckMinimumIsHCP):
-    """interface
-    """
+"""
 
 #===============================================================================
 # Check same minimum
