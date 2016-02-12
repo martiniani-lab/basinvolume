@@ -25,7 +25,7 @@ TEST(Q4HCP, Works)
 {
     const double q4_true = 0.097;
     bv::CheckMinimumIsHCP c;
-    pele::Array<double> x(3 * 9 * 3);
+    pele::Array<double> x(3 * 25 * 3);
     int k = 0;
     // central particle
     x[0] = 0;
@@ -33,8 +33,8 @@ TEST(Q4HCP, Works)
     x[2] = 0;
     // central ring
     size_t n = 1;
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
+    for (int i = -2; i <= 2; ++i) {
+        for (int j = -2; j <= 2; ++j) {
             if (i != 0 || j != 0) {
                 x[n * 3] = 2 * i + ((j + k) % 2);
                 x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
@@ -45,8 +45,8 @@ TEST(Q4HCP, Works)
     }
     // bottom plate
     k = -1;
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
+    for (int i = -2; i <= 2; ++i) {
+        for (int j = -2; j <= 2; ++j) {
             x[n * 3] = 2 * i + ((j + k) % 2);
             x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
             x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
@@ -55,8 +55,8 @@ TEST(Q4HCP, Works)
     }
     // top plate
     k = 1;
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
+    for (int i = -2; i <= 2; ++i) {
+        for (int j = -2; j <= 2; ++j) {
             x[n * 3] = 2 * i + ((j + k) % 2);
             x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
             x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
