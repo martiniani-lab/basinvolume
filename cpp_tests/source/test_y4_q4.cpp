@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "basinvolume/Y4m.h"
+#include "basinvolume/check_minimum_is_hcp.h"
 
 TEST(BasicY4, Works)
 {
@@ -19,4 +19,50 @@ TEST(BasicY4, Works)
         EXPECT_NEAR(r_true.at(m + 4).real(), r.real(), 1e-15);
         EXPECT_NEAR(r_true.at(m + 4).imag(), r.imag(), 1e-15);
     }
+}
+
+TEST(Q4HCP, Works)
+{
+    const double q4_true = 0.097;
+    bv::CheckMinimumIsHCP c;
+    pele::Array<double> x(3 * 9 * 3);
+    int k = 0;
+    // central particle
+    x[0] = 0;
+    x[1] = 0;
+    x[2] = 0;
+    // central ring
+    size_t n = 1;
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            if (i != 0 || j != 0) {
+                x[n * 3] = 2 * i + ((j + k) % 2);
+                x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
+                x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
+                ++n;
+            }
+        }
+    }
+    // bottom plate
+    k = -1;
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            x[n * 3] = 2 * i + ((j + k) % 2);
+            x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
+            x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
+            ++n;
+        }
+    }
+    // top plate
+    k = 1;
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            x[n * 3] = 2 * i + ((j + k) % 2);
+            x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
+            x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
+            ++n;
+        }
+    }
+    const double q4_comp = c.get_Q4(x, 0);
+    EXPECT_DOUBLE_EQ(q4_true, q4_comp);
 }

@@ -1,23 +1,30 @@
 #ifndef _BV_CHECK_MINIMUM_IS_HCP_H
 #define _BV_CHECK_MINIMUM_IS_HCP_H
 
-#import "Y4m.h"
+#include "pele/optimizer.h"
+
+#include "mcpele/mc.h"
+
+#include "basinvolume/Y4m.h"
 
 namespace bv {
     
 class CheckMinimumIsHCP : public mcpele::ConfTest {
 private:
     std::shared_ptr<pele::GradientOptimizer> m_optimizer;
+    const double m_Q4tol;
+    const size_t m_boxdim;
+    const double m_Q4hcp;
 public:
-    CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer, const double Q4tol)
+    CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10)
         : m_optimizer(optimizer),
           m_Q4tol(Q4tol),
           m_boxdim(3),
-          m_Q4hcp()
+          m_Q4hcp(0.097)
     {}
     bool conf_test(pele::Array<double>& trial_coords, mcpele::MC* mc)
     {
-        m_optimizer->rese(trial_coords);
+        m_optimizer->reset(trial_coords);
         m_optimizer->run();
         if (!m_optimizer->success()) {
             return false;
@@ -45,7 +52,8 @@ public:
     }
     double get_abs2_qlm(const pele::Array<double>& x, const size_t particle_index, const int l) const
     {
-        NearestNeighborList nn_info(x, particle_index, distance_cutoff);
+        return 42;
+        //NearestNeighborList nn_info(x, particle_index, distance_cutoff);
     }
 };
 
