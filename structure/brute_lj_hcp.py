@@ -20,7 +20,7 @@ class BruteComputer(object):
     def __init__(self, common_pars, Q4_pars):
         self.common_pars = common_pars
         self.Q4_pars = Q4_pars
-        self.boxvec = np.asarray([1., 1., 1.])
+        self.boxvec = self.common_pars["boxvec"]
         self.optimizer_potential = LJCut(boxvec=self.boxvec)
         self.x_ini = np.ones(self.common_pars["nr_particles"] * 3)
         self.optimizer = ModifiedFireCPP(self.x_ini, self.optimizer_potential)
@@ -39,8 +39,13 @@ class BruteComputer(object):
         self.volume = np.exp(np.log(p) + self.common_pars["log_accessible_volume"])
 
 if __name__ == "__main__":
+    r = 1
+    log3N = 3
+    N = log3N ** 3
+    bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * log3N
     common_pars = dict([("nr_samples", int(1e5)),
-        ("nr_particles", 16), ("log_accessible_volume", 42)])
+        ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
+        ("boxvec", bv)])
     Q4_pars = dict([("tol", 1e-10), ("rcut", 2.1)])
     c = BruteComputer(common_pars, Q4_pars)
     c.run_bv()
