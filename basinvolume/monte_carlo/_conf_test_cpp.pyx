@@ -243,23 +243,23 @@ class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):
     """interface
     """
 
-"""
 #===============================================================================
 # Check HCP compatible
 #===============================================================================
 cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
     cdef _pele_opt.GradientOptimizer optimizer
     cdef cppCheckMinimumIsHCP* newptr
-    def __cinit__(self, optimizer=None, Q4tol=None, boxdim=3):
-        if boxdim != 3:
-            raise Exception("CheckMinimumIsHCP: illegal input: boxdim must be 3.")
+    cdef _pele.Array[double] bv_
+    def __cinit__(self, optimizer=None, Q4tol=1e-10, boxvec=None, rcut=2):
+        if len(boxvec) != 3:
+            raise Exception("CheckMinimumIsHCP: illegal input: boxdim must be 3, boxvec must be provided.")
+        bv_ = array_wrap_np(boxvec)
         self.optimizer = optimizer
-        self.potential = potential
-        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppcppCheckMinimumIsHCP(self.optimizer.thisptr, Q4tol))
-        self.newptr = <cppcppCheckMinimumIsHCP*> self.thisptr.get()
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckMinimumIsHCP(self.optimizer.thisptr, Q4tol, bv_, rcut))
+        self.newptr = <cppCheckMinimumIsHCP*> self.thisptr.get()
         
 class CheckMinimumIsHCP(_Cdef_CheckMinimumIsHCP):
-"""
+    """interface"""
 
 #===============================================================================
 # Check same minimum
