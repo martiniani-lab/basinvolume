@@ -65,13 +65,13 @@ class SeriesComparison(object):
         comp = None
         try:
             comp = TimeSeriesComparison(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+            for m in self.methods:
+                converged_iteration = comp.latest_converged_iteration[m]
+                self.write_converged_evaluation(m, converged_iteration)
         except Exception as e:
             print(e)
             print("self.three_series_dir", self.three_series_dir)
-            exit(42)
-        for m in self.methods:
-            converged_iteration = comp.latest_converged_iteration[m]
-            self.write_converged_evaluation(m, converged_iteration)
+            print("warning")
         
     def get_volume_series(self, m):
         return np.loadtxt(os.path.join(self.three_series_dir, m + "_volume.txt"))
