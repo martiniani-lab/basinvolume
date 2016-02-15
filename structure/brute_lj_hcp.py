@@ -17,18 +17,22 @@ class MC(_BaseMCRunner):
         self.set_temperature(tmp)
             
 class BruteComptuer(object):
-    def __init__(self, common_pars):
+    def __init__(self, common_pars, Q4_pars):
         self.common_pars = common_pars
+        self.Q4_pars = Q4_pars
         self.boxvec = np.asarray([1, 1, 1])
         self.optimizer_potential = LJCut(boxvec=self.boxvec)
-        self.optimizer = 
-        self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP()
+        self.x_ini = np.ones(self.common_pars["nr_particles"] * 3)
+        self.optimizer = ModifiedFireCPP(self.x_ini, self.optimizer_potential)
+        self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP(optimizer=self.optimizer, Q4tol=self.Q4_pars["tol"], boxvec=self.boxvec, rcut=self.Q4_pars["rcut"])
         self.mc_potential = NullPotential()
-        self.mc = 
-        self.step = 
+        self.temperature = 1
+        self.mc = MC(self.mc_potential, self.x_ini, self.temperature, self.common_pars["nr_samples"])
+        self.mc.set_nr_report_steps(0)
+        self.step = UniformCubicSampling(rseed=42, delta=self.boxvec)
         self.mc.set_takestep(self.step)
-        self.mc.add_conf_test(self.conftest_check_same_minimum)
-        
+        self.mc.add_conf_test(self.conftest_check_minimum_is_hcp)
+                
     def run_bv(self):
         self.mc.run()
         p = self.mc.get_accepted_fraction()
@@ -36,8 +40,10 @@ class BruteComptuer(object):
 
 if __name__ == "__main__":
     common_pars = dict([("nr_samples", int(1e5)),
-        ("nr_particles", 16), ("log_accessible_volume", 42 )])
-    c = BruteComputer(common_pars)
+        ("nr_particles", 16), ("log_accessible_volume", 42)])
+    Q4_pars = dict([("tol", 1e-10), ("rcut", 2.1)])
+    c = BruteComputer(common_pars, Q4_pars)
     c.run_bv()
     print("common_pars", common_pars)
+    print("Q4_pars", Q4_pars)
     print("volume", c.volume)
