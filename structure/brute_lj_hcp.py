@@ -4,23 +4,23 @@ import numpy as np
 import os
 
 from pele.optimize import ModifiedFireCPP
-from pele.potential import LJCut
+from pele.potentials._lj_cpp import LJCut
 
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import UniformCubicSampling
 from mcpele.monte_carlo import NullPotential
 
-from basinvolume.monte_carlo import CheckMinimumisHCP
+from basinvolume.monte_carlo import CheckMinimumIsHCP
 
 class MC(_BaseMCRunner):
     def set_control(self, tmp):
         self.set_temperature(tmp)
             
-class BruteComptuer(object):
+class BruteComputer(object):
     def __init__(self, common_pars, Q4_pars):
         self.common_pars = common_pars
         self.Q4_pars = Q4_pars
-        self.boxvec = np.asarray([1, 1, 1])
+        self.boxvec = np.asarray([1., 1., 1.])
         self.optimizer_potential = LJCut(boxvec=self.boxvec)
         self.x_ini = np.ones(self.common_pars["nr_particles"] * 3)
         self.optimizer = ModifiedFireCPP(self.x_ini, self.optimizer_potential)
@@ -28,7 +28,7 @@ class BruteComptuer(object):
         self.mc_potential = NullPotential()
         self.temperature = 1
         self.mc = MC(self.mc_potential, self.x_ini, self.temperature, self.common_pars["nr_samples"])
-        self.mc.set_nr_report_steps(0)
+        self.mc.set_report_steps(0)
         self.step = UniformCubicSampling(rseed=42, delta=self.boxvec)
         self.mc.set_takestep(self.step)
         self.mc.add_conf_test(self.conftest_check_minimum_is_hcp)
