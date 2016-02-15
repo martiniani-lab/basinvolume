@@ -1,4 +1,11 @@
+#include <random>
+
 #include <gtest/gtest.h>
+
+#include "pele/inversepower_stillinger.h"
+#include "pele/lbfgs.h"
+#include "pele/lj_cut.h"
+#include "pele/modified_fire.h"
 
 #include "basinvolume/check_minimum_is_hcp.h"
 
@@ -39,4 +46,28 @@ TEST(Q4HCP, Works)
     }
     const double q4_comp = c.get_Q4(x, 22);
     EXPECT_DOUBLE_EQ(q4_true, q4_comp);
+}
+
+TEST(Q4HCPConfTest, Works)
+{
+    const size_t a = 4;
+    pele::Array<double> x(3 * std::pow(a, 3));
+    size_t n = 0;
+    for (size_t k = 0; k < a; ++k) {
+        for (size_t j = 0; j < a; ++j) {
+            for (size_t i = 0; i < a; ++i) {
+                x[n * 3] = 2 * i + (j + k) % 2;
+                x[n * 3 + 1] = std::sqrt(3) * (j + (k % 2) / 3.);
+                x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
+                ++n;
+            }
+        }
+    }
+    pele::Array<double> bv = {a * (2), a * (std::sqrt(3)), a * (sqrt(6) / 3 * 2)};
+    std::shared_ptr<pele::BasePotential> pot = std::make_shared<pele::LJCutPeriodic>(4., 4., 2.5, bv);
+    std::shared_ptr<pele::GradientOptimizer> optimizer = std::make_shared<pele::MODIFIED_FIRE>(pot, x, 1, 1, 1);
+    optimizer->set_max_iter(1e7);
+    optimizer->set_tol(1e-10);
+    bv::CheckMinimumIsHCP c(optimizer, 1e-10, bv);
+    EXPECT_TRUE(c.conf_test(x, NULL));
 }
