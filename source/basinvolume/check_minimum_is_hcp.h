@@ -9,7 +9,7 @@
 #include "basinvolume/Y4m.h"
 
 namespace bv {
-    
+
 class CheckMinimumIsHCP : public mcpele::ConfTest {
 private:
     std::shared_ptr<pele::GradientOptimizer> m_optimizer;
@@ -19,11 +19,11 @@ private:
     pele::periodic_distance<3> m_dist;
     const double m_rcut2;
 public:
-    CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10, const pele::Array<double>& boxvec={100, 100, 100}, const double rcut=2.2)
+    CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10, const pele::Array<double>& boxvec={50, 50, 50}, const double rcut=2.1)
         : m_optimizer(optimizer),
           m_Q4tol(Q4tol),
           m_boxdim(3),
-          m_Q4hcp(0.097),
+          m_Q4hcp(7./72.),
           m_dist(boxvec),
           m_rcut2(rcut * rcut)
     {}
@@ -53,28 +53,26 @@ public:
         for (int m = -4; m <= 4; ++m) {
             abs2_qlm_sum += get_abs2_qlm(x, particle_index, m);
         }
-        return std::sqrt(4 * M_PI / 9 * abs2_qlm_sum);
+        return std::sqrt(4. * M_PI / 9. * abs2_qlm_sum);
     }
     double get_abs2_qlm(const pele::Array<double>& x, const size_t particle_index, const int m) const
     {
+        const size_t nr_particles = x.size() / 3;
         size_t nr_neighbours = 0;
         std::complex<double> sum = 0;
-        for (size_t i = 0; i < x.size() / 3; ++i) {
+        for (size_t i = 0; i < nr_particles; ++i) {
             if (i != particle_index) {
                 pele::Array<double> rij(3);
                 m_dist.get_rij(rij.data(), x.data() + particle_index * 3, x.data() + i * 3);
                 const double r2 = pele::dot(rij, rij);
-                std::cout << "i : " << i << "\n";
-                std::cout << "r2 : " << r2 << "\n";
                 if (r2 < m_rcut2) {
                     ++nr_neighbours;
                     sum += Y4M(m, rij[0], rij[1], rij[2]);
                 }
             }
         }
-        std::cout << "nr_neighbours: " << nr_neighbours << "\n";
         const double tmp = std::abs(sum);
-        return tmp * tmp / nr_neighbours;
+        return (tmp * tmp) / (nr_neighbours * nr_neighbours);
     }
 };
 

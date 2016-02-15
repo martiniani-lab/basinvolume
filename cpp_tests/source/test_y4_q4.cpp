@@ -23,46 +23,20 @@ TEST(BasicY4, Works)
 
 TEST(Q4HCP, Works)
 {
-    const double q4_true = 0.097;
+    const double q4_true = 7./72.;
     bv::CheckMinimumIsHCP c;
-    pele::Array<double> x(3 * 25 * 3);
-    int k = 0;
-    // central particle
-    x[0] = 0;
-    x[1] = 0;
-    x[2] = 0;
-    // central ring
-    size_t n = 1;
-    for (int i = -2; i <= 2; ++i) {
-        for (int j = -2; j <= 2; ++j) {
-            if (i != 0 || j != 0) {
-                x[n * 3] = 2 * i + ((j + k) % 2);
-                x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
+    pele::Array<double> x(3 * 64);
+    size_t n = 0;
+    for (size_t k = 0; k < 4; ++k) {
+        for (size_t j = 0; j < 4; ++j) {
+            for (size_t i = 0; i < 4; ++i) {
+                x[n * 3] = 2 * i + (j + k) % 2;
+                x[n * 3 + 1] = std::sqrt(3) * (j + (k % 2) / 3.);
                 x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
                 ++n;
             }
         }
     }
-    // bottom plate
-    k = -1;
-    for (int i = -2; i <= 2; ++i) {
-        for (int j = -2; j <= 2; ++j) {
-            x[n * 3] = 2 * i + ((j + k) % 2);
-            x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
-            x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
-            ++n;
-        }
-    }
-    // top plate
-    k = 1;
-    for (int i = -2; i <= 2; ++i) {
-        for (int j = -2; j <= 2; ++j) {
-            x[n * 3] = 2 * i + ((j + k) % 2);
-            x[n * 3 + 1] = std::sqrt(3) * (j + 1 / 3 * (k % 2));
-            x[n * 3 + 2] = 2 * std::sqrt(6) / 3 * k;
-            ++n;
-        }
-    }
-    const double q4_comp = c.get_Q4(x, 0);
+    const double q4_comp = c.get_Q4(x, 22);
     EXPECT_DOUBLE_EQ(q4_true, q4_comp);
 }
