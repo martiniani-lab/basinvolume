@@ -10,7 +10,7 @@ from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import UniformCubicSampling
 from mcpele.monte_carlo import NullPotential
 
-from basinvolume.monte_carlo import CheckSameMinimum
+from basinvolume.monte_carlo import CheckMinimumisHCP
 
 class MC(_BaseMCRunner):
     def set_control(self, tmp):
@@ -22,7 +22,7 @@ class BruteComptuer(object):
         self.boxvec = np.asarray([1, 1, 1])
         self.optimizer_potential = LJCut(boxvec=self.boxvec)
         self.optimizer = 
-        self.conftest_check_minimum_is_hcp = 
+        self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP()
         self.mc_potential = NullPotential()
         self.mc = 
         self.step = 
