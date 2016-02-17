@@ -85,7 +85,7 @@ def run_traj(ls_basin_label):
     opt_parameters = None
     vol_parameters = dict([("max_iterations", nr_iterations)])
     traj_parameters = dict([("nr_samples_increment", 1),
-        ("stepsize", 5), ("primesteps", 3000),
+        ("stepsize", 5), ("primesteps", int(1e5)),
         ("quench_maxsteps", 1e18),
         ("quench_tol", 1e-8),
         ("quench_hessiantol", 0.001),
