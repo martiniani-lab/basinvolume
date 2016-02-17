@@ -18,6 +18,7 @@ private:
     const double m_Q4hcp;
     pele::periodic_distance<3> m_dist;
     const double m_rcut2;
+    bool m_verbose;
 public:
     CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10, const pele::Array<double>& boxvec={50, 50, 50}, const double rcut=2.1)
         : m_optimizer(optimizer),
@@ -25,7 +26,8 @@ public:
           m_boxdim(3),
           m_Q4hcp(7./72.),
           m_dist(boxvec),
-          m_rcut2(rcut * rcut)
+          m_rcut2(rcut * rcut),
+          m_verbose(false)
     {}
     bool conf_test(pele::Array<double>& trial_coords, mcpele::MC* mc)
     {
@@ -43,9 +45,18 @@ public:
         }
         return true;
     }
+    void set_verbose()
+    {
+        m_verbose = true;
+    }
     bool Q4_deviates_from_HCP(const pele::Array<double>& x, const size_t particle_index) const
     {
-        return std::fabs(m_Q4hcp - get_Q4(x, particle_index)) > m_Q4tol;
+        const double tmp = get_Q4(x, particle_index);
+        if (m_verbose) {
+            std::cout << particle_index << "---\n";
+            std::cout << tmp << "\t" << tmp / m_Q4hcp << "\n";
+        }
+        return std::fabs(m_Q4hcp - tmp) / m_Q4hcp > m_Q4tol;
     }
     double get_Q4(const pele::Array<double>& x, const size_t particle_index) const
     {
@@ -70,6 +81,9 @@ public:
                     sum += Y4M(m, rij[0], rij[1], rij[2]);
                 }
             }
+        }
+        if (nr_neighbours == 0) {
+            return 0;
         }
         const double tmp = std::abs(sum);
         return (tmp * tmp) / (nr_neighbours * nr_neighbours);
