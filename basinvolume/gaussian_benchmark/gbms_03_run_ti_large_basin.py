@@ -325,8 +325,8 @@ def run_ti(ls_basin_label):
         ("ktarget", 0.9), ("knavg", 100), ("ktol", 0.05), ("hmin", 0),
         ("hmax", 1), ("binsize", 0.005), ("harmonic_com_flag", False),
         ("kmax_niter", 2e4), ("kmax_avgcount", 1e4),
-        ("adjustf_niter", 2e3), ("pt_eq_niter", 2e3),
-        ("kmin_niter", 5e3), ("nprocs", 7)])
+        ("adjustf_niter", 4e4), ("pt_eq_niter", 4e4),
+        ("kmin_niter", 1e5), ("nprocs", 7)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
