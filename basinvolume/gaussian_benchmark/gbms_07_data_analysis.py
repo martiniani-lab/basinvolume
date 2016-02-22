@@ -63,6 +63,7 @@ class SeriesComparison(object):
         if self.incomplete:
             raise Exception("This assumes that the three-series-set is complete.")
         comp = None
+        print("self.three_series_dir", self.three_series_dir)
         try:
             comp = TimeSeriesComparison(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
             for m in self.methods:
@@ -70,7 +71,6 @@ class SeriesComparison(object):
                 self.write_converged_evaluation(m, converged_iteration)
         except Exception as e:
             print(e)
-            print("self.three_series_dir", self.three_series_dir)
             print("warning")
         
     def get_volume_series(self, m):
@@ -151,20 +151,27 @@ class BenchmarkPlot(BasicPlot):
     def make_plot(self):
         self.methods_for_plot = [m for m in self.evaluations.keys() if m is not "brute"]
         self.methods_label_names = dict([("traj", "Trajectories"),
-                                         ("ti", "Thermodynamic integration")])
+                                         ("ti", "TI")])
         self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
         if self.analysis_parameters["logy"]:
             plt.yscale("log")
-        plt.xlabel(r"Potential dimensionality, $D$")
-        plt.ylabel(r"Number of function calls, $N_{EFE}$")
-        symbols = ["o", "s", "^"]
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        plt.xlabel(r"Potential dimensionality, $D$", fontsize=25)
+        plt.ylabel(r"Number of function calls, $N_{EFE}$", fontsize=25)
+        symbols = ["^", "s", "o"]
         for i, m in enumerate(self.methods_for_plot):
             print("self.dimensions", self.dimensions)
             print("self.evaluations[m]", self.evaluations[m])
             print("self.nr_samples[m]", self.nr_samples[m])
             plt.errorbar(self.dimensions, self.evaluations[m],
                 yerr=self.evaluations_error[m], fmt=symbols[i], label=self.methods_label_names[m])
-        self.save_and_close()
+        plt.legend(loc=2, prop={'size':18})
+        plt.tick_params(labelsize=22)
+        pdf = PdfPages(self.out_name)
+        plt.savefig(pdf, format='pdf', bbox_inches='tight')
+        pdf.close()
+        plt.close()
     
 def run_analysis(ls_basin_label):
     """
