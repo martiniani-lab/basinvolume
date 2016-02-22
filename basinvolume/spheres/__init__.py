@@ -1,4 +1,6 @@
-from mcrunner import HS_MCrunner, BV_MCrunner, Findk_MCrunner, HS_MCrunnerOptDiffusion
+from _hs_mcrunner import HS_MCrunner, HS_MCrunnerOptDiffusion
+from _ss_mcrunner import SpheresMCrunner
+from mcrunner import BV_MCrunner,  Findk_MCrunner
 from generate_packing import HS_Generate_Packing, _Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing, _Generate_Jammed_Packing
 from _config_mcrunner import _configure_mcrunner

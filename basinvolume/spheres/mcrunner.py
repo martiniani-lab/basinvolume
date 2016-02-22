@@ -3,21 +3,16 @@ import numpy as np
 import sys
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP
-from pele.storage import Database
 from pele.storage.database import Minimum
-from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
-from mcpele.monte_carlo import MetropolisTest, CheckSphericalContainer 
+from mcpele.monte_carlo import RandomCoordsDisplacement
+from mcpele.monte_carlo import MetropolisTest
 from mcpele.monte_carlo import SampleGaussian
-from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
-from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
+from basinvolume.monte_carlo import CheckSameMinimum
 from basinvolume.monte_carlo import Findk
-from basinvolume.monte_carlo import FindNrDecorrelationSteps
-from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian 
 from basinvolume.monte_carlo import RecordDisplacementTimeseries, RecordStepsTimeseries
-from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
-from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.gui import HSWCASystem
-from basinvolume.utils import reduce_coordinates, full_coordinates, write_2d_array_to_hf5
+from basinvolume.utils import full_coordinates, write_2d_array_to_hf5
+from basinvolume.spheres import SpheresMCrunner
 
 try:
     from mcpele.monte_carlo import RecordCoordsTimeseries
@@ -70,119 +65,8 @@ Specific implementations of MCrunners, generally they should follow this pattern
   implementation)
 * add other functionalities that you may find desirable, e.g. dump histogram to file
 """
-
-class HS_MCrunner(_BaseMCRunner):
-    """This class is derived from the _base_MCrunner abstract
-     method and performs Metropolis Monte Carlo. This particular implementation of the algorithm: 
-     * runs niter steps per run call 
-     * takes steps by sampling a random vector in a n dimensional hypersphere (n is the number of coordinates);
-     * adjust the step size for the first adjustf_niter steps (averaging the acceptance for adjust_navg steps
-       and adjusting the stepsize by a factor of 'adjustf') to meet some target acceptance 'acceptance'.
-     * configuration test: accept if within a spherical box of radius 'radius'
-     * acceptance test: metropolis for some particular temperature
-     * record energy histogram (the energy histogram is resizable, but the bounds are defined by hEmin and hEmax,
-       furthermore the bin size is set with hbinsize. Care must be taken because the array is resizable, if the step size
-       is small and extremely high or low energies are sampled the memory for the histogram will be reallocated and this 
-       might cause a badalloc error, if trying to allocate a #potential = Harmonic(origin,k,boxv) set in _configure_bv_mcrunnerhuge array. If you are sampling unwanted extremely high or low energies
-       then you might want to add a pele::EnergyWindow test that guarantees to keep you within a specific energy range and/or 
-       make the stepsize larger or you might want to re-think about your simulation. Generally you shouldn't be 
-       spanning energies that differ by several orders of magnitude, if that is the case, resizable or not resizable arrays are
-       not the problem, you'd be incurring in memory issues no matter what you do, unless you write to disk at every iteration)
-     * NOTE: some of the modules (e.g. take step and acceptance tests) require to be seeded. Users are free to do this as they think
-     * is best, here we generate a random integer in [0,i32max) where i32max is the largest signed integer, for each seed. Each module
-     * has a separate rng engine, therefore it's best if each receives a different randomly sampled seed
-     * this class requires 1 seed for takestep
-    """
-    def __init__(self, potential, coords, temperature, stepsize, niter,
-                  hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter=1e4, 
-                  adjustf_navg=100, single=False, seeds=None):
-        #construct base class
-        super(HS_MCrunner,self).__init__(potential, coords, temperature, niter)
-        self.hs_radii = hs_radii
-        self.boxv = boxvec
-        self.bdim = len(boxvec)
-        self.nparticles = len(hs_radii)
-        
-        #compute seeds
-        if not seeds:
-            i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max),
-                    seed_swap=np.random.randint(i32max),
-                    seed_probability_step_pattern=np.random.randint(i32max))
-        self.seeds=seeds
-                
-        #construct test/action classes  
-        self.set_report_steps(adjustf_niter)
-        self.takestep_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, 
-                                                                     report_interval=adjustf_navg, factor=adjustf, 
-                                                                     min_acc_ratio=0.2, max_acc_ratio=0.5,
-                                                                     single=single, nparticles=self.nparticles, 
-                                                                     bdim=self.bdim)
-        self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
-        self.takestep = TakeStepProbabilities(self.seeds['seed_probability_step_pattern'])
-        self.takestep.add_step(self.takestep_displacement, 1)
-        self.takestep.add_step(self.takestep_particle_pair_swap, 1e-3)
-        ##########################################
-        #NOTE
-        #should add an option to use cell lists, it shouldn't be the default behaviour
-        if np.amin(boxvec) // (2 * np.amax(hs_radii)) <= 3:
-            self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, use_frozen=False)
-        else:
-            self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
-        #set up pele:MC
-        self.set_takestep(self.takestep)
-        self.add_conf_test(self.checkoverlap)
-        
-    def set_control(self, T):
-        """set temperature, canonical control parameter"""
-        self.temperature = T
-        self.set_temperature(T)
     
-    def get_stepsize(self):
-        return self.takestep_displacement.get_stepsize()
-    
-    def get_status(self):
-        """
-        overloading the base class method to include stepsize
-        """
-        status = super(BV_MCrunner, self).get_status()
-        status.stepsize = self.get_stepsize()
-        return status
-
-class HS_MCrunnerOptDiffusion(HS_MCrunner):
-    """HS_MCrunnerOptDiffusion
-    * this class requires 1 seed for takestep
-    """
-    def __init__(self, potential, coords, temperature, stepsize, niter,
-                  hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2, 
-                  adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100, 
-                  desired_mean_rsm_displ=None, single=False, seeds=None):
-        #construct base class
-        super(HS_MCrunnerOptDiffusion,self).__init__(potential, coords, temperature,
-                                         stepsize, niter, hs_radii, boxvec, acceptance=acceptance, 
-                                         adjustf=adjustf, adjustf_niter=adjustf_niter, 
-                                         adjustf_navg=adjustf_navg, single=single, seeds=seeds)
-        if not desired_mean_rsm_displ:
-            desired_mean_rsm_displ = np.amax(self.hs_radii) * 2
-        self.initial_stepsize = stepsize
-        
-        self.diffusion = FindNrDecorrelationSteps(desired_mean_rsm_displ, adjustf_niter, nr_samples_avergage,
-                                                  coords, self.bdim)
-        self.add_action(self.diffusion)
-    
-    def get_nr_decorrelation_steps(self):
-        n = self.diffusion.get_nr_decorrelation_steps()
-        return n
-    
-    def get_stepsize(self):
-        stepsize = self.takestep_displacement.get_stepsize()
-        #print("self.initial_stepsize:", self.initial_stepsize)
-        #print("stepsize:", stepsize)
-        #assert np.abs(self.initial_stepsize - stepsize) < 1e-10
-        return stepsize
-        
-    
-class BV_MCrunner(_BaseMCRunner):
+class BV_MCrunner(SpheresMCrunner):
     """
     Basin volume MC runner
     
@@ -273,7 +157,10 @@ class BV_MCrunner(_BaseMCRunner):
     record_steps_timeseries : bool
         record steps timeseries
     record_steps_timeseries_every : list
-        array of intervals over which to record step distances 
+        array of intervals over which to record step distances
+
+    .. Note:
+    must set_control in the contructor!
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
@@ -288,147 +175,89 @@ class BV_MCrunner(_BaseMCRunner):
                  record_trajectory_npoints=1e4,
                  single=False, use_periodic=True, use_frozen=False, 
                  frozen_atoms=None, rcontainer=None, use_cgd=False):
-        #construct base class
-        assert not (use_frozen and use_periodic)
-        if use_frozen:
-            assert not use_periodic and frozen_atoms is not None
-            red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
-        else:
-            red_coords = full_coords
-        super(BV_MCrunner, self).__init__(potential, red_coords, temperature, niter)
-        
-        self.boxv = boxv
-        self.bdim = len(boxv)
-        self.origin = np.array(origin)
-        self.red_origin = np.array(origin)
-        self.hs_radii = np.array(hs_radii)
-        self.red_radii = np.array(hs_radii)
-        if use_frozen:            
-            self.red_radii = np.delete(self.red_radii, frozen_atoms)
-            self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
-            assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
-            assert len(self.red_origin) == self.ndim
-            assert rcontainer is not None
-        self.sca = sca
-        self.set_control(k)
-        self.dtol = dtol
-        self.eps = eps
-        self.nparticles = len(self.red_radii)
-        self.use_cell_lists = use_cell_lists
-        self.use_frozen = use_frozen
+        super(BV_MCrunner, self).__init__(potential, full_coords, temperature, stepsize,
+                                          niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
+                                          k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                                          report_steps=adjustf_niter, pt_eq_niter=pt_eq_niter, seeds=seeds,
+                                          use_cell_lists=use_cell_lists, record_histogram=record_histogram,
+                                          use_periodic=use_periodic, use_frozen=use_frozen,
+                                          frozen_atoms=frozen_atoms, rcontainer=rcontainer)
         self.use_cgd = use_cgd
-        self.frozen_atoms = frozen_atoms
-        self.use_periodic = use_periodic
-        self.rcontainer = rcontainer
-        self.equilibration_steps = adjustf_niter + pt_eq_niter
+        # optimizer parameters
+        self.opt_dtmax = opt_dtmax
+        self.opt_maxstep = opt_maxstep
+        self.opt_tol = opt_tol
+        self.opt_nsteps = opt_nsteps
+        # check same minimum parameters
+        self.perform_convergence_test = perform_convergence_test
+        self.collect_minima_list = collect_minima_list
+        # actions parameters
         if ts_niter is None:
             ts_niter = niter
-        
-        #manage array of rattlers, if not rattler: 1 -> jammed dof
-        #                                          0 -> rattler dof 
-        if (rattlers is None):
-            self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
-        else:
-            self.rattlers = np.array(rattlers, dtype='d')
-        if self.use_frozen:
-            self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
-        assert(len(self.rattlers) == self.ndim)
-        assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
-                   
-        #construct optimizer potential
-        #rcut set to largest particle diameter
-        self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
-        if self.use_cell_lists:
-            if np.amin(self.boxv) // self.rcut <= 3:
-                print ("warning: use_cell_lists flag was set, rcut is too large though")
-                print ("setting use_cell_lists to False")
-                self.use_cell_lists = False
-        self.ncellx_scale = 1.0
-        self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
-                             use_cell_lists=self.use_cell_lists,
-                             use_frozen=use_frozen, eps=self.eps, sca=self.sca,
-                             radii=self.hs_radii, boxvec=self.boxv,
-                             reference_coords=self.origin,
-                             ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                             frozen_atoms=self.frozen_atoms)
-        
-        #construct gradient optimizer    
-        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
-                                         dtmax=opt_dtmax, maxstep=opt_maxstep,
-                                         tol=opt_tol, nsteps=opt_nsteps)
-        
-        #compute seeds
-        if not seeds:
-            i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max),
-                    seed_metropolis=np.random.randint(i32max))
-        self.seeds = seeds
-        
-        #construct test/action classes
-        if record_histogram:
-            self.binsize = hbinsize
-            self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
-                                                  self.binsize, self.equilibration_steps)
-            self.add_action(self.histogram)
-        
-        if self.use_periodic:
-            if self.use_cell_lists:
-                self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
-                                 self.boxv, ncellx_scale=self.ncellx_scale,
-                                 use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
-                                 reference_coords=self.origin) 
-            
-            else:
-                self.conftest1 = CheckOverlapPeriodic(self.hs_radii,
-                                 self.boxv, use_frozen=self.use_frozen,
-                                 reference_coords=self.origin,
-                                 frozen_atoms=self.frozen_atoms)
-        else: 
-            if self.use_cell_lists:
-                self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
-                                 self.boxv, ncellx_scale=self.ncellx_scale,
-                                 use_frozen=self.use_frozen,
-                                 frozen_atoms=self.frozen_atoms,
-                                 reference_coords=self.origin)
-            else:
-                self.conftest1 = CheckOverlapCartesian(self.hs_radii,
-                                 self.bdim, use_frozen=self.use_frozen,
-                                 reference_coords=self.origin,
-                                 frozen_atoms=self.frozen_atoms)
-            
-        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol, 
-                                          opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,
-                                          bdim=self.bdim, eqsteps=self.equilibration_steps,
-                                          use_cgd=self.use_cgd,
-                                          perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list)
-        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
-        self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
-        
-        self.set_report_steps(adjustf_niter)
-        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize, report_interval=adjustf_navg,
-                                                  factor=adjustf, min_acc_ratio=acceptance, max_acc_ratio=acceptance,
-                                                  single=single, nparticles=self.nparticles, bdim=self.bdim)
-        #set up pele:MC
+        self.ts_niter = ts_niter
+        self.ts_freq = ts_freq
+        self.record_trajectory = record_trajectory
+        self.record_trajectory_npoints = record_trajectory_npoints
+        self.record_steps_timeseries = record_steps_timeseries
+        self.record_steps_timeseries_every = self.record_steps_timeseries_every
+        # takestep paramters
+        self.adjustf_navg = adjustf_navg
+        self.adjustf = adjustf
+        self.acceptance = acceptance
+        self.single = single
+        # set control
+        self.set_control(k)
+
+    def get_pot_optimizer(self):
+        pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
+                         use_cell_lists=self.use_cell_lists,
+                         use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
+                         radii=self.hs_radii, boxvec=self.boxv,
+                         reference_coords=self.origin,
+                         ndim=self.bdim, ncellx_scale=self.ncellx_scale,
+                         frozen_atoms=self.frozen_atoms)
+        return pot_optimizer
+
+    def get_optimizer(self):
+        optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
+                                     dtmax=self.opt_dtmax, maxstep=self.opt_maxstep,
+                                     tol=self.opt_tol, nsteps=self.opt_nsteps)
+        return optimizer
+
+    def _get_check_same_minimum(self):
+        csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
+                               opt=self.optimizer, opt_tol=self.opt_tol, opt_maxiter=self.opt_nsteps,
+                               bdim=self.bdim, eqsteps=self.equilibration_steps, use_cgd=self.use_cgd,
+                               perform_convergence_test=self.perform_convergence_test,
+                               collect_minima_list=self.collect_minima_list)
+        return csm
+
+    def _set_takestep(self, stepsize):
+        self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize,
+                                                 report_interval=self.adjustf_navg,
+                                                 factor=self.adjustf, min_acc_ratio=self.acceptance,
+                                                 max_acc_ratio=self.acceptance, single=self.single,
+                                                 nparticles=self.nparticles, bdim=self.bdim)
         self.set_takestep(self.takestep)
-        if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
-            self.add_conf_test(self.conftest0)
+
+    def _set_accept_tests(self):
+        self.metropolis = MetropolisTest(self.seeds['seed_metropolis'])
         self.add_accept_test(self.metropolis) #metropolis uses the harmonic potential
-        self.add_late_conf_test(self.conftest1)
-        self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
+
+    def _set_actions(self):
+        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, self.ts_niter, self.ts_freq)
         self.add_action(self.time_series)
-        if record_trajectory:
-            rte = max(int((self.niter-self.equilibration_steps)/record_trajectory_npoints),1)
-            self.record_trajectory = RecordCoordsTimeseries(self.ndim, 
-                                                            record_every=rte, 
+        if self.record_trajectory:
+            rte = max(int((self.niter-self.equilibration_steps)/self.record_trajectory_npoints),1)
+            self.record_trajectory = RecordCoordsTimeseries(self.ndim,
+                                                            record_every=rte,
                                                             eqsteps=self.equilibration_steps)
             self.add_action(self.record_trajectory)
-        if record_steps_timeseries:
+        if self.record_steps_timeseries:
             self.steps_timeseries_list = []
-            self.record_steps_timeseries_every = record_steps_timeseries_every
+            self.record_steps_timeseries_every = self.record_steps_timeseries_every
             for freq in self.record_steps_timeseries_every:
-                self.steps_timeseries_list.append(RecordStepsTimeseries(self.red_origin, self.rattlers, self.bdim, ts_niter, freq))
+                self.steps_timeseries_list.append(RecordStepsTimeseries(self.red_origin, self.rattlers, self.bdim, self.ts_niter, freq))
             for action in self.steps_timeseries_list:
                 self.add_action(action)
         
@@ -437,17 +266,6 @@ class BV_MCrunner(_BaseMCRunner):
         self.k = c
         self.potential.set_k(c)
         self.reset_energy()
-    
-    def get_stepsize(self):
-        return self.takestep.get_stepsize()
-    
-    def get_status(self):
-        """
-        overloading the base class method to include stepsize
-        """
-        status = super(BV_MCrunner, self).get_status()
-        status.stepsize = self.get_stepsize()
-        return status
             
     def dump_histogram(self, fname):
         """write histogram to fname"""
@@ -560,7 +378,7 @@ class BV_MCrunner(_BaseMCRunner):
     def clear_trajectory(self):
         self.record_trajectory.clear()
         
-class Findk_MCrunner(_BaseMCRunner):
+class Findk_MCrunner(SpheresMCrunner):
     """Findk MCrunner
     *coords: initial coordinates, can be the same as origin
     *origin: jammed minimised structure
@@ -594,148 +412,66 @@ class Findk_MCrunner(_BaseMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, use_cgd=False):
-        #construct base class
-        assert not (use_frozen and use_periodic)
-        if use_frozen:
-            assert not use_periodic and frozen_atoms is not None
-            red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
-        else:
-            red_coords = full_coords
-        super(Findk_MCrunner,self).__init__(potential, red_coords, temperature, niter)
+        super(Findk_MCrunner, self).__init__(potential, full_coords, temperature, stepsize,
+                                             niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
+                                             dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=binsize,
+                                             report_steps=0, seeds=seeds, use_cell_lists=use_cell_lists,
+                                             use_periodic=use_periodic, use_frozen=use_frozen,
+                                             frozen_atoms=frozen_atoms, rcontainer=rcontainer,
+                                             record_histogram=False)
         
-        self.boxv = boxv
-        self.bdim = len(boxv)
-        self.origin = np.array(origin)
-        self.red_origin = np.array(origin)
-        self.hs_radii = np.array(hs_radii)
-        self.red_radii = np.array(hs_radii)
-        if use_frozen:            
-            self.red_radii = np.delete(self.red_radii,frozen_atoms)
-            self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
-            assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
-            assert len(self.red_origin) == self.ndim
-            assert rcontainer is not None
-        self.sca = sca
-        self.dtol = dtol
-        self.eps = eps
-        self.nparticles = len(self.red_radii)
-        self.use_cell_lists = use_cell_lists
-        self.use_frozen = use_frozen
+
         self.use_cgd = use_cgd
-        self.frozen_atoms = frozen_atoms
-        self.use_periodic = use_periodic
-        self.rcontainer = rcontainer
-        
+        # optimizer parameters
+        self.opt_dtmax = opt_dtmax
+        self.opt_maxstep = opt_maxstep
+        self.opt_tol = opt_tol
+        self.opt_nsteps = opt_nsteps
+        # check same minimum parameters
+        self.perform_convergence_test = perform_convergence_test
+        self.collect_minima_list = collect_minima_list
         #findk parameters
         self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg=knavg 
         self.ktol=ktol
+
+    def get_pot_optimizer(self):
+        pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
+                         use_cell_lists=self.use_cell_lists,
+                         use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
+                         radii=self.hs_radii, boxvec=self.boxv,
+                         reference_coords=self.origin,
+                         ndim=self.bdim, ncellx_scale=self.ncellx_scale,
+                         frozen_atoms=self.frozen_atoms)
+        return pot_optimizer
+
+    def get_optimizer(self):
+        optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
+                                     dtmax=self.opt_dtmax, maxstep=self.opt_maxstep,
+                                     tol=self.opt_tol, nsteps=self.opt_nsteps)
+        return optimizer
+
+    def _get_check_same_minimum(self):
+        csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
+                               opt=self.optimizer, opt_tol=self.opt_tol, opt_maxiter=self.opt_nsteps,
+                               bdim=self.bdim, eqsteps=self.equilibration_steps, use_cgd=self.use_cgd,
+                               perform_convergence_test=self.perform_convergence_test,
+                               collect_minima_list=self.collect_minima_list)
+        return csm
         
-        #manage array of rattlers, if not rattler: 1 -> jammed dof
-        #                                          0 -> rattler dof 
-        if (rattlers is None):
-            self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
-        else:
-            self.rattlers = np.array(rattlers,dtype='d')
-        if self.use_frozen:
-            self.rattlers = reduce_coordinates(self.rattlers, self.frozen_atoms, self.bdim)
-        assert(len(self.rattlers) == self.ndim)
-        assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
-        
-        #construct optimizer potential
-        #rcut set to largest particle diameter
-        self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
-        if self.use_cell_lists:
-            if np.amin(self.boxv) // self.rcut <= 3:
-                print ("warning: use_cell_lists flag was set, but rcut is too large")
-                print ("setting use_cell_lists to False")
-                self.use_cell_lists = False
-        self.ncellx_scale = 1.0
-        self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
-                             use_cell_lists=self.use_cell_lists,
-                             use_frozen=use_frozen, eps=self.eps, sca=self.sca,
-                             radii=self.hs_radii, boxvec=self.boxv,
-                             reference_coords=self.origin,
-                             ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                             frozen_atoms=self.frozen_atoms)
-        
-        #construct gradient optimizer
-        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
-                         dtmax=opt_dtmax, maxstep=opt_maxstep, tol=opt_tol,
-                         nsteps=opt_nsteps)
-                
-        #compute seeds
-        #compute seeds
-        if not seeds:
-            i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max))
-        self.seeds=seeds
-        
-        #construct test/action classes      
+    def _set_takestep(self, stepsize):
         self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
-        
-        if use_periodic:
-            if self.use_cell_lists:
-                self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
-                                 self.boxv, ncellx_scale=self.ncellx_scale,
-                                 use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
-                                 reference_coords=self.origin) 
-            
-            else:
-                self.conftest1 = CheckOverlapPeriodic(self.hs_radii,
-                                 self.boxv, use_frozen=self.use_frozen,
-                                 reference_coords=self.origin,
-                                 frozen_atoms=self.frozen_atoms)
-        else: 
-            if self.use_cell_lists:
-                self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
-                                 self.boxv, ncellx_scale=self.ncellx_scale,
-                                 use_frozen=self.use_frozen,
-                                 frozen_atoms=self.frozen_atoms,
-                                 reference_coords=self.origin)
-            else:
-                self.conftest1 = CheckOverlapCartesian(self.hs_radii,
-                                 self.bdim, use_frozen=self.use_frozen,
-                                 reference_coords=self.origin,
-                                 frozen_atoms=self.frozen_atoms)
-        
-        
-        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol, 
-                                          opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,
-                                          bdim=self.bdim, use_cgd=self.use_cgd,
-                                          perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list)
-        self.hmin = hmin
-        self.hmax = hmax
-        self.binsize = binsize
-        self.findk = Findk(self.red_origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
-                           self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
-        
-        #set up pele:MC
         self.set_takestep(self.takestep)
-        if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
-            self.add_conf_test(self.conftest0)
-        self.add_conf_test(self.conftest1)
-        self.add_conf_test(self.conftest2)
+
+    def _set_actions(self):
+        self.findk = Findk(self.red_origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
+                           self.knavg, self.ktol, self.hmin, self.hmax, self.hbinsize)
         self.add_action(self.findk)
-        #self.add_action(self.histogram)
         
     def set_control(self, c):
         """set k"""
         print("WARNING: findk set control is not defined, spring constant is set through stepsize", file=sys.stderr)
-    
-    def get_stepsize(self):
-        return self.takestep.get_stepsize()
-    
-    def get_status(self):
-        """
-        overloading the base class method to include stepsize
-        """
-        status = super(BV_MCrunner, self).get_status()
-        status.stepsize = self.get_stepsize()
-        return status
     
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
