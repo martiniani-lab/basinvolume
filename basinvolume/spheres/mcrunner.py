@@ -33,6 +33,8 @@ try:
     plt.rcParams.update({'font.size': 20})
     plt.rcParams['xtick.major.pad'] = 8
     plt.rcParams['ytick.major.pad'] = 8
+
+
     ##########################################################                             
     ####SET COLOUR MAP######                                                               
     cm = plt.get_cmap('Dark2')

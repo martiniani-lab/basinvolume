@@ -231,7 +231,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _kmin_mcrunner('jammed_packing0.xyzdr', niter=1e6, k=0, opt_tol=1e-4, seeds=seeds,
+    sim = _kmin_mcrunner('jammed_packing0.xydr', niter=1e6, k=0, opt_tol=1e-4, seeds=seeds,
                          record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
                          single=True, use_cell_lists=True, verbose=True, use_cgd=True,
                          hmax=20, hbinsize=0.05, opt_nsteps=1e6)
