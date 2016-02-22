@@ -253,9 +253,8 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
         if boxdim != 3:
             raise Exception("CheckMinimumIsHCP: illegal input: boxdim must be 3.")
         self.optimizer = optimizer
-        self.potential = potential
-        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppcppCheckMinimumIsHCP(self.optimizer.thisptr, Q4tol))
-        self.newptr = <cppcppCheckMinimumIsHCP*> self.thisptr.get()
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckMinimumIsHCP(self.optimizer.thisptr, Q4tol))
+        self.newptr = <cppCheckMinimumIsHCP*> self.thisptr.get()
         
 class CheckMinimumIsHCP(_Cdef_CheckMinimumIsHCP):
     """interface
