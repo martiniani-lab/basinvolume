@@ -50,6 +50,8 @@ class SpheresMCrunner(_BaseMCRunner):
         self.use_periodic = use_periodic
         self.rcontainer = rcontainer
         self.equilibration_steps = report_steps + pt_eq_niter
+        self.hmin = hmin
+        self.hmax = hmax
         self.binsize = hbinsize
 
         #manage array of rattlers, if not rattler: 1 -> jammed dof
@@ -86,7 +88,7 @@ class SpheresMCrunner(_BaseMCRunner):
 
         # construct base test/action classes
         if record_histogram:
-            self._set_record_histogram(hmin, hmax)
+            self._set_record_histogram(self.hmin, self.hmax, self.binsize)
         self._set_base_conftests()
 
         # construct custom test/action/takestep classes
@@ -129,9 +131,9 @@ class SpheresMCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2)
 
-    def _set_record_histogram(self, hmin, hmax):
+    def _set_record_histogram(self, hmin, hmax, binsize):
         self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
-                                              self.binsize, self.equilibration_steps)
+                                              binsize, self.equilibration_steps)
         self.add_action(self.histogram)
 
     def _set_takestep(self, stepsize):

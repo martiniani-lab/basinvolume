@@ -466,8 +466,11 @@ class Findk_MCrunner(SpheresMCrunner):
 
     def _set_actions(self):
         self.findk = Findk(self.red_origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
-                           self.knavg, self.ktol, self.hmin, self.hmax, self.hbinsize)
+                           self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
         self.add_action(self.findk)
+
+    def _set_accept_tests(self):
+        pass
         
     def set_control(self, c):
         """set k"""
