@@ -67,8 +67,86 @@ Specific implementations of MCrunners, generally they should follow this pattern
   implementation)
 * add other functionalities that you may find desirable, e.g. dump histogram to file
 """
-    
-class BV_MCrunner(SpheresMCrunner):
+
+class HSWCAMCRunner(SpheresMCrunner):
+    def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
+                 hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
+                 hmin=0, hmax=1, hbinsize=0.001, report_steps=0, pt_eq_niter=0,
+                 opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-5, opt_nsteps=1e5,
+                 perform_convergence_test=False, collect_minima_list=False,
+                 seeds=None, use_cell_lists=True, record_histogram=False,
+                 use_periodic=True, use_frozen=False, frozen_atoms=None,
+                 rcontainer=None, use_cgd=False):
+        self.use_cgd = use_cgd
+        # optimizer parameters
+        self.opt_dtmax = opt_dtmax
+        self.opt_maxstep = opt_maxstep
+        self.opt_tol = opt_tol
+        self.opt_nsteps = opt_nsteps
+        # check same minimum parameters
+        self.perform_convergence_test = perform_convergence_test
+        self.collect_minima_list = collect_minima_list
+        super(HSWCAMCRunner, self).__init__(potential, full_coords, temperature, stepsize,
+                                            niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
+                                            k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                                            report_steps=report_steps, pt_eq_niter=pt_eq_niter, seeds=seeds,
+                                            use_cell_lists=use_cell_lists, record_histogram=record_histogram,
+                                            use_periodic=use_periodic, use_frozen=use_frozen,
+                                            frozen_atoms=frozen_atoms, rcontainer=rcontainer)
+
+    def get_pot_optimizer(self):
+        pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
+                         use_cell_lists=self.use_cell_lists,
+                         use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
+                         radii=self.hs_radii, boxvec=self.boxv,
+                         reference_coords=self.origin,
+                         ndim=self.bdim, ncellx_scale=self.ncellx_scale,
+                         frozen_atoms=self.frozen_atoms)
+        return pot_optimizer
+
+    def get_optimizer(self):
+        optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
+                                     dtmax=self.opt_dtmax, maxstep=self.opt_maxstep,
+                                     tol=self.opt_tol, nsteps=self.opt_nsteps)
+        return optimizer
+
+    def _get_check_same_minimum(self):
+        csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
+                               opt=self.optimizer, opt_tol=self.opt_tol, opt_maxiter=self.opt_nsteps,
+                               bdim=self.bdim, eqsteps=self.equilibration_steps, use_cgd=self.use_cgd,
+                               perform_convergence_test=self.perform_convergence_test,
+                               collect_minima_list=self.collect_minima_list)
+        return csm
+
+    def dump_minima_list(self, fname):
+        """write minima list to pele database"""
+        system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv,
+                             bdim=self.bdim, dtol=self.dtol, etol=1)
+        db = system.create_database(fname)
+        minima_dicts = []
+        #add origin to database, with _id == 0, to make post processing possible
+        #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
+        #distance should be zero because it is distance to itself
+        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin),
+                   coords=self.origin, user_data=dict(count=0, distance=0))
+        minima_dicts.append(mindict0)
+        #add neighboring minima to database
+        self.conftest2.dump_minima(minima_dicts)
+        #add spring constant to user_data
+        for m in minima_dicts:
+            m['user_data'].update(k=self.k)
+            if self.use_frozen:
+                redcoords = m['coords']
+                m['coords'] = full_coordinates(redcoords, self.origin,
+                              self.frozen_atoms, self.bdim)
+        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
+        print(len(minima_dicts))
+        db.engine.execute(Minimum.__table__.insert(), minima_dicts)
+        db.session.commit()
+
+
+
+class BV_MCrunner(HSWCAMCRunner):
     """
     Basin volume MC runner
     
@@ -177,15 +255,6 @@ class BV_MCrunner(SpheresMCrunner):
                  record_trajectory_npoints=1e4,
                  single=False, use_periodic=True, use_frozen=False, 
                  frozen_atoms=None, rcontainer=None, use_cgd=False):
-        self.use_cgd = use_cgd
-        # optimizer parameters
-        self.opt_dtmax = opt_dtmax
-        self.opt_maxstep = opt_maxstep
-        self.opt_tol = opt_tol
-        self.opt_nsteps = opt_nsteps
-        # check same minimum parameters
-        self.perform_convergence_test = perform_convergence_test
-        self.collect_minima_list = collect_minima_list
         # actions parameters
         if ts_niter is None:
             ts_niter = niter
@@ -200,39 +269,19 @@ class BV_MCrunner(SpheresMCrunner):
         self.adjustf = adjustf
         self.acceptance = acceptance
         self.single = single
-        super(BV_MCrunner, self).__init__(potential, full_coords, temperature, stepsize,
-                                          niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
-                                          k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
-                                          report_steps=adjustf_niter, pt_eq_niter=pt_eq_niter, seeds=seeds,
-                                          use_cell_lists=use_cell_lists, record_histogram=record_histogram,
-                                          use_periodic=use_periodic, use_frozen=use_frozen,
-                                          frozen_atoms=frozen_atoms, rcontainer=rcontainer)
+        super(BV_MCrunner, self).__init__(potential, full_coords, temperature, stepsize, niter, origin,
+                                          hs_radii, boxv, sca, rattlers=rattlers, k=k, dtol=dtol, eps=eps,
+                                          hmin=hmin, hmax=hmax, hbinsize=hbinsize, report_steps=adjustf_niter,
+                                          pt_eq_niter=pt_eq_niter, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep,
+                                          opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                                          perform_convergence_test=perform_convergence_test,
+                                          collect_minima_list=collect_minima_list,
+                                          seeds=seeds, use_cell_lists=use_cell_lists,
+                                          record_histogram=record_histogram, use_periodic=use_periodic,
+                                          use_frozen=use_frozen, frozen_atoms=frozen_atoms,
+                                          rcontainer=rcontainer, use_cgd=use_cgd)
         # set control
         self.set_control(k)
-
-    def get_pot_optimizer(self):
-        pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
-                         use_cell_lists=self.use_cell_lists,
-                         use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
-                         radii=self.hs_radii, boxvec=self.boxv,
-                         reference_coords=self.origin,
-                         ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                         frozen_atoms=self.frozen_atoms)
-        return pot_optimizer
-
-    def get_optimizer(self):
-        optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
-                                     dtmax=self.opt_dtmax, maxstep=self.opt_maxstep,
-                                     tol=self.opt_tol, nsteps=self.opt_nsteps)
-        return optimizer
-
-    def _get_check_same_minimum(self):
-        csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
-                               opt=self.optimizer, opt_tol=self.opt_tol, opt_maxiter=self.opt_nsteps,
-                               bdim=self.bdim, eqsteps=self.equilibration_steps, use_cgd=self.use_cgd,
-                               perform_convergence_test=self.perform_convergence_test,
-                               collect_minima_list=self.collect_minima_list)
-        return csm
 
     def _set_takestep(self, stepsize):
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize,
@@ -306,32 +355,6 @@ class BV_MCrunner(SpheresMCrunner):
         return self.time_series.check_convergence(nr_steps_to_check=nr_steps_to_check,
                                                    rel_std_threshold=rel_std_threshold)
         
-    def dump_minima_list(self, fname):
-        """write minima list to pele database"""
-        system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, 
-                             bdim=self.bdim, dtol=self.dtol, etol=1)
-        db = system.create_database(fname)
-        minima_dicts = []
-        #add origin to database, with _id == 0, to make post processing possible
-        #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
-        #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin),
-                   coords=self.origin, user_data=dict(count=0, distance=0))
-        minima_dicts.append(mindict0)
-        #add neighboring minima to database
-        self.conftest2.dump_minima(minima_dicts)
-        #add spring constant to user_data
-        for m in minima_dicts:
-            m['user_data'].update(k=self.k)
-            if self.use_frozen:
-                redcoords = m['coords']
-                m['coords'] = full_coordinates(redcoords, self.origin,
-                              self.frozen_atoms, self.bdim)
-        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
-        print(len(minima_dicts))
-        db.engine.execute(Minimum.__table__.insert(), minima_dicts)
-        db.session.commit()
-        
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
@@ -380,7 +403,7 @@ class BV_MCrunner(SpheresMCrunner):
     def clear_trajectory(self):
         self.record_trajectory.clear()
         
-class Findk_MCrunner(SpheresMCrunner):
+class Findk_MCrunner(HSWCAMCRunner):
     """Findk MCrunner
     *coords: initial coordinates, can be the same as origin
     *origin: jammed minimised structure
@@ -414,51 +437,22 @@ class Findk_MCrunner(SpheresMCrunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, use_cgd=False):
-        self.use_cgd = use_cgd
-        # optimizer parameters
-        self.opt_dtmax = opt_dtmax
-        self.opt_maxstep = opt_maxstep
-        self.opt_tol = opt_tol
-        self.opt_nsteps = opt_nsteps
-        # check same minimum parameters
-        self.perform_convergence_test = perform_convergence_test
-        self.collect_minima_list = collect_minima_list
         #findk parameters
         self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg=knavg 
         self.ktol=ktol
-        super(Findk_MCrunner, self).__init__(potential, full_coords, temperature, stepsize,
-                                             niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
-                                             dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=binsize,
-                                             report_steps=0, seeds=seeds, use_cell_lists=use_cell_lists,
-                                             use_periodic=use_periodic, use_frozen=use_frozen,
-                                             frozen_atoms=frozen_atoms, rcontainer=rcontainer,
-                                             record_histogram=False)
-
-    def get_pot_optimizer(self):
-        pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
-                         use_cell_lists=self.use_cell_lists,
-                         use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
-                         radii=self.hs_radii, boxvec=self.boxv,
-                         reference_coords=self.origin,
-                         ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                         frozen_atoms=self.frozen_atoms)
-        return pot_optimizer
-
-    def get_optimizer(self):
-        optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
-                                     dtmax=self.opt_dtmax, maxstep=self.opt_maxstep,
-                                     tol=self.opt_tol, nsteps=self.opt_nsteps)
-        return optimizer
-
-    def _get_check_same_minimum(self):
-        csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
-                               opt=self.optimizer, opt_tol=self.opt_tol, opt_maxiter=self.opt_nsteps,
-                               bdim=self.bdim, eqsteps=self.equilibration_steps, use_cgd=self.use_cgd,
-                               perform_convergence_test=self.perform_convergence_test,
-                               collect_minima_list=self.collect_minima_list)
-        return csm
+        super(Findk_MCrunner, self).__init__(potential, full_coords, temperature, stepsize, niter, origin,
+                                             hs_radii, boxv, sca, rattlers=rattlers, k=1, dtol=dtol, eps=eps,
+                                             hmin=hmin, hmax=hmax, hbinsize=binsize, report_steps=0,
+                                             pt_eq_niter=0, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep,
+                                             opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                                             perform_convergence_test=perform_convergence_test,
+                                             collect_minima_list=collect_minima_list,
+                                             seeds=seeds, use_cell_lists=use_cell_lists,
+                                             record_histogram=False, use_periodic=use_periodic,
+                                             use_frozen=use_frozen, frozen_atoms=frozen_atoms,
+                                             rcontainer=rcontainer, use_cgd=use_cgd)
         
     def _set_takestep(self, stepsize):
         self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
@@ -485,32 +479,6 @@ class Findk_MCrunner(SpheresMCrunner):
     
     def get_entries(self):
         return self.findk.get_entries()
-    
-    def dump_minima_list(self, fname):
-        """write minima list to pele database"""
-        system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, 
-                             bdim=self.bdim, dtol=self.dtol, etol=1)
-        db = system.create_database(fname)
-        minima_dicts = []
-        #add origin to database, with _id == 0, to make post processing possible
-        #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
-        #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin),
-                   coords=self.origin, user_data=dict(count=0, distance=0))
-        minima_dicts.append(mindict0)
-        #add neighboring minima to database
-        self.conftest2.dump_minima(minima_dicts)
-        #add spring constant to user_data
-        for m in minima_dicts:
-            m['user_data'].update(k=self.k)
-            if self.use_frozen:
-                redcoords = m['coords']
-                m['coords'] = full_coordinates(redcoords, self.origin, self.frozen, self.bdim)
-        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
-        print(len(minima_dicts))
-        db.engine.execute(Minimum.__table__.insert(), minima_dicts)
-        db.session.commit()
-        
     
     def show_histogram(self):
         """shows the histogram"""

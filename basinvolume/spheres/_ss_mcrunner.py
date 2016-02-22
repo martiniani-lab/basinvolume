@@ -11,7 +11,8 @@ from basinvolume.utils import reduce_coordinates
 class SpheresMCrunner(_BaseMCRunner):
     """
     this class sets all the basic parameters for a soft spheres mcrunner class
-    and basic functions
+    and basic functions.
+    If you want the particle to be all soft set hs_radii = radii and sca=(ss/hs-1)=0
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
@@ -65,7 +66,6 @@ class SpheresMCrunner(_BaseMCRunner):
         assert(len(self.rattlers) == self.ndim)
         assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
 
-        #construct optimizer potential
         #rcut set to largest particle diameter
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
         if self.use_cell_lists:
