@@ -177,13 +177,6 @@ class BV_MCrunner(SpheresMCrunner):
                  record_trajectory_npoints=1e4,
                  single=False, use_periodic=True, use_frozen=False, 
                  frozen_atoms=None, rcontainer=None, use_cgd=False):
-        super(BV_MCrunner, self).__init__(potential, full_coords, temperature, stepsize,
-                                          niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
-                                          k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
-                                          report_steps=adjustf_niter, pt_eq_niter=pt_eq_niter, seeds=seeds,
-                                          use_cell_lists=use_cell_lists, record_histogram=record_histogram,
-                                          use_periodic=use_periodic, use_frozen=use_frozen,
-                                          frozen_atoms=frozen_atoms, rcontainer=rcontainer)
         self.use_cgd = use_cgd
         # optimizer parameters
         self.opt_dtmax = opt_dtmax
@@ -201,12 +194,19 @@ class BV_MCrunner(SpheresMCrunner):
         self.record_trajectory = record_trajectory
         self.record_trajectory_npoints = record_trajectory_npoints
         self.record_steps_timeseries = record_steps_timeseries
-        self.record_steps_timeseries_every = self.record_steps_timeseries_every
+        self.record_steps_timeseries_every = record_steps_timeseries_every
         # takestep paramters
         self.adjustf_navg = adjustf_navg
         self.adjustf = adjustf
         self.acceptance = acceptance
         self.single = single
+        super(BV_MCrunner, self).__init__(potential, full_coords, temperature, stepsize,
+                                          niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
+                                          k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                                          report_steps=adjustf_niter, pt_eq_niter=pt_eq_niter, seeds=seeds,
+                                          use_cell_lists=use_cell_lists, record_histogram=record_histogram,
+                                          use_periodic=use_periodic, use_frozen=use_frozen,
+                                          frozen_atoms=frozen_atoms, rcontainer=rcontainer)
         # set control
         self.set_control(k)
 
@@ -414,15 +414,6 @@ class Findk_MCrunner(SpheresMCrunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, use_cgd=False):
-        super(Findk_MCrunner, self).__init__(potential, full_coords, temperature, stepsize,
-                                             niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
-                                             dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=binsize,
-                                             report_steps=0, seeds=seeds, use_cell_lists=use_cell_lists,
-                                             use_periodic=use_periodic, use_frozen=use_frozen,
-                                             frozen_atoms=frozen_atoms, rcontainer=rcontainer,
-                                             record_histogram=False)
-        
-
         self.use_cgd = use_cgd
         # optimizer parameters
         self.opt_dtmax = opt_dtmax
@@ -437,6 +428,13 @@ class Findk_MCrunner(SpheresMCrunner):
         self.ktarget = ktarget
         self.knavg=knavg 
         self.ktol=ktol
+        super(Findk_MCrunner, self).__init__(potential, full_coords, temperature, stepsize,
+                                             niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
+                                             dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=binsize,
+                                             report_steps=0, seeds=seeds, use_cell_lists=use_cell_lists,
+                                             use_periodic=use_periodic, use_frozen=use_frozen,
+                                             frozen_atoms=frozen_atoms, rcontainer=rcontainer,
+                                             record_histogram=False)
 
     def get_pot_optimizer(self):
         pot_optimizer = HS_WCA(use_periodic=self.use_periodic,

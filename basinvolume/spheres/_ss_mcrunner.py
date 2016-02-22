@@ -52,8 +52,8 @@ class SpheresMCrunner(_BaseMCRunner):
         self.equilibration_steps = report_steps + pt_eq_niter
         self.binsize = hbinsize
 
-        # manage array of rattlers, if not rattler: 1 -> jammed dof
-        #                                           0 -> rattler dof
+        #manage array of rattlers, if not rattler: 1 -> jammed dof
+        #                                          0 -> rattler dof
         if (rattlers is None):
             self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
         else:
@@ -63,6 +63,16 @@ class SpheresMCrunner(_BaseMCRunner):
         assert(len(self.rattlers) == self.ndim)
         assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
 
+        #construct optimizer potential
+        #rcut set to largest particle diameter
+        self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
+        if self.use_cell_lists:
+            if np.amin(self.boxv) // self.rcut <= 3:
+                print ("warning: use_cell_lists flag was set, rcut is too large though")
+                print ("setting use_cell_lists to False")
+                self.use_cell_lists = False
+        self.ncellx_scale = 1.0
+
         # compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
@@ -71,8 +81,8 @@ class SpheresMCrunner(_BaseMCRunner):
         self.seeds = seeds
 
         # get potential and minimizer
-        self.pot_optmizer = self.get_pot_optimizer()
-        self.optmizer = self.get_optimizer()
+        self.pot_optimizer = self.get_pot_optimizer()
+        self.optimizer = self.get_optimizer()
 
         # construct base test/action classes
         if record_histogram:
@@ -85,7 +95,7 @@ class SpheresMCrunner(_BaseMCRunner):
         self._set_accept_tests()
         self._set_actions()
 
-    def build_base_conftests(self):
+    def _set_base_conftests(self):
         if self.use_frozen:
             self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
             self.add_conf_test(self.conftest0)
@@ -115,7 +125,7 @@ class SpheresMCrunner(_BaseMCRunner):
                                                        reference_coords=self.origin,
                                                        frozen_atoms=self.frozen_atoms)
 
-        self.conftest2 = self.get_check_same_minimum()
+        self.conftest2 = self._get_check_same_minimum()
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2)
 
