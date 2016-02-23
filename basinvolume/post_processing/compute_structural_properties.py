@@ -4,7 +4,7 @@ from scipy.special import sph_harm
 from basinvolume.utils import *
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
-from pele.potentials import HS_WCA
+from pele.potentials import HS_WCA, InversePowerStillinger
 import argparse
 import multiprocessing as mp
 
@@ -233,10 +233,12 @@ class BondOrientationalOrder(StructuralAnalysis):
 
 class PressureTensor(StructuralAnalysis):
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
-                 force=False, existing_only=True):
+                 force=False, existing_only=True, opt_pot_str='hs_wca', **extra_pot_kwargs):
         super(PressureTensor,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
                                             analysis_dir=analysis_dir, force=force, existing_only=existing_only)
-    
+        self.opt_pot_str = opt_pot_str
+        self.extra_pot_kwargs = extra_pot_kwargs
+
     def run(self):
         """compute boo for packings
         exisisting_only: bool
@@ -264,10 +266,9 @@ class PressureTensor(StructuralAnalysis):
                         compute = True
                     if compute or self.force:
                         trymakedir(analysis_dir_path)
-                        coords, hs_radii, ss_radii = self._import_packing_configuration(fname)
-                        potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, 
-                                       radii=hs_radii, boxvec=self.boxv, ndim=self.bdim)
-                        p, ptensor = pressure_tensor(potential, coords, self.vcavity, self.bdim)
+                        self.coords, self.hs_radii, self.ss_radii = self._import_packing_configuration(fname)
+                        potential = self.get_potential()
+                        p, ptensor = pressure_tensor(potential, self.coords, self.vcavity, self.bdim)
                         with open(pressure_fname, 'w') as f:
                             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
                             f.write('[PRESSURE]\n')
@@ -276,6 +277,19 @@ class PressureTensor(StructuralAnalysis):
                             for val in ptensor:
                                 f.write('{:.16f} '.format(val))
                             f.write('\n')
+
+    def get_potential(self):
+        # here put a flag and pick potential
+        if self.opt_pot_str.lower() == 'hs_wca':
+            pot = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
+                         radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
+            pow = self.extra_pot_kwargs['pow']
+            a = self.extra_pot_kwargs['a']
+            pot = InversePowerStillinger(pow, a=a, ndim=self.bdim, boxvec=self.boxv)
+        else:
+            raise NotImplementedError
+        return pot
 
 def worker_boo(workspace, kwargs):
     try:
@@ -307,7 +321,22 @@ if __name__ == "__main__":
     parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=7)
     parser.add_argument("--force", action='store_true', help="force to run on all packings", default=False)
     parser.add_argument("--nonex", action='store_false', help="run also the non packings for which there aren't working folders", default=True)
+    # potential arguments
+    parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
+                                                    "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
+
+    # potential type
+    opt_pot_str = args.opt_pot
+    extra_pot_kwargs = dict()
+    if opt_pot_str == 'hs_wca':
+        pass
+    elif opt_pot_str == 'inverse_power_stillinger':
+        extra_pot_kwargs.update(dict(pow=3, a=1))
+        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+    else:
+        raise NotImplementedError
+    pts_only_kwargs = dict(opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     
     ncores = args.ncores
     kwargs = dict(force=args.force, existing_only=args.nonex)
@@ -330,7 +359,7 @@ if __name__ == "__main__":
             for folder in subdirs:
                 if folder[1].isdigit() and "phi" in folder and "D" in folder:
                     mypool.apply_async(worker_boo, args=(os.path.abspath(folder),kwargs,))
-                    mypool.apply_async(worker_pts, args=(os.path.abspath(folder),kwargs,))
+                    mypool.apply_async(worker_pts, args=(os.path.abspath(folder),kwargs, pts_only_kwargs,))
         except:
             mypool.terminate()
             mypool.join()
