@@ -29,11 +29,26 @@ if __name__ == "__main__":
     parser.add_argument("--cgd", action='store_true', help="use CG_DESCENT, default: False",default=False)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
+    # potential arguments
+    parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
+                                                    "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
     
     path = args.base_directory
     fname = args.jammed_packing_fname
     single = not args.moveall
+
+    # potential type
+    opt_pot_str = args.opt_pot
+    extra_pot_kwargs = dict()
+    if opt_pot_str == 'hs_wca':
+        pass
+    elif opt_pot_str == 'inverse_power_stillinger':
+        extra_pot_kwargs.update(dict(pow=3, a=1))
+        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+    else:
+        raise NotImplementedError
+
     #Parallel Tempering
     min_tot_niter = int(args.mintotniter)
     max_tot_niter = int(args.maxtotniter)
@@ -61,6 +76,8 @@ if __name__ == "__main__":
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
     print seeds
+
+
     
     #prepare MC runner
     comm = MPI.COMM_WORLD   
@@ -77,7 +94,8 @@ if __name__ == "__main__":
                    hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
                    pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, use_cgd=args.cgd,
                    perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
-                   seeds=seeds, use_cell_lists=args.nocell, single=single, record_histogram=record_histogram)
+                   seeds=seeds, use_cell_lists=args.nocell, single=single, record_histogram=record_histogram,
+                   opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     
     if not check_kmax_reasonable(sim.findk_configpath):
         print('bv_parallel_tempering: kmax is unreasonable, exiting')
