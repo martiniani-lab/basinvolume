@@ -151,7 +151,7 @@ def plot(packing_datasets, figdir="figures"):
         ax.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25,
                   handletextpad=0) # bbox_to_anchor=[0.08, 0.3]
         plt.ylabel(r"$F$")
-        plt.xlabel(r"$\log \mathcal{P}$")
+        plt.xlabel(r"$\ln \mathcal{P}$")
         print "extras", dataset.extras
         
         #subplots
@@ -223,11 +223,10 @@ def plot(packing_datasets, figdir="figures"):
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
     
     if True:
-        ens_average = False
+        ens_average = True
         #kde pressure
         color_cycle = get_color_cycle()
         fig = plt.figure()
-        ax = fig.add_subplot(111)
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
         fig3 = plt.figure()
@@ -348,14 +347,14 @@ def plot(packing_datasets, figdir="figures"):
         s_edw = np.array(s_edw)
         s_b = np.array(s_b)
         ax.legend(frameon=False, loc="best", numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25)
-        ax2.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25, handlelength=1)
+        ax2.legend(frameon=False, loc=2, prop={'size':22}, numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25, handlelength=1)
         ax3.legend(frameon=False, loc="best", numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25)
         ax4.legend(frameon=False, loc="best", prop={'size':18}, numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25, handlelength=1)
         ax42.legend(frameon=False, loc="best", prop={'size':18}, numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25, handlelength=1)
         ax.set_ylabel(r"$p(P)$")
         ax.set_xlabel(r"$\mathcal{P}$")
-        ax2.set_ylabel(r"$c.d.f.(\mathcal{P})$", fontsize=18)
-        ax2.set_xlabel(r"$\mathcal{P}/\langle \mathcal{P} \rangle$", fontsize=18)
+        ax2.set_ylabel(r"$c.d.f.(\mathcal{P})$", fontsize=22)
+        ax2.set_xlabel(r"$\mathcal{P}/\langle \mathcal{P} \rangle$", fontsize=22)
         ax2.set_xscale('log')
         ax2.set_xlim((0.12,10))
         ax3.set_ylabel(r"unbiased $p(\mathcal{P})$")
@@ -375,7 +374,7 @@ def plot(packing_datasets, figdir="figures"):
         ax42.set_xscale('log')
         fig42.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_S_only"))
         ax7 = fig4.add_subplot(gs[5:, 1])
-        ax7.set_ylabel(r"$\log \langle\mathcal{P}\rangle_{\alpha}^{(ens)}$")
+        ax7.set_ylabel(r"$\ln \langle\mathcal{P}\rangle_{\alpha}^{(ens)}$")
         ax7.set_xlabel(r"$\alpha$")
         ax7.locator_params(axis = 'x', nbins = 4)
         ax7.locator_params(axis = 'y', nbins = 4)
@@ -415,36 +414,36 @@ def plot(packing_datasets, figdir="figures"):
         color_cycle = get_color_cycle()
         #mu plot
         color = color_cycle.next()
-        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,1], fit_parameters_std[:,0], marker='o', linestyle='', ms=12, color=color, label=r'$\mu$')
+        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,1], fit_parameters_std[:,0], marker='o', linestyle='', ms=14, color=color, label=r'$\mu$')
         fit, cov = np.polyfit(1./fit_parameters[:,0], fit_parameters[:,1], 1, w=1./fit_parameters_std[:,0], cov=True)
         fit_fn = np.poly1d(fit)
         fit_std = np.sqrt(np.diag(cov))
         ax5.plot(1./fit_parameters[:,0], fit_fn(1./fit_parameters[:,0]), linestyle='--', color=color, linewidth=2.0)#, label=str(fit)+"+/-"+str(fit_std))
         #alpha plot
         color = color_cycle.next()
-        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,2], fit_parameters_std[:,1], marker='o', linestyle='', ms=12, color=color, label=r'$\sigma$')
+        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,2], fit_parameters_std[:,1], marker='o', linestyle='', ms=14, color=color, label=r'$\sigma$')
         fit, cov = np.polyfit(1./fit_parameters[:,0], fit_parameters[:,2], 1, w=1./fit_parameters_std[:,1], cov=True)
         fit_std = np.sqrt(np.diag(cov))
         fit_fn = np.poly1d(fit)
         ax5.plot(1./fit_parameters[:,0], fit_fn(1./fit_parameters[:,0]), linestyle='--', color=color, linewidth=2.0)#, label=str(fit)+"+/-"+str(fit_std))
         #zeta plot
         color = color_cycle.next()
-        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,3], fit_parameters_std[:,2], marker='o', linestyle='', ms=12, color=color, label=r'$\zeta$')
+        ax5.errorbar(1./fit_parameters[:,0], fit_parameters[:,3], fit_parameters_std[:,2], marker='o', linestyle='', ms=14, color=color, label=r'$\zeta$')
         fit, cov = np.polyfit(1./fit_parameters[:,0], fit_parameters[:,3], 1, w=1./fit_parameters_std[:,2], cov=True)
         fit_fn = np.poly1d(fit)
         fit_std = np.sqrt(np.diag(cov))
         ax5.plot(1./fit_parameters[:,0], fit_fn(1./fit_parameters[:,0]), linestyle='--', color=color, linewidth=2.0)#, label=str(fit)+"+/-"+str(fit_std))
-        ax5.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':16}, labelspacing=0.25, 
+        ax5.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':22}, labelspacing=0.25,
                    columnspacing=0.25, numpoints=1, markerscale=1, handlelength=0.4)
         #plt.rc('font', size=12)
-        ax5.set_xlabel(r"$1/N$", fontsize=16)
+        ax5.set_xlabel(r"$1/N$", fontsize=22)
         ax5.set_ylabel("\t")
         ax5.ticklabel_format(style='sci',axis='x', scilimits=(0,0))
         #fig5.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_cdf_fit_parameters"))
         ax5.locator_params(axis = 'x', nbins = 4)
         ax5.locator_params(axis = 'y', nbins = 4)
-        ax5.tick_params(axis='both', which='major', labelsize=14)
-        ax2.tick_params(axis='both', which='major', labelsize=18)
+        ax5.tick_params(axis='both', which='major', labelsize=22)
+        ax2.tick_params(axis='both', which='major', labelsize=22)
         fig2.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_cdf_fit"))
         #plt.rc('font', size=18)
         
@@ -468,7 +467,7 @@ def plot(packing_datasets, figdir="figures"):
         ax6.plot(np.linspace(0,np.amax(s_b[:,0])), fit_fn(np.linspace(0,np.amax(s_b[:,0]))), linestyle='--', linewidth=2.0, color=color)
         ax6.set_xlabel(r"$N$", fontsize=18)
         #ax6.set_ylabel(r"$\max_S(S_B(\mathcal{P},V))$")
-        ax6.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':14}, labelspacing=0.25, columnspacing=0.25, 
+        ax6.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':18}, labelspacing=0.25, columnspacing=0.25,
                    numpoints=1, markerscale=1)
         #fig6.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_entropy_maxima"))
         ax6.locator_params(axis = 'x', nbins = 4)
@@ -509,7 +508,7 @@ def plot(packing_datasets, figdir="figures"):
         fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "predicted_F_dist"))
     
     if False:
-        #fit the (N/k)\log(P)+N model to each and compute the average of the kappas
+        #fit the (N/k)\ln(P)+N model to each and compute the average of the kappas
           
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -527,13 +526,13 @@ def plot(packing_datasets, figdir="figures"):
                 def ff_msf(x, a):
                     return nparticles * (a * x + 1) 
                 popt, pcov = curve_fit(ff_msf, x, y)
-                ax.plot(x, ff_msf(x, popt[0]), label="F = N/{:.3f}log(P) + N".format(1./popt[0]))
+                ax.plot(x, ff_msf(x, popt[0]), label="F = N/{:.3f}ln(P) + N".format(1./popt[0]))
                 avg += popt[0]
         avg /= (i+1)
         print "avg kappa = ", 1/avg
         ax.legend(frameon=False, loc="best", numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25)
         plt.ylabel(r"$F$")
-        plt.xlabel(r"$\log \mathcal{P}$")    
+        plt.xlabel(r"$\ln \mathcal{P}$")
 
 if __name__ == "__main__":
     pts = BasinAnalysis()

@@ -18,7 +18,6 @@ import glob
 from itertools import cycle, chain
 import shutil
 from basinvolume.utils._utils_cpp import read_txt
-#read_txt.__module__ = "basinvolume.utils._utils_cpp"
 try:
     from joblib import Parallel, delayed
     import matplotlib.pyplot as plt
