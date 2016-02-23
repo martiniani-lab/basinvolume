@@ -5,13 +5,10 @@ But it has some useful code in it which should be migrated to the newer implemen
 
 from __future__ import division
 import numpy as np
-import abc
 import os
 import re
 import glob
-from pele.potentials import Harmonic
-from basinvolume.spheres import Findk_MCrunner
-from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
+from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, write_csv_xy, import_pt_time_series
 import ConfigParser
 from basinvolume.post_processing import F_Basin_From_MC_Data
@@ -20,7 +17,6 @@ from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import VolumeSanityCheck
 import traceback
 import argparse
-import sys
 from itertools import cycle
 try:
     import pylab as plt
