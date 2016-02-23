@@ -129,6 +129,6 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         """
         overloading the base class method to include stepsize
         """
-        status = super(SpheresMCrunner, self).get_status()
+        status = super(BaseSpheresMCrunner, self).get_status()
         status.stepsize = self.get_stepsize()
         return status

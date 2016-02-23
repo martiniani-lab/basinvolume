@@ -69,7 +69,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         except:
             print "WARNING:seeds not passed"
         
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same

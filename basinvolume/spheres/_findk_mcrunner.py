@@ -57,7 +57,7 @@ class _findk_mcrunner(_configure_mcrunner):
         except:
             print "WARNING:seeds not passed"
         
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         
 
         self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
     extra_pot_kwargs = dict(pow=3, a=1)
-    opt_pot_str='hs_wca' #'inverse_power_stillinger'
+    opt_pot_str= 'hs_wca' #'inverse_power_stillinger'
     sim = _findk_mcrunner('jammed_packing0.xydr', avgcount=1e4, k=759, opt_tol=1e-5, ktarget=0.9, knavg=1e3,
                           seeds=seeds, use_cell_lists=True, verbose=True, use_cgd=True,
                           opt_pot_str=opt_pot_str, **extra_pot_kwargs)

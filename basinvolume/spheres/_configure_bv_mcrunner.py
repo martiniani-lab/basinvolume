@@ -40,7 +40,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
         self._import_packing_configuration()
         hbinsize = self._get_histogram_bin(k)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
-                
+        self.eps = eps
+
         #set parameters
         #self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
@@ -53,7 +54,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                       opt_pot_str=opt_pot_str)
         kwargs.update(extra_pot_kwargs)
 
-        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
+        self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
         #add seeds dictionary to mc_params
         try:
@@ -62,7 +63,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
             print "WARNING:seeds not passed"
         
         self._initialise()
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
@@ -183,7 +184,7 @@ if __name__ == "__main__":
     sim = configure_bv_mcrunner(0, 1)
     extra_pot_kwargs = dict(pow=3, a=1)
     opt_pot_str = 'hs_wca' #'inverse_power_stillinger'
-    mcrunner = sim('jammed_packing0.xyzdr', seeds=seeds, use_cell_lists=True, verbose=True,
+    mcrunner = sim('jammed_packing0.xydr', seeds=seeds, use_cell_lists=True, verbose=True,
                    opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     print 'simulation started'
     start=time.time()
