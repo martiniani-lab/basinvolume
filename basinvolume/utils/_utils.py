@@ -851,4 +851,26 @@ def del_pt_time_series_raw(explore_dir):
 def get_uniform_in_sphere(radius, dim):
     x = np.random.normal(0, 1, dim)
     return x / np.linalg.norm(x) * radius * np.power(np.random.uniform(0, 1), 1 / dim)
-    
+
+try:    
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+except Exception as e:
+    print(e)
+
+class BasicPlot(object):
+    """
+    Set up reasonable font sizes and pdf saving etc.
+    """
+    def __init__(self):
+        self.setup()
+    def setup(self):
+        plt.rcParams.update({'font.size': 17})
+        plt.rcParams.update({'figure.autolayout': True})
+    def save_and_close(self, loc=2):
+        plt.legend(loc=loc, prop={'size':14})
+        pdf = PdfPages(self.out_name)
+        plt.savefig(pdf, format='pdf')
+        pdf.close()
+        plt.close()
+

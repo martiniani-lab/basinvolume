@@ -35,6 +35,7 @@ class ComputerCommon(object):
             self.traj_engine.compute_volume_traj()
             self.volume = self.traj_engine.volume
             self.evaluations = self.traj_engine.evaluations
+            self.ini_evals = self.traj_engine.ini_evals
         else:
             """This only works for TI and brute force.
             """
@@ -59,6 +60,7 @@ class ComputerCommon(object):
         np.savetxt(self.this_iterations_path(nr_gaussians, nr_dimensions, pot_index), self.iterations)
         np.savetxt(self.this_evaluations_path(nr_gaussians, nr_dimensions, pot_index), self.evaluations)
         np.savetxt(self.this_volume_path(nr_gaussians, nr_dimensions, pot_index), self.volume)
+        np.savetxt(self.this_ini_evals_path(nr_gaussians, nr_dimensions, pot_index), np.asarray([self.ini_evals]))
     
     def this_path(self, nr_gaussians, nr_dimensions, pot_index):
         return os.path.join(self.results_path, str(nr_gaussians), str(nr_dimensions), str(pot_index))
@@ -71,11 +73,14 @@ class ComputerCommon(object):
         
     def this_volume_path(self, nr_gaussians, nr_dimensions, pot_index):
         return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_volume.txt")
+        
+    def this_ini_evals_path(self, nr_gaussians, nr_dimensions, pot_index):
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_ini_evals.txt")
 
 
 def run_computer(potential_dir, results_dir, large_or_small_flag,
-    nr_gaussians, nr_dimensions, nr_samples, ComputerMethod,
-    opt_parameters, pes_parameters, vol_parameters, method_parameters):
+    nr_gaussians, nr_dimensions, pot_index, ComputerMethod,
+    opt_parameters, pes_parameters, vol_parameters, method_parameters, is_traj=False):
     """
     Run ComputerMethod volume computation on gaussian landscapes.
     
@@ -112,16 +117,21 @@ def run_computer(potential_dir, results_dir, large_or_small_flag,
         Euclidean dimension of the space mapping on the potential energy
         surface, i.e., number of degrees of freedom.
         
-    nr_samples : integer
-        Number of different potential energy landscapes sampled at each
-        (nr_gaussians, nr_dimensions).
+    pot_index : integer
+        Index of considered energy landscape sample.
     """
     pot_wrapper = MultiGaussWrap(potential_dir)
-    for pot_index in xrange(nr_samples):
+    pot = None
+    if is_traj:
+        from trajectories.potential import SumGaussianPot
+        m, c = pot_wrapper.get_mean_cov(nr_gaussians, nr_dimensions, pot_index)
+        pot = SumGaussianPot(m, c, pot_wrapper.R)
+    else:
         pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
-        pes_parameters["origin"] = pot_wrapper.get_origin(nr_gaussians,
-            nr_dimensions, pot_index, large_or_small_flag)
-        computer = ComputerMethod(results_dir, opt_parameters,
-            pes_parameters, vol_parameters, method_parameters, pot)
-        computer.compute_volume()
-        computer.print_results(nr_gaussians, nr_dimensions, pot_index)
+    print("pot", pot)
+    pes_parameters["origin"] = pot_wrapper.get_origin(nr_gaussians,
+        nr_dimensions, pot_index, large_or_small_flag)
+    computer = ComputerMethod(results_dir, opt_parameters,
+        pes_parameters, vol_parameters, method_parameters, pot)
+    computer.compute_volume()
+    computer.print_results(nr_gaussians, nr_dimensions, pot_index)

@@ -1,5 +1,6 @@
 from __future__ import division
 
+import argparse as ap
 import numpy as np
 import os
 
@@ -10,7 +11,7 @@ from mcpele.monte_carlo import UniformSphericalSampling
 from mcpele.monte_carlo import NullPotential
 
 from basinvolume.monte_carlo import CheckSameMinimumConfig
-from basinvolume.utils import volume_nball
+from basinvolume.utils import log_volume_nball
 
 from computer_common import ComputerCommon
 from computer_common import run_computer
@@ -65,8 +66,9 @@ class BruteEngine(EngineCommonOpt):
     def one_iteration(self):
         self.mc.run(self.brute_parameters["nr_samples_increment"])
         p = self.mc.get_accepted_fraction()
-        self.volume = p * volume_nball(self.pes_parameters["radius_container"],
-            self.pes_parameters["nr_dimensions"])
+        self.volume = np.exp(np.log(p) +
+            log_volume_nball(self.pes_parameters["radius_container"],
+            self.pes_parameters["nr_dimensions"]))
         self.evaluations = self.conftest_check_same_minimum.get_nfev()
     
 
@@ -82,6 +84,7 @@ class BruteComputer(ComputerCommon):
             pes_parameters, vol_parameters, method_parameters, pot)
         self.brute_engine = BruteEngine(self.method_parameters,
             self.pes_parameters, self.pot, self.opt_parameters)
+        self.ini_evals = 0 # Brute force does not need initialisation.
         
     def get_method_label(self):
         return "brute"
@@ -95,6 +98,18 @@ class BruteComputer(ComputerCommon):
 
 def run_brute(ls_basin_label):
     """
+    Parse input args: nr_dimenisons, sample_index, nr_iterations.
+    """
+    arg = ap.ArgumentParser()
+    arg.add_argument("--nr_dimensions", type=int, help="Euclidean dimension of potential landscape")
+    arg.add_argument("--sample_index", type=int, help="Index of landscape to measure")
+    arg.add_argument("--nr_iterations", type=int, help="Maximum nr of iterations to consider for volume measurement")
+    arg = arg.parse_args()
+    nr_dimensions = arg.nr_dimensions
+    sample_index = arg.sample_index
+    nr_iterations = arg.nr_iterations
+    print("arg", arg)
+    """
     Execute brute force basin computation for large or small basin.
     
     Parameter
@@ -103,24 +118,23 @@ def run_brute(ls_basin_label):
     ls_basin_label : string
         Needs to be "large" or "small" and indicates size label of basin to be computed.
     """
+    
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
-    nr_samples = 20
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
         ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
-    vol_parameters = dict([("max_iterations", 1000)])
-    brute_parameters = dict([("nr_samples_increment", 1000)])
+    vol_parameters = dict([("max_iterations", nr_iterations)])
+    brute_parameters = dict([("nr_samples_increment", 1)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
-        for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
-            pes_parameters = dict([("csm_dtol", 1),
-                ("nr_dimensions", nr_dimensions),
-                ("radius_container", 10)])
-            run_computer(potential_dir, ls_basin_results_dir, ls_basin_label,
-                nr_gaussians, nr_dimensions, nr_samples, BruteComputer,
-                opt_parameters, pes_parameters, vol_parameters,
-                brute_parameters)
+        pes_parameters = dict([("csm_dtol", 1),
+            ("nr_dimensions", nr_dimensions),
+            ("radius_container", 10)])
+        run_computer(potential_dir, ls_basin_results_dir, ls_basin_label,
+            nr_gaussians, nr_dimensions, sample_index, BruteComputer,
+            opt_parameters, pes_parameters, vol_parameters,
+            brute_parameters)
 
 if __name__ == "__main__":
     run_brute("large")

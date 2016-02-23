@@ -1,5 +1,6 @@
 from __future__ import division
 
+import argparse as ap
 import numpy as np
 import os
 
@@ -38,10 +39,14 @@ class TrajEngine(object):
             quench_backtrack=self.traj_parameters["quench_backtrack"],
             targetaccept=self.traj_parameters["targetaccept"],
             check_RefRadius=True,
+            fn_call_counter=vc.Counter(),
             convergence_repeats=self.traj_parameters["convergence_repeats"],
             convergence_tol=self.traj_parameters["convergence_tol"],
-            convergence_fraction=self.traj_parameters["convergence_fraction"])
+            convergence_fraction=self.traj_parameters["convergence_fraction"],
+            old_backtracker_descent=self.traj_parameters["old_backtracker_descent"])
         self.volume = self.walk.EstimatedVolume
+        self.evaluations = self.walk.evaluations
+        self.ini_evals = self.walk.ini_evals
 
 class TrajComputer(ComputerCommon):
     """
@@ -62,26 +67,45 @@ class TrajComputer(ComputerCommon):
 
 def run_traj(ls_basin_label):
     """
+    Parse input args: nr_dimenisons, sample_index, nr_iterations.
+    """
+    arg = ap.ArgumentParser()
+    arg.add_argument("--nr_dimensions", type=int, help="Euclidean dimension of potential landscape")
+    arg.add_argument("--sample_index", type=int, help="Index of landscape to measure")
+    arg.add_argument("--nr_iterations", type=int, help="Maximum nr of iterations to consider for volume measurement")
+    arg = arg.parse_args()
+    nr_dimensions = arg.nr_dimensions
+    sample_index = arg.sample_index
+    nr_iterations = arg.nr_iterations
+    """
     Execute trajectory method basin computation for large or small basin.
     """
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
-    nr_samples = 20
-    opt_parameters = dict([("quench_tol", 1e-8)])
-    vol_parameters = dict([("max_iterations", 1000)])
-    traj_parameters = dict([("nr_samples_increment", 1000),
-        ("stepsize", 2), ("primesteps", 3000)])
+    opt_parameters = None
+    vol_parameters = dict([("max_iterations", nr_iterations)])
+    traj_parameters = dict([("nr_samples_increment", 1),
+        ("stepsize", 5), ("primesteps", int(1e3)),
+        ("quench_maxsteps", 1e18),
+        ("quench_tol", 1e-8),
+        ("quench_hessiantol", 0.001),
+        ("quench_backtrack", True),
+        ("targetaccept", 0.25),
+        ("convergence_repeats", 20),
+        ("convergence_tol", 0),
+        ("convergence_fraction", 0.05),
+        ("old_backtracker_descent", False)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
-        for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
-            pes_parameters = dict([("csm_dtol", 1),
-                ("nr_dimensions", nr_dimensions),
-                ("radius_container", 10)])
-            run_computer(potential_dir, ls_basin_results_dir,
-                ls_basin_label, nr_gaussians, nr_dimensions, nr_samples,
-                TrajComputer, opt_parameters, pes_parameters,
-                vol_parameters, traj_parameters)
+        pes_parameters = dict([("csm_dtol", 1),
+            ("nr_dimensions", nr_dimensions),
+            ("radius_container", 10)])
+        traj_parameters["quench_dt"] = 0.038 * nr_dimensions ** -1.027
+        run_computer(potential_dir, ls_basin_results_dir,
+            ls_basin_label, nr_gaussians, nr_dimensions, sample_index,
+            TrajComputer, opt_parameters, pes_parameters,
+            vol_parameters, traj_parameters, is_traj=True)
 
 if __name__ == "__main__":
     run_traj("large")

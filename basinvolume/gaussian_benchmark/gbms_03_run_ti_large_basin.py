@@ -1,5 +1,6 @@
 from __future__ import division
 
+import argparse as ap
 import copy
 import numpy as np
 import os
@@ -64,11 +65,12 @@ class TIEngine(EngineCommonOpt):
     """
     Engine to do iteration-wise computation of basin volume by TI method.
     """
-    def __init__(self, ti_parameters, pes_parameters, potential, opt_parameters, seeds=None):
+    def __init__(self, ti_parameters, pes_parameters, potential, opt_parameters, seeds=None, verbose=False):
         super(TIEngine, self).__init__(pes_parameters, potential, opt_parameters)
         self.ti_parameters = ti_parameters
         self.pes_parameters["rattlers"] = np.ones(self.pes_parameters["origin"].size)
         self.ti_parameters["equilibration_steps"] = self.ti_parameters["adjustf_niter"] + self.ti_parameters["pt_eq_niter"]
+        self.verbose = verbose
         self.setup(seeds)
         
     def setup(self, seeds):
@@ -93,6 +95,7 @@ class TIEngine(EngineCommonOpt):
             com=self.ti_parameters["harmonic_com_flag"])
         self.setup_ti_kmin()
         self.setup_ti_pt_walks()
+        self.ini_evals = self.conftest_check_same_minimum.get_nfev()
         
     def setup_ti_kmax(self):
         self.action_findk = Findk(self.pes_parameters["origin"],
@@ -149,9 +152,11 @@ class TIEngine(EngineCommonOpt):
                                                  nparticles=1)
         self.kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = self.kmin_run.get_displ2_kmin()
-        print("displ2_kmin", self.displ2_kmin_mean)
-        print("displ2_kmin_variance", self.displ2_kmin_variance)
-        print("kmin niter:", self.kmin_run.get_iterations_count())
+        print("TI ko step", self.takestep.get_stepsize())
+        if self.verbose:
+            print("displ2_kmin", self.displ2_kmin_mean)
+            print("displ2_kmin_variance", self.displ2_kmin_variance)
+            print("kmin niter:", self.kmin_run.get_iterations_count())
         
     def setup_ti_pt_walks(self):
         self.all_k_values = spring_constants_variable_transform(self.ti_parameters["nprocs"] + 1,
@@ -194,7 +199,7 @@ class DirectKWalker(object):
     """
     def __init__(self, k_index, k_value, pes_parameters, ti_parameters,
         potential, conftest_outer_sphere, metropolis,
-        conftest_check_same_minimum, seeds):
+        conftest_check_same_minimum, seeds, verbose=False):
         self.k_index = k_index
         self.k_value = k_value
         self.pes_parameters = pes_parameters
@@ -204,6 +209,7 @@ class DirectKWalker(object):
         self.metropolis = metropolis
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.seeds = seeds
+        self.verbose = verbose
         self.takestep = RandomCoordsDisplacement(self.seeds['seed_takestep'] + k_index,
             5, report_interval=500, factor=0.95, min_acc_ratio=0.2,
             max_acc_ratio=0.2, single=False,
@@ -241,25 +247,29 @@ class DirectKWalker(object):
         such that later each iteration can simply add a fixed number of
         Monte Carlo steps to the biased walk.
         """
-        print("step_choice_equilibration: number of MC iterations before:", self.ki_run.get_iterations_count())
+        if self.verbose:
+            print("step_choice_equilibration: number of MC iterations before:", self.ki_run.get_iterations_count())
         self.ki_run.niter = self.ti_parameters["equilibration_steps"]
         self.ki_run.run()
-        print("equilibration_steps", self.ti_parameters["equilibration_steps"])
-        print("self.k_value", self.k_value)
-        print("self.takestep.get_stepsize()", self.takestep.get_stepsize())
-        print("self.ki_run.get_accepted_fraction()", self.ki_run.get_accepted_fraction())
-        print("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count())
-        print("step_choice_equilibration: number of MC iterations after:", self.ki_run.get_iterations_count())
-        print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
-        print("------")
+        if self.verbose:
+            print("equilibration_steps", self.ti_parameters["equilibration_steps"])
+            print("self.k_value", self.k_value)
+            print("self.takestep.get_stepsize()", self.takestep.get_stepsize())
+            print("self.ki_run.get_accepted_fraction()", self.ki_run.get_accepted_fraction())
+            print("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count())
+            print("step_choice_equilibration: number of MC iterations after:", self.ki_run.get_iterations_count())
+            print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+            print("------")
         
     def one_iteration_walk(self):
-        print("one_iteration_walk: number of MC iterations before:", self.ki_run.get_iterations_count())
+        if self.verbose:
+            print("one_iteration_walk: number of MC iterations before:", self.ki_run.get_iterations_count())
         self.ki_run.niter = self.ti_parameters["nr_samples_increment"]
         self.ki_run.run()
-        print("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count())
-        print("one_iteration_walk: number of MC iterations after:", self.ki_run.get_iterations_count())
-        print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+        if self.verbose:
+            print("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count())
+            print("one_iteration_walk: number of MC iterations after:", self.ki_run.get_iterations_count())
+            print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
         return self.ki_run.get_displ2_kmin()
 
 
@@ -274,6 +284,7 @@ class TIComputer(ComputerCommon):
             pes_parameters, vol_parameters, method_parameters, pot)
         self.ti_engine = TIEngine(self.method_parameters,
             self.pes_parameters, self.pot, self.opt_parameters)
+        self.ini_evals = self.ti_engine.ini_evals
             
     def get_method_label(self):
         return "ti"
@@ -286,6 +297,17 @@ class TIComputer(ComputerCommon):
 
 def run_ti(ls_basin_label):
     """
+    Parse input args: nr_dimenisons, sample_index, nr_iterations.
+    """
+    arg = ap.ArgumentParser()
+    arg.add_argument("--nr_dimensions", type=int, help="Euclidean dimension of potential landscape")
+    arg.add_argument("--sample_index", type=int, help="Index of landscape to measure")
+    arg.add_argument("--nr_iterations", type=int, help="Maximum nr of iterations to consider for volume measurement")
+    arg = arg.parse_args()
+    nr_dimensions = arg.nr_dimensions
+    sample_index = arg.sample_index
+    nr_iterations = arg.nr_iterations
+    """
     Execute ti basin volume computation for large or small basin.
     
     Parameter
@@ -296,27 +318,25 @@ def run_ti(ls_basin_label):
     """
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
-    nr_samples = 20
     opt_parameters = dict([("opt_dtmax", 1), ("opt_tol", 1e-8),
         ("opt_nsteps", 1e8), ("opt_maxstep", 0.1), ("verbosity", 0)])
-    vol_parameters = dict([("max_iterations", 1000)])
-    ti_parameters = dict([("nr_samples_increment", 1000),
-        ("ktarget", 0.9), ("knavg", 5000), ("ktol", 0.05), ("hmin", 0),
+    vol_parameters = dict([("max_iterations", nr_iterations)])
+    ti_parameters = dict([("nr_samples_increment", 1),
+        ("ktarget", 0.9), ("knavg", 100), ("ktol", 0.05), ("hmin", 0),
         ("hmax", 1), ("binsize", 0.005), ("harmonic_com_flag", False),
-        ("kmax_niter", 2e5), ("kmax_avgcount", 1e5),
-        ("adjustf_niter", 5e4), ("pt_eq_niter", 1e5),
-        ("kmin_niter", 5e5), ("nprocs", 7)])
+        ("kmax_niter", 2e4), ("kmax_avgcount", 1e4),
+        ("adjustf_niter", 4e4), ("pt_eq_niter", 4e4),
+        ("kmin_niter", 1e5), ("nprocs", 7)])
     potential_dir = os.path.join(os.getcwd(), "potentials")
     ls_basin_results_dir = os.path.join(os.getcwd(), ls_basin_label + "_basin_results")
     for nr_gaussians in [5]:
-        for nr_dimensions in [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]:
-            pes_parameters = dict([("csm_dtol", 1),
-                ("nr_dimensions", nr_dimensions),
-                ("radius_container", 10)])
-            run_computer(potential_dir, ls_basin_results_dir, ls_basin_label,
-                nr_gaussians, nr_dimensions, nr_samples, TIComputer,
-                opt_parameters, pes_parameters, vol_parameters,
-                ti_parameters)
+        pes_parameters = dict([("csm_dtol", 1),
+            ("nr_dimensions", nr_dimensions),
+            ("radius_container", 10)])
+        run_computer(potential_dir, ls_basin_results_dir, ls_basin_label,
+            nr_gaussians, nr_dimensions, sample_index, TIComputer,
+            opt_parameters, pes_parameters, vol_parameters,
+            ti_parameters)
 
 if __name__ == "__main__":
     run_ti("large")
