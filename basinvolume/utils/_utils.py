@@ -7,16 +7,11 @@ import platform
 import basinvolume
 import pele
 import mcpele
-from pele.potentials import BasePotential
-import copy
 import sys, traceback
-from bisect import bisect_left
 import ConfigParser
-import csv
 import pandas as pd
 import glob
-from itertools import cycle, chain
-import shutil
+from itertools import chain
 from basinvolume.utils._utils_cpp import read_txt
 #read_txt.__module__ = "basinvolume.utils._utils_cpp"
 try:

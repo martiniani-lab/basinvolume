@@ -1,13 +1,12 @@
 from __future__ import division
 import numpy as np
-import sys
 from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
 from basinvolume.utils import get_dist_com, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
 from basinvolume.hypercube import HypercubeMCrunner
 from pymbar.timeseries import detectEquilibration_binary_search
-import copy, warnings, time
+import time
 try:
     from basinvolume.gaussian_benchmark import GaussianBenchmarkKminRun
 except:

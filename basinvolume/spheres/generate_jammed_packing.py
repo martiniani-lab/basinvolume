@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 import abc
-import os
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *

@@ -1,12 +1,9 @@
 from __future__ import division
 import numpy as np
 import abc
-import os
-import sys
-from scipy.special import gamma
 from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
-from pele.potentials import HS_WCA, WCA, InversePower
-from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
+from pele.potentials import HS_WCA
+from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import *
 from numpy.random import RandomState
 import argparse
