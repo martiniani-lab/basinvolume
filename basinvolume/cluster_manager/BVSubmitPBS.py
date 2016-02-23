@@ -31,7 +31,7 @@ class BVSubmitPBS(object):
                  kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing', pt_config='explore_jammed_packing', 
                  packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, 
                  experimental=False, use_cgd=True, record_steps_timeseries=False, mintotniter=5e5, maxtotniter=2e6, 
-                 relstderr=0.05, numnegk=0, lownegk=-2.5):
+                 relstderr=0.05, numnegk=0, lownegk=-2.5, pot_opt_str='hs_wca'):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -56,6 +56,7 @@ class BVSubmitPBS(object):
         self.relstderr = relstderr
         self.lownegk = lownegk
         self.numnegk = numnegk
+        self.pot_opt_str = pot_opt_str
         self.pt_output_files = ["exchanges","rem_permutations","temperatures"]
         if ndim == 2:
             if not self.experimental: 
@@ -177,7 +178,9 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
-        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(findk_script, packing)
+        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings --pot-opt {2}'.format(findk_script,
+                                                                                              packing,
+                                                                                              self.pot_opt_str)
         if self.use_cgd:
             command += " --cgd"
         if record_steps_timeseries:
@@ -193,7 +196,9 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         innersphere_dos_script =  os.path.join(os.path.dirname(os.path.dirname(path_to_script)), 'mbar_spheres', script)
-        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings'.format(innersphere_dos_script, packing)
+        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings --pot-opt {2}'.format(innersphere_dos_script,
+                                                                                              packing,
+                                                                                              self.pot_opt_str)
         if self.use_cgd:
             command += " --cgd"
         return command
@@ -319,12 +324,14 @@ class BVSubmitPBS(object):
         pt_script = os.path.join(path_to_script, script)
         if ncores % 2 == 0:
             command = ('-n {0} python {1} {2} ${{PBS_O_WORKDIR}}/{3} '
-                       '--mintotniter {4} --maxtotniter {5} --relstderr {6}').format(ncores-1, pt_script, packing, explore_dir, self.mintotniter, 
-                                                                                     self.maxtotniter, self.relstderr)
+                       '--mintotniter {4} --maxtotniter {5} --relstderr {6}'
+                       '--pot-opt {7}').format(ncores-1, pt_script, packing, explore_dir, self.mintotniter,
+                                               self.maxtotniter, self.relstderr, self.pot_opt_str)
         else:
             command = ('python {0} {1} ${{PBS_O_WORKDIR}}/{2} '
-                       '--mintotniter {3} --maxtotniter {4} --relstderr {5}').format(pt_script, packing, explore_dir, self.mintotniter, 
-                                                                                     self.maxtotniter, self.relstderr)
+                       '--mintotniter {3} --maxtotniter {4} --relstderr {5}'
+                       '--pot-opt {7}').format(pt_script, packing, explore_dir, self.mintotniter,
+                                               self.pot_opt_str, self.maxtotniter, self.relstderr)
         if self.use_cgd:
             command += " --cgd"
         if self.numnegk > 0:

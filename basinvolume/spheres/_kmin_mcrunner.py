@@ -57,8 +57,8 @@ class _kmin_mcrunner(_configure_mcrunner):
                       record_trajectory=record_trajectory, record_trajectory_npoints=record_trajectory_npoints,
                       perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
                       seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
-                      use_cgd=use_cgd, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str)
-        kwargs.update(extra_pot_kwargs)
+                      use_cgd=use_cgd, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str,
+                      **extra_pot_kwargs)
 
         self.mc_params = dict(temperature=self.temperature,niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)

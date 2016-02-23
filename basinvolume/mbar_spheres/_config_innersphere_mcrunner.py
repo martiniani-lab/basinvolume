@@ -23,7 +23,8 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, use_cgd=False, record_histogram=False, 
-                 packings_dir='jammed_packings', verbose=False):
+                 packings_dir='jammed_packings', verbose=False, opt_pot_str='hs_wca',
+                 **extra_pot_kwargs):
                 
         self.fname = fname
         self.temperature=1.0
@@ -39,29 +40,28 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
-        self.mc_params = {'k':self.k,'temperature':self.temperature,'niter':self.niter,'stepsize':self.stepsize,'dtol':dtol,
-                          'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,
-                          'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
-                          'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
-                          'use_cgd':use_cgd, 'record_histogram':record_histogram, 'use_cell_lists':use_cell_lists}
+        kwargs = dict(dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                      opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                      perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
+                      seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=record_histogram,
+                      use_cgd=use_cgd, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str,
+                      **extra_pot_kwargs)
+
+        self.mc_params = dict(k=self.k, temperature=self.temperature, niter=self.niter, stepsize=self.stepsize)
+        self.mc_params.update(kwargs)
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
         except:
             print "WARNING:seeds not passed"
         
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         
         #construct mcrunner
         self.coords = _subtract_com(self.coords, ndim=self.bdim)
         potential = NullPotential()
         self.mcrunner = BVInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, self.niter, self.coords,
-                                              self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, dtol=dtol, 
-                                              eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
-                                              opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
-                                              perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
-                                              seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=record_histogram,
-                                              use_cgd=use_cgd, use_periodic=True, use_frozen=False) 
+                                              self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, **kwargs)
         
         self._initialise()
         

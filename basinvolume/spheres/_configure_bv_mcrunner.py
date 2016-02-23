@@ -51,8 +51,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                       perform_convergence_test=perform_convergence_test, record_histogram=record_histogram,
                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
                       single=single, use_periodic=True, use_frozen=False, use_cgd=use_cgd, record_trajectory=False,
-                      opt_pot_str=opt_pot_str)
-        kwargs.update(extra_pot_kwargs)
+                      opt_pot_str=opt_pot_str, **extra_pot_kwargs)
 
         self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)

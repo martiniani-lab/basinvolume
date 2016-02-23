@@ -24,16 +24,31 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--cgd", action='store_true', help="use CG_DESCENT, default: False",default=False)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
+     # potential arguments
+    parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
+                                                    "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
     
     fname = args.fname
     packings_dir = args.packingsdir
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(),packings_dir)
+
+    # potential type
+    opt_pot_str = args.opt_pot
+    extra_pot_kwargs = dict()
+    if opt_pot_str == 'hs_wca':
+        pass
+    elif opt_pot_str == 'inverse_power_stillinger':
+        extra_pot_kwargs.update(dict(pow=3, a=1))
+        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+    else:
+        raise NotImplementedError
+
     #when niter=None, niter is set equal to exact number of PT niter
     innersphere_kwargs = dict(niter=1e5, dtol=1e-4, eps=1., opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, 
                               packings_dir=packings_dir, use_cell_lists=args.nocell, use_cgd=args.cgd, 
-                              verbose=args.verbose)
+                              verbose=args.verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     
     i32max = np.iinfo(np.int32).max
     seeds_dict = dict(seed_takestep=np.random.randint(i32max))
