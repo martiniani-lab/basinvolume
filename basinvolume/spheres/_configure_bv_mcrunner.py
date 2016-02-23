@@ -31,7 +31,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=None, 
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False, 
                  single=False, seeds=None, use_cell_lists=False, use_cgd=False, record_histogram = False,
-                 packings_dir='jammed_packings', base_dir=None, verbose = False):
+                 packings_dir='jammed_packings', base_dir=None, verbose = False,
+                 opt_pot_str='hs_wca', **extra_pot_kwargs):
                 
         self.fname = fname
         self._set_paths(base_dir, packings_dir)
@@ -42,14 +43,18 @@ class configure_bv_mcrunner(_configure_mcrunner):
                 
         #set parameters
         #self.mc_params = dict(k=k, temperature=temperature, )
-        self.eps = eps
-        self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':self.eps,
-                          'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,
-                          'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,'pt_eq_niter':pt_eq_niter,
-                          'ts_niter':ts_niter, 'ts_freq':ts_freq,'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
-                          'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,'perform_convergence_test':perform_convergence_test, 
-                          'collect_minima_list':collect_minima_list, 'record_histogram':record_histogram,
-                          'single':single, 'use_cell_lists':use_cell_lists, 'use_cgd':use_cgd}
+        kwargs = dict(k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                      acceptance=acceptance, adjustf=adjustf, adjustf_niter=adjustf_niter, adjustf_navg=adjustf_navg,
+                      pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq,
+                      opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                      perform_convergence_test=perform_convergence_test, record_histogram=record_histogram,
+                      collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
+                      single=single, use_periodic=True, use_frozen=False, use_cgd=use_cgd, record_trajectory=False,
+                      opt_pot_str=opt_pot_str)
+        kwargs.update(extra_pot_kwargs)
+
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
+        self.mc_params.update(kwargs)
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -63,14 +68,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
         #self.coords is origin, set initial configuration and origin to be the same
         #harmonic potential with fixed centre of mass
         potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
-        mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords, self.hs_radii, self.boxv, self.sca,
-                               rattlers=self.rattlers, k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
-                               acceptance=acceptance, adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
-                               pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq,
-                               opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
-                               perform_convergence_test=perform_convergence_test, record_histogram=record_histogram, 
-                               collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                               single=single, use_periodic=True, use_frozen=False, use_cgd=use_cgd, record_trajectory=False)
+        mcrunner = BV_MCrunner(potential, self.coords, temperature, stepsize, niter, self.coords,
+                               self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, **kwargs)
         
         return mcrunner 
     
@@ -181,8 +180,11 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = configure_bv_mcrunner()
-    mcrunner = sim('jammed_packing0.xyzdr', seeds=seeds, use_cell_lists=True, verbose=True)
+    sim = configure_bv_mcrunner(0, 1)
+    extra_pot_kwargs = dict(pow=3, a=1)
+    opt_pot_str = 'hs_wca' #'inverse_power_stillinger'
+    mcrunner = sim('jammed_packing0.xyzdr', seeds=seeds, use_cell_lists=True, verbose=True,
+                   opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     print 'simulation started'
     start=time.time()
     mcrunner.run()
