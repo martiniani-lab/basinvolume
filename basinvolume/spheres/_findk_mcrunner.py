@@ -23,7 +23,7 @@ class _findk_mcrunner(_configure_mcrunner):
                  knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, 
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False, 
                  seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', 
-                 verbose=False):
+                 verbose=False, opt_pot_str='hs_wca', **extra_pot_kwargs):
                 
         self.temperature=1.0
         self.eps = eps
@@ -33,12 +33,24 @@ class _findk_mcrunner(_configure_mcrunner):
         self._import_packing_config_files()
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
-                    
+        #self.coords is origin, set initial configuration and origin to be the same
+        potential = Harmonic(self.coords, 0, bdim=self.bdim, com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
+        #k is entirely controlled by the stepsize
+        stepsize = np.sqrt(1.0 / k) #stepsize plays the role of the standard deviation
+        #stepsize = np.sqrt(self.ndim/k)  #####################
+        #####
+
         #self.mc_params = dict(k=k, temperature=temperature, )
-        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'avgcount':avgcount,'dtol':dtol,'eps':self.eps,
-                          'ktarget':ktarget, 'knavg':knavg, 'ktol':ktol, 'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
-                          'opt_tol':opt_tol,'opt_nsteps':opt_nsteps, 'perform_convergence_test':perform_convergence_test, 
-                          'collect_minima_list':collect_minima_list, 'use_cgd':use_cgd}
+        kwargs = dict(avgcount=avgcount, dtol=dtol, eps=eps, ktarget=ktarget, knavg=knavg, ktol=ktol,
+                      opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol,
+                      opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test,
+                      collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
+                      use_cgd=use_cgd, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str)
+        kwargs.update(extra_pot_kwargs)
+
+        self.mc_params = dict(temperature=self.temperature,niter=niter, stepsize=stepsize)
+        self.mc_params.update(kwargs)
+
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -47,19 +59,9 @@ class _findk_mcrunner(_configure_mcrunner):
         
         self._requench_coords(dtol, opt_maxstep, verbose)
         
-        #self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords, 0, bdim=self.bdim, com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
-        #k is entirely controlled by the stepsize 
-        stepsize = np.sqrt(1.0 / k) #stepsize plays the role of the standard deviation
-        #stepsize = np.sqrt(self.ndim/k)  #####################
-        #####       
+
         self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
-                                       self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, avgcount=avgcount, 
-                                       dtol=dtol, eps=eps, ktarget=ktarget, knavg=knavg, ktol=ktol, 
-                                       opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, 
-                                       opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test, 
-                                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                                       use_cgd=use_cgd, use_periodic=True, use_frozen=False) 
+                                       self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, **kwargs)
         self._initialise()
     
     def run(self):
@@ -148,9 +150,10 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    
+    extra_pot_kwargs = dict(pow=3, a=1)
     sim = _findk_mcrunner('jammed_packing0.xydr', avgcount=1e4, k=759, opt_tol=1e-5, ktarget=0.9, knavg=1e3,
-                          seeds=seeds, use_cell_lists=True, verbose=True, use_cgd=True)
+                          seeds=seeds, use_cell_lists=True, verbose=True, use_cgd=True,
+                          opt_pot_str='inverse_power_stillinger', **extra_pot_kwargs)
     print 'simulation started'
     start=time.time() 
     sim.run()

@@ -1,14 +1,10 @@
 from __future__ import print_function
 import numpy as np
 from mcpele.monte_carlo import _BaseMCRunner
-from mcpele.monte_carlo import CheckSphericalContainer
 from basinvolume.monte_carlo import RecordDisp2Histogram
-from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian
-from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
-from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.utils import reduce_coordinates
 
-class SpheresMCrunner(_BaseMCRunner):
+class BaseSpheresMCrunner(_BaseMCRunner):
     """
     this class sets all the basic parameters for a soft spheres mcrunner class
     and basic functions.
@@ -27,7 +23,7 @@ class SpheresMCrunner(_BaseMCRunner):
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         else:
             red_coords = full_coords
-        super(SpheresMCrunner, self).__init__(potential, red_coords, temperature, niter)
+        super(BaseSpheresMCrunner, self).__init__(potential, red_coords, temperature, niter)
 
         self.boxv = boxv
         self.bdim = len(boxv)
@@ -89,47 +85,13 @@ class SpheresMCrunner(_BaseMCRunner):
         # construct base test/action classes
         if record_histogram:
             self._set_record_histogram(self.hmin, self.hmax, self.binsize)
-        self._set_base_conftests()
 
         # construct custom test/action/takestep classes
         self.set_report_steps(report_steps)
+        self._set_conf_tests()
         self._set_takestep(stepsize)
         self._set_accept_tests()
         self._set_actions()
-
-    def _set_base_conftests(self):
-        if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
-            self.add_conf_test(self.conftest0)
-        if self.use_periodic:
-            if self.use_cell_lists:
-                self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
-                                                               self.boxv, ncellx_scale=self.ncellx_scale,
-                                                               use_frozen=self.use_frozen,
-                                                               frozen_atoms=self.frozen_atoms,
-                                                               reference_coords=self.origin)
-
-            else:
-                self.conftest1 = CheckOverlapPeriodic(self.hs_radii,
-                                                      self.boxv, use_frozen=self.use_frozen,
-                                                      reference_coords=self.origin,
-                                                      frozen_atoms=self.frozen_atoms)
-        else:
-            if self.use_cell_lists:
-                self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
-                                                                self.boxv, ncellx_scale=self.ncellx_scale,
-                                                                use_frozen=self.use_frozen,
-                                                                frozen_atoms=self.frozen_atoms,
-                                                                reference_coords=self.origin)
-            else:
-                self.conftest1 = CheckOverlapCartesian(self.hs_radii,
-                                                       self.bdim, use_frozen=self.use_frozen,
-                                                       reference_coords=self.origin,
-                                                       frozen_atoms=self.frozen_atoms)
-
-        self.conftest2 = self._get_check_same_minimum()
-        self.add_late_conf_test(self.conftest1)
-        self.add_late_conf_test(self.conftest2)
 
     def _set_record_histogram(self, hmin, hmax, binsize):
         self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
@@ -143,6 +105,9 @@ class SpheresMCrunner(_BaseMCRunner):
         raise NotImplementedError
 
     def _set_accept_tests(self):
+        raise NotImplementedError
+
+    def _set_conf_tests(self):
         raise NotImplementedError
 
     def get_pot_optimizer(self):

@@ -1,7 +1,8 @@
 from __future__ import print_function
 import numpy as np
 import sys
-from pele.potentials import Harmonic, HS_WCA
+import warnings
+from pele.potentials import Harmonic, HS_WCA, InversePowerStillinger
 from pele.optimize import ModifiedFireCPP
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import RandomCoordsDisplacement
@@ -12,7 +13,11 @@ from basinvolume.monte_carlo import Findk
 from basinvolume.monte_carlo import RecordDisplacementTimeseries, RecordStepsTimeseries
 from basinvolume.gui import HSWCASystem
 from basinvolume.utils import full_coordinates, write_2d_array_to_hf5
-from basinvolume.spheres import SpheresMCrunner
+from basinvolume.spheres import BaseSpheresMCrunner
+from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian
+from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
+from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
+from mcpele.monte_carlo import CheckSphericalContainer
 
 try:
     from mcpele.monte_carlo import RecordCoordsTimeseries
@@ -68,7 +73,9 @@ Specific implementations of MCrunners, generally they should follow this pattern
 * add other functionalities that you may find desirable, e.g. dump histogram to file
 """
 
-class HSWCAMCRunner(SpheresMCrunner):
+# add potential extra keyword arguments, like **potkwargs
+
+class SpheresMCRunner(BaseSpheresMCrunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
                  hmin=0, hmax=1, hbinsize=0.001, report_steps=0, pt_eq_niter=0,
@@ -76,32 +83,44 @@ class HSWCAMCRunner(SpheresMCrunner):
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=True, record_histogram=False,
                  use_periodic=True, use_frozen=False, frozen_atoms=None,
-                 rcontainer=None, use_cgd=False):
+                 rcontainer=None, use_cgd=False,
+                 opt_pot_str='hs_wca', **extra_pot_kwargs):
         self.use_cgd = use_cgd
         # optimizer parameters
         self.opt_dtmax = opt_dtmax
         self.opt_maxstep = opt_maxstep
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
+        self.opt_pot_str = opt_pot_str
+        self.extra_pot_kwargs = extra_pot_kwargs
         # check same minimum parameters
         self.perform_convergence_test = perform_convergence_test
         self.collect_minima_list = collect_minima_list
-        super(HSWCAMCRunner, self).__init__(potential, full_coords, temperature, stepsize,
-                                            niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
-                                            k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
-                                            report_steps=report_steps, pt_eq_niter=pt_eq_niter, seeds=seeds,
-                                            use_cell_lists=use_cell_lists, record_histogram=record_histogram,
-                                            use_periodic=use_periodic, use_frozen=use_frozen,
-                                            frozen_atoms=frozen_atoms, rcontainer=rcontainer)
+        super(SpheresMCRunner, self).__init__(potential, full_coords, temperature, stepsize,
+                                              niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
+                                              k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                                              report_steps=report_steps, pt_eq_niter=pt_eq_niter, seeds=seeds,
+                                              use_cell_lists=use_cell_lists, record_histogram=record_histogram,
+                                              use_periodic=use_periodic, use_frozen=use_frozen,
+                                              frozen_atoms=frozen_atoms, rcontainer=rcontainer)
 
     def get_pot_optimizer(self):
-        pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
-                         use_cell_lists=self.use_cell_lists,
-                         use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
-                         radii=self.hs_radii, boxvec=self.boxv,
-                         reference_coords=self.origin,
-                         ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                         frozen_atoms=self.frozen_atoms)
+        # here put a flag and pick potential
+        if self.opt_pot_str.lower() == 'hs_wca':
+            pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
+                                   use_cell_lists=self.use_cell_lists,
+                                   use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
+                                   radii=self.hs_radii, boxvec=self.boxv,
+                                   reference_coords=self.origin,
+                                   ndim=self.bdim, ncellx_scale=self.ncellx_scale,
+                                   frozen_atoms=self.frozen_atoms,
+                                   )
+        elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
+            pow = self.extra_pot_kwargs['pow']
+            a = self.extra_pot_kwargs['a']
+            pot_optimizer = InversePowerStillinger(pow, a=a, ndim=self.bdim, boxvec=self.boxv)
+        else:
+            raise NotImplementedError
         return pot_optimizer
 
     def get_optimizer(self):
@@ -118,38 +137,76 @@ class HSWCAMCRunner(SpheresMCrunner):
                                collect_minima_list=self.collect_minima_list)
         return csm
 
+    def _set_conf_tests(self):
+        if self.use_frozen:
+            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
+            self.add_conf_test(self.conftest0)
+        if self.opt_pot_str == 'hs_wca':
+            if self.use_periodic:
+                if self.use_cell_lists:
+                    self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
+                                                                   self.boxv, ncellx_scale=self.ncellx_scale,
+                                                                   use_frozen=self.use_frozen,
+                                                                   frozen_atoms=self.frozen_atoms,
+                                                                   reference_coords=self.origin)
+
+                else:
+                    self.conftest1 = CheckOverlapPeriodic(self.hs_radii,
+                                                          self.boxv, use_frozen=self.use_frozen,
+                                                          reference_coords=self.origin,
+                                                          frozen_atoms=self.frozen_atoms)
+            else:
+                if self.use_cell_lists:
+                    self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
+                                                                    self.boxv, ncellx_scale=self.ncellx_scale,
+                                                                    use_frozen=self.use_frozen,
+                                                                    frozen_atoms=self.frozen_atoms,
+                                                                    reference_coords=self.origin)
+                else:
+                    self.conftest1 = CheckOverlapCartesian(self.hs_radii,
+                                                           self.bdim, use_frozen=self.use_frozen,
+                                                           reference_coords=self.origin,
+                                                           frozen_atoms=self.frozen_atoms)
+
+            self.add_late_conf_test(self.conftest1)
+        else:
+            warnings.warn('not setting an excluded volume conf_test because using other potential than hs_wca')
+        self.conftest2 = self._get_check_same_minimum()
+        self.add_late_conf_test(self.conftest2)
+
     def dump_minima_list(self, fname):
         """write minima list to pele database"""
-        system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv,
-                             bdim=self.bdim, dtol=self.dtol, etol=1)
-        db = system.create_database(fname)
-        minima_dicts = []
-        #add origin to database, with _id == 0, to make post processing possible
-        #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
-        #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin),
-                   coords=self.origin, user_data=dict(count=0, distance=0))
-        minima_dicts.append(mindict0)
-        #add neighboring minima to database
-        self.conftest2.dump_minima(minima_dicts)
-        #add spring constant to user_data
-        for m in minima_dicts:
-            m['user_data'].update(k=self.k)
-            if self.use_frozen:
-                redcoords = m['coords']
-                m['coords'] = full_coordinates(redcoords, self.origin,
-                              self.frozen_atoms, self.bdim)
-        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
-        print(len(minima_dicts))
-        db.engine.execute(Minimum.__table__.insert(), minima_dicts)
-        db.session.commit()
+        if self.opt_pot_str == 'hs_wca':
+            system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv,
+                                 bdim=self.bdim, dtol=self.dtol, etol=1)
+            db = system.create_database(fname)
+            minima_dicts = []
+            #add origin to database, with _id == 0, to make post processing possible
+            #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
+            #distance should be zero because it is distance to itself
+            mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin),
+                       coords=self.origin, user_data=dict(count=0, distance=0))
+            minima_dicts.append(mindict0)
+            #add neighboring minima to database
+            self.conftest2.dump_minima(minima_dicts)
+            #add spring constant to user_data
+            for m in minima_dicts:
+                m['user_data'].update(k=self.k)
+                if self.use_frozen:
+                    redcoords = m['coords']
+                    m['coords'] = full_coordinates(redcoords, self.origin,
+                                  self.frozen_atoms, self.bdim)
+            assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
+            print(len(minima_dicts))
+            db.engine.execute(Minimum.__table__.insert(), minima_dicts)
+            db.session.commit()
+        else:
+            warnings.warn('dump_minima_list is not implemented for potentials other than hs_wca')
 
-
-
-class BV_MCrunner(HSWCAMCRunner):
+class BV_MCrunner(SpheresMCRunner):
     """
     Basin volume MC runner
-    
+
     Parameters
     ----------
     potential : pele potential
@@ -249,12 +306,13 @@ class BV_MCrunner(HSWCAMCRunner):
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
-                 record_histogram=False, record_steps_timeseries=False, 
+                 record_histogram=False, record_steps_timeseries=False,
                  record_steps_timeseries_every=[1],
                  record_trajectory=False,
                  record_trajectory_npoints=1e4,
-                 single=False, use_periodic=True, use_frozen=False, 
-                 frozen_atoms=None, rcontainer=None, use_cgd=False):
+                 single=False, use_periodic=True, use_frozen=False,
+                 frozen_atoms=None, rcontainer=None, use_cgd=False,
+                 opt_pot_str='hs_wca', **extra_pot_kwargs):
         # actions parameters
         if ts_niter is None:
             ts_niter = niter
@@ -279,7 +337,8 @@ class BV_MCrunner(HSWCAMCRunner):
                                           seeds=seeds, use_cell_lists=use_cell_lists,
                                           record_histogram=record_histogram, use_periodic=use_periodic,
                                           use_frozen=use_frozen, frozen_atoms=frozen_atoms,
-                                          rcontainer=rcontainer, use_cgd=use_cgd)
+                                          rcontainer=rcontainer, use_cgd=use_cgd,
+                                          opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         # set control
         self.set_control(k)
 
@@ -311,13 +370,13 @@ class BV_MCrunner(HSWCAMCRunner):
                 self.steps_timeseries_list.append(RecordStepsTimeseries(self.red_origin, self.rattlers, self.bdim, self.ts_niter, freq))
             for action in self.steps_timeseries_list:
                 self.add_action(action)
-        
+
     def set_control(self, c):
         """set temperature, canonical control parameter"""
         self.k = c
         self.potential.set_k(c)
         self.reset_energy()
-            
+
     def dump_histogram(self, fname):
         """write histogram to fname"""
         Emin, Emax = self.histogram.get_bounds_val()
@@ -329,38 +388,38 @@ class BV_MCrunner(HSWCAMCRunner):
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
-    
+
     def dump_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
-        np.savetxt(fname, timeseries)        
+        np.savetxt(fname, timeseries)
         if clear:
             self.time_series.clear()
         return timeseries
-    
+
     def dump_steps_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         for i,action in enumerate(self.steps_timeseries_list):
             timeseries = np.array(action.get_time_series())
-            np.savetxt(fname+".every{}".format(self.record_steps_timeseries_every[i]), timeseries)        
+            np.savetxt(fname+".every{}".format(self.record_steps_timeseries_every[i]), timeseries)
             if clear:
                 action.clear()
-    
+
     def get_timeseries(self):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
         return timeseries
-    
+
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.time_series.check_convergence(nr_steps_to_check=nr_steps_to_check,
                                                    rel_std_threshold=rel_std_threshold)
-        
+
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
-    
+
     def show_histogram_kmax(self):
         """
         shows the histogram against the analytical curve when k=kmax
@@ -380,14 +439,14 @@ class BV_MCrunner(HSWCAMCRunner):
         plt.tight_layout()
         plt.savefig('kmax_histogram.eps')
         plt.show()
-    
+
     def get_mean_variance_coordinate_vector(self):
         """
         returns the average coordinate vector from the sampling and the elementwise variance
         """
         mean_coord, var_coord = self.record_trajectory.get_mean_variance_time_series()
         return mean_coord, var_coord
-    
+
     def dump_trajectory(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         trajectory = self.get_trajectory()
@@ -395,15 +454,15 @@ class BV_MCrunner(HSWCAMCRunner):
         if clear:
             self.clear_trajectory()
         return trajectory
-    
+
     def get_trajectory(self):
         trajectory = self.record_trajectory.get_time_series()
         return trajectory
-    
+
     def clear_trajectory(self):
         self.record_trajectory.clear()
-        
-class Findk_MCrunner(HSWCAMCRunner):
+
+class Findk_MCrunner(SpheresMCRunner):
     """Findk MCrunner
     *coords: initial coordinates, can be the same as origin
     *origin: jammed minimised structure
@@ -424,7 +483,7 @@ class Findk_MCrunner(HSWCAMCRunner):
      with respect to the origin coordinates
     *ktarget: target acceptance associated to kmax
     *knavg: number of steps over findk averages the acceptance
-    *ktol: when acceptance-ktarget<ktol the search for k terminates 
+    *ktol: when acceptance-ktarget<ktol the search for k terminates
     * this class requires 1 seed
     avgcount : integer
         Number of samples to measure displ2 at kmax once kmax has been found
@@ -436,11 +495,12 @@ class Findk_MCrunner(HSWCAMCRunner):
                  binsize=0.005, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
-                 frozen_atoms=None, rcontainer=None, use_cgd=False):
+                 frozen_atoms=None, rcontainer=None, use_cgd=False,
+                 opt_pot_str='hs_wca', **extra_pot_kwargs):
         #findk parameters
         self.avgcount = avgcount
         self.ktarget = ktarget
-        self.knavg=knavg 
+        self.knavg=knavg
         self.ktol=ktol
         super(Findk_MCrunner, self).__init__(potential, full_coords, temperature, stepsize, niter, origin,
                                              hs_radii, boxv, sca, rattlers=rattlers, k=1, dtol=dtol, eps=eps,
@@ -452,8 +512,9 @@ class Findk_MCrunner(HSWCAMCRunner):
                                              seeds=seeds, use_cell_lists=use_cell_lists,
                                              record_histogram=False, use_periodic=use_periodic,
                                              use_frozen=use_frozen, frozen_atoms=frozen_atoms,
-                                             rcontainer=rcontainer, use_cgd=use_cgd)
-        
+                                             rcontainer=rcontainer, use_cgd=use_cgd,
+                                             opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+
     def _set_takestep(self, stepsize):
         self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
         self.set_takestep(self.takestep)
@@ -465,21 +526,21 @@ class Findk_MCrunner(HSWCAMCRunner):
 
     def _set_accept_tests(self):
         pass
-        
+
     def set_control(self, c):
         """set k"""
         print("WARNING: findk set control is not defined, spring constant is set through stepsize", file=sys.stderr)
-    
+
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
         k = 1.0 / (stepsize * stepsize)
         #k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
         return k
-    
+
     def get_entries(self):
         return self.findk.get_entries()
-    
+
     def show_histogram(self):
         """shows the histogram"""
         hist = self.findk.get_histogram()
@@ -503,7 +564,7 @@ if __name__ == "__main__":
     from pele.utils.rotations import vector_random_uniform_hypersphere
     from pele.optimize._quench import modifiedfire_cpp
     import time
-    
+
     nparticles = 1
     ndim = nparticles * 3
     origin = np.array([0, 0, 0], dtype='d')
