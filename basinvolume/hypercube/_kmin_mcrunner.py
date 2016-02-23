@@ -1,14 +1,11 @@
 from __future__ import division
 import numpy as np
-import abc
-import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.hypercube import HypercubeMCrunner
 from basinvolume.utils import *
-from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
-import ConfigParser
 import time
+import warnings
 
 class _hypercube_kmin_mcrunner(_configure_mcrunner):
     """
@@ -36,27 +33,24 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         self._set_paths()
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
-        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,
-                          'acceptance':acceptance,'adjustf':adjustf,'adjustf_niter':adjustf_niter,
-                          'adjustf_navg':adjustf_navg, 'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,
-                          'record_steps_timeseries':record_steps_timeseries}
-        #add seeds dictionary to mc_params
-        try:
-            self.mc_params.update(seeds)
-        except:
-            print "WARNING:seeds not passed"
+        kwargs = dict(sidelength=self.sidelength, k=k, acceptance=acceptance, adjustf=adjustf,
+                      adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg,
+                      hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                      record_steps_timeseries=record_steps_timeseries,
+                      record_steps_timeseries_every=record_steps_timeseries_every,
+                      record_trajectory=record_trajectory, record_trajectory_npoints=record_trajectory_npoints,
+                      seeds=seeds, single=single, record_histogram=True)
+
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
+        self.mc_params.update(kwargs)
+        if seeds is None:
+            warnings.warn("seeds not passed")
                 
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
         potential = Harmonic(self.coords, k, bdim=self.ndof, com=False)
-        self.mcrunner = HypercubeMCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
-                                          sidelength=self.sidelength, k=k, acceptance=acceptance, adjustf=adjustf, 
-                                          adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg,
-                                          hmin=hmin, hmax=hmax, hbinsize=hbinsize, 
-                                          record_steps_timeseries=record_steps_timeseries, 
-                                          record_steps_timeseries_every=record_steps_timeseries_every,
-                                          record_trajectory=record_trajectory, record_trajectory_npoints=record_trajectory_npoints,
-                                          seeds=seeds, single=single, record_histogram=True) 
+        self.mcrunner = HypercubeMCrunner(potential, self.coords, self.temperature, stepsize, niter,
+                                          self.coords, **kwargs)
         
         self._initialise()
         

@@ -1,15 +1,13 @@
 from __future__ import division
 import numpy as np
-import abc
 import os
-from pele.potentials import Harmonic, HS_WCA
-from pele.optimize._quench import modifiedfire_cpp
+from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
-from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
-from basinvolume.utils import get_git_version, get_python_version, get_cython_version, view_traceback
+from basinvolume.utils import trymakedir
+from basinvolume.utils import view_traceback
 import ConfigParser
 import time
-import copy
+import warnings
 
 class _findk_mcrunner(_configure_mcrunner):
     """
@@ -51,11 +49,8 @@ class _findk_mcrunner(_configure_mcrunner):
         self.mc_params = dict(temperature=self.temperature,niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
 
-        #add seeds dictionary to mc_params
-        try:
-            self.mc_params.update(seeds)
-        except:
-            print "WARNING:seeds not passed"
+        if seeds is None:
+            warnings.warn("seeds not passed")
         
         self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         

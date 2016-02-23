@@ -1,14 +1,11 @@
 from __future__ import division
 import numpy as np
-import abc
-import os
 from pele.potentials import Harmonic
-from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import *
 import ConfigParser
 import time
-import cPickle as pickle
+import warnings
 
 class configure_bv_mcrunner(_configure_mcrunner):
     """
@@ -55,11 +52,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
 
         self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
-        #add seeds dictionary to mc_params
-        try:
-            self.mc_params.update(seeds)
-        except:
-            print "WARNING:seeds not passed"
+        if seeds is None:
+            warnings.warn("seeds not passed")
         
         self._initialise()
         self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)

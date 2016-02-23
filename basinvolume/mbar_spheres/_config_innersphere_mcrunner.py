@@ -1,12 +1,12 @@
 from __future__ import division
 import numpy as np
-import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import *
 from basinvolume.mbar_spheres import BVInnerSphereMCrunner
 import ConfigParser
 import time
+import warnings
 
 def _subtract_com(x, ndim=3):
     x = x.reshape(-1, ndim)
@@ -49,11 +49,8 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
 
         self.mc_params = dict(k=self.k, temperature=self.temperature, niter=self.niter, stepsize=self.stepsize)
         self.mc_params.update(kwargs)
-        #add seeds dictionary to mc_params
-        try:
-            self.mc_params.update(seeds)
-        except:
-            print "WARNING:seeds not passed"
+        if seeds is None:
+            warnings.warn("seeds not passed")
         
         self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         
