@@ -1,6 +1,4 @@
 from __future__ import division
-from subprocess import Popen, PIPE
-from pipes import quote
 import os
 import re
 import ConfigParser

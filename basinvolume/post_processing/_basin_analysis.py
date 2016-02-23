@@ -1,23 +1,9 @@
 from __future__ import division
-from basinvolume.utils._utils import _sort_pair
-import numpy as np
-import argparse
-import ConfigParser
-import os
-import re
-from itertools import cycle
 from basinvolume.utils import *
-import scipy
-from scipy.stats import t
-from scipy.interpolate import spline
-from scipy.integrate import simps
 import glob
-from itertools import chain
 import cPickle as pickle
 from basinvolume.post_processing import PackingData, PackingDataSet
-import copy
 try:
-    
     import matplotlib.pyplot as plt
 except ImportError as err:
     print err

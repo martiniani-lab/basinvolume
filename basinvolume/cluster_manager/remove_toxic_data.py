@@ -3,13 +3,7 @@ import subprocess
 import shlex
 import shutil
 import os
-from pipes import quote
-import re
-import ConfigParser
-import numpy as np
 import argparse
-from basinvolume.cluster_manager import BuildPBSScript
-from basinvolume.utils import trymakedir
 
 def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]

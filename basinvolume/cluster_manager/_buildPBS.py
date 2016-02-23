@@ -1,10 +1,6 @@
 from __future__ import division
 from subprocess import Popen, PIPE
-from pipes import quote
 import os
-import re
-import ConfigParser
-import numpy as np
 
 def sec_to_pbs_time(seconds, nodays=False):
     """

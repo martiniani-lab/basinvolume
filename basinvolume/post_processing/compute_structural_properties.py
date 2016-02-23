@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 from scipy.special import sph_harm
-import os
 from basinvolume.utils import *
 from pele.utils._pressure_tensor import pressure_tensor
 import abc

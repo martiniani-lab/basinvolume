@@ -1,5 +1,5 @@
 from __future__ import division
-from math import pi, log
+from math import pi
 from basinvolume.post_processing import calculate_GL_integral_with_transform, calculate_GL_integral_with_transform_get_error
 from basinvolume.post_processing import calculate_simple_integral
 from basinvolume.post_processing import calculate_simple_integral_get_error
