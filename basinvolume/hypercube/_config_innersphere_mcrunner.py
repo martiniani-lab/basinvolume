@@ -1,12 +1,12 @@
 from __future__ import division
 import numpy as np
-import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import *
 from basinvolume.hypercube import HypercubeInnerSphereMCrunner
 import ConfigParser
 import time
+import warnings
 
 class _hypercube_innersphere_mcrunner(_configure_mcrunner):
     """this is a class that implements a mcrunner that samples the inner sphere of a basin
@@ -28,22 +28,21 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
             self.niter = niter
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
-        self.mc_params = {'k':self.k,'temperature':self.temperature,
-                          'niter':self.niter,'stepsize':self.stepsize, 'hmin':hmin,'hmax':hmax, 'hbinsize':hbinsize, 
-                          'record_histogram':record_histogram}
+        kwargs = dict(hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                      seeds=seeds, record_histogram=record_histogram,
+                      sidelength=self.sidelength)
+
+        self.mc_params = dict(k=self.k, temperature=self.temperature,
+                              niter= self.niter, stepsize=self.stepsize)
+        self.mc_params.update(kwargs)
         #add seeds dictionary to mc_params
-        try:
-            self.mc_params.update(seeds)
-        except:
-            print "WARNING:seeds not passed"
-        
+        if seeds is None:
+            warnings.warn("seeds not passed")
         
         #construct mcrunner
         potential = NullPotential()
         self.mcrunner = HypercubeInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, 
-                                                     self.niter, self.coords, hmin=hmin, hmax=hmax, hbinsize=hbinsize, 
-                                                     seeds=seeds, record_histogram=record_histogram, 
-                                                     sidelength=self.sidelength)
+                                                     self.niter, self.coords, **kwargs)
         
         self._initialise()
         

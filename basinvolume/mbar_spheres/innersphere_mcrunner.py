@@ -1,24 +1,12 @@
 from __future__ import print_function
 import numpy as np
 import sys
-from pele.potentials import HS_WCA
-from pele.optimize import ModifiedFireCPP
-from pele.storage import Database
-from pele.storage.database import Minimum
-from mcpele.monte_carlo import _BaseMCRunner
-from mcpele.monte_carlo import CheckSphericalContainer 
-from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
-from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian 
+from basinvolume.spheres import SpheresMCRunner
 from basinvolume.monte_carlo import RecordDisplacementTimeseries
-from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
-from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
-from basinvolume.gui import HSWCASystem
-from basinvolume.utils import reduce_coordinates, full_coordinates
 
 #for plotting histogram
 from itertools import cycle
-from scipy.integrate import quad
 
 try:
     import matplotlib.pyplot as plt
@@ -56,7 +44,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 * add other functionalities that you may find desirable, e.g. dump histogram to file
 """
 
-class BVInnerSphereMCrunner(_BaseMCRunner):
+class BVInnerSphereMCrunner(SpheresMCRunner):
     """
     Basin volume Sphere MC runner
     
@@ -136,140 +124,43 @@ class BVInnerSphereMCrunner(_BaseMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
-                 use_cgd=False):
-        #construct base class
-        assert not (use_frozen and use_periodic)
-        if use_frozen:
-            assert not use_periodic and frozen_atoms is not None
-            red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
-        else:
-            red_coords = full_coords
-        super(BVInnerSphereMCrunner, self).__init__(potential, red_coords, temperature, niter)
-        
-        self.boxv = boxv
-        self.bdim = len(boxv)
-        self.origin = np.array(origin)
-        self.red_origin = np.array(origin)
-        self.hs_radii = np.array(hs_radii)
-        self.red_radii = np.array(hs_radii)
-        if use_frozen:            
-            self.red_radii = np.delete(self.red_radii, frozen_atoms)
-            self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
-            assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
-            assert len(self.red_origin) == self.ndim
-            assert rcontainer is not None
-        self.sca = sca
-        self.dtol = dtol
-        self.eps = eps
+                 use_cgd=False, opt_pot_str='hs_wca', **extra_pot_kwargs):
+
         self.k = 1.0 / (stepsize * stepsize)
-        self.nparticles = len(self.red_radii)
-        self.use_cell_lists = use_cell_lists
-        self.use_frozen = use_frozen
-        self.use_cgd = use_cgd
-        self.frozen_atoms = frozen_atoms
-        self.use_periodic = use_periodic
-        self.rcontainer = rcontainer
-        self.equilibration_steps = 0
+        # actions parameters
         if ts_niter is None:
             ts_niter = niter
-        
-        #manage array of rattlers, if not rattler: 1 -> jammed dof
-        #                                          0 -> rattler dof 
-        if (rattlers is None):
-            self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
-        else:
-            self.rattlers = np.array(rattlers, dtype='d')
-        if self.use_frozen:
-            self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
-        assert(len(self.rattlers) == self.ndim)
-        assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
-                   
-        #construct optimizer potential
-        #rcut set to largest particle diameter
-        self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
-        if self.use_cell_lists:
-            if np.amin(self.boxv) // self.rcut <= 3:
-                print ("warning: use_cell_lists flag was set, rcut is too large though")
-                print ("setting use_cell_lists to False")
-                self.use_cell_lists = False
-        self.ncellx_scale = 1.0
-        self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
-                             use_cell_lists=self.use_cell_lists,
-                             use_frozen=use_frozen, eps=self.eps, sca=self.sca,
-                             radii=self.hs_radii, boxvec=self.boxv,
-                             reference_coords=self.origin,
-                             ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                             frozen_atoms=self.frozen_atoms)
-        
-        #construct gradient optimizer    
-        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
-                                         dtmax=opt_dtmax, maxstep=opt_maxstep,
-                                         tol=opt_tol, nsteps=opt_nsteps)
-        
-        #compute seeds
-        if not seeds:
-            i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max))
-        self.seeds = seeds
-        
-        #construct test/action classes
-        if record_histogram:
-            self.binsize = hbinsize
-            self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
-                                                  self.binsize, self.equilibration_steps)
-            self.add_action(self.histogram)
-        
-        if self.use_periodic:
-            if self.use_cell_lists:
-                self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
-                                 self.boxv, ncellx_scale=self.ncellx_scale,
-                                 use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
-                                 reference_coords=self.origin) 
-            
-            else:
-                self.conftest1 = CheckOverlapPeriodic(self.hs_radii,
-                                 self.boxv, use_frozen=self.use_frozen,
-                                 reference_coords=self.origin,
-                                 frozen_atoms=self.frozen_atoms)
-        else: 
-            if self.use_cell_lists:
-                self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
-                                 self.boxv, ncellx_scale=self.ncellx_scale,
-                                 use_frozen=self.use_frozen,
-                                 frozen_atoms=self.frozen_atoms,
-                                 reference_coords=self.origin)
-            else:
-                self.conftest1 = CheckOverlapCartesian(self.hs_radii,
-                                 self.bdim, use_frozen=self.use_frozen,
-                                 reference_coords=self.origin,
-                                 frozen_atoms=self.frozen_atoms)
-            
-        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol, 
-                                          opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,
-                                          bdim=self.bdim, eqsteps=self.equilibration_steps,
-                                          use_cgd=self.use_cgd,
-                                          perform_convergence_test=perform_convergence_test, 
-                                          collect_minima_list=collect_minima_list)
-        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
-        
-        self.set_report_steps(0)
-        self.takestep = SampleUniformSphereGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
-        
-        #set up pele:MC
-        self.set_takestep(self.takestep)
-        if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
-            self.add_conf_test(self.conftest0)
-        self.add_late_conf_test(self.conftest1)
-        self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
+        self.ts_niter = ts_niter
+        self.ts_freq = ts_freq
+
+        super(BVInnerSphereMCrunner, self).__init__(potential, full_coords, temperature, stepsize, niter, origin,
+                                                    hs_radii, boxv, sca, rattlers=rattlers, k=self.k, dtol=dtol,
+                                                    eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                                                    report_steps=0, pt_eq_niter=0, opt_dtmax=opt_dtmax,
+                                                    opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                                                    perform_convergence_test=perform_convergence_test,
+                                                    collect_minima_list=collect_minima_list,
+                                                    seeds=seeds, use_cell_lists=use_cell_lists,
+                                                    record_histogram=record_histogram, use_periodic=use_periodic,
+                                                    use_frozen=use_frozen, frozen_atoms=frozen_atoms,
+                                                    rcontainer=rcontainer, use_cgd=use_cgd,
+                                                    opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+        assert self.equilibration_steps == 0
+
+    def _set_actions(self):
+        self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, self.ts_niter, self.ts_freq)
         self.add_action(self.time_series)
+
+    def _set_takestep(self, stepsize):
+        self.takestep = SampleUniformSphereGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
+        self.set_takestep(self.takestep)
+
+    def _set_accept_tests(self):
+        pass
         
     def set_control(self, c):
         """set k"""
         print("WARNING: set control is not defined, spring constant is set through stepsize", file=sys.stderr)
-    
-    def get_stepsize(self):
-        return self.takestep.get_stepsize()
     
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
@@ -306,32 +197,6 @@ class BVInnerSphereMCrunner(_BaseMCRunner):
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.time_series.check_convergence(nr_steps_to_check=nr_steps_to_check,
                                                    rel_std_threshold=rel_std_threshold)
-        
-    def dump_minima_list(self, fname):
-        """write minima list to pele database"""
-        system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, 
-                             bdim=self.bdim, dtol=self.dtol, etol=1)
-        db = system.create_database(fname)
-        minima_dicts = []
-        #add origin to database, with _id == 0, to make post processing possible
-        #for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
-        #distance should be zero because it is distance to itself
-        mindict0 = dict(energy=self.pot_optimizer.getEnergy(self.red_origin),
-                   coords=self.origin, user_data=dict(count=0, distance=0))
-        minima_dicts.append(mindict0)
-        #add neighboring minima to database
-        self.conftest2.dump_minima(minima_dicts)
-        #add spring constant to user_data
-        for m in minima_dicts:
-            m['user_data'].update(k=self.k)
-            if self.use_frozen:
-                redcoords = m['coords']
-                m['coords'] = full_coordinates(redcoords, self.origin,
-                              self.frozen_atoms, self.bdim)
-        assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
-        print(len(minima_dicts))
-        db.engine.execute(Minimum.__table__.insert(), minima_dicts)
-        db.session.commit()
         
     def show_histogram(self):
         hist = self.histogram.get_histogram()

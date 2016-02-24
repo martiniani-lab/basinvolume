@@ -1,8 +1,6 @@
 import numpy as np
 import os
-import ConfigParser
 from spack import Packing
-from basinvolume.utils import read_xydr, read_xyzdr
 from basinvolume.post_processing import StructuralAnalysis
 
 class GenerateSpackPlot(StructuralAnalysis):

@@ -1,15 +1,13 @@
 from __future__ import division
 import numpy as np
-import abc
 import os
-from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
-from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
-from basinvolume.utils import get_git_version, get_python_version, get_cython_version, view_traceback
+from basinvolume.spheres import _configure_mcrunner
+from basinvolume.utils import trymakedir
+from basinvolume.utils import view_traceback
 from mcpele.monte_carlo import NullPotential
 from basinvolume.hypercube import HypercubeFindkMCrunner
-import ConfigParser
 import time
-import copy
+import warnings
 
 class _hypercube_findk_mcrunner(_configure_mcrunner):
     """
@@ -32,20 +30,20 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         stepsize = np.sqrt(1.0 / k) #stepsize plays the role of the standard deviation
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
-        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,
-                          'avgcount':avgcount, 'ktarget':ktarget, 'knavg':knavg, 'ktol':ktol, 
-                          'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize}
-        #add seeds dictionary to mc_params
-        try:
-            self.mc_params.update(seeds)
-        except:
-            print "WARNING:seeds not passed"
+        kwargs = dict(ktarget=ktarget, knavg=knavg, ktol=ktol, avgcount=avgcount,
+                      hmin=hmin, hmax=hmax, hbinsize=hbinsize, sidelength=self.sidelength,
+                      seeds=seeds)
+
+        self.mc_params = dict(k=k, temperature=self.temperature, niter=niter, stepsize=stepsize)
+        self.mc_params.update(kwargs)
+        if seeds is None:
+            warnings.warn("seeds not passed")
                 
         #self.coords is origin, set initial configuration and origin to be the same
         potential = NullPotential()
         #####       
-        self.mcrunner = HypercubeFindkMCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
-                                               seeds=seeds, sidelength=self.sidelength) 
+        self.mcrunner = HypercubeFindkMCrunner(potential, self.coords, self.temperature, stepsize, niter,
+                                               self.coords, **kwargs)
         
         self._initialise()
         

@@ -1,12 +1,10 @@
 from __future__ import division
 import numpy as np
-import abc
-import os
-from pele.potentials import Harmonic, HS_WCA
-from pele.optimize._quench import modifiedfire_cpp
+from pele.potentials import Harmonic
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import *
 import ConfigParser
+import warnings
 import time
 
 class _kmin_mcrunner(_configure_mcrunner):
@@ -29,8 +27,8 @@ class _kmin_mcrunner(_configure_mcrunner):
                  record_steps_timeseries=False, record_steps_timeseries_every=[1], print_diffusion_only=False,
                  record_trajectory=True, record_trajectory_npoints=1e4,
                  perform_convergence_test=False, collect_minima_list=False, single=False, 
-                 seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', 
-                 verbose=False, workspace=None):
+                 seeds=None, use_cell_lists=False, use_cgd=False, opt_pot_str='hs_wca',
+                 packings_dir='jammed_packings', verbose=False, workspace=None, **extra_pot_kwargs):
                 
         self.fname = fname
         self.temperature=1.0
@@ -47,37 +45,33 @@ class _kmin_mcrunner(_configure_mcrunner):
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         
-        #self.mc_params = dict(k=k, temperature=temperature, )    
-        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,
-                          'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,
-                          'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
-                          'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
-                          'record_steps_timeseries':record_steps_timeseries,
-                          'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
-                          'use_cgd':use_cgd,'single':single, 'use_cell_lists':use_cell_lists}
-        #add seeds dictionary to mc_params
-        try:
-            self.mc_params.update(seeds)
-        except:
-            print "WARNING:seeds not passed"
+        #self.mc_params = dict(k=k, temperature=temperature, )
+        kwargs = dict(k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
+                      acceptance=acceptance, adjustf=adjustf, adjustf_niter=adjustf_niter,
+                      adjustf_navg=adjustf_navg, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep,
+                      opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+                      record_steps_timeseries=record_steps_timeseries,
+                      record_steps_timeseries_every=record_steps_timeseries_every,
+                      record_trajectory=record_trajectory, record_trajectory_npoints=record_trajectory_npoints,
+                      perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
+                      seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
+                      use_cgd=use_cgd, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str,
+                      **extra_pot_kwargs)
+
+        self.mc_params = dict(temperature=self.temperature,niter=niter, stepsize=stepsize)
+        self.mc_params.update(kwargs)
+
+        if seeds is None:
+            warnings.warn("seeds not passed")
         
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         
-        #construct mcrunner
-        #self.coords is origin, set initial configuration and origin to be the same
-        #harmonic potential with fixed centre of mass
+        # construct mcrunner
+        # self.coords is origin, set initial configuration and origin to be the same
+        # harmonic potential with fixed centre of mass
         potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
         self.mcrunner = BV_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
-                                    self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, k=k, dtol=dtol, 
-                                    eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize, acceptance=acceptance, 
-                                    adjustf=adjustf, adjustf_niter = adjustf_niter, adjustf_navg = adjustf_navg, 
-                                    opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
-                                    record_steps_timeseries=record_steps_timeseries, 
-                                    record_steps_timeseries_every=record_steps_timeseries_every,
-                                    record_trajectory=record_trajectory, record_trajectory_npoints=record_trajectory_npoints, 
-                                    perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
-                                    seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
-                                    use_cgd=use_cgd, use_periodic=True, use_frozen=False) 
+                                    self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, **kwargs)
         
         self._initialise()
         
@@ -230,11 +224,13 @@ if __name__ == "__main__":
     
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
-    
-    sim = _kmin_mcrunner('jammed_packing0.xyzdr', niter=1e6, k=0, opt_tol=1e-4, seeds=seeds,
+    extra_pot_kwargs = dict(pow=3, a=1)
+    opt_pot_str = 'hs_wca' #'inverse_power_stillinger'
+    sim = _kmin_mcrunner('jammed_packing0.xydr', niter=1e4, k=0, opt_tol=1e-4, seeds=seeds,
                          record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
                          single=True, use_cell_lists=True, verbose=True, use_cgd=True,
-                         hmax=20, hbinsize=0.05, opt_nsteps=1e6)
+                         hmax=20, hbinsize=0.05, opt_nsteps=1e6,
+                         opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     print 'simulation started'
     start=time.time()
     sim.run()

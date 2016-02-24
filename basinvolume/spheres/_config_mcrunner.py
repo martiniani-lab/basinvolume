@@ -1,8 +1,7 @@
 from __future__ import division
 import numpy as np
 import abc
-import os
-from pele.potentials import Harmonic, HS_WCA
+from pele.potentials import HS_WCA, InversePowerStillinger
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *
 import warnings
@@ -77,20 +76,34 @@ class _configure_mcrunner(object):
         f.write('python_version: {}\n'.format(get_python_version()))
         f.write('cython_version: {}\n'.format(get_cython_version()))
     
-    def _requench_coords(self, dtol, opt_maxstep, verbose, gtol=1e-7, frozen=False):
+    def _requench_coords(self, dtol, opt_maxstep, verbose, gtol=1e-7, frozen=False,
+                         opt_pot_str='hs_wca', **extra_pot_kwargs):
         """re-quench origin to avoid rounding errors"""
-        if frozen:
-            pot_optimizer = HS_WCA(use_periodic=False, reference_coords=self.coords, eps=self.eps,
-                                   sca=self.sca, radii=self.hs_radii, use_frozen=True, 
-                                   frozen_atoms=self.frozen, ndim=self.bdim)
-            res = modifiedfire_cpp(self.red_coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=gtol)
-            new_coords = full_coordinates(res.coords, self.coords, self.frozen, self.bdim)
-            self.red_coords = np.array(res.coords)
-        else:    
-            pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, 
-                                   ndim=self.bdim, boxvec=self.boxv)
-            res = modifiedfire_cpp(self.coords, pot_optimizer, maxstep=opt_maxstep, nsteps=1e6, tol=gtol)
+        quench = lambda red_coords, pot_optmizer : modifiedfire_cpp(red_coords, pot_optimizer,
+                                                                    maxstep=opt_maxstep, nsteps=1e6,
+                                                                    tol=gtol)
+        if opt_pot_str.lower() == 'hs_wca':
+            if frozen:
+                pot_optimizer = HS_WCA(use_periodic=False, reference_coords=self.coords, eps=self.eps,
+                                       sca=self.sca, radii=self.hs_radii, use_frozen=True,
+                                       frozen_atoms=self.frozen, ndim=self.bdim)
+                res = quench(self.red_coords, pot_optimizer)
+                new_coords = full_coordinates(res.coords, self.coords, self.frozen, self.bdim)
+                self.red_coords = np.array(res.coords)
+            else:
+                pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii,
+                                       ndim=self.bdim, boxvec=self.boxv)
+                res = quench(self.red_coords, pot_optimizer)
+                new_coords = res.coords
+        elif opt_pot_str.lower() == 'inverse_power_stillinger':
+            pow = extra_pot_kwargs['pow']
+            a = extra_pot_kwargs['a']
+            pot_optimizer = InversePowerStillinger(pow, a=a, ndim=self.bdim, boxvec=self.boxv)
+            res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
+        else:
+            raise NotImplementedError
+
         if not res.success:
             assert(False)
         elif res.nfev > 1:

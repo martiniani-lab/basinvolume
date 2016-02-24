@@ -2,7 +2,6 @@ from __future__ import division
 import numpy as np
 import os
 import re
-import glob
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
 from basinvolume.post_processing import VolumeSanityCheck
@@ -11,9 +10,7 @@ from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrel
 from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 import argparse
-from itertools import cycle, chain
-import pandas as pd
-import pele.utils.fix_multiprocessing
+from itertools import cycle
 from scipy.integrate import simps
 try:
     import matplotlib

@@ -3,7 +3,6 @@ import shutil
 import os
 import re
 import argparse
-from basinvolume.utils import query_yes_no
 
 def get_immediate_files(dir):
     return [str(name) for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))]

@@ -22,7 +22,21 @@ if __name__ == "__main__":
     parser.add_argument("-n","--niter", type=int, help="number of iterations",default=int(1e7))
     parser.add_argument("-f","--force", action='store_true', help="run all", default=False)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity", default=False)
+    # potential arguments
+    parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
+                                                    "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
+
+    # potential type
+    opt_pot_str = args.opt_pot
+    extra_pot_kwargs = dict()
+    if opt_pot_str == 'hs_wca':
+        pass
+    elif opt_pot_str == 'inverse_power_stillinger':
+        extra_pot_kwargs.update(dict(pow=3, a=1))
+        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+    else:
+        raise NotImplementedError
         
     ncores = int(args.ncores)
     niter = int(args.niter)
@@ -61,7 +75,8 @@ if __name__ == "__main__":
                                        record_steps_timeseries=True, 
                                        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(28)],
                                        print_diffusion_only=True, workspace=dir_path,
-                                       record_trajectory_npoints=int(1e4))
+                                       record_trajectory_npoints=int(1e4),
+                                       opt_pot_str=opt_pot_str, **extra_pot_kwargs)
                     seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
                     seeds = dict(seeds=seeds_dict)
                     kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))
