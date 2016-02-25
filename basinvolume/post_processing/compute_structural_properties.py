@@ -66,11 +66,13 @@ class StructuralAnalysis(object):
         return dname
 
 class BondOrientationalOrder(StructuralAnalysis):
-    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
-                 force=False, existing_only=True):
+    def __init__(self, workspace, packings_dir='packings',
+        jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
+        force=False, existing_only=True, solid_angle_weighted=False):
         super(BondOrientationalOrder,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
                                                     analysis_dir=analysis_dir, force=force, existing_only=existing_only)
-    
+        self.solid_angle_weighted = solid_angle_weighted
+        
     def run(self, deg=6, pinit=True):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
         exisisting_only: bool
@@ -138,7 +140,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         theta = np.arctan2(vector[1], vector[0]) + np.pi
         return r, theta
 
-    def _qsum(self, nnatoms_vec, order, ndim=3, deg=6):
+    def _qsum(self, nnatoms_vec, order, ndim=3, deg=6, weights=None):
         """
         this method compute the qsum, necessary for computing 
         nn_atoms: array
@@ -149,23 +151,30 @@ class BondOrientationalOrder(StructuralAnalysis):
             order of the spherical harmonic (m)
         deg: int
             degree of the spherical harmonic (l)
+        weights : array (optional)
+            weight of each neighbor in the sum. In case the solid-angle
+            weighted method is used, this will come from the
+            nn-search-algorithm. For fixed-distance cutoff, the weights
+            will all be the same.
         """
         n = len(nnatoms_vec)
+        if weights is None:
+            weights = np.ones(n)
         qsum = np.complex(0.,0.)
         if ndim == 3:
-            for vector in nnatoms_vec:
+            for i, vector in enumerate(nnatoms_vec):
                 r, theta, phi = self._cartesian_to_polar3d(vector)
                 Y = sph_harm(order, deg, theta, phi) #theta, phi
-                qsum += Y
+                qsum += Y * weights[i]
         elif ndim == 2:
             assert deg == 6, "boo only meaningful for exhatic phase in 2d"
-            for vector in nnatoms_vec:
+            for i, vector in enumerate(nnatoms_vec):
                 r, theta = self._cartesian_to_polar2d(vector)
                 Y = np.exp(np.complex(0.,deg*theta))
-                qsum += Y
+                qsum += Y * weights[i]
         else:
             raise Exception('ndim not implemented')
-        return qsum / n
+        return qsum / np.sum(weights)
     
     def _bond_orientational_order3d(self, nnatoms_vec, deg=6):
         q = 0.
