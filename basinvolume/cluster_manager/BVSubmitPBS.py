@@ -176,7 +176,7 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
-        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings --pot-opt {2}'.format(findk_script,
+        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings --opt-pot {2}'.format(findk_script,
                                                                                               packing,
                                                                                               self.pot_opt_str)
         if self.use_cgd:
@@ -194,7 +194,7 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         innersphere_dos_script =  os.path.join(os.path.dirname(os.path.dirname(path_to_script)), 'mbar_spheres', script)
-        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings --pot-opt {2}'.format(innersphere_dos_script,
+        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings --opt-pot {2}'.format(innersphere_dos_script,
                                                                                               packing,
                                                                                               self.pot_opt_str)
         if self.use_cgd:
@@ -323,12 +323,12 @@ class BVSubmitPBS(object):
         if ncores % 2 == 0:
             command = ('-n {0} python {1} {2} ${{PBS_O_WORKDIR}}/{3} '
                        '--mintotniter {4} --maxtotniter {5} --relstderr {6}'
-                       '--pot-opt {7}').format(ncores-1, pt_script, packing, explore_dir, self.mintotniter,
+                       '--opt-pot {7}').format(ncores-1, pt_script, packing, explore_dir, self.mintotniter,
                                                self.maxtotniter, self.relstderr, self.pot_opt_str)
         else:
             command = ('python {0} {1} ${{PBS_O_WORKDIR}}/{2} '
                        '--mintotniter {3} --maxtotniter {4} --relstderr {5}'
-                       '--pot-opt {6}').format(pt_script, packing, explore_dir, self.mintotniter,
+                       '--opt-pot {6}').format(pt_script, packing, explore_dir, self.mintotniter,
                                                self.pot_opt_str, self.maxtotniter, self.relstderr)
         if self.use_cgd:
             command += " --cgd"
