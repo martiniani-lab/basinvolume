@@ -328,7 +328,7 @@ class BVSubmitPBS(object):
         else:
             command = ('python {0} {1} ${{PBS_O_WORKDIR}}/{2} '
                        '--mintotniter {3} --maxtotniter {4} --relstderr {5}'
-                       '--pot-opt {7}').format(pt_script, packing, explore_dir, self.mintotniter,
+                       '--pot-opt {6}').format(pt_script, packing, explore_dir, self.mintotniter,
                                                self.pot_opt_str, self.maxtotniter, self.relstderr)
         if self.use_cgd:
             command += " --cgd"

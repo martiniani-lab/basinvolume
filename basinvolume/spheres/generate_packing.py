@@ -326,7 +326,8 @@ class HS_Generate_Packing(_Generate_Packing):
                                         single=self.single, seeds = self.seeds)
             dif_mcrunner.run()
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
-            self.hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
+            hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
+            self.hsf_niter = max(hsf_niter, 2*self.nparticles)
             print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
             self.coords, self.energy = dif_mcrunner.get_config()
             self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
