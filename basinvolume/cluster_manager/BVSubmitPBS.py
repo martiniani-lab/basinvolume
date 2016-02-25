@@ -322,12 +322,12 @@ class BVSubmitPBS(object):
         pt_script = os.path.join(path_to_script, script)
         if ncores % 2 == 0:
             command = ('-n {0} python {1} {2} ${{PBS_O_WORKDIR}}/{3} '
-                       '--mintotniter {4} --maxtotniter {5} --relstderr {6}'
+                       '--mintotniter {4} --maxtotniter {5} --relstderr {6} '
                        '--opt-pot {7}').format(ncores-1, pt_script, packing, explore_dir, self.mintotniter,
                                                self.maxtotniter, self.relstderr, self.pot_opt_str)
         else:
             command = ('python {0} {1} ${{PBS_O_WORKDIR}}/{2} '
-                       '--mintotniter {3} --maxtotniter {4} --relstderr {5}'
+                       '--mintotniter {3} --maxtotniter {4} --relstderr {5} '
                        '--opt-pot {6}').format(pt_script, packing, explore_dir, self.mintotniter,
                                                self.maxtotniter, self.relstderr, self.pot_opt_str)
         if self.use_cgd:
