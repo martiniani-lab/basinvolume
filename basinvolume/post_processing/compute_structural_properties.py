@@ -1,4 +1,5 @@
 from __future__ import division
+import copy
 import numpy as np
 from scipy.special import sph_harm
 from basinvolume.utils import *
@@ -7,6 +8,7 @@ import abc
 from pele.potentials import HS_WCA, InversePowerStillinger
 import argparse
 import multiprocessing as mp
+from simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
 
 class StructuralAnalysis(object):
     __metaclass__ = abc.ABCMeta
@@ -64,7 +66,7 @@ class StructuralAnalysis(object):
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
         return dname
-
+    
 class BondOrientationalOrder(StructuralAnalysis):
     def __init__(self, workspace, packings_dir='packings',
         jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
@@ -72,6 +74,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         super(BondOrientationalOrder,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
                                                     analysis_dir=analysis_dir, force=force, existing_only=existing_only)
         self.solid_angle_weighted = solid_angle_weighted
+        print("self.solid_angle_weighted", self.solid_angle_weighted)
         
     def run(self, deg=6, pinit=True):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
@@ -201,7 +204,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         for i in xrange(nparticles):
             for j in xrange(i, nparticles):
                 if i != j:
-                    dij = np.zeros(3)
+                    dij = np.zeros(self.bdim)
                     for k in xrange(self.bdim):
                         #use distances to nearest image convention
                         dij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) -
@@ -212,6 +215,21 @@ class BondOrientationalOrder(StructuralAnalysis):
                         nnatoms_list[i].append(dij)
                         nnatoms_list[j].append(-dij)
         return nnatoms_list
+    
+    def find_nearest_neighbors_solid_angle(self, coords, hs_radii):
+        nparticles = hs_radii.size
+        nnatoms_list = [[] for _ in xrange(nparticles)]
+        weights_all = copy.deepcopy(nnatoms_list)
+        for i in xrange(nparticles):
+            """
+            Note that if i has neighbor j it is not obvious that j has
+            neighbor i, in contrast to fixed distance cutoff.
+            """
+            sann = SimpleSolidAngleNeighbors(i, coords, nparticles, self.boxv)
+            for j in xrange(sann.nr_neighbors):
+                nnatoms_list[i].append(sann.nn_vector[j])
+                weights_all[i].append(sann.weight[j])
+        return nnatoms_list, weights_all
     
     def bond_orientation_order_single(self, coords, hs_radii, atom_index, ndim=3, deg=6):
         nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)
@@ -226,15 +244,18 @@ class BondOrientationalOrder(StructuralAnalysis):
             list of coordination number for each particle
         """
         nnatoms_list = None
-        weights = None
+        weights_all = None
         if not self.solid_angle_weighted:
             nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)
         else:
-            nnatoms_list, weights = self.find_nearest_neighbors_solid_angle(coords, hs_radii)
+            nnatoms_list, weights_all = self.find_nearest_neighbors_solid_angle(coords, hs_radii)
         boo_list = []
         z_list = []
         for i in xrange(hs_radii.size):
             nnatoms_vec = nnatoms_list[i]
+            weights = None
+            if weights_all is not None:
+                weights = weights_all[i]
             if len(nnatoms_vec) > 0:
                 boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg, weights=weights)
                 boo_list.append(boo)
@@ -334,6 +355,7 @@ if __name__ == "__main__":
     parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
     parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=7)
     parser.add_argument("--force", action='store_true', help="force to run on all packings", default=False)
+    parser.add_argument("--solid", action="store_true", help="use solid angle method to find and weight neighbors", default=False)
     parser.add_argument("--nonex", action='store_false', help="run also the non packings for which there aren't working folders", default=True)
     # potential arguments
     parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
@@ -350,10 +372,13 @@ if __name__ == "__main__":
         print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
     else:
         raise NotImplementedError
+    
     pts_only_kwargs = dict(opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     
     ncores = args.ncores
     kwargs = dict(force=args.force, existing_only=args.nonex)
+    if args.solid:
+        kwargs.update(solid_angle_weighted=args.solid)
     
     if not args.all:
         if not args.workspace_dir:
