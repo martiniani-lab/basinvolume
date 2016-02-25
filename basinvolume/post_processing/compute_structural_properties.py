@@ -176,22 +176,22 @@ class BondOrientationalOrder(StructuralAnalysis):
             raise Exception('ndim not implemented')
         return qsum / np.sum(weights)
     
-    def _bond_orientational_order3d(self, nnatoms_vec, deg=6):
+    def _bond_orientational_order3d(self, nnatoms_vec, deg=6, weights=None):
         q = 0.
         for m in xrange(-deg,deg+1):
-            c = self._qsum(nnatoms_vec, m, ndim=3, deg=deg)
+            c = self._qsum(nnatoms_vec, m, ndim=3, deg=deg, weights=weights)
             q += np.absolute(c)**2
         return np.sqrt(q * 4 * np.pi / (2*deg+1))
     
-    def _bond_orientational_order2d(self, nnatoms_vec, deg=6):
-        c = self._qsum(nnatoms_vec, 0, ndim=2, deg=deg)
+    def _bond_orientational_order2d(self, nnatoms_vec, deg=6, weights=None):
+        c = self._qsum(nnatoms_vec, 0, ndim=2, deg=deg, weights=weights)
         return np.absolute(c)
     
-    def _bond_orientational_order(self, nnatoms_vec, ndim=3, deg=6):
+    def _bond_orientational_order(self, nnatoms_vec, ndim=3, deg=6, weights=None):
         if ndim == 3:
-            return self._bond_orientational_order3d(nnatoms_vec, deg=deg)
+            return self._bond_orientational_order3d(nnatoms_vec, deg=deg, weights=weights)
         elif ndim == 2:
-            return self._bond_orientational_order2d(nnatoms_vec, deg=deg)
+            return self._bond_orientational_order2d(nnatoms_vec, deg=deg, weights=weights)
         else:
             raise Exception('ndim not implemented')
     
@@ -225,13 +225,18 @@ class BondOrientationalOrder(StructuralAnalysis):
         z_list : array
             list of coordination number for each particle
         """
-        nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)
+        nnatoms_list = None
+        weights = None
+        if not self.solid_angle_weighted:
+            nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)
+        else:
+            nnatoms_list, weights = self.find_nearest_neighbors_solid_angle(coords, hs_radii)
         boo_list = []
         z_list = []
         for i in xrange(hs_radii.size):
             nnatoms_vec = nnatoms_list[i]
             if len(nnatoms_vec) > 0:
-                boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
+                boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg, weights=weights)
                 boo_list.append(boo)
                 z_list.append(len(nnatoms_vec))
             else:
