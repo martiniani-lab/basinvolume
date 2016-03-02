@@ -22,24 +22,56 @@ class TimeSeriesComparison(object):
     ----------
     keys : array
         List of keys to identify the time series.
+    series : array of arrays
+        List of time series.
+    analysis_parameters: dict
+        Parameters required for analysis.
     """
     def __init__(self, keys, series, analysis_parameters):
+        self.keys = keys
+        self.series = series
         self.data = dict([(k, s) for k, s in zip(keys, series)])
         self.analysis_parameters = analysis_parameters
         self.long_time_mean = np.mean(np.asarray([s[-1] for s in self.data.values()]))
         self.max_deviation_from_long_mean = np.amax([np.absolute(s[-1] - self.long_time_mean) / self.long_time_mean for s in self.data.values()])
-        if self.max_deviation_from_long_mean > self.analysis_parameters["target_relative_error"]:
-            print("self.max_deviation_from_long_mean", self.max_deviation_from_long_mean)
+        print("self.max_deviation_from_long_mean", self.max_deviation_from_long_mean)
+        if len(keys) > 2 and self.max_deviation_from_long_mean > self.analysis_parameters["target_relative_error"]:
             print("self.analysis_parameters['target_relative_error']", self.analysis_parameters["target_relative_error"])
             raise Exception("Target relative error too low.")
-        self.latest_converged_iteration = dict([(k, self.get_latest_conv_iteration(k)) for k in keys])
-        
+    
+    def compute_conv_it(self):
+        self.latest_converged_iteration = dict([(k, self.get_latest_conv_iteration(k)) for k in self.keys])
+                
     def get_latest_conv_iteration(self, k):
         it = len(self.data[k])
         while it > 1:
             if np.absolute(self.data[k][it - 1] - self.long_time_mean) / self.long_time_mean > self.analysis_parameters["target_relative_error"]:
                 return it
             it -= 1
+        return 0
+        
+class TimeSeriesComparison2(TimeSeriesComparison):
+    """
+    Utils to compare convergence of 2 scalar time series.
+    
+    Parameters
+    ----------
+    keys : array
+        List of keys to identify the time series.
+    series : array of arrays
+        List of time series.
+    analysis_parameters: dict
+        Parameters required for analysis.
+    """
+    def __init__(self, keys, series, analysis_parameters):
+        super(TimeSeriesComparison2, self).__init__(keys, series, analysis_parameters)
+        self.final_delta = np.absolute(self.series[0][-1] - self.series[1][-1])
+    
+    def get_latest_conv_iteration(self, k):
+        it = len(self.data[k])
+        while it > 1:
+            if np.absolute(self.data[k][it - 1] - self.long_time_mean) > self.final_delta:
+                return it
         return 0
         
 class SeriesComparison(object):
@@ -65,7 +97,12 @@ class SeriesComparison(object):
         comp = None
         print("self.three_series_dir", self.three_series_dir)
         try:
-            comp = TimeSeriesComparison(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+            comp = None
+            if len(self.methods) == 2:
+                comp = TimeSeriesComparison2(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+            else:
+                comp = TimeSeriesComparison(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+            comp.compute_conv_it()
             for m in self.methods:
                 converged_iteration = comp.latest_converged_iteration[m]
                 self.write_converged_evaluation(m, converged_iteration)
@@ -194,7 +231,8 @@ def run_analysis(ls_basin_label):
     analysis_parameters = dict([("target_relative_error", 0.05),
                                 ("subtract_ini_evals", True),
                                 ("logy", False),
-                                ("methods", ["traj", "ti", "brute"]),
+                                ("methods", ["traj", "ti"]),
+                                #("methods", ["traj", "ti", "brute"]),
                                 ("plot_only", False)])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),
                  ("ls_basin_results_dir", os.path.join("/scratch/kjs73/basin_traj_data/", ls_basin_label + "_basin_results"))])
