@@ -28,6 +28,9 @@ class TimeSeriesComparison(object):
         Parameters required for analysis.
     """
     def __init__(self, keys, series, analysis_parameters):
+        if len(keys) == 2:
+            min_length = np.amin([len(s) for s in series])
+            series = [s[0:min_length] for s in series]
         self.keys = keys
         self.series = series
         self.data = dict([(k, s) for k, s in zip(keys, series)])
@@ -41,6 +44,7 @@ class TimeSeriesComparison(object):
     
     def compute_conv_it(self):
         self.latest_converged_iteration = dict([(k, self.get_latest_conv_iteration(k)) for k in self.keys])
+        print("self.latest_converged_iteration", self.latest_converged_iteration)
                 
     def get_latest_conv_iteration(self, k):
         it = len(self.data[k])
@@ -72,6 +76,7 @@ class TimeSeriesComparison2(TimeSeriesComparison):
         while it > 1:
             if np.absolute(self.data[k][it - 1] - self.long_time_mean) > self.final_delta:
                 return it
+            it -= 1
         return 0
         
 class SeriesComparison(object):
@@ -159,7 +164,7 @@ class BenchmarkPlot(BasicPlot):
                 # large_basin_results/5/2/0
                 three_series_dir = os.path.join(base_dir, dim, index)
                 self.run_three_series_analysis(three_series_dir)
-                if "brute_res_evals.txt" in os.listdir(three_series_dir):
+                if "traj_res_evals.txt" in os.listdir(three_series_dir):
                     if not int(dim) in self.converged_sets:
                         self.converged_sets[int(dim)] = []
                     self.converged_sets[int(dim)].append(index)
