@@ -1,5 +1,6 @@
 from __future__ import division
 
+import argparse as ap
 import collections
 import copy
 import numpy as np
@@ -227,6 +228,9 @@ def run_analysis(ls_basin_label):
     ls_basin_label : string
         Needs to be "large" or "small" and indicates size label of basin to be computed.
     """
+    p = ap.ArgumentParser()
+    p.add_argument("--plot_only", action="store_true", default=False)
+    args = p.parse_args()
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
     gauss_parameters = dict([("nr_samples", 10),
@@ -238,7 +242,7 @@ def run_analysis(ls_basin_label):
                                 ("logy", False),
                                 ("methods", ["traj", "ti"]),
                                 #("methods", ["traj", "ti", "brute"]),
-                                ("plot_only", False)])
+                                ("plot_only", args.plot_only)])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),
                  ("ls_basin_results_dir", os.path.join("/scratch/kjs73/basin_traj_data/", ls_basin_label + "_basin_results"))])
     BenchmarkPlot(gauss_parameters, analysis_parameters, dirs)
