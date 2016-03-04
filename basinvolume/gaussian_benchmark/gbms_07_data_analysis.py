@@ -214,6 +214,8 @@ class BenchmarkPlot(BasicPlot):
         plt.legend(loc=2, prop={'size':18})
         plt.tick_params(labelsize=22)
         pdf = PdfPages(self.out_name)
+        #plt.axes().set_aspect('square')
+        plt.axes().set_aspect(1 / plt.axes().get_data_ratio())
         plt.savefig(pdf, format='pdf', bbox_inches='tight')
         pdf.close()
         plt.close()
