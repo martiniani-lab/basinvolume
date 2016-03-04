@@ -194,7 +194,8 @@ class BenchmarkPlot(BasicPlot):
         sc.analyse()
     
     def make_plot(self):
-        self.methods_for_plot = [m for m in self.evaluations.keys() if m is not "brute"]
+        #self.methods_for_plot = [m for m in self.evaluations.keys() if m is not "brute"]
+        self.methods_for_plot = ["traj", "ti"]
         self.methods_label_names = dict([("traj", "Trajectories"),
                                          ("ti", "TI")])
         self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
@@ -204,7 +205,7 @@ class BenchmarkPlot(BasicPlot):
         plt.rc('font', family='serif')
         plt.xlabel(r"Potential dimensionality, $D$", fontsize=22)
         plt.ylabel(r"Number of function calls, $N_{EFE}/10^8$", fontsize=22)
-        symbols = ["^", "s", "o"]
+        symbols = ["s", "^", "o"]
         for i, m in enumerate(self.methods_for_plot):
             print("self.dimensions", self.dimensions)
             print("self.evaluations[m]", self.evaluations[m])
