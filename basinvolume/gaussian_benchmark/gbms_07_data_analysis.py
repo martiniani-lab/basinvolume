@@ -202,15 +202,17 @@ class BenchmarkPlot(BasicPlot):
             plt.yscale("log")
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
-        plt.xlabel(r"Potential dimensionality, $D$", fontsize=25)
-        plt.ylabel(r"Number of function calls, $N_{EFE}$", fontsize=25)
+        plt.xlabel(r"Potential dimensionality, $D$", fontsize=22)
+        plt.ylabel(r"Number of function calls, $N_{EFE}/10^8$", fontsize=22)
         symbols = ["^", "s", "o"]
         for i, m in enumerate(self.methods_for_plot):
             print("self.dimensions", self.dimensions)
             print("self.evaluations[m]", self.evaluations[m])
             print("self.nr_samples[m]", self.nr_samples[m])
-            plt.errorbar(self.dimensions, self.evaluations[m],
-                yerr=self.evaluations_error[m], fmt=symbols[i], label=self.methods_label_names[m])
+            eval_plot = np.asarray(self.evaluations[m]) / 10**8
+            yerr_plot = np.asarray(self.evaluations_error[m]) / 10**8
+            plt.errorbar(self.dimensions, eval_plot, yerr=yerr_plot,
+                fmt=symbols[i], label=self.methods_label_names[m])
         plt.legend(loc=2, prop={'size':18})
         plt.tick_params(labelsize=22)
         pdf = PdfPages(self.out_name)
