@@ -214,7 +214,7 @@ class BenchmarkPlot(BasicPlot):
         plt.legend(loc=2, prop={'size':18})
         plt.tick_params(labelsize=22)
         pdf = PdfPages(self.out_name)
-        #plt.axes().set_aspect('square')
+        # http://stackoverflow.com/questions/18572234/matplotlib-axes-set-aspectequal-doesnt-behave-like-expected
         plt.axes().set_aspect(1 / plt.axes().get_data_ratio())
         plt.savefig(pdf, format='pdf', bbox_inches='tight')
         pdf.close()
