@@ -19,12 +19,13 @@ private:
     pele::periodic_distance<3> m_dist;
     const double m_rcut2;
     bool m_verbose;
+    const bool m_fixed_distance_cutoff;
 public:
     CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10, const pele::Array<double>& boxvec={50, 50, 50}, const double rcut=2.1, const bool fixed_distance_cutoff=false)
         : m_optimizer(optimizer),
           m_Q4tol(Q4tol),
           m_boxdim(3),
-          m_Q4hcp(7./72.),
+          m_Q4hcp(7. / 72.),
           m_dist(boxvec),
           m_rcut2(rcut * rcut),
           m_verbose(false),
@@ -72,14 +73,14 @@ public:
         const size_t nr_particles = x.size() / m_boxdim;
         std::vector<size_t> neighbours;
         std::vector<double> weights;
-        get_neighbours(particle_index, neighbours, weights);
+        get_neighbours(x, particle_index, neighbours, weights);
         const size_t nr_neighbours = neighbours.size();
         std::complex<double> sum = 0;
         for (size_t k = 0; k < nr_neighbours; ++k) {
             const size_t i = neighbours.at(k);
-            pele::Array<double> rij(3);
+            pele::Array<double> rij(m_boxdim);
             m_dist.get_rij(rij.data(), x.data() + particle_index * m_boxdim, x.data() + i * m_boxdim);
-            sum += Y4m(m, rij[0], rij[1], rij[2]) * weights.at(k);
+            sum += Y4M(m, rij[0], rij[1], rij[2]) * weights.at(k);
         }
         if (nr_neighbours == 0) {
             return 0;
@@ -87,22 +88,23 @@ public:
         const double tmp = std::abs(sum) / std::accumulate(weights.begin(), weights.end(), double(0));
         return tmp * tmp;
     }
-    void get_neighbours(const size_t centre, std::vector<size_t>& neighbours, std::vector<double>& weights) const
+    void get_neighbours(const pele::Array<double>& x, const size_t centre, std::vector<size_t>& neighbours, std::vector<double>& weights) const
     {
         if (m_fixed_distance_cutoff) {
-            get_fixed_distance_cutoff_neighbours(centre, neighbours);
-            weights(neighbours.size(), 1);
+            get_fixed_distance_cutoff_neighbours(x, centre, neighbours);
+            weights.assign(neighbours.size(), 1);
         }
         else {
-            get_sann_neighbours(centre, neighbours, weights);
+            get_sann_neighbours(x, centre, neighbours, weights);
         }
     }
-    void get_fixed_distance_cutoff_neighbours(const size_t centre, std::vector<size_t>& neighbours) const
+    void get_fixed_distance_cutoff_neighbours(const pele::Array<double>& x, const size_t centre, std::vector<size_t>& neighbours) const
     {
+        const size_t nr_particles = x.size() / m_boxdim;
         for (size_t i = 0; i < nr_particles; ++i) {
-            if (i != particle_index) {
-                pele::Array<double> rij(3);
-                m_dist.get_rij(rij.data(), x.data() + particle_index * 3, x.data() + i * 3);
+            if (i != centre) {
+                pele::Array<double> rij(m_boxdim);
+                m_dist.get_rij(rij.data(), x.data() + centre * m_boxdim, x.data() + i * m_boxdim);
                 const double r2 = pele::dot(rij, rij);
                 if (r2 < m_rcut2) {
                     neighbours.push_back(i);
@@ -110,9 +112,9 @@ public:
             }
         }
     }
-    void get_sann_neighbours(const size_t centre, std::vector<size_t>& neighbours, std::vector<double>& weights) const
+    void get_sann_neighbours(const pele::Array<double>& x, const size_t centre, std::vector<size_t>& neighbours, std::vector<double>& weights) const
     {
-        
+        throw std::runtime_error("not done here");
     }
 };
 
