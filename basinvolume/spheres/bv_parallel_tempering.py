@@ -44,7 +44,7 @@ if __name__ == "__main__":
     if opt_pot_str == 'hs_wca':
         pass
     elif opt_pot_str == 'inverse_power_stillinger':
-        extra_pot_kwargs.update(dict(pow=3, a=1))
+        extra_pot_kwargs.update(dict(pow=3, rcut=1.5))
         print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
     else:
         raise NotImplementedError
