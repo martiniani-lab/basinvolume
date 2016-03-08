@@ -5,7 +5,7 @@ from scipy.special import sph_harm
 from basinvolume.utils import *
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
-from pele.potentials import HS_WCA, InversePowerStillinger
+from pele.potentials import HS_WCA, InversePowerStillingerCut
 import argparse
 import multiprocessing as mp
 from simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
@@ -320,8 +320,10 @@ class PressureTensor(StructuralAnalysis):
                          radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
             pow = self.extra_pot_kwargs['pow']
-            a = self.extra_pot_kwargs['a']
-            pot = InversePowerStillinger(pow, a=a, ndim=self.bdim, boxvec=self.boxv)
+            rcut = self.extra_pot_kwargs["rcut"]
+            pot_optimizer = InversePowerStillingerCut(pow,
+                self.stillinger_a_radii, ndim=self.bdim,
+                boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
         else:
             raise NotImplementedError
         return pot
