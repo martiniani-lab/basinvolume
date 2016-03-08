@@ -71,7 +71,7 @@ cdef extern from "basinvolume/check_same_minimum_config.h" namespace "bv":
 cdef extern from "basinvolume/check_minimum_is_hcp.h" namespace "bv":
     cdef cppclass cppCheckMinimumIsHCP "bv::CheckMinimumIsHCP":
         cppCheckMinimumIsHCP(shared_ptr[_pele_opt.cGradientOptimizer],
-        double, _pele.Array[double], double) except +
+        double, _pele.Array[double], double, cbool) except +
         void set_verbose() except +
 
 cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":

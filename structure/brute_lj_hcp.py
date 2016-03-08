@@ -27,7 +27,7 @@ class BruteComputer(object):
         self.optimizer_potential = LJCut(boxvec=self.boxvec)
         self.x_ini = np.ones(self.common_pars["nr_particles"] * 3)
         self.optimizer = LBFGS_CPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
-        self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP(optimizer=self.optimizer, Q4tol=self.Q4_pars["tol"], boxvec=self.boxvec, rcut=self.Q4_pars["rcut"], verbose=self.Q4_pars["verbose"])
+        self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP(optimizer=self.optimizer, Q4tol=self.Q4_pars["tol"], boxvec=self.boxvec, rcut=self.Q4_pars["rcut"], verbose=self.Q4_pars["verbose"], fixed_distance_cutoff=self.Q4_pars["fixed_distance_cutoff"])
         self.mc_potential = NullPotential()
         self.temperature = 1
         self.mc = MC(self.mc_potential, self.x_ini, self.temperature, self.common_pars["nr_samples"])
@@ -48,16 +48,20 @@ class BruteComputer(object):
             self.nr_attempts = None
 
 if __name__ == "__main__":
-    #r = 0.5 * (2 ** (1./6.))
-    r = 0.5
-    log3N = 4
+    r = 0.5 * (2 ** (1./6.))
+    #r = 0.5
+    log3N = 6
     N = log3N ** 3
+    print("r", r)
+    print("2r", 2 * r)
+    print("N", N)
     bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * log3N
-    common_pars = dict([("nr_samples", int(1e5)),
+    common_pars = dict([("nr_samples", int(1e3)),
         ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
         ("boxvec", bv)])
     opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9)])
-    Q4_pars = dict([("tol", 0.2), ("rcut", 2.1), ("verbose", False)])
+    Q4_pars = dict([("tol", 0.2), ("rcut", 1.4), ("verbose", True),
+        ("fixed_distance_cutoff", True)])
     c = BruteComputer(common_pars, Q4_pars, opt_pars)
     c.run_bv()
     print("common_pars", common_pars)
