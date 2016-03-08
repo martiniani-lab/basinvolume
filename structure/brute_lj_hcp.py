@@ -40,6 +40,7 @@ class BruteComputer(object):
     def run_bv(self):
         self.mc.run()
         p = self.mc.get_accepted_fraction()
+        print("nr times hcp found", p * self.common_pars["nr_samples"])
         self.volume = np.exp(np.log(p) + self.common_pars["log_accessible_volume"])
         self.log_volume = np.log(p) + self.common_pars["log_accessible_volume"]
         if p > 0:
@@ -50,7 +51,7 @@ class BruteComputer(object):
 if __name__ == "__main__":
     r = 0.5 * (2 ** (1./6.))
     #r = 0.5
-    log3N = 6
+    log3N = 4
     N = log3N ** 3
     print("r", r)
     print("2r", 2 * r)
@@ -60,7 +61,7 @@ if __name__ == "__main__":
         ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
         ("boxvec", bv)])
     opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9)])
-    Q4_pars = dict([("tol", 0.2), ("rcut", 1.4), ("verbose", True),
+    Q4_pars = dict([("tol", 0.05), ("rcut", 1.3), ("verbose", False),
         ("fixed_distance_cutoff", True)])
     c = BruteComputer(common_pars, Q4_pars, opt_pars)
     c.run_bv()
