@@ -152,7 +152,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     """    
     def __init__(self, packing_frac=0.7, rattler_eval_tol=1.,
         packings_dir='packings', use_cell_lists=False, show=False,
-        opt_pot_str='hs_wca', **extra_pot_kwargs):
+        opt_pot_str='hs_wca', extra_pot_kwargs=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
         
         self.opt_pot_str = opt_pot_str
@@ -205,7 +205,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     sca=self.sca, radii=self.hs_radii, boxvec=self.boxv,
                     ndim=self.bdim)
         elif self.opt_pot_str.lower() == "inverse_power_stillinger":
-            pow = self.extra_pot_kwargs['pow']
+            self.stillinger_a_radii = self.hs_radii * (1 + self.sca)
+            pow = self.extra_pot_kwargs["pow"]
             rcut = self.extra_pot_kwargs["rcut"]
             self.potential = InversePowerStillingerCut(pow,
                 self.stillinger_a_radii, ndim=self.bdim,
@@ -473,7 +474,7 @@ if __name__ == "__main__":
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
     # potential arguments
-    parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
+    parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
     print args
@@ -481,16 +482,19 @@ if __name__ == "__main__":
     # potential type
     opt_pot_str = args.opt_pot
     extra_pot_kwargs = dict()
-    if opt_pot_str == 'hs_wca':
+    if opt_pot_str.lower() == 'hs_wca':
         pass
-    elif opt_pot_str == 'inverse_power_stillinger':
-        extra_pot_kwargs.update(dict(pow=3, rcut=1.5))
+    elif opt_pot_str.lower() == 'inverse_power_stillinger':
+        extra_pot_kwargs = dict(pow=8, rcut=4.5)
         print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
     else:
         raise NotImplementedError
     
-    sim = HS_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
-                                     use_cell_lists=args.nocell, show=args.show)
+    print("extra_pot_kwargs", extra_pot_kwargs)
+    sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
+        rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
+        use_cell_lists=args.nocell, show=args.show,
+        opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
     sim.run()
     
     
