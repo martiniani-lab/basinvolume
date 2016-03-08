@@ -193,7 +193,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if self.use_cell_lists:
             if np.amin(self.boxv) // rcut <= 3:
                 self.use_cell_lists = False
-        if self.opt_pot_str().lower() == "hs_wca":
+        if self.opt_pot_str.lower() == "hs_wca":
             if self.use_cell_lists:
                 self.potential = HS_WCA(use_periodic=True,
                     use_cell_lists=True, eps=self.eps, sca=self.sca,
@@ -204,7 +204,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 self.potential = HS_WCA(use_periodic=True, eps=self.eps,
                     sca=self.sca, radii=self.hs_radii, boxvec=self.boxv,
                     ndim=self.bdim)
-        elif self.opt_pot_str().lower() == "inverse_power_stillinger":
+        elif self.opt_pot_str.lower() == "inverse_power_stillinger":
             pow = self.extra_pot_kwargs['pow']
             rcut = self.extra_pot_kwargs["rcut"]
             self.potential = InversePowerStillingerCut(pow,
