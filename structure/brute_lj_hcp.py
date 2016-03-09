@@ -51,13 +51,13 @@ class BruteComputer(object):
 if __name__ == "__main__":
     r = 0.5 * (2 ** (1./6.))
     #r = 0.5
-    log3N = 4
+    log3N = 6
     N = log3N ** 3
     print("r", r)
     print("2r", 2 * r)
     print("N", N)
     bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * log3N
-    common_pars = dict([("nr_samples", int(1e3)),
+    common_pars = dict([("nr_samples", int(1e5)),
         ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
         ("boxvec", bv)])
     opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9)])
