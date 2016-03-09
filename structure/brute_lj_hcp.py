@@ -62,7 +62,7 @@ if __name__ == "__main__":
         ("boxvec", bv)])
     opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9)])
     Q4_pars = dict([("tol", 0.05), ("rcut", 1.3), ("verbose", False),
-        ("fixed_distance_cutoff", True)])
+        ("fixed_distance_cutoff", False)])
     c = BruteComputer(common_pars, Q4_pars, opt_pars)
     c.run_bv()
     print("common_pars", common_pars)

@@ -6,6 +6,7 @@
 
 #include "mcpele/mc.h"
 
+#include "basinvolume/simple_solid_angle_neighbors.h"
 #include "basinvolume/Y4m.h"
 
 namespace bv {
@@ -112,9 +113,10 @@ public:
             }
         }
     }
-    void get_sann_neighbours(const pele::Array<double>& x, const size_t centre, std::vector<size_t>& neighbours, std::vector<double>& weights) const
+    void get_sann_neighbours(const pele::Array<double>& x, const size_t center, std::vector<size_t>& neighbors, std::vector<double>& weights) const
     {
-        throw std::runtime_error("not done here");
+        SimpleSolidAngleNeighbors<pele::periodic_distance<3> > sann(x, x.size() / m_boxdim, m_dist);
+        sann.compute_neighbors_weights(center, neighbors, weights);
     }
 };
 
