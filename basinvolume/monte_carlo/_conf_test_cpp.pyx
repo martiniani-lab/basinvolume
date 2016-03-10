@@ -9,7 +9,8 @@ from pele.potentials import _pele
 from pele.storage import Database
 from pele.storage.database import Minimum
 from pele.potentials._pele cimport array_wrap_np
-from pele.potentials._pele cimport array_wrap_np_long, array_wrap_np_size_t
+from pele.potentials._pele cimport array_wrap_np_long
+from pele.potentials._pele cimport array_wrap_np_size_t
 from ctypes import c_size_t as size_t
     
 #===============================================================================
@@ -222,7 +223,10 @@ cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         self.optimizer = opt
         self.potential = pot
-        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumConfig(self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size), dtol))
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
+            cppCheckSameMinimumConfig(self.optimizer.thisptr,
+            self.potential.thisptr,
+            _pele.Array[double](<double*> orginc.data, orginc.size), dtol))
         self.newptr = <cppCheckSameMinimumConfig*>self.thisptr.get()
     def get_nfev(self):
         nfev = self.newptr.get_nfev()
@@ -250,15 +254,51 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
     cdef _pele_opt.GradientOptimizer optimizer
     cdef cppCheckMinimumIsHCP* newptr
     cdef _pele.Array[double] bv_
-    def __cinit__(self, optimizer=None, Q4tol=1e-10, boxvec=None, rcut=2, verbose=False, cbool fixed_distance_cutoff=False):
+    def __cinit__(self, optimizer=None, Q4tol=1e-10, boxvec=None, rcut=2, verbose=False, cbool fixed_distance_cutoff=False, cbool record_q4_histogram=False, nr_bins=14):
         if len(boxvec) != 3:
             raise Exception("CheckMinimumIsHCP: illegal input: boxdim must be 3, boxvec must be provided.")
         bv_ = array_wrap_np(boxvec)
         self.optimizer = optimizer
-        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckMinimumIsHCP(self.optimizer.thisptr, Q4tol, bv_, rcut, fixed_distance_cutoff))
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
+            cppCheckMinimumIsHCP(self.optimizer.thisptr, Q4tol, bv_,
+            rcut, fixed_distance_cutoff, record_q4_histogram, nr_bins))
         self.newptr = <cppCheckMinimumIsHCP*> self.thisptr.get()
         if verbose:
             self.newptr.set_verbose()
+    
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False) 
+    def get_hist_x(self):
+        cdef _pele.Array[double] histi = self.newptr.get_hist_x()
+        cdef double *histdata = histi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef size_t i
+        for i in xrange(histi.size()):
+            hist[i] = histdata[i]
+        return hist
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False) 
+    def get_hist_y(self):
+        cdef _pele.Array[double] histi = self.newptr.get_hist_y()
+        cdef double *histdata = histi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef size_t i
+        for i in xrange(histi.size()):
+            hist[i] = histdata[i]
+        return hist
+        
+    @cython.boundscheck(False)
+    @cython.wraparound(False) 
+    def get_hist_ey(self):
+        cdef _pele.Array[double] histi = self.newptr.get_hist_ey()
+        cdef double *histdata = histi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef size_t i
+        for i in xrange(histi.size()):
+            hist[i] = histdata[i]
+        return hist
         
 class CheckMinimumIsHCP(_Cdef_CheckMinimumIsHCP):
     """interface"""

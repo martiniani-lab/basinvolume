@@ -12,13 +12,20 @@ from mcpele.monte_carlo import UniformRectangularSampling
 from mcpele.monte_carlo import NullPotential
 
 from basinvolume.monte_carlo import CheckMinimumIsHCP
+from basinvolume.utils import BasicPlot
 from basinvolume.utils import to_string
+
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+except ImportError as err:
+    print err
 
 class MC(_BaseMCRunner):
     def set_control(self, tmp):
         self.set_temperature(tmp)
             
-class BruteComputer(object):
+class BruteComputer(BasicPlot):
     def __init__(self, common_pars, Q4_pars, opt_pars):
         self.common_pars = common_pars
         self.Q4_pars = Q4_pars
@@ -26,9 +33,15 @@ class BruteComputer(object):
         self.boxvec = self.common_pars["boxvec"]
         self.optimizer_potential = LJCut(boxvec=self.boxvec)
         self.x_ini = np.ones(self.common_pars["nr_particles"] * 3)
-        self.optimizer = LBFGS_CPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
+        self.optimizer = LBFGS_CPP(self.x_ini, self.optimizer_potential,
+            tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
         #self.optimizer = ModifiedFireCPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
-        self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP(optimizer=self.optimizer, Q4tol=self.Q4_pars["tol"], boxvec=self.boxvec, rcut=self.Q4_pars["rcut"], verbose=self.Q4_pars["verbose"], fixed_distance_cutoff=self.Q4_pars["fixed_distance_cutoff"])
+        self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP(optimizer=self.optimizer,
+            Q4tol=self.Q4_pars["tol"], boxvec=self.boxvec,
+            rcut=self.Q4_pars["rcut"], verbose=self.Q4_pars["verbose"],
+            fixed_distance_cutoff=self.Q4_pars["fixed_distance_cutoff"],
+            record_q4_histogram=self.Q4_pars["record_histogram"],
+            nr_bins=self.Q4_pars["nr_bins"])
         self.mc_potential = NullPotential()
         self.temperature = 1
         self.mc = MC(self.mc_potential, self.x_ini, self.temperature, self.common_pars["nr_samples"])
@@ -48,6 +61,28 @@ class BruteComputer(object):
             self.nr_attempts = 1. / p
         else:
             self.nr_attempts = None
+        if self.Q4_pars["record_histogram"]:
+            self.print_Q4_histogram()
+            
+    def print_Q4_histogram(self):
+        hist_x = self.conftest_check_minimum_is_hcp.get_hist_x()
+        hist_y = self.conftest_check_minimum_is_hcp.get_hist_y()
+        hist_ey = self.conftest_check_minimum_is_hcp.get_hist_ey()
+        basic_pars = "N_" + to_string(self.common_pars["nr_particles"], 0) + \
+            "_samples_" + to_string(self.common_pars["nr_samples"], 0) + \
+            "_sann_" + str(not self.Q4_pars["fixed_distance_cutoff"])
+        np.savetxt(basic_pars + "_hist_x.txt", hist_x)
+        np.savetxt(basic_pars + "_hist_y.txt", hist_y)
+        np.savetxt(basic_pars + "_hist_ey.txt", hist_ey)
+        full_hist = BasicPlot()
+        plt.errorbar(hist_x, hist_y, yerr=hist_ey, fmt="s--")
+        plt.xlabel(r"Local bond order $Q_4$")
+        plt.ylabel(r"PDF")
+        # https://philbull.wordpress.com/2012/04/05/drawing-arrows-in-matplotlib/
+        plt.arrow(7/72,  plt.axes().get_ylim()[1], 0, -0.75, fc="k", ec="k", head_width=0.007, head_length=0.2, label="hcp")
+        plt.arrow(0.191, plt.axes().get_ylim()[1], 0, -0.75, fc="k", ec="k", head_width=0.007, head_length=0.2, label="fcc")
+        self.out_name = basic_pars + "_histogram.pdf"
+        self.save_and_close()
 
 if __name__ == "__main__":
     r = 0.5 * (2 ** (1./6.))
@@ -58,12 +93,13 @@ if __name__ == "__main__":
     print("2r", 2 * r)
     print("N", N)
     bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * log3N
-    common_pars = dict([("nr_samples", int(1e3)),
+    common_pars = dict([("nr_samples", int(1e6)),
         ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
         ("boxvec", bv)])
     opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9)])
     Q4_pars = dict([("tol", 0.05), ("rcut", 1.3), ("verbose", False),
-        ("fixed_distance_cutoff", False)])
+        ("fixed_distance_cutoff", True), ("record_histogram", True),
+        ("nr_bins", 200)])
     c = BruteComputer(common_pars, Q4_pars, opt_pars)
     c.run_bv()
     print("common_pars", common_pars)

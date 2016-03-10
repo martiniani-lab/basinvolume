@@ -25,7 +25,7 @@ private:
     const bool m_record_q4_histogram;
     mcpele::Histogram m_q4_histogram;
 public:
-    CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10, const pele::Array<double>& boxvec={50, 50, 50}, const double rcut=2.1, const bool fixed_distance_cutoff=false, const bool record_q4_histogram=false)
+    CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10, const pele::Array<double>& boxvec={50, 50, 50}, const double rcut=2.1, const bool fixed_distance_cutoff=false, const bool record_q4_histogram=false, const size_t nr_bins=14)
         : m_optimizer(optimizer),
           m_Q4tol(Q4tol),
           m_boxdim(3),
@@ -35,7 +35,7 @@ public:
           m_verbose(false),
           m_fixed_distance_cutoff(fixed_distance_cutoff),
           m_record_q4_histogram(record_q4_histogram),
-          m_q4_histogram(0, 1, 14)
+          m_q4_histogram(0, 0.4, 0.4 / nr_bins)
     {}
     bool conf_test(pele::Array<double>& trial_coords, mcpele::MC* mc)
     {
@@ -136,6 +136,24 @@ public:
     {
         SimpleSolidAngleNeighbors<pele::periodic_distance<3> > sann(x, x.size() / m_boxdim, m_dist);
         sann.compute_neighbors_weights(center, neighbors, weights);
+    }
+    pele::Array<double> get_hist_x() const
+    {
+        std::vector<double> vectics(m_q4_histogram.get_vectics());
+        pele::Array<double> tmp(vectics);
+        return tmp.copy();
+    }
+    pele::Array<double> get_hist_y() const
+    {
+        std::vector<double> vecdata(m_q4_histogram.get_vecdata_normalized());
+        pele::Array<double> tmp(vecdata);
+        return tmp.copy();
+    }
+    pele::Array<double> get_hist_ey() const
+    {
+        std::vector<double> v(m_q4_histogram.get_vecdata_error());
+        pele::Array<double> tmp(v);
+        return tmp.copy();
     }
 };
 
