@@ -4,6 +4,7 @@
 #include "pele/distance.h"
 #include "pele/optimizer.h"
 
+#include "mcpele/histogram.h"
 #include "mcpele/mc.h"
 
 #include "basinvolume/simple_solid_angle_neighbors.h"
@@ -21,8 +22,10 @@ private:
     const double m_rcut2;
     bool m_verbose;
     const bool m_fixed_distance_cutoff;
+    const bool m_record_q4_histogram;
+    mcpele::Histogram m_q4_histogram;
 public:
-    CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10, const pele::Array<double>& boxvec={50, 50, 50}, const double rcut=2.1, const bool fixed_distance_cutoff=false)
+    CheckMinimumIsHCP(std::shared_ptr<pele::GradientOptimizer> optimizer=NULL, const double Q4tol=1e-10, const pele::Array<double>& boxvec={50, 50, 50}, const double rcut=2.1, const bool fixed_distance_cutoff=false, const bool record_q4_histogram=false)
         : m_optimizer(optimizer),
           m_Q4tol(Q4tol),
           m_boxdim(3),
@@ -30,7 +33,9 @@ public:
           m_dist(boxvec),
           m_rcut2(rcut * rcut),
           m_verbose(false),
-          m_fixed_distance_cutoff(fixed_distance_cutoff)
+          m_fixed_distance_cutoff(fixed_distance_cutoff),
+          m_record_q4_histogram(record_q4_histogram),
+          m_q4_histogram(0, 1, 14)
     {}
     bool conf_test(pele::Array<double>& trial_coords, mcpele::MC* mc)
     {
@@ -41,10 +46,21 @@ public:
         }
         const pele::Array<double> minimum = m_optimizer->get_x();
         const size_t nr_particles = minimum.size() / m_boxdim;
+        bool is_hcp = true;
         for (size_t particle_index = 0; particle_index < nr_particles; ++particle_index) {
-            if (Q4_deviates_from_HCP(minimum, particle_index)) {
-                return false;
+            if (!m_record_q4_histogram) {
+                if (Q4_deviates_from_HCP(minimum, particle_index)) {
+                    return false;
+                }
             }
+            else {
+                if (Q4_deviates_from_HCP(minimum, particle_index)) {
+                    is_hcp = false;
+                }
+            }
+        }
+        if (m_record_q4_histogram) {
+            return is_hcp;
         }
         return true;
     }
@@ -52,12 +68,15 @@ public:
     {
         m_verbose = true;
     }
-    bool Q4_deviates_from_HCP(const pele::Array<double>& x, const size_t particle_index) const
+    bool Q4_deviates_from_HCP(const pele::Array<double>& x, const size_t particle_index)
     {
         const double tmp = get_Q4(x, particle_index);
         if (m_verbose) {
             std::cout << particle_index << "---\n";
             std::cout << tmp << "\t" << tmp / m_Q4hcp << "\n";
+        }
+        if (m_record_q4_histogram) {
+            m_q4_histogram.add_entry(tmp);
         }
         return std::fabs(m_Q4hcp - tmp) / m_Q4hcp > m_Q4tol;
     }
