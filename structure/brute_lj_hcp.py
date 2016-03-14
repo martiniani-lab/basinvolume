@@ -3,8 +3,9 @@ from __future__ import division
 import numpy as np
 import os
 
-from pele.optimize import ModifiedFireCPP
 from pele.optimize import LBFGS_CPP
+from pele.optimize import ModifiedFireCPP
+from pele.optimize import SteepestDescentCPP
 from pele.potentials._lj_cpp import LJCut
 
 from mcpele.monte_carlo import _BaseMCRunner
@@ -33,8 +34,8 @@ class BruteComputer(BasicPlot):
         self.boxvec = self.common_pars["boxvec"]
         self.optimizer_potential = LJCut(boxvec=self.boxvec)
         self.x_ini = np.ones(self.common_pars["nr_particles"] * 3)
-        self.optimizer = LBFGS_CPP(self.x_ini, self.optimizer_potential,
-            tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
+        #self.optimizer = SteepestDescentCPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
+        self.optimizer = LBFGS_CPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
         #self.optimizer = ModifiedFireCPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
         self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP(optimizer=self.optimizer,
             Q4tol=self.Q4_pars["tol"], boxvec=self.boxvec,
@@ -98,7 +99,7 @@ if __name__ == "__main__":
         ("boxvec", bv)])
     opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9)])
     Q4_pars = dict([("tol", 0.05), ("rcut", 1.3), ("verbose", False),
-        ("fixed_distance_cutoff", True), ("record_histogram", True),
+        ("fixed_distance_cutoff", False), ("record_histogram", True),
         ("nr_bins", 200)])
     c = BruteComputer(common_pars, Q4_pars, opt_pars)
     c.run_bv()
