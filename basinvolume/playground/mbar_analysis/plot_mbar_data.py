@@ -676,7 +676,7 @@ class plot_mbar_data(object):
             fig8 = plt.figure(figsize=(9,11))
             ax8 = fig8.add_subplot(gs[4:,:])
             ax9 = fig8.add_subplot(gs[:4,:])
-            ax10 = fig8.add_axes([0.68,0.68,0.25,0.25], alpha=0.5)
+            ax10 = fig8.add_axes([0.63,0.74,0.3,0.2], alpha=0.5) # x, y, w, h
             fig8.subplots_adjust(hspace=0)
             axins = zoomed_inset_axes(ax8, 500, bbox_to_anchor=(0.4, 0.13), bbox_transform=plt.gcf().transFigure) # zoom = 6
             
@@ -717,23 +717,28 @@ class plot_mbar_data(object):
                                                            average=False, 
                                                            label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
                                                            color=color, ls=ls, alpha=0.7)
-                    x = []
-                    for arr in dataset.log_gr_ratio_data: 
-                        x.append(arr[-1,0])
-                    cdf = CDFAccumulator()
-                    cdf.add_array(x)
-                    x, cdf_x = cdf.get_vecdata()
-                    f = interp1d(x, cdf_x, bounds_error=True)
-                    xref = np.linspace(x[0],x[-1],1000)
-                    ax10.plot(xref, 1-f(xref), label='{} {:.2E}'.format(dataset.structural_label[:3], dataset.hs_poly),
-                              linewidth=3, color=color, linestyle=ls)
-            
-            ax10.set_xlabel(r'$r_{\mathrm{max}}$')
-            ax10.set_ylabel(r'$\mathrm{cdf}(r_{\mathrm{max}})$')
+                    #inset
+                    dos = dataset.dos_data
+                    for i,arr in enumerate(dos):
+                        thislabel = '{} {:.2E}'.format(dataset.structural_label[:3], dataset.hs_poly)
+                        if i > 0:
+                            label = None
+                        (x, xerr, y, yerr, fit) = arr[:,0], arr[:,1], arr[:,2], arr[:,3], arr[:,4]
+                        inty = []
+                        for i,dx in enumerate(x[2:]):
+                            inty.append(simps(y[:i+2], x[:i+2]))
+                        f = interp1d(x[2:], inty, bounds_error=False)
+                        xref = np.linspace(x[0],x[-1],1000)
+                        ax10.plot(xref, f(xref), label=thislabel, linewidth=3, color=color, linestyle=ls)
+
+            ax10.set_xlabel(r'$r$')
+            ax10.set_ylabel(r'cdf$(r)$')
             ax10.yaxis.labelpad = 0.
             ax10.locator_params(axis = 'y', nbins = 1)
             ax10.locator_params(axis = 'x', nbins = 3)
-            #ax10.set_xlim((3,8))
+            ax10.set_xlim((0,4.5))
+            ax10.set_ylim((0,1))
+            # ax10.set_xscale('symlog')
 
             #ax8.set_xscale('log')
             ax8.set_ylim((-265,5))
@@ -794,40 +799,50 @@ class plot_mbar_data(object):
                         boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
                     boo12 = np.array(boo)[:,4]
                     y = [np.mean(boo12)]
-                    yerr = [np.std(boo12)]
+                    yerr = [np.std(boo12)/np.sqrt(boo12.size-1)]
                     x = [dataset.hs_poly]
-                                        
+                    # compute the mean as a weighted mean and the standard error from the weighted average
                     p1, caplines1, barlinecols1 =  host.errorbar(x, [np.mean(np.array(boo)[:,1])], yerr=yerr, 
                                                                  marker=marker[0], ms=9, label=None, color=color[0], 
                                                                  markeredgecolor=color[0], mew=2,
                                                                  markerfacecolor='none' if dataset.structural_label == 'disordered' else color[0],
                                                                  zorder=2 if dataset.structural_label == 'disordered' else 1)
                     mean_pca_asph = np.mean([packing.pca_asphericity for packing in dataset.packing_data])
-                    std_pca_asph = np.std([packing.pca_asphericity for packing in dataset.packing_data]) / np.sqrt(len(dataset.packing_data)-1)
+                    err_pca_asph = np.std([packing.pca_asphericity for packing in dataset.packing_data]) / np.sqrt(len(dataset.packing_data)-1)
                     print 'mean_pca_asph', mean_pca_asph
-                    p2, caplines2, barlinecols2 = par1.errorbar(x, [mean_pca_asph], yerr=[std_pca_asph], 
+                    p2, caplines2, barlinecols2 = par1.errorbar(x, [mean_pca_asph], yerr=[err_pca_asph],
                                                                 marker=marker[1], ms=9, label=None, color=color[1],
                                                                 markeredgecolor=color[1], mew=2,
                                                                 markerfacecolor='none' if dataset.structural_label == 'disordered' else color[1],
                                                                 zorder=2 if dataset.structural_label == 'disordered' else 1)
-                    mean_coord_dist = np.mean([packing.mean_coord_dist for packing in dataset.packing_data])
+                    mean_coord_dist = np.average([packing.mean_coord_dist for packing in dataset.packing_data],
+                                                 weights=[1./np.sqrt(packing.var_coord_dist) for packing in dataset.packing_data])
                     print 'mean_coord_dist', mean_coord_dist
-                    std_coord_dist = np.std([packing.mean_coord_dist for packing in dataset.packing_data]) / np.sqrt(len(dataset.packing_data)-1)
-                    p3, caplines3, barlinecols3 = par2.errorbar(x, [mean_coord_dist], yerr=[std_coord_dist], 
+                    var_coord_dist = np.average([(packing.mean_coord_dist - mean_coord_dist)**2 for packing in dataset.packing_data],
+                                                weights=[1./np.sqrt(packing.var_coord_dist) for packing in dataset.packing_data])
+                    err_coord_dist = np.sqrt(var_coord_dist/(len(dataset.packing_data)-1))
+                    p3, caplines3, barlinecols3 = par2.errorbar(x, [mean_coord_dist], yerr=[err_coord_dist],
                                                                 marker=marker[2], ms=9, label=None, color=color[2],
                                                                 markeredgecolor=color[2], mew=2,
                                                                 markerfacecolor='none' if dataset.structural_label == 'disordered' else color[2],
                                                                 zorder=2 if dataset.structural_label == 'disordered' else 1)
-                    p4, caplines4, barlinecols4 =  par3.errorbar(x, [np.mean(dataset.contacts)], yerr=[np.std(dataset.contacts)/np.sqrt(len(dataset.contacts)-1)], 
-                                                                 marker=marker[3], ms=9, label=None, color='darkgrey', 
+                    p4, caplines4, barlinecols4 =  par3.errorbar(x, [np.mean(dataset.contacts)], yerr=[np.std(dataset.contacts)/np.sqrt(len(dataset.contacts)-1)],
+                                                                 marker=marker[3], ms=9, label=None, color='darkgrey',
                                                                  markeredgecolor='darkgrey', mew=2,
                                                                  markerfacecolor='none' if dataset.structural_label == 'disordered' else 'darkgrey',
-                                                                 zorder=2 if dataset.structural_label == 'disordered' else 1)
+                                                                 zorder=2 if dataset.structural_label == 'disordered' else 0)
+                    if i == 4:
+                        par1.plot((x, x), (0, 0.25), 'k:', zorder=0, alpha=1)
+                    if i == 6:
+                        par1.plot((x, x), (0, 0.25), 'k:', zorder=0, alpha=1)
+                    if i == 9:
+                        par1.plot((x, x), (0, 0.25), 'k:', zorder=0, alpha=1)
+
             host.axis["left"].label.set_color(p1.get_color())
             par3.axis["left"].label.set_color('darkgrey')
             par1.axis["right"].label.set_color(p2.get_color())
             par2.axis["right"].label.set_color(p3.get_color())
-                    
+
             #host.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
             #          columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             host.set_xscale('log')
@@ -840,8 +855,8 @@ class plot_mbar_data(object):
             par2.set_ylabel(r"$|\langle \bf{x} \rangle - \bf{x}_0|$")
             par3.set_ylabel(r"$Z$")
             host.set_xlim((1e-6,2e-1))
-            par1.set_ylim((0,0.25))
-            par2.set_ylim((0,1.3))
+            # par1.set_ylim((0,0.25))
+            # par2.set_ylim((0,1.3))
             par3.set_ylim((7.5,12.5))
             fig9.savefig(os.path.join(self.figdir, 'poly_q12.pdf'))
             
@@ -1074,7 +1089,7 @@ class plot_mbar_data(object):
         return ax, xlabel, ylabel
     
 if __name__ == "__main__":
-    show = True
+    show = False
     pts_mbar = MBARBasinAnalysis(import_diffusion_config=True)
     pts_tint = TINTBasinAnalysis()
     pts_mbar.collect_data_every_set_all(data_name="mbar_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')

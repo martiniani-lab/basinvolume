@@ -197,40 +197,114 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         success = self._generate_packing_coords() #returns false if saddle
         
         if success:
-            self._find_rattlers()
-            #strips the integer unique identifier out of fname
             n = int(re.search(r'\d+',fname).group())
             self._print(n)
         
         self.iteration+=1
     
     def _find_rattlers(self):
-        hess = self.potential.getHessian(self.coords)
-        for i in xrange(self.nparticles):
-            i1 = self.bdim*i
-            hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
-            w, v = np.linalg.eig(hess_block)
-            w = np.real(w)
-            self.rattlers[i] = np.amin(np.absolute(w))
-            self.rattlers_draw[i] = float(self.rattlers[i] >= self.rattler_eval_tol)
-            if self.rattlers_draw[i] < 1:
-                print 'zero eigenvalue, particle {}'.format(i)
-                print w
-#            rattler = np.less_equal(np.absolute(w),self.rattler_eval_tol)
-#            #self.rattlers[i] = float(not True in rattler)
-#            if True in rattler:
-#                self.rattlers[i] = 0.
-#                print 'zero eigenvalue, particle {}'.format(i)
-#                print w
-#            else:
-#                self.rattlers[i] = 1.
+        """
+        finish this, I need to remove the rattler and break. Also need to get compare to existing jammed_packing option
+        :return:
+        """
+        if self.bdim == 2:
+            zmin = 3
+        elif self.bdim == 3:
+            zmin = 4
+        else:
+            raise NotImplemented
+
+        def get_index(x):
+            # x is a 3 array with the coordinates of the particles
+            dij = np.zeros(self.bdim)
+            dmin = np.amin(self.hs_radii)/10.
+            for j in xrange(self.nparticles):
+                for k in xrange(self.bdim):
+                    #use distances to nearest image convention
+                    dij[k] = ((self.coords[j*self.bdim+k] - x[k]) -
+                              cround((self.coords[j*self.bdim+k] - x[k]) / self.boxv[k]) * self.boxv[k])
+                if np.linalg.norm(dij) < dmin:
+                    return j
+
+        coords = np.array(self.coords)
+        hs_radii = np.array(self.hs_radii)
+        block_evalues = np.empty((self.nparticles, self.bdim))
+        look = True
+        nratls = 0
+        while look:
+            print "restarting loop"
+            found_rattler = False
+            if nratls > self.max_nrattlers:
+                return False
+            potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
+                               radii=hs_radii, boxvec=self.boxv, ndim=self.bdim)
+            hess = potential.getHessian(coords)
+            radii = hs_radii*(1.+self.sca)
+            contact_list = self._find_nearest_neighbors(coords, radii)
+            for i in xrange(len(hs_radii)):
+                i1 = self.bdim*i
+                no_neighbors = len(contact_list[i])
+                # print "no_neighbors", no_neighbors
+                if no_neighbors < zmin:
+                    w = np.zeros(self.bdim)
+                    # print "particle {} is not isostatic".format(i)
+                else:
+                    hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
+                    w, v = np.linalg.eig(hess_block)
+                    w = np.real(w)
+                #here assign correct index by searchin for the corresponding atom
+                j = get_index(coords[i1:i1+self.bdim])
+                self.rattlers[j] = np.amin(w)
+                self.rattlers_draw[j] = float(self.rattlers[j] >= self.rattler_eval_tol)
+                block_evalues[j] = w
+                if self.rattlers_draw[j] < self.rattler_eval_tol:
+                    nratls += 1
+                    coords = np.delete(coords, [i1+k for k in xrange(self.bdim)]) #remove particle from array
+                    hs_radii = np.delete(hs_radii, [i]) #remove particle from array
+                    # print 'zero eigenvalue, particle {}'.format(j)
+                    # print w
+                    found_rattler = True
+                    break
+            look = True if found_rattler else False
+        #now look at validity of the packing, first check that it's a minimum
+        w, v = np.linalg.eig(hess)
+        w = np.real(w)
+        if np.any(w < -1e-7):
+            print 'e: {} eigenvalue < -1e-7'.format(np.amin(w))
+            return False
+        #check that the hessian has the correct number of 0 eigenvalues
+        full0evals = [x for x in w if np.abs(x) < 1e-9]
+        if len(full0evals) > self.bdim:
+            print 'hessian 0s mismatch bdim 0s, found ', len(full0evals), full0evals
+            return False
+        self.block_evalues.extend(block_evalues.flatten())
+        self.whole_evalues.extend(w)
+        return True
+
+    def _find_nearest_neighbors(self, coords, radii):
+        nparticles = radii.size
+        nnatoms_list = [[] for _ in xrange(nparticles)]
+        for i in xrange(nparticles):
+            for j in xrange(i, nparticles):
+                if i != j:
+                    dij = np.zeros(self.bdim)
+                    for k in xrange(self.bdim):
+                        #use distances to nearest image convention
+                        dij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) -
+                                           cround((coords[j*self.bdim+k] - coords[i*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
+                    dijnorm = np.linalg.norm(dij)
+                    dmin = radii[i] + radii[j]
+                    if dijnorm <= dmin:
+                        nnatoms_list[i].append(dij)
+                        nnatoms_list[j].append(-dij)
+        return nnatoms_list
     
     
     def _generate_packing_coords(self):
         """
         perform quench and run tests
         """
-        success = self._generate_packing_coords_iteration(tol=1e-7)
+        success = self._generate_packing_coords_iteration(tol=1e-9)
         return success
     
     def _generate_packing_coords_iteration(self, tol=1e-7, iprint=-1):
@@ -254,34 +328,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
             print 'overlap found'
-            return False 
-        
-        #analyse packing, assert that the whole system has only 3 0'evalues + a 0 evalue for each rattler 0 evalue
-        hess = self.potential.getHessian(self.coords)
-        ratt0evals= []
-        nratls = 0
-        for i in xrange(self.nparticles):
-            i1 = self.bdim*i
-            hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
-            w, v = np.linalg.eig(hess_block)
-            w = np.real(w)
-            if np.any(w < self.rattler_eval_tol):
-                nratls += 1
-            ratt0evals.extend([x for x in w if abs(x) < self.rattler_eval_tol]) #append to array of zero evalues due to rattlers
-            self.block_evalues.extend(w) 
-        
-        w, v = np.linalg.eig(hess)
-        w = np.real(w)
-        full0evals = [x for x in w if abs(x) < 1e-6]
-        if len(full0evals) - len(ratt0evals) > self.bdim:
-            print 'hessian 0s mismatch rattlers 0s'
             return False
-        self.whole_evalues.extend(w)
-          
-        print "nrattlers: {}".format(nratls)
-        if nratls > self.max_nrattlers:
-            print '{} rattlers constitute more than 10% of the system'.format(nratls)
-            return False 
 
 #        if the mismatch test works correctly there is no need to test for negative eigenvalues 
 #        because the negative eigenvalue that makes the test fail might (and probably will) belong 
@@ -291,9 +338,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 #        if np.any(w < -2.5e-7):
 #            print 'e: {} eigenvalue < -2.5e-7'.format(np.amin(w))
 #            return False
-        
-        return True
-    
+
+        return self._find_rattlers()
+
     def _get_particles_volume(self):
         """returns volume of n=self.bdim dimensional sphere"""
         volumes = volume_nball(self.hs_radii,self.bdim)

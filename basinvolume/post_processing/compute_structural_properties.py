@@ -210,7 +210,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                         dij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) -
                                            cround((coords[j*self.bdim+k] - coords[i*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
                     dijnorm = np.linalg.norm(dij)
-                    dmin = hs_radii[i]+ hs_radii[j]
+                    dmin = hs_radii[i] + hs_radii[j]
                     if dijnorm <= dmin:
                         nnatoms_list[i].append(dij)
                         nnatoms_list[j].append(-dij)
@@ -245,13 +245,16 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
+        contacts_list = self.find_nearest_neighbors(coords, hs_radii)
         if not self.solid_angle_weighted:
-            nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)
+            nnatoms_list = contacts_list
         else:
             nnatoms_list, weights_all = self.find_nearest_neighbors_solid_angle(coords, hs_radii)
+
         boo_list = []
         z_list = []
         for i in xrange(hs_radii.size):
+            contacts_vec = contacts_list[i]
             nnatoms_vec = nnatoms_list[i]
             weights = None
             if weights_all is not None:
@@ -259,12 +262,16 @@ class BondOrientationalOrder(StructuralAnalysis):
             if len(nnatoms_vec) > 0:
                 boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg, weights=weights)
                 boo_list.append(boo)
-                z_list.append(len(nnatoms_vec))
+            else:
+                #rattlers
+                boo_list.append(0)
+            if len(contacts_vec) > 0:
+                z_list.append(len(contacts_vec))
             else:
                 #rattlers
                 z_list.append(0)
-                boo_list.append(0)
         return np.array(boo_list), np.array(z_list)
+
 
 class PressureTensor(StructuralAnalysis):
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 

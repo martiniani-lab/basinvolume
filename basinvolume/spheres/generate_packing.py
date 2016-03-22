@@ -3,7 +3,7 @@ import numpy as np
 import abc
 from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
 from pele.potentials import HS_WCA
-from pele.optimize._quench import lbfgs_cpp
+from pele.optimize._quench import lbfgs_cpp, modifiedfire_cpp
 from basinvolume.utils import *
 from numpy.random import RandomState
 import argparse
@@ -367,14 +367,18 @@ class HS_Generate_Packing(_Generate_Packing):
         it generates an initial set of coordinates from a HSWCA quench,
         the HSWCA particles are then substitued by HS
         """
-        pot = HS_WCA(use_periodic=True, eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
-        overlap = True    
+        pot = HS_WCA(use_periodic=True, eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
+                     ndim=self.bdim, use_cell_lists=True)
+        overlap = True
         while overlap == True:
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords, pot, nsteps=1e6, tol=1e-8)
+            res = lbfgs_cpp(coords, pot, nsteps=1e4, tol=1e-5, iprint=0)
             self.coords = np.array(res.coords)
             #check that no two particles are overlapping (using nearest image convention)
-            overlap = not self._check_no_overlaps()
+            if res.success:
+                overlap = not self._check_no_overlaps()
+            else:
+                overlap = True
             print "overlap",overlap
     
     def _initialise_coords_crystal(self):
