@@ -2,7 +2,7 @@ from __future__ import print_function
 import numpy as np
 import sys
 import warnings
-from pele.potentials import Harmonic, HS_WCA, InversePowerStillinger
+from pele.potentials import Harmonic, HS_WCA, InversePowerStillingerCut
 from pele.optimize import ModifiedFireCPP
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import RandomCoordsDisplacement
@@ -117,8 +117,10 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                                    )
         elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
             pow = self.extra_pot_kwargs['pow']
-            a = self.extra_pot_kwargs['a']
-            pot_optimizer = InversePowerStillinger(pow, a=a, ndim=self.bdim, boxvec=self.boxv)
+            rcut = self.extra_pot_kwargs["rcut"]
+            pot_optimizer = InversePowerStillingerCut(pow,
+                self.stillinger_a_radii, ndim=self.bdim,
+                boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
         else:
             raise NotImplementedError
         return pot_optimizer

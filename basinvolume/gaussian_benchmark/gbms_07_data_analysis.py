@@ -1,5 +1,6 @@
 from __future__ import division
 
+import argparse as ap
 import collections
 import copy
 import numpy as np
@@ -22,22 +23,59 @@ class TimeSeriesComparison(object):
     ----------
     keys : array
         List of keys to identify the time series.
+    series : array of arrays
+        List of time series.
+    analysis_parameters: dict
+        Parameters required for analysis.
     """
     def __init__(self, keys, series, analysis_parameters):
+        if len(keys) == 2:
+            min_length = np.amin([len(s) for s in series])
+            series = [s[0:min_length] for s in series]
+        self.keys = keys
+        self.series = series
         self.data = dict([(k, s) for k, s in zip(keys, series)])
         self.analysis_parameters = analysis_parameters
         self.long_time_mean = np.mean(np.asarray([s[-1] for s in self.data.values()]))
         self.max_deviation_from_long_mean = np.amax([np.absolute(s[-1] - self.long_time_mean) / self.long_time_mean for s in self.data.values()])
-        if self.max_deviation_from_long_mean > self.analysis_parameters["target_relative_error"]:
-            print("self.max_deviation_from_long_mean", self.max_deviation_from_long_mean)
+        print("self.max_deviation_from_long_mean", self.max_deviation_from_long_mean)
+        if len(keys) > 2 and self.max_deviation_from_long_mean > self.analysis_parameters["target_relative_error"]:
             print("self.analysis_parameters['target_relative_error']", self.analysis_parameters["target_relative_error"])
             raise Exception("Target relative error too low.")
-        self.latest_converged_iteration = dict([(k, self.get_latest_conv_iteration(k)) for k in keys])
-        
+    
+    def compute_conv_it(self):
+        self.latest_converged_iteration = dict([(k, self.get_latest_conv_iteration(k)) for k in self.keys])
+        print("self.latest_converged_iteration", self.latest_converged_iteration)
+                
     def get_latest_conv_iteration(self, k):
         it = len(self.data[k])
         while it > 1:
             if np.absolute(self.data[k][it - 1] - self.long_time_mean) / self.long_time_mean > self.analysis_parameters["target_relative_error"]:
+                return it
+            it -= 1
+        return 0
+        
+class TimeSeriesComparison2(TimeSeriesComparison):
+    """
+    Utils to compare convergence of 2 scalar time series.
+    
+    Parameters
+    ----------
+    keys : array
+        List of keys to identify the time series.
+    series : array of arrays
+        List of time series.
+    analysis_parameters: dict
+        Parameters required for analysis.
+    """
+    def __init__(self, keys, series, analysis_parameters):
+        super(TimeSeriesComparison2, self).__init__(keys, series, analysis_parameters)
+        self.final_delta = np.absolute(self.series[0][-1] - self.series[1][-1])
+    
+    def get_latest_conv_iteration(self, k):
+        it = len(self.data[k])
+        while it > 1:
+            if np.absolute(self.data[k][it - 1] - self.long_time_mean) > self.final_delta:
                 return it
             it -= 1
         return 0
@@ -65,7 +103,12 @@ class SeriesComparison(object):
         comp = None
         print("self.three_series_dir", self.three_series_dir)
         try:
-            comp = TimeSeriesComparison(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+            comp = None
+            if len(self.methods) == 2:
+                comp = TimeSeriesComparison2(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+            else:
+                comp = TimeSeriesComparison(self.methods, [self.get_volume_series(m) for m in self.methods], self.analysis_parameters)
+            comp.compute_conv_it()
             for m in self.methods:
                 converged_iteration = comp.latest_converged_iteration[m]
                 self.write_converged_evaluation(m, converged_iteration)
@@ -122,7 +165,7 @@ class BenchmarkPlot(BasicPlot):
                 # large_basin_results/5/2/0
                 three_series_dir = os.path.join(base_dir, dim, index)
                 self.run_three_series_analysis(three_series_dir)
-                if "brute_res_evals.txt" in os.listdir(three_series_dir):
+                if "traj_res_evals.txt" in os.listdir(three_series_dir):
                     if not int(dim) in self.converged_sets:
                         self.converged_sets[int(dim)] = []
                     self.converged_sets[int(dim)].append(index)
@@ -141,6 +184,8 @@ class BenchmarkPlot(BasicPlot):
     
     def run_three_series_analysis(self, three_series_dir):
         #print(three_series_dir)
+        if self.analysis_parameters["plot_only"]:
+            return
         sc = SeriesComparison(three_series_dir, self.analysis_parameters)
         if sc.incomplete:
             #print("incomplete")
@@ -149,7 +194,8 @@ class BenchmarkPlot(BasicPlot):
         sc.analyse()
     
     def make_plot(self):
-        self.methods_for_plot = [m for m in self.evaluations.keys() if m is not "brute"]
+        #self.methods_for_plot = [m for m in self.evaluations.keys() if m is not "brute"]
+        self.methods_for_plot = ["traj", "ti"]
         self.methods_label_names = dict([("traj", "Trajectories"),
                                          ("ti", "TI")])
         self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
@@ -157,18 +203,22 @@ class BenchmarkPlot(BasicPlot):
             plt.yscale("log")
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
-        plt.xlabel(r"Potential dimensionality, $D$", fontsize=25)
-        plt.ylabel(r"Number of function calls, $N_{EFE}$", fontsize=25)
-        symbols = ["^", "s", "o"]
+        plt.xlabel(r"Potential dimensionality, $D$", fontsize=22)
+        plt.ylabel(r"Number of function calls, $N_{EFE}/10^8$", fontsize=22)
+        symbols = ["s", "^", "o"]
         for i, m in enumerate(self.methods_for_plot):
             print("self.dimensions", self.dimensions)
             print("self.evaluations[m]", self.evaluations[m])
             print("self.nr_samples[m]", self.nr_samples[m])
-            plt.errorbar(self.dimensions, self.evaluations[m],
-                yerr=self.evaluations_error[m], fmt=symbols[i], label=self.methods_label_names[m])
+            eval_plot = np.asarray(self.evaluations[m]) / 10**8
+            yerr_plot = np.asarray(self.evaluations_error[m]) / 10**8
+            plt.errorbar(self.dimensions, eval_plot, yerr=yerr_plot,
+                fmt=symbols[i], label=self.methods_label_names[m])
         plt.legend(loc=2, prop={'size':18})
         plt.tick_params(labelsize=22)
         pdf = PdfPages(self.out_name)
+        # http://stackoverflow.com/questions/18572234/matplotlib-axes-set-aspectequal-doesnt-behave-like-expected
+        plt.axes().set_aspect(1 / plt.axes().get_data_ratio())
         plt.savefig(pdf, format='pdf', bbox_inches='tight')
         pdf.close()
         plt.close()
@@ -183,18 +233,23 @@ def run_analysis(ls_basin_label):
     ls_basin_label : string
         Needs to be "large" or "small" and indicates size label of basin to be computed.
     """
+    p = ap.ArgumentParser()
+    p.add_argument("--plot_only", action="store_true", default=False)
+    args = p.parse_args()
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
     gauss_parameters = dict([("nr_samples", 10),
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
-    analysis_parameters = dict([("target_relative_error", 0.10),
+    analysis_parameters = dict([("target_relative_error", 0.05),
                                 ("subtract_ini_evals", True),
                                 ("logy", False),
-                                ("methods", ["traj", "ti", "brute"])])
+                                ("methods", ["traj", "ti"]),
+                                #("methods", ["traj", "ti", "brute"]),
+                                ("plot_only", args.plot_only)])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),
-                 ("ls_basin_results_dir", os.path.join(os.getcwd(), ls_basin_label + "_basin_results"))])
+                 ("ls_basin_results_dir", os.path.join("/scratch/kjs73/basin_traj_data/", ls_basin_label + "_basin_results"))])
     BenchmarkPlot(gauss_parameters, analysis_parameters, dirs)
 
 if __name__ == "__main__":
