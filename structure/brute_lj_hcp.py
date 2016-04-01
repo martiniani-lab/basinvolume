@@ -1,5 +1,6 @@
 from __future__ import division
 
+import argparse as ap
 import numpy as np
 import os
 
@@ -91,14 +92,16 @@ class BruteComputer(BasicPlot):
 
 if __name__ == "__main__":
     r = 0.5 * (2 ** (1./6.))
-    #r = 0.5
-    log3N = 4
-    N = log3N ** 3
+    p = ap.ArgumentParser()
+    p.add_argument("-Nroot3", type=int, help="N == nroot3 ** 3")
+    p.add_argument("-nr_samples", type=int, help="number of trials")
+    args = p.parse_args()
+    N = args.Nroot3 ** 3
     print("r", r)
     print("2r", 2 * r)
     print("N", N)
-    bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * log3N
-    common_pars = dict([("nr_samples", int(1e3)),
+    bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * args.Nroot3
+    common_pars = dict([("nr_samples", args.nr_samples),
         ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
         ("boxvec", bv)])
     opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9), ("maxstep", 0.1)])
