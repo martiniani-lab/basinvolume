@@ -5,8 +5,8 @@ import os
 
 from pele.optimize import LBFGS_CPP
 from pele.optimize import ModifiedFireCPP
-from pele.optimize import SteepestDescentCPP
 from pele.potentials._lj_cpp import LJCut
+from pele.potentials._lj_cpp import LJCutCellLists
 
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import UniformRectangularSampling
@@ -19,6 +19,7 @@ from basinvolume.utils import to_string
 try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
+    from pele.optimize import SteepestDescentCPP
 except ImportError as err:
     print err
 
@@ -32,11 +33,14 @@ class BruteComputer(BasicPlot):
         self.Q4_pars = Q4_pars
         self.opt_pars = opt_pars
         self.boxvec = self.common_pars["boxvec"]
-        self.optimizer_potential = LJCut(boxvec=self.boxvec)
+        if (0.5 * np.amin(self.boxvec) < 2.5):
+            self.optimizer_potential = LJCut(boxvec=self.boxvec)
+        else:
+            self.optimizer_potential = LJCutCellLists(boxvec=self.boxvec)
         self.x_ini = np.ones(self.common_pars["nr_particles"] * 3)
         #self.optimizer = SteepestDescentCPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
-        self.optimizer = LBFGS_CPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
-        #self.optimizer = ModifiedFireCPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
+        #self.optimizer = LBFGS_CPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"])
+        self.optimizer = ModifiedFireCPP(self.x_ini, self.optimizer_potential, tol=self.opt_pars["tol"], nsteps=self.opt_pars["max_iter"], maxstep=self.opt_pars["maxstep"])
         self.conftest_check_minimum_is_hcp = CheckMinimumIsHCP(optimizer=self.optimizer,
             Q4tol=self.Q4_pars["tol"], boxvec=self.boxvec,
             rcut=self.Q4_pars["rcut"], verbose=self.Q4_pars["verbose"],
@@ -94,10 +98,10 @@ if __name__ == "__main__":
     print("2r", 2 * r)
     print("N", N)
     bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * log3N
-    common_pars = dict([("nr_samples", int(1e6)),
+    common_pars = dict([("nr_samples", int(1e3)),
         ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
         ("boxvec", bv)])
-    opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9)])
+    opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9), ("maxstep", 0.1)])
     Q4_pars = dict([("tol", 0.05), ("rcut", 1.3), ("verbose", False),
         ("fixed_distance_cutoff", False), ("record_histogram", True),
         ("nr_bins", 200)])
@@ -108,3 +112,4 @@ if __name__ == "__main__":
     print("log_volume", c.log_volume)
     print("nr_attempts", c.nr_attempts)
     print(to_string(N, 0) + " " + to_string(common_pars["log_accessible_volume"]) + " " + to_string(common_pars["nr_samples"], 0) + " " + to_string(Q4_pars["tol"]) + " " + to_string(c.log_volume) + " " + to_string(c.nr_attempts))
+    
