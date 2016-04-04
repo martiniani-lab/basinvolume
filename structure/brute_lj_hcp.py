@@ -80,21 +80,22 @@ class BruteComputer(BasicPlot):
         np.savetxt(basic_pars + "_hist_x.txt", hist_x)
         np.savetxt(basic_pars + "_hist_y.txt", hist_y)
         np.savetxt(basic_pars + "_hist_ey.txt", hist_ey)
-        full_hist = BasicPlot()
-        plt.errorbar(hist_x, hist_y, yerr=hist_ey, fmt="s--")
-        plt.xlabel(r"Local bond order $Q_4$")
-        plt.ylabel(r"PDF")
-        # https://philbull.wordpress.com/2012/04/05/drawing-arrows-in-matplotlib/
-        plt.arrow(7/72,  plt.axes().get_ylim()[1], 0, -0.75, fc="k", ec="k", head_width=0.007, head_length=0.2, label="hcp")
-        plt.arrow(0.191, plt.axes().get_ylim()[1], 0, -0.75, fc="k", ec="k", head_width=0.007, head_length=0.2, label="fcc")
-        self.out_name = basic_pars + "_histogram.pdf"
-        self.save_and_close()
+        if self.common_pars["plot"]:
+            plt.errorbar(hist_x, hist_y, yerr=hist_ey, fmt="s--")
+            plt.xlabel(r"Local bond order $Q_4$")
+            plt.ylabel(r"PDF")
+            # https://philbull.wordpress.com/2012/04/05/drawing-arrows-in-matplotlib/
+            plt.arrow(7/72,  plt.axes().get_ylim()[1], 0, -0.75, fc="k", ec="k", head_width=0.007, head_length=0.2, label="hcp")
+            plt.arrow(0.191, plt.axes().get_ylim()[1], 0, -0.75, fc="k", ec="k", head_width=0.007, head_length=0.2, label="fcc")
+            self.out_name = basic_pars + "_histogram.pdf"
+            self.save_and_close()
 
 if __name__ == "__main__":
     r = 0.5 * (2 ** (1./6.))
     p = ap.ArgumentParser()
     p.add_argument("-Nroot3", type=int, help="N == nroot3 ** 3")
     p.add_argument("-nr_samples", type=int, help="number of trials")
+    p.add_argument("--plot", action="store_true", default=False)
     args = p.parse_args()
     N = args.Nroot3 ** 3
     print("r", r)
@@ -103,7 +104,7 @@ if __name__ == "__main__":
     bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * args.Nroot3
     common_pars = dict([("nr_samples", args.nr_samples),
         ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
-        ("boxvec", bv)])
+        ("boxvec", bv), ("plot", args.plot)])
     opt_pars = dict([("tol", 1e-12), ("max_iter", 1e9), ("maxstep", 0.1)])
     Q4_pars = dict([("tol", 0.05), ("rcut", 1.3), ("verbose", False),
         ("fixed_distance_cutoff", False), ("record_histogram", True),
