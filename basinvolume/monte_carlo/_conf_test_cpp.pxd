@@ -10,7 +10,7 @@ cdef extern from "basinvolume/check_hyper_spherical_container.h" namespace "bv":
         
 cdef extern from "basinvolume/check_exponentially_decaying_profile.h" namespace "bv":
     cdef cppclass cppCheckExponentiallyDecayingProfile "bv::CheckExponentiallyDecayingProfile":
-        cppCheckExponentiallyDecayingProfile(_pele.Array[double], double, double, size_t) except+
+        cppCheckExponentiallyDecayingProfile(_pele.Array[double], double, double) except+
 
 cdef extern from "basinvolume/check_hyper_cubic_container.h" namespace "bv":
     cdef cppclass cppCheckHyperCubicContainer "bv::CheckHyperCubicContainer":

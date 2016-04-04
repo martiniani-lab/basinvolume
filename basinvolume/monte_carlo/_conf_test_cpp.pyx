@@ -38,9 +38,9 @@ cdef class _Cdef_CheckExponentiallyDecayingProfile(_Cdef_ConfTest):
     Python interface to the C++ bv::CheckExponentiallyDecayingProfile configuration test implementation.
     """
     cdef cppCheckExponentiallyDecayingProfile* newptr
-    def __cinit__(self, origin, unity_radius, decay_length, ndim):
+    def __cinit__(self, origin, unity_radius, decay_length):
         cdef _pele.Array[double] origin_ = array_wrap_np(origin)
-        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*> new cppCheckExponentiallyDecayingProfile(origin_, unity_radius, decay_length, ndim))
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*> new cppCheckExponentiallyDecayingProfile(origin_, unity_radius, decay_length))
         self.newptr = <cppCheckExponentiallyDecayingProfile*> self.thisptr.get()
     
 class CheckExponentiallyDecayingProfile(_Cdef_CheckExponentiallyDecayingProfile):

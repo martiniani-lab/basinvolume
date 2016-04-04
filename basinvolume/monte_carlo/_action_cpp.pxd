@@ -19,6 +19,12 @@ cdef extern from "basinvolume/record_disp2_histogram.h" namespace "bv":
     cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
         cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t, cbool) except +
         int get_count() except +
+        
+cdef extern from "basinvolume/record_acceptance_histogram.h" namespace "bv":
+    cdef cppclass cppRecordAcceptanceHistogram "bv::RecordAcceptanceHistogram":
+        cppRecordAcceptanceHistogram(_pele.Array[double], double, double, size_t) except+
+        _pele.Array[double] get_acceptance_distance_values() except+
+        _pele.Array[double] get_acceptance_fraction_values() except+
 
 cdef extern from "basinvolume/findk.h" namespace "bv":    
     cdef cppclass cppFindk "bv::Findk":

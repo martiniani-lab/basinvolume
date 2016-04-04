@@ -65,6 +65,46 @@ class RecordDisp2Histogram(_Cdef_RecordDisp2Histogram):
     """This class is the python interface for the c++ RecordDisp2Histogram implementation.
     """
 
+#==========================
+# RecordAcceptanceHistogram
+#==========================
+
+cdef class _Cdef_RecordAcceptanceHistogram(_Cdef_Action):
+    """
+    Python interface to C++ RecordAcceptanceHistogram.
+    """
+    cdef cppRecordAcceptanceHistogram* newptr
+    def __cinit__(self, origin, rmin, rmax, nbins):
+        cdef _pele.Array[double] origin_ = array_wrap_np(origin)
+        self.thisptr = shared_ptr[cppAction](<cppAction*> new cppRecordAcceptanceHistogram(origin_, rmin, rmax, nbins))
+        self.newptr = <cppRecordAcceptanceHistogram*> self.thisptr.get()
+    @cython.wraparound(False) 
+    def get_acceptance_distance_values(self):
+        """return a histogram array"""
+        cdef _pele.Array[double] histi = self.newptr.get_acceptance_distance_values()
+        cdef double *histdata = histi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef size_t i
+        for i in xrange(histi.size()):
+            hist[i] = histdata[i]
+        return hist
+    @cython.wraparound(False) 
+    def get_acceptance_fraction_values(self):
+        """return a histogram array"""
+        cdef _pele.Array[double] histi = self.newptr.get_acceptance_fraction_values()
+        cdef double *histdata = histi.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef size_t i
+        for i in xrange(histi.size()):
+            hist[i] = histdata[i]
+        return hist
+        
+    
+class RecordAcceptanceHistogram(_Cdef_RecordAcceptanceHistogram):
+    """
+    Python interface to above.
+    """
+
 #===============================================================================
 # Findk
 #===============================================================================
