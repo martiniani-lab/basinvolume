@@ -28,9 +28,28 @@ cdef class _Cdef_CheckHyperSphericalContainer(_Cdef_ConfTest):
         
 class CheckHyperSphericalContainer(_Cdef_CheckHyperSphericalContainer):
     """This class is the python interface for the c++ CheckHyperSphericalContainer implementation."""
+    
+#===============================================================================
+# Check exponentially decaying profile
+#===============================================================================
+
+cdef class _Cdef_CheckExponentiallyDecayingProfile(_Cdef_ConfTest):
+    """
+    Python interface to the C++ bv::CheckExponentiallyDecayingProfile configuration test implementation.
+    """
+    cdef cppCheckExponentiallyDecayingProfile* newptr
+    def __cinit__(self, origin, unity_radius, decay_length, ndim):
+        cdef _pele.Array[double] origin_ = array_wrap_np(origin)
+        self.thisptr = shared_ptr[cppConfTest](<cppConfTest*> new cppCheckExponentiallyDecayingProfile(origin_, unity_radius, decay_length, ndim))
+        self.newptr = <cppCheckExponentiallyDecayingProfile*> self.thisptr.get()
+    
+class CheckExponentiallyDecayingProfile(_Cdef_CheckExponentiallyDecayingProfile):
+    """
+    Python interface for above.
+    """
 
 #===============================================================================
-# Check hyper spherical container
+# Check hyper cubic container
 #===============================================================================
 
 cdef class _Cdef_CheckHyperCubicContainer(_Cdef_ConfTest):

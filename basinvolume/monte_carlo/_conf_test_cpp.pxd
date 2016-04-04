@@ -7,6 +7,10 @@ from ctypes import c_size_t as size_t
 cdef extern from "basinvolume/check_hyper_spherical_container.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
         cppCheckHyperSphericalContainer(_pele.Array[double], double, size_t) except +
+        
+cdef extern from "basinvolume/check_exponentially_decaying_profile.h" namespace "bv":
+    cdef cppclass cppCheckExponentiallyDecayingProfile "bv::CheckExponentiallyDecayingProfile":
+        cppCheckExponentiallyDecayingProfile(_pele.Array[double], double, double, size_t) except+
 
 cdef extern from "basinvolume/check_hyper_cubic_container.h" namespace "bv":
     cdef cppclass cppCheckHyperCubicContainer "bv::CheckHyperCubicContainer":
