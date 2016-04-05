@@ -78,7 +78,9 @@ class PackingData(object):
         self.Ptensor = None
         self.Facc = None
         self.Z = None
+        self.Zlist = None
         self.boo = None
+        self.boolist = None
         
     def _import_packing_config_file(self, configpath, configpath_packing):
         configf = ConfigParser.ConfigParser()
@@ -133,7 +135,7 @@ class PackingData(object):
             Ptensor = configf.get(title, 'Ptensor')
             self.Ptensor = np.array([float(x) for x in Ptensor.split()])
     
-    def import_structural_data(self, path, title_boo="BOO", title_z="Z"):
+    def import_structural_data(self, path, path2, title_boo="BOO", title_z="Z"):
         """
         import average contact number and bond orientational order parameters
         """
@@ -150,3 +152,4 @@ class PackingData(object):
                 self.boo = Bunch(Q6=Q6)
             z = configf.getfloat(title_z,'Z')
             self.Z = z
+            self.boolist, self.Zlist = np.loadtxt(path2, unpack=True)

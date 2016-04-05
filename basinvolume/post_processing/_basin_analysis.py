@@ -17,7 +17,7 @@ class BasinAnalysis(object):
     """
     def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
                  analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data", 
-                 zboo_file="glob_boo", volume_title = "VOLUME_FULL_PT"):
+                 zboo_file="glob_boo", zboolist_file="boo_deg6", volume_title = "VOLUME_FULL_PT"):
         if workspace is None:
             workspace = os.getcwd()
         if not os.path.isabs(workspace):
@@ -30,6 +30,7 @@ class BasinAnalysis(object):
         self.analysis_dir = analysis_dir
         self.volume_title = volume_title
         self.zboo_file = zboo_file
+        self.zboolist_file = zboolist_file
         self.iteration = 0
         self.packing_datasets = []
     
@@ -84,7 +85,8 @@ class BasinAnalysis(object):
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
-                    pd.import_structural_data(path)
+                    path2 = os.path.join(base_directory_path, self.analysis_dir, self.zboolist_file)
+                    pd.import_structural_data(path, path2)
                     pd_list.append(pd)
         packing_dataset.add_data_all(pd_list)
         return packing_dataset
@@ -129,7 +131,8 @@ class BasinAnalysis(object):
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
-                    pd.import_structural_data(path)
+                    path2 = os.path.join(base_directory_path, self.analysis_dir, self.zboolist_file)
+                    pd.import_structural_data(path, path2)
                     pd_list.append(pd)
         packing_dataset.add_data_structure(pd_list)
         return packing_dataset
