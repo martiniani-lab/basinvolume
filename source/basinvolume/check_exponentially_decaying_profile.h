@@ -25,7 +25,6 @@ public:
         const double r2 = pele::dot(tmp, tmp);
         return std::uniform_real_distribution<double>{0, 1}(m_generator) < get_profile_value(r2);
     }
-private:
     double get_profile_value(const double r2) const
     {
         if (r2 < m_unity_radius2) {

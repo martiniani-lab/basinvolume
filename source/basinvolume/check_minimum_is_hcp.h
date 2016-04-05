@@ -90,7 +90,6 @@ public:
     }
     double get_abs2_qlm(const pele::Array<double>& x, const size_t particle_index, const int m) const
     {
-        const size_t nr_particles = x.size() / m_boxdim;
         std::vector<size_t> neighbours;
         std::vector<double> weights;
         get_neighbours(x, particle_index, neighbours, weights);

@@ -45,7 +45,7 @@ TEST(Q4HCP, Works)
         }
     }
     const double q4_comp = c.get_Q4(x, 22);
-    EXPECT_DOUBLE_EQ(q4_true, q4_comp);
+    EXPECT_NEAR(q4_true, q4_comp, 1e-15);
 }
 
 TEST(Q4HCPConfTest, Works)
