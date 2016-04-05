@@ -45,7 +45,7 @@ def get_color_cycle2():
     color_cycle=cycle([cm(1. * i / 13) for i in xrange(13)][:-1:4])
     return color_cycle
 def get_marker_cycle():
-    markers = ["o","v","s","x","^","8","p","<","*","D",">",]
+    markers = ["o","v","s","h","^","8","p","<","*","D",">",]
     markercycle = cycle(markers)
     return markercycle
 def get_line_cycle():
@@ -242,7 +242,8 @@ class TINTBasinAnalysis(BasinAnalysis):
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
-                    pd.import_structural_data(path)                   
+                    path2 = os.path.join(base_directory_path, self.analysis_dir, self.zboolist_file)
+                    pd.import_structural_data(path, path2)
                     pd_list.append(pd)
         packing_dataset.add_data_all(pd_list)
         return packing_dataset
@@ -409,7 +410,8 @@ class MBARBasinAnalysis(BasinAnalysis):
                         path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                         pd.import_pressure_data(path)
                         path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
-                        pd.import_structural_data(path)
+                        path2 = os.path.join(base_directory_path, self.analysis_dir, self.zboolist_file)
+                        pd.import_structural_data(path, path2)
                         path = os.path.join(base_directory_path, self.analysis_dir)
                         pd.import_dos_data(path)
                         if self.import_diffusion:
@@ -456,18 +458,19 @@ class plot_mbar_data(object):
                     y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
                     print len(x), len(y)
                     x = np.log(x)
-                    ax.scatter(x, y, label='{} {}'.format(structural_label, poly), color=color_cycle.next(), 
-                               marker=marker_cycle.next(), s=70)
+                    ax.scatter(x, y, color=color_cycle.next(), marker=marker_cycle.next(), s=70,
+                               label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
+                               alpha=0.7)
                     #fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
                     #fit_err = np.sqrt(np.diag(cov))
                     #fit_fn = np.poly1d(fit)
                     #ax.plot(x, fit_fn(x), color='k')
                     #dataset.add_extras((fit, fit_err))
                     #print dataset.extras
-            ax.legend(frameon=False, loc='upper left', prop={'size':20}, numpoints=1, scatterpoints=1, 
-                      markerscale=1, columnspacing=0.5, labelspacing=0.5)
+            ax.legend(fancybox=True, framealpha=0.5, loc=2, prop={'size':18}, numpoints=1, markerscale=1,
+                      columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=1, scatterpoints = 1)
             plt.ylabel(r"$F$")
-            plt.xlabel(r"$\log \mathcal{P}$")
+            plt.xlabel(r"$\ln \mathcal{P}$")
             fig.savefig(os.path.join(self.figdir, 'f_logp.pdf'))
         if False:
             #self.plot_all(plot_type="log_gr", average=True)
@@ -557,7 +560,7 @@ class plot_mbar_data(object):
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig3.savefig(os.path.join(self.figdir, 'maxr_cdf.pdf'))
             
-        if False:
+        if True:
             #plot correlation between volume and volume of core region
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
@@ -578,23 +581,27 @@ class plot_mbar_data(object):
                             log_tot_vol.append(packing.F)
                         else:
                             print packing.configpath_packing
-                    ax4.scatter(-np.array(log_core_vol), np.array(log_tot_vol), color=color_cycle.next(), 
+                    ax4.scatter(-np.array(log_core_vol), np.array(log_tot_vol), color=color_cycle.next(),
                                 marker=marker_cycle.next(), s=70,
-                                label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly))
-                    ax42.scatter(np.log(dataset.pressures), -np.array(log_core_vol), color=color_cycle.next(), 
-                                marker=marker_cycle.next(), s=70,
-                                label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly))
-            ax4.set_xlabel(r'$-\log(V_{c})$')
-            ax4.set_ylabel(r'$-\log(V_{t})$')
-            ax4.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
-                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
+                                label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
+                                alpha=0.7)
+                    ax42.scatter(np.log(dataset.pressures), -np.array(log_core_vol), color=color_cycle.next(),
+                                 marker=marker_cycle.next(), s=70,
+                                 label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
+                                 alpha=0.7)
+
+
+            ax4.set_xlabel(r'$-\ln(V_{c})$')
+            ax4.set_ylabel(r'$-\ln(V_{t})$')
+            ax4.legend(fancybox=True, framealpha=0.5, loc="best", prop={'size':18}, numpoints=1, markerscale=1,
+                       columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=1, scatterpoints = 1)
             fig4.savefig(os.path.join(self.figdir, 'core_tot_vol_correlations.pdf'))
-            ax42.set_ylabel(r'$-\log(V_{c})$')
-            ax42.set_xlabel(r'$\log\mathcal{P}$')
-            ax42.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
-                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
+            ax42.set_ylabel(r'$-\ln(V_{c})$')
+            ax42.set_xlabel(r'$\ln\mathcal{P}$')
+            ax42.legend(fancybox=True, framealpha=0.5, loc="best", prop={'size':18}, numpoints=1, markerscale=1,
+                        columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=1, scatterpoints = 1)
             fig42.savefig(os.path.join(self.figdir, 'core_vol_p_correlations.pdf'))
-        if False:
+        if True:
             #plot comparison between tint and mbar
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
@@ -609,12 +616,14 @@ class plot_mbar_data(object):
                     ax5.errorbar(mbar_dataset.free_energies, tint_dataset.free_energies, 
                                  xerr=mbar_dataset.free_energies_err, yerr=tint_dataset.free_energies_err, 
                                  color=color_cycle.next(), linestyle="None", marker=marker_cycle.next(), markersize=15,
-                                 label='{} {:.3E}'.format(mbar_dataset.structural_label, mbar_dataset.hs_poly))
+                                 label='{} {:.1E}'.format(mbar_dataset.structural_label[:3], mbar_dataset.hs_poly),
+                                 alpha=0.7, markeredgecolor='none')
+
             ax5.plot(np.linspace(75,110,10),np.linspace(75,110,10),color='k',linestyle='-')
-            ax5.set_xlabel(r'$-\log(V_{mbar})$')
-            ax5.set_ylabel(r'$-\log(V_{tint})$')
-            ax5.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
-                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
+            ax5.set_xlabel(r'$-\ln(V_{mbar})$')
+            ax5.set_ylabel(r'$-\ln(V_{tint})$')
+            ax5.legend(fancybox=True, framealpha=0.5, loc=2, prop={'size':18}, numpoints=1, markerscale=1,
+                      columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=1, scatterpoints = 1)
             fig5.savefig(os.path.join(self.figdir, 'mbar_tint_comparison.pdf'))
         
         if False:
@@ -652,13 +661,13 @@ class plot_mbar_data(object):
                         csv_tuple = np.array([np.log(x), dx/x+dy/y, redy, dy/y, np.zeros(len(x))]).transpose() #redy - np.amax(redy)
                         ax7 = self._plot(ax7, csv_tuple, label=label, plot_err=True, plot_fit=False,
                                          color=color, marker=marker, ls=ls)
-            ax6.set_ylabel(r'$\log(\Delta r)$')
-            ax6.set_xlabel('$\log (\Delta s)$')
+            ax6.set_ylabel(r'$\ln(\Delta r)$')
+            ax6.set_xlabel('$\ln (\Delta s)$')
             ax6.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig6.savefig(os.path.join(self.figdir, 'diffusion_logs_logr.pdf'))
-            ax7.set_ylabel(r'$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$')
-            ax7.set_xlabel(r'$\log (\Delta s)$')
+            ax7.set_ylabel(r'$\ln(\Delta r) - \frac{1}{2}\ln(\Delta s)$')
+            ax7.set_xlabel(r'$\ln (\Delta s)$')
             ax7.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig7.savefig(os.path.join(self.figdir, 'diffusion_logs_logr_red.pdf'))
@@ -744,7 +753,7 @@ class plot_mbar_data(object):
             ax8.set_ylim((-265,5))
             ax9.set_xlim((0,8))
             ax8.set_xlabel(r'$r$')
-            ax8.set_ylabel(r'$\log(h(r)/r^{N-1})$')
+            ax8.set_ylabel(r'$\ln(h(r)/r^{N-1})$')
             ax8.legend(fancybox=True, framealpha=0.5, loc="best", prop={'size':18}, numpoints=1, markerscale=1, 
                        columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=1)
             #ax9.set_xlabel(r'$r$')
@@ -797,12 +806,18 @@ class plot_mbar_data(object):
                     boo = []
                     for bunch in dataset.boos:
                         boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
-                    boo12 = np.array(boo)[:,4]
+                    contacts_list = []
+                    boo_list = []
+                    for packing in dataset.packing_data:
+                        contacts_list.extend(packing.Zlist)
+                        boo_list.extend(packing.boolist)
+                    boo12 = np.array(boo)[:, 1]
                     y = [np.mean(boo12)]
-                    yerr = [np.std(boo12)/np.sqrt(boo12.size-1)]
+                    boo_std = [np.std(boo_list)]
+                    # yerr = [np.std(boo12)/np.sqrt(boo12.size-1)] this is not an error, is an exact structural indicator
                     x = [dataset.hs_poly]
                     # compute the mean as a weighted mean and the standard error from the weighted average
-                    p1, caplines1, barlinecols1 =  host.errorbar(x, [np.mean(np.array(boo)[:,1])], yerr=yerr, 
+                    p1, caplines1, barlinecols1 =  host.errorbar(x, [np.mean(np.array(boo)[:,1])], yerr=boo_std,
                                                                  marker=marker[0], ms=9, label=None, color=color[0], 
                                                                  markeredgecolor=color[0], mew=2,
                                                                  markerfacecolor='none' if dataset.structural_label == 'disordered' else color[0],
@@ -826,17 +841,19 @@ class plot_mbar_data(object):
                                                                 markeredgecolor=color[2], mew=2,
                                                                 markerfacecolor='none' if dataset.structural_label == 'disordered' else color[2],
                                                                 zorder=2 if dataset.structural_label == 'disordered' else 1)
-                    p4, caplines4, barlinecols4 =  par3.errorbar(x, [np.mean(dataset.contacts)], yerr=[np.std(dataset.contacts)/np.sqrt(len(dataset.contacts)-1)],
-                                                                 marker=marker[3], ms=9, label=None, color='darkgrey',
-                                                                 markeredgecolor='darkgrey', mew=2,
-                                                                 markerfacecolor='none' if dataset.structural_label == 'disordered' else 'darkgrey',
-                                                                 zorder=2 if dataset.structural_label == 'disordered' else 0)
+                    std_contacts = [np.std(contacts_list)]
+                    # yerr=[np.std(dataset.contacts)/np.sqrt(len(dataset.contacts)-1)] this is not an error, so can't do it this way
+                    p4, caplines4, barlinecols4 = par3.errorbar(x, [np.mean(dataset.contacts)], yerr=std_contacts,
+                                                                marker=marker[3], ms=9, label=None, color='darkgrey',
+                                                                markeredgecolor='darkgrey', mew=2,
+                                                                markerfacecolor='none' if dataset.structural_label == 'disordered' else 'darkgrey',
+                                                                zorder=2 if dataset.structural_label == 'disordered' else 0)
                     if i == 4:
-                        par1.plot((x, x), (0, 0.25), 'k:', zorder=0, alpha=1)
+                        par1.plot((x, x), (0, 0.3), 'k:', zorder=0, alpha=1)
                     if i == 6:
-                        par1.plot((x, x), (0, 0.25), 'k:', zorder=0, alpha=1)
+                        par1.plot((x, x), (0, 0.3), 'k:', zorder=0, alpha=1)
                     if i == 9:
-                        par1.plot((x, x), (0, 0.25), 'k:', zorder=0, alpha=1)
+                        par1.plot((x, x), (0, 0.3), 'k:', zorder=0, alpha=1)
 
             host.axis["left"].label.set_color(p1.get_color())
             par3.axis["left"].label.set_color('darkgrey')
@@ -857,7 +874,7 @@ class plot_mbar_data(object):
             host.set_xlim((1e-6,2e-1))
             # par1.set_ylim((0,0.25))
             # par2.set_ylim((0,1.3))
-            par3.set_ylim((7.5,12.5))
+            par3.set_ylim((5,12.5))
             fig9.savefig(os.path.join(self.figdir, 'poly_q12.pdf'))
             
     def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True, logx=False):
@@ -908,7 +925,7 @@ class plot_mbar_data(object):
                         label = None
                     ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, color=color, ls=ls, alpha=alpha)
             xlabel=r'$r$'
-            ylabel=r'$\log(h(r))$'
+            ylabel=r'$\ln(h(r))$'
         if plot_type == "log_gr_ratio":
             if average:
                 log_gr_ratio = mbar_data.log_gr_ratio_mean
@@ -920,7 +937,7 @@ class plot_mbar_data(object):
                         label = None
                     ax = self._plot(ax, arr, label=label, plot_err=False, plot_fit=False, color=color, ls=ls, alpha=alpha)
             xlabel=r'$r$'
-            ylabel=r'$\log(h(r)/r^{N-1})$'
+            ylabel=r'$\ln(h(r)/r^{N-1})$'
             if average:
                 ax.set_ylim((-60,2))
                 ax.set_xlim((0,2))
@@ -1009,7 +1026,7 @@ class plot_mbar_data(object):
             boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
         boo = np.array(boo)
         z_numbers = mbar_data.contacts
-        xlabel=r'$-\log(p)=f_i+f_{acc}$'
+        xlabel=r'$-\ln(p)=f_i+f_{acc}$'
         
         #volume-moments correlations
         if plot_type == "f_m0":

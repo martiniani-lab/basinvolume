@@ -266,6 +266,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 no_neighbors = len(contact_list[i])
                 # print "no_neighbors", no_neighbors
                 if no_neighbors < zmin:
+                    hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
+                    w, v = np.linalg.eig(hess_block)
+                    print no_neighbors, w
                     w = np.zeros(self.bdim)
                     # print "particle {} is not isostatic".format(i)
                 else:
@@ -293,7 +296,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             print 'e: {} eigenvalue < -1e-7'.format(np.amin(w))
             return False
         #check that the hessian has the correct number of 0 eigenvalues
-        full0evals = [x for x in w if np.abs(x) < 1e-9]
+        full0evals = [x for x in w if np.abs(x) < 1e-7]
         if len(full0evals) > self.bdim:
             print 'hessian 0s mismatch bdim 0s, found ', len(full0evals), full0evals
             return False
@@ -324,7 +327,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """
         perform quench and run tests
         """
-        success = self._generate_packing_coords_iteration(tol=1e-9)
+        success = self._generate_packing_coords_iteration(tol=1e-7)
         return success
     
     def _generate_packing_coords_iteration(self, tol=1e-7, iprint=-1):
@@ -349,15 +352,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if not no_overlap:
             print 'overlap found'
             return False
-
-#        if the mismatch test works correctly there is no need to test for negative eigenvalues 
-#        because the negative eigenvalue that makes the test fail might (and probably will) belong 
-#        to a rattler, in which case who cares. If it does not belong to a rattler then the mismatch 
-#        test will fail anyway first, so I am going to remove this test.
-#        #check that there isn't any significantly negative evalue
-#        if np.any(w < -2.5e-7):
-#            print 'e: {} eigenvalue < -2.5e-7'.format(np.amin(w))
-#            return False
 
         return self._find_rattlers()
 
@@ -421,8 +415,22 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _dump_configuration(self,n):
         """write coordinates to file .xyzdr"""
-        coords = self._correct_coords()
         directory = self.base_directory
+        #compare to existing file (dirty hack)
+        # if False:
+        #     if self.bdim == 2:
+        #         fname = "{0}/jammed_packing{1}.xydr".format(directory, n)
+        #         coords, hs_diameters, rattlers = read_xydr(fname)
+        #     elif self.bdim == 3:
+        #         fname = "{0}/jammed_packing{1}.xyzdr".format(directory, n)
+        #         coords, hs_diameters, rattlers = read_xyzdr(fname)
+        #     old_nratls = len([x for x in rattlers if np.abs(x) < self.rattler_eval_tol])
+        #     new_nratls = len([x for x in self.rattlers if np.abs(x) < self.rattler_eval_tol])
+        #     if new_nratls != old_nratls:
+        #         with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
+        #             f.write('jammed_packing{}\n'.format(n))
+        #dump configuration
+        coords = self._correct_coords()
         if self.bdim == 2:
             fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
             f = open(fname,'w')
