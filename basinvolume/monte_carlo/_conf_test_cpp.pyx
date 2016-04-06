@@ -1,10 +1,15 @@
 # distutils: language = c++
 # distutils: sources = ['check_same_minimum.cpp', 'check_hyper_spherical_container.cpp'] 
 
+from __future__ import division
+
 cimport cython
 import sys
 import numpy as np
 cimport numpy as np
+from scipy.special import gamma
+from scipy.special import rgamma
+from scipy.special import gammaincc
 from pele.potentials import _pele
 from pele.storage import Database
 from pele.storage.database import Minimum
@@ -40,8 +45,21 @@ cdef class _Cdef_CheckExponentiallyDecayingProfile(_Cdef_ConfTest):
     cdef cppCheckExponentiallyDecayingProfile* newptr
     def __cinit__(self, origin, unity_radius, decay_length, cbool cubic=False):
         cdef _pele.Array[double] origin_ = array_wrap_np(origin)
+        self.n = len(origin)
+        self.u = unity_radius
+        self.d = decay_length
+        self.cubic = cubic
         self.thisptr = shared_ptr[cppConfTest](<cppConfTest*> new cppCheckExponentiallyDecayingProfile(origin_, unity_radius, decay_length, cubic))
         self.newptr = <cppCheckExponentiallyDecayingProfile*> self.thisptr.get()
+    def get_exact_volume(self):
+        if self.cubic:
+            return (2 * (self.u + self.d)) ** self.n
+        else:
+            return 2 * np.pi ** (self.n / 2) * self.inverse_gamma(self.n / 2) * (self.u ** self.n / self.n + self.d ** self.n * np.exp(self.u / self.d) * self.incomplete_gamma(self.n, self.u / self.d))
+    def inverse_gamma(self, z):
+        return rgamma(z)
+    def incomplete_gamma(self, a, z):
+        return gamma(a) * gammaincc(a, z)
     
 class CheckExponentiallyDecayingProfile(_Cdef_CheckExponentiallyDecayingProfile):
     """

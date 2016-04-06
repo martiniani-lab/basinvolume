@@ -12,4 +12,5 @@ from _conf_test_cpp import CheckSameMinimumConfig
 from _conf_test_cpp import CheckOverlapPeriodicCellLists
 from _conf_test_cpp import CheckOverlapCartesianCellLists
 from _conf_test_cpp import CheckMinimumIsHCP
+from _conf_test_cpp import CheckExponentiallyDecayingProfile
 from _takestep_cpp import SampleUniformSphereGaussian
