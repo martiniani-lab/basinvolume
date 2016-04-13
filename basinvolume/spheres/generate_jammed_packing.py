@@ -423,10 +423,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """
         perform quench and run tests
         """
-        success = self._generate_packing_coords_iteration(tol=1e-8)
+        success = self._generate_packing_coords_iteration(tol=1e-9)
         return success
     
-    def _generate_packing_coords_iteration(self, tol=1e-8, iprint=-1):
+    def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
         """quenches the imported structure using FIRE"""
         fire_maxstep = np.amin(self.hs_radii)*self.sca
         res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
