@@ -13,6 +13,22 @@ try:
 except:
     pass
 
+
+def cartesian_to_polar2d(vector):
+    vector = np.array(vector)
+    r = np.linalg.norm(vector)
+    theta = np.arctan2(vector[1], vector[0]) + np.pi
+    return r, theta
+
+def sum_neighbor_angles2d(neigh_vec):
+    sum_ = 0.
+    for idx in xrange(len(neigh_vec) - 1):
+        sum_ += np.arccos(np.dot(neigh_vec[idx], neigh_vec[idx + 1]) / \
+                         (np.linalg.norm(neigh_vec[idx]) * np.linalg.norm(neigh_vec[idx + 1])))
+    sum_ += np.arccos(np.dot(neigh_vec[-1], neigh_vec[0]) / \
+                     (np.linalg.norm(neigh_vec[-1]) * np.linalg.norm(neigh_vec[0])))
+    return sum_
+
 class _Generate_Jammed_Packing(object):
     """
     this is an abstract class that implements the basic components of a generate packing class,
@@ -120,10 +136,10 @@ class _Generate_Jammed_Packing(object):
         self._dump_configuration(n)
         self._write_opengl_input(n)
     
-    @abc.abstractmethod
-    def _histogram_eigenvalues(self):
-        """ method to plot eigenvalues histograms
-        """
+    # @abc.abstractmethod
+    # def _histogram_eigenvalues(self):
+    #     """ method to plot eigenvalues histograms
+    #     """
     
     @abc.abstractmethod
     def one_iteration(self,fname):
@@ -136,7 +152,7 @@ class _Generate_Jammed_Packing(object):
             if ('xyzd' in fname) or ('xyd' in fname):
                 print "\n",fname
                 self.one_iteration(fname)
-        self._histogram_eigenvalues()
+        # self._histogram_eigenvalues()
             
 class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     """
@@ -150,7 +166,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
-    def __init__(self, packing_frac=0.7, rattler_eval_tol=1.,
+    def __init__(self, packing_frac=0.7, force_tol=1e-3,
         packings_dir='packings', use_cell_lists=False, show=False,
         opt_pot_str='hs_wca', extra_pot_kwargs=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
@@ -159,15 +175,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.extra_pot_kwargs = extra_pot_kwargs
         self.use_cell_lists = use_cell_lists
         ##constants#
-        self.rattler_eval_tol = rattler_eval_tol
+        self.force_tol = force_tol
         ############
-        #histogram variables#
-        self.block_evalues = []
-        self.whole_evalues = []
-        self.nbins = 1000
-        self.nbins_low = 6000
-        self.low_range = (-0.00001,0.00001)
-        self.show = show
     
     def _initialise(self):
         self._print_initialise()
@@ -221,7 +230,111 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             self._print(n)
         
         self.iteration+=1
-    
+
+    # def _find_rattlers(self):
+    #     """
+    #     finish this, I need to remove the rattler and break. Also need to get compare to existing jammed_packing option
+    #     :return:
+    #     """
+    #     if self.bdim == 2:
+    #         zmin = 3
+    #     elif self.bdim == 3:
+    #         zmin = 4
+    #     else:
+    #         raise NotImplemented
+    #
+    #     def get_index(x):
+    #         # x is a 3 array with the coordinates of the particles
+    #         dij = np.zeros(self.bdim)
+    #         dmin = np.amin(self.hs_radii)/10.
+    #         for j in xrange(self.nparticles):
+    #             for k in xrange(self.bdim):
+    #                 #use distances to nearest image convention
+    #                 dij[k] = ((self.coords[j*self.bdim+k] - x[k]) -
+    #                           cround((self.coords[j*self.bdim+k] - x[k]) / self.boxv[k]) * self.boxv[k])
+    #             if np.linalg.norm(dij) < dmin:
+    #                 return j
+    #
+    #     # tesselate packing
+    #     if self.bdim == 2:
+    #         cells = pyvoro.compute_2d_voronoi(coords, limits, dispersion, radii=radii)
+    #     elif self.bdim == 3:
+    #         cells = pyvoro.compute_voronoi(coords, limits, dispersion, radii=radii)
+    #     else:
+    #         raise NotImplementedError("pyvoro bdim={} not implemented".format(self.bdim))
+    #     assert (len(cells) == int(len(self.coords) / self.bdim))
+    #
+    #     coords = np.array(self.coords)
+    #     hs_radii = np.array(self.hs_radii)
+    #     block_evalues = np.empty((self.nparticles, self.bdim))
+    #     look = True
+    #     nratls = 0
+    #     while look:
+    #         print "restarting loop"
+    #         found_rattler = False
+    #         if nratls > self.max_nrattlers:
+    #             return False
+    #         potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
+    #                            radii=hs_radii, boxvec=self.boxv, ndim=self.bdim)
+    #         hess = potential.getHessian(coords)
+    #         radii = hs_radii*(1.+self.sca)
+    #         contact_list = self._find_nearest_neighbors(coords, radii)
+    #         for i in xrange(len(hs_radii)):
+    #             i1 = self.bdim*i
+    #             no_neighbors = len(contact_list[i])
+    #             # print "no_neighbors", no_neighbors
+    #             if no_neighbors < zmin:
+    #                 hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
+    #                 w, v = np.linalg.eig(hess_block)
+    #                 print no_neighbors, w
+    #                 w = np.zeros(self.bdim)
+    #                 # print "particle {} is not isostatic".format(i)
+    #             else:
+    #                 hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
+    #                 w, v = np.linalg.eig(hess_block)
+    #                 w = np.real(w)
+    #             #here assign correct index by searchin for the corresponding atom
+    #             j = get_index(coords[i1:i1+self.bdim])
+    #             self.rattlers[j] = np.amin(w)
+    #             self.rattlers_draw[j] = float(self.rattlers[j] >= self.rattler_eval_tol)
+    #             block_evalues[j] = w
+    #             if self.rattlers_draw[j] < self.rattler_eval_tol:
+    #                 nratls += 1
+    #                 coords = np.delete(coords, [i1+k for k in xrange(self.bdim)]) #remove particle from array
+    #                 hs_radii = np.delete(hs_radii, [i]) #remove particle from array
+    #                 # print 'zero eigenvalue, particle {}'.format(j)
+    #                 # print w
+    #                 found_rattler = True
+    #                 break
+    #         look = True if found_rattler else False
+    #     #now look at validity of the packing, first check that it's a minimum
+    #     w, v = np.linalg.eig(hess)
+    #     w = np.real(w)
+    #     if np.any(w < -1e-7):
+    #         print 'e: {} eigenvalue < -1e-7'.format(np.amin(w))
+    #         return False
+    #     #check that the hessian has the correct number of 0 eigenvalues
+    #     full0evals = [x for x in w if np.abs(x) < 1e-7]
+    #     if len(full0evals) > self.bdim:
+    #         print 'hessian 0s mismatch bdim 0s, found ', len(full0evals), full0evals
+    #         return False
+    #     self.block_evalues.extend(block_evalues.flatten())
+    #     self.whole_evalues.extend(w)
+    #     return True
+
+    # force = np.zeros(self.bdim)
+    # for j, dij in zip(neighbors_index_list[i], contact_list[i]):
+    #     j1 = self.bdim * j
+    #     # DEBUG: this needs to be able to use any particular potential
+    #     pair_pot = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
+    #                       radii=np.array([hs_radii[i], hs_radii[j]]),
+    #                       boxvec=self.boxv, ndim=self.bdim)
+    #     x = np.append(coords[i1:i1 + self.bdim], coords[j1:j1 + self.bdim])
+    #     f = - dij * np.linalg.norm(pair_pot.getEnergyGradient(x)[1]) / np.linalg.norm(dij)
+    #     force += f
+    # print "|f| {}, nn {}".format(np.linalg.norm(force), no_neighbors)
+    # found_rattler = np.linalg.norm(force) > self.force_tol
+
     def _find_rattlers(self):
         """
         finish this, I need to remove the rattler and break. Also need to get compare to existing jammed_packing option
@@ -230,9 +343,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if self.bdim == 2:
             zmin = 3
         elif self.bdim == 3:
-            zmin = 4
+            raise NotImplementedError
+            #zmin = 4
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
         def get_index(x):
             # x is a 3 array with the coordinates of the particles
@@ -248,7 +362,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         coords = np.array(self.coords)
         hs_radii = np.array(self.hs_radii)
-        block_evalues = np.empty((self.nparticles, self.bdim))
         look = True
         nratls = 0
         while look:
@@ -256,57 +369,38 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             found_rattler = False
             if nratls > self.max_nrattlers:
                 return False
-            potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
-                               radii=hs_radii, boxvec=self.boxv, ndim=self.bdim)
-            hess = potential.getHessian(coords)
-            radii = hs_radii*(1.+self.sca)
-            contact_list = self._find_nearest_neighbors(coords, radii)
+            radii = hs_radii * (1. + self.sca)
+            contact_list, neighbors_index_list = self._find_nearest_neighbors(coords, radii)
             for i in xrange(len(hs_radii)):
-                i1 = self.bdim*i
+                i1 = self.bdim * i
                 no_neighbors = len(contact_list[i])
                 # print "no_neighbors", no_neighbors
                 if no_neighbors < zmin:
-                    hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
-                    w, v = np.linalg.eig(hess_block)
-                    print no_neighbors, w
-                    w = np.zeros(self.bdim)
-                    # print "particle {} is not isostatic".format(i)
+                    found_rattler = True
+                    print "particle {} is not isostatic".format(i)
                 else:
-                    hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
-                    w, v = np.linalg.eig(hess_block)
-                    w = np.real(w)
+                    angles = [cartesian_to_polar2d(dij)[1] for dij in contact_list[i]]
+                    neigh_vec = [x for (y, x) in sorted(zip(angles, contact_list[i]))]
+                    sum_ = sum_neighbor_angles2d(neigh_vec)
+                    found_rattler =  np.abs(2*np.pi - sum_) > 1e-10
+                    if found_rattler:
+                        print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
                 #here assign correct index by searchin for the corresponding atom
                 j = get_index(coords[i1:i1+self.bdim])
-                self.rattlers[j] = np.amin(w)
-                self.rattlers_draw[j] = float(self.rattlers[j] >= self.rattler_eval_tol)
-                block_evalues[j] = w
-                if self.rattlers_draw[j] < self.rattler_eval_tol:
-                    nratls += 1
-                    coords = np.delete(coords, [i1+k for k in xrange(self.bdim)]) #remove particle from array
+                self.rattlers[j] = 0 if found_rattler else 1000
+                self.rattlers_draw[j] = float(not found_rattler)
+                if found_rattler:
+                    coords = np.delete(coords, [i1 + k for k in xrange(self.bdim)])  # remove particle from array
                     hs_radii = np.delete(hs_radii, [i]) #remove particle from array
-                    # print 'zero eigenvalue, particle {}'.format(j)
-                    # print w
-                    found_rattler = True
+                    nratls+=1
                     break
             look = True if found_rattler else False
-        #now look at validity of the packing, first check that it's a minimum
-        w, v = np.linalg.eig(hess)
-        w = np.real(w)
-        if np.any(w < -1e-7):
-            print 'e: {} eigenvalue < -1e-7'.format(np.amin(w))
-            return False
-        #check that the hessian has the correct number of 0 eigenvalues
-        full0evals = [x for x in w if np.abs(x) < 1e-7]
-        if len(full0evals) > self.bdim:
-            print 'hessian 0s mismatch bdim 0s, found ', len(full0evals), full0evals
-            return False
-        self.block_evalues.extend(block_evalues.flatten())
-        self.whole_evalues.extend(w)
         return True
 
     def _find_nearest_neighbors(self, coords, radii):
         nparticles = radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]
+        nnatoms_index_list = [[] for _ in xrange(nparticles)]
         for i in xrange(nparticles):
             for j in xrange(i, nparticles):
                 if i != j:
@@ -320,7 +414,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     if dijnorm <= dmin:
                         nnatoms_list[i].append(dij)
                         nnatoms_list[j].append(-dij)
-        return nnatoms_list
+                        nnatoms_index_list[i].append(j)
+                        nnatoms_index_list[j].append(i)
+        return nnatoms_list, nnatoms_index_list
     
     
     def _generate_packing_coords(self):
@@ -481,50 +577,51 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
     
-    def _histogram_eigenvalues(self):
-        #self.eigenvalues = np.array(self.eigenvalues,dtype='d')
-        self.block_evalues = np.real(self.block_evalues)
-        pylab.figure()
-        self.block_histogram, bins = np.histogram(self.block_evalues ,bins=self.nbins)
-        width = bins[1] - bins[0]
-        center = (bins[:-1] + bins[1:]) / 2
-        pylab.bar(center, self.block_histogram, align='center', width=width)
-        pylab.savefig(os.path.join(self.base_directory,'blocks_histogram.eps'))
-        if self.show:
-            pylab.show()
-        pylab.figure()
-        self.block_histogram_low, bins = np.histogram(self.block_evalues ,bins=self.nbins_low, range=self.low_range)
-        width = bins[1] - bins[0]
-        center = (bins[:-1] + bins[1:]) / 2
-        pylab.bar(center, self.block_histogram_low, align='center', width=width)
-        pylab.savefig(os.path.join(self.base_directory, 'blocks_histogram_low{}.eps'.format(self.low_range[1])) )
-        if self.show:
-            pylab.show()
-        
-        self.whole_evalues = np.real(self.whole_evalues)
-        pylab.figure()
-        self.whole_histogram, bins = np.histogram(self.whole_evalues ,bins=self.nbins)
-        width = bins[1] - bins[0]
-        center = (bins[:-1] + bins[1:]) / 2
-        pylab.bar(center, self.whole_histogram, align='center', width=width)
-        pylab.savefig(os.path.join(self.base_directory,'whole_histogram.eps'))
-        if self.show:
-            pylab.show()
-        pylab.figure()
-        self.whole_histogram_low, bins = np.histogram(self.whole_evalues ,bins=self.nbins_low, range=self.low_range)
-        width = bins[1] - bins[0]
-        center = (bins[:-1] + bins[1:]) / 2
-        pylab.bar(center, self.whole_histogram_low, align='center', width=width)
-        pylab.savefig(os.path.join(self.base_directory,'whole_histogram_low{}.eps'.format(self.low_range[1])))
-        if self.show:
-            pylab.show()
+    # def _histogram_eigenvalues(self):
+    #     #self.eigenvalues = np.array(self.eigenvalues,dtype='d')
+    #     self.block_evalues = np.real(self.block_evalues)
+    #     pylab.figure()
+    #     self.block_histogram, bins = np.histogram(self.block_evalues ,bins=self.nbins)
+    #     width = bins[1] - bins[0]
+    #     center = (bins[:-1] + bins[1:]) / 2
+    #     pylab.bar(center, self.block_histogram, align='center', width=width)
+    #     pylab.savefig(os.path.join(self.base_directory,'blocks_histogram.eps'))
+    #     if self.show:
+    #         pylab.show()
+    #     pylab.figure()
+    #     self.block_histogram_low, bins = np.histogram(self.block_evalues ,bins=self.nbins_low, range=self.low_range)
+    #     width = bins[1] - bins[0]
+    #     center = (bins[:-1] + bins[1:]) / 2
+    #     pylab.bar(center, self.block_histogram_low, align='center', width=width)
+    #     pylab.savefig(os.path.join(self.base_directory, 'blocks_histogram_low{}.eps'.format(self.low_range[1])) )
+    #     if self.show:
+    #         pylab.show()
+    #
+    #     self.whole_evalues = np.real(self.whole_evalues)
+    #     pylab.figure()
+    #     self.whole_histogram, bins = np.histogram(self.whole_evalues ,bins=self.nbins)
+    #     width = bins[1] - bins[0]
+    #     center = (bins[:-1] + bins[1:]) / 2
+    #     pylab.bar(center, self.whole_histogram, align='center', width=width)
+    #     pylab.savefig(os.path.join(self.base_directory,'whole_histogram.eps'))
+    #     if self.show:
+    #         pylab.show()
+    #     pylab.figure()
+    #     self.whole_histogram_low, bins = np.histogram(self.whole_evalues ,bins=self.nbins_low, range=self.low_range)
+    #     width = bins[1] - bins[0]
+    #     center = (bins[:-1] + bins[1:]) / 2
+    #     pylab.bar(center, self.whole_histogram_low, align='center', width=width)
+    #     pylab.savefig(os.path.join(self.base_directory,'whole_histogram_low{}.eps'.format(self.low_range[1])))
+    #     if self.show:
+    #         pylab.show()
 
             
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
-    parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
+    parser.add_argument("-f","--ftol", type=float, help="tolerance on particles forces, if fval < ftol "
+                                                        "particle will be considered a rattler",default=1e-3)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
@@ -547,7 +644,7 @@ if __name__ == "__main__":
     
     print("extra_pot_kwargs", extra_pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
-        rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
+        force_tol=args.ftol, packings_dir=args.packingsdir,
         use_cell_lists=args.nocell, show=args.show,
         opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
     sim.run()
