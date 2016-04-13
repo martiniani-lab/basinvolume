@@ -175,7 +175,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.extra_pot_kwargs = extra_pot_kwargs
         self.use_cell_lists = use_cell_lists
         ##constants#
-        self.force_tol = force_tol
         ############
     
     def _initialise(self):
@@ -189,7 +188,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')
         
         self._import_packing_configuration(fname)
-        self.max_nrattlers = int(self.nparticles*0.1)
+        self.max_nrattlers = int(self.nparticles*0.2)
         
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
@@ -424,10 +423,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """
         perform quench and run tests
         """
-        success = self._generate_packing_coords_iteration(tol=1e-7)
+        success = self._generate_packing_coords_iteration(tol=1e-8)
         return success
     
-    def _generate_packing_coords_iteration(self, tol=1e-7, iprint=-1):
+    def _generate_packing_coords_iteration(self, tol=1e-8, iprint=-1):
         """quenches the imported structure using FIRE"""
         fire_maxstep = np.amin(self.hs_radii)*self.sca
         res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
@@ -627,8 +626,6 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
-    parser.add_argument("-f","--ftol", type=float, help="tolerance on particles forces, if fval < ftol "
-                                                        "particle will be considered a rattler",default=1e-3)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
@@ -651,7 +648,7 @@ if __name__ == "__main__":
     
     print("extra_pot_kwargs", extra_pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
-        force_tol=args.ftol, packings_dir=args.packingsdir,
+        packings_dir=args.packingsdir,
         use_cell_lists=args.nocell, show=args.show,
         opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
     sim.run()
