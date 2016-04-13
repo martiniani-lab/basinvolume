@@ -525,8 +525,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             n_old_nratls = (len(rattlers) - np.count_nonzero(rattlers))//self.bdim
             n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
             if n_new_nratls != n_old_nratls:
-                with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
-                    f.write('jammed_packing{}\n'.format(n))
+                try:
+                    with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
+                        f.write('jammed_packing{}\n'.format(n))
+                except Exception, e:
+                    print e
         #dump configuration
         if not compare:
             coords = self._correct_coords()
