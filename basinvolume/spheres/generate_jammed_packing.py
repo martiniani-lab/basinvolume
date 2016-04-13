@@ -365,7 +365,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         look = True
         nratls = 0
         while look:
-            print "restarting loop"
+            # print "restarting loop"
             found_rattler = False
             if nratls > self.max_nrattlers:
                 return False
@@ -395,6 +395,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     nratls+=1
                     break
             look = True if found_rattler else False
+        print "n rattlers ", nratls
         return True
 
     def _find_nearest_neighbors(self, coords, radii):
@@ -513,35 +514,37 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """write coordinates to file .xyzdr"""
         directory = self.base_directory
         #compare to existing file (dirty hack)
-        # if False:
-        #     if self.bdim == 2:
-        #         fname = "{0}/jammed_packing{1}.xydr".format(directory, n)
-        #         coords, hs_diameters, rattlers = read_xydr(fname)
-        #     elif self.bdim == 3:
-        #         fname = "{0}/jammed_packing{1}.xyzdr".format(directory, n)
-        #         coords, hs_diameters, rattlers = read_xyzdr(fname)
-        #     old_nratls = len([x for x in rattlers if np.abs(x) < self.rattler_eval_tol])
-        #     new_nratls = len([x for x in self.rattlers if np.abs(x) < self.rattler_eval_tol])
-        #     if new_nratls != old_nratls:
-        #         with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
-        #             f.write('jammed_packing{}\n'.format(n))
+        compare = True
+        if compare:
+            if self.bdim == 2:
+                fname = "{0}/jammed_packing{1}.xydr".format(directory, n)
+                coords, hs_diameters, rattlers = read_xydr(fname)
+            elif self.bdim == 3:
+                fname = "{0}/jammed_packing{1}.xyzdr".format(directory, n)
+                coords, hs_diameters, rattlers = read_xyzdr(fname)
+            n_old_nratls = (len(rattlers) - np.count_nonzero(rattlers))//self.bdim
+            n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
+            if n_new_nratls != n_old_nratls:
+                with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
+                    f.write('jammed_packing{}\n'.format(n))
         #dump configuration
-        coords = self._correct_coords()
-        if self.bdim == 2:
-            fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
-            f = open(fname,'w')
-            for i in xrange(self.nparticles):
-                f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
-                                                                          self.hs_radii[i]*2,self.rattlers[i]))
-        elif self.bdim == 3:
-            fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
-            f = open(fname,'w')
-            for i in xrange(self.nparticles):
-                f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
-                                                                          coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
-        else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        f.close()
+        if not compare:
+            coords = self._correct_coords()
+            if self.bdim == 2:
+                fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
+                f = open(fname,'w')
+                for i in xrange(self.nparticles):
+                    f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                                                                              self.hs_radii[i]*2,self.rattlers[i]))
+            elif self.bdim == 3:
+                fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
+                f = open(fname,'w')
+                for i in xrange(self.nparticles):
+                    f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                                                                              coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
+            else:
+                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            f.close()
     
     def _write_opengl_input(self,n):
         """write opengl input file"""
