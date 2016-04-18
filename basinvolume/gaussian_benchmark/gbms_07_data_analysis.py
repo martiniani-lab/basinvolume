@@ -8,6 +8,7 @@ import os
 
 from basinvolume.utils import BasicPlot
 from basinvolume.utils import trymakedir
+from basinvolume.utils import MomentsAcc
 
 try:
     import matplotlib.pyplot as plt
@@ -139,7 +140,77 @@ class SeriesComparison(object):
         if not os.path.exists(ini_path):
             raise Exception("Ini evals file not found", self.three_series_path, method)
         return np.loadtxt(ini_path)
-
+        
+        
+class TrajDataFile(object):
+    def __init__(self, name_ending):
+        self.name_ending = name_ending
+        self.path = dict()
+    
+    def check_append(self, name, index):
+        if name.endswith(self.name_ending):
+            self.path[index] = name
+            
+            
+class SingleSeriesConvergence(object):
+    def __init__(self, volume_path, evals_path, target_relative_error):
+        self.volume_path = volume_path
+        self.evals_path = evals_path
+        self.target_relative_error = target_relative_error
+        self.volume = np.loadtxt(self.volume_path)
+        self.evals = np.loadtxt(self.evals_path)
+        self.final_volume = self.volume[-1]
+        self.converged_iteration = self.find_converged_iteration()
+        self.converged_evaluation = self.find_converged_evaluation()
+        
+    def find_converged_iteration(self):
+        it = len(self.volume)
+        while it > 1:
+            it -= 1
+            if np.abs(self.final_volume - self.volume[it]) / self.final_volume > self.target_relative_error:
+                return it
+        return it
+        
+    def find_converged_evaluation(self):
+        return np.loadtxt(self.evals_path)[self.converged_iteration]
+    
+        
+class TrajOnlyAnalysis(object):
+    def __init__(self, dim_dir, analysis_parameters):
+        # large_basin_results/5/2/ not large_basin_results/5/2/0, 0 is index
+        self.dim_dir = dim_dir
+        self.analysis_parameters = analysis_parameters
+        self.indices = os.listdir(self.dim_dir)
+        self.volume_files = TrajDataFile("traj_volume.txt")
+        self.evaluations_files = TrajDataFile("traj_evaluations.txt")
+        self.ini_evals_files = TrajDataFile("traj_ini_evals.txt")
+        for index in self.indices:
+            for f in os.listdir(os.path.join(self.dim_dir, index)):
+                path_to_f = os.path.join(self.dim_dir, index, f)
+                self.volume_files.check_append(path_to_f, index)
+                self.evaluations_files.check_append(path_to_f, index)
+                self.ini_evals_files.check_append(path_to_f, index)
+        self.run()
+        
+    def run(self):
+        acc = MomentsAcc()
+        for i in self.volume_files.path.keys():
+            evaluations = self.get_evals(self.volume_files.path[i], self.evaluations_files.path[i])
+            if self.analysis_parameters["subtract_ini_evals"]:
+                evaluations -= self.get_ini_evals(self.ini_evals_files.path[i])
+            acc.update(evaluations)
+        self.nr_samples = acc.count
+        self.evals = acc.get_mean()
+        self.error_evals = acc.get_error()
+        
+    def get_evals(self, volume_path, evals_path):
+        ssc = SingleSeriesConvergence(volume_path, evals_path, self.analysis_parameters["target_relative_error"])
+        return ssc.converged_evaluation
+        
+    def get_ini_evals(self, ini_evals_file):
+        return np.loadtxt(ini_evals_file)
+            
+    
 class BenchmarkPlot(BasicPlot):
     """
     Makes benchmark plot.
@@ -149,8 +220,11 @@ class BenchmarkPlot(BasicPlot):
         self.analysis_parameters = analysis_parameters
         self.dirs = dirs
         self.evaluations = dict([(m, []) for m in analysis_parameters["methods"]])
+        self.traj_only_evaluations = []
         self.evaluations_error = copy.deepcopy(self.evaluations)
+        self.traj_only_evaluations_error = []
         self.nr_samples = copy.deepcopy(self.evaluations)
+        self.traj_only_nr_samples = []
         self.converged_sets = dict()
         self.get_data()
         self.make_plot()
@@ -181,6 +255,16 @@ class BenchmarkPlot(BasicPlot):
                 self.nr_samples[m].append(len(evals_list))
                 self.evaluations[m].append(np.mean(evals_list))
                 self.evaluations_error[m].append(np.std(evals_list) / np.sqrt(len(evals_list) - 1))
+        # Traj only analysis, not conflated with TI data
+        for dim in self.dimensions:
+            nr_samples, evals, error_evals = self.traj_only_analysis(os.path.join(base_dir, str(dim)))
+            self.traj_only_nr_samples.append(nr_samples)
+            self.traj_only_evaluations.append(evals)
+            self.traj_only_evaluations_error.append(error_evals)
+            
+    def traj_only_analysis(self, dim_dir):
+        to = TrajOnlyAnalysis(dim_dir, self.analysis_parameters)
+        return to.nr_samples, to.evals, to.error_evals
     
     def run_three_series_analysis(self, three_series_dir):
         #print(three_series_dir)
@@ -198,7 +282,7 @@ class BenchmarkPlot(BasicPlot):
         self.methods_for_plot = ["traj", "ti"]
         self.methods_label_names = dict([("traj", "Trajectories"),
                                          ("ti", "TI")])
-        self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
+        
         if self.analysis_parameters["logy"]:
             plt.yscale("log")
         plt.rc('text', usetex=True)
@@ -206,22 +290,31 @@ class BenchmarkPlot(BasicPlot):
         plt.xlabel(r"Potential dimensionality, $D$", fontsize=22)
         plt.ylabel(r"Number of function calls, $N_{EFE}/10^8$", fontsize=22)
         symbols = ["s", "^", "o"]
-        for i, m in enumerate(self.methods_for_plot):
-            print("self.dimensions", self.dimensions)
-            print("self.evaluations[m]", self.evaluations[m])
-            print("self.nr_samples[m]", self.nr_samples[m])
-            eval_plot = np.asarray(self.evaluations[m]) / 10**8
-            yerr_plot = np.asarray(self.evaluations_error[m]) / 10**8
-            plt.errorbar(self.dimensions, eval_plot, yerr=yerr_plot,
-                fmt=symbols[i], label=self.methods_label_names[m])
-        plt.legend(loc=2, prop={'size':18})
+        if not self.analysis_parameters["traj_plot_only"]:
+            self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
+            for i, m in enumerate(self.methods_for_plot):
+                print("self.dimensions", self.dimensions)
+                print("self.evaluations[m]", self.evaluations[m])
+                print("self.nr_samples[m]", self.nr_samples[m])
+                eval_plot = np.asarray(self.evaluations[m]) / 10**8
+                yerr_plot = np.asarray(self.evaluations_error[m]) / 10**8
+                plt.errorbar(self.dimensions, eval_plot, yerr=yerr_plot,
+                    fmt=symbols[i], label=self.methods_label_names[m])
+            plt.legend(loc=2, prop={'size':18})
+        else:
+            self.out_name = "gbms_data_analysis_traj_only_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
+            eval_plot = np.asarray(self.traj_only_evaluations) / 10**8
+            yerr_plot = np.asarray(self.traj_only_evaluations_error) / 10**8
+            plt.errorbar(self.dimensions, eval_plot, yerr=yerr_plot, fmt=symbols[0])
         plt.tick_params(labelsize=22)
         pdf = PdfPages(self.out_name)
         # http://stackoverflow.com/questions/18572234/matplotlib-axes-set-aspectequal-doesnt-behave-like-expected
+        plt.axes().set_xlim([0, 35])
         plt.axes().set_aspect(1 / plt.axes().get_data_ratio())
         plt.savefig(pdf, format='pdf', bbox_inches='tight')
         pdf.close()
         plt.close()
+        
     
 def run_analysis(ls_basin_label):
     """
@@ -235,6 +328,7 @@ def run_analysis(ls_basin_label):
     """
     p = ap.ArgumentParser()
     p.add_argument("--plot_only", action="store_true", default=False)
+    p.add_argument("--traj_plot_only", action="store_true", default=False)
     args = p.parse_args()
     if ls_basin_label is not "large" and ls_basin_label is not "small":
         raise Exception("ls_basin_label: illegal input, can be large or small only")
@@ -242,12 +336,13 @@ def run_analysis(ls_basin_label):
                              ("nr_gaussians", 5),
                              ("dimensions", [2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 80]),
                              ("ls_basin_label", ls_basin_label)])
-    analysis_parameters = dict([("target_relative_error", 0.05),
+    analysis_parameters = dict([("target_relative_error", 0.01),
                                 ("subtract_ini_evals", True),
                                 ("logy", False),
                                 ("methods", ["traj", "ti"]),
                                 #("methods", ["traj", "ti", "brute"]),
-                                ("plot_only", args.plot_only)])
+                                ("plot_only", args.plot_only),
+                                ("traj_plot_only", args.traj_plot_only)])
     dirs = dict([("potential_dir", os.path.join(os.getcwd(), "potentials")),
                  ("ls_basin_results_dir", os.path.join("/scratch/kjs73/basin_traj_data/", ls_basin_label + "_basin_results"))])
     BenchmarkPlot(gauss_parameters, analysis_parameters, dirs)
