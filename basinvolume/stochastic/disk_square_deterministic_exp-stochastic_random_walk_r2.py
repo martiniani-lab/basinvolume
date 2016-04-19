@@ -12,6 +12,7 @@ from mcpele.monte_carlo import RecordCloudR2
 from basinvolume.monte_carlo import CheckExponentiallyDecayingProfile
 from basinvolume.monte_carlo import CheckHyperCubicContainer
 from basinvolume.monte_carlo import CheckHyperSphericalContainer
+from basinvolume.monte_carlo import RecordAcceptanceHistogram
 from basinvolume.utils import *
 
 def get_disk_mean_r2(radius):
@@ -34,6 +35,9 @@ class MC(_BaseMCRunner):
     
 class OracleMCR2(object):
     def __init__(self, common_pars, cloud_pars, oracle):
+        self.common_pars = common_pars
+        self.cloud_pars = cloud_pars
+        self.oracle = oracle
         self.nr_steps = common_pars["mc_steps"]
         self.temperature = 1
         self.origin = common_pars["origin"]
@@ -42,7 +46,6 @@ class OracleMCR2(object):
         self.eq_steps = self.nr_steps // 2
         self.random_walk = RandomCoordsDisplacement(42, 1, single=True, nparticles=1, bdim=2)
         self.mc.set_takestep(self.random_walk)
-        self.oracle = oracle
         self.cloud_test = CloudTest(44, 46, cloud_pars["nr_points"], cloud_pars["radius"])
         self.cloud_test.add_conf_test(self.oracle)
         self.mc.add_accept_test(self.cloud_test)
@@ -52,8 +55,18 @@ class OracleMCR2(object):
     def run(self):
         self.mc.run()
     def get_r2(self):
-        return self.cloud_measure_r2.get_mean_r2()    
-    
+        return self.cloud_measure_r2.get_mean_r2()
+        
+
+class OracleMCAcc(OracleMCR2):
+    def __init__(self, common_pars, cloud_pars, oracle, acc_pars):
+        super(OracleMCAcc, self).__init__(common_pars, cloud_pars, oracle)
+        self.acc_pars = acc_pars
+        self.acc_measurement = RecordAcceptanceHistogram(self.common_pars["origin"], self.acc_pars["rmin"], self.acc_pars["rmax"], self.acc_pars["nbins"], self.eq_steps)
+        self.mc.add_action(self.acc_measurement)
+    def get_acc(self):
+        return self.acc_measurement.get_acceptance_fraction_values()
+        
     
 class DeterministicPlot(BasicPlot):
     def __init__(self, common_pars, cloud_pars):
@@ -99,6 +112,44 @@ class DeterministicPlot(BasicPlot):
         plt.plot(ls, self.mc_square_r2, symbols[1], label=self.labels[3])
         self.save_and_close()
 
+
+class DeterministicAcceptancePlot_CloudRadius(BasicPlot):
+    def __init__(self, common_pars, cloud_radii, nr_points, acc_pars):
+        self.common_pars = common_pars
+        self.cloud_radii = cloud_radii
+        self.nr_points = nr_points
+        self.acc_pars = acc_pars
+        self.disk_radius = common_pars["disk_radii"][len(common_pars["disk_radii"]) // 2]
+        print("DeterministicAcceptancePlot_CloudRadius: disk_radius:", self.disk_radius)
+        self.out_name = "deterministic_acceptance_plot.pdf"
+        plt.title(r"Cloud sampling: deterministic oracle", fontsize=19)
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        plt.xlabel(r"Backbone point distance from center / disk radius $r_d$", fontsize=18)
+        plt.ylabel(r"Acceptance probability", fontsize=18)
+        plt.tick_params(labelsize=18)
+    def run(self):
+        self.compute_acceptance()
+        self.make_plot()
+    def compute_acceptance(self):
+        self.disk_acc = []
+        self.run_disk_mc()
+    def run_disk_mc(self):
+        for cr in self.cloud_radii:
+            oracle = CheckHyperSphericalContainer(self.common_pars["origin"], self.disk_radius, 2)
+            cloud_pars = dict([("nr_points", self.nr_points), ("radius", cr)])
+            mc = OracleMCAcc(self.common_pars, cloud_pars, oracle, self.acc_pars)
+            mc.run()
+            self.disk_acc.append(mc.get_acc())
+            self.disk_acc_x = mc.acc_measurement.get_acceptance_distance_values()
+    def make_plot(self):
+        symbols = ["s--", "o--", "^--", "v--", "d--", "p--", "<--", ">--"]
+        for i, cr in enumerate(self.cloud_radii):
+            plt.plot(self.disk_acc_x / self.disk_radius, self.disk_acc[i], symbols[i], label=r"$r_c / r_d =$ {0:.3g}".format(cr / self.disk_radius))
+        plt.arrow(1,  plt.axes().get_ylim()[1], 0, -0.05, fc="k", ec="k", head_width=0.07, head_length=0.02)
+        plt.arrow(1 + self.cloud_radii[-1] / self.disk_radius, plt.axes().get_ylim()[1], 0, -0.05, fc="k", ec="k", head_width=0.07, head_length=0.02)
+        self.save_and_close(3)
+        
 
 class StochasticPlot(DeterministicPlot):
     def __init__(self, common_pars, cloud_pars):
@@ -148,3 +199,14 @@ if __name__ == "__main__":
     dp.run()
     sp = StochasticPlot(common_pars, cloud_pars)
     sp.run()
+    cloud_radii = np.linspace(0, 10, 5)
+    drop_numbers = np.asarray([1, 10, 100, 1000])
+    acc_pars = dict([("rmin", 0), ("rmax", 20), ("nbins", 14)])
+    dpp = DeterministicAcceptancePlot_CloudRadius(common_pars,
+        cloud_radii, cloud_pars["nr_points"], acc_pars)
+    dpp.run()
+    """
+    spp = StochasticAcceptancePlot_CloudRadius(common_pars, cloud_radii,
+        cloud_pars["nr_points"], acc_pars)
+    spp.run()
+    """
