@@ -166,7 +166,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """    
-    def __init__(self, packing_frac=0.7, force_tol=1e-3,
+    def __init__(self, packing_frac=0.7,
         packings_dir='packings', use_cell_lists=False, show=False,
         opt_pot_str='hs_wca', extra_pot_kwargs=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
