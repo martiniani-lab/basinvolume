@@ -7,6 +7,7 @@ import argparse
 from basinvolume.spheres import HS_Generate_Packing
 from basinvolume.spheres.generate_jammed_packing import cartesian_to_polar2d, sum_neighbor_angles2d
 from pele.utils._pressure_tensor import pressure_tensor
+from joblib import Parallel, delayed
 import cPickle as pickle
 
 class GeneratePackingFindJ(HS_Generate_Packing):
@@ -244,13 +245,17 @@ class GeneratePackingFindJ(HS_Generate_Packing):
 
         return self._find_rattlers()
 
+def run_hsgp(hsgp):
+    hsgp.run()
+
 class FindJ(object):
     def __init__(self, nparticles, workspace=None, method='quench', bdim=3, boxv=None,
                  ss_packing_frac=[0.84], sca=0.12, hs_radii=None, mu=1, sig=0.05,
                  new_poly=False, hsf_niter=1e6, hsf_stepsize=1e-3, max_iter=10, tol=1e-9,
-                 use_cell_lists=True, single=True, seeds=None, opt_pot_str='hs_wca'):
+                 use_cell_lists=True, single=True, seeds=None, opt_pot_str='hs_wca',
+                 ncores=2):
 
-
+        self.ncores = ncores
         self.hsgp = []
         for phi in ss_packing_frac:
             hsgp_ = GeneratePackingFindJ(nparticles, workspace=workspace, method=method,
@@ -264,8 +269,8 @@ class FindJ(object):
             self.hsgp.append(hsgp_)
 
     def run(self):
-        for hsgp_ in self.hsgp:
-            hsgp_.run()
+        results = Parallel(n_jobs=max(1, self.ncores))(
+            delayed(run_hsgp)(hsgp_) for hsgp_ in self.hsgp)
 
 
 if __name__ == "__main__":
@@ -274,6 +279,7 @@ if __name__ == "__main__":
     parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument("-n","--npackings", type=int, help="number of packings to produce",default=1)
     parser.add_argument("-d","--boxdim", type=int, help="box dimensions",default=3)
+    parser.add_argument("-x", "--ncores", type=int, help="number of cores", default=2)
     # parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.86)
     parser.add_argument("-a", "--sca", type=float, help="1+a = r_ss/r_hs", default=0.12)
     parser.add_argument("-u","--rmean", type=float, help="mean particle radius",default=1.0)
@@ -302,12 +308,12 @@ if __name__ == "__main__":
         hs_radii = hs_diameters/2
 
     # density = args.density
-    density = [0.84, 0.85]
+    density = np.logspace(np.log10(0.83), np.log10(0.87), 24)
 
     sim = FindJ(args.nparticles, method=args.method, bdim=args.boxdim, ss_packing_frac=density,
                 sca=args.sca, hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
                 hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                use_cell_lists=args.nocell, single=single)
+                use_cell_lists=args.nocell, single=single, ncores=args.ncores)
 
     sim.run()
                 
