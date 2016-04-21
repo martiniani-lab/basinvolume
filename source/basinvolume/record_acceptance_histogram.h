@@ -49,17 +49,21 @@ public:
 class RecordAcceptanceHistogram : public mcpele::Action {
     const pele::Array<double> m_origin;
     MomentAccArray m_dist_acc;
+    const size_t m_eqsteps;
 public:
-    RecordAcceptanceHistogram(pele::Array<double> origin, const double rmin, const double rmax, const size_t nbins)
+    RecordAcceptanceHistogram(pele::Array<double> origin, const double rmin, const double rmax, const size_t nbins, const size_t eqsteps)
         : m_origin(origin.copy()),
-          m_dist_acc(rmin, rmax, nbins)
+          m_dist_acc(rmin, rmax, nbins),
+          m_eqsteps(eqsteps)
     {}
     void action(pele::Array<double>& coords, double energy, bool accepted, mcpele::MC* mc)
     {
-         pele::Array<double> tmp = coords.copy();
-         tmp -= m_origin;
-         const double r = pele::norm(tmp);
-         m_dist_acc.add(r, accepted);
+        if (mc->get_iterations_count() > m_eqsteps) {
+            pele::Array<double> tmp = coords.copy();
+            tmp -= m_origin;
+            const double r = pele::norm(tmp);
+            m_dist_acc.add(r, accepted);
+        }
     }
     pele::Array<double> get_acceptance_distance_values() const
     {

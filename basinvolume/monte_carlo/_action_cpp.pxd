@@ -22,7 +22,7 @@ cdef extern from "basinvolume/record_disp2_histogram.h" namespace "bv":
         
 cdef extern from "basinvolume/record_acceptance_histogram.h" namespace "bv":
     cdef cppclass cppRecordAcceptanceHistogram "bv::RecordAcceptanceHistogram":
-        cppRecordAcceptanceHistogram(_pele.Array[double], double, double, size_t) except+
+        cppRecordAcceptanceHistogram(_pele.Array[double], double, double, size_t, size_t) except+
         _pele.Array[double] get_acceptance_distance_values() except+
         _pele.Array[double] get_acceptance_fraction_values() except+
 
