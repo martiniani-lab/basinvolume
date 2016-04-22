@@ -291,6 +291,8 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
+    parser.add_argument("--tol", type=float, help="minimizer rms tolerance",
+                        default=1e-8)
     args = parser.parse_args()
     print args
     single = not args.moveall
@@ -313,7 +315,7 @@ if __name__ == "__main__":
     sim = FindJ(args.nparticles, method=args.method, bdim=args.boxdim, ss_packing_frac=density,
                 sca=args.sca, hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
                 hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                use_cell_lists=args.nocell, single=single, ncores=args.ncores)
+                use_cell_lists=args.nocell, single=single, ncores=args.ncores, tol=args.tol)
 
     sim.run()
                 
