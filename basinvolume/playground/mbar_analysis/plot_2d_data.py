@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 from itertools import cycle
 from basinvolume.utils import *
+from sklearn.neighbors import KernelDensity
+from scipy import integrate
 import scipy
 from scipy.optimize import fmin
 from scipy.stats import t
@@ -117,6 +119,10 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         print "{}+/-{} \n {}+/-{}".format(Pea, errPea, zPea, errzPea)
         return np.log(Pea) - np.log(zPea), 0.434*(errPea/Pea + errzPea/zPea)
 
+# cdf = CDFAccumulator()
+# cdf.add_array(x)
+# x, cdf_x = cdf.get_vecdata()
+
 def plot(packing_datasets, figdir="figures"):
     from scipy.optimize import curve_fit
     if not os.path.isabs(figdir):
@@ -181,8 +187,8 @@ def plot(packing_datasets, figdir="figures"):
         fit_fn = np.poly1d(fit)
         ax1.plot(np.linspace(phi[0],1,20), fit_fn(np.linspace(phi[0],1,20)), color='k')
         ax1.plot([0.835,1],[0,0],lw=1,color='black')
-        ax1.set_ylabel(r"$S$")
-        ax1.set_xlabel(r"$\phi$")
+        ax1.set_ylabel(r"$S_G$")
+        ax1.set_xlabel(r"$\phi_{ss}$")
         ax1.set_xlim((0.835,1))
         fig1.savefig('{0}/plot_{1}.png'.format(figdir, "s_phi"))
         
@@ -206,12 +212,12 @@ def plot(packing_datasets, figdir="figures"):
                     yerr.append(dataset.extras[1][0])
                     y2.append(dataset.extras[0][1])
                     y2err.append(dataset.extras[1][1])
-                    x.append(dataset.ss_phi-glob_phi_j)
+                    x.append(dataset.ss_phi)
             x, y, yerr, y2, y2err = np.array(x), np.array(y), np.array(yerr), np.array(y2), np.array(y2err)
 
             ax3.errorbar(x, y, yerr, marker='o', linestyle='', ms=12, color=color_marker)
 
-            ax3.set_title(r'$1/\kappa(1-\phi)$', size=18)
+            ax3.set_title(r'$1/\kappa$', size=18)
             ax3.locator_params(axis='x', nbins=4)
             ax3.locator_params(axis='y', nbins=4)
             ax3.tick_params(axis='both', which='major', labelsize=18)
@@ -223,293 +229,77 @@ def plot(packing_datasets, figdir="figures"):
             # label = "intercept = ({:.3f} +/- {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
             # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
             #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
-            ax4.set_title(r'$\mathcal{C}(1-\phi)$', size=18)
+            ax4.set_title(r'$\mathcal{C}$', size=18)
             ax4.locator_params(axis='x', nbins=4)
             ax4.locator_params(axis='y', nbins=4)
             ax4.tick_params(axis='both', which='major', labelsize=18)
 
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
-        if False:
-            ens_average = True
+        if True:
             # kde pressure
             color_cycle = get_color_cycle()
-            fig = plt.figure()
             fig2 = plt.figure()
             ax2 = fig2.add_subplot(111)
-            fig3 = plt.figure()
-            ax3 = fig3.add_subplot(111)
-            fig4 = plt.figure(figsize=(8, 8))
-            fig42 = plt.figure()
-            gs = gridspec.GridSpec(8, 2)
-            ax4 = fig4.add_subplot(gs[:5, :])
-            ax42 = fig42.add_subplot(111)
-            # fig4 = plt.figure()
-            # ax4 = fig4.add_subplot(111)
-            fit_parameters = []
-            fit_parameters_std = []
-            s_maxima = []
-            # s_p_maxima = []
-            s_apf = []
-            s_edw = []
-            s_b = []
-            angoricities = []
-            pea_array_all = []
-            for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
+            fit_params = []
+            ss_phi_list = []
+            for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
+                j = 0
+                Facc = None
+                vcavity = None
+                while Facc is None or vcavity is None:
+                    Facc = dataset.packing_data[j].Facc
+                    vcavity = dataset.packing_data[j].vcavity
+                    j += 1
                 nparticles = dataset.nparticles
                 vcavity = dataset.packing_data[0].vcavity
-                print "vcavity", vcavity
-                if len(dataset.free_energies) > 0:
+                if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835:
                     print "n:", nparticles
+                    #fit slopes to find inverse kappa and the intercept
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
-                    F0 = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
                     x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    weights = 1. / np.array(dataset.free_energies_err)[
+                        np.array(outliers.non_outliers_indexes, dtype="i")]
+                    fit, cov = np.polyfit(x, f, 1, w=weights, cov=True)
+                    fit_err = np.sqrt(np.diag(cov))
+                    iNK, NC = fit #N/K, C(N)
+                    iNKstd, NCstd = fit_err
+                    K = nparticles/iNK
+                    C = NC/nparticles
+                    fit_params.append([K, C])
+                    ss_phi_list.append(dataset.ss_phi)
                     # kde histogram
                     bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
-                    edges = np.linspace(np.amin(x) * 0.5, np.amax(x) * 1.5, 1000)
-                    hist = get_pdf(x, edges, bandwidth=bw / 2, kernel="gaussian")
-                    color = color_cycle.next()
-                    ax.plot(edges, hist, label=int(nparticles), color=color, linewidth=3)
-                    # fit log normal
-                    # assume that zeta_min=2
-                    generalised_lognormal = EdwardsGeneralisedLogNormal(alpha_min=0.0001, zeta_min=1.0)
-                    cdf = CDFAccumulator()
-                    cdf.add_array(x)
-                    x, cdf_x = cdf.get_vecdata()
-                    generalised_lognormal.fit_cdf(x, cdf_x, initial_zeta=2)
-                    ax.plot(edges, [generalised_lognormal.get_fitted(xpi) for xpi in edges], "--", color=color,
-                            linewidth=2)
-                    parameters = [nparticles, generalised_lognormal.mu_fit, generalised_lognormal.alpha_fit,
-                                  generalised_lognormal.zeta_fit]
-                    print "mu, alpha, zeta:", parameters
-                    fit_parameters.append(parameters)
-                    fit_parameters_std.append(generalised_lognormal.fit_error.tolist())
-                    # plot cdf
-                    avgP = np.mean(x)
-                    # avgP, erravgP = generalised_lognormal.get_log_edwards_fitted_pressure_expectation(1, 0, 0, 0)
-                    # avgP = np.exp(avgP)
-                    # print "pressure ensavg {}+/-{} mean {}".format(avgP, np.exp(erravgP), np.mean(x))
-                    ax2.plot(x / avgP, 1 - np.array(cdf_x), label=int(nparticles), color=color, linewidth=3)
-                    ax2.plot(edges / avgP, 1 - generalised_lognormal.get_cdf(edges, generalised_lognormal.mu_fit,
-                                                                             generalised_lognormal.alpha_offset,
-                                                                             generalised_lognormal.zeta_offset), '--',
-                             color=color, linewidth=2)
-                    # unbiased pdf
-                    F0acc = Bunch(F0_acc=dataset.packing_data[0].Facc, nr_particles=nparticles)
-                    #                log_omega = OutlierRemovalUnbiasingEntropyLogOmega(F0, "/scratch/sm958/Results/basinvolume_tests", write=False)
-                    #                log_omega.compute_log_omega_entropy(F0acc)
-                    #                avgv, avgv_error = log_omega.integral_no_jack, log_omega.integral_error
-                    #                Sedw = log_omega.S_star - log_factorial(nparticles)
-                    #                print "old avgv, avgerror ", avgv, avgv_error
-                    #                print "Sedw", Sedw
-                    #                Sapf = np.mean(F0) - F0acc['F0_acc'] - log_factorial(nparticles)
-                    #                s_edw.append([nparticles, Sedw])
-                    #                s_apf.append([nparticles, Sapf])
-                    #                print "Sapf ", Sapf
-                    xp = np.linspace(1, np.amax(x) * 100, 1e5)
-                    fit = np.array(
-                        [generalised_lognormal.get_fitted_times_xpow(xpi, glob_kappa, nparticles) for xpi in xp])
-                    c, cerr = quad(generalised_lognormal.get_fitted_times_xpow, 0, np.amax(x) * 1e5,
-                                   args=(glob_kappa, nparticles), limit=200,
-                                   points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]], epsabs=1.49e-11)
-                    c *= np.exp(nparticles)
-                    Sb = - F0acc.F0_acc + np.log(c) - log_factorial(nparticles)
-                    print "new avgs, avg_err from pressure", c, cerr
-                    print "Sb ", Sb
-                    s_b.append([nparticles, Sb])
-                    ax3.plot(xp, fit / c, label=int(nparticles), color=color, linewidth=3)
-                    # S(V, P)
-                    maxps = 2e6
-                    minps = 10
-                    nps = 5e5
-                    ps = np.linspace(minps, maxps, nps)
-                    dps = (maxps - minps) / nps
-                    S = - F0acc.F0_acc + nparticles + np.array(
-                        [generalised_lognormal.get_log_fitted_times_xpow(p, glob_kappa, nparticles) for p in
-                         ps]) + np.log(dps)
-                    S -= log_factorial(nparticles)
-                    avgP, erravgP = generalised_lognormal.get_log_edwards_fitted_pressure_expectation(glob_kappa,
-                                                                                                      nparticles, 0, 0)
-                    avgP = np.exp(avgP)
-                    ax4.plot(ps / avgP, S, label=int(nparticles), color=color, linewidth=3)
-                    ax42.plot(ps / avgP, S, label=int(nparticles), color=color, linewidth=3)
-                    s_maxima.append([nparticles, np.amax(S)])
-                    if ens_average:
-                        #####################################################################
-                        # use lognormal from now on
-                        # compute p ensemble average
-                        #####################################################################
-                        ang_array = np.linspace(0, 2, num=1000)
-                        # ang_array = [0.]
-                        pea_array = []
-                        for ang in ang_array:
-                            Pea, errPea = generalised_lognormal.get_log_edwards_fitted_pressure_expectation(glob_kappa,
-                                                                                                            nparticles,
-                                                                                                            ang,
-                                                                                                            vcavity)
-                            pea_array.append([Pea, errPea])
-                            print "ensemble average P ,Perr ", nparticles, Pea, errPea
-                        # pea_array = Parallel(n_jobs=8)(delayed(generalised_lognormal.get_log_edwards_fitted_pressure_expectation)(glob_kappa, nparticles, ang, vcavity) for ang in ang_array)
-                        pea_array_all.append(np.array(pea_array))
-                        generalised_lognormal.glob_x = 100
-                        ensidx = next(i for i, yy in enumerate(ps) if yy >= np.exp(pea_array[0][0])) - 1
-                        # s_p_maxima.append([nparticles, ps[ensidx]])
-                        j = ensidx
-                        angor = (-S[j + 2] + 8 * S[j + 1] - 8 * S[j - 1] + S[j - 2]) / (12 * dps * vcavity)
-                        angoricities.append([nparticles, angor])
-            fit_parameters = np.array(fit_parameters)
-            fit_parameters_std = np.array(fit_parameters_std)
-            s_maxima = np.array(s_maxima)
-            angoricities = np.array(angoricities)
-            # s_p_maxima = np.array(s_p_maxima)
-            s_apf = np.array(s_apf)
-            s_edw = np.array(s_edw)
-            s_b = np.array(s_b)
-            ax.legend(frameon=False, loc="best", numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25)
-            ax2.legend(frameon=False, loc=2, prop={'size': 22}, numpoints=1, markerscale=1, columnspacing=0.25,
-                       labelspacing=0.25, handlelength=1)
-            ax3.legend(frameon=False, loc="best", numpoints=1, markerscale=1, columnspacing=0.25, labelspacing=0.25)
-            ax4.legend(frameon=False, loc="best", prop={'size': 18}, numpoints=1, markerscale=1, columnspacing=0.25,
-                       labelspacing=0.25, handlelength=1)
-            ax42.legend(frameon=False, loc="best", prop={'size': 18}, numpoints=1, markerscale=1, columnspacing=0.25,
-                        labelspacing=0.25, handlelength=1)
-            ax.set_ylabel(r"$p(P)$")
-            ax.set_xlabel(r"$\mathcal{P}$")
-            ax2.set_ylabel(r"$c.d.f.(\mathcal{P})$", fontsize=22)
-            ax2.set_xlabel(r"$\mathcal{P}/\langle \mathcal{P} \rangle$", fontsize=22)
+                    kde = KernelDensity(kernel="gaussian", bandwidth=bw/2).fit(x[:, np.newaxis])
+                    #plot histograms
+                    n_integrate = 2 ** 14 + 1
+                    # # x_max = np.exp(K*C-K*Facc/nparticles)
+                    x_integrate = np.linspace(np.amin(x) * 0.5, np.amax(x) * 1.5, n_integrate)
+                    log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+                    hist = np.exp(log_pdf * (iNK + 1))
+                    hist_int = np.amax(hist)#integrate.romb(hist, dx=x_integrate[1]-x_integrate[0])
+                    ax2.plot(x_integrate, hist/hist_int, label=dataset.ss_phi, color=color_cycle.next(), linewidth=3)
+
+            # assert y.size == pdf.size
+            # X, Y = np.mesh
+            # ax2.hexbin(pdf.flatten(), y)
+            #
+            #         ax.plot(edges, [generalised_lognormal.get_fitted(xpi) for xpi in edges], "--", color=color,
+            #                 linewidth=2)
+            #
+            #         # unbias kde
+            #         # F0acc = Bunch(F0_acc=dataset.packing_data[0].Facc, nr_particles=nparticles)
+            #         # c, cerr = quad(generalised_lognormal.get_fitted_times_xpow, 0, np.amax(x) * 1e5,
+            #         #                args=(glob_kappa, nparticles), limit=200,
+            #         #                points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]], epsabs=1.49e-11)
+            #         # c *= np.exp(nparticles)
+            #
+            #
+            # ax2.legend(frameon=False, loc=2, prop={'size': 22}, numpoints=1, markerscale=1, columnspacing=0.25,
+            #            labelspacing=0.25, handlelength=1)
             ax2.set_xscale('log')
-            ax2.set_xlim((0.12, 10))
-            ax3.set_ylabel(r"unbiased $p(\mathcal{P})$")
-            ax3.set_xlabel(r"$P$")
-            ax3.set_xscale('log')
-            ax3.set_yscale('log')
-            ax4.set_xscale('log')
-            # ax4.set_yscale('log')
-            ax4.set_ylim((0, 80))  # 0.05
-            ax4.set_xlim((0.007, 80))
-            ax4.set_ylabel(r"$S_B(V,\mathcal{P})$")
-            ax4.set_xlabel(r"$\mathcal{P}/\langle \mathcal{P}\rangle^{(ens)}_0$")
-            ax42.set_ylim((0, 80))  # 0.05
-            ax42.set_xlim((0.007, 80))
-            ax42.set_ylabel(r"$S_B(V,\mathcal{P})$")
-            ax42.set_xlabel(r"$\mathcal{P}/\langle \mathcal{P}\rangle^{(ens)}_0$")
-            ax42.set_xscale('log')
-            fig42.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_S_only"))
-            ax7 = fig4.add_subplot(gs[5:, 1])
-            ax7.set_ylabel(r"$\ln \langle\mathcal{P}\rangle_{\alpha}^{(ens)}$")
-            ax7.set_xlabel(r"$\alpha$")
-            ax7.locator_params(axis='x', nbins=4)
-            ax7.locator_params(axis='y', nbins=4)
-            if ens_average:
-                pea_array = np.array(pea_array)
-                color_cycle = get_color_cycle()
-                for i, arr in enumerate(pea_array_all):
-                    color = color_cycle.next()
-                    ax7.errorbar(ang_array, arr[:, 0], yerr=arr[:, 1], color=color, linewidth=2,
-                                 label=int(angoricities[i, 0]))
-                    ax7.arrow(0.25, arr[0, 0], -0.25, 0, length_includes_head=True, ec=color, fc=color, head_width=0.8,
-                              head_length=0.1)
-                # ax7.legend(frameon=False, loc="best", prop={'size':14}, numpoints=1, markerscale=0.5,
-                #           columnspacing=0.25, labelspacing=0.25, handlelength=1) #loc (0.2,0.53)
-                ax7.set_xlim((0, 2))
-                #            ax8 = ax7.add_axes([0.65,0.62,0.27,0.27], alpha=0.5)
-                #            color_cycle = get_color_cycle()
-                #            color = color_cycle.next()
-                #            ax8.plot(np.linspace(0,150,150), np.zeros(150), linestyle='-', marker='', color='k', linewidth=1.0)
-                #            color = color_cycle.next()
-                #            ax8.plot(angoricities[:,0], angoricities[:,1], marker='o', linestyle='', color=color, ms=12)
-                #            ax8.set_ylabel(r"$\alpha = \frac{1}{V}\frac{\partial S_B}{\partial \langle \mathcal{P} \rangle_{ens}}$")
-                #            plt.rc('font', size=12)
-                #            ax8.set_xlabel(r"$N$")
-                #            ax8.set_xlim((0,150))
-                #            ax8.set_ylim((-6e-7,3e-7))
-                #            ax8.ticklabel_format(style='sci',axis='y', scilimits=(0,0))
-                #            ax8.locator_params(axis = 'x', nbins = 4)
-                #            ax8.locator_params(axis = 'y', nbins = 4)
-                #            plt.rc('font', size=18)
-                #            fig7.savefig('{0}/plot_{1}.pdf'.format(figdir, "ens_avg_angoricity"))
-                #            ax7.set_xscale('symlog')
-                #            fig7.savefig('{0}/plot_{1}.pdf'.format(figdir, "ens_avg_angoricity_log"))
-
-            # plot fit parameters
-            # fig5 = plt.figure()
-            ax5 = fig2.add_axes([0.57, 0.25, 0.35, 0.35], alpha=0.5)
-            color_cycle = get_color_cycle()
-            # mu plot
-            color = color_cycle.next()
-            ax5.errorbar(1. / fit_parameters[:, 0], fit_parameters[:, 1], fit_parameters_std[:, 0], marker='o',
-                         linestyle='', ms=14, color=color, label=r'$\mu$')
-            fit, cov = np.polyfit(1. / fit_parameters[:, 0], fit_parameters[:, 1], 1, w=1. / fit_parameters_std[:, 0],
-                                  cov=True)
-            fit_fn = np.poly1d(fit)
-            fit_std = np.sqrt(np.diag(cov))
-            ax5.plot(1. / fit_parameters[:, 0], fit_fn(1. / fit_parameters[:, 0]), linestyle='--', color=color,
-                     linewidth=2.0)  # , label=str(fit)+"+/-"+str(fit_std))
-            # alpha plot
-            color = color_cycle.next()
-            ax5.errorbar(1. / fit_parameters[:, 0], fit_parameters[:, 2], fit_parameters_std[:, 1], marker='o',
-                         linestyle='', ms=14, color=color, label=r'$\sigma$')
-            fit, cov = np.polyfit(1. / fit_parameters[:, 0], fit_parameters[:, 2], 1, w=1. / fit_parameters_std[:, 1],
-                                  cov=True)
-            fit_std = np.sqrt(np.diag(cov))
-            fit_fn = np.poly1d(fit)
-            ax5.plot(1. / fit_parameters[:, 0], fit_fn(1. / fit_parameters[:, 0]), linestyle='--', color=color,
-                     linewidth=2.0)  # , label=str(fit)+"+/-"+str(fit_std))
-            # zeta plot
-            color = color_cycle.next()
-            ax5.errorbar(1. / fit_parameters[:, 0], fit_parameters[:, 3], fit_parameters_std[:, 2], marker='o',
-                         linestyle='', ms=14, color=color, label=r'$\zeta$')
-            fit, cov = np.polyfit(1. / fit_parameters[:, 0], fit_parameters[:, 3], 1, w=1. / fit_parameters_std[:, 2],
-                                  cov=True)
-            fit_fn = np.poly1d(fit)
-            fit_std = np.sqrt(np.diag(cov))
-            ax5.plot(1. / fit_parameters[:, 0], fit_fn(1. / fit_parameters[:, 0]), linestyle='--', color=color,
-                     linewidth=2.0)  # , label=str(fit)+"+/-"+str(fit_std))
-            ax5.legend(frameon=False, loc="best", framealpha=0.5, prop={'size': 22}, labelspacing=0.25,
-                       columnspacing=0.25, numpoints=1, markerscale=1, handlelength=0.4)
-            # plt.rc('font', size=12)
-            ax5.set_xlabel(r"$1/N$", fontsize=22)
-            ax5.set_ylabel("\t")
-            ax5.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
-            # fig5.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_cdf_fit_parameters"))
-            ax5.locator_params(axis='x', nbins=4)
-            ax5.locator_params(axis='y', nbins=4)
-            ax5.tick_params(axis='both', which='major', labelsize=22)
-            ax2.tick_params(axis='both', which='major', labelsize=22)
-            fig2.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_cdf_fit"))
-            # plt.rc('font', size=18)
-
-            # plot fit parameters
-            # fig6 = plt.figure()
-            # ax6 = fig6.add_subplot(111)
-            # inset
-            color_cycle = get_color_cycle()
-            # ax6=fig4.add_axes([0.18,0.2,0.3,0.3], alpha=0.5)
-            ax6 = fig4.add_subplot(gs[5:, 0])
-            color = color_cycle.next()
-            ax6.plot(s_maxima[:, 0], s_maxima[:, 1], marker='o', linestyle='', ms=12, color=color,
-                     label=r"$\max(S_B(\mathcal{P},V))$")
-            fit = np.polyfit(s_maxima[:, 0], s_maxima[:, 1], 1)
-            fit_fn = np.poly1d(fit)
-            ax6.plot(np.linspace(0, np.amax(s_maxima[:, 0])), fit_fn(np.linspace(0, np.amax(s_maxima[:, 0]))),
-                     linestyle='--', linewidth=2.0, color=color)
-            # ax6.plot(s_p_maxima[:,0], s_p_maxima[:,1], marker='o', linestyle='', ms=12, color=color, label=r"$\max_P(S_B(\mathcal{P},V))$")
-            color = color_cycle.next()
-            ax6.plot(s_b[:, 0], s_b[:, 1], marker='^', linestyle='', color=color, ms=12, label=r'$S_{B}$')
-            fit = np.polyfit(s_b[:, 0], s_b[:, 1], 1)
-            fit_fn = np.poly1d(fit)
-            ax6.plot(np.linspace(0, np.amax(s_b[:, 0])), fit_fn(np.linspace(0, np.amax(s_b[:, 0]))), linestyle='--',
-                     linewidth=2.0, color=color)
-            ax6.set_xlabel(r"$N$", fontsize=18)
-            # ax6.set_ylabel(r"$\max_S(S_B(\mathcal{P},V))$")
-            ax6.legend(frameon=False, loc="best", framealpha=0.5, prop={'size': 18}, labelspacing=0.25,
-                       columnspacing=0.25,
-                       numpoints=1, markerscale=1)
-            # fig6.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_entropy_maxima"))
-            ax6.locator_params(axis='x', nbins=4)
-            ax6.locator_params(axis='y', nbins=4)
-            # ax6.tick_params(axis='both', which='major', labelsize=18)
-            fig4.savefig('{0}/plot_{1}.pdf'.format(figdir, "p_S"))
+            # ax2.set_yscale('log')
 
         if False:
             # kde free energies predicted vs numerical

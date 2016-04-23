@@ -52,14 +52,14 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         data_name = "jammed_packings_{}D_mu{}_sig{}_sca{}_phi{}.pickle".format(self.bdim,
                                                                         self.mu,
                                                                         self.sig,
-                                                                        self.sca,
+                                                                        self.sca_ss,
                                                                         self.ss_packing_frac
                                                                         )
         data_pickle = os.path.join(self.workspace, data_name)
         res = Result()
         res.phi_ss = self.ss_packing_frac
         res.phi_hs = self.hs_packing_frac
-        res.sca = self.sca
+        res.sca = self.sca_ss
         res.rmu = self.mu
         res.rsig = self.sig
         res.seeds = self.seeds
