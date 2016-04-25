@@ -868,4 +868,3 @@ class BasicPlot(object):
         plt.savefig(pdf, format='pdf')
         pdf.close()
         plt.close()
-

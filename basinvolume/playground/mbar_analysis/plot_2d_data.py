@@ -241,8 +241,12 @@ def plot(packing_datasets, figdir="figures"):
             color_cycle = get_color_cycle()
             fig2 = plt.figure()
             ax2 = fig2.add_subplot(111)
+            fig3 = plt.figure()
+            ax3 = fig3.add_subplot(111)
             fit_params = []
             ss_phi_list = []
+            unpad_log_omega_p_hist = []
+            x_integrate_list = []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
                 j = 0
                 Facc = None
@@ -253,7 +257,9 @@ def plot(packing_datasets, figdir="figures"):
                     j += 1
                 nparticles = dataset.nparticles
                 vcavity = dataset.packing_data[0].vcavity
-                if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835:
+                if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835 and (
+                    dataset.ss_phi > 0.86 or "fire" in dataset.set_name
+                ):
                     print "n:", nparticles
                     #fit slopes to find inverse kappa and the intercept
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
@@ -269,21 +275,55 @@ def plot(packing_datasets, figdir="figures"):
                     C = NC/nparticles
                     fit_params.append([K, C])
                     ss_phi_list.append(dataset.ss_phi)
+
+                    #free energy non parametric log omega
+                    bw = get_bandwidth_estimate(np.array(f), kernel="gaussian", method="cross_validation")
+                    kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(f[:, np.newaxis])
+                    # plot histograms
+                    n_integrate = 2 ** 14 + 1
+                    x_integrate = np.linspace(Facc, np.amax(f) * 100, n_integrate)
+                    log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+                    integrand = np.exp(np.add(log_pdf, x_integrate))
+                    integral = integrate.romb(integrand, dx=x_integrate[1] - x_integrate[0])
+                    log_omega = - Facc + np.log(integral)
+
                     # kde histogram
                     bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
-                    kde = KernelDensity(kernel="gaussian", bandwidth=bw/2).fit(x[:, np.newaxis])
+                    kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(x[:, np.newaxis])
                     #plot histograms
-                    n_integrate = 2 ** 14 + 1
-                    # # x_max = np.exp(K*C-K*Facc/nparticles)
-                    x_integrate = np.linspace(np.amin(x) * 0.5, np.amax(x) * 1.5, n_integrate)
+                    n_integrate = 2 ** 12 + 1
+                    x_integrate = np.linspace(np.amin(x) * 0.5, np.amax(x) * 2, n_integrate)
+                    # x_integrate = np.linspace(0, 1000, n_integrate)
                     log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
-                    hist = np.exp(log_pdf * (iNK + 1))
-                    hist_int = np.amax(hist)#integrate.romb(hist, dx=x_integrate[1]-x_integrate[0])
-                    ax2.plot(x_integrate, hist/hist_int, label=dataset.ss_phi, color=color_cycle.next(), linewidth=3)
+                    log_hist = log_pdf * (iNK + 1)
+                    norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate[1]-x_integrate[0]))
+                    unpad_log_omega_p_hist.append(log_hist - norm + log_omega)
+                    x_integrate_list.append(x_integrate)
+                    ax2.plot(x_integrate, log_hist - norm + log_omega, label=dataset.ss_phi,
+                             color=color_cycle.next(), linewidth=3)
 
+            # color_cycle = get_color_cycle()
+            xmin, xmax = np.amin(x_integrate_list), np.amax(x_integrate_list)
+            print xmin, xmax
+
+            pad_log_omega_p_hist = []
+            for x_, x_integrate_ in zip(unpad_log_omega_p_hist, x_integrate_list):
+                dx = x_integrate_[1]-x_integrate_[0]
+                pad_log_omega_p_hist.append(np.pad(x_, (int(np.floor((np.amin(x_integrate_)-xmin)/dx)),
+                                                        int(np.floor((xmax - np.amax(x_integrate_))/dx))),
+                                                   'constant', constant_values=(0,0)))
+            maxsize = len(max(pad_log_omega_p_hist, key=len))//10
+            from skimage.transform import resize, downscale_local_mean
+            x_integrate = np.linspace(xmin, xmax, maxsize)
+            for i, x_ in enumerate(pad_log_omega_p_hist):
+                a = np.array(x_).reshape((1, len(x_)))
+                pad_log_omega_p_hist[i] = resize(a, (1, maxsize)).flatten()
+                ax2.plot(x_integrate, pad_log_omega_p_hist[i], label=dataset.ss_phi,
+                         color=color_cycle.next(), linewidth=1)
+            print np.array(pad_log_omega_p_hist).shape
             # assert y.size == pdf.size
             # X, Y = np.mesh
-            # ax2.hexbin(pdf.flatten(), y)
+            # ax2.hexbin(log_omega_p_hist, y)
             #
             #         ax.plot(edges, [generalised_lognormal.get_fitted(xpi) for xpi in edges], "--", color=color,
             #                 linewidth=2)
@@ -299,6 +339,7 @@ def plot(packing_datasets, figdir="figures"):
             # ax2.legend(frameon=False, loc=2, prop={'size': 22}, numpoints=1, markerscale=1, columnspacing=0.25,
             #            labelspacing=0.25, handlelength=1)
             ax2.set_xscale('log')
+            ax3.set_xscale('log')
             # ax2.set_yscale('log')
 
         if False:
