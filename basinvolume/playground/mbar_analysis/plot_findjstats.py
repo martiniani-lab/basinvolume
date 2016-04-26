@@ -51,13 +51,20 @@ def plot(datasets, figdir="figures"):
     energy = []
     pressure = []
     contacts = []
-    for i, data in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
-        phi_ss.append(data.phi_ss)
-        psuccess.append(np.mean(data.success))
-        nrattlers.append(np.mean(data.nrattlers))
-        energy.append(data.energy)
-        pressure.append(data.pressure)
-        contacts.append(data.Z)
+    phi_ss = np.unique([dataset.phi_ss for dataset in sorted(datasets, key=lambda data: data.phi_ss)])
+
+    for phi_ in phi_ss:
+        success_, nrattlers_ = [], []
+        for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
+            if phi_ == dataset.phi_ss:
+                success_.extend(dataset.success)
+                for data in dataset.packings_data:
+                    nrattlers_.append(data.nrattlers)
+                    energy.append(data.energy)
+                    pressure.append(data.pressure)
+                    contacts.append(data.Z)
+        psuccess.append(np.mean(success_))
+        nrattlers.append(np.mean(nrattlers_))
 
     fig = plt.figure()
     ax = fig.add_subplot(111)

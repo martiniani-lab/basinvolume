@@ -76,7 +76,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         """run generate packings"""
         while self.iteration < self.max_iter:
             self.one_iteration() #self iteration is incremented within one_iteration
-            if self.iteration % 5 == 0 or self.iteration == self.max_iter:
+            if self.iteration % 1000 == 0 or self.iteration == self.max_iter:
                 self._dump_results()
 
     def _dump_results(self):
