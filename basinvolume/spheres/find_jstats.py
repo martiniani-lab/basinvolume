@@ -10,6 +10,39 @@ from pele.utils._pressure_tensor import pressure_tensor
 from joblib import Parallel, delayed
 import cPickle as pickle
 
+
+class SoftPackingDataset(object):
+    def __init__(self, phi_ss, phi_hs, sca_ss,
+                 mu, sig, seeds, boxv, hs_radii):
+        self.phi_ss = phi_ss
+        self.phi_hs = phi_hs
+        self.sca = sca_ss
+        self.rmu = mu
+        self.rsig = sig
+        self.seeds = seeds
+        self.boxv = boxv
+        self.hs_radii = hs_radii
+        self.success = []
+        self.packings_data = []
+
+    def add_success(self, success):
+        self.success.append(success)
+
+    def add_packing_data(self, soft_packing_data):
+        self.packings_data.append(soft_packing_data)
+
+    def clear(self):
+        self.packings_data = []
+
+
+class SoftPackingData(object):
+    def __init__(self, coords, energy, pressure, Z, nrattlers):
+        self.nrattlers = nrattlers
+        self.energy = energy
+        self.pressure = pressure
+        self.Z = Z #full contact list
+        self.coords = coords
+
 class GeneratePackingFindJ(HS_Generate_Packing):
     def __init__(self, nparticles, workspace=None, method='quench', bdim=3, boxv=None,
                  ss_packing_frac=0.86, sca=0.12,
@@ -36,41 +69,27 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                                                    seeds=seeds)
         self.initialised_ss = False
         self.max_nrattlers = int(self.nparticles * 0.8)
-        self.nrattlers_list = []
-        self.success_list = []
-        self.energy_list = []
-        self.pressure_list = []
-        self.Z_list = [] #pass mean and variance
+        self.packing_dataset = SoftPackingDataset(self.ss_packing_frac, self.hs_packing_frac, self.sca_ss,
+                                                  mu, sig, seeds, boxv, hs_radii)
 
     def run(self):
         """run generate packings"""
         while self.iteration < self.max_iter:
-            self.one_iteration()
-        self._dump_results()
+            self.one_iteration() #self iteration is incremented within one_iteration
+            if self.iteration % 5 == 0 or self.iteration == self.max_iter:
+                self._dump_results()
 
     def _dump_results(self):
-        data_name = "jammed_packings_{}D_mu{}_sig{}_sca{}_phi{}.pickle".format(self.bdim,
-                                                                        self.mu,
-                                                                        self.sig,
-                                                                        self.sca_ss,
-                                                                        self.ss_packing_frac
-                                                                        )
+        data_name = "jammed_packings_{}D_mu{}_sig{}_sca{}_phi{}_iter{}.pickle".format(self.bdim,
+                                                                                      self.mu,
+                                                                                      self.sig,
+                                                                                      self.sca_ss,
+                                                                                      self.ss_packing_frac,
+                                                                                      int(self.iteration)
+                                                                                      )
         data_pickle = os.path.join(self.workspace, data_name)
-        res = Result()
-        res.phi_ss = self.ss_packing_frac
-        res.phi_hs = self.hs_packing_frac
-        res.sca = self.sca_ss
-        res.rmu = self.mu
-        res.rsig = self.sig
-        res.seeds = self.seeds
-        res.boxv = self.boxv
-        res.hs_radii = self.hs_radii
-        res.nrattlers = self.nrattlers_list
-        res.success = self.success_list
-        res.energy = self.energy_list
-        res.pressure = self.pressure_list
-        res.Z = self.Z_list
-        pickle.dump(res, open(data_pickle, "wb"))
+        pickle.dump(self.packing_dataset, open(data_pickle, "wb"))
+        self.packing_dataset.clear()
 
     def one_iteration(self):
         """perform one iteration"""
@@ -79,12 +98,11 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         if success:
             success = self._one_iteration_ss()
         if success:
-            self.nrattlers_list.append(self.nratls_)
-            self.energy_list.append(self.energy_ss)
-            p, ptensor = pressure_tensor(self.potential_ss_p, self.coords_ss, np.prod(self.boxv), self.bdim)
-            self.pressure_list.append(p)
-            self.Z_list.append([len(contacts) for contacts in self.contact_list])
-        self.success_list.append(int(success))
+            pressure, ptensor = pressure_tensor(self.potential_ss_p, self.coords_ss, np.prod(self.boxv), self.bdim)
+            Z = [len(contacts) for contacts in self.contact_list]
+            data = SoftPackingData(self.coords_ss, self.energy_ss, pressure, Z, self.nratls_)
+            self.packing_dataset.add_packing_data(data)
+        self.packing_dataset.add_success(success)
         self.iteration += 1
         print 'iteration ', self.iteration
 

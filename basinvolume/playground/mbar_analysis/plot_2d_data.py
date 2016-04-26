@@ -140,6 +140,7 @@ def plot(packing_datasets, figdir="figures"):
         ax1 = fig1.add_subplot(111)
         S = []
         phi = []
+        pmin, pmax = 1e100, -1e100
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
             print "set name ",dataset.set_name
             if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835:
@@ -157,6 +158,7 @@ def plot(packing_datasets, figdir="figures"):
                 x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                 f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
                 weights = 1./np.array(dataset.free_energies_err)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                pmin, pmax = min(pmin, np.amin(x)), max(pmax, np.amax(x))
                 print len(x), len(f)
                 x = np.log(x)
                 y = Facc-f
@@ -295,7 +297,7 @@ def plot(packing_datasets, figdir="figures"):
 
                     #plot histograms
                     n_integrate = 2 ** 14 + 1
-                    x_integrate = np.linspace(np.amin(x) * 0.5, np.amax(x) * 2, n_integrate)
+                    x_integrate = np.linspace(np.amin(x)*0.5, min(np.amax(x)*15, pmax*5), n_integrate)
                     # x_integrate = np.linspace(0, 1000, n_integrate)
                     log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
                     log_hist = log_pdf * (iNK + 1)
@@ -308,14 +310,17 @@ def plot(packing_datasets, figdir="figures"):
             # color_cycle = get_color_cycle()
             xmin, xmax = np.amin(x_integrate_list), np.amax(x_integrate_list)
             print xmin, xmax
-
             pad_log_omega_p_hist = []
             for x_, x_integrate_ in zip(unpad_log_omega_p_hist, x_integrate_list):
-                dx = x_integrate_[1]-x_integrate_[0]
+                dx = x_integrate_[1] - x_integrate_[0]
+                for j, xx_ in enumerate(x_):
+                    x_[j] = 0 if xx_ < 0 else xx_
                 pad_log_omega_p_hist.append(np.pad(x_, (int(np.floor((np.amin(x_integrate_)-xmin)/dx)),
                                                         int(np.floor((xmax - np.amax(x_integrate_))/dx))),
                                                    'constant', constant_values=(0,0)))
-            maxsize = len(max(pad_log_omega_p_hist, key=len))//100
+
+
+            maxsize = len(max(pad_log_omega_p_hist, key=len))//10
             from skimage.transform import resize
             x_integrate = np.linspace(xmin, xmax, maxsize)
             for i, x_ in enumerate(pad_log_omega_p_hist):
@@ -337,7 +342,7 @@ def plot(packing_datasets, figdir="figures"):
             levels = np.arange(np.amin(pad_log_omega_p_hist), np.amax(pad_log_omega_p_hist)*1.01, 10)
             ax4.contourf(X, Y, pad_log_omega_p_hist,
                          norm=norm,
-                         cmap=cm.get_cmap(cmap, len(levels) - 1),
+                         cmap=cmap,#cm.get_cmap(cmap, len(levels) - 1),
                          levels=levels)
             ax4.set_xscale('log')
 
