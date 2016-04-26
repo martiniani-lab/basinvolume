@@ -309,8 +309,11 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
-    parser.add_argument("--tol", type=float, help="minimizer rms tolerance",
-                        default=1e-8)
+    parser.add_argument("--tol", type=float, help="minimizer rms tolerance",default=1e-8)
+    parser.add_argument("--phimin", type=float, help="smallest density to run", default=0.83)
+    parser.add_argument("--phimax", type=float, help="largest density to run", default=0.87)
+    parser.add_argument("--nphi", type=int, help="number of densities to run", default=32)
+
     args = parser.parse_args()
     print args
     single = not args.moveall
@@ -328,7 +331,7 @@ if __name__ == "__main__":
         hs_radii = hs_diameters/2
 
     # density = args.density
-    density = np.logspace(np.log10(0.83), np.log10(0.87), 24)
+    density = np.logspace(np.log10(args.phimin), np.log10(args.phimax), args.nphi)
 
     sim = FindJ(args.nparticles, method=args.method, bdim=args.boxdim, ss_packing_frac=density,
                 sca=args.sca, hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
