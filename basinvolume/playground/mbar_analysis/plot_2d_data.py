@@ -143,17 +143,19 @@ def plot(packing_datasets, figdir="figures"):
         pmin, pmax = 1e100, -1e100
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
             print "set name ",dataset.set_name
-            if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835:
-                nparticles = dataset.nparticles
-                j = 0
-                Facc = None
-                vcavity = None
-                while Facc is None or vcavity is None:
-                    Facc = dataset.packing_data[j].Facc
-                    vcavity = dataset.packing_data[j].vcavity
-                    j += 1
-                print Facc
-                print nparticles
+            nparticles = dataset.nparticles
+            j = 0
+            Facc = None
+            vcavity = None
+            while Facc is None or vcavity is None:
+                Facc = dataset.packing_data[j].Facc
+                vcavity = dataset.packing_data[j].vcavity
+                j += 1
+            print Facc
+            print nparticles
+            if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835 and (
+                    dataset.ss_phi > 0.86 or "fire" in dataset.set_name
+                ):
                 outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
                 x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                 f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
@@ -209,7 +211,8 @@ def plot(packing_datasets, figdir="figures"):
             ax3 = fig.add_subplot(gs[4:, 0])
             x, y, yerr, y2, y2err = [], [], [], [], []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
-                if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835:
+                if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835 and (
+                    dataset.ss_phi > 0.86 or "fire" in dataset.set_name):
                     y.append(dataset.extras[0][0])
                     yerr.append(dataset.extras[1][0])
                     y2.append(dataset.extras[0][1])
@@ -304,7 +307,7 @@ def plot(packing_datasets, figdir="figures"):
                     norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate[1]-x_integrate[0]))
                     unpad_log_omega_p_hist.append(log_hist - norm + log_omega)
                     x_integrate_list.append(x_integrate)
-                    ax2.plot(x_integrate, log_hist - norm + log_omega, label=dataset.ss_phi,
+                    ax2.plot(1./x_integrate, log_hist - norm + log_omega, label=dataset.ss_phi,
                              color=color_cycle.next(), linewidth=3)
 
             # color_cycle = get_color_cycle()
@@ -326,7 +329,7 @@ def plot(packing_datasets, figdir="figures"):
             for i, x_ in enumerate(pad_log_omega_p_hist):
                 a = np.array(x_).reshape((1, len(x_)))
                 pad_log_omega_p_hist[i] = resize(a, (1, maxsize)).flatten()
-                ax2.plot(x_integrate, pad_log_omega_p_hist[i], label=dataset.ss_phi,
+                ax2.plot(1./x_integrate, pad_log_omega_p_hist[i], label=dataset.ss_phi,
                          color=color_cycle.next(), linewidth=1)
 
             # assert y.size == pdf.size

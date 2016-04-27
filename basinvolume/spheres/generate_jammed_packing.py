@@ -513,7 +513,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """write coordinates to file .xyzdr"""
         directory = self.base_directory
         #compare to existing file (dirty hack)
-        compare = True
+        compare = False
         if compare:
             try:
                 if self.bdim == 2:
