@@ -225,11 +225,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             raise NotImplementedError
         
         success = self._generate_packing_coords() #returns false if saddle
-        
+
+        n = int(re.search(r'\d+', fname).group())
         if success:
-            n = int(re.search(r'\d+',fname).group())
             self._print(n)
-        
+        else:
+            path_ = "{0}/jammed_packing{1}.xydr".format(self.base_directory, n)
+            if os.path.isfile(path_):
+                os.remove(path_)
         self.iteration+=1
 
     # def _find_rattlers(self):
