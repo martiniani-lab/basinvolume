@@ -519,7 +519,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         directory = self.base_directory
         #compare to existing file (dirty hack)
         compare = True
-        mismatch = False
+        mismatch = True
         if compare:
             try:
                 if self.bdim == 2:
@@ -528,6 +528,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 elif self.bdim == 3:
                     fname = "{0}/jammed_packing{1}.xyzdr".format(directory, n)
                     coords, hs_diameters, rattlers = read_xyzdr(fname)
+                mismatch = False
                 n_old_nratls = (len(rattlers) - np.count_nonzero(rattlers))//self.bdim
                 n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
                 if n_new_nratls != n_old_nratls or not np.array_equal(
