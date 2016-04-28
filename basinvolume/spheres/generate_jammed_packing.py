@@ -10,6 +10,7 @@ import re
 import argparse
 import subprocess
 import shlex
+import glob
 try:
     import pylab
 except:
