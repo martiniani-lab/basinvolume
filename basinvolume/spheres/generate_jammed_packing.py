@@ -516,6 +516,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         directory = self.base_directory
         #compare to existing file (dirty hack)
         compare = True
+        mismatch = False
         if compare:
             try:
                 if self.bdim == 2:
@@ -528,12 +529,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
                 if n_new_nratls != n_old_nratls or not np.array_equal(
                         np.nonzero(rattlers[::self.bdim]), np.nonzero(self.rattlers)):
+                        mismatch = True
                         with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
                             f.write('jammed_packing{}\n'.format(n))
+                        os.remove(fname)
             except Exception, e:
                 print e
         #dump configuration
-        if not compare:
+        if compare and mismatch:
             coords = self._correct_coords()
             if self.bdim == 2:
                 fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
