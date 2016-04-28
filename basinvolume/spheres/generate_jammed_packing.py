@@ -8,6 +8,8 @@ from basinvolume.utils import *
 import ConfigParser
 import re
 import argparse
+import subprocess
+import shlex
 try:
     import pylab
 except:
@@ -230,9 +232,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if success:
             self._print(n)
         else:
-            path_ = "{0}/jammed_packing{1}.xydr".format(self.base_directory, n)
+            path_ = "{0}/jammed_packing{1}.*".format(self.base_directory, n)
             if os.path.isfile(path_):
-                os.remove(path_)
+                p = subprocess.call(shlex.split("rm {}".format(path_)))
         self.iteration+=1
 
     # def _find_rattlers(self):
@@ -533,10 +535,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
                 if n_new_nratls != n_old_nratls or not np.array_equal(
                         np.nonzero(rattlers[::self.bdim]), np.nonzero(self.rattlers)):
-                        mismatch = True
-                        with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
-                            f.write('jammed_packing{}\n'.format(n))
-                        os.remove(fname)
+                    mismatch = True
+                    with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
+                        f.write('jammed_packing{}\n'.format(n))
+                    p = subprocess.call(shlex.split("rm {}".format(fname)))
             except Exception, e:
                 print e
         #dump configuration
