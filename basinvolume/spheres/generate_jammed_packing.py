@@ -513,7 +513,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """write coordinates to file .xyzdr"""
         directory = self.base_directory
         #compare to existing file (dirty hack)
-        compare = False
+        compare = True
         if compare:
             try:
                 if self.bdim == 2:
@@ -524,8 +524,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     coords, hs_diameters, rattlers = read_xyzdr(fname)
                 n_old_nratls = (len(rattlers) - np.count_nonzero(rattlers))//self.bdim
                 n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
-                if n_new_nratls != n_old_nratls:
-
+                if n_new_nratls != n_old_nratls or not np.array_equal(
+                        np.nonzero(rattlers[::self.bdim]), np.nonzero(self.rattlers)):
                         with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
                             f.write('jammed_packing{}\n'.format(n))
             except Exception, e:
