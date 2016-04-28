@@ -165,8 +165,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sig: standard deviaton of normal distribution from which to sample particles
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
+    *tol: rms tolerance for the minimizer
     """    
-    def __init__(self, packing_frac=0.7,
+    def __init__(self, packing_frac=0.7, tol=1e-9,
         packings_dir='packings', use_cell_lists=False, show=False,
         opt_pot_str='hs_wca', extra_pot_kwargs=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
@@ -174,6 +175,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.opt_pot_str = opt_pot_str
         self.extra_pot_kwargs = extra_pot_kwargs
         self.use_cell_lists = use_cell_lists
+        self.tol = tol
         ##constants#
         ############
     
@@ -423,7 +425,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """
         perform quench and run tests
         """
-        success = self._generate_packing_coords_iteration(tol=1e-9)
+        success = self._generate_packing_coords_iteration(tol=self.tol)
         return success
     
     def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
@@ -629,6 +631,7 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
+    parser.add_argument("-t", "--tol", type=float, help="rms tolerance of the minimizer", default=1e-9)
     # potential arguments
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
@@ -648,7 +651,7 @@ if __name__ == "__main__":
     
     print("extra_pot_kwargs", extra_pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
-        packings_dir=args.packingsdir,
+        packings_dir=args.packingsdir, tol=args.tol,
         use_cell_lists=args.nocell, show=args.show,
         opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
     sim.run()
