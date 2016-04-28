@@ -538,7 +538,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     mismatch = True
                     with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
                         f.write('jammed_packing{}\n'.format(n))
-                    p = subprocess.call(shlex.split("rm {}".format(fname)))
+                    p = subprocess.call(shlex.split("rm {}".format(
+                        "{0}/jammed_packing{1}.*".format(self.base_directory, n))))
             except Exception, e:
                 print e
         #dump configuration
