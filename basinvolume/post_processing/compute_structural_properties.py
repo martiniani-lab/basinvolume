@@ -105,7 +105,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                     except Exception:
                         compute = True
                     if compute or self.force:
-                        print dname
+                        print "boo ", dname
                         trymakedir(analysis_dir_path)
                         coords, hs_radii, ss_radii = self._import_packing_configuration(fname)
                         boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, ndim=self.bdim, deg=deg)
@@ -304,9 +304,11 @@ class PressureTensor(StructuralAnalysis):
                         configf.read(pressure_fname)
                         test_p = configf.getfloat('PRESSURE','P')
                         test_ptensor = configf.get('PRESSURE','Ptensor')
+                        test_e = configf.get('ENERGY', 'E')
                     except Exception:
                         compute = True
                     if compute or self.force:
+                        print "pressure ", dname
                         trymakedir(analysis_dir_path)
                         self.coords, self.hs_radii, self.ss_radii = self._import_packing_configuration(fname)
                         potential = self.get_potential()
@@ -384,13 +386,14 @@ if __name__ == "__main__":
         print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
     else:
         raise NotImplementedError
-    
-    pts_only_kwargs = dict(opt_pot_str=opt_pot_str, **extra_pot_kwargs)
-    
+
     ncores = args.ncores
     kwargs = dict(force=args.force, existing_only=args.nonex)
     if args.solid:
         kwargs.update(solid_angle_weighted=args.solid)
+
+    pts_kwargs = dict(opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+    pts_kwargs.update(kwargs)
     
     if not args.all:
         if not args.workspace_dir:
@@ -398,7 +401,7 @@ if __name__ == "__main__":
         else:
             workspace_dir = os.path.abspath(args.workspace_dir)
         worker_boo(workspace_dir, kwargs)
-        worker_pts(workspace_dir, kwargs)
+        worker_pts(workspace_dir, pts_kwargs)
     else:
         mypool = mp.Pool(ncores)
         if not args.workspace_dir:
@@ -410,7 +413,7 @@ if __name__ == "__main__":
             for folder in subdirs:
                 if folder[1].isdigit() and "phi" in folder and "D" in folder:
                     mypool.apply_async(worker_boo, args=(os.path.abspath(folder),kwargs,))
-                    mypool.apply_async(worker_pts, args=(os.path.abspath(folder),kwargs, pts_only_kwargs,))
+                    mypool.apply_async(worker_pts, args=(os.path.abspath(folder),pts_kwargs,))
         except:
             mypool.terminate()
             mypool.join()
