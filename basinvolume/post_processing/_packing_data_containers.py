@@ -28,6 +28,7 @@ class PackingDataSet(object):
         self.free_energies = []
         self.free_energies_err = []
         self.pressures = []
+        self.energies = []
         self.contacts = []
         self.boos = []
         self.extras = []
@@ -39,10 +40,12 @@ class PackingDataSet(object):
         self.packing_data.extend(packing_data)
         for data in packing_data:
             #the reason why they must all be true is because we are interested in the realation among these variables
-            if data.F is not None and data.Ferr is not None and data.P is not None and data.Z is not None and data.boo is not None:
+            if data.F is not None and data.Ferr is not None and data.P is not None and data.energy is not None \
+                    and data.Z is not None and data.boo is not None:
                 self.free_energies.append(data.F)
                 self.free_energies_err.append(data.Ferr)
                 self.pressures.append(data.P)
+                self.energies.append(data.energy)
                 self.contacts.append(data.Z)
                 self.boos.append(data.boo)
     
@@ -127,13 +130,14 @@ class PackingData(object):
             except Exception,e:
                 pass
             
-    def import_pressure_data(self, path, title="PRESSURE"):
+    def import_pressure_data(self, path, pressure_title="PRESSURE", energy_title="ENERGY"):
         if os.path.isfile(path):
             configf = ConfigParser.ConfigParser()
             configf.read(path)
-            self.P = configf.getfloat(title, 'P')
-            Ptensor = configf.get(title, 'Ptensor')
+            self.P = configf.getfloat(pressure_title, 'P')
+            Ptensor = configf.get(pressure_title, 'Ptensor')
             self.Ptensor = np.array([float(x) for x in Ptensor.split()])
+            self.energy = configf.getfloat(energy_title, 'E')
     
     def import_structural_data(self, path, path2, title_boo="BOO", title_z="Z"):
         """

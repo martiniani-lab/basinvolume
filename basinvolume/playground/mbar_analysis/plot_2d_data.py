@@ -142,43 +142,43 @@ def plot(packing_datasets, figdir="figures"):
         phi = []
         pmin, pmax = 1e100, -1e100
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
-            print "set name ",dataset.set_name
-            nparticles = dataset.nparticles
-            j = 0
-            Facc = None
-            vcavity = None
-            while Facc is None or vcavity is None:
-                Facc = dataset.packing_data[j].Facc
-                vcavity = dataset.packing_data[j].vcavity
-                j += 1
-            print Facc
-            print nparticles
-            if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835 and (
-                    dataset.ss_phi > 0.86 or "fire" in dataset.set_name
-                ):
-                outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
-                x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                weights = 1./np.array(dataset.free_energies_err)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                pmin, pmax = min(pmin, np.amin(x)), max(pmax, np.amax(x))
-                print len(x), len(f)
-                x = np.log(x)
-                y = Facc-f
-                if "fire" in dataset.set_name:
-                    marker = '^'
-                    label = 'fire {:.3f}'.format(dataset.ss_phi)
-                else:
-                    marker = 'o'
-                    label = 'cgd {:.3f}'.format(dataset.ss_phi)
-                ax.scatter(x, y, label=label, marker=marker, color=color_cycle.next())
-                fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
-                fit_err = np.sqrt(np.diag(cov))
-                fit_fn = np.poly1d(fit)
-                ax.plot(x, fit_fn(x), color='k')
-                dataset.add_extras((fit, fit_err))
-                print dataset.extras
-                S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
-                phi.append(dataset.ss_phi)
+            if len(dataset.free_energies) > 0:
+                print "set name ",dataset.set_name
+                nparticles = dataset.nparticles
+                j = 0
+                Facc = None
+                vcavity = None
+                while Facc is None or vcavity is None:
+                    Facc = dataset.packing_data[j].Facc
+                    vcavity = dataset.packing_data[j].vcavity
+                    j += 1
+                print Facc
+                print nparticles
+                if (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                                    0.835 < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
+                    outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+                    x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    weights = 1./np.array(dataset.free_energies_err)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                    pmin, pmax = min(pmin, np.amin(x)), max(pmax, np.amax(x))
+                    print len(x), len(f)
+                    x = np.log(x)
+                    y = Facc-f
+                    if "fire" in dataset.set_name:
+                        marker = '^'
+                        label = 'fire {:.3f}'.format(dataset.ss_phi)
+                    else:
+                        marker = 'o'
+                        label = 'cgd {:.3f}'.format(dataset.ss_phi)
+                    ax.scatter(x, y, label=label, marker=marker, color=color_cycle.next())
+                    fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
+                    fit_err = np.sqrt(np.diag(cov))
+                    fit_fn = np.poly1d(fit)
+                    ax.plot(x, fit_fn(x), color='k')
+                    dataset.add_extras((fit, fit_err))
+                    print dataset.extras
+                    S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
+                    phi.append(dataset.ss_phi)
         ax.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax.set_ylabel(r"$F_{acc}-F$")
@@ -211,8 +211,9 @@ def plot(packing_datasets, figdir="figures"):
             ax3 = fig.add_subplot(gs[4:, 0])
             x, y, yerr, y2, y2err = [], [], [], [], []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
-                if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835 and (
-                    dataset.ss_phi > 0.86 or "fire" in dataset.set_name):
+                if len(dataset.free_energies) > 0 and (
+                            (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                                            0.835 < dataset.ss_phi < 0.86 and "fire" in dataset.set_name)):
                     y.append(dataset.extras[0][0])
                     yerr.append(dataset.extras[1][0])
                     y2.append(dataset.extras[0][1])
@@ -241,7 +242,7 @@ def plot(packing_datasets, figdir="figures"):
 
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
-        if True:
+        if False:
             # kde pressure
             color_cycle = get_color_cycle()
             fig2 = plt.figure()
@@ -255,60 +256,60 @@ def plot(packing_datasets, figdir="figures"):
             unpad_log_omega_p_hist = []
             x_integrate_list = []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
-                j = 0
-                Facc = None
-                vcavity = None
-                while Facc is None or vcavity is None:
-                    Facc = dataset.packing_data[j].Facc
-                    vcavity = dataset.packing_data[j].vcavity
-                    j += 1
-                nparticles = dataset.nparticles
-                vcavity = dataset.packing_data[0].vcavity
-                if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835 and (
-                    dataset.ss_phi > 0.86 or "fire" in dataset.set_name
-                ):
-                    print "n:", nparticles
-                    #fit slopes to find inverse kappa and the intercept
-                    outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
-                    x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    weights = 1. / np.array(dataset.free_energies_err)[
-                        np.array(outliers.non_outliers_indexes, dtype="i")]
-                    fit, cov = np.polyfit(x, f, 1, w=weights, cov=True)
-                    fit_err = np.sqrt(np.diag(cov))
-                    iNK, NC = fit #N/K, C(N)
-                    iNKstd, NCstd = fit_err
-                    K = nparticles/iNK
-                    C = NC/nparticles
-                    fit_params.append([K, C])
-                    ss_phi_list.append(dataset.ss_phi)
+                if len(dataset.free_energies) > 0:
+                    j = 0
+                    Facc = None
+                    vcavity = None
+                    while Facc is None or vcavity is None:
+                        Facc = dataset.packing_data[j].Facc
+                        vcavity = dataset.packing_data[j].vcavity
+                        j += 1
+                    nparticles = dataset.nparticles
+                    vcavity = dataset.packing_data[0].vcavity
+                    if (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                           0.835 < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
+                        print "n:", nparticles
+                        #fit slopes to find inverse kappa and the intercept
+                        outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
+                        x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                        f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                        weights = 1. / np.array(dataset.free_energies_err)[
+                            np.array(outliers.non_outliers_indexes, dtype="i")]
+                        fit, cov = np.polyfit(x, f, 1, w=weights, cov=True)
+                        fit_err = np.sqrt(np.diag(cov))
+                        iNK, NC = fit #N/K, C(N)
+                        iNKstd, NCstd = fit_err
+                        K = nparticles/iNK
+                        C = NC/nparticles
+                        fit_params.append([K, C])
+                        ss_phi_list.append(dataset.ss_phi)
 
-                    #free energy non parametric log omega
-                    bw = get_bandwidth_estimate(np.array(f), kernel="gaussian", method="cross_validation")
-                    kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(f[:, np.newaxis])
-                    # plot histograms
-                    n_integrate = 2 ** 14 + 1
-                    x_integrate = np.linspace(Facc, np.amax(f) * 100, n_integrate)
-                    log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
-                    integrand = np.exp(np.add(log_pdf, x_integrate))
-                    integral = integrate.romb(integrand, dx=x_integrate[1] - x_integrate[0])
-                    log_omega = - Facc + np.log(integral)
+                        #free energy non parametric log omega
+                        bw = get_bandwidth_estimate(np.array(f), kernel="gaussian", method="cross_validation")
+                        kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(f[:, np.newaxis])
+                        # plot histograms
+                        n_integrate = 2 ** 14 + 1
+                        x_integrate = np.linspace(Facc, np.amax(f) * 100, n_integrate)
+                        log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+                        integrand = np.exp(np.add(log_pdf, x_integrate))
+                        integral = integrate.romb(integrand, dx=x_integrate[1] - x_integrate[0])
+                        log_omega = - Facc + np.log(integral)
 
-                    # kde histogram
-                    bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
-                    kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(x[:, np.newaxis])
+                        # kde histogram
+                        bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
+                        kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(x[:, np.newaxis])
 
-                    #plot histograms
-                    n_integrate = 2 ** 14 + 1
-                    x_integrate = np.linspace(np.amin(x)*0.5, min(np.amax(x)*15, pmax*5), n_integrate)
-                    # x_integrate = np.linspace(0, 1000, n_integrate)
-                    log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
-                    log_hist = log_pdf * (iNK + 1)
-                    norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate[1]-x_integrate[0]))
-                    unpad_log_omega_p_hist.append(log_hist - norm + log_omega)
-                    x_integrate_list.append(x_integrate)
-                    ax2.plot(1./x_integrate, log_hist - norm + log_omega, label=dataset.ss_phi,
-                             color=color_cycle.next(), linewidth=3)
+                        #plot histograms
+                        n_integrate = 2 ** 14 + 1
+                        x_integrate = np.linspace(np.amin(x)*0.5, min(np.amax(x)*15, pmax*5), n_integrate)
+                        # x_integrate = np.linspace(0, 1000, n_integrate)
+                        log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+                        log_hist = log_pdf * (iNK + 1)
+                        norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate[1]-x_integrate[0]))
+                        unpad_log_omega_p_hist.append(log_hist - norm + log_omega)
+                        x_integrate_list.append(x_integrate)
+                        ax2.plot(1./x_integrate, log_hist - norm + log_omega, label=dataset.ss_phi,
+                                 color=color_cycle.next(), linewidth=3)
 
             # color_cycle = get_color_cycle()
             xmin, xmax = np.amin(x_integrate_list), np.amax(x_integrate_list)

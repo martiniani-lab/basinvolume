@@ -311,6 +311,7 @@ class PressureTensor(StructuralAnalysis):
                         self.coords, self.hs_radii, self.ss_radii = self._import_packing_configuration(fname)
                         potential = self.get_potential()
                         p, ptensor = pressure_tensor(potential, self.coords, self.vcavity, self.bdim)
+                        energy = potential.getEnergy(self.coords)
                         with open(pressure_fname, 'w') as f:
                             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
                             f.write('[PRESSURE]\n')
@@ -319,6 +320,8 @@ class PressureTensor(StructuralAnalysis):
                             for val in ptensor:
                                 f.write('{:.16f} '.format(val))
                             f.write('\n')
+                            f.write('[ENERGY]\n')
+                            f.write('E: {:.16f}\n'.format(energy))
 
     def get_potential(self):
         # here put a flag and pick potential
