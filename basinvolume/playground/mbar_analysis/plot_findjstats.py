@@ -6,6 +6,11 @@ from basinvolume.utils import *
 from joblib import Parallel, delayed
 import cPickle as pickle
 from itertools import cycle
+from basinvolume.spheres.find_jstats import SoftPackingDataset, SoftPackingData
+from sklearn.neighbors import KernelDensity
+from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
+from scipy import integrate
+
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
@@ -54,62 +59,95 @@ def plot(datasets, figdir="figures"):
     phi_ss = np.unique([dataset.phi_ss for dataset in sorted(datasets, key=lambda data: data.phi_ss)])
 
     for phi_ in phi_ss:
-        success_, nrattlers_ = [], []
+        success_, nrattlers_, energy_ = [], [], []
+        pressure_, contacts_ = [], []
         for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
             if phi_ == dataset.phi_ss:
                 success_.extend(dataset.success)
                 for data in dataset.packings_data:
                     nrattlers_.append(data.nrattlers)
-                    energy.append(data.energy)
-                    pressure.append(data.pressure)
-                    contacts.append(data.Z)
+                    energy_.append(data.energy)
+                    pressure_.append(data.pressure)
+                    contacts_.append(np.mean(data.Z))
         psuccess.append(np.mean(success_))
         nrattlers.append(np.mean(nrattlers_))
+        energy.append(energy_)
+        pressure.append(pressure_)
+        contacts.append(contacts_)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(phi_ss, np.array(psuccess), marker='o')
-    ax.set_xlim([phi_ss[0],phi_ss[-1]])
-    ax.set_xlabel(r"$\phi_{ss}$")
-    ax.set_ylabel(r"$p_{pack}$")
-    fig.savefig("{}/{}".format(figdir, "phi_ppack.pdf"))
+    if True:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(phi_ss, np.array(psuccess), marker='o')
+        ax.set_xlim([phi_ss[0],phi_ss[-1]])
+        ax.set_xlabel(r"$\phi_{ss}$")
+        ax.set_ylabel(r"$p_{pack}$")
+        fig.savefig("{}/{}".format(figdir, "phi_ppack.pdf"))
 
-    fig1 = plt.figure()
-    ax1 = fig1.add_subplot(111)
-    ax1.plot(phi_ss, np.array(nrattlers), marker='o')
-    ax1.set_xlim([phi_ss[0], phi_ss[-1]])
-    ax1.set_xlabel(r"$\phi_{ss}$")
-    ax1.set_ylabel(r"$n_{rattlers}$")
-    fig1.savefig("{}/{}".format(figdir, "phi_nrattlers.pdf"))
+    if False:
+        fig1 = plt.figure()
+        ax1 = fig1.add_subplot(111)
+        ax1.plot(phi_ss, np.array(nrattlers), marker='o')
+        ax1.set_xlim([phi_ss[0], phi_ss[-1]])
+        ax1.set_xlabel(r"$\phi_{ss}$")
+        ax1.set_ylabel(r"$n_{rattlers}$")
+        fig1.savefig("{}/{}".format(figdir, "phi_nrattlers.pdf"))
 
-    fig2 = plt.figure()
-    ax2 = fig2.add_subplot(111)
-    color = get_color_cycle()
-    for e, p in zip(energy, pressure):
-        assert len(e) == len(p)
-        ax2.scatter(np.log(e), np.log(p), color=color.next())
-    ax2.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
-              columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-    ax2.set_xlabel(r"$\ln(E)$")
-    ax2.set_ylabel(r"$\ln(P)$")
-    fig2.savefig("{}/{}".format(figdir, "lnE_lnP.pdf"))
+    if True:
+        fig2 = plt.figure()
+        ax2 = fig2.add_subplot(111)
+        color = get_color_cycle()
+        for e,p in zip(energy, pressure):
+            assert len(e) == len(p)
+            ax2.scatter(np.log(e), np.log(p), color=color.next())
+        ax2.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax2.set_xlabel(r"$\ln(E)$")
+        ax2.set_ylabel(r"$\ln(P)$")
+        fig2.savefig("{}/{}".format(figdir, "lnE_lnP.pdf"))
 
-    fig3 = plt.figure()
-    ax3 = fig3.add_subplot(111)
-    color = get_color_cycle()
-    for z, p in zip(contacts, pressure):
-        assert len(p) == len(z)
-        ax3.scatter(np.log(p), np.log([np.mean(x) for x in z]), color=color.next())
-    ax3.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
-               columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-    ax3.set_xlabel(r"$\ln(P)$")
-    ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
-    fig3.savefig("{}/{}".format(figdir, "lnP_lnZ.pdf"))
-    plt.show()
+    if False:
+        fig3 = plt.figure()
+        ax3 = fig3.add_subplot(111)
+        color = get_color_cycle()
+        for i, (p, z) in enumerate(zip(pressure, contacts)):
+            assert len(p) == len(z)
+            ax3.scatter(np.log(p), np.log(z), color=color.next())
+        ax3.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax3.set_xlabel(r"$\ln(P)$")
+        ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
+        fig3.savefig("{}/{}".format(figdir, "lnP_lnZ.pdf"))
+
+    if True:
+        fig4 = plt.figure()
+        ax4 = fig4.add_subplot(111)
+        color = get_color_cycle()
+        n_integrate = 2 ** 14 + 1
+        for i, p in enumerate(pressure):
+            # kde histogram
+            p = np.array(p)
+            bw = get_bandwidth_estimate(p, kernel="gaussian", method="cross_validation")
+            kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(p[:, np.newaxis])
+            # plot histograms
+            x_integrate = np.linspace(np.amin(p), np.amax(p), n_integrate)
+            log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+            # norm = np.log(integrate.romb(np.exp(log_pdf), dx=x_integrate[1] - x_integrate[0]))
+            maxp = x_integrate[np.argmax(log_pdf)]
+            ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color.next(), label=phi_ss[i])
+
+        # ax4.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        #            columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax4.set_xlabel(r"$\ln(P/P_{peak})$")
+        ax4.set_ylabel(r"$\ln(pdf)$")
+        fig4.savefig("{}/{}".format(figdir, "lnP_pdf.pdf"))
+
+
 
 if __name__=="__main__":
     datasets = collect_data_every_set_all()
     plot(datasets)
+    plt.show()
     # x, y = np.log(sim.energy_list), np.log(sim.pressure_list)
     # plt.scatter(x, y)
     # from scipy.optimize import curve_fit

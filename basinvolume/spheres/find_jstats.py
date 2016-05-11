@@ -8,6 +8,7 @@ from basinvolume.spheres import HS_Generate_Packing
 from basinvolume.spheres.generate_jammed_packing import cartesian_to_polar2d, sum_neighbor_angles2d
 from pele.utils._pressure_tensor import pressure_tensor
 from joblib import Parallel, delayed
+from numpy.random import RandomState
 import cPickle as pickle
 
 
@@ -273,8 +274,11 @@ class FindJ(object):
                  use_cell_lists=True, single=True, seeds=None, opt_pot_str='hs_wca',
                  ncores=2):
 
+        self.rng = RandomState()
         self.ncores = ncores
         self.hsgp = []
+        if hs_radii is None:
+            hs_radii = self.rng.normal(mu, sig, nparticles)
         for phi in ss_packing_frac:
             hsgp_ = GeneratePackingFindJ(nparticles, workspace=workspace, method=method,
                                          bdim=bdim, boxv=boxv, ss_packing_frac=phi,

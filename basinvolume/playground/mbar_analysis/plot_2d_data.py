@@ -123,7 +123,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
 # cdf.add_array(x)
 # x, cdf_x = cdf.get_vecdata()
 
-def plot(packing_datasets, figdir="figures"):
+def plot(packing_datasets, figdir="figures", phi_min=0.825):
     from scipy.optimize import curve_fit
     if not os.path.isabs(figdir):
         figdir = os.path.join(os.getcwd(), figdir)
@@ -141,6 +141,7 @@ def plot(packing_datasets, figdir="figures"):
         S = []
         phi = []
         pmin, pmax = 1e100, -1e100
+        p_minmax_list = []
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
             if len(dataset.free_energies) > 0:
                 print "set name ",dataset.set_name
@@ -154,14 +155,18 @@ def plot(packing_datasets, figdir="figures"):
                     j += 1
                 print Facc
                 print nparticles
-                if (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
-                                    0.835 < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
-                    outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
-                    x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    weights = 1./np.array(dataset.free_energies_err)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                if (dataset.ss_phi > 0.86 and "fire" not in dataset.set_name) or (
+                                    phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
+                    #should remoe both outliers in pressure and in volume
+                    x_raw = dataset.pressures
+                    f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=2*np.std(dataset.free_energies))
+                    x_outliers = OutlierDetection(np.log(x_raw), p=0.5, D=2*np.std(np.log(x_raw)))
+                    non_outliers_indexes = list(set(f_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes))
+                    x = np.array(x_raw)[np.array(non_outliers_indexes, dtype="i")]
+                    f = np.array(dataset.free_energies)[np.array(non_outliers_indexes, dtype="i")]
+                    weights = 1./np.array(dataset.free_energies_err)[np.array(non_outliers_indexes, dtype="i")]
                     pmin, pmax = min(pmin, np.amin(x)), max(pmax, np.amax(x))
-                    print len(x), len(f)
+                    p_minmax_list.append([np.amin(x), np.amax(x)])
                     x = np.log(x)
                     y = Facc-f
                     if "fire" in dataset.set_name:
@@ -179,6 +184,7 @@ def plot(packing_datasets, figdir="figures"):
                     print dataset.extras
                     S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
+        print phi
         ax.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax.set_ylabel(r"$F_{acc}-F$")
@@ -202,8 +208,6 @@ def plot(packing_datasets, figdir="figures"):
             def ff(x, a, b):
                 return a * x + b
 
-            glob_phi_j = 0.84
-
             # plot power law exponent
             color_cycle = get_color_cycle()
             color_marker = color_cycle.next()
@@ -212,8 +216,8 @@ def plot(packing_datasets, figdir="figures"):
             x, y, yerr, y2, y2err = [], [], [], [], []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
                 if len(dataset.free_energies) > 0 and (
-                            (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
-                                            0.835 < dataset.ss_phi < 0.86 and "fire" in dataset.set_name)):
+                            (dataset.ss_phi > 0.86 and "fire" not in dataset.set_name) or (
+                                            phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name)):
                     y.append(dataset.extras[0][0])
                     yerr.append(dataset.extras[1][0])
                     y2.append(dataset.extras[0][1])
@@ -242,7 +246,7 @@ def plot(packing_datasets, figdir="figures"):
 
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
-        if False:
+        if True:
             # kde pressure
             color_cycle = get_color_cycle()
             fig2 = plt.figure()
@@ -251,9 +255,19 @@ def plot(packing_datasets, figdir="figures"):
             ax3 = fig3.add_subplot(111)
             fig4 = plt.figure()
             ax4 = fig4.add_subplot(111)
+            fig5 = plt.figure()
+            ax5 = fig5.add_subplot(111)
+            fig6 = plt.figure()
+            ax6 = fig6.add_subplot(111)
+            fig7= plt.figure()
+            ax7 = fig7.add_subplot(111)
             fit_params = []
             ss_phi_list = []
             unpad_log_omega_p_hist = []
+            kde_list = []
+            iNK_list = []
+            log_omega_list = []
+            maxp, max_logdos = [], [] #pressure for which kde is max
             x_integrate_list = []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
                 if len(dataset.free_energies) > 0:
@@ -266,19 +280,23 @@ def plot(packing_datasets, figdir="figures"):
                         j += 1
                     nparticles = dataset.nparticles
                     vcavity = dataset.packing_data[0].vcavity
-                    if (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
-                           0.835 < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
+                    if (dataset.ss_phi > 0.86 and "fire" not in dataset.set_name) or (
+                           phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
                         print "n:", nparticles
                         #fit slopes to find inverse kappa and the intercept
-                        outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
-                        x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                        f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
+                        x_raw = dataset.pressures
+                        f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=2 * np.std(dataset.free_energies))
+                        x_outliers = OutlierDetection(x_raw, p=0.5, D=3 * np.std(x_raw))
+                        non_outliers_indexes = list(set(f_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes))
+                        x = np.array(x_raw)[np.array(non_outliers_indexes, dtype="i")]
+                        f = np.array(dataset.free_energies)[np.array(non_outliers_indexes, dtype="i")]
                         weights = 1. / np.array(dataset.free_energies_err)[
-                            np.array(outliers.non_outliers_indexes, dtype="i")]
+                            np.array(non_outliers_indexes, dtype="i")]
                         fit, cov = np.polyfit(x, f, 1, w=weights, cov=True)
                         fit_err = np.sqrt(np.diag(cov))
                         iNK, NC = fit #N/K, C(N)
                         iNKstd, NCstd = fit_err
+                        iNK_list.append(iNK)
                         K = nparticles/iNK
                         C = NC/nparticles
                         fit_params.append([K, C])
@@ -294,24 +312,27 @@ def plot(packing_datasets, figdir="figures"):
                         integrand = np.exp(np.add(log_pdf, x_integrate))
                         integral = integrate.romb(integrand, dx=x_integrate[1] - x_integrate[0])
                         log_omega = - Facc + np.log(integral)
+                        log_omega_list.append(log_omega)
 
                         # kde histogram
                         bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
                         kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(x[:, np.newaxis])
-
+                        kde_list.append(kde)
                         #plot histograms
                         n_integrate = 2 ** 14 + 1
                         x_integrate = np.linspace(np.amin(x)*0.5, min(np.amax(x)*15, pmax*5), n_integrate)
+                        x_integrate_list.append(x_integrate)
                         # x_integrate = np.linspace(0, 1000, n_integrate)
                         log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
-                        log_hist = log_pdf * (iNK + 1)
+                        log_hist = log_pdf + iNK * np.log(x_integrate)
                         norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate[1]-x_integrate[0]))
                         unpad_log_omega_p_hist.append(log_hist - norm + log_omega)
-                        x_integrate_list.append(x_integrate)
-                        ax2.plot(1./x_integrate, log_hist - norm + log_omega, label=dataset.ss_phi,
+                        ax2.plot(x_integrate, log_hist - norm + log_omega, label=dataset.ss_phi,
                                  color=color_cycle.next(), linewidth=3)
+                        maxp.append(x_integrate[np.argmax(log_hist - norm + log_omega)])
+                        max_logdos.append(np.amax(log_hist - norm + log_omega))
+                        # color_cycle = get_color_cycle()
 
-            # color_cycle = get_color_cycle()
             xmin, xmax = np.amin(x_integrate_list), np.amax(x_integrate_list)
             print xmin, xmax
             pad_log_omega_p_hist = []
@@ -319,39 +340,122 @@ def plot(packing_datasets, figdir="figures"):
                 dx = x_integrate_[1] - x_integrate_[0]
                 for j, xx_ in enumerate(x_):
                     x_[j] = 0 if xx_ < 0 else xx_
-                pad_log_omega_p_hist.append(np.pad(x_, (int(np.floor((np.amin(x_integrate_)-xmin)/dx)),
-                                                        int(np.floor((xmax - np.amax(x_integrate_))/dx))),
-                                                   'constant', constant_values=(0,0)))
+                pad_log_omega_p_hist.append(np.pad(x_, (int(np.floor((np.amin(x_integrate_) - xmin) / dx)),
+                                                        int(np.floor((xmax - np.amax(x_integrate_)) / dx))),
+                                                   'constant', constant_values=(0, 0)))
 
-
-            maxsize = len(max(pad_log_omega_p_hist, key=len))//10
+            maxsize = len(max(pad_log_omega_p_hist, key=len)) // 10
             from skimage.transform import resize
             x_integrate = np.linspace(xmin, xmax, maxsize)
             for i, x_ in enumerate(pad_log_omega_p_hist):
                 a = np.array(x_).reshape((1, len(x_)))
                 pad_log_omega_p_hist[i] = resize(a, (1, maxsize)).flatten()
-                ax2.plot(1./x_integrate, pad_log_omega_p_hist[i], label=dataset.ss_phi,
+                ax2.plot(x_integrate, pad_log_omega_p_hist[i], label=dataset.ss_phi,
                          color=color_cycle.next(), linewidth=1)
+            ax2.set_xscale('log')
 
-            # assert y.size == pdf.size
-            X, Y, = np.array(x_integrate), np.array(ss_phi_list)
-            Z = np.array(pad_log_omega_p_hist)
-            ax3.imshow(Z, vmin=np.abs(Z).min(), vmax=np.abs(Z).max(), origin='lower',
-                       extent=[X.min(), X.max(), Y.min(), Y.max()], interpolation='gaussian',
-                       aspect='auto')
+            glob_phi_j = phi_min
+            dphi = np.array(phi) - glob_phi_j
 
-            from matplotlib import cm
-            norm = cm.colors.Normalize(vmax=abs(Z).max(), vmin=-abs(Z).max())
-            cmap = cm.jet
-            levels = np.arange(np.amin(pad_log_omega_p_hist), np.amax(pad_log_omega_p_hist)*1.01, 10)
-            ax4.contourf(X, Y, pad_log_omega_p_hist,
-                         norm=norm,
-                         cmap=cmap,#cm.get_cmap(cmap, len(levels) - 1),
-                         levels=levels)
-            ax4.set_xscale('log')
+            x = dphi
+            y = np.log(maxp)
+            color = color_cycle.next()
+            ax5.scatter(x, y, color=color, label=r'$p_{peak}$', s=100)
+            fit, cov = np.polyfit(x, y, 1, cov=True) #if I use dphi instead of phi it's not a power law
+            fit_fn = np.poly1d(fit)
+            ax5.plot(x, fit_fn(x), color=color, linewidth=3)
+            print "phi max(p) fit: ",fit
 
-            # ax2.hexbin(log_omega_p_hist, y)
-            #
+            y = np.log(np.array(p_minmax_list)[:,0])
+            color = color_cycle.next()
+            ax5.scatter(x, y, color=color, label=r'$p_{min}$', s=100)
+            fit, cov = np.polyfit(x, y, 1, cov=True)  # if I use dphi instead of phi it's not a power law
+            fit_fn = np.poly1d(fit)
+            ax5.plot(x, fit_fn(x), color=color, linewidth=3)
+            print "phi p_min fit: ", fit
+
+            y = np.log(np.array(p_minmax_list)[:, 1])
+            color = color_cycle.next()
+            ax5.scatter(x, y, color=color, label=r'$p_{max}$', s=100)
+            fit, cov = np.polyfit(x, y, 1, cov=True)  # if I use dphi instead of phi it's not a power law
+            fit_fn = np.poly1d(fit)
+            ax5.plot(x, fit_fn(x), color=color, linewidth=3)
+            ax5.set_xlabel(r'$\Delta\phi$')
+            ax5.set_ylabel(r'$\log p_x$')
+            print "phi p_max fit: ", fit
+
+            ax5.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+
+            x, y = dphi, max_logdos
+            color = color_cycle.next()
+            ax6.scatter(x, y, color=color, s=100)
+            fit, cov = np.polyfit(x, y, 1, cov=True)
+            fit_fn = np.poly1d(fit)
+            ax6.plot(x, fit_fn(x), color=color, linewidth=3)
+            ax6.set_xlabel(r'$\log DOS_{max}$')
+            ax6.set_xlabel(r'$\Delta\phi$')
+            print "phi max dos fit: ", fit
+
+            alpha, beta = 200, 100
+            color_cycle = get_color_cycle()
+            for i,(kde, iNK) in enumerate(zip(kde_list, iNK_list)):
+                x_integrate = np.linspace(p_minmax_list[i][0]*0.5, min(p_minmax_list[i][1]*15, pmax*5), 2**14+1)
+                # x_integrate = np.linspace(p_minmax_list[i][0], p_minmax_list[i][1], 2**14+1)
+                log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+                log_hist = log_pdf + iNK * np.log(x_integrate)
+                log_norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate[1] - x_integrate[0]))
+                logg = (log_hist - log_norm + log_omega_list[i]) + alpha * dphi[i]
+                # print np.amax(logg), alpha * dphi[i]
+                ax7.plot(np.log(x_integrate) - beta*dphi[i], logg, label=phi[i],
+                         color=color_cycle.next(), linewidth=3)
+            ax7.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            # ax7.set_ylim((200,230))
+
+            # def cost_function(x):
+            #     cost = 0
+            #     alpha, beta = x[0], x[1]
+            #     print alpha, beta
+            #     for i in xrange(dphi.size):
+            #         x_integrate_i = x_integrate / np.power(dphi[i], beta)
+            #         log_pdf = kde_list[i].score_samples(x_integrate_i[:, np.newaxis])
+            #         log_hist = log_pdf + iNK * np.log(x_integrate_i)
+            #         log_norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate_i[1] - x_integrate_i[0]))
+            #         logg_i = log_hist - log_norm + log_omega_list[i]
+            #         for j in xrange(i, dphi.size):
+            #             if i != j:
+            #                 print i, j
+            #                 x_integrate_j = x_integrate / np.power(dphi[j], beta)
+            #                 log_pdf = kde_list[j].score_samples(x_integrate_j[:, np.newaxis])
+            #                 log_hist = log_pdf + iNK * np.log(x_integrate_j)
+            #                 log_norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate_j[1] - x_integrate_j[0]))
+            #                 logg_j = log_hist - log_norm + log_omega_list[j]
+            #                 cost_ = np.sum(np.power(alpha * (np.log(dphi[i])-np.log(dphi[j])) + logg_i - logg_j,2))
+            #                 print cost_
+            #                 cost += cost_
+            #     return cost
+            # from scipy.optimize import minimize
+            # print minimize(cost_function, [0,0])
+
+            if False:
+                # assert y.size == pdf.size
+                X, Y, = np.array(x_integrate), np.array(ss_phi_list)
+                Z = np.array(pad_log_omega_p_hist)
+                ax3.imshow(Z, vmin=np.abs(Z).min(), vmax=np.abs(Z).max(), origin='lower',
+                           extent=[X.min(), X.max(), Y.min(), Y.max()], interpolation='gaussian',
+                           aspect='auto')
+
+                from matplotlib import cm
+                norm = cm.colors.Normalize(vmax=abs(Z).max(), vmin=-abs(Z).max())
+                cmap = cm.jet
+                levels = np.arange(np.amin(pad_log_omega_p_hist), np.amax(pad_log_omega_p_hist)*1.01, 10)
+                ax4.contourf(X, Y, pad_log_omega_p_hist,
+                             norm=norm,
+                             cmap=cmap,#cm.get_cmap(cmap, len(levels) - 1),
+                             levels=levels)
+                ax4.set_xscale('log')
+
             #         ax.plot(edges, [generalised_lognormal.get_fitted(xpi) for xpi in edges], "--", color=color,
             #                 linewidth=2)
             #
@@ -365,7 +469,6 @@ def plot(packing_datasets, figdir="figures"):
             #
             # ax2.legend(frameon=False, loc=2, prop={'size': 22}, numpoints=1, markerscale=1, columnspacing=0.25,
             #            labelspacing=0.25, handlelength=1)
-            ax2.set_xscale('log')
             # ax3.set_xscale('log')
             # ax3.set_yscale('log')
 
