@@ -101,7 +101,7 @@ class _Generate_Packing(object):
             f.write('{}: {}\n'.format(key,value))
         f.write('method: {}\n'.format(self.method))
         f.write('nparticles: {}\n'.format(self.nparticles))
-        f.write('packing_fraction: {}\n'.format(self.packing_frac))
+        f.write('packing_fraction: {:.16f}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('ndim: {}\n'.format(self.ndof))
         f.write('max_iter: {}\n'.format(self.max_iter))

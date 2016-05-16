@@ -112,7 +112,7 @@ class _Generate_Jammed_Packing(object):
         f.write('#Generate_Jammed_Packings base class input parameters\n')
         f.write('[JAMMED_PACKING]\n')
         f.write('nparticles: {}\n'.format(self.nparticles))
-        f.write('packing_fraction: {}\n'.format(self.packing_frac))
+        f.write('packing_fraction: {:.16f}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')

@@ -123,7 +123,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
 # cdf.add_array(x)
 # x, cdf_x = cdf.get_vecdata()
 
-def plot(packing_datasets, figdir="figures", phi_min=0.825):
+def plot(packing_datasets, figdir="figures", phi_min=0.83):
     from scipy.optimize import curve_fit
     if not os.path.isabs(figdir):
         figdir = os.path.join(os.getcwd(), figdir)
@@ -155,12 +155,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825):
                     j += 1
                 print Facc
                 print nparticles
-                if (dataset.ss_phi > 0.86 and "fire" not in dataset.set_name) or (
-                                    phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
+                if (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                                    phi_min < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
                     #should remoe both outliers in pressure and in volume
                     x_raw = dataset.pressures
-                    f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=2*np.std(dataset.free_energies))
-                    x_outliers = OutlierDetection(np.log(x_raw), p=0.5, D=2*np.std(np.log(x_raw)))
+                    f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
+                    x_outliers = OutlierDetection(np.log(x_raw), p=0.5, D=2.5*np.std(np.log(x_raw)))
                     non_outliers_indexes = list(set(f_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes))
                     x = np.array(x_raw)[np.array(non_outliers_indexes, dtype="i")]
                     f = np.array(dataset.free_energies)[np.array(non_outliers_indexes, dtype="i")]
@@ -183,6 +183,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825):
                     dataset.add_extras((fit, fit_err))
                     print dataset.extras
                     S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
+                    # S.append(np.mean(f) - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
         print phi
         ax.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
@@ -216,8 +217,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825):
             x, y, yerr, y2, y2err = [], [], [], [], []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
                 if len(dataset.free_energies) > 0 and (
-                            (dataset.ss_phi > 0.86 and "fire" not in dataset.set_name) or (
-                                            phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name)):
+                            (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                                            phi_min < dataset.ss_phi < 0.86 and "fire" in dataset.set_name)):
                     y.append(dataset.extras[0][0])
                     yerr.append(dataset.extras[1][0])
                     y2.append(dataset.extras[0][1])
@@ -246,7 +247,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825):
 
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
-        if True:
+        if False:
             # kde pressure
             color_cycle = get_color_cycle()
             fig2 = plt.figure()
@@ -280,13 +281,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825):
                         j += 1
                     nparticles = dataset.nparticles
                     vcavity = dataset.packing_data[0].vcavity
-                    if (dataset.ss_phi > 0.86 and "fire" not in dataset.set_name) or (
-                           phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
+                    if (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                           phi_min < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
                         print "n:", nparticles
                         #fit slopes to find inverse kappa and the intercept
                         x_raw = dataset.pressures
-                        f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=2 * np.std(dataset.free_energies))
-                        x_outliers = OutlierDetection(x_raw, p=0.5, D=3 * np.std(x_raw))
+                        f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
+                        x_outliers = OutlierDetection(np.log(x_raw), p=0.5, D=2.5 * np.std(np.log(x_raw)))
                         non_outliers_indexes = list(set(f_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes))
                         x = np.array(x_raw)[np.array(non_outliers_indexes, dtype="i")]
                         f = np.array(dataset.free_energies)[np.array(non_outliers_indexes, dtype="i")]

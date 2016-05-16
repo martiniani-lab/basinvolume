@@ -28,13 +28,16 @@ class Poly_HS_Fluid_2d(Poly_HS_Fluid):
     def ZOne(self, phi):
         if self.name == "Santos": #ref: http://dx.doi.org/10.1080/00268979909482932
             return 1.0 / ( 1.0 - 2.0 * phi + (2.0 * self.phiCP - 1.0) * phi**2 / self.phiCP**2)
-        else if self.name == "Kolafa": #ref: http://dx.doi.org/10.1080/00268970600967963
+        elif self.name == "Kolafa": #ref: http://dx.doi.org/10.1080/00268970600967963
             rho_max = 0.88
             phi_max = rho_max * 0.25 * pi
             if phi > phi_max or phi < 0:
                 raise Exception("illegal volume fraction, phi = {}".format(phi))
             x = phi / (1 - phi)
-            return 1 + 2 * x + 1.12801775 * x**2 + 0.00181895291 * x**3 - 0.0526134737 * x**4 + 0.0504951668 * x**5 - 0.0325433846 * x**6 + 0.0133946531 * x**7 + 0.00174265604 * x**8 - 0.00944632202 * x**9 + 0.00851111768 * x**10 - 0.0035963525 * x**11 + 0.000577345106 * x**12 - 1.06399127e-7 * x**19  
+            return 1 + 2 * x + 1.12801775 * x**2 + 0.00181895291 * x**3 - 0.0526134737 * x**4 \
+                   + 0.0504951668 * x**5 - 0.0325433846 * x**6 + 0.0133946531 * x**7 + 0.00174265604 * x**8 \
+                   - 0.00944632202 * x**9 + 0.00851111768 * x**10 - 0.0035963525 * x**11 + 0.000577345106 * x**12 \
+                   - 1.06399127e-7 * x**19
         else:
             raise Exception("illegal eos name: " + self.name)
 
