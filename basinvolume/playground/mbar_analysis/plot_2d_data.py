@@ -123,7 +123,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
 # cdf.add_array(x)
 # x, cdf_x = cdf.get_vecdata()
 
-def plot(packing_datasets, figdir="figures", phi_min=0.83):
+def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.89):
     from scipy.optimize import curve_fit
     if not os.path.isabs(figdir):
         figdir = os.path.join(os.getcwd(), figdir)
@@ -155,12 +155,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
                     j += 1
                 print Facc
                 print nparticles
-                if (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                if (0.855 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                                     phi_min < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
                     #should remoe both outliers in pressure and in volume
                     x_raw = dataset.pressures
                     f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
-                    x_outliers = OutlierDetection(np.log(x_raw), p=0.5, D=2.5*np.std(np.log(x_raw)))
+                    x_outliers = OutlierDetection(np.log(x_raw), p=0.5, D=2*np.std(np.log(x_raw)))
                     non_outliers_indexes = list(set(f_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes))
                     x = np.array(x_raw)[np.array(non_outliers_indexes, dtype="i")]
                     f = np.array(dataset.free_energies)[np.array(non_outliers_indexes, dtype="i")]
@@ -180,11 +180,15 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
                     fit_err = np.sqrt(np.diag(cov))
                     fit_fn = np.poly1d(fit)
                     ax.plot(x, fit_fn(x), color='k')
-                    dataset.add_extras((fit, fit_err))
-                    print dataset.extras
                     S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
                     # S.append(np.mean(f) - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
+                    # now fit the actual power laws, not the probabilities
+                    fit, cov = np.polyfit(x, f, 1, w=weights, cov=True)
+                    fit_err = np.sqrt(np.diag(cov))
+                    fit_fn = np.poly1d(fit)
+                    dataset.add_extras((fit, fit_err))
+                    print dataset.extras
         print phi
         ax.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
@@ -217,7 +221,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
             x, y, yerr, y2, y2err = [], [], [], [], []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
                 if len(dataset.free_energies) > 0 and (
-                            (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                            (0.855 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                                             phi_min < dataset.ss_phi < 0.86 and "fire" in dataset.set_name)):
                     y.append(dataset.extras[0][0])
                     yerr.append(dataset.extras[1][0])
@@ -226,8 +230,16 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
                     x.append(dataset.ss_phi)
             x, y, yerr, y2, y2err = np.array(x), np.array(y), np.array(yerr), np.array(y2), np.array(y2err)
 
+            y /= nparticles
+            yerr /= nparticles
+            y2 /= nparticles
+            y2err /= nparticles
             ax3.errorbar(x, y, yerr, marker='o', linestyle='', ms=12, color=color_marker)
-
+            popt, pcov = curve_fit(ff, x, y, sigma=yerr, absolute_sigma=True)
+            fit_err = np.sqrt(np.diag(pcov))
+            ax3.plot(x, ff(x, popt[0], popt[1]), color=color_fit)
+            glob_phi_j, glob_phi_j_std = -popt[1]/popt[0], np.sqrt((fit_err[0]/popt[0])**2+(fit_err[1]/popt[1])**2)
+            print "1/k: phi_j: {}+/-{}, beta: {}".format(glob_phi_j, glob_phi_j_std, popt[1])
             ax3.set_title(r'$1/\kappa$', size=18)
             ax3.locator_params(axis='x', nbins=4)
             ax3.locator_params(axis='y', nbins=4)
@@ -237,6 +249,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
             ax4.errorbar(x, y2, y2err, marker='o', linestyle='', ms=12, color=color_marker)
             popt, pcov = curve_fit(ff, x, y2, sigma=y2err, absolute_sigma=True)
             ax4.plot(x, ff(x, popt[0], popt[1]), color=color_fit)
+            fit_err = np.sqrt(np.diag(pcov))
+            print "c: phi_c1: {}+/-{}, beta: {}".format((1-popt[1])/popt[0], np.sqrt((fit_err[0]/popt[0])**2+(fit_err[1]/popt[1])**2), popt[1])
             # label = "intercept = ({:.3f} +/- {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
             # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
             #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
@@ -263,6 +277,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
             fig7= plt.figure()
             ax7 = fig7.add_subplot(111)
             fit_params = []
+            fit_params_std = []
             ss_phi_list = []
             unpad_log_omega_p_hist = []
             kde_list = []
@@ -281,7 +296,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
                         j += 1
                     nparticles = dataset.nparticles
                     vcavity = dataset.packing_data[0].vcavity
-                    if (dataset.ss_phi > 0.855 and "fire" not in dataset.set_name) or (
+                    if (0.855 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                            phi_min < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
                         print "n:", nparticles
                         #fit slopes to find inverse kappa and the intercept
@@ -293,14 +308,17 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
                         f = np.array(dataset.free_energies)[np.array(non_outliers_indexes, dtype="i")]
                         weights = 1. / np.array(dataset.free_energies_err)[
                             np.array(non_outliers_indexes, dtype="i")]
+                        x = np.log(x)
                         fit, cov = np.polyfit(x, f, 1, w=weights, cov=True)
                         fit_err = np.sqrt(np.diag(cov))
+
                         iNK, NC = fit #N/K, C(N)
                         iNKstd, NCstd = fit_err
                         iNK_list.append(iNK)
                         K = nparticles/iNK
                         C = NC/nparticles
                         fit_params.append([K, C])
+                        fit_params_std.append(fit_err)
                         ss_phi_list.append(dataset.ss_phi)
 
                         #free energy non parametric log omega
@@ -355,35 +373,50 @@ def plot(packing_datasets, figdir="figures", phi_min=0.83):
                          color=color_cycle.next(), linewidth=1)
             ax2.set_xscale('log')
 
-            glob_phi_j = phi_min
             dphi = np.array(phi) - glob_phi_j
 
             x = dphi
-            y = np.log(maxp)
-            color = color_cycle.next()
-            ax5.scatter(x, y, color=color, label=r'$p_{peak}$', s=100)
-            fit, cov = np.polyfit(x, y, 1, cov=True) #if I use dphi instead of phi it's not a power law
-            fit_fn = np.poly1d(fit)
-            ax5.plot(x, fit_fn(x), color=color, linewidth=3)
-            print "phi max(p) fit: ",fit
+            # y = maxp
+            # for i, par in enumerate(fit_params):
+            #     y[i] /= par[0]
+            # y = np.log(y)
+            # weights = 1./np.array(fit_params_std)[:,0] #error of inverse kappa, check that it is correct
+            # color = color_cycle.next()
+            # y = np.log(y) - np.log(np.amax(y))
+            # ax5.scatter(x, y, color=color, label=r'$\ln(p_{peak}/max(p_{peak}))$', s=100, alpha=0.5)
+            # fit, cov = np.polyfit(x, y, 1, cov=True)  # if I use dphi instead of phi it's not a power law
+            # fit_fn = np.poly1d(fit)
+            # ax5.plot(x, fit_fn(x), color=color, linewidth=3)
 
-            y = np.log(np.array(p_minmax_list)[:,0])
             color = color_cycle.next()
-            ax5.scatter(x, y, color=color, label=r'$p_{min}$', s=100)
-            fit, cov = np.polyfit(x, y, 1, cov=True)  # if I use dphi instead of phi it's not a power law
+            x = np.array(phi)
+            y = np.array(fit_params)[:,0]
+            y = np.exp(np.array(1./y))
+            ax5.scatter(x, y, color=color, label=r'$\exp(\kappa)$', s=100, alpha=0.5)
+            weights = 1. / np.array(fit_params_std)[:, 0]
+            fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)  # if I use dphi instead of phi it's not a power law
             fit_fn = np.poly1d(fit)
             ax5.plot(x, fit_fn(x), color=color, linewidth=3)
-            print "phi p_min fit: ", fit
+            # ax5.axhline(0, color='k')
+            print "phi max(p) fit: ", fit
 
-            y = np.log(np.array(p_minmax_list)[:, 1])
-            color = color_cycle.next()
-            ax5.scatter(x, y, color=color, label=r'$p_{max}$', s=100)
-            fit, cov = np.polyfit(x, y, 1, cov=True)  # if I use dphi instead of phi it's not a power law
-            fit_fn = np.poly1d(fit)
-            ax5.plot(x, fit_fn(x), color=color, linewidth=3)
-            ax5.set_xlabel(r'$\Delta\phi$')
-            ax5.set_ylabel(r'$\log p_x$')
-            print "phi p_max fit: ", fit
+            # y = np.log(np.array(p_minmax_list)[:,0])
+            # color = color_cycle.next()
+            # ax5.scatter(x, y, color=color, label=r'$p_{min}$', s=100)
+            # fit, cov = np.polyfit(x, y, 1, cov=True)  # if I use dphi instead of phi it's not a power law
+            # fit_fn = np.poly1d(fit)
+            # ax5.plot(x, fit_fn(x), color=color, linewidth=3)
+            # print "phi p_min fit: ", fit
+            #
+            # y = np.log(np.array(p_minmax_list)[:, 1])
+            # color = color_cycle.next()
+            # ax5.scatter(x, y, color=color, label=r'$p_{max}$', s=100)
+            # fit, cov = np.polyfit(x, y, 1, cov=True)  # if I use dphi instead of phi it's not a power law
+            # fit_fn = np.poly1d(fit)
+            # ax5.plot(x, fit_fn(x), color=color, linewidth=3)
+            # ax5.set_xlabel(r'$\Delta\phi$')
+            # ax5.set_ylabel(r'$\log p_x$')
+            # print "phi p_max fit: ", fit
 
             ax5.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
