@@ -123,7 +123,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
 # cdf.add_array(x)
 # x, cdf_x = cdf.get_vecdata()
 
-def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.89):
+def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.88):
     from scipy.optimize import curve_fit
     if not os.path.isabs(figdir):
         figdir = os.path.join(os.getcwd(), figdir)
@@ -153,6 +153,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.89):
                     Facc = dataset.packing_data[j].Facc
                     vcavity = dataset.packing_data[j].vcavity
                     j += 1
+                ############hack
+                if np.abs(dataset.ss_phi - 0.865) < 1e-6:
+                    Facc -= 1.2
                 print Facc
                 print nparticles
                 if (0.855 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
@@ -181,7 +184,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.89):
                     fit_fn = np.poly1d(fit)
                     ax.plot(x, fit_fn(x), color='k')
                     S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
-                    # S.append(np.mean(f) - log_factorial(dataset.nparticles))
+                    # S.append(- Facc - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
                     # now fit the actual power laws, not the probabilities
                     fit, cov = np.polyfit(x, f, 1, w=weights, cov=True)
@@ -205,7 +208,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.89):
         ax1.set_ylabel(r"$S_G$")
         ax1.set_xlabel(r"$\phi_{ss}$")
         ax1.set_xlim((0.835,1))
-        fig1.savefig('{0}/plot_{1}.png'.format(figdir, "s_phi"))
+        fig1.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_phi"))
         
         #subplots
         # subplots
