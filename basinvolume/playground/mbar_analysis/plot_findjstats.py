@@ -68,7 +68,9 @@ def plot(datasets, figdir="figures"):
                     nrattlers_.append(data.nrattlers)
                     energy_.append(data.energy)
                     pressure_.append(data.pressure)
-                    contacts_.append(np.mean(data.Z))
+                    contacts_.append(np.mean(data.Z ))
+                # plt.scatter(contacts_, np.log(pressure_))
+        # plt.show()
         psuccess.append(np.mean(success_))
         nrattlers.append(np.mean(nrattlers_))
         energy.append(energy_)
@@ -122,27 +124,34 @@ def plot(datasets, figdir="figures"):
     if True:
         fig4 = plt.figure()
         ax4 = fig4.add_subplot(111)
-        color = get_color_cycle()
+        color_cycle = get_color_cycle()
         n_integrate = 2 ** 14 + 1
+        p_var = []
         for i, p in enumerate(pressure):
             # kde histogram
-            p = np.array(p)
+            p = np.log(np.array(p))
+            p_var.append(np.var(p))
             bw = get_bandwidth_estimate(p, kernel="gaussian", method="cross_validation")
+            print "bandwidth estimate: ", bw
             kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(p[:, np.newaxis])
             # plot histograms
             x_integrate = np.linspace(np.amin(p), np.amax(p), n_integrate)
             log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
             # norm = np.log(integrate.romb(np.exp(log_pdf), dx=x_integrate[1] - x_integrate[0]))
             maxp = x_integrate[np.argmax(log_pdf)]
-            ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color.next(), label=phi_ss[i])
-
+            color, label = color_cycle.next(), phi_ss[i]
+            # ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color, label=label)
+            ax4.plot(x_integrate - maxp, np.exp(log_pdf-np.amax(log_pdf)), color=color, label=label)
         # ax4.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
         #            columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
         ax4.set_ylabel(r"$\ln(pdf)$")
         fig4.savefig("{}/{}".format(figdir, "lnP_pdf.pdf"))
-
-
+        fig5 = plt.figure()
+        ax5 = fig5.add_subplot(111)
+        ax5.plot(phi_ss, p_var)
+        ax5.set_xlabel(r"$\phi$")
+        ax5.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
 
 if __name__=="__main__":
     datasets = collect_data_every_set_all()

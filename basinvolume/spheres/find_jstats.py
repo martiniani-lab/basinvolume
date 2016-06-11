@@ -178,6 +178,8 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         hs_radii = np.array(self.hs_radii)
         look = True
         self.nratls_ = 0
+        self.rattlers_ = np.zeros(self.nparticles)
+
         while look:
             # print "restarting loop"
             found_rattler = False
@@ -201,14 +203,27 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                         print "asymmetric contact rattler, 2pi - theta = {}".format(2 * np.pi - sum_)
                 # here assign correct index by searchin for the corresponding atom
                 j = get_index(coords[i1:i1 + self.bdim])
+                self.rattlers_[j] = 0 if found_rattler else 1000
                 if found_rattler:
                     coords = np.delete(coords, [i1 + k for k in xrange(self.bdim)])  # remove particle from array
                     hs_radii = np.delete(hs_radii, [i])  # remove particle from array
                     self.nratls_ += 1
                     break
             look = True if found_rattler else False
+
+        # test that number of contacts is sufficient for bulk modulus to be positive,
+        # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
+        N_contacts = int(np.sum([len(contacts) for contacts in self.contact_list]))
+        no_stable = len(self.contact_list)
+        N_min = int(2 * (self.bdim * (no_stable - 1) + 1))
+        print "N_min: {} N_contacts: {}".format(N_min, N_contacts)
+        assert (self.nparticles - no_stable) == self.nratls_
         print "n rattlers ", self.nratls_
-        return True
+        if N_contacts >= N_min:
+            return True
+        else:
+            print "packing is not globally stable, N_min: {} N_contacts: {}".format(N_min, N_contacts)
+            return False
 
     def _find_nearest_neighbors_ss(self, coords, radii):
         nparticles = radii.size

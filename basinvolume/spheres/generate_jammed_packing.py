@@ -402,8 +402,20 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     nratls+=1
                     break
             look = True if found_rattler else False
+
+        # test that number of contacts is sufficient for bulk modulus to be positive,
+        # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
+        N_contacts = int(np.sum([len(contacts) for contacts in self.contact_list]))
+        no_stable = len(self.contact_list)
+        N_min = int(2 * (self.bdim * (no_stable - 1) + 1))
+        print "N_min: {} N_contacts: {}".format(N_min, N_contacts)
+        assert (self.nparticles - no_stable) == nratls
         print "n rattlers ", nratls
-        return True
+        if N_contacts >= N_min:
+            return True
+        else:
+            print "packing is not globally stable, N_min: {} N_contacts: {}".format(N_min, N_contacts)
+            return False
 
     def _find_nearest_neighbors(self, coords, radii):
         nparticles = radii.size
