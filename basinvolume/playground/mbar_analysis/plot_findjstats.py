@@ -10,6 +10,7 @@ from basinvolume.spheres.find_jstats import SoftPackingDataset, SoftPackingData
 from sklearn.neighbors import KernelDensity
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 from scipy import integrate
+import scikits.bootstrap as bootstrap
 
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
@@ -57,18 +58,26 @@ def plot(datasets, figdir="figures"):
     pressure = []
     contacts = []
     phi_ss = np.unique([dataset.phi_ss for dataset in sorted(datasets, key=lambda data: data.phi_ss)])
+    bdim = 2
 
     for phi_ in phi_ss:
         success_, nrattlers_, energy_ = [], [], []
         pressure_, contacts_ = [], []
         for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
             if phi_ == dataset.phi_ss:
-                success_.extend(dataset.success)
+                tmp = np.array(dataset.success,dtype='int')
                 for data in dataset.packings_data:
-                    nrattlers_.append(data.nrattlers)
-                    energy_.append(data.energy)
-                    pressure_.append(data.pressure)
-                    contacts_.append(np.mean(data.Z ))
+                    N_contacts = int(np.sum(data.Z))
+                    no_stable = len(data.Z)
+                    N_min = int(2 * (bdim * (no_stable - 1) + 1))
+                    if N_contacts >= N_min:
+                        nrattlers_.append(data.nrattlers)
+                        energy_.append(data.energy)
+                        pressure_.append(data.pressure)
+                        contacts_.append(np.mean(data.Z ))
+                    else:
+                        tmp[np.argmax(tmp > 0)] = 0
+                success_.extend(tmp)
                 # plt.scatter(contacts_, np.log(pressure_))
         # plt.show()
         psuccess.append(np.mean(success_))
@@ -124,13 +133,16 @@ def plot(datasets, figdir="figures"):
     if True:
         fig4 = plt.figure()
         ax4 = fig4.add_subplot(111)
+        fig5 = plt.figure()
+        ax5 = fig5.add_subplot(111)
         color_cycle = get_color_cycle()
         n_integrate = 2 ** 14 + 1
         p_var = []
         for i, p in enumerate(pressure):
             # kde histogram
             p = np.log(np.array(p))
-            p_var.append(np.var(p))
+            CIs = bootstrap.ci(p, np.var, n_samples=int(2.5e4))
+            p_var.append([np.var(p), CIs[0], CIs[1]])
             bw = get_bandwidth_estimate(p, kernel="gaussian", method="cross_validation")
             print "bandwidth estimate: ", bw
             kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(p[:, np.newaxis])
@@ -142,16 +154,22 @@ def plot(datasets, figdir="figures"):
             color, label = color_cycle.next(), phi_ss[i]
             # ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color, label=label)
             ax4.plot(x_integrate - maxp, np.exp(log_pdf-np.amax(log_pdf)), color=color, label=label)
+            ax5.plot(x_integrate - maxp, log_pdf - np.amax(log_pdf), color=color, label=label)
         # ax4.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
         #            columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
-        ax4.set_ylabel(r"$\ln(pdf)$")
+        ax4.set_ylabel(r"$pdf/\max(pdf)$")
+        ax5.set_xlabel(r"$\ln(P/P_{peak})$")
+        ax5.set_ylabel(r"$\ln(pdf)-\ln(\max(pdf))$")
         fig4.savefig("{}/{}".format(figdir, "lnP_pdf.pdf"))
-        fig5 = plt.figure()
-        ax5 = fig5.add_subplot(111)
-        ax5.plot(phi_ss, p_var)
-        ax5.set_xlabel(r"$\phi$")
-        ax5.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
+        fig5.savefig("{}/{}".format(figdir, "lnP_lnpdf.pdf"))
+        fig6 = plt.figure()
+        ax6 = fig6.add_subplot(111)
+        p_var = np.array(p_var)
+        ax6.errorbar(phi_ss, p_var[:,0], yerr=[p_var[:,1],p_var[:,2]])
+        ax6.set_xlabel(r"$\phi$")
+        ax6.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
+        fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
 
 if __name__=="__main__":
     datasets = collect_data_every_set_all()
