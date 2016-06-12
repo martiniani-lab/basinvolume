@@ -59,32 +59,33 @@ def plot(datasets, figdir="figures"):
     contacts = []
     phi_ss = np.unique([dataset.phi_ss for dataset in sorted(datasets, key=lambda data: data.phi_ss)])
     bdim = 2
-
+    phi_max = 0.871
     for phi_ in phi_ss:
-        success_, nrattlers_, energy_ = [], [], []
-        pressure_, contacts_ = [], []
-        for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
-            if phi_ == dataset.phi_ss:
-                tmp = np.array(dataset.success,dtype='int')
-                for data in dataset.packings_data:
-                    N_contacts = int(np.sum(data.Z))
-                    no_stable = len(data.Z)
-                    N_min = int(2 * (bdim * (no_stable - 1) + 1))
-                    if N_contacts >= N_min:
-                        nrattlers_.append(data.nrattlers)
-                        energy_.append(data.energy)
-                        pressure_.append(data.pressure)
-                        contacts_.append(np.mean(data.Z ))
-                    else:
-                        tmp[np.argmax(tmp > 0)] = 0
-                success_.extend(tmp)
-                # plt.scatter(contacts_, np.log(pressure_))
-        # plt.show()
-        psuccess.append(np.mean(success_))
-        nrattlers.append(np.mean(nrattlers_))
-        energy.append(energy_)
-        pressure.append(pressure_)
-        contacts.append(contacts_)
+        if phi_ < phi_max:
+            success_, nrattlers_, energy_ = [], [], []
+            pressure_, contacts_ = [], []
+            for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
+                if phi_ == dataset.phi_ss:
+                    tmp = np.array(dataset.success,dtype='int')
+                    for data in dataset.packings_data:
+                        N_contacts = int(np.sum(data.Z))
+                        no_stable = len(data.Z)
+                        N_min = int(2 * (bdim * (no_stable - 1) + 1))
+                        if N_contacts >= N_min:
+                            nrattlers_.append(data.nrattlers)
+                            energy_.append(data.energy)
+                            pressure_.append(data.pressure)
+                            contacts_.append(np.mean(data.Z ))
+                        else:
+                            tmp[np.argmax(tmp > 0)] = 0
+                    success_.extend(tmp)
+                    # plt.scatter(contacts_, np.log(pressure_))
+            # plt.show()
+            psuccess.append(np.mean(success_))
+            nrattlers.append(np.mean(nrattlers_))
+            energy.append(energy_)
+            pressure.append(pressure_)
+            contacts.append(contacts_)
 
     if True:
         fig = plt.figure()
@@ -169,6 +170,8 @@ def plot(datasets, figdir="figures"):
         ax6.errorbar(phi_ss, p_var[:,0], yerr=[p_var[:,1],p_var[:,2]])
         ax6.set_xlabel(r"$\phi$")
         ax6.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
+        # ax6.set_xscale('log')
+        # ax6.set_yscale('log')
         fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
 
 if __name__=="__main__":
