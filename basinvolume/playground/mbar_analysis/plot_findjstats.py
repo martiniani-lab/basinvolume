@@ -11,6 +11,7 @@ from sklearn.neighbors import KernelDensity
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 from scipy import integrate
 import scikits.bootstrap as bootstrap
+from scipy.optimize import curve_fit
 
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
@@ -22,9 +23,9 @@ plt.rcParams['ytick.major.pad'] = 8
 plt.rcParams.update({'figure.autolayout': True})
 ##########################################################
 ####SET COLOUR MAP######
-def get_color_cycle():
+def get_color_cycle(ncolors=20):
     cm = plt.get_cmap('Accent')
-    color_cycle=cycle([cm(1. * i / 20) for i in xrange(20)][::-1])
+    color_cycle=cycle([cm(1. * i / ncolors) for i in xrange(ncolors)][::-1])
     return color_cycle
 def get_marker_cycle():
     markers = ["o","v","s","h","^","8","p","<","*","D",">",]
@@ -58,32 +59,46 @@ class DataPlot(object):
         self.bdim = bdim
         self.nparticles = nparticles
         self.bw = []
-        self.logp_mean = []
-        self.logp_var = []
+        self.logp_mean, self.p_mean, self.logp_mode = [], [], []
+        self.logp_var,  self.p_var, self.p_rel_var= [], [], []
         self.log_pdf = []
         self.log_pdf_x = []
         self.initialized = False
 
-    def compute_stats(self, n_samples=2.5e4, n_integrate=None):
+    def compute_stats(self, n_samples=1e4, n_integrate=None):
         for i, p in enumerate(self.pressure):
             if n_integrate is None:
                 n_integrate = 2 ** 14 + 1
             else:
                 n_integrate = n_integrate
             lnp = np.log(np.array(p))
+            # x_integrate = np.linspace(np.amin(np.log(np.hstack(self.pressure))), np.amax(np.log(np.hstack(self.pressure))), n_integrate)
+            x_integrate = np.linspace(np.amin(lnp), np.amax(lnp), n_integrate)
+            # build kde histogram
+            bw = get_bandwidth_estimate(lnp, kernel="gaussian", method="cross_validation")
+            self.bw.append(bw)
+            kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(lnp[:, np.newaxis])
+            log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+            self.log_pdf.append(log_pdf)
+            self.log_pdf_x.append(x_integrate)
+            # build array of relative fluctuations around the mode
+            log_maxp = x_integrate[np.argmax(log_pdf)]
+            p_rel = p / np.exp(log_maxp)
+            varCIs = bootstrap.ci(p_rel, np.var, n_samples=int(n_samples))
+            self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]])
+            #build array of logp mean, var and maxp
             meanCIs = bootstrap.ci(lnp, np.mean, n_samples=int(n_samples))
             varCIs = bootstrap.ci(lnp, np.var, n_samples=int(n_samples))
             self.logp_mean.append([np.mean(lnp), meanCIs[0], meanCIs[1]])
             self.logp_var.append([np.var(lnp), varCIs[0], varCIs[1]])
-            bw = get_bandwidth_estimate(lnp, kernel="gaussian", method="cross_validation")
-            self.bw.append(bw)
-            kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(lnp[:, np.newaxis])
-            x_integrate = np.linspace(np.amin(lnp), np.amax(lnp), n_integrate)
-            log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
-            self.log_pdf.append(log_pdf)
-            self.log_pdf_x.append(x_integrate)
-        self.logp_mean = np.array(self.logp_mean)
-        self.logp_var = np.array(self.logp_var)
+            self.logp_mode.append(log_maxp)
+            meanCIs = bootstrap.ci(p, np.mean, n_samples=int(n_samples))
+            varCIs = bootstrap.ci(p, np.var, n_samples=int(n_samples))
+            self.p_mean.append([np.mean(p), meanCIs[0], meanCIs[1]])
+            self.p_var.append([np.var(p), varCIs[0], varCIs[1]])
+
+        self.logp_mean, self.p_mean = np.array(self.logp_mean), np.array(self.p_mean)
+        self.logp_var, self.p_var, self.p_rel_var = np.array(self.logp_var), np.array(self.p_var), np.array(self.p_rel_var)
         self.bw = np.array(self.bw)
         self.log_pdf = np.array(self.log_pdf)
         self.log_pdf_x = np.array(self.log_pdf_x)
@@ -140,6 +155,7 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
     psuccess, phi_ss, nrattlers, energy, pressure, contacts =  dp.psuccess, dp.phi_ss, dp.nrattlers, dp.energy, dp.pressure, dp.contacts
     assert dp.initialized == True
     log_pdf, log_pdf_x, logp_mean, logp_var = dp.log_pdf, dp.log_pdf_x, dp.logp_mean, dp.logp_var
+    p_mean, p_var, p_rel_var, logp_mode = dp.p_mean, dp.p_var, dp.p_rel_var, dp.logp_mode
 
     if True:
         fig = plt.figure()
@@ -185,6 +201,8 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
         fig3.savefig("{}/{}".format(figdir, "lnP_lnZ.pdf"))
 
+    phi_c = 0.827
+
     if True:
         fig4 = plt.figure()
         ax4 = fig4.add_subplot(111)
@@ -195,11 +213,12 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         for i in xrange(phi_ss.size):
             # kde histogram
             assert log_pdf[i].size == log_pdf_x[i].size
-            maxp = log_pdf_x[i][np.argmax(log_pdf[i])]
+            log_maxp = log_pdf_x[i][np.argmax(log_pdf[i])]
             color, label = color_cycle.next(), phi_ss[i]
             # ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color, label=label)
-            ax4.plot(log_pdf_x[i] - maxp, np.exp(log_pdf[i]-np.amax(log_pdf[i])), color=color, label=label)
-            ax5.plot(log_pdf_x[i] - maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label)
+            ax4.plot(log_pdf_x[i]-log_maxp, np.exp(log_pdf[i]-np.amax(log_pdf[i])), color=color, label=label)
+            ax5.plot(log_pdf_x[i]-log_maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label)
+        # (0.686850451878 * np.abs(phi_ss[i] - phi_c) + 3.80454345905)
         # ax4.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
         #            columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
@@ -209,16 +228,45 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         fig4.savefig("{}/{}".format(figdir, "lnP_pdf.pdf"))
         fig5.savefig("{}/{}".format(figdir, "lnP_lnpdf.pdf"))
 
+    def ff(x, a, b):
+        return a * x + b
+
     if True:
+        logx = np.log(np.abs(phi_ss - phi_c))
         fig6 = plt.figure()
         ax6 = fig6.add_subplot(111)
-        ax6.errorbar(phi_ss, logp_var[:,0], yerr=[logp_var[:,1], logp_var[:,2]])
-        ax6.errorbar(phi_ss, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
-        ax6.set_xlabel(r"$\phi$")
+        # ax6.errorbar(phi_ss, logp_var[:,0], yerr=[logp_var[:,1], logp_var[:,2]])
+        # ax6.errorbar(phi_ss, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
+        # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
+        color_cycle = get_color_cycle(ncolors=3)
+        color = color_cycle.next()
+        ax6.errorbar(logx, np.log(p_rel_var[:, 0]), yerr=[logp_var[:,1],logp_var[:,2]], fmt='o', color=color)
+        popt, pcov = curve_fit(ff, logx, np.log(p_rel_var[:, 0]), sigma=(logp_var[:,2]-logp_var[:,1])/2,
+                               absolute_sigma=True)
+        fit_err = np.sqrt(np.diag(pcov))
+        ax6.plot(logx, ff(logx, popt[0], popt[1]), color=color, linewidth=2)
+        print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
+
+        color = color_cycle.next()
+        ax6.scatter(logx, np.log(logp_mode), color=color)
+        popt, pcov = curve_fit(ff, logx, np.log(logp_mode), absolute_sigma=True)
+        fit_err = np.sqrt(np.diag(pcov))
+        ax6.plot(logx, ff(logx, popt[0], popt[1]), color=color, linewidth=2)
+        print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
+        ax6.set_xlabel(r"$\Delta \phi$")
         ax6.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
-        # ax6.set_xscale('log')
-        # ax6.set_yscale('log')
         fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
+
+    if False:
+        import fssa
+        l = phi_ss
+        rho = log_pdf_x[0]
+        a = log_pdf
+        da = np.ones(log_pdf.shape)*1e-3
+        rho_c0 = 1
+        nu0 = 1
+        zeta0 = 1
+        print fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
 
 if __name__=="__main__":
     path = os.path.join(os.getcwd(),'findjstats.pickle')
