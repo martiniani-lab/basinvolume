@@ -50,14 +50,14 @@ def collect_data_every_set_all(workspace=None,
     return datasets
 
 class DataPlot(object):
-    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, bdim=2, nparticles=64):
+    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, n_samples_min=10, bdim=2, nparticles=64):
         self.psuccess = np.array(psuccess)
         self.phi_ss = np.array(phi_ss)
-        self.phi_ss_packed = self.phi_ss[self.psuccess > 0]
-        self.nrattlers = np.array(nrattlers)[self.psuccess > 0]
-        self.energy = np.array(energy)[self.psuccess > 0]
-        self.pressure = np.array(pressure)[self.psuccess > 0]
-        self.contacts = np.array(contacts)[self.psuccess > 0]
+        self.phi_ss_packed = self.phi_ss[self.psuccess > n_samples_min]
+        self.nrattlers = np.array(nrattlers)[self.psuccess > n_samples_min]
+        self.energy = np.array(energy)[self.psuccess > n_samples_min]
+        self.pressure = np.array(pressure)[self.psuccess > n_samples_min]
+        self.contacts = np.array(contacts)[self.psuccess > n_samples_min]
         self.bdim = bdim
         self.nparticles = nparticles
         self.bw = []
@@ -204,7 +204,7 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
         fig3.savefig("{}/{}".format(figdir, "lnP_lnZ.pdf"))
 
-    phi_c = 0.827
+    phi_c = 0.83
 
     if True:
         fig4 = plt.figure()
@@ -235,34 +235,37 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         return a * x + b
 
     if True:
-        logx = np.log(np.abs(phi_ss_packed - phi_c))
+        logx = np.log(phi_ss_packed[phi_ss_packed > phi_c]-phi_c)
         fig6 = plt.figure()
         ax6 = fig6.add_subplot(111)
-        # ax6.errorbar(phi_ss_packed, logp_var[:,0], yerr=[logp_var[:,1], logp_var[:,2]])
-        # ax6.errorbar(phi_ss_packed, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
+        # ax6.errorbar(phi, logp_var[:,0], yerr=[logp_var[:,1], logp_var[:,2]])
+        # ax6.errorbar(phi, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
         # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
         color_cycle = get_color_cycle(ncolors=3)
         color = color_cycle.next()
-        ax6.errorbar(logx, np.log(p_rel_var[:, 0]), yerr=[logp_var[:,1],logp_var[:,2]], fmt='o', color=color)
-        popt, pcov = curve_fit(ff, logx, np.log(p_rel_var[:, 0]), sigma=(logp_var[:,2]-logp_var[:,1])/2,
+        ax6.errorbar(logx, np.log(p_rel_var[:, 0][phi_ss_packed > phi_c]), yerr=[logp_var[:,1][phi_ss_packed > phi_c],
+                                                                                 logp_var[:,2][phi_ss_packed > phi_c]], fmt='o', color=color)
+        popt, pcov = curve_fit(ff, logx, np.log(p_rel_var[:, 0][phi_ss_packed > phi_c]), sigma=(logp_var[:,2][phi_ss_packed > phi_c]-logp_var[:,1][phi_ss_packed > phi_c])/2,
                                absolute_sigma=True)
         fit_err = np.sqrt(np.diag(pcov))
         ax6.plot(logx, ff(logx, popt[0], popt[1]), color=color, linewidth=2)
         print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
 
+        logp_mode = np.array(logp_mode)[phi_ss_packed > phi_c]
         color = color_cycle.next()
         ax6.scatter(logx, np.log(logp_mode), color=color)
         popt, pcov = curve_fit(ff, logx, np.log(logp_mode), absolute_sigma=True)
         fit_err = np.sqrt(np.diag(pcov))
         ax6.plot(logx, ff(logx, popt[0], popt[1]), color=color, linewidth=2)
         print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
+
         ax6.set_xlabel(r"$\Delta \phi$")
         ax6.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
         fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
 
     if False:
         import fssa
-        l = phi_ss_packed
+        l = phi
         rho = log_pdf_x[0]
         a = log_pdf
         da = np.ones(log_pdf.shape)*1e-3
