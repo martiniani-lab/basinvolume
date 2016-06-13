@@ -53,10 +53,11 @@ class DataPlot(object):
     def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, bdim=2, nparticles=64):
         self.psuccess = np.array(psuccess)
         self.phi_ss = np.array(phi_ss)
-        self.nrattlers = np.array(nrattlers)
-        self.energy = np.array(energy)
-        self.pressure = np.array(pressure)
-        self.contacts = np.array(contacts)
+        self.phi_ss_packed = self.phi_ss[self.psuccess > 0]
+        self.nrattlers = np.array(nrattlers)[self.psuccess > 0]
+        self.energy = np.array(energy)[self.psuccess > 0]
+        self.pressure = np.array(pressure)[self.psuccess > 0]
+        self.contacts = np.array(contacts)[self.psuccess > 0]
         self.bdim = bdim
         self.nparticles = nparticles
         self.bw = []
@@ -153,7 +154,8 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         dp.compute_stats()
         pickle.dump(dp, open("findjstats.pickle", "wb"))
 
-    psuccess, phi_ss, nrattlers, energy, pressure, contacts =  dp.psuccess, dp.phi_ss, dp.nrattlers, dp.energy, dp.pressure, dp.contacts
+    psuccess, phi_ss, phi_ss_packed =  dp.psuccess, dp.phi_ss, dp.phi_ss_packed
+    nrattlers, energy, pressure, contacts = dp.nrattlers, dp.energy, dp.pressure, dp.contacts
     assert dp.initialized == True
     log_pdf, log_pdf_x, logp_mean, logp_var = dp.log_pdf, dp.log_pdf_x, dp.logp_mean, dp.logp_var
     p_mean, p_var, p_rel_var, logp_mode = dp.p_mean, dp.p_var, dp.p_rel_var, dp.logp_mode
@@ -170,8 +172,8 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
     if False:
         fig1 = plt.figure()
         ax1 = fig1.add_subplot(111)
-        ax1.plot(phi_ss, np.array(nrattlers), marker='o')
-        ax1.set_xlim([phi_ss[0], phi_ss[-1]])
+        ax1.plot(phi_ss_packed, np.array(nrattlers), marker='o')
+        ax1.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
         ax1.set_xlabel(r"$\phi_{ss}$")
         ax1.set_ylabel(r"$n_{rattlers}$")
         fig1.savefig("{}/{}".format(figdir, "phi_nrattlers.pdf"))
@@ -211,15 +213,15 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         ax5 = fig5.add_subplot(111)
         color_cycle = get_color_cycle()
 
-        for i in xrange(phi_ss.size):
+        for i in xrange(phi_ss_packed.size):
             # kde histogram
             assert log_pdf[i].size == log_pdf_x[i].size
             log_maxp = log_pdf_x[i][np.argmax(log_pdf[i])]
-            color, label = color_cycle.next(), phi_ss[i]
+            color, label = color_cycle.next(), phi_ss_packed[i]
             # ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color, label=label)
             ax4.plot(log_pdf_x[i]-log_maxp, np.exp(log_pdf[i]-np.amax(log_pdf[i])), color=color, label=label)
             ax5.plot(log_pdf_x[i]-log_maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label)
-        # (0.686850451878 * np.abs(phi_ss[i] - phi_c) + 3.80454345905)
+        # (0.686850451878 * np.abs(phi_ss_packed[i] - phi_c) + 3.80454345905)
         # ax4.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
         #            columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
@@ -233,11 +235,11 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         return a * x + b
 
     if True:
-        logx = np.log(np.abs(phi_ss - phi_c))
+        logx = np.log(np.abs(phi_ss_packed - phi_c))
         fig6 = plt.figure()
         ax6 = fig6.add_subplot(111)
-        # ax6.errorbar(phi_ss, logp_var[:,0], yerr=[logp_var[:,1], logp_var[:,2]])
-        # ax6.errorbar(phi_ss, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
+        # ax6.errorbar(phi_ss_packed, logp_var[:,0], yerr=[logp_var[:,1], logp_var[:,2]])
+        # ax6.errorbar(phi_ss_packed, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
         # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
         color_cycle = get_color_cycle(ncolors=3)
         color = color_cycle.next()
@@ -260,7 +262,7 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
 
     if False:
         import fssa
-        l = phi_ss
+        l = phi_ss_packed
         rho = log_pdf_x[0]
         a = log_pdf
         da = np.ones(log_pdf.shape)*1e-3
