@@ -50,14 +50,15 @@ def collect_data_every_set_all(workspace=None,
     return datasets
 
 class DataPlot(object):
-    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, n_samples_min=10, bdim=2, nparticles=64):
+    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, prob_min=0.05, bdim=2,
+                 nparticles=64):
         self.psuccess = np.array(psuccess)
         self.phi_ss = np.array(phi_ss)
-        self.phi_ss_packed = self.phi_ss[self.psuccess > n_samples_min]
-        self.nrattlers = np.array(nrattlers)[self.psuccess > n_samples_min]
-        self.energy = np.array(energy)[self.psuccess > n_samples_min]
-        self.pressure = np.array(pressure)[self.psuccess > n_samples_min]
-        self.contacts = np.array(contacts)[self.psuccess > n_samples_min]
+        self.phi_ss_packed = self.phi_ss[self.psuccess > prob_min]
+        self.nrattlers = np.array(nrattlers)[self.psuccess > prob_min]
+        self.energy = np.array(energy)[self.psuccess > prob_min]
+        self.pressure = np.array(pressure)[self.psuccess > prob_min]
+        self.contacts = np.array(contacts)[self.psuccess > prob_min]
         self.bdim = bdim
         self.nparticles = nparticles
         self.bw = []
