@@ -47,45 +47,99 @@ def collect_data_every_set_all(workspace=None,
         datasets.append(pickle.load(open(path, "rb")))
     return datasets
 
-def plot(datasets, figdir="figures"):
-    figdir = os.path.join(os.getcwd(), figdir)
-    trymakedir(figdir)
+class DataPlot(object):
+    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, bdim=2, nparticles=64):
+        self.psuccess = np.array(psuccess)
+        self.phi_ss = np.array(phi_ss)
+        self.nrattlers = np.array(nrattlers)
+        self.energy = np.array(energy)
+        self.pressure = np.array(pressure)
+        self.contacts = np.array(contacts)
+        self.bdim = bdim
+        self.nparticles = nparticles
+        self.bw = []
+        self.logp_mean = []
+        self.logp_var = []
+        self.log_pdf = []
+        self.log_pdf_x = []
+        self.initialized = False
 
+    def compute_stats(self, n_samples=2.5e4, n_integrate=None):
+        for i, p in enumerate(self.pressure):
+            if n_integrate is None:
+                n_integrate = 2 ** 14 + 1
+            else:
+                n_integrate = n_integrate
+            lnp = np.log(np.array(p))
+            meanCIs = bootstrap.ci(lnp, np.mean, n_samples=int(n_samples))
+            varCIs = bootstrap.ci(lnp, np.var, n_samples=int(n_samples))
+            self.logp_mean.append([np.mean(lnp), meanCIs[0], meanCIs[1]])
+            self.logp_var.append([np.var(lnp), varCIs[0], varCIs[1]])
+            bw = get_bandwidth_estimate(lnp, kernel="gaussian", method="cross_validation")
+            self.bw.append(bw)
+            kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(lnp[:, np.newaxis])
+            x_integrate = np.linspace(np.amin(lnp), np.amax(lnp), n_integrate)
+            log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+            self.log_pdf.append(log_pdf)
+            self.log_pdf_x.append(x_integrate)
+        self.logp_mean = np.array(self.logp_mean)
+        self.logp_var = np.array(self.logp_var)
+        self.bw = np.array(self.bw)
+        self.log_pdf = np.array(self.log_pdf)
+        self.log_pdf_x = np.array(self.log_pdf_x)
+        self.initialized = True
+
+def collect_data_plot(datasets, phi_max=0.871, bdim=2):
     psuccess = []
-    phi_ss = []
     nrattlers = []
     energy = []
     pressure = []
     contacts = []
     phi_ss = np.unique([dataset.phi_ss for dataset in sorted(datasets, key=lambda data: data.phi_ss)])
-    bdim = 2
-    phi_max = 0.871
+    phi_ss = phi_ss[phi_ss < phi_max]
+    bdim = bdim
     for phi_ in phi_ss:
-        if phi_ < phi_max:
-            success_, nrattlers_, energy_ = [], [], []
-            pressure_, contacts_ = [], []
-            for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
-                if phi_ == dataset.phi_ss:
-                    tmp = np.array(dataset.success,dtype='int')
-                    for data in dataset.packings_data:
-                        N_contacts = int(np.sum(data.Z))
-                        no_stable = len(data.Z)
-                        N_min = int(2 * (bdim * (no_stable - 1) + 1))
-                        if N_contacts >= N_min:
-                            nrattlers_.append(data.nrattlers)
-                            energy_.append(data.energy)
-                            pressure_.append(data.pressure)
-                            contacts_.append(np.mean(data.Z ))
-                        else:
-                            tmp[np.argmax(tmp > 0)] = 0
-                    success_.extend(tmp)
-                    # plt.scatter(contacts_, np.log(pressure_))
-            # plt.show()
-            psuccess.append(np.mean(success_))
-            nrattlers.append(np.mean(nrattlers_))
-            energy.append(energy_)
-            pressure.append(pressure_)
-            contacts.append(contacts_)
+        success_, nrattlers_, energy_ = [], [], []
+        pressure_, contacts_ = [], []
+        for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
+            if phi_ == dataset.phi_ss:
+                tmp = np.array(dataset.success, dtype='int')
+                for data in dataset.packings_data:
+                    N_contacts = int(np.sum(data.Z))
+                    no_stable = len(data.Z)
+                    N_min = int(2 * (bdim * (no_stable - 1) + 1))
+                    if N_contacts >= N_min:
+                        nrattlers_.append(data.nrattlers)
+                        energy_.append(data.energy)
+                        pressure_.append(data.pressure)
+                        contacts_.append(np.mean(data.Z))
+                    else:
+                        tmp[np.argmax(tmp > 0)] = 0
+                success_.extend(tmp)
+                # plt.scatter(contacts_, np.log(pressure_))
+        # plt.show()
+        psuccess.append(np.mean(success_))
+        nrattlers.append(np.mean(nrattlers_))
+        energy.append(energy_)
+        pressure.append(pressure_)
+        contacts.append(contacts_)
+    return psuccess, phi_ss, nrattlers, energy, pressure, contacts
+
+def plot(path, figdir="figures", bdim=2, nparticles=64):
+    figdir = os.path.join(os.getcwd(), figdir)
+    trymakedir(figdir)
+    try:
+        dp = pickle.load(open(path, "rb"))
+    except Exception, e:
+        datasets = collect_data_every_set_all()
+        psuccess, phi_ss, nrattlers, energy, pressure, contacts = collect_data_plot(datasets)
+        dp = DataPlot(psuccess, phi_ss, nrattlers, energy, pressure, contacts, bdim=bdim, nparticles=nparticles)
+        dp.compute_stats()
+        pickle.dump(dp, open("findjstats.pickle", "wb"))
+
+    psuccess, phi_ss, nrattlers, energy, pressure, contacts =  dp.psuccess, dp.phi_ss, dp.nrattlers, dp.energy, dp.pressure, dp.contacts
+    assert dp.initialized == True
+    log_pdf, log_pdf_x, logp_mean, logp_var = dp.log_pdf, dp.log_pdf_x, dp.logp_mean, dp.logp_var
 
     if True:
         fig = plt.figure()
@@ -137,25 +191,15 @@ def plot(datasets, figdir="figures"):
         fig5 = plt.figure()
         ax5 = fig5.add_subplot(111)
         color_cycle = get_color_cycle()
-        n_integrate = 2 ** 14 + 1
-        p_var = []
-        for i, p in enumerate(pressure):
+
+        for i in xrange(phi_ss.size):
             # kde histogram
-            p = np.log(np.array(p))
-            CIs = bootstrap.ci(p, np.var, n_samples=int(2.5e4))
-            p_var.append([np.var(p), CIs[0], CIs[1]])
-            bw = get_bandwidth_estimate(p, kernel="gaussian", method="cross_validation")
-            print "bandwidth estimate: ", bw
-            kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(p[:, np.newaxis])
-            # plot histograms
-            x_integrate = np.linspace(np.amin(p), np.amax(p), n_integrate)
-            log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
-            # norm = np.log(integrate.romb(np.exp(log_pdf), dx=x_integrate[1] - x_integrate[0]))
-            maxp = x_integrate[np.argmax(log_pdf)]
+            assert log_pdf[i].size == log_pdf_x[i].size
+            maxp = log_pdf_x[i][np.argmax(log_pdf[i])]
             color, label = color_cycle.next(), phi_ss[i]
             # ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color, label=label)
-            ax4.plot(x_integrate - maxp, np.exp(log_pdf-np.amax(log_pdf)), color=color, label=label)
-            ax5.plot(x_integrate - maxp, log_pdf - np.amax(log_pdf), color=color, label=label)
+            ax4.plot(log_pdf_x[i] - maxp, np.exp(log_pdf[i]-np.amax(log_pdf[i])), color=color, label=label)
+            ax5.plot(log_pdf_x[i] - maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label)
         # ax4.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
         #            columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
@@ -164,10 +208,12 @@ def plot(datasets, figdir="figures"):
         ax5.set_ylabel(r"$\ln(pdf)-\ln(\max(pdf))$")
         fig4.savefig("{}/{}".format(figdir, "lnP_pdf.pdf"))
         fig5.savefig("{}/{}".format(figdir, "lnP_lnpdf.pdf"))
+
+    if True:
         fig6 = plt.figure()
         ax6 = fig6.add_subplot(111)
-        p_var = np.array(p_var)
-        ax6.errorbar(phi_ss, p_var[:,0], yerr=[p_var[:,1],p_var[:,2]])
+        ax6.errorbar(phi_ss, logp_var[:,0], yerr=[logp_var[:,1], logp_var[:,2]])
+        ax6.errorbar(phi_ss, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
         ax6.set_xlabel(r"$\phi$")
         ax6.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
         # ax6.set_xscale('log')
@@ -175,8 +221,8 @@ def plot(datasets, figdir="figures"):
         fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
 
 if __name__=="__main__":
-    datasets = collect_data_every_set_all()
-    plot(datasets)
+    path = os.path.join(os.getcwd(),'findjstats.pickle')
+    plot(path)
     plt.show()
     # x, y = np.log(sim.energy_list), np.log(sim.pressure_list)
     # plt.scatter(x, y)
