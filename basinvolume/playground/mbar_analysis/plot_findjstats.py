@@ -86,16 +86,17 @@ class DataPlot(object):
             # build array of relative fluctuations around the mode
             log_maxp = x_integrate[np.argmax(log_pdf)]
             p_rel = p / np.exp(log_maxp)
-            varCIs = bootstrap.ci(p_rel, np.var, n_samples=int(n_samples))
+            n = int(min(n_samples, lnp.size*25))
+            varCIs = bootstrap.ci(p_rel, np.var, n_samples=n)
             self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]])
             #build array of logp mean, var and maxp
-            meanCIs = bootstrap.ci(lnp, np.mean, n_samples=int(n_samples))
-            varCIs = bootstrap.ci(lnp, np.var, n_samples=int(n_samples))
+            meanCIs = bootstrap.ci(lnp, np.mean, n_samples=n)
+            varCIs = bootstrap.ci(lnp, np.var, n_samples=n)
             self.logp_mean.append([np.mean(lnp), meanCIs[0], meanCIs[1]])
             self.logp_var.append([np.var(lnp), varCIs[0], varCIs[1]])
             self.logp_mode.append(log_maxp)
-            meanCIs = bootstrap.ci(p, np.mean, n_samples=int(n_samples))
-            varCIs = bootstrap.ci(p, np.var, n_samples=int(n_samples))
+            meanCIs = bootstrap.ci(p, np.mean, n_samples=n)
+            varCIs = bootstrap.ci(p, np.var, n_samples=n)
             self.p_mean.append([np.mean(p), meanCIs[0], meanCIs[1]])
             self.p_var.append([np.var(p), varCIs[0], varCIs[1]])
 
