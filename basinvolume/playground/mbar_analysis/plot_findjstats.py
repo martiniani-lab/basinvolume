@@ -12,6 +12,7 @@ from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_b
 from scipy import integrate
 import scikits.bootstrap as bootstrap
 from scipy.optimize import curve_fit
+import argparse
 
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
@@ -269,8 +270,12 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         print fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
 
 if __name__=="__main__":
+    parser = argparse.ArgumentParser(description="plot findjstats")
+    parser.add_argument("nparticles", type=int, help="number of particles")
+    args = parser.parse_args()
+
     path = os.path.join(os.getcwd(),'findjstats.pickle')
-    plot(path)
+    plot(path, nparticles=args.nparticles)
     plt.show()
     # x, y = np.log(sim.energy_list), np.log(sim.pressure_list)
     # plt.scatter(x, y)
