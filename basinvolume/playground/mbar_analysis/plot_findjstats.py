@@ -6,6 +6,7 @@ from basinvolume.utils import *
 from joblib import Parallel, delayed
 import cPickle as pickle
 from itertools import cycle
+from cycler import cycler
 from basinvolume.spheres.find_jstats import SoftPackingDataset, SoftPackingData
 from sklearn.neighbors import KernelDensity
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
@@ -36,6 +37,10 @@ def get_line_cycle():
     lines = ["--","-"]
     linecycle = cycle(lines)
     return linecycle
+def get_cycler(ncolors=20):
+    cm = plt.get_cmap('Accent')
+    return cycler('color', [cm(1. * i / ncolors) for i in xrange(ncolors)][::-1])
+
 ###########################################################
 
 def collect_data_every_set_all(workspace=None,
@@ -144,7 +149,7 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2):
         contacts.append(contacts_)
     return psuccess, phi_ss, nrattlers, energy, pressure, contacts
 
-def plot(path, figdir="figures", bdim=2, nparticles=64):
+def plot(figdir="figures", bdim=2, nparticles=64):
     figdir = os.path.join(os.getcwd(), figdir)
     trymakedir(figdir)
     try:
@@ -161,6 +166,7 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
     assert dp.initialized == True
     log_pdf, log_pdf_x, logp_mean, logp_var = dp.log_pdf, dp.log_pdf_x, dp.logp_mean, dp.logp_var
     p_mean, p_var, p_rel_var, logp_mode = dp.p_mean, dp.p_var, dp.p_rel_var, dp.logp_mode
+    assert nparticles == dp.nparticles
 
     if True:
         fig = plt.figure()
@@ -206,7 +212,7 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
         fig3.savefig("{}/{}".format(figdir, "lnP_lnZ.pdf"))
 
-    phi_c = 0.83
+    phi_c = 0.832
 
     if True:
         fig4 = plt.figure()
@@ -237,7 +243,7 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         return a * x + b
 
     if True:
-        logx = np.log(phi_ss_packed[phi_ss_packed > phi_c]-phi_c)
+        logx = np.log(phi_ss_packed[phi_ss_packed > phi_c]) #-phi_c
         fig6 = plt.figure()
         ax6 = fig6.add_subplot(111)
         # ax6.errorbar(phi, logp_var[:,0], yerr=[logp_var[:,1], logp_var[:,2]])
@@ -253,37 +259,182 @@ def plot(path, figdir="figures", bdim=2, nparticles=64):
         ax6.plot(logx, ff(logx, popt[0], popt[1]), color=color, linewidth=2)
         print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
 
-        logp_mode = np.array(logp_mode)[phi_ss_packed > phi_c]
-        color = color_cycle.next()
-        ax6.scatter(logx, np.log(logp_mode), color=color)
-        popt, pcov = curve_fit(ff, logx, np.log(logp_mode), absolute_sigma=True)
-        fit_err = np.sqrt(np.diag(pcov))
-        ax6.plot(logx, ff(logx, popt[0], popt[1]), color=color, linewidth=2)
-        print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
+        # logp_mode = np.array(logp_mode)[phi_ss_packed > phi_c]
+        # color = color_cycle.next()
+        # ax6.scatter(logx, np.log(logp_mode), color=color)
+        # popt, pcov = curve_fit(ff, logx, np.log(logp_mode), absolute_sigma=True)
+        # fit_err = np.sqrt(np.diag(pcov))
+        # ax6.plot(logx, ff(logx, popt[0], popt[1]), color=color, linewidth=2)
+        # print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
 
         ax6.set_xlabel(r"$\Delta \phi$")
         ax6.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
         fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
 
-    if False:
-        import fssa
-        l = phi
-        rho = log_pdf_x[0]
-        a = log_pdf
-        da = np.ones(log_pdf.shape)*1e-3
-        rho_c0 = 1
-        nu0 = 1
-        zeta0 = 1
-        print fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
+def plot_all(figdir="figures", bdim=2):
+    figdir = os.path.join(os.getcwd(), figdir)
+    trymakedir(figdir)
+    datasets = collect_data_every_set_all(data_signature='[0-9]*/findjstats.pickle')
+    for dp in datasets:
+        assert dp.initialized == True
+    nparticles = np.array([dp.nparticles for dp in sorted(datasets, key=lambda data: data.nparticles)])
 
+    def ff(x, a, b):
+        return a * x + b
+
+    if True:
+        phi_max = 0.85
+        # from scipy.interpolate import splrep, splev
+        from scipy.interpolate import UnivariateSpline
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        yder_max = []
+        yspl_mid = []
+        yspl_list, yder_list = [], []
+        phi_ss_all = np.hstack([dp.phi_ss for dp in datasets])
+        xspl = np.linspace(np.amin(phi_ss_all), phi_max, 300, endpoint=True)
+        color_cycle = get_color_cycle(ncolors=len(datasets))
+        for dp in sorted(datasets, key=lambda data: data.nparticles):
+            color = color_cycle.next()
+            phi_ss, psuccess = dp.phi_ss[dp.phi_ss<phi_max], dp.psuccess[dp.phi_ss<phi_max]
+            ax.plot(phi_ss, np.array(psuccess), marker='o', linestyle='None', color=color)
+            # tck = splrep(phi_ss, psuccess, s=1e-3, k=3)
+            # ynew = splev(xspl, tck, der=0)
+            spl = UnivariateSpline(phi_ss, psuccess, bbox=[phi_ss[0], phi_ss[-1]], s=7.5e-4, k=3)
+            ynew = spl(xspl)
+            yspl_list.append(ynew)
+            ax.plot(xspl, ynew, marker='None', linestyle='-', color=color)
+            # yder = splev(xspl, tck, der=1)
+            yder = spl.derivative(1)(xspl)
+            yder_list.append(yder)
+            ax.plot(xspl, yder/np.amax(yder), marker='None', linestyle='--', color=color)
+            yder_max.append(xspl[np.argmax(yder)])
+            yspl_mid.append(xspl[np.argmin(np.abs(ynew-0.5))])
+        ax.set_xlim([phi_ss[0], phi_ss[-1]])
+        ax.set_xlabel(r"$\phi_{ss}$")
+        ax.set_ylabel(r"$p_{pack}$")
+        fig.savefig("{}/{}".format(figdir, "phi_ppack_all.pdf"))
+
+        fig2 = plt.figure()
+        ax2 = fig2.add_subplot(111)
+        color_cycle = get_color_cycle(ncolors=4)
+        x = np.log(np.sqrt(nparticles))
+        xnew = np.log(np.sqrt(np.linspace(np.amin(nparticles), np.amax(nparticles), 10)))
+        color = color_cycle.next()
+        ax2.plot(x, np.log(yder_max), marker='o', linestyle='None', color=color)
+        popt, pcov = curve_fit(ff, x, np.log(yder_max), absolute_sigma=True)
+        fit_err = np.sqrt(np.diag(pcov))
+        ax2.plot(xnew, ff(xnew, popt[0], popt[1]), color=color, linewidth=2,
+                 label="dermax: : ln(phi) = {:.3f} ln(N) {:.3f}".format(popt[0], popt[1]))
+        color = color_cycle.next()
+        ax2.plot(x, np.log(yspl_mid), marker='o', linestyle='None', color=color)
+        popt, pcov = curve_fit(ff, x, np.log(yspl_mid), absolute_sigma=True)
+        fit_err = np.sqrt(np.diag(pcov))
+        ax2.plot(xnew, ff(xnew, popt[0], popt[1]), color=color, linewidth=2,
+                 label="midpoint: ln(phi) = {:.3f} ln(N) {:.3f}".format(popt[0], popt[1]))
+        ax2.set_xlabel(r"$\ln(N^{1/2})$")
+        ax2.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig2.savefig("{}/{}".format(figdir, "lnphi_lnppack_scaling.pdf"))
+        # ax2.set_ylim([0, 1./(np.amin(nparticles)-5)])
+        # ax2.set_yscale('log')
+        # ax2.set_xscale('log')
+
+    if True:
+        import fssa
+        from scipy.integrate import simps
+        l = np.sqrt(nparticles)
+        rho = xspl
+        # rho = rho[30:-30]
+        # ycut = np.array([y[30:-30] for y in yspl_list])
+        a = np.array(yspl_list)
+        print a.shape
+        da = np.ones(a.shape) * 1e-1
+        rho_c0 = 0.84
+        nu0 = 1
+        zeta0 = 0.02
+        ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
+        print "rho: {} +/- {}".format(ret.rho, ret.drho)
+        print "nu: {} +/- {}".format(ret.nu, ret.dnu)
+        print "zeta: {} +/- {}".format(ret.zeta, ret.dzeta)
+        print ret.fun
+        auto_scaled_data = fssa.scaledata(l, rho, a, da, ret.rho, ret.nu, ret.zeta)
+        # critical exponents and errors, quality of data collapse
+        fig3 = plt.figure()
+        ax3 = fig3.add_subplot(111)
+        ax3.set_prop_cycle(get_cycler(ncolors=len(nparticles)))
+        ax3.plot(auto_scaled_data.x.T, auto_scaled_data.y.T, '.', label=nparticles)
+        fig3.savefig("{}/{}".format(figdir, "phi_ppack_rescaling.pdf"))
+
+        # rho = rho[15:-15]
+        # ycut = np.array([y[15:-15] for y in yder_list])
+        # a = np.array([y / simps(y, rho) for y in ycut])
+        # # a = np.array(yder_list)
+        # print a.shape
+        # da = np.ones(a.shape) * 1e-1
+        # rho_c0 = 0.84
+        # nu0 = 1
+        # zeta0 = 0.1
+        # ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
+        # print "rho: {} +/- {}".format(ret.rho, ret.drho)
+        # print "nu: {} +/- {}".format(ret.nu, ret.dnu)
+        # print "zeta: {} +/- {}".format(ret.zeta, ret.dzeta)
+        # print ret.fun
+        # auto_scaled_data = fssa.scaledata(l, rho, a, da, ret.rho, ret.nu, ret.zeta)
+        # # critical exponents and errors, quality of data collapse
+        # fig4 = plt.figure()
+        # ax4 = fig4.add_subplot(111)
+        # ax4.set_prop_cycle(get_cycler(len(nparticles)))
+        # ax4.plot(auto_scaled_data.x.T, auto_scaled_data.y.T, '.', label=nparticles)
+        # fig4.savefig("{}/{}".format(figdir, "phi_ppack_der_rescaling.pdf"))
+
+    if True:
+        phi_max=0.875
+        fig5 = plt.figure()
+        ax5 = fig5.add_subplot(111)
+        color_cycle = get_color_cycle(ncolors=len(datasets))
+        for i,dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
+            phi_ss_packed, logp_var, p_rel_var = dp.phi_ss_packed[dp.phi_ss_packed<phi_max], \
+                                                 dp.logp_var[dp.phi_ss_packed<phi_max], \
+                                                 dp.p_rel_var[dp.phi_ss_packed<phi_max]
+            phi_c = yspl_mid[i]
+            logx = np.log(phi_ss_packed[phi_ss_packed > phi_c])
+            logy = np.log(logp_var[:,0][phi_ss_packed > phi_c])
+            logy_err = (logp_var[:, 2][phi_ss_packed > phi_c] - logp_var[:, 1][phi_ss_packed > phi_c]) / (2 * logp_var[:,0][phi_ss_packed > phi_c])
+            # np.log(p_rel_var[:, 0][phi_ss_packed > phi_c])
+            # ax6.errorbar(phi, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
+            # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
+            color = color_cycle.next()
+            ax5.errorbar(logx, logy, fmt='o', color=color, yerr=logy_err)
+            idx = int(len(logx)*0.44)
+            popt, pcov = curve_fit(ff, logx[:idx], logy[:idx],
+                                   absolute_sigma=True,
+                                   sigma = logy_err[:idx])
+
+            fit_err = np.sqrt(np.diag(pcov))
+            ax5.plot(logx[:idx], ff(logx[:idx], popt[0], popt[1]), color=color, linewidth=2,
+                     label="N:{}; {:.3f} ln(x) {:.3f}".format(dp.nparticles, popt[0], popt[1]))
+            print "nparticles: {}; ({}+/-{}) x + ({}+/-{})".format(dp.nparticles, popt[0], fit_err[0], popt[1], fit_err[1])
+        ax5.set_ylabel(r'$\ln(var(\ln P))$')
+        ax5.set_xlabel(r'$\ln(\phi-\phi_{f_J=0.5})$')
+        ax5.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig5.savefig("{}/{}".format(figdir, "lnphi_lnpvar.pdf"))
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="plot findjstats")
-    parser.add_argument("nparticles", type=int, help="number of particles")
+    parser.add_argument("-n", "--nparticles", type=int, help="number of particles")
+    parser.add_argument("--all", action='store_true', help="run over all packings", default=False)
+    parser.add_argument("--show", action='store_true', help="show plots", default=False)
     args = parser.parse_args()
 
-    path = os.path.join(os.getcwd(),'findjstats.pickle')
-    plot(path, nparticles=args.nparticles)
-    plt.show()
+    if args.all:
+        plot_all()
+    else:
+        plot(nparticles=args.nparticles)
+
+    if args.show:
+        plt.show()
+
     # x, y = np.log(sim.energy_list), np.log(sim.pressure_list)
     # plt.scatter(x, y)
     # from scipy.optimize import curve_fit
