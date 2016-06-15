@@ -389,37 +389,109 @@ def plot_all(figdir="figures", bdim=2):
         # fig4.savefig("{}/{}".format(figdir, "phi_ppack_der_rescaling.pdf"))
 
     if True:
+        import matplotlib.gridspec as gridspec
         phi_max=0.875
-        fig5 = plt.figure()
-        ax5 = fig5.add_subplot(111)
+        fig5 = plt.figure(figsize=(8, 8))
+        gs = gridspec.GridSpec(7, 2)
+        ax5 = fig5.add_subplot(gs[:4, :])
+        fit_params, fit_params_err = [], []
+        fit_params2, fit_params_err2 = [], []
         color_cycle = get_color_cycle(ncolors=len(datasets))
         for i,dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
-            phi_ss_packed, logp_var, p_rel_var = dp.phi_ss_packed[dp.phi_ss_packed<phi_max], \
-                                                 dp.logp_var[dp.phi_ss_packed<phi_max], \
-                                                 dp.p_rel_var[dp.phi_ss_packed<phi_max]
+            phi_ss_packed, logp_var, p_rel_var, logp_mean = dp.phi_ss_packed[dp.phi_ss_packed<phi_max], \
+                                                            dp.logp_var[dp.phi_ss_packed<phi_max], \
+                                                            dp.p_rel_var[dp.phi_ss_packed<phi_max], \
+                                                            dp.logp_mean[dp.phi_ss_packed < phi_max]
             phi_c = yspl_mid[i]
-            logx = np.log(phi_ss_packed[phi_ss_packed > phi_c])
-            logy = np.log(logp_var[:,0][phi_ss_packed > phi_c])
+            inu = 2
+            zeta = 1./8
+            x = (nparticles[i] ** 0.5) ** inu * (np.array(phi_ss_packed[phi_ss_packed > phi_c]) - np.array(phi_c)) / phi_c
+            logx = np.log(x)
+            y = (nparticles[i]**0.5) **(zeta*inu) * logp_var[:,0][phi_ss_packed > phi_c]
+            logy = np.log(y)
             logy_err = (logp_var[:, 2][phi_ss_packed > phi_c] - logp_var[:, 1][phi_ss_packed > phi_c]) / (2 * logp_var[:,0][phi_ss_packed > phi_c])
             # np.log(p_rel_var[:, 0][phi_ss_packed > phi_c])
             # ax6.errorbar(phi, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
             # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
             color = color_cycle.next()
             ax5.errorbar(logx, logy, fmt='o', color=color, yerr=logy_err)
-            idx = int(len(logx)*0.44)
-            popt, pcov = curve_fit(ff, logx[:idx], logy[:idx],
+            idx = int(len(logx)*0.3)
+            popt, pcov = curve_fit(ff, logx[idx:], logy[idx:],
                                    absolute_sigma=True,
-                                   sigma = logy_err[:idx])
+                                   sigma = logy_err[idx:])
 
             fit_err = np.sqrt(np.diag(pcov))
-            ax5.plot(logx[:idx], ff(logx[:idx], popt[0], popt[1]), color=color, linewidth=2,
+            ax5.plot(logx[idx:], ff(logx[idx:], popt[0], popt[1]), color=color, linewidth=2,
                      label="N:{}; {:.3f} ln(x) {:.3f}".format(dp.nparticles, popt[0], popt[1]))
-            print "nparticles: {}; ({}+/-{}) x + ({}+/-{})".format(dp.nparticles, popt[0], fit_err[0], popt[1], fit_err[1])
-        ax5.set_ylabel(r'$\ln(var(\ln P))$')
-        ax5.set_xlabel(r'$\ln(\phi-\phi_{f_J=0.5})$')
+            fit_params.append(popt)
+            fit_params_err.append(fit_err)
+            print "nparticles: {}; ({}+/-{}) x + ({}+/-{})".format(dp.nparticles, popt[0], fit_err[0], popt[1],
+                                                                   fit_err[1])
+
+        ax5.set_title(r'$\nu = 1/2;~\beta=1/8$')
+        ax5.set_ylabel(r'$\ln(var(\ln P)) (N^{1/d})^{\beta/\nu}$')
+        ax5.set_xlabel(r'$\ln((\phi-\phi_{f_J=0.5})/\phi_{f_J=0.5}) (N^{1/d})^{1/\nu}$')
         ax5.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax6 = fig5.add_subplot(gs[4:, 0])
+        ax7 = fig5.add_subplot(gs[4:, 1])
+        color = color_cycle.next()
+        # slopes subplot
+        ax6.errorbar(nparticles, np.array(fit_params)[:,0], yerr=np.array(fit_params_err)[:,0],
+                     fmt='o', color=color)
+        popt, pcov = curve_fit(ff, nparticles, np.array(fit_params)[:,0],
+                               absolute_sigma=True,
+                               sigma=np.array(fit_params_err)[:,0])
+        fit_err = np.sqrt(np.diag(pcov))
+        ax6.plot(nparticles, ff(nparticles, popt[0], popt[1]), color=color, linewidth=2,
+                 label="{:.3f} x + {:.3f}".format(popt[0], popt[1]))
+        print "fit slopes; ({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
+        # intercepts subplot
+        ax7.errorbar(nparticles, np.array(fit_params)[:, 1], yerr=np.array(fit_params_err)[:, 1],
+                     fmt='o', color=color)
+        popt, pcov = curve_fit(ff, nparticles, np.array(fit_params)[:, 1],
+                               absolute_sigma=True,
+                               sigma=np.array(fit_params_err)[:, 1])
+        fit_err = np.sqrt(np.diag(pcov))
+        ax7.plot(nparticles, ff(nparticles, popt[0], popt[1]), color=color, linewidth=2,
+                 label="{:.3f} x + {:.3f}".format(popt[0], popt[1]))
+        print "fit interceps ; ({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
+        # ax6 ax7 legends
+        ax6.set_xlabel('N')
+        ax6.set_ylabel('slope')
+        ax6.legend(frameon=False, loc='best', prop={'size': 13}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax7.set_xlabel('N')
+        ax7.set_ylabel('intercept')
+        ax7.legend(frameon=False, loc='best', prop={'size': 13}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig5.savefig("{}/{}".format(figdir, "lnphi_lnpvar.pdf"))
+
+
+    if False:
+        l = np.sqrt(nparticles)
+        rho = np.array(phi_ss_packed[phi_ss_packed > phi_c])
+        # rho = rho[30:-30]
+        # ycut = np.array([y[30:-30] for y in yspl_list])
+        a = np.array([dp.logp_var[:, 0][dp.phi_ss_packed > phi_c] for dp in datasets])
+        print a.shape
+        da = np.ones(a.shape) * 1e-1
+        rho_c0 = 0.84
+        nu0 = 1. / 2
+        zeta0 = 1. / 3
+        ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
+        print "rho: {} +/- {}".format(ret.rho, ret.drho)
+        print "nu: {} +/- {}".format(ret.nu, ret.dnu)
+        print "zeta: {} +/- {}".format(ret.zeta, ret.dzeta)
+        print ret.fun
+        auto_scaled_data = fssa.scaledata(l, rho, a, da, ret.rho, ret.nu, ret.zeta)
+        # critical exponents and errors, quality of data collapse
+        fig8 = plt.figure()
+        ax8 = fig8.add_subplot(111)
+        ax8.set_prop_cycle(get_cycler(ncolors=len(nparticles)))
+        ax8.plot(np.log(auto_scaled_data.x.T), np.log(auto_scaled_data.y.T), '.')
+        fig8.savefig("{}/{}".format(figdir, "lnphi_lnpvar_rescaling.pdf"))
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="plot findjstats")
     parser.add_argument("-n", "--nparticles", type=int, help="number of particles")

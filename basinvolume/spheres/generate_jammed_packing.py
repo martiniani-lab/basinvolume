@@ -184,7 +184,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     
     def _initialise(self):
         self._print_initialise()
-    
+
     def one_iteration(self,fname):
         """perform one iteration
         """
@@ -234,6 +234,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             self._print(n)
         else:
             path_list = glob.glob("{}.*".format("{0}/jammed_packing{1}.*".format(self.base_directory, n)))
+            if len(path_list) > 0:
+                with open("{0}/mismatching_rattlers.txt".format(self.base_directory), 'a') as f:
+                            f.write('jammed_packing{}\n'.format(n))
             for path_ in path_list:
                 p = subprocess.call(shlex.split("rm {}".format(path_)))
         self.iteration+=1
