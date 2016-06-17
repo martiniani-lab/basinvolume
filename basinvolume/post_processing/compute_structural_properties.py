@@ -58,7 +58,7 @@ class StructuralAnalysis(object):
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         hs_radii = hs_diameters/2
         ss_radii = hs_radii * (1+self.sca)
-        return coords, hs_radii, ss_radii
+        return coords, hs_radii, ss_radii, rattlers
     
     def _get_dname(self, dname):
         if dname.endswith('.xyzdr'):
@@ -107,8 +107,8 @@ class BondOrientationalOrder(StructuralAnalysis):
                     if compute or self.force:
                         print "boo ", dname
                         trymakedir(analysis_dir_path)
-                        coords, hs_radii, ss_radii = self._import_packing_configuration(fname)
-                        boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, ndim=self.bdim, deg=deg)
+                        coords, hs_radii, ss_radii, rattlers = self._import_packing_configuration(fname)
+                        boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, rattlers, ndim=self.bdim, deg=deg)
                         with open(boo_fname, 'w') as f:
                             f.write('#Q{} \t Z\n'.format(deg))
                             for q, z in zip(boo_list, z_list):
@@ -236,7 +236,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
     
-    def bond_orientation_order_all(self, coords, hs_radii, ndim=3, deg=6):
+    def bond_orientation_order_all(self, coords, hs_radii, rattlers, ndim=3, deg=6):
         """
         boo_list : array
             list of bond orientational order
@@ -259,19 +259,18 @@ class BondOrientationalOrder(StructuralAnalysis):
             weights = None
             if weights_all is not None:
                 weights = weights_all[i]
-            if len(nnatoms_vec) > 0:
+            if len(nnatoms_vec) > 0 and rattlers[i] > 0:
                 boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg, weights=weights)
                 boo_list.append(boo)
             else:
                 #rattlers
                 boo_list.append(0)
-            if len(contacts_vec) > 0:
+            if len(contacts_vec) > 0 and rattlers[i] > 0:
                 z_list.append(len(contacts_vec))
             else:
                 #rattlers
                 z_list.append(0)
         return np.array(boo_list), np.array(z_list)
-
 
 class PressureTensor(StructuralAnalysis):
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
@@ -310,7 +309,7 @@ class PressureTensor(StructuralAnalysis):
                     if compute or self.force:
                         print "pressure ", dname
                         trymakedir(analysis_dir_path)
-                        self.coords, self.hs_radii, self.ss_radii = self._import_packing_configuration(fname)
+                        self.coords, self.hs_radii, self.ss_radii, self.rattlers = self._import_packing_configuration(fname)
                         potential = self.get_potential()
                         p, ptensor = pressure_tensor(potential, self.coords, self.vcavity, self.bdim)
                         energy = potential.getEnergy(self.coords)

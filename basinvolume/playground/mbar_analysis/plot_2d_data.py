@@ -163,7 +163,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.88):
                     #should remoe both outliers in pressure and in volume
                     x_raw = dataset.pressures
                     f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
-                    x_outliers = OutlierDetection(np.log(x_raw), p=0.5, D=2*np.std(np.log(x_raw)))
+                    x_outliers = OutlierDetection(np.log(x_raw), p=0.5, D=3*np.std(np.log(x_raw)))
                     non_outliers_indexes = list(set(f_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes))
                     x = np.array(x_raw)[np.array(non_outliers_indexes, dtype="i")]
                     f = np.array(dataset.free_energies)[np.array(non_outliers_indexes, dtype="i")]

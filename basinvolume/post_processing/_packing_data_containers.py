@@ -42,12 +42,13 @@ class PackingDataSet(object):
             #the reason why they must all be true is because we are interested in the realation among these variables
             if data.F is not None and data.Ferr is not None and data.P is not None and data.energy is not None \
                     and data.Z is not None and data.boo is not None:
-                self.free_energies.append(data.F)
-                self.free_energies_err.append(data.Ferr)
-                self.pressures.append(data.P)
-                self.energies.append(data.energy)
-                self.contacts.append(data.Z)
-                self.boos.append(data.boo)
+                if np.sum(data.Zlist) >= 2*((self.nparticles-1)*self.bdim + 1):
+                    self.free_energies.append(data.F)
+                    self.free_energies_err.append(data.Ferr)
+                    self.pressures.append(data.P)
+                    self.energies.append(data.energy)
+                    self.contacts.append(data.Z)
+                    self.boos.append(data.boo)
     
     def add_data_structure(self, packing_data):
         """
@@ -57,9 +58,10 @@ class PackingDataSet(object):
         for data in packing_data:
             #the reason why they must all be true is because we are interested in the realation among these variables
             if data.P is not None and data.Z is not None and data.boo is not None:
-                self.pressures.append(data.P)
-                self.contacts.append(data.Z)
-                self.boos.append(data.boo)
+                if np.sum(data.Zlist) >= 2 * ((self.nparticles - 1) * self.bdim + 1):
+                    self.pressures.append(data.P)
+                    self.contacts.append(data.Z)
+                    self.boos.append(data.boo)
     
     def add_extras(self, extra):
         self.extras.extend(np.array(extra).tolist())
