@@ -320,7 +320,7 @@ if __name__ == "__main__":
     # parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.86)
     parser.add_argument("-a", "--sca", type=float, help="1+a = r_ss/r_hs", default=0.12)
     parser.add_argument("-u","--rmean", type=float, help="mean particle radius",default=1.0)
-    parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
+    parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.1)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-4)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
