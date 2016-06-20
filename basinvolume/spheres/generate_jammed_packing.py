@@ -233,7 +233,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if success:
             self._print(n)
         else:
-            path_list = glob.glob("{}.*".format("{0}/jammed_packing{1}.*".format(self.base_directory, n)))
+            path_list = glob.glob("{0}/jammed_packing{1}.*".format(self.base_directory, n))
             if len(path_list) > 0:
                 with open("{0}/mismatching_rattlers.txt".format(self.base_directory), 'a') as f:
                             f.write('jammed_packing{}\n'.format(n))
@@ -554,7 +554,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     mismatch = True
                     with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
                         f.write('jammed_packing{}\n'.format(n))
-                    path_list = glob.glob("{}.*".format("{0}/jammed_packing{1}.*".format(directory, n)))
+                    path_list = glob.glob("{0}/jammed_packing{1}.*".format(directory, n))
                     for path_ in path_list:
                         p = subprocess.call(shlex.split("rm {}".format(path_)))
             except Exception, e:
