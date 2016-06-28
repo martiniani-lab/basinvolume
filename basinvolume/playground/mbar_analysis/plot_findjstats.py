@@ -15,6 +15,7 @@ import scikits.bootstrap as bootstrap
 from scipy.optimize import curve_fit
 import argparse
 from scipy.interpolate import UnivariateSpline
+from scipy.integrate import simps
 
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
@@ -175,6 +176,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
     assert dp.initialized == True
     log_pdf, log_pdf_x, logp_mean, logp_var = dp.log_pdf, dp.log_pdf_x, dp.logp_mean, dp.logp_var
     p_mean, p_var, p_rel_var, logp_mode = dp.p_mean, dp.p_var, dp.p_rel_var, dp.logp_mode
+    bw = dp.bw
     assert nparticles == dp.nparticles
 
     if True:
@@ -245,11 +247,19 @@ def plot(figdir="figures", bdim=2, nparticles=64):
     if True:
         fig4 = plt.figure()
         ax4 = fig4.add_subplot(111)
+        fig42 = plt.figure()
+        ax42 = fig42.add_subplot(111)
         fig5 = plt.figure()
         ax5 = fig5.add_subplot(111)
+        fig52 = plt.figure()
+        ax52 = fig52.add_subplot(111)
+        ax522 = ax52.twinx()
         color_cycle = get_color_cycle(ncolors=phi_ss_packed.size)
-
+        ikappa = lambda phi : 1.79473551963 * phi - 1.45331466838
+        v_mean_bias, v_mean = [], []
+        v_var_bias, v_var = [], []
         for i in xrange(phi_ss_packed.size):
+            print phi_ss_packed[i]
             # kde histogram
             assert log_pdf[i].size == log_pdf_x[i].size
             log_maxp = log_pdf_x[i][np.argmax(log_pdf[i])]
@@ -257,15 +267,52 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             # ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color, label=label, rasterized=True)
             ax4.plot(log_pdf_x[i]-log_maxp, np.exp(log_pdf[i]-np.amax(log_pdf[i])), color=color, label=label, rasterized=True)
             ax5.plot(log_pdf_x[i]-log_maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label, rasterized=True)
-        # (0.686850451878 * np.abs(phi_ss_packed[i] - phi_c) + 3.80454345905)
-        # ax4.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
-        #            columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+
+            bias = np.exp(np.log(pressure[i]) * ikappa(phi_ss_packed[i]))
+            y = 1./bias
+            mu_B, sig_B = np.mean(y), np.var(y)
+            mu_U = np.average(y, weights=bias/np.sum(bias))
+            sig_U = np.average((y-mu_U)**2, weights=bias/np.sum(bias))
+            rel_dmu = 2*np.abs(mu_U - mu_B)/(np.abs(mu_B)+np.abs(mu_U))
+            rel_dsig = 2*np.abs(sig_U-sig_B)/(np.abs(sig_B)+np.abs(sig_U))
+            v_mean_bias.append(mu_B)
+            v_var_bias.append(sig_B)
+            v_mean.append(mu_U)
+            v_var.append(sig_U)
+            ax52.plot(phi_ss_packed[i], np.mean(np.log(pressure[i]))*ikappa(phi_ss_packed[i]), color=color, marker='o', linestyle='',
+                      rasterized=True)
+            ax522.plot(phi_ss_packed[i], np.var(np.log(pressure[i])), color=color, marker='^',
+                      linestyle='', rasterized=True)
+
+        ax43 = ax42.twinx()
+        ax42.plot(phi_ss_packed, v_mean_bias, color='b', marker='o', linestyle='',
+                  rasterized=True, label=r"$E_B(v)$")
+        ax43.plot(phi_ss_packed, v_var_bias, color='r', marker='o', linestyle='',
+                  rasterized=True, label=r"$Var_B(v)$")
+        ax42.plot(phi_ss_packed, v_mean, color='b', marker='^', linestyle='',
+                  rasterized=True, label=r"$E_U(v)$")
+        ax43.plot(phi_ss_packed, v_var, color='r', marker='^', linestyle='',
+                  rasterized=True, label=r"$Var_U(v)$")
+        # ax42.set_yscale('log')
+        ax42.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax43.legend(frameon=False, loc=0, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
+        ax4.set_ylabel(r"$pdf/\max(pdf)$")
+        ax4.set_xlabel(r"$\langle \Pi \rangle_X)$")
         ax4.set_ylabel(r"$pdf/\max(pdf)$")
         ax5.set_xlabel(r"$\ln(P/P_{peak})$")
         ax5.set_ylabel(r"$\ln(pdf)-\ln(\max(pdf))$")
+        ax52.set_ylabel(r"$\mu_{\Pi}/\kappa$")
+        ax522.set_ylabel(r"$\sigma_{\Pi}^2$")
+        ax52.set_xlabel(r"$\phi$")
+        # ax52.set_yscale('log')
         fig4.savefig("{}/{}".format(figdir, "lnP_pdf.pdf"))
+        fig42.savefig("{}/{}".format(figdir, "muv_varv.pdf"))
         fig5.savefig("{}/{}".format(figdir, "lnP_lnpdf.pdf"))
+        fig52.savefig("{}/{}".format(figdir, "muP_kappa.pdf"))
+
 
     def ff(x, a, b):
         return a * x + b
@@ -372,17 +419,16 @@ def plot_all(figdir="figures", bdim=2):
 
     if True:
         import fssa
-        from scipy.integrate import simps
         l = np.sqrt(nparticles)
         rho = xspl
         # rho = rho[30:-30]
         # ycut = np.array([y[30:-30] for y in yspl_list])
         a = np.array(yspl_list)
         print a.shape
-        da = np.ones(a.shape) * 1e-1
-        rho_c0 = 0.84
-        nu0 = 1
-        zeta0 = 0.02
+        da = np.ones(a.shape) * 1e-2
+        rho_c0 = 0.847
+        nu0 = 0.5
+        zeta0 = 0.04
         ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
         print "rho: {} +/- {}".format(ret.rho, ret.drho)
         print "nu: {} +/- {}".format(ret.nu, ret.dnu)
@@ -397,7 +443,7 @@ def plot_all(figdir="figures", bdim=2):
             ax3.plot(x, y, '.', label=nparticles[i], rasterized=True)
         ax3.set_ylabel(r'$\ln (p_{pack} (N^{1/d})^{\beta/\nu})$')
         ax3.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
-        ax3.set_title(r'$\phi_c \approx 0.848;~\nu \approx 1;~\beta \approx 1/50$')
+        ax3.set_title(r'$\phi_c \approx 0.847;~\nu \approx 1;~\beta \approx 1/20$')
         ax3.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig3.savefig("{}/{}".format(figdir, "phi_ppack_rescaling.pdf"))
@@ -438,9 +484,9 @@ def plot_all(figdir="figures", bdim=2):
                                                             dp.logp_var[dp.phi_ss_packed<phi_max], \
                                                             dp.p_rel_var[dp.phi_ss_packed<phi_max], \
                                                             dp.logp_mean[dp.phi_ss_packed < phi_max]
-            phi_c = yder_max[i] #yspl_mid[i]
+            phi_c = yspl_mid[i] #yder_max[i]
             inu = 2
-            zeta = 1./12
+            zeta = 1./8
             x = np.power(np.sqrt(nparticles[i]), inu) * (np.array(phi_ss_packed[phi_ss_packed > phi_c]) - np.array(phi_c)) / phi_c
             logx = np.log(x)
             y = np.power(np.sqrt(nparticles[i]), zeta*inu) * logp_var[:,0][phi_ss_packed > phi_c]
@@ -464,7 +510,7 @@ def plot_all(figdir="figures", bdim=2):
             print "nparticles: {}; ({}+/-{}) x + ({}+/-{})".format(dp.nparticles, popt[0], fit_err[0], popt[1],
                                                                    fit_err[1])
 
-        ax5.set_title(r'$\nu = 1/2;~\beta=1/12$')
+        ax5.set_title(r'$\nu = 1/2;~\beta=1/8$')
         ax5.set_ylabel(r'$\ln(\sigma^2(\ln P) (N^{1/d})^{\beta/\nu})$')
         ax5.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
         ax5.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
