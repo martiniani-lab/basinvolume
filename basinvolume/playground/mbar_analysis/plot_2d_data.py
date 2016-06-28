@@ -132,31 +132,35 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
 # cdf.add_array(x)
 # x, cdf_x = cdf.get_vecdata()
 
-def remove_outliers(x,y,yerr):
-    pca = PCA(n_components=2)
-    x, y = np.array(x), np.array(y)
+def remove_outliers_cluster(x,y,yerr):
+    x, y = np.asarray(x), np.asarray(y)
     y_outliers = OutlierDetection(y, p=0.5, D=3 * np.std(y))
     x_outliers = OutlierDetection(x, p=0.5, D=3 * np.std(x))
     non_outliers_indexes = list(set(y_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes))
-
     x = np.array(x)[np.array(non_outliers_indexes, dtype="i")]
     y = np.array(y)[np.array(non_outliers_indexes, dtype="i")]
     yerr = np.array(yerr)[np.array(non_outliers_indexes, dtype="i")]
+    return x, y, yerr
 
-    # features = np.vstack((x[np.array(non_outliers_indexes, dtype="i")],
-    #                       y[np.array(non_outliers_indexes, dtype="i")])).T
-    # pca.fit(features)
-    # pca_projection1 = np.array([np.dot(xx, pca.components_[0]) for xx in np.vstack((x,y)).T])
-    # pca_projection2 = np.array([np.dot(xx, pca.components_[1]) for xx in np.vstack((x,y)).T])
-    # outliers_pca1 = OutlierDetection(pca_projection1, p=0.5, D=3 * np.std(pca_projection1[np.array(non_outliers_indexes, dtype="i")]))
-    # outliers_pca2 = OutlierDetection(pca_projection2, p=0.5, D=3 * np.std(pca_projection2[np.array(non_outliers_indexes, dtype="i")]))
-    # non_outliers_indexes_pca = list(set(outliers_pca1.non_outliers_indexes).intersection(outliers_pca2.non_outliers_indexes))
-    # print len(x) - len(non_outliers_indexes)
-    # print len(x) - len(non_outliers_indexes_pca)
-    # x = np.array(x)[np.array(non_outliers_indexes_pca, dtype="i")]
-    # y = np.array(y)[np.array(non_outliers_indexes_pca, dtype="i")]
-    # yerr = np.array(yerr)[np.array(non_outliers_indexes_pca, dtype="i")]
+def remove_outliers_mcd(x, y, yerr):
+    x, y = np.asarray(x), np.asarray(y)
+    robust_cov = MinCovDet().fit(np.vstack((x, y)).T)
+    mask = robust_cov.support_
+    return x[mask], y[mask], yerr[mask]
 
+def remove_outliers_pca_cluster(x,y,yerr):
+    pca = PCA(n_components=2)
+    x, y = np.asarray(x), np.asarray(y)
+    features = np.vstack((x, y)).T
+    pca.fit(features)
+    pca_projection1 = np.array([np.dot(xx, pca.components_[0]) for xx in np.vstack((x,y)).T])
+    pca_projection2 = np.array([np.dot(xx, pca.components_[1]) for xx in np.vstack((x,y)).T])
+    outliers_pca1 = OutlierDetection(pca_projection1, p=0.5, D=3 * np.std(pca_projection1))
+    outliers_pca2 = OutlierDetection(pca_projection2, p=0.5, D=3 * np.std(pca_projection2))
+    non_outliers_indexes_pca = list(set(outliers_pca1.non_outliers_indexes).intersection(outliers_pca2.non_outliers_indexes))
+    x = np.array(x)[np.array(non_outliers_indexes_pca, dtype="i")]
+    y = np.array(y)[np.array(non_outliers_indexes_pca, dtype="i")]
+    yerr = np.array(yerr)[np.array(non_outliers_indexes_pca, dtype="i")]
     # plt.scatter(pca_projection1[np.array(non_outliers_indexes_pca, dtype="i")],
     #             pca_projection2[np.array(non_outliers_indexes_pca, dtype="i")])
     # plt.show()
@@ -166,11 +170,11 @@ def poly_fit(x, y, yerr, order=1):
     fit_params, cov = np.polyfit(x, y, order, w=1./np.array(yerr), cov=True)
     fit_err = np.sqrt(np.diag(cov))
     fit_fn = np.poly1d(fit_params)
-    return fit_fn, fit_params, fit_err
+    rho = pearsonr(x, y)[0]
+    return fit_fn, fit_params, fit_err, rho
 
 def lmms_fit(x, y):
     x, y = np.asarray(x), np.asarray(y)
-    # rho = pearsonr(x, y)[0]
     robust_cov = MinCovDet().fit(np.vstack((x, y)).T)
     cov = robust_cov.covariance_[0,1]
     mean_x, var_x = robust_cov.location_[0], robust_cov.covariance_[0, 0]
@@ -184,6 +188,14 @@ def lmms_fit(x, y):
     err = mserr**2 * np.array([[np.sum(x**2), -np.sum(x)],[-np.sum(x), x.size]]) / (x.size * np.sum(x**2) - np.sum(x)**2)
     fit_err = np.sqrt(np.diag(err))
     return fit_fn, (m, interc), fit_err, robust_rho
+
+def robust_mean_var(x, y):
+    x, y = np.asarray(x), np.asarray(y)
+    robust_cov = MinCovDet().fit(np.vstack((x, y)).T)
+    cov = robust_cov.covariance_[0, 1]
+    mean_x, var_x = robust_cov.location_[0], robust_cov.covariance_[0, 0]
+    mean_y, var_y = robust_cov.location_[1], robust_cov.covariance_[1, 1]
+    return (mean_x, var_x), (mean_y, var_y)
 
 def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
     from scipy.optimize import curve_fit
@@ -202,10 +214,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax1 = fig1.add_subplot(111)
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
+        ax22 = ax2.twinx()
+
         S = []
         phi = []
         pmin, pmax = 1e100, -1e100
         p_minmax_list = []
+        meanvar_f_list, meanvar_pi_list = [], []
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
             if len(dataset.free_energies) > 0 and  phi_min < dataset.ss_phi < phi_max:
                 print "set name ",dataset.set_name
@@ -222,13 +237,15 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                                     phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
                     #should remoe both outliers in pressure and in volume
-                    x, f, ferr = remove_outliers(np.log(dataset.pressures), dataset.free_energies, dataset.free_energies_err)
-                    # x, f, ferr = np.log(dataset.pressures), np.array(dataset.free_energies), np.array(dataset.free_energies_err)
+                    x_raw, f_raw, ferr_raw = remove_outliers_cluster(np.log(dataset.pressures), dataset.free_energies, dataset.free_energies_err)
+                    # x, f, ferr = remove_outliers_mcd(x_raw, f_raw, ferr_raw)
+                    x, f, ferr = x_raw, f_raw, ferr_raw
                     x = np.exp(x)
                     pmin, pmax = min(pmin, np.amin(x)), max(pmax, np.amax(x))
                     p_minmax_list.append([np.amin(x), np.amax(x)])
                     x = np.log(x)
                     y = Facc-f
+                    y_raw = Facc-f_raw
                     if "fire" in dataset.set_name:
                         marker = '^'
                         label = 'fire {:.3f}'.format(dataset.ss_phi)
@@ -236,20 +253,23 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                         marker = 'o'
                         label = 'cgd {:.3f}'.format(dataset.ss_phi)
                     color = color_cycle.next()
-                    ax.scatter(x, y, label=label, marker=marker, color=color)
-                    fit_fn, fit_params, fit_err = poly_fit(x, y, ferr)
-                    ax.plot(x, fit_fn(x), color='k', linestyle=':')
+                    ax.scatter(x_raw, y_raw, label=label, marker=marker, color=color)
                     fit_fn, fit_params, fit_err, rho = lmms_fit(x, y)
-                    ax.plot(x, fit_fn(x), color='k', linestyle='-')
+                    ax.plot(x_raw, fit_fn(x_raw), color='k', linestyle='-')
+                    # fit_fn, fit_params, fit_err, rho = lmms_fit(x, y)
+                    # ax.plot(x, fit_fn(x), color='k', linestyle='-')
                     S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
                     # S.append(- Facc - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
                     # now fit the actual power laws, not the probabilities
-                    # fit_fn, fit_params, fit_err = poly_fit(x, f, ferr)
                     fit_fn, fit_params, fit_err, rho = lmms_fit(x, f)
-                    dataset.add_extras((fit_params, fit_err))
+                    # fit_fn, fit_params, fit_err, rho = lmms_fit(x, f)
+                    dataset.add_extras((fit_params, fit_err, rho))
                     print dataset.extras
 
+                    (mean_x, var_x), (mean_f, var_f) = robust_mean_var(x, f)
+                    meanvar_f_list.append([mean_f, var_f])
+                    meanvar_pi_list.append([mean_x, var_x])
                     # # fit to kde
                     # bw = get_bandwidth_estimate(f, kernel="gaussian", method="cross_validation")
                     # edges = np.linspace(np.amin(f), np.amax(f), 1000)
@@ -270,35 +290,30 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         print phi
         ax.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax2.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax.set_ylabel(r"$F_{acc}-F$")
         # ax.set_ylabel(r"$F$")
         ax.set_xlabel(r"$\log \mathcal{P}$")
         print "extras", dataset.extras
         fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
         ax1.scatter(phi, S, color=color_cycle.next(), s=100)
-        fit = np.polyfit(phi[2:], S[2:], 1)
-        fit_fn = np.poly1d(fit)
-        ax1.plot(np.linspace(phi[0],1,20), fit_fn(np.linspace(phi[0],1,20)), color='k')
-        ax1.plot([0.835,1],[0,0],lw=1,color='black')
+        # fit = np.polyfit(phi[2:], S[2:], 1)
+        # fit_fn = np.poly1d(fit)
+        # ax1.plot(np.linspace(phi[0],1,20), fit_fn(np.linspace(phi[0],1,20)), color='k')
+        # ax1.plot([0.825,1],[0,0],lw=1,color='black')
         ax1.set_ylabel(r"$S_G$")
         ax1.set_xlabel(r"$\phi_{ss}$")
-        ax1.set_xlim((0.835,1))
+        ax1.set_xlim((0.825,0.865))
         fig1.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_phi"))
-        
+
         #subplots
         # subplots
         if True:
-            def ff(x, a, b):
-                return a * x + b
-
             # plot power law exponent
             color_cycle = get_color_cycle()
             color_marker = color_cycle.next()
             color_fit = color_cycle.next()
             ax3 = fig.add_subplot(gs[4:, 0])
-            x, y, yerr, y2, y2err = [], [], [], [], []
+            x, y, yerr, y2, y2err, rho = [], [], [], [], [], []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
                 if len(dataset.free_energies) > 0 and phi_min < dataset.ss_phi < phi_max:
                     if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
@@ -307,30 +322,39 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                         yerr.append(dataset.extras[1][0])
                         y2.append(dataset.extras[0][1])
                         y2err.append(dataset.extras[1][1])
+                        rho.append(dataset.extras[2])
                         x.append(dataset.ss_phi)
+
             x, y, yerr, y2, y2err = np.array(x), np.array(y), np.array(yerr), np.array(y2), np.array(y2err)
+            rho = np.array(rho)
+
+            # ax2.plot(x, rho, marker='o', linestyle='', ms=12, color=color_marker)
 
             y /= nparticles
             yerr /= nparticles
             y2 /= nparticles
             y2err /= nparticles
             ax3.errorbar(x, y, yerr, marker='o', linestyle='', ms=12, color=color_marker)
-            popt, pcov = curve_fit(ff, x, y, sigma=yerr, absolute_sigma=True)
-            fit_err = np.sqrt(np.diag(pcov))
-            ax3.plot(x, ff(x, popt[0], popt[1]), color=color_fit)
-            glob_phi_j, glob_phi_j_std = -popt[1]/popt[0], np.sqrt((fit_err[0]/popt[0])**2+(fit_err[1]/popt[1])**2)
-            print "1/k: phi_j: {}+/-{}, beta: {}".format(glob_phi_j, glob_phi_j_std, popt[1])
+            fit_fn, fit_params, fit_err, rho = poly_fit(x, y, yerr)
+            ax3.plot(x, fit_fn(x), color=color_fit)
+            glob_phi_j = -fit_params[1]/fit_params[0]
+            glob_phi_j_std = np.sqrt((fit_err[0]/fit_params[0])**2+(fit_err[1]/fit_params[1])**2)
+            print "1/k(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
+            print "1/k: phi_j: {}+/-{}, beta: {}".format(glob_phi_j, glob_phi_j_std, fit_params[1])
             ax3.set_title(r'$1/\kappa$', size=18)
             ax3.locator_params(axis='x', nbins=4)
             ax3.locator_params(axis='y', nbins=4)
             ax3.tick_params(axis='both', which='major', labelsize=18)
+            ax3.set_xlim((phi_min, phi_max))
 
             ax4 = fig.add_subplot(gs[4:, 1])
             ax4.errorbar(x, y2, y2err, marker='o', linestyle='', ms=12, color=color_marker)
-            popt, pcov = curve_fit(ff, x, y2, sigma=y2err, absolute_sigma=True)
-            ax4.plot(x, ff(x, popt[0], popt[1]), color=color_fit)
-            fit_err = np.sqrt(np.diag(pcov))
-            print "c: phi_c1: {}+/-{}, beta: {}".format((1-popt[1])/popt[0], np.sqrt((fit_err[0]/popt[0])**2+(fit_err[1]/popt[1])**2), popt[1])
+            fit_fn, fit_params, fit_err, rho = poly_fit(x, y2, yerr)
+            ax4.plot(x, fit_fn(x), color=color_fit)
+            print "c(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
+            print "c: phi_c1: {}+/-{}, beta: {}".format((1-fit_params[1])/fit_params[0],
+                                                        np.sqrt((fit_err[0]/fit_params[0])**2+(fit_err[1]/fit_params[1])**2),
+                                                        fit_params[1])
             # label = "intercept = ({:.3f} +/- {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
             # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
             #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
@@ -338,9 +362,55 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax4.locator_params(axis='x', nbins=4)
             ax4.locator_params(axis='y', nbins=4)
             ax4.tick_params(axis='both', which='major', labelsize=18)
-
+            ax4.set_xlim((phi_min,phi_max))
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
+            x = np.linspace(np.amin(phi), np.amax(phi), 1000) - glob_phi_j
+            y3 = np.array(meanvar_f_list)[:, 0] / dataset.nparticles
+            fit_fn, fit_params, fit_err, rho = poly_fit(phi-glob_phi_j, y3, np.ones(y3.size), order=2)
+            ax2.plot(phi-glob_phi_j, y3, marker='o', markersize=10, linestyle='', color='b')
+            ax2.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='b')
+            fit_params = np.array(fit_params)
+            print "mu_f = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+            y3 = np.array(meanvar_pi_list)[:, 0]
+            fit_fn, fit_params, fit_err, rho = poly_fit(phi-glob_phi_j, y3, np.ones(y3.size), order=1)
+            ax22.plot(phi-glob_phi_j, y3, marker='^', markersize=10, linestyle='', color='r')
+            ax22.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='r')
+            print "mu_pi = {} Dphi + {} ".format(fit_params[0], fit_params[1])
+
+            ax2.set_ylabel(r"$\mu_f$", color='b')
+            for tl in ax2.get_yticklabels():
+                tl.set_color('b')
+            ax22.set_ylabel(r"$\mu_{\Pi}$", color='r')
+            for tl in ax22.get_yticklabels():
+                tl.set_color('r')
+            ax2.set_xlabel(r"$\phi - \phi^*$")
+            fig2.savefig('{0}/plot_{1}.pdf'.format(figdir, "muf_mupi"))
+
+            fig23 = plt.figure()
+            ax23 = fig23.add_subplot(111)
+            ax24 = ax23.twinx()
+
+            y3 = np.array(meanvar_f_list)[:, 0] / dataset.nparticles
+            fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
+            ax23.plot(phi - glob_phi_j, y3, marker='o', markersize=10, linestyle='', color='b')
+            ax23.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='b')
+            fit_params = np.array(fit_params)
+            print "mu_f = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+            y3 = np.array(meanvar_f_list)[:, 1]
+            fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
+            ax24.plot(phi - glob_phi_j, y3, marker='^', markersize=10, linestyle='', color='r')
+            ax24.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='r')
+            print "sigma_f = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+
+            ax23.set_ylabel(r"$\mu_f$", color='b')
+            for tl in ax2.get_yticklabels():
+                tl.set_color('b')
+            ax24.set_ylabel(r"$\sigma^2_f$", color='r')
+            for tl in ax24.get_yticklabels():
+                tl.set_color('r')
+            ax2.set_xlabel(r"$\phi - \phi^*$")
+            fig23.savefig('{0}/plot_{1}.pdf'.format(figdir, "muf_varf"))
         if False:
             # kde pressure
             color_cycle = get_color_cycle()
@@ -365,8 +435,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             log_omega_list = []
             maxp, max_logdos = [], [] #pressure for which kde is max
             x_integrate_list = []
-            for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
-                if len(dataset.free_energies) > 0:
+            if len(dataset.free_energies) > 0 and phi_min < dataset.ss_phi < phi_max:
+                if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
+                                    phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
                     j = 0
                     Facc = None
                     vcavity = None
@@ -617,7 +688,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
 if __name__ == "__main__":
     pts = BasinAnalysis()
-    pts.collect_data_every_set_all()
+    pts.collect_data_every_set_all(data_name="basin_analysis.pickle")
     plot(pts.packing_datasets)
     plt.show()
     plt.close()
