@@ -173,7 +173,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, packing_frac=0.7, tol=1e-9,
         packings_dir='packings', use_cell_lists=False, show=False,
         opt_pot_str='hs_wca', extra_pot_kwargs=None):
-        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
+        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
+                                                        packings_dir=packings_dir)
         
         self.opt_pot_str = opt_pot_str
         self.extra_pot_kwargs = extra_pot_kwargs
@@ -678,9 +679,9 @@ if __name__ == "__main__":
     
     print("extra_pot_kwargs", extra_pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
-        packings_dir=args.packingsdir, tol=args.tol,
-        use_cell_lists=args.nocell, show=args.show,
-        opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
+                                     packings_dir=args.packingsdir, tol=args.tol,
+                                     use_cell_lists=args.nocell, show=args.show,
+                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
     sim.run()
     
     
