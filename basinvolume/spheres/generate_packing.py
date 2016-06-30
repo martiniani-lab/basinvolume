@@ -30,7 +30,8 @@ class _Generate_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
     
-    def __init__(self, nparticles, bdim=3, boxv = None, packing_frac=0.4, max_iter = 1, use_cell_lists=False):
+    def __init__(self, nparticles, bdim=3, boxv=None, packing_frac=0.4, max_iter=1, use_cell_lists=False,
+                 start_iteration=0):
         assert bdim==2 or bdim==3, "bdim={} not implemented".format(bdim)
         self.nparticles = nparticles
         self.bdim = bdim
@@ -43,7 +44,8 @@ class _Generate_Packing(object):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'packings')
         self.use_cell_lists = use_cell_lists
-        self.iteration = 0
+        self.start_iteration = start_iteration
+        self.iteration = start_iteration
         self.max_iter = max_iter
         self.box_resized = False
         self.initialised = False
@@ -136,7 +138,7 @@ class _Generate_Packing(object):
         
     def run(self):
         """run generate packings"""
-        while self.iteration < self.max_iter:
+        while (self.iteration-self.start_iteration) < self.max_iter:
             self.one_iteration()
             
 
@@ -161,10 +163,10 @@ class HS_Generate_Packing(_Generate_Packing):
     """    
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, 
                  mu = 1, sig = 0.1, new_poly=False, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10, 
-                 use_cell_lists=False, single=False, seeds=None):
+                 use_cell_lists=False, single=False, seeds=None, start_iteration=0):
         super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv, 
-                                                 packing_frac=packing_frac, max_iter = max_iter, 
-                                                 use_cell_lists = use_cell_lists)
+                                                 packing_frac=packing_frac, max_iter=max_iter,
+                                                 use_cell_lists=use_cell_lists, start_iteration=start_iteration)
         self.method = method
         self.new_poly = new_poly
         assert not (self.method == 'quench' and self.new_poly is True)
@@ -320,7 +322,7 @@ class HS_Generate_Packing(_Generate_Packing):
         of steps over which the stepsize is adjusted equal to the total number of steps. The value of the temperature should
         not matter as these are hard spehres and the difference in energy between valid configurations is 0. We set it high
         to be on the safe side."""
-        if (self.iteration == 0):
+        if (self.iteration == self.start_iteration):
             temperature = 1.0
             dif_mcrunner = HS_MCrunnerOptDiffusion(self.potential, self.coords, temperature, self.hsf_stepsize, 1e9,
                                         self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 1e6,
@@ -682,6 +684,7 @@ if __name__ == "__main__":
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-4)
+    parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
@@ -706,7 +709,7 @@ if __name__ == "__main__":
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
                               hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly, 
                               hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                              use_cell_lists=args.nocell, single=single)
+                              use_cell_lists=args.nocell, single=single, start_iteration=args.start_iter)
     sim.run()    
                 
             
