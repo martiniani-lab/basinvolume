@@ -77,9 +77,10 @@ class BasinAnalysis(object):
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
+                    packing_path = os.path.join(set_path, self.jammed_packings_dir, fname)
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
                     configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
-                    pd = PackingData(str(dname), configpath, configpath_packing)
+                    pd = PackingData(str(dname), configpath, configpath_packing, packing_path=packing_path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
                     pd.import_volume_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
@@ -125,9 +126,10 @@ class BasinAnalysis(object):
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
+                    packing_path = os.path.join(set_path, self.jammed_packings_dir, fname)
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
                     configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
-                    pd = PackingData(str(dname), configpath, configpath_packing)
+                    pd = PackingData(str(dname), configpath, configpath_packing, packing_path=packing_path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
