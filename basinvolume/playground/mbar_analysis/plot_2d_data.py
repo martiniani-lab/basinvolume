@@ -27,6 +27,8 @@ from sklearn.decomposition import PCA
 from sklearn.covariance import MinCovDet
 from cycler import cycler
 from scipy.stats.stats import pearsonr
+from uncertainties import ufloat
+from uncertainties import unumpy as unp
 # except ImportError as err:
 #     print err
 #######################SET LATEX OPTIONS###################
@@ -125,7 +127,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         integ = vegas.Integrator([[0., zx[-1]]])
         result = integ(lambda t : np.exp(log_integrand_den(t, maxy)), nitn=20, neval=intnval, alpha=0.2, beta=1)
         zPea, errzPea = result.mean, result.sdev
-        print "{}+/-{} \n {}+/-{}".format(Pea, errPea, zPea, errzPea)
+        print "{} \pm {} \n {} \pm {}".format(Pea, errPea, zPea, errzPea)
         return np.log(Pea) - np.log(zPea), 0.434*(errPea/Pea + errzPea/zPea)
 
 # cdf = CDFAccumulator()
@@ -166,8 +168,16 @@ def remove_outliers_pca_cluster(x,y,yerr):
     # plt.show()
     return x, y, yerr
 
-def poly_fit(x, y, yerr, order=1):
-    fit_params, cov = np.polyfit(x, y, order, w=1./np.array(yerr), cov=True)
+def poly_fit(x, y, yerr=None, order=1):
+    w = 1./np.array(yerr) if yerr is not None else None
+    if len(x) - order - 2 < 2:
+        # this hack was taken from
+        # https://stackoverflow.com/questions/27230285/numpy-polyfit-gives-useful-fit-but-infinite-covariance-matrix
+        assert order == 2, "hack is only implemented for order=2"
+        w = [1 for _ in xrange(len(x))].append(0)
+        x = np.append(x, x[-1])
+        y = np.append(y, y[-1])
+    fit_params, cov = np.polyfit(x, y, order, w=w, cov=True)
     fit_err = np.sqrt(np.diag(cov))
     fit_fn = np.poly1d(fit_params)
     rho = pearsonr(x, y)[0]
@@ -196,6 +206,22 @@ def robust_mean_var(x, y):
     mean_x, var_x = robust_cov.location_[0], robust_cov.covariance_[0, 0]
     mean_y, var_y = robust_cov.location_[1], robust_cov.covariance_[1, 1]
     return (mean_x, var_x), (mean_y, var_y), cov
+
+def find_roots(params, err):
+    # see http://kitchingroup.cheme.cmu.edu/blog/2013/07/05/Uncertainty-in-polynomial-roots/
+    assert len(params) == len(err)
+    if len(params) == 2:
+        #equation of a line
+        a, b = ufloat(params[0], err[0]), ufloat(params[1], err[1])
+        r1 = -b/a
+        roots = [(r1.nominal_value, r1.std_dev)]
+    elif len(params == 3):
+        a, b, c = ufloat(params[0], err[0]), ufloat(params[1], err[1]), ufloat(params[2], err[2])
+        r1, r2 = (-b - (b**2-4*a*c)**0.5)/(2*a), (-b + (b**2-4*a*c)**0.5)/(2*a)
+        roots = [(r1.nominal_value, r1.std_dev), (r2.nominal_value, r2.std_dev)]
+    else:
+        raise NotImplementedError
+    return roots
 
 def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
     from scipy.optimize import curve_fit
@@ -240,7 +266,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     #should remoe both outliers in pressure and in volume
                     x_raw, f_raw, ferr_raw = remove_outliers_cluster(np.log(dataset.pressures), dataset.free_energies, dataset.free_energies_err)
                     # x, f, ferr = remove_outliers_mcd(x_raw, f_raw, ferr_raw)
-                    x, f, ferr = x_raw, f_raw, ferr_raw
+                    #fix units
+                    x_raw, f_raw = x_raw+np.log(np.pi), f_raw+np.log(np.pi)
+                    Facc += np.log(np.pi)
+                    #end fix units
+                    x, f, ferr = x_raw, f_raw , ferr_raw
                     x = np.exp(x)
                     pmin, pmax = min(pmin, np.amin(x)), max(pmax, np.amax(x))
                     p_minmax_list.append([np.amin(x), np.amax(x)])
@@ -335,12 +365,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             y2 /= nparticles
             y2err /= nparticles
             ax3.errorbar(x, y, yerr, marker='o', linestyle='', ms=12, color=color_marker)
-            fit_fn, fit_params, fit_err, rho = poly_fit(x, y, yerr)
+            fit_fn, fit_params, fit_err, rho = poly_fit(x, y, yerr=yerr)
             ax3.plot(x, fit_fn(x), color=color_fit)
-            glob_phi_j = -fit_params[1]/fit_params[0]
-            glob_phi_j_std = np.sqrt((fit_err[0]/fit_params[0])**2+(fit_err[1]/fit_params[1])**2)
+            glob_phi_j, glob_phi_j_std = find_roots(fit_params, fit_err)[0]
             print "1/k(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
-            print "1/k: phi_j: {}+/-{}, beta: {}".format(glob_phi_j, glob_phi_j_std, fit_params[1])
+            print "1/k: phi_j: {} \pm {}, beta: {}".format(glob_phi_j, glob_phi_j_std, fit_params[1])
             ax3.set_xlabel(r'$\phi$', size=18)
             ax3.set_ylabel(r'$1/\kappa(\phi)$', size=18)
             ax3.locator_params(axis='x', nbins=4)
@@ -351,13 +380,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
             ax4 = fig.add_subplot(gs[4:, 1])
             ax4.errorbar(x, y2, y2err, marker='o', linestyle='', ms=12, color=color_marker)
-            fit_fn, fit_params, fit_err, rho = poly_fit(x, y2, yerr)
+            fit_fn, fit_params, fit_err, rho = poly_fit(x, y2, yerr=yerr)
             ax4.plot(x, fit_fn(x), color=color_fit)
             print "c(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
-            print "c: phi_c1: {}+/-{}, beta: {}".format((1-fit_params[1])/fit_params[0],
-                                                        np.sqrt((fit_err[0]/fit_params[0])**2+(fit_err[1]/fit_params[1])**2),
-                                                        fit_params[1])
-            # label = "intercept = ({:.3f} +/- {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
+            phi_c1, phi_c1err = find_roots(fit_params, fit_err)[0]
+            print "c: phi_c1: {} \pm {}, beta: {}".format(1-phi_c1, phi_c1err, fit_params[1])
+            # label = "intercept = ({:.3f}  \pm  {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
             # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
             #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
             ax4.set_xlabel(r'$\phi$', size=18)
@@ -368,18 +396,18 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax4.set_xlim((phi_min,phi_max))
             fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
-            x = np.linspace(np.amin(phi), np.amax(phi), 1000) - glob_phi_j
+            x = np.linspace(np.amin(phi), np.amax(phi), 1000)
             y3 = np.array(meanvar_f_list)[:, 0] / dataset.nparticles
-            fit_fn, fit_params, fit_err, rho = poly_fit(phi-glob_phi_j, y3, np.ones(y3.size), order=2)
-            ax2.plot(phi-glob_phi_j, y3, marker='o', markersize=10, linestyle='', color='b')
+            fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, order=2)
+            ax2.plot(phi, y3, marker='o', markersize=10, linestyle='', color='b')
             ax2.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='b')
             fit_params = np.array(fit_params)
-            print "mu_f = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+            print "mu_f = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
             y3 = np.array(meanvar_pi_list)[:, 0]
-            fit_fn, fit_params, fit_err, rho = poly_fit(phi-glob_phi_j, y3, np.ones(y3.size), order=1)
-            ax22.plot(phi-glob_phi_j, y3, marker='^', markersize=10, linestyle='', color='r')
+            fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, order=1)
+            ax22.plot(phi, y3, marker='^', markersize=10, linestyle='', color='r')
             ax22.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='r')
-            print "mu_pi = {} Dphi + {} ".format(fit_params[0], fit_params[1])
+            print "mu_pi = {} phi + {} ".format(fit_params[0], fit_params[1])
 
             ax2.set_ylabel(r"$\mu_f$", color='b')
             for tl in ax2.get_yticklabels():
@@ -387,24 +415,29 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax22.set_ylabel(r"$\mu_{\Pi}$", color='r')
             for tl in ax22.get_yticklabels():
                 tl.set_color('r')
-            ax2.set_xlabel(r"$\phi - \phi^*$")
+            ax2.set_xlabel(r"$\phi$")
+            ax2.set_xlim(xmax=phi_max)
             fig2.savefig('{0}/plot_{1}.pdf'.format(figdir, "muf_mupi"))
 
             fig23 = plt.figure()
             ax23 = fig23.add_subplot(111)
             ax24 = ax23.twinx()
 
+            y3 = np.array(meanvar_f_list)[:, 1]
+            fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, order=2)
+            phi_star, phi_star_err = find_roots(fit_params, fit_err)[1]
+            print "sig_f phi* = {} \pm {}".format(phi_star, phi_star_err)
+            x = np.linspace(phi_star, np.amax(phi), 1000)
+            ax24.plot(phi, y3, marker='^', markersize=10, linestyle='', color='r')
+            ax24.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='r')
+            print "sigma_f = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
             y3 = np.array(meanvar_pi_list)[:, 1] / dataset.nparticles
-            fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
-            ax23.plot(phi - glob_phi_j, y3, marker='o', markersize=10, linestyle='', color='b')
+            fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, order=2)
+            ax23.plot(phi, y3, marker='o', markersize=10, linestyle='', color='b')
             ax23.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='b')
             fit_params = np.array(fit_params)
-            print "mu_f = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
-            y3 = np.array(meanvar_f_list)[:, 1]
-            fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
-            ax24.plot(phi - glob_phi_j, y3, marker='^', markersize=10, linestyle='', color='r')
-            ax24.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='r')
-            print "sigma_f = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+            print "mu_f = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+
 
             ax23.set_ylabel(r"$\mu_f$", color='b')
             for tl in ax23.get_yticklabels():
@@ -412,24 +445,29 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax24.set_ylabel(r"$\sigma^2_f$", color='r')
             for tl in ax24.get_yticklabels():
                 tl.set_color('r')
-            ax23.set_xlabel(r"$\phi - \phi^*$")
+            ax23.set_xlabel(r"$\phi$")
+            ax23.set_xlim(xmax=phi_max)
+            ax24.set_ylim(ymin=0)
             fig23.savefig('{0}/plot_{1}.pdf'.format(figdir, "muf_varf"))
 
         fig25 = plt.figure()
         ax25 = fig25.add_subplot(111)
         ax26 = ax25.twinx()
 
+        y3 = np.array(cov_f_pi_list)
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, order=2)
+        phi_star, phi_star_err = find_roots(fit_params, fit_err)[1]
+        print "cov_fpi phi* = {} \pm {}".format(phi_star, phi_star_err)
+        x = np.linspace(phi_star, np.amax(phi), 1000)
+        ax26.plot(phi, y3, marker='^', markersize=10, linestyle='', color='r')
+        ax26.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='r')
+        print "cov_fpi = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
         y3 = np.array(meanvar_pi_list)[:, 1] / dataset.nparticles
-        fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
-        ax25.plot(phi - glob_phi_j, y3, marker='o', markersize=10, linestyle='', color='b')
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, order=2)
+        ax25.plot(phi, y3, marker='o', markersize=10, linestyle='', color='b')
         ax25.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='b')
         fit_params = np.array(fit_params)
-        print "var_pi = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
-        y3 = np.array(cov_f_pi_list)
-        fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
-        ax26.plot(phi - glob_phi_j, y3, marker='^', markersize=10, linestyle='', color='r')
-        ax26.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='r')
-        print "cov_fpi = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+        print "var_pi = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
 
         ax25.set_ylabel(r"$\sigma^2_\Pi$", color='b')
         for tl in ax25.get_yticklabels():
@@ -437,7 +475,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax26.set_ylabel(r"$\sigma^2_{f \Pi}$", color='r')
         for tl in ax26.get_yticklabels():
             tl.set_color('r')
-        ax25.set_xlabel(r"$\phi - \phi^*$")
+        ax25.set_xlabel(r"$\phi$")
+        ax25.set_xlim(xmax=phi_max)
+        ax26.set_ylim(ymin=0)
         fig25.savefig('{0}/plot_{1}.pdf'.format(figdir, "covfpi_varpi"))
 
         if False:
