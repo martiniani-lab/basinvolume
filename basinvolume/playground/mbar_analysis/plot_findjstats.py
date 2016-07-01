@@ -184,7 +184,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax = fig.add_subplot(111)
         ax.plot(phi_ss, np.array(psuccess), marker='o', rasterized=True)
         ax.set_xlim([phi_ss[0],phi_ss[-1]])
-        ax.set_xlabel(r"$\phi_{ss}$")
+        ax.set_xlabel(r"$\phi$")
         ax.set_ylabel(r"$p_{pack}$")
         fig.savefig("{}/{}".format(figdir, "phi_ppack.pdf"))
 
@@ -193,7 +193,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax1 = fig1.add_subplot(111)
         ax1.plot(phi_ss_packed, np.array(nrattlers), marker='o', rasterized=True)
         ax1.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
-        ax1.set_xlabel(r"$\phi_{ss}$")
+        ax1.set_xlabel(r"$\phi$")
         ax1.set_ylabel(r"$n_{rattlers}$")
         fig1.savefig("{}/{}".format(figdir, "phi_nrattlers.pdf"))
 
@@ -265,7 +265,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             log_maxp = log_pdf_x[i][np.argmax(log_pdf[i])]
             color, label = color_cycle.next(), phi_ss_packed[i]
             # ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color, label=label, rasterized=True)
-            ax4.plot(log_pdf_x[i]-log_maxp, np.exp(log_pdf[i]-np.amax(log_pdf[i])), color=color, label=label, rasterized=True)
+            ax4.plot(log_pdf_x[i]-log_maxp, np.exp(log_pdf[i]), color=color, label=label, rasterized=True)
             ax5.plot(log_pdf_x[i]-log_maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label, rasterized=True)
 
             bias = np.exp(np.log(pressure[i]) * ikappa(phi_ss_packed[i]))
@@ -300,8 +300,8 @@ def plot(figdir="figures", bdim=2, nparticles=64):
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
         ax4.set_ylabel(r"$pdf/\max(pdf)$")
-        ax4.set_xlabel(r"$\langle \Pi \rangle_X)$")
-        ax4.set_ylabel(r"$pdf/\max(pdf)$")
+        ax4.set_xlabel(r"$ \Pi - \overline{\Pi}$")
+        ax4.set_ylabel(r"$pdf(\Pi)$")
         ax5.set_xlabel(r"$\ln(P/P_{peak})$")
         ax5.set_ylabel(r"$\ln(pdf)-\ln(\max(pdf))$")
         ax52.set_ylabel(r"$\mu_{\Pi}/\kappa$")
@@ -347,7 +347,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         # print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
 
         ax6.set_xlabel(r"$|1-\phi/\phi_0|$")
-        ax6.set_ylabel(r"$\sigma^2(pdf(\ln P))$")
+        ax6.set_ylabel(r"$\sigma^2_{\Pi}$")
         fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
 
 def plot_all(figdir="figures", bdim=2):
@@ -388,7 +388,7 @@ def plot_all(figdir="figures", bdim=2):
             yder_max.append(xspl[np.argmax(yder)])
             yspl_mid.append(xspl[np.argmin(np.abs(ynew-0.5))])
         ax.set_xlim([phi_ss[0], phi_ss[-1]])
-        ax.set_xlabel(r"$\phi_{ss}$")
+        ax.set_xlabel(r"$\phi$")
         ax.set_ylabel(r"$p_{pack}$")
         fig.savefig("{}/{}".format(figdir, "phi_ppack_all.pdf"))
 
@@ -511,7 +511,7 @@ def plot_all(figdir="figures", bdim=2):
                                                                    fit_err[1])
 
         ax5.set_title(r'$\nu = 1/2;~\beta=1/8$')
-        ax5.set_ylabel(r'$\ln(\sigma^2(\ln P) (N^{1/d})^{\beta/\nu})$')
+        ax5.set_ylabel(r'$\ln(\sigma^2_{\Pi} (N^{1/d})^{\beta/\nu})$')
         ax5.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
         ax5.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
@@ -620,9 +620,9 @@ def plot_all(figdir="figures", bdim=2):
         ax10.legend(frameon=False, loc='best', prop={'size': 15}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax9.set_ylabel(r'$V_N$')
-        ax9.set_xlabel(r'$\phi_{SS}$')
-        ax10.set_ylabel(r'$\langle (\ln P)^2 \rangle - \langle |\ln P| \rangle^2$')
-        ax10.set_xlabel(r'$\phi_{SS}$')
+        ax9.set_xlabel(r'$\phi$')
+        ax10.set_ylabel(r'$\langle \Pi^2 \rangle - \langle |\Pi| \rangle^2$')
+        ax10.set_xlabel(r'$\phi$')
         fig9.savefig("{}/{}".format(figdir, "lnp_u4.pdf"))
         fig10.savefig("{}/{}".format(figdir, "lnp_chi.pdf"))
 

@@ -46,7 +46,7 @@ class SoftPackingData(object):
 
 class GeneratePackingFindJ(HS_Generate_Packing):
     def __init__(self, nparticles, workspace=None, method='quench', bdim=3, boxv=None,
-                 ss_packing_frac=0.86, sca=0.12,
+                 ss_packing_frac=0.86, sca=0.1212238211627763,
                  hs_radii=None, mu=1, sig=0.05, new_poly=False, hsf_niter=1e6, hsf_stepsize=1e-3,
                  max_iter=10, tol=1e-9, use_cell_lists=True, single=True, seeds=None,
                  opt_pot_str='hs_wca'):
@@ -284,7 +284,7 @@ def run_hsgp(hsgp):
 
 class FindJ(object):
     def __init__(self, nparticles, workspace=None, method='quench', bdim=3, boxv=None,
-                 ss_packing_frac=[0.84], sca=0.12, hs_radii=None, mu=1, sig=0.05,
+                 ss_packing_frac=[0.84], sca=0.1212238211627763, hs_radii=None, mu=1, sig=0.05,
                  new_poly=False, hsf_niter=1e6, hsf_stepsize=1e-3, max_iter=10, tol=1e-9,
                  use_cell_lists=True, single=True, seeds=None, opt_pot_str='hs_wca',
                  ncores=2):
@@ -318,7 +318,7 @@ if __name__ == "__main__":
     parser.add_argument("-d","--boxdim", type=int, help="box dimensions",default=3)
     parser.add_argument("-x", "--ncores", type=int, help="number of cores", default=2)
     # parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.86)
-    parser.add_argument("-a", "--sca", type=float, help="1+a = r_ss/r_hs", default=0.12)
+    parser.add_argument("-a", "--sca", type=float, help="1+a = r_ss/r_hs", default=0.1212238211627763)
     parser.add_argument("-u","--rmean", type=float, help="mean particle radius",default=1.0)
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.1)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)

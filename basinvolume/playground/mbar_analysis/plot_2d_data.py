@@ -195,7 +195,7 @@ def robust_mean_var(x, y):
     cov = robust_cov.covariance_[0, 1]
     mean_x, var_x = robust_cov.location_[0], robust_cov.covariance_[0, 0]
     mean_y, var_y = robust_cov.location_[1], robust_cov.covariance_[1, 1]
-    return (mean_x, var_x), (mean_y, var_y)
+    return (mean_x, var_x), (mean_y, var_y), cov
 
 def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
     from scipy.optimize import curve_fit
@@ -221,6 +221,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         pmin, pmax = 1e100, -1e100
         p_minmax_list = []
         meanvar_f_list, meanvar_pi_list = [], []
+        cov_f_pi_list = []
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
             if len(dataset.free_energies) > 0 and  phi_min < dataset.ss_phi < phi_max:
                 print "set name ",dataset.set_name
@@ -244,8 +245,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     pmin, pmax = min(pmin, np.amin(x)), max(pmax, np.amax(x))
                     p_minmax_list.append([np.amin(x), np.amax(x)])
                     x = np.log(x)
-                    y = Facc-f
-                    y_raw = Facc-f_raw
+                    y = (Facc-f)
+                    y_raw = (Facc-f_raw)
                     if "fire" in dataset.set_name:
                         marker = '^'
                         label = 'fire {:.3f}'.format(dataset.ss_phi)
@@ -256,9 +257,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     ax.scatter(x_raw, y_raw, label=label, marker=marker, color=color)
                     fit_fn, fit_params, fit_err, rho = lmms_fit(x, y)
                     ax.plot(x_raw, fit_fn(x_raw), color='k', linestyle='-')
-                    # fit_fn, fit_params, fit_err, rho = lmms_fit(x, y)
-                    # ax.plot(x, fit_fn(x), color='k', linestyle='-')
-                    S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
+                    S.append(np.mean(f) - Facc - log_factorial(nparticles))
                     # S.append(- Facc - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
                     # now fit the actual power laws, not the probabilities
@@ -267,9 +266,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     dataset.add_extras((fit_params, fit_err, rho))
                     print dataset.extras
 
-                    (mean_x, var_x), (mean_f, var_f) = robust_mean_var(x, f)
+                    (mean_x, var_x), (mean_f, var_f), cov = robust_mean_var(x, f)
                     meanvar_f_list.append([mean_f, var_f])
                     meanvar_pi_list.append([mean_x, var_x])
+                    cov_f_pi_list.append(cov)
                     # # fit to kde
                     # bw = get_bandwidth_estimate(f, kernel="gaussian", method="cross_validation")
                     # edges = np.linspace(np.amin(f), np.amax(f), 1000)
@@ -292,7 +292,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax.set_ylabel(r"$F_{acc}-F$")
         # ax.set_ylabel(r"$F$")
-        ax.set_xlabel(r"$\log \mathcal{P}$")
+        ax.set_xlabel(r"$\Pi$")
         print "extras", dataset.extras
         fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
         ax1.scatter(phi, S, color=color_cycle.next(), s=100)
@@ -301,7 +301,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # ax1.plot(np.linspace(phi[0],1,20), fit_fn(np.linspace(phi[0],1,20)), color='k')
         # ax1.plot([0.825,1],[0,0],lw=1,color='black')
         ax1.set_ylabel(r"$S_G$")
-        ax1.set_xlabel(r"$\phi_{ss}$")
+        ax1.set_xlabel(r"$\phi$")
         ax1.set_xlim((0.825,0.865))
         fig1.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_phi"))
 
@@ -341,11 +341,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             glob_phi_j_std = np.sqrt((fit_err[0]/fit_params[0])**2+(fit_err[1]/fit_params[1])**2)
             print "1/k(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
             print "1/k: phi_j: {}+/-{}, beta: {}".format(glob_phi_j, glob_phi_j_std, fit_params[1])
-            ax3.set_title(r'$1/\kappa$', size=18)
+            ax3.set_xlabel(r'$\phi$', size=18)
+            ax3.set_ylabel(r'$1/\kappa(\phi)$', size=18)
             ax3.locator_params(axis='x', nbins=4)
             ax3.locator_params(axis='y', nbins=4)
             ax3.tick_params(axis='both', which='major', labelsize=18)
             ax3.set_xlim((phi_min, phi_max))
+            ax3.set_ylim((0, 0.125))
 
             ax4 = fig.add_subplot(gs[4:, 1])
             ax4.errorbar(x, y2, y2err, marker='o', linestyle='', ms=12, color=color_marker)
@@ -358,7 +360,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             # label = "intercept = ({:.3f} +/- {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
             # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
             #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
-            ax4.set_title(r'$\mathcal{C}$', size=18)
+            ax4.set_xlabel(r'$\phi$', size=18)
+            ax4.set_ylabel(r'$c(\phi)$', size=18)
             ax4.locator_params(axis='x', nbins=4)
             ax4.locator_params(axis='y', nbins=4)
             ax4.tick_params(axis='both', which='major', labelsize=18)
@@ -391,7 +394,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax23 = fig23.add_subplot(111)
             ax24 = ax23.twinx()
 
-            y3 = np.array(meanvar_f_list)[:, 0] / dataset.nparticles
+            y3 = np.array(meanvar_pi_list)[:, 1] / dataset.nparticles
             fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
             ax23.plot(phi - glob_phi_j, y3, marker='o', markersize=10, linestyle='', color='b')
             ax23.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='b')
@@ -404,13 +407,39 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             print "sigma_f = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
 
             ax23.set_ylabel(r"$\mu_f$", color='b')
-            for tl in ax2.get_yticklabels():
+            for tl in ax23.get_yticklabels():
                 tl.set_color('b')
             ax24.set_ylabel(r"$\sigma^2_f$", color='r')
             for tl in ax24.get_yticklabels():
                 tl.set_color('r')
-            ax2.set_xlabel(r"$\phi - \phi^*$")
+            ax23.set_xlabel(r"$\phi - \phi^*$")
             fig23.savefig('{0}/plot_{1}.pdf'.format(figdir, "muf_varf"))
+
+        fig25 = plt.figure()
+        ax25 = fig25.add_subplot(111)
+        ax26 = ax25.twinx()
+
+        y3 = np.array(meanvar_pi_list)[:, 1] / dataset.nparticles
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
+        ax25.plot(phi - glob_phi_j, y3, marker='o', markersize=10, linestyle='', color='b')
+        ax25.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='b')
+        fit_params = np.array(fit_params)
+        print "var_pi = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+        y3 = np.array(cov_f_pi_list)
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi - glob_phi_j, y3, np.ones(y3.size), order=2)
+        ax26.plot(phi - glob_phi_j, y3, marker='^', markersize=10, linestyle='', color='r')
+        ax26.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color='r')
+        print "cov_fpi = {} Dphi^2 + {} Dphi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+
+        ax25.set_ylabel(r"$\sigma^2_\Pi$", color='b')
+        for tl in ax25.get_yticklabels():
+            tl.set_color('b')
+        ax26.set_ylabel(r"$\sigma^2_{f \Pi}$", color='r')
+        for tl in ax26.get_yticklabels():
+            tl.set_color('r')
+        ax25.set_xlabel(r"$\phi - \phi^*$")
+        fig25.savefig('{0}/plot_{1}.pdf'.format(figdir, "covfpi_varpi"))
+
         if False:
             # kde pressure
             color_cycle = get_color_cycle()
