@@ -18,7 +18,7 @@ class Poly_HS_Fluid_2d(Poly_HS_Fluid):
     See eqs 6 and 8 of: http://dx.doi.org/10.1080/00268979909482932
     m1 and m2 are the 1st and 2nd moment of the diameter size distribution.
     """
-    def __init__(self, m1, m2, name="Kolafa"):
+    def __init__(self, m1, m2, name="Santos"):
         self.m1 = m1
         self.m2 = m2
         self.name = name
