@@ -21,14 +21,14 @@ import cPickle as pickle
 from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
 from joblib import Parallel, delayed
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
-from basinvolume.post_processing import GeneralisedLogNormal, LogNormal, OutlierRemovalUnbiasingEntropyLogOmega
+from basinvolume.post_processing import GeneralisedLogNormal, GeneralisedGauss, LogNormal, OutlierRemovalUnbiasingEntropyLogOmega
 import vegas
 from sklearn.decomposition import PCA
-from sklearn.covariance import MinCovDet
+from sklearn.covariance import MinCovDet, EllipticEnvelope
 from cycler import cycler
 from scipy.stats.stats import pearsonr
 from uncertainties import ufloat
-from uncertainties import unumpy as unp
+from uncertainties import umath
 # except ImportError as err:
 #     print err
 #######################SET LATEX OPTIONS###################
@@ -146,8 +146,11 @@ def remove_outliers_cluster(x,y,yerr):
 
 def remove_outliers_mcd(x, y, yerr):
     x, y = np.asarray(x), np.asarray(y)
-    robust_cov = MinCovDet().fit(np.vstack((x, y)).T)
-    mask = robust_cov.support_
+    classifier = EllipticEnvelope(contamination=0.15)
+    features = np.vstack((x, y)).T
+    classifier.fit(features)
+    decision = classifier.predict(features)
+    mask = decision > 0
     return x[mask], y[mask], yerr[mask]
 
 def remove_outliers_pca_cluster(x,y,yerr):
@@ -217,8 +220,17 @@ def find_roots(params, err):
         roots = [(r1.nominal_value, r1.std_dev)]
     elif len(params == 3):
         a, b, c = ufloat(params[0], err[0]), ufloat(params[1], err[1]), ufloat(params[2], err[2])
-        r1, r2 = (-b - (b**2-4*a*c)**0.5)/(2*a), (-b + (b**2-4*a*c)**0.5)/(2*a)
-        roots = [(r1.nominal_value, r1.std_dev), (r2.nominal_value, r2.std_dev)]
+        roots = []
+        try:
+            r1 = (-b + umath.pow(b**2-4*a*c, 0.5))/(2*a)
+            roots.append((r1.nominal_value, r1.std_dev))
+        except Exception:
+            pass
+        try:
+            r2 = (-b - umath.pow(b**2-4*a*c, 0.5))/(2*a)
+            roots.append[(r2.nominal_value, r2.std_dev)]
+        except Exception:
+            pass
     else:
         raise NotImplementedError
     return roots
@@ -241,8 +253,16 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
         ax22 = ax2.twinx()
+        fig3 = plt.figure()
+        ax3 = fig3.add_subplot(111)
+        fig32 = plt.figure()
+        ax32 = fig32.add_subplot(111)
+        fig33 = plt.figure()
+        ax33 = fig33.add_subplot(111)
+        fig34 = plt.figure()
+        ax34 = fig34.add_subplot(111)
 
-        S = []
+        Sg, Sb_gauss, Sb_kde = [], [], []
         phi = []
         pmin, pmax = 1e100, -1e100
         p_minmax_list = []
@@ -264,17 +284,16 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                                     phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
                     #should remoe both outliers in pressure and in volume
-                    x_raw, f_raw, ferr_raw = remove_outliers_cluster(np.log(dataset.pressures), dataset.free_energies, dataset.free_energies_err)
-                    # x, f, ferr = remove_outliers_mcd(x_raw, f_raw, ferr_raw)
+                    p_raw, f_raw, ferr_raw = remove_outliers_cluster(np.log(dataset.pressures), dataset.free_energies, dataset.free_energies_err)
                     #fix units
-                    x_raw, f_raw = x_raw+np.log(np.pi), f_raw+np.log(np.pi)
+                    p_raw, f_raw = p_raw+np.log(np.pi), f_raw+np.log(np.pi)
                     Facc += np.log(np.pi)
                     #end fix units
-                    x, f, ferr = x_raw, f_raw , ferr_raw
-                    x = np.exp(x)
-                    pmin, pmax = min(pmin, np.amin(x)), max(pmax, np.amax(x))
-                    p_minmax_list.append([np.amin(x), np.amax(x)])
-                    x = np.log(x)
+                    p, f, ferr = p_raw, f_raw , ferr_raw
+                    p = np.exp(p)
+                    pmin, pmax = min(pmin, np.amin(p)), max(pmax, np.amax(p))
+                    p_minmax_list.append([np.amin(p), np.amax(p)])
+                    p = np.log(p)
                     y = (Facc-f)
                     y_raw = (Facc-f_raw)
                     if "fire" in dataset.set_name:
@@ -284,39 +303,103 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                         marker = 'o'
                         label = 'cgd {:.3f}'.format(dataset.ss_phi)
                     color = color_cycle.next()
-                    ax.scatter(x_raw, y_raw, label=label, marker=marker, color=color)
-                    fit_fn, fit_params, fit_err, rho = lmms_fit(x, y)
-                    ax.plot(x_raw, fit_fn(x_raw), color='k', linestyle='-')
-                    S.append(np.mean(f) - Facc - log_factorial(nparticles))
+                    ax.scatter(p_raw, y_raw, label=label, marker=marker, color=color)
+                    fit_fn, fit_params, fit_err, rho = lmms_fit(p, y)
+                    ax.plot(p_raw, fit_fn(p_raw), color='k', linestyle='-')
+                    Sg.append(np.mean(f) - Facc - log_factorial(nparticles))
                     # S.append(- Facc - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
                     # now fit the actual power laws, not the probabilities
-                    fit_fn, fit_params, fit_err, rho = lmms_fit(x, f)
+                    fit_fn, fit_params, fit_err, rho = lmms_fit(p, f)
                     # fit_fn, fit_params, fit_err, rho = lmms_fit(x, f)
                     dataset.add_extras((fit_params, fit_err, rho))
                     print dataset.extras
 
-                    (mean_x, var_x), (mean_f, var_f), cov = robust_mean_var(x, f)
+                    (mean_p, var_p), (mean_f, var_f), cov = robust_mean_var(p, f)
                     meanvar_f_list.append([mean_f, var_f])
-                    meanvar_pi_list.append([mean_x, var_x])
+                    meanvar_pi_list.append([mean_p, var_p])
                     cov_f_pi_list.append(cov)
-                    # # fit to kde
-                    # bw = get_bandwidth_estimate(f, kernel="gaussian", method="cross_validation")
-                    # edges = np.linspace(np.amin(f), np.amax(f), 1000)
-                    # hist = get_pdf(f, edges, bandwidth=bw, kernel="gaussian")
-                    # ax2.plot(edges, hist, label=label, color=color, linewidth=3)
-                    # # fit to generalised gaussian
-                    # generalised_lognormal = GeneralisedLogNormal(alpha_min=0.00001, zeta_min=0.1)
-                    # cdf = CDFAccumulator()
-                    # cdf.add_array(f)
-                    # x, cdf_x = cdf.get_vecdata()
-                    # generalised_lognormal.fit_cdf(x, cdf_x)
-                    # print "mu: ", generalised_lognormal.mu_fit
-                    # print "alpha: ", generalised_lognormal.alpha_fit
-                    # print "zeta: ", generalised_lognormal.zeta_fit
-                    # hist = np.array([generalised_lognormal.get_fitted(edge) for edge in edges])
-                    # ax2.plot(edges, hist, label=label, linestyle='--', color=color, linewidth=3)
 
+                    # here we need to perform a more aggressive outlier detection
+                    # to avoid fit issues
+                    p, f, ferr = remove_outliers_mcd(p_raw, f_raw, ferr_raw)
+                    # f: fit to kde
+                    bw = get_bandwidth_estimate(f, kernel="gaussian", method="cross_validation")
+                    edges = np.linspace(45, 85, 1000)
+                    kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(f[:, np.newaxis])
+                    hist = np.exp(kde.score_samples(edges[:, np.newaxis]))
+                    ax3.plot(edges, hist, label=dataset.ss_phi, color=color, linewidth=3)
+                    n_integrate = 2 ** 18 + 1
+                    x_integrate = np.linspace(Facc, np.amax(f) * 100, n_integrate)
+                    log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
+                    kde_integral = integrate.romb(np.exp(np.add(log_pdf, x_integrate)),
+                                              dx=x_integrate[1] - x_integrate[0])
+                    Sb_kde.append(np.log(kde_integral) - Facc - log_factorial(nparticles))
+                    # fit to generalised gaussian
+                    generalised_gauss = GeneralisedGauss(alpha_min=0.00001, zeta_min=0.1)
+                    cdf = CDFAccumulator()
+                    cdf.add_array(f)
+                    x, cdf_x = cdf.get_vecdata()
+                    generalised_gauss.fit_cdf(x, cdf_x)
+                    print "mu: ", generalised_gauss.mu_fit
+                    print "alpha: ", generalised_gauss.alpha_fit
+                    print "zeta: ", generalised_gauss.zeta_fit
+                    hist = np.array([generalised_gauss.get_fitted(edge) for edge in edges])
+                    ax3.plot(edges, hist, linestyle='--', color=color, linewidth=3)
+                    # compute boltzmann entropy from generalised gaussian
+                    integral, integral_error = integrate.quad(generalised_gauss.get_fitted_times_expx,
+                                                              Facc, np.amax(f) * 100,
+                                                              points=[np.amin(f), np.amax(f), np.mean(f)])
+                    Sb_gauss.append(np.log(integral) - Facc - log_factorial(nparticles))
+
+                    # f: fit weighted kde
+                    # ax33.plot(edges, hist*np.exp(edges)/kde_integral, linestyle='--', color=color, linewidth=3)
+                    wpdf = weighted_gaussian_kde(f, weights=np.exp(f), bw_method=bw[0])
+                    ax33.plot(edges, wpdf(edges), label=dataset.ss_phi, color=color, linewidth=3)
+
+                    # p: fit to kde
+                    bw = get_bandwidth_estimate(p, kernel="gaussian", method="cross_validation")
+                    edges = np.linspace(-2, 8, 1000)
+                    hist = get_pdf(p, edges, bandwidth=bw, kernel="gaussian")
+                    ax32.plot(edges, hist, label=dataset.ss_phi, color=color, linewidth=3)
+                    # fit to generalised gaussian
+                    generalised_gauss = GeneralisedGauss(alpha_min=0.00001, zeta_min=0.1)
+                    cdf = CDFAccumulator()
+                    cdf.add_array(p)
+                    x, cdf_x = cdf.get_vecdata()
+                    generalised_gauss.fit_cdf(x, cdf_x)
+                    print "mu: ", generalised_gauss.mu_fit
+                    print "alpha: ", generalised_gauss.alpha_fit
+                    print "zeta: ", generalised_gauss.zeta_fit
+                    hist = np.array([generalised_gauss.get_fitted(edge) for edge in edges])
+                    ax32.plot(edges, hist, linestyle='--', color=color, linewidth=3)
+
+                    # p: fit weighted kde
+                    wpdf = weighted_gaussian_kde(p, weights=np.exp(f), bw_method=3*bw[0])
+                    ax34.plot(edges, wpdf(edges), label=dataset.ss_phi, color=color, linewidth=3)
+
+
+
+        ax3.set_xlabel(r'$F$')
+        ax3.set_ylabel(r'$\mathcal{B}(F)$')
+        ax3.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig3.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_obs_dist"))
+        ax32.set_xlabel(r'$\Pi$')
+        ax32.set_ylabel(r'$\mathcal{B}(\Pi)$')
+        ax32.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig32.savefig('{0}/plot_{1}.pdf'.format(figdir, "pi_obs_dist"))
+        ax33.set_xlabel(r'$F$')
+        ax33.set_ylabel(r'$\mathcal{DOS}(F)$')
+        ax33.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig33.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_dos"))
+        ax34.set_xlabel(r'$\Pi$')
+        ax34.set_ylabel(r'$\mathcal{DOS}(\Pi)$')
+        ax34.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig34.savefig('{0}/plot_{1}.pdf'.format(figdir, "pi_dos"))
         print phi
         ax.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
@@ -325,14 +408,42 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax.set_xlabel(r"$\Pi$")
         print "extras", dataset.extras
         fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
-        ax1.scatter(phi, S, color=color_cycle.next(), s=100)
+
+        phi_star = 0.82
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./np.array(Sg), order=2)
+        # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
+        # print "Sg phi* = {} \pm {}".format(phi_star, phi_star_err)
+        x = np.linspace(phi_star, np.amax(phi), 1000)
+        # color = color_cycle.next()
+        ax1.scatter(phi, np.array(Sg), color=color, s=100, label=r'$S_G$')
+        ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
+
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./np.array(Sb_gauss), order=2)
+        # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
+        # print "Sb-gauss phi* = {} \pm {}".format(phi_star, phi_star_err)
+        x = np.linspace(phi_star, np.amax(phi), 1000)
+        color = color_cycle.next()
+        ax1.scatter(phi, np.array(Sb_gauss), color=color, s=100, label=r'$S_B^{(Gauss)}$')
+        ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
+
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./np.array(Sb_kde), order=2)
+        # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
+        # print "Sb-kde phi* = {} \pm {}".format(phi_star, phi_star_err)
+        x = np.linspace(phi_star, np.amax(phi), 1000)
+        color = color_cycle.next()
+        ax1.scatter(phi, np.array(Sb_kde), color=color, s=100, label=r'$S_B^{(KDE)}$')
+        ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
+
         # fit = np.polyfit(phi[2:], S[2:], 1)
         # fit_fn = np.poly1d(fit)
         # ax1.plot(np.linspace(phi[0],1,20), fit_fn(np.linspace(phi[0],1,20)), color='k')
         # ax1.plot([0.825,1],[0,0],lw=1,color='black')
-        ax1.set_ylabel(r"$S_G$")
+        ax1.set_xlim((0.82,0.865))
+        ax1.set_ylim((13, 33))
+        ax1.set_ylabel(r"$S$")
         ax1.set_xlabel(r"$\phi$")
-        ax1.set_xlim((0.825,0.865))
+        ax1.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig1.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_phi"))
 
         #subplots
@@ -383,8 +494,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             fit_fn, fit_params, fit_err, rho = poly_fit(x, y2, yerr=yerr)
             ax4.plot(x, fit_fn(x), color=color_fit)
             print "c(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
-            phi_c1, phi_c1err = find_roots(fit_params, fit_err)[0]
-            print "c: phi_c1: {} \pm {}, beta: {}".format(1-phi_c1, phi_c1err, fit_params[1])
+            a, b = ufloat(fit_params[0], fit_err[0]), ufloat(fit_params[1], fit_err[1])
+            r1 = (1.-b) / a
+            phi_c1, phi_c1err = r1.nominal_value, r1.std_dev
+            print "c: phi_c1: {} \pm {}, beta: {}".format(phi_c1, phi_c1err, fit_params[1])
             # label = "intercept = ({:.3f}  \pm  {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
             # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
             #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
@@ -425,7 +538,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
             y3 = np.array(meanvar_f_list)[:, 1]
             fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, order=2)
-            phi_star, phi_star_err = find_roots(fit_params, fit_err)[1]
+            phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
             print "sig_f phi* = {} \pm {}".format(phi_star, phi_star_err)
             x = np.linspace(phi_star, np.amax(phi), 1000)
             ax24.plot(phi, y3, marker='^', markersize=10, linestyle='', color='r')
@@ -456,7 +569,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
         y3 = np.array(cov_f_pi_list)
         fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, order=2)
-        phi_star, phi_star_err = find_roots(fit_params, fit_err)[1]
+        phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         print "cov_fpi phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
         ax26.plot(phi, y3, marker='^', markersize=10, linestyle='', color='r')

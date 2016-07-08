@@ -48,7 +48,10 @@ class JackLogOmega(object):
         cdf.add_array(reduced_F0)
         x, cdf_x = cdf.get_vecdata()
         generalised_gauss.fit_cdf(x, cdf_x)
-        integral, integral_error = integrate.quad(generalised_gauss.get_fitted_times_expx, self.volume_sanity_check.F0_acc, np.amax(reduced_F0) * 100, points = [np.amin(reduced_F0), np.amax(reduced_F0), np.mean(reduced_F0)])
+        integral, integral_error = integrate.quad(generalised_gauss.get_fitted_times_expx,
+                                                  self.volume_sanity_check.F0_acc,
+                                                  np.amax(reduced_F0) * 100,
+                                                  points = [np.amin(reduced_F0), np.amax(reduced_F0), np.mean(reduced_F0)])
         assert(integral > 0)
         S_star_red = - self.volume_sanity_check.F0_acc + np.log(integral)
         return S_star_red, generalised_gauss.mu_fit, generalised_gauss.alpha_fit, generalised_gauss.zeta_fit
