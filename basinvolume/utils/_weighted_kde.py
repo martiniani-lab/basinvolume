@@ -288,6 +288,28 @@ class weighted_gaussian_kde(object):
         self.inv_cov = self._data_inv_cov / self.factor**2
         self._norm_factor = np.sqrt(np.linalg.det(2*np.pi*self.covariance)) #* self.n
 
+    def resample(self, size=None):
+        """
+        Randomly sample a dataset from the estimated pdf.
+        Parameters
+        ----------
+        size : int, optional
+            The number of samples to draw.  If not provided, then the size is
+            the same as the underlying dataset.
+        Returns
+        -------
+        resample : (self.d, `size`) ndarray
+            The sampled dataset.
+        """
+        if size is None:
+            size = self.n
+        norm = np.transpose(np.random.multivariate_normal(np.zeros((self.d,), dtype=np.float64),
+                                                          self.covariance, size=int(size)))
+        indices = np.random.choice(xrange(0, self.n), p=self.weights/np.sum(self.weights), size=size)
+        means = self.dataset[:, indices]
+
+        return means + norm
+
 
 if __name__=="__main__":
     import matplotlib.pyplot as plt
