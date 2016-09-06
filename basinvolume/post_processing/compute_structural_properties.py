@@ -205,11 +205,12 @@ class BondOrientationalOrder(StructuralAnalysis):
         nparticles = hs_radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]
         if rattlers is None:
-            labels = range(nparticles)
+            atom_labels = range(nparticles)
         else:
-            labels = np.array(range(nparticles))[np.where(np.array(rattlers) == 1)]
-        for i in labels:
-            for j in labels:
+            atom_labels = np.array(range(nparticles))[np.array(rattlers) == 1]
+        print atom_labels
+        for i in atom_labels:
+            for j in atom_labels:
                 if i != j:
                     dij = np.zeros(self.bdim)
                     for k in xrange(self.bdim):
