@@ -198,11 +198,18 @@ class BondOrientationalOrder(StructuralAnalysis):
         else:
             raise Exception('ndim not implemented')
     
-    def find_nearest_neighbors(self, coords, hs_radii):
+    def find_nearest_neighbors(self, coords, hs_radii, rattlers=None):
+        """
+        this function ignores rattlers
+        """
         nparticles = hs_radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]
-        for i in xrange(nparticles):
-            for j in xrange(i, nparticles):
+        if rattlers is None:
+            labels = range(nparticles)
+        else:
+            labels = np.array(range(nparticles))[np.where(np.array(rattlers) == 1)]
+        for i in labels:
+            for j in labels:
                 if i != j:
                     dij = np.zeros(self.bdim)
                     for k in xrange(self.bdim):
@@ -224,6 +231,7 @@ class BondOrientationalOrder(StructuralAnalysis):
             """
             Note that if i has neighbor j it is not obvious that j has
             neighbor i, in contrast to fixed distance cutoff.
+            Note: SimpleSolidAngleNeighbors does not exclude rattlers from the particles shells
             """
             sann = SimpleSolidAngleNeighbors(i, coords, nparticles, self.boxv)
             for j in xrange(sann.nr_neighbors):
@@ -231,8 +239,8 @@ class BondOrientationalOrder(StructuralAnalysis):
                 weights_all[i].append(sann.weight[j])
         return nnatoms_list, weights_all
     
-    def bond_orientation_order_single(self, coords, hs_radii, atom_index, ndim=3, deg=6):
-        nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)
+    def bond_orientation_order_single(self, coords, hs_radii, rattlers, atom_index, ndim=3, deg=6):
+        nnatoms_list = self.find_nearest_neighbors(coords, hs_radii, rattlers=rattlers)
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
     
@@ -245,7 +253,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
-        contacts_list = self.find_nearest_neighbors(coords, hs_radii)
+        contacts_list = self.find_nearest_neighbors(coords, hs_radii, rattlers=rattlers)
         if not self.solid_angle_weighted:
             nnatoms_list = contacts_list
         else:

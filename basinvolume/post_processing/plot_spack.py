@@ -40,9 +40,9 @@ class GenerateSpackPlot(StructuralAnalysis):
         pack.plot_disks()
 
         # pack.plot_contacts(reshape=True, tol=1e-9)
-        plt.show()
+        plt.savefig('packing_2d.pdf')
 
 
 if __name__ == "__main__":
     gsp = GenerateSpackPlot(os.getcwd())
-    gsp.create_image('jammed_packing1000.xydr')
+    gsp.create_image('jammed_packing564.xydr')

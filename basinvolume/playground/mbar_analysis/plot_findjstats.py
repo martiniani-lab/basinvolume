@@ -21,15 +21,19 @@ from scipy.integrate import simps
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 #rc('text.latex',preamble=r'\usepackage{times}')
-plt.rcParams.update({'font.size': 18})
+glob_fontsize=25
+plt.rcParams.update({'font.size': glob_fontsize})
 plt.rcParams['xtick.major.pad'] = 8
 plt.rcParams['ytick.major.pad'] = 8
 plt.rcParams.update({'figure.autolayout': True})
 ##########################################################
 ####SET COLOUR MAP######
-def get_color_cycle(ncolors=20):
-    cm = plt.get_cmap('Accent')
-    color_cycle=cycle([cm(1. * i / ncolors) for i in xrange(ncolors)][::-1])
+def get_color_cycle(ncolors=20, reverse=True):
+    cm = plt.get_cmap('Paired')
+    if reverse:
+        color_cycle=cycle([cm(1. * (i+0.5) / float(ncolors)) for i in xrange(ncolors)][::-1])
+    else:
+        color_cycle = cycle([cm(1. * (i - 0.5) / float(ncolors)) for i in xrange(ncolors)])
     return color_cycle
 def get_marker_cycle():
     markers = ["o","v","s","h","^","8","p","<","*","D",">",]
@@ -39,9 +43,13 @@ def get_line_cycle():
     lines = ["--","-"]
     linecycle = cycle(lines)
     return linecycle
-def get_cycler(ncolors=20):
-    cm = plt.get_cmap('Accent')
-    return cycler('color', [cm(1. * i / ncolors) for i in xrange(ncolors)][::-1])
+def get_cycler(ncolors=20, reverse=True):
+    cm = plt.get_cmap('Paired')
+    if reverse:
+        color_cycler = cycler('color', [cm(1. * (i+0.5) / float(ncolors)) for i in xrange(ncolors)][::-1])
+    else:
+        color_cycler = cycler('color', [cm(1. * (i - 0.5) / float(ncolors)) for i in xrange(ncolors)])
+    return color_cycler
 
 ###########################################################
 
@@ -225,7 +233,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax2.plot(xnew, ff2(xnew, popt[0], popt[1], popt[2]), color='b', linewidth=2.5, linestyle=':',
                  label="ln(p) = {:.3f} ln(E)**2 + {:.3f} ln(E) + {:.3f}".format(popt[0], popt[1], popt[2]),
                  rasterized=True)
-        ax2.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax2.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax2.set_xlabel(r"$\ln(E)$")
         ax2.set_ylabel(r"$\ln(P)$")
@@ -238,7 +246,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         for i, (p, z) in enumerate(zip(pressure, contacts)):
             assert len(p) == len(z)
             ax3.scatter(np.log(p), np.log(z), color=color.next(), rasterized=True)
-        ax3.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax3.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax3.set_xlabel(r"$\ln(P)$")
         ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
@@ -294,18 +302,18 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax43.plot(phi_ss_packed, v_var, color='r', marker='^', linestyle='',
                   rasterized=True, label=r"$Var_U(v)$")
         # ax42.set_yscale('log')
-        ax42.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax42.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax43.legend(frameon=False, loc=0, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax43.legend(frameon=False, loc=0, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
         ax4.set_ylabel(r"$pdf/\max(pdf)$")
-        ax4.set_xlabel(r"$ \Pi - \overline{\Pi}$")
-        ax4.set_ylabel(r"$pdf(\Pi)$")
+        ax4.set_xlabel(r"$ \Lambda - \overline{\Lambda}$")
+        ax4.set_ylabel(r"$pdf(\Lambda)$")
         ax5.set_xlabel(r"$\ln(P/P_{peak})$")
         ax5.set_ylabel(r"$\ln(pdf)-\ln(\max(pdf))$")
-        ax52.set_ylabel(r"$\mu_{\Pi}/\kappa$")
-        ax522.set_ylabel(r"$\sigma_{\Pi}^2$")
+        ax52.set_ylabel(r"$\mu_{\Lambda}/\kappa$")
+        ax522.set_ylabel(r"$\sigma_{\Lambda}^2$")
         ax52.set_xlabel(r"$\phi$")
         # ax52.set_yscale('log')
         fig4.savefig("{}/{}".format(figdir, "lnP_pdf.pdf"))
@@ -347,7 +355,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         # print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
 
         ax6.set_xlabel(r"$|1-\phi/\phi_0|$")
-        ax6.set_ylabel(r"$\sigma^2_{\Pi}$")
+        ax6.set_ylabel(r"$\sigma^2_{\Lambda}$")
         fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
 
 def plot_all(figdir="figures", bdim=2):
@@ -410,7 +418,7 @@ def plot_all(figdir="figures", bdim=2):
         ax2.plot(xnew, ff(xnew, popt[0], popt[1]), color=color, linewidth=2,
                  label="midpoint: ln(phi) = {:.3f} ln(N) {:.3f}".format(popt[0], popt[1]), rasterized=True)
         ax2.set_xlabel(r"$\ln(N^{1/2})$")
-        ax2.legend(frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax2.legend(frameon=False, loc='best', prop={'size':glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig2.savefig("{}/{}".format(figdir, "lnphi_lnppack_scaling.pdf"))
         # ax2.set_ylim([0, 1./(np.amin(nparticles)-5)])
@@ -444,7 +452,7 @@ def plot_all(figdir="figures", bdim=2):
         ax3.set_ylabel(r'$\ln (p_{pack} (N^{1/d})^{\beta/\nu})$')
         ax3.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
         ax3.set_title(r'$\phi_c \approx 0.847;~\nu \approx 1;~\beta \approx 1/20$')
-        ax3.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax3.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig3.savefig("{}/{}".format(figdir, "phi_ppack_rescaling.pdf"))
 
@@ -474,8 +482,10 @@ def plot_all(figdir="figures", bdim=2):
         import matplotlib.gridspec as gridspec
         phi_max=0.875
         fig5 = plt.figure(figsize=(8, 8))
+        fig51 = plt.figure()
         gs = gridspec.GridSpec(7, 2)
         ax5 = fig5.add_subplot(gs[:4, :])
+        ax51 = fig51.add_subplot(111)
         fit_params, fit_params_err = [], []
         fit_params2, fit_params_err2 = [], []
         color_cycle = get_color_cycle(ncolors=len(datasets))
@@ -484,7 +494,8 @@ def plot_all(figdir="figures", bdim=2):
                                                             dp.logp_var[dp.phi_ss_packed<phi_max], \
                                                             dp.p_rel_var[dp.phi_ss_packed<phi_max], \
                                                             dp.logp_mean[dp.phi_ss_packed < phi_max]
-            phi_c = yspl_mid[i] #yder_max[i]
+            phi_c = yspl_mid[i] #yder_max[i] #DEBUG
+            print dp.nparticles, phi_c
             inu = 2
             zeta = 1./8
             x = np.power(np.sqrt(nparticles[i]), inu) * (np.array(phi_ss_packed[phi_ss_packed > phi_c]) - np.array(phi_c)) / phi_c
@@ -497,7 +508,8 @@ def plot_all(figdir="figures", bdim=2):
             # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
             color = color_cycle.next()
             ax5.errorbar(logx, logy, fmt='o', color=color, yerr=logy_err, rasterized=True)
-            idx = int(len(logx)*0.3)
+            ax51.errorbar(logx, logy, fmt='o', color=color, yerr=logy_err, rasterized=True)
+            idx = np.argmax(logy < 0.5*np.amax(logy)) #int(len(logx)*0.2)
             popt, pcov = curve_fit(ff, logx[idx:], logy[idx:],
                                    absolute_sigma=True,
                                    sigma = logy_err[idx:])
@@ -505,16 +517,21 @@ def plot_all(figdir="figures", bdim=2):
             fit_err = np.sqrt(np.diag(pcov))
             ax5.plot(logx[idx:], ff(logx[idx:], popt[0], popt[1]), color=color, linewidth=2,
                      label="N:{}; {:.3f} ln(x) + {:.3f}".format(dp.nparticles, popt[0], popt[1]), rasterized=True)
+            ax51.plot(logx[idx:], ff(logx[idx:], popt[0], popt[1]), color=color, linewidth=2,
+                     label="{}".format(dp.nparticles), rasterized=True)
             fit_params.append(popt)
             fit_params_err.append(fit_err)
             print "nparticles: {}; ({}+/-{}) x + ({}+/-{})".format(dp.nparticles, popt[0], fit_err[0], popt[1],
                                                                    fit_err[1])
 
         ax5.set_title(r'$\nu = 1/2;~\beta=1/8$')
-        ax5.set_ylabel(r'$\ln(\sigma^2_{\Pi} (N^{1/d})^{\beta/\nu})$')
-        ax5.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
-        ax5.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
-                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax5.set_ylabel(r'$\ln(\sigma^2_{\Lambda} (N^{1/d})^{\alpha/\nu})$')
+        ax5.set_xlabel(r'$\ln((N^{1/d}/\xi)^{1/\nu})$')
+        ax5.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.5, labelspacing=0.25, handletextpad=0)
+        ax51.set_ylabel(r'$\ln(\sigma^2_{\Lambda} (N^{1/d})^{\alpha/\nu})$')
+        ax51.set_xlabel(r'$\ln((N^{1/d}/\xi)^{1/\nu})$')
+        ax51.legend(frameon=False, loc='best', prop={'size': glob_fontsize})
         ax6 = fig5.add_subplot(gs[4:, 0])
         ax7 = fig5.add_subplot(gs[4:, 1])
         color = color_cycle.next()
@@ -547,7 +564,8 @@ def plot_all(figdir="figures", bdim=2):
         ax7.set_ylabel('intercept')
         ax7.legend(frameon=False, loc='best', prop={'size': 13}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        fig5.savefig("{}/{}".format(figdir, "lnphi_lnpvar.pdf"))
+        fig5.savefig("{}/{}".format(figdir, "lnphi_lnpvar_sub.pdf"))
+        fig51.savefig("{}/{}".format(figdir, "lnphi_lnpvar.pdf"))
 
 
     if False:
@@ -621,7 +639,7 @@ def plot_all(figdir="figures", bdim=2):
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax9.set_ylabel(r'$V_N$')
         ax9.set_xlabel(r'$\phi$')
-        ax10.set_ylabel(r'$\langle \Pi^2 \rangle - \langle |\Pi| \rangle^2$')
+        ax10.set_ylabel(r'$\langle \Lambda^2 \rangle - \langle |\Lambda| \rangle^2$')
         ax10.set_xlabel(r'$\phi$')
         fig9.savefig("{}/{}".format(figdir, "lnp_u4.pdf"))
         fig10.savefig("{}/{}".format(figdir, "lnp_chi.pdf"))

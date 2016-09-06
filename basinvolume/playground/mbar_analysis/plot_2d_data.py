@@ -35,7 +35,8 @@ from uncertainties import umath
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 #rc('text.latex',preamble=r'\usepackage{times}')
-plt.rcParams.update({'font.size': 18})
+glob_fontsize=30
+plt.rcParams.update({'font.size': glob_fontsize})
 plt.rcParams['xtick.major.pad'] = 8
 plt.rcParams['ytick.major.pad'] = 8
 plt.rcParams.update({'figure.autolayout': True})
@@ -249,9 +250,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         #plot free energy vs P for all packings
         import matplotlib.gridspec as gridspec
         color_cycle = get_color_cycle()
-        fig = plt.figure(figsize=(8, 8))
-        gs = gridspec.GridSpec(7, 2)
-        ax = fig.add_subplot(gs[:4, :])
+        # fig = plt.figure(figsize=(8, 8))
+        # gs = gridspec.GridSpec(7, 2)
+        # ax = fig.add_subplot(gs[:4, :])
+        fig0 = plt.figure()
+        ax = fig0.add_subplot(111)
         fig1 = plt.figure()
         ax1 = fig1.add_subplot(111)
         fig2 = plt.figure()
@@ -306,14 +309,14 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     y_raw = (Facc-f_raw)
                     if "fire" in dataset.set_name:
                         marker = '^'
-                        label = 'fire {:.3f}'.format(dataset.ss_phi)
+                        label = '{:.3f}'.format(dataset.ss_phi)
                     else:
                         marker = 'o'
                         label = 'cgd {:.3f}'.format(dataset.ss_phi)
                     color = color_cycle.next()
-                    ax.scatter(p_raw, y_raw, label=label, marker=marker, color=color)
+                    ax.scatter(p_raw, -y_raw, label=label, marker=marker, color=color)
                     fit_fn, fit_params, fit_err, rho = lmms_fit(p, y)
-                    ax.plot(p_raw, fit_fn(p_raw), color='k', linestyle='-')
+                    ax.plot(p_raw, -fit_fn(p_raw), color='k', linestyle='-')
 
                     (mean_p, var_p), (mean_f, var_f), cov, logl = robust_mean_var(p, f)
                     meanvar_f_list.append([mean_f, var_f])
@@ -427,32 +430,36 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
         ax3.set_xlabel(r'$F$')
         ax3.set_ylabel(r'$\mathcal{B}(F)$')
-        ax3.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax3.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig3.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_obs_dist"))
-        ax32.set_xlabel(r'$\Pi$')
-        ax32.set_ylabel(r'$\mathcal{B}(\Pi)$')
-        ax32.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax32.set_xlabel(r'$\Lambda$')
+        ax32.set_ylabel(r'$\mathcal{B}(\Lambda)$')
+        ax32.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig32.savefig('{0}/plot_{1}.pdf'.format(figdir, "pi_obs_dist"))
         ax33.set_xlabel(r'$F$')
         ax33.set_ylabel(r'$\mathcal{DOS}(F)$')
-        ax33.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax33.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig33.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_dos"))
-        ax34.set_xlabel(r'$\Pi$')
-        ax34.set_ylabel(r'$\mathcal{DOS}(\Pi)$')
-        ax34.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax34.set_xlabel(r'$\Lambda$')
+        ax34.set_ylabel(r'$\mathcal{DOS}(\Lambda)$')
+        ax34.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig34.savefig('{0}/plot_{1}.pdf'.format(figdir, "pi_dos"))
         print phi
-        ax.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax.set_ylabel(r"$F_{acc}-F$")
+
+        axbox = ax.get_position()
+        ax.legend(frameon=False, loc=(axbox.x0-0.18, axbox.x1-0.475), prop={'size':glob_fontsize}, numpoints=1,
+                  scatterpoints=1, markerscale=1, columnspacing=0.01, labelspacing=0.01, handletextpad=0)
+        ax.set_ylabel(r"$-\ln p_i$")
         # ax.set_ylabel(r"$F$")
-        ax.set_xlabel(r"$\Pi$")
+        ax.set_xlabel(r"$\Lambda$")
+        ax.locator_params(axis='y', nbins=6)
+        ax.set_ylim((205, 241))
         print "extras", dataset.extras
-        fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
+        fig0.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
         ax35.scatter(phi, np.array(logl_list), s=100)
         ax35.set_xlabel(r"$\phi$")
@@ -460,7 +467,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         fig35.savefig('{0}/plot_{1}.pdf'.format(figdir, "log_likelihood_set"))
 
         # assume that error in entropy is proportional to standard error of the mean for all of them
-        phi_star = 0.82
+        phi_star = 0.823
         Sg = np.array(Sg)
         yerr = Sg[:,1]/np.sqrt(histograms_nsamples)
         fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sg[:,0], yerr=yerr, order=2)
@@ -469,7 +476,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         x = np.linspace(phi_star, np.amax(phi), 1000)
         color_cycle = get_color_cycle(ncolors=3, reverse=False)
         color = color_cycle.next()
-        ax1.errorbar(phi, Sg[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_G$', fmt='o', markersize=10)
+        ax1.errorbar(phi, Sg[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_G$', fmt='o', markersize=15)
         ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
         a1 = ufloat(fit_params[0], fit_err[0])
         b1 = ufloat(fit_params[1], fit_err[1])
@@ -482,7 +489,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # print "Sb-gauss phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
         color = color_cycle.next()
-        ax1.errorbar(phi, Sb_gauss[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$', fmt='o', markersize=10)
+        ax1.errorbar(phi, Sb_gauss[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$', fmt='o', markersize=15)
         ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
         a2 = ufloat(fit_params[0], fit_err[0])
         b2 = ufloat(fit_params[1], fit_err[1])
@@ -499,7 +506,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # print "Sb-kde phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
         color = color_cycle.next()
-        ax1.errorbar(phi, Sb_kde[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o', markersize=10)
+        ax1.errorbar(phi, Sb_kde[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o', markersize=15)
         ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
         a2 = ufloat(fit_params[0], fit_err[0])
         b2 = ufloat(fit_params[1], fit_err[1])
@@ -514,10 +521,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # ax1.plot(np.linspace(phi[0],1,20), fit_fn(np.linspace(phi[0],1,20)), color='k')
         # ax1.plot([0.825,1],[0,0],lw=1,color='black')
         ax1.set_xlim((phi_star,0.865))
-        ax1.set_ylim((13, 34))
+        ax1.set_ylim((12.5, 32.5))
+        ax1.locator_params(axis='x', nbins=8)
         ax1.set_ylabel(r"$S$")
         ax1.set_xlabel(r"$\phi$")
-        ax1.legend(frameon=False, loc='best', prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax1.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig1.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_phi"))
 
@@ -528,7 +536,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             color_cycle = get_color_cycle(ncolors=2, reverse=False)
             color_marker = color_cycle.next()
             color_fit = color_cycle.next()
-            ax3 = fig.add_subplot(gs[4:, 0])
+            # ax3 = fig.add_subplot(gs[4:, 0])
+            fig01 = plt.figure()
+            ax3 = fig01.add_subplot(111)
             x, y, yerr, y2, y2err, rho = [], [], [], [], [], []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
                 if len(dataset.free_energies) > 0 and phi_min < dataset.ss_phi < phi_max:
@@ -550,22 +560,25 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             yerr /= nparticles
             y2 /= nparticles
             y2err /= nparticles
-            ax3.errorbar(x, y, yerr, marker='o', linestyle='', ms=12, color=color_marker, markeredgecolor=color_marker)
+            ax3.errorbar(x, y, yerr, marker='o', linestyle='', ms=15, color=color_marker, markeredgecolor=color_marker)
             fit_fn, fit_params, fit_err, rho = poly_fit(x, y, yerr=yerr)
             ax3.plot(x, fit_fn(x), color=color_fit)
             glob_phi_j, glob_phi_j_std = find_roots(fit_params, fit_err)[0]
             print "1/k(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
             print "1/k: phi_j: {} \pm {}, beta: {}".format(glob_phi_j, glob_phi_j_std, fit_params[1])
-            ax3.set_xlabel(r'$\phi$', size=18)
-            ax3.set_ylabel(r'$1/\kappa(\phi)$', size=18)
+            ax3.set_xlabel(r'$\phi$', size=glob_fontsize)
+            ax3.set_ylabel(r'$1/\kappa$', size=glob_fontsize)
             ax3.locator_params(axis='x', nbins=4)
-            ax3.locator_params(axis='y', nbins=4)
-            ax3.tick_params(axis='both', which='major', labelsize=18)
+            ax3.locator_params(axis='y', nbins=3)
+            ax3.tick_params(axis='both', which='major', labelsize=glob_fontsize)
             ax3.set_xlim((phi_min, phi_max))
-            ax3.set_ylim((0, 0.125))
+            ax3.set_ylim((0, 0.11))
+            ax3.ticklabel_format(axis='y', style='sci')
 
-            ax4 = fig.add_subplot(gs[4:, 1])
-            ax4.errorbar(x, y2, y2err, marker='o', linestyle='', ms=12, color=color_marker, markeredgecolor=color_marker)
+            # ax4 = fig.add_subplot(gs[4:, 1])
+            fig02 = plt.figure()
+            ax4 = fig02.add_subplot(111)
+            ax4.errorbar(x, y2, y2err, marker='o', linestyle='', ms=15, color=color_marker, markeredgecolor=color_marker)
             fit_fn, fit_params, fit_err, rho = poly_fit(x, y2, yerr=yerr)
             ax4.plot(x, fit_fn(x), color=color_fit)
             print "c(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
@@ -576,13 +589,16 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             # label = "intercept = ({:.3f}  \pm  {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
             # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
             #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
-            ax4.set_xlabel(r'$\phi$', size=18)
-            ax4.set_ylabel(r'$c(\phi)$', size=18)
+            ax4.set_xlabel(r'$\phi$', size=glob_fontsize)
+            ax4.set_ylabel(r'$c$', size=glob_fontsize)
             ax4.locator_params(axis='x', nbins=4)
-            ax4.locator_params(axis='y', nbins=4)
-            ax4.tick_params(axis='both', which='major', labelsize=18)
+            ax4.locator_params(axis='y', nbins=3)
+            ax4.tick_params(axis='both', which='major', labelsize=glob_fontsize)
             ax4.set_xlim((phi_min,phi_max))
-            fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
+            ax4.set_ylim((1.7, 2.08))
+            fig0.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
+            fig01.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp_kappa"))
+            fig02.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp_c"))
 
             x = np.linspace(np.amin(phi), np.amax(phi), 1000)
             y3 = np.array(meanvar_f_list)[:, 0] / dataset.nparticles
@@ -600,7 +616,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax2.set_ylabel(r"$\mu_f$", color='b')
             for tl in ax2.get_yticklabels():
                 tl.set_color('b')
-            ax22.set_ylabel(r"$\mu_{\Pi}$", color='r')
+            ax22.set_ylabel(r"$\mu_{\Lambda}$", color='r')
             for tl in ax22.get_yticklabels():
                 tl.set_color('r')
             ax2.set_xlabel(r"$\phi$")
@@ -674,10 +690,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # fit_params = np.array(fit_params)
         # print "var_pi_u = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
 
-        ax25.set_ylabel(r"$\sigma^2_\Pi$", color='b')
+        ax25.set_ylabel(r"$\sigma^2_\Lambda$", color='b')
         for tl in ax25.get_yticklabels():
             tl.set_color('b')
-        ax26.set_ylabel(r"$\sigma^2_{f \Pi}$", color='r')
+        ax26.set_ylabel(r"$\sigma^2_{f \Lambda}$", color='r')
         for tl in ax26.get_yticklabels():
             tl.set_color('r')
         ax25.set_xlabel(r"$\phi$")
@@ -843,7 +859,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             # ax5.set_ylabel(r'$\log p_x$')
             # print "phi p_max fit: ", fit
 
-            ax5.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+            ax5.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
 
             x, y = dphi, max_logdos
@@ -868,7 +884,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 # print np.amax(logg), alpha * dphi[i]
                 ax7.plot(np.log(x_integrate) - beta*dphi[i], logg, label=phi[i],
                          color=color_cycle.next(), linewidth=3)
-            ax7.legend(frameon=False, loc=2, prop={'size': 18}, numpoints=1, scatterpoints=1, markerscale=1,
+            ax7.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
             # ax7.set_ylim((200,230))
 
