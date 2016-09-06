@@ -274,7 +274,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                 #rattlers
                 boo_list.append(0)
             if len(contacts_vec) > 0 and rattlers[i*self.bdim] > 0:
-                z_list.append(len(contacts_vec))
+                z_list.append(len(contacts_vec)//2)
             else:
                 #rattlers
                 z_list.append(0)

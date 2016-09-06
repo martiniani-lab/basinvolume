@@ -257,6 +257,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax = fig0.add_subplot(111)
         fig1 = plt.figure()
         ax1 = fig1.add_subplot(111)
+        fig11 = plt.figure()
+        ax11 = fig11.add_subplot(111)
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
         ax22 = ax2.twinx()
@@ -272,7 +274,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax35 = fig35.add_subplot(111)
 
         Sg, Sb_gauss, Sb_kde = [], [], []
-        phi = []
+        phi, avgz = [], []
         pmin, pmax = 1e100, -1e100
         p_minmax_list = []
         meanvar_f_list, meanvar_pi_list = [], []
@@ -327,6 +329,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     Sg.append([mean_f - Facc - log_factorial(nparticles), np.sqrt(var_f)])
                     # S.append(- Facc - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
+                    avgz.append(np.mean(dataset.contacts))
                     # now fit the actual power laws, not the probabilities
                     fit_fn, fit_params, fit_err, rho = lmms_fit(p, f)
                     # fit_fn, fit_params, fit_err, rho = lmms_fit(x, f)
@@ -528,6 +531,18 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax1.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig1.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_phi"))
+
+        #entropy vs coordination number
+        ax11.errorbar(avgz, Sg[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_G$', fmt='o',
+                      markersize=15)
+        ax11.errorbar(avgz, Sb_gauss[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$',
+                      fmt='o', markersize=15)
+        ax11.errorbar(avgz, Sb_kde[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o',
+                      markersize=15)
+        ax11.set_ylim((12.5, 32.5))
+        ax11.locator_params(axis='x', nbins=8)
+        ax11.set_ylabel(r"$S$")
+        ax11.set_xlabel(r"$\overline{z}$")
 
         #subplots
         # subplots
