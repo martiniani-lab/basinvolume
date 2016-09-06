@@ -208,7 +208,6 @@ class BondOrientationalOrder(StructuralAnalysis):
             atom_labels = range(nparticles)
         else:
             atom_labels = np.array(range(nparticles))[np.array(rattlers[::self.bdim]) == 1]
-        print atom_labels
         for i in atom_labels:
             for j in atom_labels:
                 if i != j:
