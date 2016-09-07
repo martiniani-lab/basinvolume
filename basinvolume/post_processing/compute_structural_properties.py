@@ -207,10 +207,10 @@ class BondOrientationalOrder(StructuralAnalysis):
         if rattlers is None:
             atom_labels = range(nparticles)
         else:
-            atom_labels = np.array(range(nparticles))[np.array(rattlers[::self.bdim]) == 1]
+            atom_labels = np.array(range(nparticles))[np.array(rattlers[::self.bdim], ddtype='int') == 1]
         for i in atom_labels:
             for j in atom_labels:
-                if i != j:
+                if j > i:
                     dij = np.zeros(self.bdim)
                     for k in xrange(self.bdim):
                         #use distances to nearest image convention
@@ -267,13 +267,13 @@ class BondOrientationalOrder(StructuralAnalysis):
             weights = None
             if weights_all is not None:
                 weights = weights_all[i]
-            if len(nnatoms_vec) > 0 and rattlers[i*self.bdim] > 0:
+            if len(nnatoms_vec) > 0 and int(rattlers[i*self.bdim]) == 1:
                 boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg, weights=weights)
                 boo_list.append(boo)
             else:
                 #rattlers
                 boo_list.append(0)
-            if len(contacts_vec) > 0 and rattlers[i*self.bdim] > 0:
+            if len(contacts_vec) > 0 and int(rattlers[i*self.bdim]) == 1:
                 z_list.append(len(contacts_vec)//2)
             else:
                 #rattlers

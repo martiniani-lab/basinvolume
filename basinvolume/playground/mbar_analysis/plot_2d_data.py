@@ -272,6 +272,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax34 = fig34.add_subplot(111)
         fig35 = plt.figure()
         ax35 = fig35.add_subplot(111)
+        fig36 = plt.figure()
+        ax36 = fig36.add_subplot(111)
 
         Sg, Sb_gauss, Sb_kde = [], [], []
         phi, avgz = [], []
@@ -339,7 +341,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     # FIT DISTRIBUTIONS
                     # here we need to perform a more aggressive outlier detection
                     # to avoid fit issues
-                    p, f, ferr = remove_outliers_mcd(p_raw, f_raw, ferr_raw, contamination=0.1)
+                    p, f, ferr = remove_outliers_mcd(p_raw, f_raw, ferr_raw)
                     histograms_nsamples.append(len(f))
                     print "n samples", len(f)
                     print "min f, max f", np.amin(f), np.amax(f)
@@ -477,6 +479,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sg phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
+        z = np.linspace(4, np.amax(avgz), 1000)
         color_cycle = get_color_cycle(ncolors=3, reverse=False)
         color = color_cycle.next()
         ax1.errorbar(phi, Sg[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_G$', fmt='o', markersize=15)
@@ -484,6 +487,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         a1 = ufloat(fit_params[0], fit_err[0])
         b1 = ufloat(fit_params[1], fit_err[1])
         c1 = ufloat(fit_params[2], fit_err[2])
+        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sg[:, 0], yerr=yerr, order=2)
+        ax11.errorbar(avgz, Sg[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_G$', fmt='o',
+                      markersize=15)
+        ax11.plot(z, 1. / fit_fn(z), marker='', linewidth=3, linestyle='--', color=color)
+        za1 = ufloat(fit_params[0], fit_err[0])
+        zb1 = ufloat(fit_params[1], fit_err[1])
+        zc1 = ufloat(fit_params[2], fit_err[2])
 
         Sb_gauss = np.array(Sb_gauss)
         # yerr = Sg[:,1]/np.sqrt(histograms_nsamples)
@@ -491,6 +501,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sb-gauss phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
+        z = np.linspace(4, np.amax(avgz), 1000)
         color = color_cycle.next()
         ax1.errorbar(phi, Sb_gauss[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$', fmt='o', markersize=15)
         ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
@@ -502,12 +513,25 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         r = (-b + (b ** 2 - 4 * a * c)**0.5) / (2 * a)
         print "phi* intersection gauss: {} \pm {}".format(r.nominal_value, r.std_dev)
 
+        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sb_gauss[:, 0], yerr=yerr, order=2)
+        ax11.errorbar(avgz, Sb_gauss[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$', fmt='o',
+                      markersize=15)
+        ax11.plot(z, 1. / fit_fn(z), marker='', linewidth=3, linestyle='--', color=color)
+        a2 = ufloat(fit_params[0], fit_err[0])
+        b2 = ufloat(fit_params[1], fit_err[1])
+        c2 = ufloat(fit_params[2], fit_err[2])
+        # find intersection
+        a, b, c = za1 - a2, zb1 - b2, zc1 - c2
+        r = (-b + (b ** 2 - 4 * a * c) ** 0.5) / (2 * a)
+        print "z* intersection gauss: {} \pm {}".format(r.nominal_value, r.std_dev)
+
         Sb_kde = np.array(Sb_kde)
         # yerr = Sg[:,1]/np.sqrt(histograms_nsamples)
         fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sb_kde[:,0], yerr=yerr, order=2)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sb-kde phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
+        z = np.linspace(4, np.amax(avgz), 1000)
         color = color_cycle.next()
         ax1.errorbar(phi, Sb_kde[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o', markersize=15)
         ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
@@ -518,6 +542,18 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         a, b, c = a1 - a2, b1 - b2, c1 - c2
         r = (-b + (b ** 2 - 4 * a * c) ** 0.5) / (2 * a)
         print "phi* intersection kde: {} \pm {}".format(r.nominal_value, r.std_dev)
+
+        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sb_kde[:, 0], yerr=yerr, order=2)
+        ax11.errorbar(avgz, Sb_kde[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o',
+                      markersize=15)
+        ax11.plot(z, 1. / fit_fn(z), marker='', linewidth=3, linestyle='--', color=color)
+        a2 = ufloat(fit_params[0], fit_err[0])
+        b2 = ufloat(fit_params[1], fit_err[1])
+        c2 = ufloat(fit_params[2], fit_err[2])
+        # find intersection
+        a, b, c = za1 - a2, zb1 - b2, zc1 - c2
+        r = (-b + (b ** 2 - 4 * a * c) ** 0.5) / (2 * a)
+        print "z* intersection kde: {} \pm {}".format(r.nominal_value, r.std_dev)
 
         # fit = np.polyfit(phi[2:], S[2:], 1)
         # fit_fn = np.poly1d(fit)
@@ -533,16 +569,21 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         fig1.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_phi"))
 
         #entropy vs coordination number
-        ax11.errorbar(avgz, Sg[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_G$', fmt='o',
-                      markersize=15)
-        ax11.errorbar(avgz, Sb_gauss[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$',
-                      fmt='o', markersize=15)
-        ax11.errorbar(avgz, Sb_kde[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o',
-                      markersize=15)
-        ax11.set_ylim((12.5, 32.5))
+
+        # ax11.set_ylim((12.5, 32.5))
+        ax11.set_xlim((4, 4.4))
         ax11.locator_params(axis='x', nbins=8)
         ax11.set_ylabel(r"$S$")
         ax11.set_xlabel(r"$\overline{z}$")
+        ax11.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig11.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_z"))
+
+        print "avgz", avgz
+        print "phi", phi
+        print "Sg", Sg[:,0]
+        print "Sb_gauss", Sb_gauss[:,0]
+        print "Sb_kde", Sb_kde[:,0]
 
         #subplots
         # subplots
@@ -570,6 +611,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             rho = np.array(rho)
 
             # ax2.plot(x, rho, marker='o', linestyle='', ms=12, color=color_marker)
+            fig03 = plt.figure()
+            ax31 = fig03.add_subplot(111)
 
             y /= nparticles
             yerr /= nparticles
@@ -590,20 +633,34 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax3.set_ylim((0, 0.11))
             ax3.ticklabel_format(axis='y', style='sci')
 
+            ax31.errorbar(avgz, y, yerr, marker='o', linestyle='', ms=15, color=color_marker, markeredgecolor=color_marker)
+            fit_fn, fit_params, fit_err, rho = poly_fit(avgz, y, yerr=yerr)
+            ax31.plot(avgz, fit_fn(avgz), color=color_fit)
+            glob_z_j, glob_z_j_std = find_roots(fit_params, fit_err)[0]
+            print "1/k(z) = {} z + {}".format(fit_params[0], fit_params[1])
+            print "1/k: z_j: {} \pm {}, beta: {}".format(glob_z_j, glob_z_j_std, fit_params[1])
+            ax31.set_xlabel(r'$\overline{z}$', size=glob_fontsize)
+            ax31.set_ylabel(r'$1/\kappa$', size=glob_fontsize)
+            ax31.locator_params(axis='x', nbins=4)
+            ax31.locator_params(axis='y', nbins=3)
+            ax31.tick_params(axis='both', which='major', labelsize=glob_fontsize)
+            ax31.set_xlim((4, 4.4))
+            ax31.set_ylim((0, 0.11))
+            ax31.ticklabel_format(axis='y', style='sci')
+
             # ax4 = fig.add_subplot(gs[4:, 1])
             fig02 = plt.figure()
             ax4 = fig02.add_subplot(111)
+            fig04 = plt.figure()
+            ax41 = fig04.add_subplot(111)
             ax4.errorbar(x, y2, y2err, marker='o', linestyle='', ms=15, color=color_marker, markeredgecolor=color_marker)
             fit_fn, fit_params, fit_err, rho = poly_fit(x, y2, yerr=yerr)
             ax4.plot(x, fit_fn(x), color=color_fit)
             print "c(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
             a, b = ufloat(fit_params[0], fit_err[0]), ufloat(fit_params[1], fit_err[1])
-            r1 = (1.-b) / a
+            r1 = (2.-b) / a
             phi_c1, phi_c1err = r1.nominal_value, r1.std_dev
             print "c: phi_c1: {} \pm {}, beta: {}".format(phi_c1, phi_c1err, fit_params[1])
-            # label = "intercept = ({:.3f}  \pm  {:.3f})N".format(popt[0], np.sqrt(float(pcov[0])))
-            # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
-            #           columnspacing=0.25, numpoints=1, markerscale=0.5, handlelength=0.4)
             ax4.set_xlabel(r'$\phi$', size=glob_fontsize)
             ax4.set_ylabel(r'$c$', size=glob_fontsize)
             ax4.locator_params(axis='x', nbins=4)
@@ -611,9 +668,44 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax4.tick_params(axis='both', which='major', labelsize=glob_fontsize)
             ax4.set_xlim((phi_min,phi_max))
             ax4.set_ylim((1.7, 2.08))
+
+            ax41.errorbar(avgz, y2, y2err, marker='o', linestyle='', ms=15, color=color_marker,
+                         markeredgecolor=color_marker)
+            fit_fn, fit_params, fit_err, rho = poly_fit(avgz, y2, yerr=yerr)
+            ax41.plot(avgz, fit_fn(avgz), color=color_fit)
+            print "c(z) = {} z + {}".format(fit_params[0], fit_params[1])
+            a, b = ufloat(fit_params[0], fit_err[0]), ufloat(fit_params[1], fit_err[1])
+            r1 = (2. - b) / a
+            z_c1, z_c1err = r1.nominal_value, r1.std_dev
+            print "c: z_c1: {} \pm {}, beta: {}".format(z_c1, z_c1err, fit_params[1])
+            ax41.set_xlabel(r'$\overline{z}$', size=glob_fontsize)
+            ax41.set_ylabel(r'$c$', size=glob_fontsize)
+            ax41.locator_params(axis='x', nbins=4)
+            ax41.locator_params(axis='y', nbins=3)
+            ax41.tick_params(axis='both', which='major', labelsize=glob_fontsize)
+            ax41.set_xlim((4, 4.4))
+            ax41.set_ylim((1.7, 2.08))
+
             fig0.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
             fig01.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp_kappa"))
             fig02.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp_c"))
+            fig03.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp_kappa_z"))
+            fig04.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp_c_z"))
+
+            ax36.scatter(avgz, phi, s=100, color=color_marker)
+            fit_fn, fit_params, fit_err, rho = poly_fit(avgz, phi)
+            x = np.linspace(4,4.4)
+            ax36.plot(x, fit_fn(x), color=color_fit)
+            a, b = ufloat(fit_params[0], fit_err[0]), ufloat(fit_params[1], fit_err[1])
+            r1 = 4.*a + b
+            print "phi = {} z + {}".format(fit_params[0], fit_params[1])
+            print "phi_z_iso: phi_j: {} \pm {}, beta: {}".format(r1.nominal_value, r1.std_dev, fit_params[1])
+            ax36.set_ylabel(r"$\phi$")
+            ax36.set_xlabel(r"$\overline{z}$")
+            ax36.set_xlim((4,4.4))
+            ax36.set_ylim((0.82, 0.865))
+
+            fig36.savefig('{0}/plot_{1}.pdf'.format(figdir, "z_phi"))
 
             x = np.linspace(np.amin(phi), np.amax(phi), 1000)
             y3 = np.array(meanvar_f_list)[:, 0] / dataset.nparticles
