@@ -207,7 +207,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         if rattlers is None:
             atom_labels = range(nparticles)
         else:
-            atom_labels = np.array(range(nparticles))[np.array(rattlers[::self.bdim], ddtype='int') == 1]
+            atom_labels = np.array(range(nparticles))[np.array(rattlers[::self.bdim], dtype='int') == 1]
         for i in atom_labels:
             for j in atom_labels:
                 if j > i:
