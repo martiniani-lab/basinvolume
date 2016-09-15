@@ -65,7 +65,7 @@ def collect_data_every_set_all(workspace=None,
     return datasets
 
 class DataPlot(object):
-    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, prob_min=0.05, bdim=2,
+    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, contacts_all, prob_min=0.05, bdim=2,
                  nparticles=64):
         self.psuccess = np.array(psuccess)
         self.phi_ss = np.array(phi_ss)
@@ -74,6 +74,7 @@ class DataPlot(object):
         self.energy = np.array(energy)[self.psuccess > prob_min]
         self.pressure = np.array(pressure)[self.psuccess > prob_min]
         self.contacts = np.array(contacts)[self.psuccess > prob_min]
+        self.contacts_all = np.array(contacts_all)[self.psuccess > prob_min]
         self.bdim = bdim
         self.nparticles = nparticles
         self.bw = []
@@ -129,12 +130,13 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2):
     energy = []
     pressure = []
     contacts = []
+    contacts_all = []
     phi_ss = np.unique([dataset.phi_ss for dataset in sorted(datasets, key=lambda data: data.phi_ss)])
     phi_ss = phi_ss[phi_ss < phi_max]
     bdim = bdim
     for phi_ in phi_ss:
         success_, nrattlers_, energy_ = [], [], []
-        pressure_, contacts_ = [], []
+        pressure_, contacts_, contacts_all_ = [], [], []
         for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
             if phi_ == dataset.phi_ss:
                 tmp = np.array(dataset.success, dtype='int')
@@ -147,6 +149,7 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2):
                         energy_.append(data.energy)
                         pressure_.append(data.pressure)
                         contacts_.append(np.mean(data.Z))
+                        contacts_all_.append(data.Z)
                     else:
                         tmp[np.argmax(tmp > 0)] = 0
                 success_.extend(tmp)
@@ -157,7 +160,8 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2):
         energy.append(energy_)
         pressure.append(pressure_)
         contacts.append(contacts_)
-    return psuccess, phi_ss, nrattlers, energy, pressure, contacts
+        contacts_all.append(contacts_all_)
+    return psuccess, phi_ss, nrattlers, energy, pressure, contacts, contacts_all
 
 def plot(figdir="figures", bdim=2, nparticles=64):
     figdir = os.path.join(os.getcwd(), figdir)
@@ -174,13 +178,13 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         dp = pickle.load(open(path, "rb"))
     except Exception, e:
         datasets = collect_data_every_set_all()
-        psuccess, phi_ss, nrattlers, energy, pressure, contacts = collect_data_plot(datasets)
-        dp = DataPlot(psuccess, phi_ss, nrattlers, energy, pressure, contacts, bdim=bdim, nparticles=nparticles)
+        psuccess, phi_ss, nrattlers, energy, pressure, contacts, contacts_all = collect_data_plot(datasets)
+        dp = DataPlot(psuccess, phi_ss, nrattlers, energy, pressure, contacts, contacts_all, bdim=bdim, nparticles=nparticles)
         dp.compute_stats()
         pickle.dump(dp, open("findjstats.pickle", "wb"))
 
-    psuccess, phi_ss, phi_ss_packed =  dp.psuccess, dp.phi_ss, dp.phi_ss_packed
-    nrattlers, energy, pressure, contacts = dp.nrattlers, dp.energy, dp.pressure, dp.contacts
+    psuccess, phi_ss, phi_ss_packed, nrattlers =  dp.psuccess, dp.phi_ss, dp.phi_ss_packed, dp.nrattlers
+    energy, pressure, contacts_mean, contacts_all = dp.energy, dp.pressure, dp.contacts, dp.contacts_all
     assert dp.initialized == True
     log_pdf, log_pdf_x, logp_mean, logp_var = dp.log_pdf, dp.log_pdf_x, dp.logp_mean, dp.logp_var
     p_mean, p_var, p_rel_var, logp_mode = dp.p_mean, dp.p_var, dp.p_rel_var, dp.logp_mode
@@ -190,16 +194,24 @@ def plot(figdir="figures", bdim=2, nparticles=64):
     if True:
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(phi_ss, np.array(psuccess), marker='o', rasterized=True)
+        ax.plot(phi_ss, np.array(psuccess), marker='o', linestyle='', rasterized=True)
+        spl = UnivariateSpline(phi_ss, psuccess, bbox=[phi_ss[0], phi_ss[-1]], s=7.5e-4, k=3)
+        pickle.dump(spl, open(os.path.join(os.getcwd(), "phi_psuccess_spline.pickle"), "wb"))
+        phi_ss_spl = np.linspace(phi_ss[0], phi_ss[-1], 1000)
+        ax.plot(phi_ss_spl, spl(phi_ss_spl), marker='', linestyle='-', rasterized=True)
         ax.set_xlim([phi_ss[0],phi_ss[-1]])
         ax.set_xlabel(r"$\phi$")
         ax.set_ylabel(r"$p_{pack}$")
         fig.savefig("{}/{}".format(figdir, "phi_ppack.pdf"))
 
-    if False:
+    if True:
         fig1 = plt.figure()
         ax1 = fig1.add_subplot(111)
         ax1.plot(phi_ss_packed, np.array(nrattlers), marker='o', rasterized=True)
+        spl = UnivariateSpline(phi_ss_packed, nrattlers, bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=0.05, k=3)
+        pickle.dump(spl, open(os.path.join(os.getcwd(), "phi_nrattlers_spline.pickle"), "wb"))
+        phi_ss_spl = np.linspace(phi_ss_packed[0], phi_ss_packed[-1], 1000)
+        ax1.plot(phi_ss_spl, spl(phi_ss_spl), marker='', linestyle='-', rasterized=True)
         ax1.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
         ax1.set_xlabel(r"$\phi$")
         ax1.set_ylabel(r"$n_{rattlers}$")
@@ -239,13 +251,13 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax2.set_ylabel(r"$\ln(P)$")
         fig2.savefig("{}/{}".format(figdir, "lnE_lnP.pdf"))
 
-    if False:
+    if True:
         fig3 = plt.figure()
         ax3 = fig3.add_subplot(111)
         color = get_color_cycle(ncolors=len(pressure))
-        for i, (p, z) in enumerate(zip(pressure, contacts)):
+        for i, (p, z) in enumerate(zip(pressure, contacts_mean)):
             assert len(p) == len(z)
-            ax3.scatter(np.log(p), np.log(z), color=color.next(), rasterized=True)
+            ax3.scatter(np.log(p), z, color=color.next(), rasterized=True)
         ax3.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax3.set_xlabel(r"$\ln(P)$")

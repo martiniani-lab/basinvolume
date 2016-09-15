@@ -29,6 +29,7 @@ from cycler import cycler
 from scipy.stats.stats import pearsonr
 from uncertainties import ufloat
 from uncertainties import umath
+import uncertainties.unumpy as unp
 # except ImportError as err:
 #     print err
 #######################SET LATEX OPTIONS###################
@@ -137,8 +138,8 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
 
 def remove_outliers_cluster(x,y,yerr):
     x, y = np.asarray(x), np.asarray(y)
-    y_outliers = OutlierDetection(y, p=0.5, D=3 * np.std(y))
-    x_outliers = OutlierDetection(x, p=0.5, D=3 * np.std(x))
+    y_outliers = OutlierDetection(y, p=0.5, D=4 * np.std(y))
+    x_outliers = OutlierDetection(x, p=0.5, D=4 * np.std(x))
     non_outliers_indexes = list(set(y_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes))
     x = np.array(x)[np.array(non_outliers_indexes, dtype="i")]
     y = np.array(y)[np.array(non_outliers_indexes, dtype="i")]
@@ -204,7 +205,7 @@ def lmms_fit(x, y, support_fraction=0.9):
     # https://stats.stackexchange.com/questions/44838/how-are-the-standard-errors-of-coefficients-calculated-in-a-regression
     err = mserr**2 * np.array([[np.sum(x**2), -np.sum(x)],[-np.sum(x), x.size]]) / (x.size * np.sum(x**2) - np.sum(x)**2)
     fit_err = np.sqrt(np.diag(err))
-    return fit_fn, (m, interc), fit_err, robust_rho
+    return fit_fn, (m, interc), fit_err[::-1], robust_rho
 
 def robust_mean_var(x, y, support_fraction=0.9):
     x, y = np.asarray(x), np.asarray(y)
@@ -298,8 +299,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                                     phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
                     #should remoe both outliers in pressure and in volume
-                    p_raw, f_raw, ferr_raw = remove_outliers_cluster(np.log(dataset.pressures), dataset.free_energies,
-                                                                     dataset.free_energies_err)
+                    p_raw, f_raw, ferr_raw = remove_outliers_cluster(np.log(dataset.pressures), np.array(dataset.free_energies),
+                                                                     np.array(dataset.free_energies_err))
+                    print dataset.ss_phi, " cluster 4s n_outliers: ", np.array(dataset.free_energies).size - f_raw.size
                     #fix units
                     p_raw, f_raw = p_raw+np.log(np.pi), f_raw + nparticles * np.log(np.pi) #DEBUG: here I supposedly adjust the units, check this
                     Facc += nparticles * np.log(np.pi) #DEBUG: check here too
@@ -327,8 +329,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     meanvar_pi_list.append([mean_p, var_p])
                     cov_f_pi_list.append(cov)
                     logl_list.append(logl)
-
-                    Sg.append([mean_f - Facc - log_factorial(nparticles), np.sqrt(var_f)])
+                    pjam_spline = pickle.load(open("phi_psuccess_spline.pickle", "rb"))
+                    u = ufloat(mean_f, np.sqrt(var_f/f.size))
+                    s = u - Facc + np.log(pjam_spline(dataset.ss_phi)) - log_factorial(nparticles)
+                    Sg.append([s.nominal_value, s.std_dev])
                     # S.append(- Facc - log_factorial(dataset.nparticles))
                     phi.append(dataset.ss_phi)
                     avgz.append(np.mean(dataset.contacts))
@@ -355,34 +359,56 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     kde_integral, kde_integral_error = integrate.quad(kdefunc,
                                                                       Facc, np.amax(f) * 100,
                                                                       points=[np.amin(f), np.amax(f), np.mean(f)])
-                    var = ufloat(kde_integral, kde_integral_error)
-                    s = umath.log(var) - Facc - log_factorial(nparticles)
+                    u = ufloat(kde_integral, np.sqrt(np.var(np.exp(f))/f.size))
+                    s = umath.log(u) - Facc + np.log(pjam_spline(dataset.ss_phi)) - log_factorial(nparticles)
                     Sb_kde.append([s.nominal_value, s.std_dev])
                     # fit to generalised gaussian
+
+                    # np.random.seed(42)
+                    # n_resample = 20
+                    # n = 0
+                    # fintegral_list = []
+                    # while n < n_resample:
+                    #     generalised_gauss = GeneralisedGauss(alpha_min=0.00001, zeta_min=0.1)
+                    #     cdf = CDFAccumulator()
+                    #     idx = np.random.choice(f.size, f.size)
+                    #     _, f_resampled, _ = remove_outliers_mcd(p_raw[idx], f_raw[idx], ferr_raw[idx])
+                    #     cdf.add_array(f_resampled)
+                    #     x, cdf_x = cdf.get_vecdata()
+                    #     generalised_gauss.fit_cdf(x, cdf_x)
+                    #     # compute boltzmann entropy from generalised gaussian
+                    #     fintegral, fintegral_error = integrate.quad(generalised_gauss.get_fitted_times_expx,
+                    #                                                 Facc, np.amax(f_resampled) * 100,
+                    #                                                 points=[np.amin(f_resampled),
+                    #                                                         np.amax(f_resampled), np.mean(f_resampled)])
+                    #     print fintegral, fintegral_error
+                    #     if np.isfinite(fintegral) and fintegral_error < 1e55:
+                    #         fintegral_list.append(fintegral)
+                    #         n += 1
                     generalised_gauss = GeneralisedGauss(alpha_min=0.00001, zeta_min=0.1)
                     cdf = CDFAccumulator()
                     cdf.add_array(f)
                     x, cdf_x = cdf.get_vecdata()
                     generalised_gauss.fit_cdf(x, cdf_x)
-                    print "mu: ", generalised_gauss.mu_fit
-                    print "alpha: ", generalised_gauss.alpha_fit
-                    print "zeta: ", generalised_gauss.zeta_fit
-                    hist = np.array([generalised_gauss.get_fitted(edge) for edge in edges])
-                    ax3.plot(edges, hist, linestyle='--', color=color, linewidth=3)
                     # compute boltzmann entropy from generalised gaussian
                     fintegral, fintegral_error = integrate.quad(generalised_gauss.get_fitted_times_expx,
                                                                 Facc, np.amax(f) * 100,
-                                                                points=[np.amin(f), np.amax(f), np.mean(f)])
-                    var = ufloat(fintegral, fintegral_error)
-                    s = umath.log(var) - Facc - log_factorial(nparticles)
+                                                                points=[np.amin(f),
+                                                                        np.amax(f), np.mean(f)])
+                    u = ufloat(fintegral, np.sqrt(np.var(np.exp(f))/f.size))
+                    s = umath.log(u) - Facc + np.log(pjam_spline(dataset.ss_phi)) - log_factorial(nparticles)
                     Sb_gauss.append([s.nominal_value, s.std_dev])
-                    # mean_func = lambda x : generalised_gauss.get_fitted_times_expx(x)*x/integral
+                    hist = np.array([generalised_gauss.get_fitted(edge) for edge in edges])
+                    ax3.plot(edges, hist, linestyle='--', color=color, linewidth=3)
+
+                    # mean_func = lambda x: generalised_gauss.get_fitted_times_expx(x) * x / fintegral
                     # mean, mean_error = integrate.quad(mean_func, Facc, np.amax(f) * 100,
-                    #                                       points=[np.amin(f), np.amax(f), np.mean(f)])
-                    # var_func = lambda x : generalised_gauss.get_fitted_times_expx(x)*(x-mean)**2/integral
-                    # var, var_error = integrate.quad(var_func, Facc, np.amax(f) * 100,
-                    #                                      points=[np.amin(f), np.amax(f), np.mean(f)])
-                    # meanvar_f_u_list.append([mean, var])
+                    #                                   points=[np.amin(f), np.amax(f), np.mean(f)])
+                    # var_func = lambda x: generalised_gauss.get_fitted_times_expx(x) * ((x - mean) ** 2) / fintegral
+                    # fvar, fvar_error = integrate.quad(var_func, Facc, np.amax(f) * 100,
+                    #                                   points=[np.amin(f), np.amax(f), np.mean(f)])
+                    # print "fvar", fvar
+                    # meanvar_f_u_list.append([mean, fvar])
 
                     # f: fit weighted kde
                     hist = kdehist*np.exp(edges)/kde_integral
@@ -474,8 +500,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # assume that error in entropy is proportional to standard error of the mean for all of them
         phi_star = 0.823
         Sg = np.array(Sg)
-        yerr = Sg[:,1]/np.sqrt(histograms_nsamples)
-        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sg[:,0], yerr=yerr, order=2)
+        uSg = unp.uarray(Sg[:,0], Sg[:,1])
+        yerr = Sg[:,1]
+        iyerr = unp.std_devs(1./uSg)
+        print iyerr
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sg[:,0], yerr=iyerr, order=2)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sg phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
@@ -487,7 +516,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         a1 = ufloat(fit_params[0], fit_err[0])
         b1 = ufloat(fit_params[1], fit_err[1])
         c1 = ufloat(fit_params[2], fit_err[2])
-        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sg[:, 0], yerr=yerr, order=2)
+        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sg[:, 0], yerr=iyerr, order=2)
         ax11.errorbar(avgz, Sg[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_G$', fmt='o',
                       markersize=15)
         ax11.plot(z, 1. / fit_fn(z), marker='', linewidth=3, linestyle='--', color=color)
@@ -496,8 +525,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         zc1 = ufloat(fit_params[2], fit_err[2])
 
         Sb_gauss = np.array(Sb_gauss)
-        # yerr = Sg[:,1]/np.sqrt(histograms_nsamples)
-        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sb_gauss[:,0], yerr=yerr, order=2)
+        uSb = unp.uarray(Sb_gauss[:, 0], Sb_gauss[:, 1])
+        yerr = Sb_gauss[:, 1]
+        iyerr = unp.std_devs(1. / uSb)
+        print iyerr
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sb_gauss[:,0], yerr=iyerr, order=2)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sb-gauss phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
@@ -513,7 +545,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         r = (-b + (b ** 2 - 4 * a * c)**0.5) / (2 * a)
         print "phi* intersection gauss: {} \pm {}".format(r.nominal_value, r.std_dev)
 
-        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sb_gauss[:, 0], yerr=yerr, order=2)
+        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sb_gauss[:, 0], yerr=iyerr, order=2)
         ax11.errorbar(avgz, Sb_gauss[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$', fmt='o',
                       markersize=15)
         ax11.plot(z, 1. / fit_fn(z), marker='', linewidth=3, linestyle='--', color=color)
@@ -526,8 +558,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         print "z* intersection gauss: {} \pm {}".format(r.nominal_value, r.std_dev)
 
         Sb_kde = np.array(Sb_kde)
-        # yerr = Sg[:,1]/np.sqrt(histograms_nsamples)
-        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sb_kde[:,0], yerr=yerr, order=2)
+        uSb = unp.uarray(Sb_kde[:, 0], Sb_kde[:, 1])
+        yerr = Sb_kde[:, 1]
+        iyerr = unp.std_devs(1. / uSb)
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sb_kde[:,0], yerr=iyerr, order=2)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sb-kde phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
@@ -543,7 +577,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         r = (-b + (b ** 2 - 4 * a * c) ** 0.5) / (2 * a)
         print "phi* intersection kde: {} \pm {}".format(r.nominal_value, r.std_dev)
 
-        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sb_kde[:, 0], yerr=yerr, order=2)
+        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sb_kde[:, 0], yerr=iyerr, order=2)
         ax11.errorbar(avgz, Sb_kde[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o',
                       markersize=15)
         ax11.plot(z, 1. / fit_fn(z), marker='', linewidth=3, linestyle='--', color=color)
