@@ -65,7 +65,7 @@ def collect_data_every_set_all(workspace=None,
     return datasets
 
 class DataPlot(object):
-    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, contacts_all, prob_min=0.05, bdim=2,
+    def __init__(self, psuccess, phi_ss, nrattlers, energy, pressure, contacts, contacts_all, prob_min=0.01, bdim=2,
                  nparticles=64):
         self.psuccess = np.array(psuccess)
         self.phi_ss = np.array(phi_ss)
