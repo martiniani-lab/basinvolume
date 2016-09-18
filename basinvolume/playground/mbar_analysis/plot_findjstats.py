@@ -251,7 +251,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax2.set_ylabel(r"$\ln(P)$")
         fig2.savefig("{}/{}".format(figdir, "lnE_lnP.pdf"))
 
-    if True:
+    if False:
         fig3 = plt.figure()
         ax3 = fig3.add_subplot(111)
         color = get_color_cycle(ncolors=len(pressure))
@@ -263,6 +263,35 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax3.set_xlabel(r"$\ln(P)$")
         ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
         fig3.savefig("{}/{}".format(figdir, "lnP_lnZ.pdf"))
+
+    if True:
+        import itertools
+        fig31 = plt.figure()
+        ax31 = fig31.add_subplot(111)
+        y = [[item for sublist in x for item in sublist] for x in contacts_all]
+        yy = list(itertools.chain(*y))
+        color = get_color_cycle(ncolors=int(np.amax(yy)))
+        for i in xrange(int(np.amin(yy)),int(np.amax(yy))):
+            yy = np.array([np.sum(np.array(x) == i)/len(x) for x in y])
+            ax31.plot(phi_ss_packed, yy, color=color.next(), linestyle='-', marker='o', label='Z={}'.format(i))
+        # for i, x in enumerate(contacts_all):
+        #     label = "{}".format(phi_ss_packed[i])
+        #     xx = [item for sublist in x for item in sublist]
+        #     hist, bin_edges = np.histogram(xx, bins=np.unique(xx), density=True)
+        #     ax31.plot(bin_edges[:-1], hist, color=color.next(), linestyle='-', marker='o')
+        ax31.set_ylim((0,0.5))
+        ax31.set_ylabel(r'$n_{Z}/n$')
+        ax31.set_xlabel(r'$\phi$')
+        ax31.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig31.savefig("{}/{}".format(figdir, "Zhist.pdf"))
+
+    if True:
+        fig32 = plt.figure()
+        ax32 = fig32.add_subplot(111)
+        y = [[item for sublist in x for item in sublist] for x in contacts_all]
+        ax32.plot(phi_ss_packed, [np.mean(x) for x in y], color=color.next(), linestyle='-', marker='o')
+        fig32.savefig("{}/{}".format(figdir, "phi_meanZ.pdf"))
 
     if True:
         fig4 = plt.figure()
@@ -380,6 +409,33 @@ def plot_all(figdir="figures", bdim=2):
 
     def ff(x, a, b):
         return a * x + b
+
+    if True:
+        fig0 = plt.figure()
+        ax0 = fig0.add_subplot(111)
+        fig01 = plt.figure()
+        ax01 = fig01.add_subplot(111)
+        color_cycle = get_color_cycle(ncolors=len(datasets))
+        for i,dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
+            color = color_cycle.next()
+            phi_ss_packed, psuccess = dp.phi_ss_packed, dp.psuccess
+            contacts_all = dp.contacts_all
+            y = [[item for sublist in x for item in sublist] for x in contacts_all]
+            ax0.plot(phi_ss_packed, [np.mean(x) for x in y], color=color, linestyle='-', marker='o',
+                     label=nparticles[i], rasterized=True)
+            ax01.plot(phi_ss_packed, [np.std(x) for x in y], color=color, linestyle='-', marker='o',
+                      label=nparticles[i], rasterized=True)
+        ax0.set_xlabel(r'$\phi$')
+        ax0.set_ylabel(r'$\langle Z \rangle_{\mathcal{B}}$')
+        ax0.set_ylim((4,4.5))
+        ax0.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig0.savefig("{}/{}".format(figdir, "phi_meanZ_all.pdf"))
+        ax01.set_xlabel(r'$\phi$')
+        ax01.set_ylabel(r'$\sigma_{\mathcal{B}}(Z)$')
+        ax01.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig01.savefig("{}/{}".format(figdir, "phi_stdZ_all.pdf"))
 
     if True:
         phi_max = 0.85
