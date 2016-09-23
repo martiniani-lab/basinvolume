@@ -202,12 +202,12 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax.set_xlim([phi_ss[0],phi_ss[-1]])
         ax.set_xlabel(r"$\phi$")
         ax.set_ylabel(r"$p_{pack}$")
-        fig.savefig("{}/{}".format(figdir, "phi_ppack.pdf"))
+        fig.savefig("{}/{}".format(figdir, "phi_ppack{}.pdf".format(nparticles)))
 
     if True:
         fig1 = plt.figure()
         ax1 = fig1.add_subplot(111)
-        ax1.plot(phi_ss_packed, np.array(nrattlers), marker='o', rasterized=True)
+        ax1.plot(phi_ss_packed, np.array(nrattlers), marker='o', linestyle='', rasterized=True)
         spl = UnivariateSpline(phi_ss_packed, nrattlers, bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=0.05, k=3)
         pickle.dump(spl, open(os.path.join(os.getcwd(), "phi_nrattlers_spline.pickle"), "wb"))
         phi_ss_spl = np.linspace(phi_ss_packed[0], phi_ss_packed[-1], 1000)
@@ -215,7 +215,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax1.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
         ax1.set_xlabel(r"$\phi$")
         ax1.set_ylabel(r"$n_{rattlers}$")
-        fig1.savefig("{}/{}".format(figdir, "phi_nrattlers.pdf"))
+        fig1.savefig("{}/{}".format(figdir, "phi_nrattlers{}.pdf".format(nparticles)))
 
     if True:
         fig2 = plt.figure()
@@ -249,7 +249,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax2.set_xlabel(r"$\ln(E)$")
         ax2.set_ylabel(r"$\ln(P)$")
-        fig2.savefig("{}/{}".format(figdir, "lnE_lnP.pdf"))
+        fig2.savefig("{}/{}".format(figdir, "lnE_lnP{}.pdf".format(nparticles)))
 
     if False:
         fig3 = plt.figure()
@@ -262,7 +262,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax3.set_xlabel(r"$\ln(P)$")
         ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
-        fig3.savefig("{}/{}".format(figdir, "lnP_lnZ.pdf"))
+        fig3.savefig("{}/{}".format(figdir, "lnP_lnZ{}.pdf".format(nparticles)))
 
     if True:
         import itertools
@@ -280,18 +280,28 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         #     hist, bin_edges = np.histogram(xx, bins=np.unique(xx), density=True)
         #     ax31.plot(bin_edges[:-1], hist, color=color.next(), linestyle='-', marker='o')
         ax31.set_ylim((0,0.5))
-        ax31.set_ylabel(r'$n_{Z}/n$')
+        ax31.set_ylabel(r'$N_{Z}/N$')
         ax31.set_xlabel(r'$\phi$')
+        ax31.set_xlim((0.81,0.87))
         ax31.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        fig31.savefig("{}/{}".format(figdir, "Zhist.pdf"))
+        fig31.savefig("{}/{}".format(figdir, "Zhist{}.pdf".format(nparticles)))
 
     if True:
         fig32 = plt.figure()
         ax32 = fig32.add_subplot(111)
         y = [[item for sublist in x for item in sublist] for x in contacts_all]
-        ax32.plot(phi_ss_packed, [np.mean(x) for x in y], color=color.next(), linestyle='-', marker='o')
-        fig32.savefig("{}/{}".format(figdir, "phi_meanZ.pdf"))
+        color = get_color_cycle(ncolors=2).next()
+        ax32.plot(phi_ss_packed, [np.mean(x) for x in y], color=color, linestyle='', marker='o')
+        spl = UnivariateSpline(phi_ss_packed, [np.mean(x) for x in y],
+                                   bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=5e-4, k=1)
+        pickle.dump(spl, open(os.path.join(os.getcwd(), "phi_meanZ_spline.pickle"), "wb"))
+        pickle.dump(np.array([phi_ss_packed, [np.mean(x) for x in y]]), open(os.path.join(os.getcwd(), "phi_meanZ_data.pickle"), "wb"))
+        phi_ss_spl = np.linspace(0.81, phi_ss_packed[-1], 1000)
+        ax32.plot(phi_ss_spl, spl(phi_ss_spl), marker='', linestyle='-', color=color, rasterized=True)
+        ax32.set_ylabel(r'$\langle z \rangle_{\mathcal{B}}$')
+        ax32.set_xlabel(r'$\phi$')
+        fig32.savefig("{}/{}".format(figdir, "phi_meanZ{}.pdf".format(nparticles)))
 
     if True:
         fig4 = plt.figure()
@@ -304,7 +314,8 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax52 = fig52.add_subplot(111)
         ax522 = ax52.twinx()
         color_cycle = get_color_cycle(ncolors=phi_ss_packed.size)
-        ikappa = lambda phi : 1.79473551963 * phi - 1.45331466838
+        ikappa = lambda phi : 2.71431676132 * phi - 2.23776770087
+        c = lambda phi: -7.25204514516 * phi + 6.92383942465
         v_mean_bias, v_mean = [], []
         v_var_bias, v_var = [], []
         for i in xrange(phi_ss_packed.size):
@@ -317,17 +328,18 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             ax4.plot(log_pdf_x[i]-log_maxp, np.exp(log_pdf[i]), color=color, label=label, rasterized=True)
             ax5.plot(log_pdf_x[i]-log_maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label, rasterized=True)
 
-            bias = np.exp(np.log(pressure[i]) * ikappa(phi_ss_packed[i]))
-            y = 1./bias
+            # bias = 1./np.exp(np.log(pressure[i]) * ikappa(phi_ss_packed[i]) + c(phi_ss_packed[i]))
+            print "len pressure ", len(pressure[i])
+            y = np.log(pressure[i]) * ikappa(phi_ss_packed[i]) + c(phi_ss_packed[i])
+            # bias = np.exp(y)
+            y = -y
             mu_B, sig_B = np.mean(y), np.var(y)
-            mu_U = np.average(y, weights=bias/np.sum(bias))
-            sig_U = np.average((y-mu_U)**2, weights=bias/np.sum(bias))
-            rel_dmu = 2*np.abs(mu_U - mu_B)/(np.abs(mu_B)+np.abs(mu_U))
-            rel_dsig = 2*np.abs(sig_U-sig_B)/(np.abs(sig_B)+np.abs(sig_U))
+            # mu_U = np.average(y, weights=bias)
+            # sig_U = np.average((y-mu_U)**2, weights=bias)
             v_mean_bias.append(mu_B)
             v_var_bias.append(sig_B)
-            v_mean.append(mu_U)
-            v_var.append(sig_U)
+            # v_mean.append(mu_U)
+            # v_var.append(sig_U)
             ax52.plot(phi_ss_packed[i], np.mean(np.log(pressure[i]))*ikappa(phi_ss_packed[i]), color=color, marker='o', linestyle='',
                       rasterized=True)
             ax522.plot(phi_ss_packed[i], np.var(np.log(pressure[i])), color=color, marker='^',
@@ -338,14 +350,13 @@ def plot(figdir="figures", bdim=2, nparticles=64):
                   rasterized=True, label=r"$E_B(v)$")
         ax43.plot(phi_ss_packed, v_var_bias, color='r', marker='o', linestyle='',
                   rasterized=True, label=r"$Var_B(v)$")
-        ax42.plot(phi_ss_packed, v_mean, color='b', marker='^', linestyle='',
-                  rasterized=True, label=r"$E_U(v)$")
-        ax43.plot(phi_ss_packed, v_var, color='r', marker='^', linestyle='',
-                  rasterized=True, label=r"$Var_U(v)$")
-        # ax42.set_yscale('log')
+        # ax42.plot(phi_ss_packed, v_mean, color='b', marker='^', linestyle='',
+        #           rasterized=True, label=r"$E_U(v)$")
+        # ax43.plot(phi_ss_packed, v_var, color='r', marker='^', linestyle='',
+        #           rasterized=True, label=r"$Var_U(v)$")
         ax42.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax43.legend(frameon=False, loc=0, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax43.legend(frameon=False, loc=3, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
         ax4.set_ylabel(r"$pdf/\max(pdf)$")
@@ -357,10 +368,10 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax522.set_ylabel(r"$\sigma_{\Lambda}^2$")
         ax52.set_xlabel(r"$\phi$")
         # ax52.set_yscale('log')
-        fig4.savefig("{}/{}".format(figdir, "lnP_pdf.pdf"))
-        fig42.savefig("{}/{}".format(figdir, "muv_varv.pdf"))
-        fig5.savefig("{}/{}".format(figdir, "lnP_lnpdf.pdf"))
-        fig52.savefig("{}/{}".format(figdir, "muP_kappa.pdf"))
+        fig4.savefig("{}/{}".format(figdir, "lnP_pdf{}.pdf".format(nparticles)))
+        fig42.savefig("{}/{}".format(figdir, "muv_varv{}.pdf".format(nparticles)))
+        fig5.savefig("{}/{}".format(figdir, "lnP_lnpdf{}.pdf".format(nparticles)))
+        fig52.savefig("{}/{}".format(figdir, "muP_kappa{}.pdf".format(nparticles)))
 
 
     def ff(x, a, b):
@@ -395,9 +406,9 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         # ax6.plot(logx, ff(logx, popt[0], popt[1]), color=color, linewidth=2)
         # print "({}+/-{}) x + ({}+/-{})".format(popt[0], fit_err[0], popt[1], fit_err[1])
 
-        ax6.set_xlabel(r"$|1-\phi/\phi_0|$")
+        ax6.set_xlabel(r"$|1-\phi/\phi_c^{(N)}|$")
         ax6.set_ylabel(r"$\sigma^2_{\Lambda}$")
-        fig6.savefig("{}/{}".format(figdir, "phi_varlnP.pdf"))
+        fig6.savefig("{}/{}".format(figdir, "phi_varlnP{}.pdf".format(nparticles)))
 
 def plot_all(figdir="figures", bdim=2):
     figdir = os.path.join(os.getcwd(), figdir)
@@ -421,9 +432,13 @@ def plot_all(figdir="figures", bdim=2):
             phi_ss_packed, psuccess = dp.phi_ss_packed, dp.psuccess
             contacts_all = dp.contacts_all
             y = [[item for sublist in x for item in sublist] for x in contacts_all]
-            ax0.plot(phi_ss_packed, [np.mean(x) for x in y], color=color, linestyle='-', marker='o',
+            ax0.plot(phi_ss_packed, [np.mean(x) for x in y], color=color, linestyle='', marker='o',
                      label=nparticles[i], rasterized=True)
-            ax01.plot(phi_ss_packed, [np.std(x) for x in y], color=color, linestyle='-', marker='o',
+            spl = UnivariateSpline(phi_ss_packed, [np.mean(x) for x in y],
+                                   bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=5e-4, k=1)
+            phi_ss_spl = np.linspace(0.81, 0.87, 1000)
+            ax0.plot(phi_ss_spl, spl(phi_ss_spl), marker='', linestyle='-', color=color, rasterized=True)
+            ax01.plot(phi_ss_packed, [np.var(x) for x in y], color=color, linestyle='-', marker='o',
                       label=nparticles[i], rasterized=True)
         ax0.set_xlabel(r'$\phi$')
         ax0.set_ylabel(r'$\langle Z \rangle_{\mathcal{B}}$')
@@ -432,7 +447,7 @@ def plot_all(figdir="figures", bdim=2):
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig0.savefig("{}/{}".format(figdir, "phi_meanZ_all.pdf"))
         ax01.set_xlabel(r'$\phi$')
-        ax01.set_ylabel(r'$\sigma_{\mathcal{B}}(Z)$')
+        ax01.set_ylabel(r'$\sigma^2_{\mathcal{B}}(Z)$')
         ax01.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig01.savefig("{}/{}".format(figdir, "phi_stdZ_all.pdf"))
@@ -441,16 +456,19 @@ def plot_all(figdir="figures", bdim=2):
         phi_max = 0.85
         fig = plt.figure()
         ax = fig.add_subplot(111)
+        fig02 = plt.figure()
+        ax02 = fig02.add_subplot(111)
         yder_max = []
         yspl_mid = []
         yspl_list, yder_list = [], []
         phi_ss_all = np.hstack([dp.phi_ss for dp in datasets])
         xspl = np.linspace(np.amin(phi_ss_all), phi_max, 300, endpoint=True)
         color_cycle = get_color_cycle(ncolors=len(datasets))
-        for dp in sorted(datasets, key=lambda data: data.nparticles):
+        for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
             color = color_cycle.next()
             phi_ss, psuccess = dp.phi_ss[dp.phi_ss<phi_max], dp.psuccess[dp.phi_ss<phi_max]
-            ax.plot(phi_ss, np.array(psuccess), marker='o', linestyle='None', color=color, rasterized=True)
+            phi_ss_packed, nrattlers = dp.phi_ss_packed, dp.nrattlers
+            ax.plot(phi_ss, np.array(psuccess), marker='o', linestyle='', color=color, rasterized=True)
             # tck = splrep(phi_ss, psuccess, s=1e-3, k=3)
             # ynew = splev(xspl, tck, der=0)
             spl = UnivariateSpline(phi_ss, psuccess, bbox=[phi_ss[0], phi_ss[-1]], s=7.5e-4, k=3)
@@ -463,10 +481,20 @@ def plot_all(figdir="figures", bdim=2):
             ax.plot(xspl, yder/np.amax(yder), marker='None', linestyle='--', color=color, rasterized=True)
             yder_max.append(xspl[np.argmax(yder)])
             yspl_mid.append(xspl[np.argmin(np.abs(ynew-0.5))])
+            # nrattlers plot all
+            ax02.plot(phi_ss_packed, np.array(nrattlers)/nparticles[i], marker='o', linestyle='', color=color, rasterized=True)
+            spl = UnivariateSpline(phi_ss_packed, np.array(nrattlers)/nparticles[i], bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=0.05, k=3)
+            phi_ss_spl = np.linspace(phi_ss_packed[0], phi_ss_packed[-1], 1000)
+            ax02.plot(phi_ss_spl, spl(phi_ss_spl), marker='', linestyle='-', color=color, rasterized=True)
+            ax02.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
         ax.set_xlim([phi_ss[0], phi_ss[-1]])
         ax.set_xlabel(r"$\phi$")
         ax.set_ylabel(r"$p_{pack}$")
         fig.savefig("{}/{}".format(figdir, "phi_ppack_all.pdf"))
+        ax02.set_xlabel(r"$\phi$")
+        ax02.set_ylabel(r"$N_{r}/N$")
+        ax02.set_xlim((0.81,0.87))
+        fig02.savefig("{}/{}".format(figdir, "phi_nrattlers_all.pdf"))
 
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
@@ -478,16 +506,16 @@ def plot_all(figdir="figures", bdim=2):
         popt, pcov = curve_fit(ff, x, np.log(yder_max), absolute_sigma=True)
         fit_err = np.sqrt(np.diag(pcov))
         ax2.plot(xnew, ff(xnew, popt[0], popt[1]), color=color, linewidth=2,
-                 label="dermax: : ln(phi) = {:.3f} ln(N) {:.3f}".format(popt[0], popt[1]), rasterized=True)
+                 label="dermax: : ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(popt[0], popt[1]), rasterized=True)
         color = color_cycle.next()
         ax2.plot(x, np.log(yspl_mid), marker='o', linestyle='None', color=color, rasterized=True)
         popt, pcov = curve_fit(ff, x, np.log(yspl_mid), absolute_sigma=True)
         fit_err = np.sqrt(np.diag(pcov))
         ax2.plot(xnew, ff(xnew, popt[0], popt[1]), color=color, linewidth=2,
-                 label="midpoint: ln(phi) = {:.3f} ln(N) {:.3f}".format(popt[0], popt[1]), rasterized=True)
+                 label="midpoint: ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(popt[0], popt[1]), rasterized=True)
         ax2.set_xlabel(r"$\ln(N^{1/2})$")
-        ax2.legend(frameon=False, loc='best', prop={'size':glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax2.legend(frameon=False, loc='best', prop={'size':glob_fontsize}, numpoints=1, scatterpoints=1,
+                   markerscale=1, columnspacing=0.25, labelspacing=0.25)
         fig2.savefig("{}/{}".format(figdir, "lnphi_lnppack_scaling.pdf"))
         # ax2.set_ylim([0, 1./(np.amin(nparticles)-5)])
         # ax2.set_yscale('log')
@@ -502,9 +530,9 @@ def plot_all(figdir="figures", bdim=2):
         a = np.array(yspl_list)
         print a.shape
         da = np.ones(a.shape) * 1e-2
-        rho_c0 = 0.847
-        nu0 = 0.5
-        zeta0 = 0.04
+        rho_c0 = 0.845
+        nu0 = 1
+        zeta0 = 0.015
         ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
         print "rho: {} +/- {}".format(ret.rho, ret.drho)
         print "nu: {} +/- {}".format(ret.nu, ret.dnu)
@@ -517,9 +545,11 @@ def plot_all(figdir="figures", bdim=2):
         ax3.set_prop_cycle(get_cycler(ncolors=len(nparticles)))
         for i, (x, y) in enumerate(zip(auto_scaled_data.x, auto_scaled_data.y)):
             ax3.plot(x, y, '.', label=nparticles[i], rasterized=True)
-        ax3.set_ylabel(r'$\ln (p_{pack} (N^{1/d})^{\beta/\nu})$')
-        ax3.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
-        ax3.set_title(r'$\phi_c \approx 0.847;~\nu \approx 1;~\beta \approx 1/20$')
+        ax3.set_ylabel(r'$\ln (p_{pack} (N^{1/d})^{\beta})$')
+        ax3.set_xlabel(r'$\ln(\varepsilon N^{1/d})$')
+        # ax3.set_ylabel(r'$\ln (p_{pack} (N^{1/d})^{\beta/\nu})$')
+        # ax3.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
+        # ax3.set_title(r'$\phi_c \approx 0.847;~\nu \approx 1;~\beta \approx 1/20$')
         ax3.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig3.savefig("{}/{}".format(figdir, "phi_ppack_rescaling.pdf"))
@@ -565,7 +595,7 @@ def plot_all(figdir="figures", bdim=2):
             phi_c = yspl_mid[i] #yder_max[i] #DEBUG
             print dp.nparticles, phi_c
             inu = 2
-            zeta = 1./8
+            zeta = 1./8.
             x = np.power(np.sqrt(nparticles[i]), inu) * (np.array(phi_ss_packed[phi_ss_packed > phi_c]) - np.array(phi_c)) / phi_c
             logx = np.log(x)
             y = np.power(np.sqrt(nparticles[i]), zeta*inu) * logp_var[:,0][phi_ss_packed > phi_c]
@@ -671,10 +701,20 @@ def plot_all(figdir="figures", bdim=2):
         # ax9inset.set_prop_cycle(get_cycler(ncolors=len(nparticles)))
         fig10 = plt.figure()
         ax10 = fig10.add_subplot(111)
+        fig11 = plt.figure()
+        ax11 = fig11.add_subplot(111)
+        fig12 = plt.figure()
+        ax12 = fig12.add_subplot(111)
+        fig13 = plt.figure()
+        ax13 = fig13.add_subplot(111)
+        fig14 = plt.figure()
+        ax14 = fig14.add_subplot(111)
         color_cycle = get_color_cycle(ncolors=len(nparticles))
         for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
             u4_list, u4_err = [], []
             chi_list, chi_err = [], []
+            meanlnp, varlnp = [], []
+            meanp, varp = [], []
             for phi_ss, pressure in zip(dp.phi_ss_packed, dp.pressure):
                 lnp = np.log(pressure)
                 m2 = np.mean(np.power(lnp,2))
@@ -685,21 +725,52 @@ def plot_all(figdir="figures", bdim=2):
                 chi = m2 - m1abs**2
                 u4_list.append(u4)
                 chi_list.append(chi)
+                meanlnp.append(np.mean(lnp))
+                varlnp.append(np.var(lnp))
+                meanp.append(np.mean(pressure))
+                varp.append(np.var(pressure))
                 # u4_err.append(bootstrap.ci(lnp, lambda x : 1 - moment(x,4)/(3*moment(x, 2)**2), n_samples=1000))
                 # chi_err.append(bootstrap.ci(lnp, lambda x: np.var(np.abs(x)), n_samples=1000 ))
             color = color_cycle.next()
             x = np.array(dp.phi_ss_packed)
             y, yerr = np.array(u4_list), np.array(u4_err)
             spl = UnivariateSpline(x, y, s=1.8, k=3)
-            ax9.errorbar(x, y, fmt='o', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
+            ax9.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
             ax9.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
             # ax9inset.errorbar(x[x>0.84], y[x>0.84], fmt='o', label='N={}'.format(nparticles[i]), rasterized=True)
             y, yerr = np.array(chi_list), np.array(chi_err)
-            spl = UnivariateSpline(x, y, s=1e-2, k=3)
-            ax10.errorbar(x, chi_list, fmt='o', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
+            spl = UnivariateSpline(x, y*nparticles[i], s=1e-2, k=3)
+            ax10.errorbar(x, y*nparticles[i], marker='o', linestyle='', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
             ax10.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            # mean of lnP
+            y = np.array(meanlnp)
+            spl = UnivariateSpline(x, y, s=1e-2, k=3)
+            ax11.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
+                          color=color, rasterized=True)
+            ax11.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            # var of lnP
+            y = np.array(varlnp)*nparticles[i]
+            spl = UnivariateSpline(x, y, s=1e-2, k=3)
+            ax12.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
+                          color=color, rasterized=True)
+            ax12.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            # mean of P
+            y = np.array(meanp)
+            spl = UnivariateSpline(x, y, s=1e-2, k=3)
+            ax13.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
+                          color=color, rasterized=True)
+            ax13.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            ax13.set_yscale('log')
+            # var of P
+            y = np.array(varp)
+            spl = UnivariateSpline(x, y, s=1e-2, k=3)
+            ax14.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
+                          color=color, rasterized=True)
+            ax14.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            ax14.set_yscale('log')
         # ax9inset.set_xlim((0.84,0.87))
         ax9.set_xlim((0.81, 0.87))
+        ax10.set_ylim((0, 100))
         ax10.set_xlim((0.81, 0.87))
         ax9.legend(frameon=False, loc='best', prop={'size': 15}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
@@ -707,7 +778,7 @@ def plot_all(figdir="figures", bdim=2):
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax9.set_ylabel(r'$V_N$')
         ax9.set_xlabel(r'$\phi$')
-        ax10.set_ylabel(r'$\langle \Lambda^2 \rangle - \langle |\Lambda| \rangle^2$')
+        ax10.set_ylabel(r'$N (\langle \Lambda^2 \rangle - \langle |\Lambda| \rangle^2)$')
         ax10.set_xlabel(r'$\phi$')
         fig9.savefig("{}/{}".format(figdir, "lnp_u4.pdf"))
         fig10.savefig("{}/{}".format(figdir, "lnp_chi.pdf"))
