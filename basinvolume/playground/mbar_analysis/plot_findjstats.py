@@ -715,6 +715,7 @@ def plot_all(figdir="figures", bdim=2):
             chi_list, chi_err = [], []
             meanlnp, varlnp = [], []
             meanp, varp = [], []
+            weights = []
             for phi_ss, pressure in zip(dp.phi_ss_packed, dp.pressure):
                 lnp = np.log(pressure)
                 m2 = np.mean(np.power(lnp,2))
@@ -729,60 +730,87 @@ def plot_all(figdir="figures", bdim=2):
                 varlnp.append(np.var(lnp))
                 meanp.append(np.mean(pressure))
                 varp.append(np.var(pressure))
+                weights.append(np.sqrt(len(pressure)))
                 # u4_err.append(bootstrap.ci(lnp, lambda x : 1 - moment(x,4)/(3*moment(x, 2)**2), n_samples=1000))
                 # chi_err.append(bootstrap.ci(lnp, lambda x: np.var(np.abs(x)), n_samples=1000 ))
             color = color_cycle.next()
             x = np.array(dp.phi_ss_packed)
+            xx = np.linspace(np.amin(x), np.amax(x), 10000)
             y, yerr = np.array(u4_list), np.array(u4_err)
-            spl = UnivariateSpline(x, y, s=1.8, k=3)
+            spl = UnivariateSpline(x, y, s=2e2, k=3, w=weights)
             ax9.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
-            ax9.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            ax9.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             # ax9inset.errorbar(x[x>0.84], y[x>0.84], fmt='o', label='N={}'.format(nparticles[i]), rasterized=True)
+            # xx = np.linspace(np.amin(x), np.amax(x), 1000)
             y, yerr = np.array(chi_list), np.array(chi_err)
-            spl = UnivariateSpline(x, y*nparticles[i], s=1e-2, k=3)
+            spl = UnivariateSpline(x, y*nparticles[i], s=5e5, k=5, w=weights)
             ax10.errorbar(x, y*nparticles[i], marker='o', linestyle='', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
-            ax10.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            ax10.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
+
             # mean of lnP
             y = np.array(meanlnp)
-            spl = UnivariateSpline(x, y, s=1e-2, k=3)
+            spl = UnivariateSpline(x, y, s=10, k=1, w=weights)
             ax11.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
-            ax11.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            ax11.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             # var of lnP
             y = np.array(varlnp)*nparticles[i]
-            spl = UnivariateSpline(x, y, s=1e-2, k=3)
+            spl = UnivariateSpline(x, y, s=7e6, k=5, w=weights)
             ax12.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
-            ax12.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            ax12.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             # mean of P
             y = np.array(meanp)
-            spl = UnivariateSpline(x, y, s=1e-2, k=3)
+            spl = UnivariateSpline(x, y, s=10, k=1, w=weights)
             ax13.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
-            ax13.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            ax13.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             ax13.set_yscale('log')
             # var of P
-            y = np.array(varp)
-            spl = UnivariateSpline(x, y, s=1e-2, k=3)
+            y = np.array(varp)*nparticles[i]
+            spl = UnivariateSpline(x, y, s=1e5, k=1, w=weights)
             ax14.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
-            ax14.plot(x, spl(x), linewidth=2, color=color, rasterized=True)
+            ax14.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             ax14.set_yscale('log')
         # ax9inset.set_xlim((0.84,0.87))
         ax9.set_xlim((0.81, 0.87))
         ax10.set_ylim((0, 100))
         ax10.set_xlim((0.81, 0.87))
+        ax11.set_xlim((0.81, 0.87))
+        ax12.set_xlim((0.81, 0.87))
+        ax13.set_xlim((0.81, 0.87))
+        ax14.set_xlim((0.81, 0.87))
         ax9.legend(frameon=False, loc='best', prop={'size': 15}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax10.legend(frameon=False, loc='best', prop={'size': 15}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax11.legend(frameon=False, loc='best', prop={'size': 15}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax12.legend(frameon=False, loc='best', prop={'size': 15}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax13.legend(frameon=False, loc='best', prop={'size': 15}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax14.legend(frameon=False, loc='best', prop={'size': 15}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax9.set_ylabel(r'$V_N$')
         ax9.set_xlabel(r'$\phi$')
         ax10.set_ylabel(r'$N (\langle \Lambda^2 \rangle - \langle |\Lambda| \rangle^2)$')
         ax10.set_xlabel(r'$\phi$')
+        ax11.set_xlabel(r'$\phi$')
+        ax11.set_ylabel(r'$\langle \Lambda \rangle$')
+        ax12.set_xlabel(r'$\phi$')
+        ax12.set_ylabel(r'$N \sigma^2_\Lambda$')
+        ax13.set_xlabel(r'$\phi$')
+        ax13.set_ylabel(r'$\langle P \rangle$')
+        ax14.set_xlabel(r'$\phi$')
+        ax14.set_ylabel(r'$\sigma^2_P$')
         fig9.savefig("{}/{}".format(figdir, "lnp_u4.pdf"))
         fig10.savefig("{}/{}".format(figdir, "lnp_chi.pdf"))
-
+        fig11.savefig("{}/{}".format(figdir, "lnp_mean.pdf"))
+        fig12.savefig("{}/{}".format(figdir, "lnp_var.pdf"))
+        fig13.savefig("{}/{}".format(figdir, "p_mean.pdf"))
+        fig14.savefig("{}/{}".format(figdir, "p_var.pdf"))
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="plot findjstats")
