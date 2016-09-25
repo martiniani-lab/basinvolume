@@ -709,12 +709,15 @@ def plot_all(figdir="figures", bdim=2):
         ax13 = fig13.add_subplot(111)
         fig14 = plt.figure()
         ax14 = fig14.add_subplot(111)
+        fig15 = plt.figure()
+        ax15 = fig15.add_subplot(111)
         color_cycle = get_color_cycle(ncolors=len(nparticles))
+        varlnp_max, varchi_max = [], []
         for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
             u4_list, u4_err = [], []
             chi_list, chi_err = [], []
             meanlnp, varlnp = [], []
-            meanp, varp = [], []
+            meanp, varp= [], []
             weights = []
             for phi_ss, pressure in zip(dp.phi_ss_packed, dp.pressure):
                 lnp = np.log(pressure)
@@ -743,10 +746,12 @@ def plot_all(figdir="figures", bdim=2):
             # ax9inset.errorbar(x[x>0.84], y[x>0.84], fmt='o', label='N={}'.format(nparticles[i]), rasterized=True)
             # xx = np.linspace(np.amin(x), np.amax(x), 1000)
             y, yerr = np.array(chi_list), np.array(chi_err)
-            spl = UnivariateSpline(x, y*nparticles[i], s=5e5, k=5, w=weights)
-            ax10.errorbar(x, y*nparticles[i], marker='o', linestyle='', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
-            ax10.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
-
+            y, yerr = y*nparticles[i], yerr*nparticles[i]
+            spl = UnivariateSpline(x, y, s=4.5e5, k=5, w=weights)
+            yspl = spl(xx)
+            ax10.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
+            ax10.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
+            varchi_max.append(xx[np.argmax(yspl)])
             # mean of lnP
             y = np.array(meanlnp)
             spl = UnivariateSpline(x, y, s=10, k=1, w=weights)
@@ -756,9 +761,11 @@ def plot_all(figdir="figures", bdim=2):
             # var of lnP
             y = np.array(varlnp)*nparticles[i]
             spl = UnivariateSpline(x, y, s=7e6, k=5, w=weights)
+            yspl = spl(xx)
             ax12.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
-            ax12.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
+            ax12.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
+            varlnp_max.append(xx[np.argmax(yspl)])
             # mean of P
             y = np.array(meanp)
             spl = UnivariateSpline(x, y, s=10, k=1, w=weights)
@@ -773,9 +780,14 @@ def plot_all(figdir="figures", bdim=2):
                           color=color, rasterized=True)
             ax14.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             ax14.set_yscale('log')
+
+
+        print varlnp_max
+        ax15.plot(nparticles, varlnp_max, marker='o')
+        ax15.plot(nparticles, varchi_max, marker='^')
+
         # ax9inset.set_xlim((0.84,0.87))
         ax9.set_xlim((0.81, 0.87))
-        ax10.set_ylim((0, 100))
         ax10.set_xlim((0.81, 0.87))
         ax11.set_xlim((0.81, 0.87))
         ax12.set_xlim((0.81, 0.87))
