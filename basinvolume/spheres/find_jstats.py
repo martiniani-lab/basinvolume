@@ -287,7 +287,7 @@ class FindJ(object):
                  ss_packing_frac=[0.84], sca=0.1212238211627763, hs_radii=None, mu=1, sig=0.05,
                  new_poly=False, hsf_niter=1e6, hsf_stepsize=1e-3, max_iter=10, tol=1e-9,
                  use_cell_lists=True, single=True, seeds=None, opt_pot_str='hs_wca',
-                 ncores=2):
+                 start_iteration=0, ncores=2):
 
         self.rng = RandomState()
         self.ncores = ncores
@@ -301,7 +301,7 @@ class FindJ(object):
                                          sig=sig, new_poly=new_poly, hsf_niter=hsf_niter,
                                          hsf_stepsize=hsf_stepsize, max_iter=max_iter, tol=tol,
                                          use_cell_lists=use_cell_lists, single=single,
-                                         seeds=seeds, opt_pot_str=opt_pot_str)
+                                         seeds=seeds, opt_pot_str=opt_pot_str, start_iteration=start_iteration)
             hs_radii = hsgp_.hs_radii
             self.hsgp.append(hsgp_)
 
@@ -326,7 +326,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
-    parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
+    parser.add_argument("--nocell", action='store_false', help="use cell lists, default: True",default=True)
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
     parser.add_argument("--tol", type=float, help="minimizer rms tolerance",default=1e-8)
