@@ -55,8 +55,8 @@ class HS_MCrunner(_BaseMCRunner):
                                                                      bdim=self.bdim)
         self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
         self.takestep = TakeStepProbabilities(self.seeds['seed_probability_step_pattern'])
-        self.takestep.add_step(self.takestep_displacement, 1)
-        self.takestep.add_step(self.takestep_particle_pair_swap, 1e-3)
+        self.takestep.add_step(self.takestep_displacement, 0.9) #1
+        self.takestep.add_step(self.takestep_particle_pair_swap, 0.1) #1e-3
         ##########################################
         #NOTE
         #should add an option to use cell lists, it shouldn't be the default behaviour

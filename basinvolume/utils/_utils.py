@@ -25,6 +25,24 @@ class Bunch(dict):
         super(Bunch, self).__init__(*args, **kwds)
         self.__dict__ = self
 
+class Result(dict):
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+    def __repr__(self):
+        if self.keys():
+            m = max(map(len, self.keys())) + 1
+            return '\n'.join([k.rjust(m) + ': ' + repr(v)
+                              for k, v in self.iteritems()])
+        else:
+            return self.__class__.__name__ + "()"
+
 def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 

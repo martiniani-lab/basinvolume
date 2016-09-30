@@ -6,6 +6,7 @@ from pele.potentials import HS_WCA
 from pele.optimize._quench import lbfgs_cpp, modifiedfire_cpp
 from basinvolume.utils import *
 from numpy.random import RandomState
+from mcpele.monte_carlo import NullPotential
 import argparse
 
 class _Generate_Packing(object):
@@ -195,6 +196,7 @@ class HS_Generate_Packing(_Generate_Packing):
         if self.initialised is False:
             self._sample_hs_radii(new_poly=False)
             self._resize_box()
+            self.null_potential = NullPotential()
             if self.method == 'quench':
                 #this is necessary to initialise the radii if using the quench routine
                 self._initialise_coords_quench()
@@ -324,7 +326,7 @@ class HS_Generate_Packing(_Generate_Packing):
         to be on the safe side."""
         if (self.iteration == self.start_iteration):
             temperature = 1.0
-            dif_mcrunner = HS_MCrunnerOptDiffusion(self.potential, self.coords, temperature, self.hsf_stepsize, 1e9,
+            dif_mcrunner = HS_MCrunnerOptDiffusion(self.null_potential, self.coords, temperature, self.hsf_stepsize, 1e9,
                                         self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 1e6,
                                         single=self.single, seeds = self.seeds)
             dif_mcrunner.run()
@@ -333,7 +335,7 @@ class HS_Generate_Packing(_Generate_Packing):
             self.hsf_niter = max(hsf_niter, 2*self.nparticles)
             print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
             self.coords, self.energy = dif_mcrunner.get_config()
-            self.mcrunner = HS_MCrunner(self.potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
+            self.mcrunner = HS_MCrunner(self.null_potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
                                         self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 0,
                                         single=self.single, seeds = self.seeds)
         self.mcrunner.set_config(self.coords, self.energy)

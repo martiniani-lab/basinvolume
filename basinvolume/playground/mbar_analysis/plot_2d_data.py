@@ -609,7 +609,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # ax1.plot(np.linspace(phi[0],1,20), fit_fn(np.linspace(phi[0],1,20)), color='k')
         # ax1.plot([0.825,1],[0,0],lw=1,color='black')
         ax1.set_xlim((phi_star,0.865))
-        ax1.set_ylim((12.5, 32.5))
+        ax1.set_ylim((12.5, 28.5))
         ax1.locator_params(axis='x', nbins=8)
         ax1.set_ylabel(r"$S$")
         ax1.set_xlabel(r"$\phi$")
@@ -619,7 +619,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
         #entropy vs coordination number
 
-        # ax11.set_ylim((12.5, 32.5))
+        ax11.set_ylim((12.5, 28.5))
         ax11.set_xlim((4, 4.4))
         ax11.locator_params(axis='x', nbins=8)
         ax11.set_ylabel(r"$S$")
@@ -667,7 +667,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             yerr /= nparticles
             y2 /= nparticles
             y2err /= nparticles
-            ax3.scatter(meanz_data[0], y[-1]* (meanz_data[1]/meanz_spline(x[-1])), s=25)
+            # ax3.scatter(meanz_data[0], y[-1]* (meanz_data[1]/meanz_spline(x[-1])), s=25)
             ax3.errorbar(x, y, yerr, marker='o', linestyle='', ms=15, color=color_marker, markeredgecolor=color_marker)
             fit_fn, fit_params, fit_err, rho = poly_fit(x, y, yerr=yerr)
             ax3.plot(x, fit_fn(x), color=color_fit)
@@ -677,7 +677,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             print "1/k: z(\phi*): {} \pm {}".format(meanz_spline(glob_phi_j),
                                                     meanz_spline_err(glob_phi_j, glob_phi_j_std))
             ax3.set_xlabel(r'$\phi$', size=glob_fontsize)
-            ax3.set_ylabel(r'$1/\kappa$', size=glob_fontsize)
+            ax3.set_ylabel(r'$\lambda$', size=glob_fontsize)
             ax3.locator_params(axis='x', nbins=4)
             ax3.locator_params(axis='y', nbins=3)
             ax3.tick_params(axis='both', which='major', labelsize=glob_fontsize)
@@ -692,7 +692,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             print "1/k(z) = {} z + {}".format(fit_params[0], fit_params[1])
             print "1/k: z*: {} \pm {}, beta: {}".format(glob_z_j, glob_z_j_std, fit_params[1])
             ax31.set_xlabel(r'$\overline{z}$', size=glob_fontsize)
-            ax31.set_ylabel(r'$1/\kappa$', size=glob_fontsize)
+            ax31.set_ylabel(r'$\lambda$', size=glob_fontsize)
             ax31.locator_params(axis='x', nbins=4)
             ax31.locator_params(axis='y', nbins=3)
             ax31.tick_params(axis='both', which='major', labelsize=glob_fontsize)
@@ -1127,6 +1127,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 if __name__ == "__main__":
     pts = BasinAnalysis()
     pts.collect_data_every_set_all(data_name="basin_analysis.pickle")
-    plot(pts.packing_datasets)
-    plt.show()
-    plt.close()
+    print pts.packing_datasets[0].packing_data[0].coords
+    print pts.packing_datasets[0].packing_data[0].packing_frac
+    # plot(pts.packing_datasets)
+    # plt.show()
+    # plt.close()
