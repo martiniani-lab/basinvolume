@@ -49,7 +49,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                  ss_packing_frac=0.86, sca=0.1212238211627763,
                  hs_radii=None, mu=1, sig=0.05, new_poly=False, hsf_niter=1e6, hsf_stepsize=1e-3,
                  max_iter=10, tol=1e-9, use_cell_lists=True, single=True, seeds=None,
-                 opt_pot_str='hs_wca'):
+                 opt_pot_str='hs_wca', start_iteration=0):
         if workspace is None:
             workspace = os.getcwd()
         if not os.path.isabs(workspace):
@@ -67,7 +67,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                                                    sig=sig, new_poly=new_poly, hsf_niter=hsf_niter,
                                                    hsf_stepsize=hsf_stepsize, max_iter=max_iter,
                                                    use_cell_lists=use_cell_lists, single=single,
-                                                   seeds=seeds)
+                                                   seeds=seeds, start_iteration=start_iteration)
         self.initialised_ss = False
         self.max_nrattlers = int(self.nparticles * 0.8)
         self.packing_dataset = SoftPackingDataset(self.ss_packing_frac, self.hs_packing_frac, self.sca_ss,
@@ -75,9 +75,9 @@ class GeneratePackingFindJ(HS_Generate_Packing):
 
     def run(self):
         """run generate packings"""
-        while self.iteration < self.max_iter:
+        while (self.iteration-self.start_iteration) < self.max_iter:
             self.one_iteration() #self iteration is incremented within one_iteration
-            if self.iteration % 1000 == 0 or self.iteration == self.max_iter:
+            if (self.iteration-self.start_iteration) % 1000 == 0 or (self.iteration-self.start_iteration) == self.max_iter:
                 self._dump_results()
 
     def _dump_results(self):
@@ -323,6 +323,7 @@ if __name__ == "__main__":
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.1)
     parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-3)
+    parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
     parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
@@ -355,7 +356,8 @@ if __name__ == "__main__":
     sim = FindJ(args.nparticles, method=args.method, bdim=args.boxdim, ss_packing_frac=density,
                 sca=args.sca, hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
                 hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                use_cell_lists=args.nocell, single=single, ncores=args.ncores, tol=args.tol)
+                use_cell_lists=args.nocell, single=single, ncores=args.ncores, tol=args.tol,
+                start_iteration=args.start_iter)
 
     sim.run()
                 
