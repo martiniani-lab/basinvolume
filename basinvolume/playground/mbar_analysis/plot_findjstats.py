@@ -10,6 +10,7 @@ from itertools import cycle
 from cycler import cycler
 from sklearn.neighbors import KernelDensity
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
+from basinvolume.spheres import SoftPackingDataset, SoftPackingData
 import scikits.bootstrap as bootstrap
 import argparse
 from scipy.interpolate import UnivariateSpline
@@ -69,7 +70,6 @@ def poly_fit(x, y, yerr=None, order=1):
 
 def collect_data_every_set_all(workspace=None,
                                data_signature='jammed_packings_*D_mu*_sig*_sca*_phi*.pickle'):
-    from basinvolume.spheres import SoftPackingDataset, SoftPackingData
     if workspace is None:
         workspace = os.getcwd()
     listdir = glob.glob(os.path.join(workspace, data_signature))
