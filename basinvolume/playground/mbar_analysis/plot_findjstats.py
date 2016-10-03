@@ -117,9 +117,11 @@ class DataPlot(object):
             self.log_pdf_x.append(x_integrate)
             # build array of relative fluctuations around the mode
             log_maxp = x_integrate[np.argmax(log_pdf)]
-            p_rel = p / np.exp(log_maxp)
+            # p_rel = p / np.exp(log_maxp)
+            # build array of relative fluctuations around the mean
+            p_rel = p / np.mean(p)
             n = int(min(n_samples, lnp.size*25))
-            varCIs = bootstrap.ci(p_rel, np.var, n_samples=n)
+            varCIs = bootstrap.ci(p, lambda x : np.var(x/np.mean(x)), n_samples=n)
             self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]])
             #build array of logp mean, var and maxp
             meanCIs = bootstrap.ci(lnp, np.mean, n_samples=n)
@@ -656,7 +658,7 @@ def plot_all(figdir="figures", bdim=2):
         fig18 = plt.figure()
         ax18 = fig18.add_subplot(111)
         color_cycle = get_color_cycle(ncolors=len(nparticles))
-        phi_max = 0.86
+        phi_max = 0.87
         varlnp_argmax, varprel_argmax = [], []
         varlnp_max, varprel_max = [], []
         for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):

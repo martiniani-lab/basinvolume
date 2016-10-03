@@ -1125,10 +1125,22 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             plt.xlabel(r"$\ln \mathcal{P}$")
 
 if __name__ == "__main__":
+    import dill
     pts = BasinAnalysis()
     pts.collect_data_every_set_all(data_name="basin_analysis.pickle")
-    print pts.packing_datasets[0].packing_data[0].coords
-    print pts.packing_datasets[0].packing_data[0].packing_frac
-    # plot(pts.packing_datasets)
-    # plt.show()
-    # plt.close()
+
+    plot(pts.packing_datasets)
+    plt.show()
+    plt.close()
+
+    # print pts.packing_datasets[0].packing_data[0].coords
+    # print pts.packing_datasets[0].packing_data[0].packing_frac
+    #
+    # with open("packing_datasets.pickle", 'wb') as f:
+    #     pickle.dump(pts.packing_datasets, f)
+    #
+    # with open("packing_datasets.pickle", 'rb') as f:
+    #     dsets = pickle.load(f)
+    #
+    # print dsets[0].packing_data[0].coords
+    # print dsets[0].packing_data[0].packing_frac

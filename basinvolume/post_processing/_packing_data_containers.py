@@ -1,6 +1,9 @@
 from __future__ import division
 import re
-from basinvolume.utils import *
+import os
+import numpy as np
+import ConfigParser
+from basinvolume.utils import read_xydr, read_xyzdr, Bunch
 try:
     import matplotlib.pyplot as plt
 except ImportError as err:
