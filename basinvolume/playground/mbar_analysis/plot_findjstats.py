@@ -122,7 +122,7 @@ class DataPlot(object):
             p_rel = p / np.mean(p)
             n = int(min(n_samples, lnp.size*25))
             varCIs = bootstrap.ci(p, lambda x : np.var(x/np.mean(x)), n_samples=n, alpha=0.32)
-            self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]], alpha=0.32)
+            self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]])
             #build array of logp mean, var and maxp
             meanCIs = bootstrap.ci(lnp, np.mean, n_samples=n, alpha=0.32)
             varCIs = bootstrap.ci(lnp, np.var, n_samples=n, alpha=0.32)
@@ -699,14 +699,14 @@ def plot_all(figdir="figures", bdim=2):
             ax16.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             # mean of lnP
             y = logp_mean[:,0]
-            yerr = [logp_mean[:, 1], logp_mean[:, 2]]
+            yerr = np.array([logp_mean[:, 1], logp_mean[:, 2]])/3
             spl = UnivariateSpline(x, y, s=10, k=1, w=weights)
             ax11.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
             ax11.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             # var of lnP
             y = logp_var[:,0]*nparticles[i]
-            yerr = [logp_var[:, 2]*nparticles[i], logp_var[:, 2]*nparticles[i]]
+            yerr = np.array([logp_var[:, 2]*nparticles[i], logp_var[:, 2]*nparticles[i]])/3
             spl = UnivariateSpline(x, y, s=1e6, k=5, w=weights)
             yspl = spl(xx)
             ax12.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
@@ -716,7 +716,7 @@ def plot_all(figdir="figures", bdim=2):
             varlnp_max.append(np.amax(yspl)/nparticles[i])
             # mean of P
             y = p_mean[:,0]
-            yerr = [p_mean[:, 1], p_mean[:, 2]]
+            yerr = np.array([p_mean[:, 1], p_mean[:, 2]])/3
             spl = UnivariateSpline(x, y, s=10, k=1, w=weights)
             ax13.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
@@ -860,7 +860,7 @@ def plot_all(figdir="figures", bdim=2):
             logx = x
             y = np.power(np.sqrt(nparticles[i]), zeta * inu) * logp_var[:, 0] #[phi_ss_packed > phi_c]
             logy = y
-            logy_err = [logp_var[:, 1], logp_var[:, 2]] #* logp_var[:, 0])
+            logy_err = np.array([logp_var[:, 1], logp_var[:, 2]])/3 #* logp_var[:, 0])
             # np.log(p_rel_var[:, 0]c)
             # ax6.errorbar(phi, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
             # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
