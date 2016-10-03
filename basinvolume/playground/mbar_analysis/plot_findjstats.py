@@ -121,16 +121,16 @@ class DataPlot(object):
             # build array of relative fluctuations around the mean
             p_rel = p / np.mean(p)
             n = int(min(n_samples, lnp.size*25))
-            varCIs = bootstrap.ci(p, lambda x : np.var(x/np.mean(x)), n_samples=n)
-            self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]])
+            varCIs = bootstrap.ci(p, lambda x : np.var(x/np.mean(x)), n_samples=n, alpha=0.32)
+            self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]], alpha=0.32)
             #build array of logp mean, var and maxp
-            meanCIs = bootstrap.ci(lnp, np.mean, n_samples=n)
-            varCIs = bootstrap.ci(lnp, np.var, n_samples=n)
+            meanCIs = bootstrap.ci(lnp, np.mean, n_samples=n, alpha=0.32)
+            varCIs = bootstrap.ci(lnp, np.var, n_samples=n, alpha=0.32)
             self.logp_mean.append([np.mean(lnp), meanCIs[0], meanCIs[1]])
             self.logp_var.append([np.var(lnp), varCIs[0], varCIs[1]])
             self.logp_mode.append(log_maxp)
-            meanCIs = bootstrap.ci(p, np.mean, n_samples=n)
-            varCIs = bootstrap.ci(p, np.var, n_samples=n)
+            meanCIs = bootstrap.ci(p, np.mean, n_samples=n, alpha=0.32)
+            varCIs = bootstrap.ci(p, np.var, n_samples=n, alpha=0.32)
             self.p_mean.append([np.mean(p), meanCIs[0], meanCIs[1]])
             self.p_var.append([np.var(p), varCIs[0], varCIs[1]])
 
@@ -662,66 +662,68 @@ def plot_all(figdir="figures", bdim=2):
         varlnp_argmax, varprel_argmax = [], []
         varlnp_max, varprel_max = [], []
         for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
+            phi_ss_packed, logp_var, ptyp_var, logp_mean = dp.phi_ss_packed[dp.phi_ss_packed < phi_max], \
+                                                           dp.logp_var[dp.phi_ss_packed < phi_max], \
+                                                           dp.p_rel_var[dp.phi_ss_packed < phi_max], \
+                                                           dp.logp_mean[dp.phi_ss_packed < phi_max]
+            p_var, p_mean = dp.p_var[dp.phi_ss_packed < phi_max], \
+                            dp.p_mean[dp.phi_ss_packed < phi_max]
+            prel_var = np.array([np.var(p) / (np.mean(p) ** 2) for p in dp.pressure])[dp.phi_ss_packed < phi_max]
             lnp_u4_list, p_u4_list = [], []
-            meanlnp, varlnp = [], []
-            meanp, varp= [], []
             weights = []
-            for phi_ss, pressure in zip(dp.phi_ss_packed, dp.pressure):
+            for phi_ss, pressure in zip(phi_ss_packed, dp.pressure):
                 if phi_ss < phi_max:
                     lnp = np.log(pressure)
                     relp = np.array(pressure)/ np.mean(pressure)
-                    m2 = np.mean(np.power(lnp,2))
                     m2c= moment(lnp, 2)
                     m4c = moment(lnp, 4)
                     lnp_u4 = 1 - m4c/(3*(m2c**2))
                     p_u4 = 1 - moment(relp, 4)/(3*(moment(relp, 2)**2))
                     lnp_u4_list.append(lnp_u4)
                     p_u4_list.append(p_u4)
-                    meanlnp.append(np.mean(lnp))
-                    varlnp.append(np.var(lnp))
-                    meanp.append(np.mean(pressure))
-                    varp.append(np.var(pressure))
                     weights.append(np.sqrt(len(pressure)))
                     # u4_err.append(bootstrap.ci(lnp, lambda x : 1 - moment(x,4)/(3*moment(x, 2)**2), n_samples=1000))
                     # chi_err.append(bootstrap.ci(lnp, lambda x: np.var(np.abs(x)), n_samples=1000 ))
             color = color_cycle.next()
-            x = np.array(dp.phi_ss_packed[dp.phi_ss_packed<phi_max])
+            x = np.array(phi_ss_packed)
             xx = np.linspace(np.amin(x), np.amax(x), 10000)
             y, yerr = np.array(lnp_u4_list), []
             spl = UnivariateSpline(x, y, s=1e3, k=3, w=weights)
             ax9.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]), color=color, rasterized=True)
             ax9.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
+            # ax9inset.errorbar(x[x>0.84], y[x>0.84], fmt='o', label='N={}'.format(nparticles[i]), rasterized=True)
             y, yerr = np.array(p_u4_list), []
             spl = UnivariateSpline(x, y, s=5e6, k=5, w=weights)
             ax16.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]), color=color,
                          rasterized=True)
             ax16.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
-            # ax9inset.errorbar(x[x>0.84], y[x>0.84], fmt='o', label='N={}'.format(nparticles[i]), rasterized=True)
-            # xx = np.linspace(np.amin(x), np.amax(x), 1000)
             # mean of lnP
-            y = np.array(meanlnp)
+            y = logp_mean[:,0]
+            yerr = [logp_mean[:, 1], logp_mean[:, 2]]
             spl = UnivariateSpline(x, y, s=10, k=1, w=weights)
-            ax11.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
+            ax11.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
             ax11.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             # var of lnP
-            y = np.array(varlnp)*nparticles[i]
+            y = logp_var[:,0]*nparticles[i]
+            yerr = [logp_var[:, 2]*nparticles[i], logp_var[:, 2]*nparticles[i]]
             spl = UnivariateSpline(x, y, s=1e6, k=5, w=weights)
             yspl = spl(xx)
-            ax12.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
+            ax12.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
             ax12.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
             varlnp_argmax.append(xx[np.argmax(yspl)])
             varlnp_max.append(np.amax(yspl)/nparticles[i])
             # mean of P
-            y = np.array(meanp)
+            y = p_mean[:,0]
+            yerr = [p_mean[:, 1], p_mean[:, 2]]
             spl = UnivariateSpline(x, y, s=10, k=1, w=weights)
-            ax13.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
+            ax13.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
                           color=color, rasterized=True)
             ax13.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             ax13.set_yscale('log')
-            # var of P
-            y = nparticles[i] * np.array(varp)/(np.array(meanp)**2)
+            # var of rel P
+            y = nparticles[i] * prel_var
             spl = UnivariateSpline(x, y, s=3.8e6, k=5, w=weights)
             yspl = spl(xx)
             ax14.errorbar(x, y, marker='o', linestyle='', label='N={}'.format(nparticles[i]),
@@ -858,8 +860,7 @@ def plot_all(figdir="figures", bdim=2):
             logx = x
             y = np.power(np.sqrt(nparticles[i]), zeta * inu) * logp_var[:, 0] #[phi_ss_packed > phi_c]
             logy = y
-            logy_err = (logp_var[:, 2] - logp_var[:, 1]) #[phi_ss_packed > phi_c])
-            #/ (2 * logp_var[:, 0][phi_ss_packed > phi_c])
+            logy_err = [logp_var[:, 1], logp_var[:, 2]] #* logp_var[:, 0])
             # np.log(p_rel_var[:, 0]c)
             # ax6.errorbar(phi, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
             # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
