@@ -79,7 +79,7 @@ def collect_data_every_set_all(workspace=None,
         datasets.append(pickle.load(open(path, "rb")))
     return datasets
 
-def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=2e4):
+def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=1e4):
     psuccess = []
     nrattlers = []
     energy = []
