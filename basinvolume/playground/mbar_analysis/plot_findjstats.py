@@ -94,7 +94,7 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=1e4):
         pressure_, contacts_, contacts_all_ = [], [], []
         l = 0
         for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
-            if phi_ == dataset.phi_ss and l < lmax:
+            if phi_ == dataset.phi_ss and l<lmax:
                 tmp = np.asarray(dataset.success, dtype='int')
                 for data in dataset.packings_data:
                     N_contacts = int(np.sum(data.Z))
@@ -107,6 +107,8 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=1e4):
                         contacts_.append(np.mean(data.Z))
                         contacts_all_.append(data.Z)
                         l = l + 1
+                        if l >= lmax:
+                            break
                     else:
                         tmp[np.argmax(tmp > 0)] = 0
                 success_.extend(tmp)
