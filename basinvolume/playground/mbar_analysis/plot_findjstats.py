@@ -106,7 +106,7 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=1e4):
                         pressure_.append(data.pressure)
                         contacts_.append(np.mean(data.Z))
                         contacts_all_.append(data.Z)
-                        l = l + len(data.energy)
+                        l = l + 1
                     else:
                         tmp[np.argmax(tmp > 0)] = 0
                 success_.extend(tmp)
