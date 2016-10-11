@@ -91,7 +91,7 @@ def sigmoid_d1(x, x0, k, ymax, ymin, v):
 def remove_outliers_cluster(x, p=0.5, D=4):
     x = np.array(x)
     x_outliers = OutlierDetection(x, p=p, D=D * np.std(x))
-    non_outliers_indexes = x_outliers
+    non_outliers_indexes = x_outliers.non_outliers_indexes
     x = np.asarray(x)[np.asarray(non_outliers_indexes, dtype="i")]
     return x, non_outliers_indexes
 
@@ -988,7 +988,7 @@ def plot_all(figdir="figures", bdim=2):
             ax54inset.errorbar(logx, logy, fmt='o', color=color, yerr=logy_err,
                           label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
             #prel
-            phi_c = 0.84 #np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
+            phi_c = 0.839 #np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
             inu = 1./0.75
             zeta = -0.75
             x = np.power(np.sqrt(nparticles[i]), inu) * np.abs(np.asarray(phi_ss_packed) - np.asarray(phi_c)) / phi_c
