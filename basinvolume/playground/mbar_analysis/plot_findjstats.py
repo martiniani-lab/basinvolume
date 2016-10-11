@@ -89,10 +89,10 @@ def sigmoid_d1(x, x0, k, ymax, ymin, v):
     return -(k/v) * (ymax-ymin) * np.exp(-k*(x-x0)) / np.power(1.+np.exp(-k*(x-x0)),1.+1./v)
 
 def remove_outliers_cluster(x, p=0.5, D=4):
-    x = np.asarray(x)
+    x = np.array(x)
     x_outliers = OutlierDetection(x, p=p, D=D * np.std(x))
     non_outliers_indexes = x_outliers
-    x = np.asarray(x)[np.array(non_outliers_indexes, dtype="i")]
+    x = np.asarray(x)[np.asarray(non_outliers_indexes, dtype="i")]
     return x, non_outliers_indexes
 
 def collect_data_every_set_all(workspace=None,
