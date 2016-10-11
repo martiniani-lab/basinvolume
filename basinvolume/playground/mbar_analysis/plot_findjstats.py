@@ -175,7 +175,7 @@ class DataPlot(object):
             else:
                 n_integrate = n_integrate
             lnp = np.log(np.asarray(p))
-            lnp = remove_outliers_cluster(lnp)
+            lnp, non_outliers_indexes = remove_outliers_cluster(lnp)
             # x_integrate = np.linspace(np.amin(np.log(np.hstack(self.pressure))), np.amax(np.log(np.hstack(self.pressure))), n_integrate)
             x_integrate = np.linspace(np.amin(lnp), np.amax(lnp), n_integrate)
             # build kde histogram
@@ -990,7 +990,7 @@ def plot_all(figdir="figures", bdim=2):
             #prel
             phi_c = 0.839 #np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
             inu = 1./0.75
-            zeta = -0.75
+            zeta = -0.7
             x = np.power(np.sqrt(nparticles[i]), inu) * np.abs(np.asarray(phi_ss_packed) - np.asarray(phi_c)) / phi_c
             y = np.power(np.sqrt(nparticles[i]), zeta * inu) * prel_var[:,0] * nparticles[i]
             yerr = np.abs(np.asarray([prel_var[:, 1], prel_var[:, 2]]) - prel_var[:, 0]) * nparticles[i] * np.power(np.sqrt(nparticles[i]), zeta * inu)
