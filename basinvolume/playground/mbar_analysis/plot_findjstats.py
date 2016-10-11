@@ -174,8 +174,8 @@ class DataPlot(object):
                 n_integrate = 2 ** 14 + 1
             else:
                 n_integrate = n_integrate
-            p = remove_outliers_cluster(p)
             lnp = np.log(np.asarray(p))
+            lnp = remove_outliers_cluster(lnp)
             # x_integrate = np.linspace(np.amin(np.log(np.hstack(self.pressure))), np.amax(np.log(np.hstack(self.pressure))), n_integrate)
             x_integrate = np.linspace(np.amin(lnp), np.amax(lnp), n_integrate)
             # build kde histogram
