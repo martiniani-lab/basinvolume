@@ -89,7 +89,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                                                                                       int(self.iteration)
                                                                                       )
         data_pickle = os.path.join(self.workspace, data_name)
-        pickle.dump(self.packing_dataset, open(data_pickle, "wb"))
+        pickle.dump(self.packing_dataset, open(data_pickle, "wb"), protocol=-1)
         self.packing_dataset.clear()
 
     def one_iteration(self):

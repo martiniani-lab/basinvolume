@@ -51,14 +51,15 @@ class BasinAnalysis(object):
         #print listdir
         data_pickle = os.path.join(self.workspace, data_name)
         if os.path.isfile(data_pickle) and not no_pickle:
-            self.packing_datasets = pickle.load( open(data_pickle, "rb") )
+            with open(data_pickle, "rb") as f:
+                self.packing_datasets = pickle.loads(f.read())
         else: 
             for set_path in listdir:
                 print("set_path", set_path)
                 print "collecting data from ", os.path.split(set_path)[1]
                 self.collect_data_single_all(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
-            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ) )
+            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ),protocol=-1)
         
     def collect_data_single_all(self, set_path=None):
         if set_path is None:
@@ -100,14 +101,15 @@ class BasinAnalysis(object):
         listdir = glob.glob(os.path.join(self.workspace, dir_signature))
         data_pickle = os.path.join(self.workspace, data_name)
         if os.path.isfile(data_pickle) and not no_pickle:
-            self.packing_datasets = pickle.load( open(data_pickle, "rb") )
+            with open(data_pickle, "rb") as f:
+                self.packing_datasets = pickle.loads(f.read())
         else: 
             for set_path in listdir:
                 print("set_path", set_path)
                 print "collecting data from ", os.path.split(set_path)[1]
                 self.collect_data_single_structure(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
-            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ) )
+            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ), protocol=-1)
         
     def collect_data_single_structure(self, set_path=None):
         if set_path is None:

@@ -161,7 +161,7 @@ def remove_outliers_cluster(x,y,yerr):
     yerr = np.array(yerr)[np.array(non_outliers_indexes, dtype="i")]
     return x, y, yerr, non_outliers_indexes
 
-def remove_outliers_mcd(x, y, yerr, support_fraction=0.98, contamination=0.1):
+def remove_outliers_mcd(x, y, yerr, support_fraction=0.99, contamination=0.1):
     x, y = np.asarray(x), np.asarray(y)
     classifier = EllipticEnvelope(contamination=contamination, support_fraction=support_fraction, random_state=42)
     features = np.vstack((x, y)).T
@@ -203,7 +203,7 @@ def poly_fit(x, y, yerr=None, order=1):
     rho = pearsonr(x, y)[0]
     return fit_fn, fit_params, fit_err, rho
 
-def lmms_fit(x, y, support_fraction=0.98):
+def lmms_fit(x, y, support_fraction=0.99):
     #linear minimum mean square error estimator
     x, y = np.asarray(x), np.asarray(y)
     robust_cov = MinCovDet(support_fraction=support_fraction, random_state=42).fit(np.vstack((x, y)).T)
@@ -222,7 +222,7 @@ def lmms_fit(x, y, support_fraction=0.98):
     fit_err = np.sqrt(np.diag(err))
     return fit_fn, (m, interc), fit_err[::-1], robust_rho
 
-def robust_mean_var(x, y, support_fraction=0.98):
+def robust_mean_var(x, y, support_fraction=0.99):
     x, y = np.asarray(x), np.asarray(y)
     robust_cov = MinCovDet(support_fraction=support_fraction, random_state=42).fit(np.vstack((x, y)).T)
     cov = robust_cov.covariance_[0, 1]
@@ -508,12 +508,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
         axbox = ax.get_position()
         ax.legend(frameon=False, loc=(axbox.x0-0.18, axbox.x1-0.475), prop={'size':glob_fontsize}, numpoints=1,
-                  scatterpoints=1, markerscale=1, columnspacing=0.01, labelspacing=0.01)
+                  scatterpoints=1, markerscale=1, columnspacing=0, labelspacing=0.012, handletextpad=-0.45)
         ax.set_ylabel(r"$-\ln p_i$")
         # ax.set_ylabel(r"$F$")
         ax.set_xlabel(r"$\Lambda$")
         ax.locator_params(axis='y', nbins=6)
         ax.set_ylim((205, 241))
+        ax.set_xlim((-5,7.5))
         print "extras", dataset.extras
         fig0.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
