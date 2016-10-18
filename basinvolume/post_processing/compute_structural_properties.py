@@ -9,6 +9,7 @@ from pele.potentials import HS_WCA, InversePowerStillingerCut
 import argparse
 import multiprocessing as mp
 from simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
+from pele.optimize._quench import modifiedfire_cpp
 
 class StructuralAnalysis(object):
     __metaclass__ = abc.ABCMeta
@@ -319,6 +320,11 @@ class PressureTensor(StructuralAnalysis):
                         trymakedir(analysis_dir_path)
                         self.coords, self.hs_radii, self.ss_radii, self.rattlers = self._import_packing_configuration(fname)
                         potential = self.get_potential()
+                        if self.packing_frac < 0.835:
+                            fire_maxstep = np.amin(self.hs_radii) * self.sca
+                            res = modifiedfire_cpp(self.coords, potential, maxstep=fire_maxstep,
+                                                   nsteps=1e6, tol=1e-11, iprint=-1)
+                            self.coords = res.coords
                         p, ptensor = pressure_tensor(potential, self.coords, self.vcavity, self.bdim)
                         energy = potential.getEnergy(self.coords)
                         with open(pressure_fname, 'w') as f:
