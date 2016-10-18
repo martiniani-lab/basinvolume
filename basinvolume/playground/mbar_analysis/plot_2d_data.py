@@ -292,7 +292,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         fig36 = plt.figure()
         ax36 = fig36.add_subplot(111)
         left, bottom, width, eight = [0.2, 0.6, 0.3, 0.3]
-        ax36inset = fig36.add_axes([left, bottom, width, eight])
+        # ax36inset = fig36.add_axes([left, bottom, width, eight])
 
         Sg, Sb_gauss, Sb_kde = [], [], []
         phi, avgz = [], []
@@ -773,20 +773,20 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             yspl = np.vectorize(sigmoid)(xx, *popt)
             yder = np.vectorize(sigmoid_d1)(xx, *popt)
             ax36.plot(xx, yspl, color=color_fit, marker='', linestyle='-')
-            ax36inset.plot(xx, yder, color=color_fit, marker='', linestyle='-')
+            # ax36inset.plot(xx, yder, color=color_fit, marker='', linestyle='-')
             ax36.scatter(phi, avgz, s=100, marker='^', color=color_marker, zorder=10)
             ax36.set_xlabel(r"$\phi$")
             ax36.set_ylabel(r"$\langle z \rangle_{\mathcal{B}}$")
             ax36.set_xlim((0.815, 0.865))
             ax36.set_ylim((3.98, 4.44))
             # ax36inset.autoscale(enable=True, axis='x', tight=True)
-            ax36inset.set_xlim((0.815, 0.865))
-            ax36inset.locator_params(axis='x', nbins=5)
-            ax36inset.yaxis.set_ticks([])
+            # ax36inset.set_xlim((0.815, 0.865))
+            # ax36inset.locator_params(axis='x', nbins=5)
+            # ax36inset.yaxis.set_ticks([])
             # ax36.yaxis.set_major_formatter(FixedOrderFormatter(3))
-            ax36inset.set_xlabel(r'$\phi$')
-            ax36inset.set_ylabel(r'$\partial_\phi \langle z \rangle_{\mathcal{B}}$')
-            ax36inset.yaxis.set_label_position("right")
+            # ax36inset.set_xlabel(r'$\phi$')
+            # ax36inset.set_ylabel(r'$\partial_\phi \langle z \rangle_{\mathcal{B}}$')
+            # ax36inset.yaxis.set_label_position("right")
             # ax36inset.xaxis.set_label_position("top")
 
             fig36.savefig('{0}/plot_{1}.pdf'.format(figdir, "z_phi"))

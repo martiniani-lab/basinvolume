@@ -1,7 +1,7 @@
 from __future__ import division
 import matplotlib.pyplot as plt
 from matplotlib import rc
-from matplotlib.ticker import ScalarFormatter, FormatStrFormatter
+from matplotlib.ticker import ScalarFormatter
 from basinvolume.utils import trymakedir, Result, OutlierDetection
 import numpy as np
 import os
@@ -216,6 +216,19 @@ class DataPlot(object):
         self.log_pdf_x = np.asarray(self.log_pdf_x)
         self.initialized = True
 
+def finite_size_scaling_collapse(x, y, L, phi_c, nu, alpha, yerr=None, abs=False):
+    inu = 1./nu
+    if abs:
+        xsc = np.power(L, inu) * np.abs((np.asarray(x) - phi_c) / phi_c)
+    else:
+        xsc = np.power(L, inu) * (np.asarray(x) - phi_c) / phi_c
+    ysc = np.power(L, alpha * inu) * np.asarray(y)
+    if yerr is not None:
+        ysc_err = np.abs(np.asarray(yerr)) * np.power(L, alpha * inu)
+    else:
+        ysc_err = None
+    return xsc, ysc, ysc_err
+
 def plot(figdir="figures", bdim=2, nparticles=64):
     figdir = os.path.join(os.getcwd(), figdir)
     trymakedir(figdir)
@@ -280,7 +293,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         fig1 = plt.figure()
         ax1 = fig1.add_subplot(111)
         left, bottom, width, eight = [0.18, 0.22, 0.35, 0.35]
-        ax1inset = fig1.add_axes([left, bottom, width, eight])
+        # ax1inset = fig1.add_axes([left, bottom, width, eight])
         ax1.plot(phi_ss_packed, np.asarray(nrattlers), marker='o', linestyle='', rasterized=True, color=color_marker,
                 markeredgecolor=color_marker)
         spl = UnivariateSpline(phi_ss_packed, nrattlers, bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=0.05, k=3)
@@ -291,17 +304,17 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         yspl = np.vectorize(sigmoid)(phi_ss_spl, *popt)
         yder = np.vectorize(sigmoid_d1)(phi_ss_spl, *popt)
         ax1.plot(phi_ss_spl, yspl, marker='', linestyle='-', rasterized=True, color=color_fit)
-        ax1inset.plot(phi_ss_spl, yder, marker='', linestyle='-', rasterized=True, color=color_fit)
+        # ax1inset.plot(phi_ss_spl, yder, marker='', linestyle='-', rasterized=True, color=color_fit)
         ax1.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
         ax1.set_xlabel(r"$\phi$")
-        ax1.set_ylabel(r"$\langle n_{r} \rangle_{\mathcal{B}}$")
-        ax1inset.locator_params(axis='x', nbins=5)
-        ax1inset.yaxis.set_ticks([])
-        ax1inset.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
-        ax1inset.set_xlabel(r'$\phi$')
-        ax1inset.set_ylabel(r'$\partial_\phi \langle n_{r} \rangle_{\mathcal{B}}$')
-        ax1inset.xaxis.set_label_position("top")
-        ax1inset.yaxis.set_label_position("right")
+        ax1.set_ylabel(r"$\langle N_{r}/N \rangle_{\mathcal{B}}$")
+        # ax1inset.locator_params(axis='x', nbins=5)
+        # ax1inset.yaxis.set_ticks([])
+        # ax1inset.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
+        # ax1inset.set_xlabel(r'$\phi$')
+        # ax1inset.set_ylabel(r'$\partial_\phi \langle n_{r} \rangle_{\mathcal{B}}$')
+        # ax1inset.xaxis.set_label_position("top")
+        # ax1inset.yaxis.set_label_position("right")
         fig1.savefig("{}/{}".format(figdir, "phi_nrattlers{}.pdf".format(nparticles)))
 
     if True:
@@ -508,31 +521,53 @@ def plot_all(figdir="figures", bdim=2):
     def ff(x, a, b):
         return a * x + b
 
-    if False:
+    if True:
         fig0 = plt.figure()
         ax0 = fig0.add_subplot(111)
+        fig0b = plt.figure()
+        ax0b = fig0b.add_subplot(111)
         fig01 = plt.figure()
         ax01 = fig01.add_subplot(111)
+        # fig01b = plt.figure()
+        # ax01b = fig01b.add_subplot(111)
         color_cycle = get_color_cycle(ncolors=len(datasets))
         for i,dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
             color = color_cycle.next()
             phi_ss_packed, psuccess = dp.phi_ss_packed, dp.psuccess
             contacts_all = dp.contacts_all
             y = [[item for sublist in x for item in sublist] for x in contacts_all]
-            ax0.plot(phi_ss_packed, [np.mean(x) for x in y], color=color, linestyle='', marker='o',
+            yy = [np.mean(x) for x in y]
+            ax0.plot(phi_ss_packed, yy, color=color, linestyle='', marker='o',
                      label=nparticles[i], rasterized=True)
-            spl = UnivariateSpline(phi_ss_packed, [np.mean(x) for x in y],
+            spl = UnivariateSpline(phi_ss_packed, yy,
                                    bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=5e-4, k=1)
             phi_ss_spl = np.linspace(0.81, 0.87, 1000)
             ax0.plot(phi_ss_spl, spl(phi_ss_spl), marker='', linestyle='-', color=color, rasterized=True)
-            ax01.plot(phi_ss_packed, [np.var(x) for x in y], color=color, linestyle='-', marker='o',
+            # finite size scaling of <z>
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, yy, np.sqrt(nparticles[i]),
+                                                             0.844, 2, -0.01, abs=False)
+            ax0b.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
+            # var(z)
+            yy = np.array([np.var(x) for x in y])
+            ax01.plot(phi_ss_packed, yy, color=color, linestyle='-', marker='o',
                       label=nparticles[i], markeredgecolor=color, rasterized=True)
+            # # finite size scaling of var(z)
+            # xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, yy, np.sqrt(nparticles[i]), 0.844, 2, -0.125)
+            # ax01b.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
         ax0.set_xlabel(r'$\phi$')
         ax0.set_ylabel(r'$\langle Z \rangle_{\mathcal{B}}$')
         ax0.set_ylim((4,4.5))
         ax0.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig0.savefig("{}/{}".format(figdir, "phi_meanZ_all.pdf"))
+        ax0b.set_xlabel(r"$\varepsilon L^{1/\nu}$")
+        ax0b.set_ylabel(r"$\langle z \rangle L^{\xi/\nu}$")
+        # ax0b.set_yscale('log')
+        # ax0b.set_xscale('log')
+        # ax0b.autoscale(enable=True, tight=True)
+        ax0b.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fig0b.savefig("{}/{}".format(figdir, "phi_meanZ_fss_all.pdf"))
         ax01.set_xlabel(r'$\phi$')
         ax01.set_ylabel(r'$\sigma^2_{\mathcal{B}}(Z)$')
         ax01.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
@@ -559,6 +594,10 @@ def plot_all(figdir="figures", bdim=2):
         ax06 = fig06.add_subplot(111)
         fig07 = plt.figure()
         ax07 = fig07.add_subplot(111)
+        fig11c = plt.figure()
+        ax11c = fig11c.add_subplot(111)
+        left, bottom, width, eight = [0.20, 0.58, 0.35, 0.35]
+        ax11cinset = fig11c.add_axes([left, bottom, width, eight])
         yder_argavg, yder_argmid, yder_avg = [], [], []
         ysig_list, yder_list = [], []
         ratl_list = []
@@ -571,6 +610,8 @@ def plot_all(figdir="figures", bdim=2):
             phi_ss_packed, nrattlers = dp.phi_ss_packed, dp.nrattlers
             ax.plot(phi_ss, np.asarray(psuccess), marker='o', linestyle='', color=color, markeredgecolor=color,
                     rasterized=True, label=nparticles[i])
+            ax11cinset.plot(phi_ss, np.asarray(psuccess), marker='o', linestyle='', color=color, markeredgecolor=color,
+                            rasterized=True, label=nparticles[i])
             y = np.asarray(psuccess)
             popt, pcov = curve_fit(sigmoid, phi_ss, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
             ysig = np.vectorize(sigmoid)(xspl, *popt)
@@ -578,6 +619,7 @@ def plot_all(figdir="figures", bdim=2):
             ysig_list.append(ysig)
             yder_list.append(yder)
             ax.plot(xspl, ysig, marker='', linestyle='-', rasterized=True, color=color)
+            ax11cinset.plot(xspl, ysig, marker='', linestyle='-', rasterized=True, color=color)
             ax04.plot(xspl, yder, marker='None', linestyle='-', linewidth=2, color=color,
                       label=nparticles[i], rasterized=True)
             avg = quad(lambda x : x * sigmoid_d1(x, *popt), 0.815, 0.845)[0]/quad(lambda x: sigmoid_d1(x, *popt), 0.815, 0.845)[0]
@@ -586,11 +628,7 @@ def plot_all(figdir="figures", bdim=2):
             yder_argmid.append(xspl[np.argmin(np.abs(ysig-0.5))])
 
             # finite size scaling of p_J
-            phi_c = 0.844  # np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
-            inu = 1
-            zeta = 0
-            xsc = np.power(np.sqrt(nparticles[i]), inu) * (np.asarray(phi_ss) - np.asarray(phi_c)) / phi_c
-            ysc = np.power(np.sqrt(nparticles[i]), zeta * inu) * y
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss, y, np.sqrt(nparticles[i]), 0.844, 1, 0)
             ax05.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
             axinset.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
 
@@ -607,11 +645,7 @@ def plot_all(figdir="figures", bdim=2):
             ax07.plot(phi_ss_spl, yder, marker='None', linestyle='-', linewidth=2, color=color, rasterized=True)
 
             # finite size scaling of n_r
-            phi_c = 0.844  # np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
-            inu = 1/2 #1/2.5 #1/2.5
-            zeta = -0.5 #-5.5
-            xsc = np.power(np.sqrt(nparticles[i]), inu) * (np.asarray(phi_ss_packed) - np.asarray(phi_c)) / phi_c
-            ysc = np.power(np.sqrt(nparticles[i]), zeta * inu) * y
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y, np.sqrt(nparticles[i]), 0.844, 2, -0.5)
             ax06.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
             ax02inset.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
         print "yder_argavg ", yder_argavg
@@ -631,7 +665,7 @@ def plot_all(figdir="figures", bdim=2):
         axinset.xaxis.set_label_position("top")
         axinset.autoscale(enable=True, axis='x', tight=True)
         axinset.set_xlabel(r"$\varepsilon L^{1/\nu}$")
-        axinset.set_ylabel(r"$(N_r/N) L^{\beta/\nu}$")
+        axinset.set_ylabel(r"$p_J L^{\beta/\nu}$")
         fig.savefig("{}/{}".format(figdir, "phi_ppack_all.pdf"))
         ax02.set_xlabel(r"$\phi$")
         ax02.set_ylabel(r"$N_{r}/N$")
@@ -643,7 +677,7 @@ def plot_all(figdir="figures", bdim=2):
         ax02inset.yaxis.set_major_formatter(FixedOrderFormatter(-2))
         ax02inset.autoscale(enable=True, tight=True)
         ax02inset.set_xlabel(r"$\varepsilon L^{1/\nu}$")
-        ax02inset.set_ylabel(r"$p_{J} L^{-\delta/\nu}$")
+        ax02inset.set_ylabel(r"$(N_r/N) L^{-\delta/\nu}$")
         fig02.savefig("{}/{}".format(figdir, "phi_nrattlers_all.pdf"))
         ax04.set_xlim((0.81,0.86))
         ax04.set_xlabel(r"$\phi$")
@@ -825,12 +859,19 @@ def plot_all(figdir="figures", bdim=2):
         # ax9inset.set_prop_cycle(get_cycler(ncolors=len(nparticles)))
         fig11 = plt.figure()
         ax11 = fig11.add_subplot(111)
+        fig11b = plt.figure()
+        ax11b = fig11b.add_subplot(111)
+        left, bottom, width, eight = [0.595, 0.21, 0.35, 0.35]
+        ax11binset = fig11b.add_axes([left, bottom, width, eight])
         fig12 = plt.figure()
         ax12 = fig12.add_subplot(111)
         fig13 = plt.figure()
         ax13 = fig13.add_subplot(111)
+        fig13b = plt.figure()
+        ax13b = fig13b.add_subplot(111)
         fig14 = plt.figure()
         ax14 = fig14.add_subplot(111)
+        left, bottom, width, eight = [0.56, 0.55, 0.35, 0.35]
         ax14inset = fig14.add_axes([left, bottom, width, eight])
         fig15 = plt.figure()
         ax15 = fig15.add_subplot(111)
@@ -840,7 +881,7 @@ def plot_all(figdir="figures", bdim=2):
         ax17 = fig17.add_subplot(111)
         fig18 = plt.figure()
         ax18 = fig18.add_subplot(111)
-        left, bottom, width, eight = [0.15, 0.21, 0.35, 0.35]
+        left, bottom, width, eight = [0.15, 0.22, 0.35, 0.35]
         ax18inset = fig18.add_axes([left, bottom, width, eight])
         fig19 = plt.figure()
         ax19 = fig19.add_subplot(111)
@@ -890,10 +931,23 @@ def plot_all(figdir="figures", bdim=2):
             y = logp_mean[:,0]
             yerr = np.abs(np.asarray([logp_mean[:, 1], logp_mean[:, 2]]) - y)
             #w = 0.5*(logp_mean[:, 2]-logp_mean[:, 1])/weights
-            spl = UnivariateSpline(x, y, s=1, k=1, w=weights)
+            popt, pcov = curve_fit(sigmoid, x, y, p0=[0.842, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
+            yspl = np.vectorize(sigmoid)(xx, *popt)
             ax11.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
                           color=color, markeredgecolor=color, rasterized=True)
-            ax11.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
+            ax11.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
+            ax11c.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
+                          color=color, markeredgecolor=color, rasterized=True)
+            ax11c.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
+            # finite size scaling of < lnP >
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y, np.sqrt(nparticles[i]),
+                                                             0.841, 0.5, 0.625, yerr=yerr, abs=False)
+            ax11b.errorbar(xsc, ysc, yerr=ysc_err, marker='o', linestyle='', color=color, markeredgecolor=color,
+                           label='{}'.format(nparticles[i]), rasterized=True)
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y, np.sqrt(nparticles[i]),
+                                                             0.841, 0.5, 0.625, yerr=yerr, abs=True)
+            ax11binset.errorbar(xsc, ysc, yerr=ysc_err, marker='o', linestyle='', color=color, markeredgecolor=color,
+                                label='{}'.format(nparticles[i]), rasterized=True)
             # var of lnP
             y = logp_var[:,0]*nparticles[i]
             yerr = np.abs(np.asarray([logp_var[:, 2]*nparticles[i], logp_var[:, 2]*nparticles[i]]) - y)
@@ -924,6 +978,11 @@ def plot_all(figdir="figures", bdim=2):
                           color=color, markeredgecolor=color, rasterized=True)
             ax13.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             ax13.set_yscale('log')
+            # finite size scaling of < P >
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y * nparticles[i], np.sqrt(nparticles[i]),
+                                                             0.841, 2, 1, yerr=yerr * nparticles[i], abs=False)
+            ax13b.errorbar(xsc, ysc, yerr=ysc_err, marker='o', linestyle='', color=color, markeredgecolor=color,
+                           label='{}'.format(nparticles[i]), rasterized=True)
             # var of P
             y = p_var[:, 0]
             yerr = np.abs(np.asarray([p_var[:, 1], p_var[:, 2]]) - y)
@@ -1013,13 +1072,36 @@ def plot_all(figdir="figures", bdim=2):
         ax18inset.yaxis.set_ticks([])
         ax18.yaxis.set_major_formatter(FixedOrderFormatter(3))
         ax19.set_xlim((0.81, phi_max))
+        ax11b.autoscale(enable=True, tight=True)
+        ax11b.set_xlim(xmax=4.5)
+        ax11binset.set_yscale('log')
+        ax11binset.set_xscale('log')
+        ax11binset.autoscale(enable=True, tight=True)
+        # ax11binset.locator_params(axis='x', nbins=5)
+        # ax11binset.locator_params(axis='y', nbins=3)
+        ax11c.autoscale(enable=True, axis='y', tight=True)
+        ax11c.set_xlim((0.8, 0.87))
+        ax11c.set_ylim(ymax=6.5)
+        ax11cinset.set_xlim((0.81, 0.86))
+        ax11cinset.set_ylim((-0.02, 1.02))
+        ax11cinset.locator_params(axis='x', nbins=4)
+        ax11cinset.locator_params(axis='y', nbins=4)
+
         ax9.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax11.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax11b.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
+                    markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax11c.legend(frameon=False, loc=4, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
+                     markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax12.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax13.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax13b.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
+                    markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax14.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handletextpad=0)
@@ -1059,6 +1141,18 @@ def plot_all(figdir="figures", bdim=2):
         ax18inset.xaxis.set_label_position("top")
         ax19.set_xlabel(r'$\phi$')
         ax19.set_ylabel(r'$\sigma^2(P)$')
+        ax11b.set_xlabel(r"$\varepsilon L^{1/\nu}$")
+        ax11b.set_ylabel(r"$\langle \Lambda \rangle L^{\xi/\nu}$")
+        ax11binset.xaxis.set_label_position("top")
+        ax11binset.set_xlabel(r"$|\varepsilon| L^{1/\nu}$")
+        ax11binset.set_ylabel(r"$\langle \Lambda \rangle L^{\xi/\nu}$")
+        ax11c.set_xlabel(r'$\phi$')
+        ax11c.set_ylabel(r'$\langle \Lambda \rangle_{\mathcal{B}}$')
+        ax11cinset.yaxis.set_label_position("right")
+        ax11cinset.set_xlabel(r"$\phi$")
+        ax11cinset.set_ylabel(r"$p_J$")
+        ax13b.set_xlabel(r"$\varepsilon L^{1/\nu}$")
+        ax13b.set_ylabel(r"$N \langle P \rangle L^{\xi/\nu}$")
 
         fig9.savefig("{}/{}".format(figdir, "lnp_u4.pdf"))
         fig11.savefig("{}/{}".format(figdir, "lnp_mean.pdf"))
@@ -1070,6 +1164,9 @@ def plot_all(figdir="figures", bdim=2):
         fig17.savefig("{}/{}".format(figdir, "lnp_var_max.pdf"))
         fig18.savefig("{}/{}".format(figdir, "prel_var_d1.pdf"))
         fig19.savefig("{}/{}".format(figdir, "p_var.pdf"))
+        fig11b.savefig("{}/{}".format(figdir, "lnp_mean_fss.pdf"))
+        fig11c.savefig("{}/{}".format(figdir, "lnp_mean_pj.pdf"))
+        fig13b.savefig("{}/{}".format(figdir, "p_mean_fss.pdf"))
 
     if True:
         import matplotlib.gridspec as gridspec
@@ -1078,12 +1175,14 @@ def plot_all(figdir="figures", bdim=2):
         # gs = gridspec.GridSpec(7, 2)
         # ax5 = fig5.add_subplot(gs[:4, :])
         fig51 = plt.figure()
-        fig52 = plt.figure()
-        fig53 = plt.figure()
-        fig54 = plt.figure()
         ax51 = fig51.add_subplot(111)
+        left, bottom, width, eight = [0.56, 0.55, 0.35, 0.35]
+        ax51inset = fig51.add_axes([left, bottom, width, eight])
+        fig52 = plt.figure()
         ax52 = fig52.add_subplot(111)
-        ax53 = fig53.add_subplot(111)
+        left, bottom, width, eight = [0.56, 0.55, 0.35, 0.35]
+        ax52inset = fig52.add_axes([left, bottom, width, eight])
+        fig54 = plt.figure()
         ax54 = fig54.add_subplot(111)
         left, bottom, width, eight = [0.205, 0.21, 0.35, 0.35]
         ax54inset = fig54.add_axes([left, bottom, width, eight])
@@ -1116,7 +1215,7 @@ def plot_all(figdir="figures", bdim=2):
             # ax5.errorbar(logx, logy, fmt='o', color=color, yerr=logy_err, rasterized=True)
             ax51.errorbar(x, y, fmt='o', color=color, yerr=y_err,
                           label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
-            ax53.errorbar(xabs, y, fmt='o', color=color, yerr=y_err,
+            ax51inset.errorbar(xabs, y, fmt='o', color=color, yerr=y_err,
                           label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
             ax54inset.errorbar(xabs, y, fmt='o', color=color, yerr=y_err,
                           label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
@@ -1131,6 +1230,8 @@ def plot_all(figdir="figures", bdim=2):
             color = color_cycle2.next()
             ax52.errorbar(x, y, fmt='o', color=color, yerr=yerr,
                           label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
+            ax52inset.errorbar(xabs, y, fmt='o', color=color, yerr=y_err,
+                               label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
             ax54.errorbar(xabs, y, fmt='o', color=color, yerr=yerr,
                           label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
             # idx = np.argmax(logy < 0.5 * np.amax(logy))  # int(len(logx)*0.2)
@@ -1142,15 +1243,26 @@ def plot_all(figdir="figures", bdim=2):
 
         ax51.set_ylabel(r'$\chi_{\Lambda} L^{-\gamma/\nu}$')
         ax51.set_xlabel(r'$\varepsilon L^{1/\nu}$')
-        ax51.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
+        ax51.legend(frameon=False, loc=3, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax53.set_yscale('log')
-        ax53.set_xscale('log')
-        ax53.autoscale(enable=True, tight=True)
-        ax53.set_ylabel(r'$\chi_{\Lambda} L^{-\gamma/\nu}$')
-        ax53.set_xlabel(r'$|\varepsilon| L^{1/\nu}$')
-        ax53.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax51inset.set_yscale('log')
+        ax51inset.set_xscale('log')
+        ax51inset.autoscale(enable=True, tight=True)
+        ax51inset.set_ylabel(r'$\chi_{\Lambda} L^{-\gamma/\nu}$')
+        ax51inset.set_xlabel(r'$|\varepsilon| L^{1/\nu}$')
+
+        ax52.set_ylabel(r'$\chi_P L^{-\gamma/\nu}$')
+        ax52.set_xlabel(r'$\varepsilon L^{1/\nu}$')
+        ax52.legend(frameon=False, loc=3, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
+                    markerscale=1,
+                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+
+        ax52inset.set_yscale('log')
+        ax52inset.set_xscale('log')
+        ax52inset.autoscale(enable=True, tight=True)
+        ax52inset.set_ylabel(r'$\chi_{P} L^{-\gamma/\nu}$')
+        ax52inset.set_xlabel(r'$|\varepsilon| L^{1/\nu}$')
+
         ax54inset.set_yscale('log')
         ax54inset.set_xscale('log')
         ax54inset.autoscale(enable=True, tight=True)
@@ -1158,10 +1270,7 @@ def plot_all(figdir="figures", bdim=2):
         ax54inset.set_xlabel(r'$|\varepsilon| L^{1/\nu}$')
         ax54inset.yaxis.set_label_position("right")
         ax54inset.xaxis.set_label_position("top")
-        ax52.set_ylabel(r'$\chi_P L^{-\gamma/\nu}$')
-        ax52.set_xlabel(r'$\varepsilon L^{1/\nu}$')
-        ax52.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+
         ax54.set_yscale('log')
         ax54.set_xscale('log')
         # ax54.autoscale(enable=True, axis='y', tight=True)
@@ -1173,7 +1282,6 @@ def plot_all(figdir="figures", bdim=2):
                     markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig51.savefig("{}/{}".format(figdir, "phi_lnpvar.pdf"))
         fig52.savefig("{}/{}".format(figdir, "phi_prelvar.pdf"))
-        fig53.savefig("{}/{}".format(figdir, "lnphi_lnpvar.pdf"))
         fig54.savefig("{}/{}".format(figdir, "lnphi_prelvar.pdf"))
 
         # ax5.set_title(r'$\nu = 1;~\alpha \approx 0.015$')
