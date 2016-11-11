@@ -36,7 +36,7 @@ class _Generate_Jammed_Packing(object):
     """
     this is an abstract class that implements the basic components of a generate packing class,
     and declares a number of abstract methods which should be implemented in all inheriting classes
-    *method to generate packing, this could be for example direct sampling, 
+    *method to generate packing, this could be for example direct sampling,
     sequential sampling,quench or LSA
     *nparticles: number of particles
     *bdim: dimensionality of the box
@@ -45,7 +45,7 @@ class _Generate_Jammed_Packing(object):
     *boxv: an array of size bdim that contains the vectors defining the box
     """
     __metaclass__ = abc.ABCMeta
-    
+
     def __init__(self, packing_frac=0.65, packings_dir='packings'):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'jammed_packings')
@@ -55,7 +55,7 @@ class _Generate_Jammed_Packing(object):
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
-    
+
     def _import_single_packing_config_file(self, fname):
         dname = fname
         if dname.endswith('.xyzd'):
@@ -64,7 +64,7 @@ class _Generate_Jammed_Packing(object):
             dname = dname[:-4]
         self.configpath = os.path.join(self.packings_dir, dname+'.config')
         self._import_packing_config_file()
-          
+
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.configpath))
@@ -75,14 +75,14 @@ class _Generate_Jammed_Packing(object):
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
-    
+
     @abc.abstractmethod
     def _initialise(self):
         """initialisation function"""
         self.configpath = os.path.join(self.packings_dir,'packings.config')
         assert(os.path.isfile(self.configpath))
         self._import_packing_config_file()
-    
+
     @abc.abstractmethod
     def _import_packing_configuration(self, fname):
         """imports the coordinates and data relative to the shape of the particles
@@ -91,19 +91,19 @@ class _Generate_Jammed_Packing(object):
     @abc.abstractmethod
     def _generate_packing_coords(self):
         """function that generates the packing"""
-    
+
     @abc.abstractmethod
     def _write_opengl_input(self, n):
         """writes a opengl input file, n is the unique identifier of the structure"""
-        
+
     @abc.abstractmethod
     def _dump_configuration(self, n):
         """writes a configuration file, e.g .xyzd, n is the unique identifier of the structure"""
-            
+
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-    
+
     def _print_parameters(self, n):
         """writes the simulation parameters"""
         fname = '{}/jammed_packing{}.config'.format(self.base_directory,n)
@@ -130,7 +130,7 @@ class _Generate_Jammed_Packing(object):
         f.write('python_version: {}\n'.format(get_python_version()))
         f.write('cython_version: {}\n'.format(get_cython_version()))
         f.close()
-        
+
     def _print(self, n):
         """dump configuration and opengl input to packings directory
             n is the unique identifier of the structure
@@ -138,12 +138,12 @@ class _Generate_Jammed_Packing(object):
         self._print_parameters(n)
         self._dump_configuration(n)
         self._write_opengl_input(n)
-    
+
     # @abc.abstractmethod
     # def _histogram_eigenvalues(self):
     #     """ method to plot eigenvalues histograms
     #     """
-    
+
     @abc.abstractmethod
     def one_iteration(self,fname):
         """perform one iteration
@@ -156,11 +156,11 @@ class _Generate_Jammed_Packing(object):
                 print "\n",fname
                 self.one_iteration(fname)
         # self._histogram_eigenvalues()
-            
+
 class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     """
     *this class generates packings and identifies rattlers by computing the hessian eigenvalues for each particle
-    *in the equilibrium jammed structure. A .xyzdr file is produced that contains the 3 system coordinates, the particle 
+    *in the equilibrium jammed structure. A .xyzdr file is produced that contains the 3 system coordinates, the particle
     * diameter and if not it's a rattler (0 if a rattler, 1 otherwise)
     *PARAMETERS
     *hs_radii: array with the radii of the particles, if none sample particle sizes from a normal distribution
@@ -169,20 +169,20 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     *tol: rms tolerance for the minimizer
-    """    
+    """
     def __init__(self, packing_frac=0.7, tol=1e-9,
         packings_dir='packings', use_cell_lists=False, show=False,
         opt_pot_str='hs_wca', extra_pot_kwargs=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
                                                         packings_dir=packings_dir)
-        
+
         self.opt_pot_str = opt_pot_str
         self.extra_pot_kwargs = extra_pot_kwargs
         self.use_cell_lists = use_cell_lists
         self.tol = tol
         ##constants#
         ############
-    
+
     def _initialise(self):
         self._print_initialise()
 
@@ -192,16 +192,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self._import_single_packing_config_file(fname)
         self.rattlers = np.empty(self.nparticles,dtype='d')
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')
-        
+
         self._import_packing_configuration(fname)
         self.max_nrattlers = int(self.nparticles*0.5)
-        
+
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
             print "WARNING: max soft diameter >= 1/2 box side!"
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
-        
+
         ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
         rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
         if self.use_cell_lists:
@@ -227,7 +227,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
         else:
             raise NotImplementedError
-        
+
         success = self._generate_packing_coords() #returns false if saddle
 
         n = int(re.search(r'\d+', fname).group())
@@ -442,15 +442,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                         nnatoms_index_list[i].append(j)
                         nnatoms_index_list[j].append(i)
         return nnatoms_list, nnatoms_index_list
-    
-    
+
+
     def _generate_packing_coords(self):
         """
         perform quench and run tests
         """
         success = self._generate_packing_coords_iteration(tol=self.tol)
         return success
-    
+
     def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
         """quenches the imported structure using FIRE"""
         fire_maxstep = np.amin(self.hs_radii)*self.sca
@@ -458,16 +458,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if not res.success:
             print 'quench failed'
             return False
-        
+
         self.coords = res.coords
         self.energy = res.energy
-        
+
         #test that on ri-minimisation the structure does not change
         res2 = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
         if res2.nfev > 1:
             print 'quench failed (structure changed at second minimisation)'
             return False
-        
+
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
@@ -481,7 +481,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         volumes = volume_nball(self.hs_radii,self.bdim)
         vtot = np.sum(volumes)
         return vtot
-    
+
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.packings_dir, fname)
         if self.bdim == 2:
@@ -492,7 +492,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.hs_radii = hs_diameters/2
         self._compute_sca()
-    
+
     def _compute_sca(self):
         ##test##
         vol_part = self._get_particles_volume()
@@ -502,7 +502,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         ##endtest##
         ###r_soft = r_hs*(1+sca)
         self.sca = np.power(self.packing_frac/self.imp_packing_frac,1./self.bdim) - 1
-        
+
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
@@ -527,13 +527,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             else:
                 break
         return no_overlap
-            
+
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
         coords = self.coords.copy()
         put_in_box(coords,self.boxv)
         return coords
-    
+
     def _dump_configuration(self,n):
         """write coordinates to file .xyzdr"""
         directory = self.base_directory
@@ -579,7 +579,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             else:
                 raise NotImplementedError("bdim={} not implemented".format(self.bdim))
             f.close()
-    
+
     def _write_opengl_input(self,n):
         """write opengl input file"""
         coords = self._correct_coords()
@@ -613,7 +613,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         else:
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
-    
+
     # def _histogram_eigenvalues(self):
     #     #self.eigenvalues = np.array(self.eigenvalues,dtype='d')
     #     self.block_evalues = np.real(self.block_evalues)
@@ -652,12 +652,12 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     #     if self.show:
     #         pylab.show()
 
-            
+
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
-    parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
+    parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
     parser.add_argument("-t", "--tol", type=float, help="rms tolerance of the minimizer", default=1e-9)
@@ -666,7 +666,7 @@ if __name__ == "__main__":
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
     print args
-    
+
     # potential type
     opt_pot_str = args.opt_pot
     extra_pot_kwargs = dict()
@@ -677,19 +677,10 @@ if __name__ == "__main__":
         print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
     else:
         raise NotImplementedError
-    
+
     print("extra_pot_kwargs", extra_pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
                                      packings_dir=args.packingsdir, tol=args.tol,
-                                     use_cell_lists=args.nocell, show=args.show,
+                                     use_cell_lists=not args.nocell, show=args.show,
                                      opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
     sim.run()
-    
-    
-        
-                
-            
-              
-                
-                
-                
