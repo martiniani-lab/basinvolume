@@ -308,7 +308,7 @@ class FindJ(object):
 
 
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument("-n","--npackings", type=int, help="number of packings to produce",default=1)
@@ -323,7 +323,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
-    parser.add_argument("--nocell", action='store_false', help="use cell lists, default: True",default=True)
+    parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
     parser.add_argument("--tol", type=float, help="minimizer rms tolerance",default=1e-8)
@@ -334,11 +334,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print args
     single = not args.moveall
-    
+
     #import radii from other configuration file
     dpath = args.dpath
     hs_radii = None
-    if dpath: 
+    if dpath:
         if not os.path.isabs(args.dpath):
             dpath = os.path.abspath(dpath)
         if args.boxdim == 2:
@@ -353,13 +353,7 @@ if __name__ == "__main__":
     sim = FindJ(args.nparticles, method=args.method, bdim=args.boxdim, ss_packing_frac=density,
                 sca=args.sca, hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
                 hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                use_cell_lists=args.nocell, single=single, ncores=args.ncores, tol=args.tol,
+                use_cell_lists=not args.nocell, single=single, ncores=args.ncores, tol=args.tol,
                 start_iteration=args.start_iter)
 
     sim.run()
-                
-            
-              
-                
-                
-                
