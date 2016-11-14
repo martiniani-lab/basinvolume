@@ -15,8 +15,8 @@ def get_immediate_subdirectories(dir):
 
 class BVSubmitPBS(object):
     """
-    This class is specific to the basin volume repository and is responsible of 
-    looping through a particular directory containing the jammed_packings 
+    This class is specific to the basin volume repository and is responsible of
+    looping through a particular directory containing the jammed_packings
     and explore_bv_jammed_packingsubdirectories
     *workdir is the directory containing all the explore_bv_* subdirectories
     *job_label should help distinguish between different densities and packing numbers
@@ -25,18 +25,18 @@ class BVSubmitPBS(object):
     *nodays if true use walltime HH:MM:SS format (necessary for some clusters)
     *numnegk is the number of negative ks to use during PT
     """
-    def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
-                 kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing', pt_config='explore_jammed_packing', 
-                 packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False, 
-                 experimental=False, use_cgd=True, record_steps_timeseries=False, mintotniter=5e5, maxtotniter=2e6, 
-                 relstderr=0.05, numnegk=0, lownegk=-2.5, pot_opt_str='hs_wca'):
+    def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing',
+                 kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing', pt_config='explore_jammed_packing',
+                 packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False,
+                 experimental=False, use_cgd=True, record_steps_timeseries=False, kmax_start=500, mintotniter=5e5, maxtotniter=2e6,
+                 relstderr=0.05, numnegk=0, lownegk=-2.5, pot_opt_str='hs_wca', nocell=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
             workdir = os.path.abspath(workdir)
         self.workdir = workdir
         self.explore_dir = explore_dir
-        self.kmax_config = kmax_config 
+        self.kmax_config = kmax_config
         self.kmin_config = kmin_config
         self.innersphere_dos_config = innersphere_dos_config
         self.pt_config = pt_config
@@ -54,10 +54,12 @@ class BVSubmitPBS(object):
         self.relstderr = relstderr
         self.lownegk = lownegk
         self.numnegk = numnegk
+        self.kmax_start = kmax_start
         self.pot_opt_str = pot_opt_str
+        self.nocell = nocell
         self.pt_output_files = ["exchanges","rem_permutations","temperatures"]
         if ndim == 2:
-            if not self.experimental: 
+            if not self.experimental:
                 self.ext = '.xydr'
             else:
                 self.ext = '.xydfr'
@@ -66,10 +68,10 @@ class BVSubmitPBS(object):
                 self.ext = '.xyzdr'
             else:
                 self.ext = '.xyzdfr'
-    
+
     def _check_kmax_config_file_ready(self, kmax_configpath):
         """
-        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
+        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated),
         returns false if they are not
         """
         if not self._check_config_file_exist(kmax_configpath):
@@ -85,10 +87,10 @@ class BVSubmitPBS(object):
         except:
             return False
         return success
-    
+
     def _check_kmin_config_file_ready(self, kmin_configpath):
         """
-        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
+        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated),
         returns false if they are not
         """
         if not self._check_config_file_exist(kmin_configpath):
@@ -102,10 +104,10 @@ class BVSubmitPBS(object):
         except:
             return False
         return success
-    
+
     def _check_pt_config_file_ready(self, pt_configpath):
         """
-        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
+        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated),
         returns false if they are not
         """
         if not self._check_config_file_exist(pt_configpath):
@@ -120,10 +122,10 @@ class BVSubmitPBS(object):
             if not (value == "True"):
                 return False
         return True
-    
+
     def _check_innersphere_dos_config_file_ready(self, innersphere_dos_configpath):
         """
-        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated), 
+        checks whether config files are ready (hence the necessary calculations have already been launched or have terminated),
         returns false if they are not
         """
         if not self._check_config_file_exist(innersphere_dos_configpath):
@@ -135,17 +137,17 @@ class BVSubmitPBS(object):
         except:
             return False
         return success
-    
+
     def _check_config_file_exist(self, configpath):
         return os.path.isfile(configpath)
-    
+
     def _remove_pbs_output(self, explore_dir_path, output_signature):
-        p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -vf '{{}}' \;".format(explore_dir_path, 
+        p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -vf '{{}}' \;".format(explore_dir_path,
                                                                                                                 output_signature)))
         if p != 0:
             raise Exception("removing pbs output file failed")
-    
-    def _remove_innersphere_dos_old_data(self, explore_dir_path, config_fname, output_signature="bv*innersphere_dos*.o*", 
+
+    def _remove_innersphere_dos_old_data(self, explore_dir_path, config_fname, output_signature="bv*innersphere_dos*.o*",
                                          rmdata="inner_sphere.timeseries"):
         try:
             os.remove(os.path.join(explore_dir_path, rmdata))
@@ -155,7 +157,7 @@ class BVSubmitPBS(object):
         #remove config file and pbs output
         self._remove_pbs_output(explore_dir_path, output_signature)
         self._remove_pbs_output(explore_dir_path, config_fname+"*.config")
-    
+
     def _remove_pt_old_data(self, explore_dir_path, config_fname, output_signature="bv*pt*.o*", pt=False):
         for root, dirs, files in os.walk(explore_dir_path):
             for dir in dirs:
@@ -169,7 +171,7 @@ class BVSubmitPBS(object):
         #remove config file and pbs output
         self._remove_pbs_output(explore_dir_path, output_signature)
         self._remove_pbs_output(explore_dir_path, config_fname+"*.config")
-    
+
     def _get_findk_command(self, noj, path_to_script, script='bv_find_kmin.py', record_steps_timeseries=False):
         """
         this function returns the correct command line
@@ -183,12 +185,16 @@ class BVSubmitPBS(object):
             command += " --cgd"
         if record_steps_timeseries:
             command += " --rsts"
+        if script == 'bv_find_kmax.py':
+            command += " --kstart {}".format(self.kmax_start)
+        if self.nocell:
+            command += " --nocell"
         return command
-    
+
     def _get_innersphere_dos_command(self, noj, path_to_script, script='bv_innersphere_dos.py'):
         """
         this function returns the correct command line.
-        
+
         this methods makes the assumption that path_to_script points to the spheres folder
         so it goes up one folder from path_to_script and replaces 'spheres' with  'mbar_spheres'
         """
@@ -200,11 +206,11 @@ class BVSubmitPBS(object):
         if self.use_cgd:
             command += " --cgd"
         return command
-    
+
     def submit_kmin_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
         """
         launch kmin calculations manually if they have not been launched yet
-        (this method only checks that the config file is not ready or present, 
+        (this method only checks that the config file is not ready or present,
         hence this method should only be used when there are no calculations running,
         as the calculation might have already been launched and it is in the queue)
         *pbs object of type BuildPBSScript
@@ -222,7 +228,7 @@ class BVSubmitPBS(object):
                         if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")):   #check if there's a tar version
                             path = os.path.join(self.workdir,explore_dir)       #build a full path for explore dir
                             if (explore_dir) not in subdirs:                    #check is explore_dir is a subfolder of self.workdir
-                                trymakedir(path)    
+                                trymakedir(path)
                             kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                             if not self._check_kmin_config_file_ready(kmin_path) or force:
                                 #########remove old pbs output#######
@@ -236,12 +242,12 @@ class BVSubmitPBS(object):
                                 pbs.submit_PBS('bv_kmin'+noj+'.sh', 'bv_'+self.label+'_kmin'+noj)
                             else:
                                 pass
-                            
-                    
+
+
     def submit_kmax_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
         """
         launch kmax calculations manually if they have not been launched yet
-        (this method only checks that the config file is not ready or present, 
+        (this method only checks that the config file is not ready or present,
         hence this method should only be used when there are no calculations running,
         as the calculation might have already been launched and it is in the queue)
         *pbs object of type BuildPBSScript
@@ -267,16 +273,16 @@ class BVSubmitPBS(object):
                                 #####################################
                                 if not os.path.isabs(path_to_script):
                                     path_to_script = os.path.abspath(path_to_script)
-                                command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
+                                command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py',kmax=kmax)
                                 pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
                                 pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
                             else:
                                 pass
-    
+
     def submit_innersphere_dos_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
         """
         launch innersphere_dos bv_innersphere_dos calculations manually if they have not been launched yet
-        (this method only checks that the config file is not ready or present, 
+        (this method only checks that the config file is not ready or present,
         hence this method should only be used when there are no calculations running,
         as the calculation might have already been launched and it is in the queue)
         *pbs object of type BuildPBSScript
@@ -294,7 +300,7 @@ class BVSubmitPBS(object):
                         if not os.path.isfile(os.path.join(self.workdir,explore_dir+".tar.gz")):   #check if there's a tar version
                             path = os.path.join(self.workdir, explore_dir)  #build a full path for explore dir
                             if (explore_dir) not in subdirs:                #check is explore_dir is a subfolder of self.workdir
-                                trymakedir(path)    
+                                trymakedir(path)
                             innersphere_dos_path = os.path.join(path, self.innersphere_dos_config + noj + '.config')
                             kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                             pt_path = os.path.join(path, self.pt_config + noj + '.config')
@@ -312,7 +318,7 @@ class BVSubmitPBS(object):
                                 pbs.submit_PBS('bv_innersphere_dos'+noj+'.sh', 'bv_'+self.label+'_innersphere_dos'+noj)
                             else:
                                 pass
-    
+
     def _get_pt_command(self, noj, path_to_script, ncores, script='bv_parallel_tempering.py'):
         """
         this function returns the correct command line for the parallel tempering calculation
@@ -330,16 +336,18 @@ class BVSubmitPBS(object):
                        '--mintotniter {3} --maxtotniter {4} --relstderr {5} '
                        '--opt-pot {6}').format(pt_script, packing, explore_dir, self.mintotniter,
                                                self.maxtotniter, self.relstderr, self.pot_opt_str)
+        if self.nocell:
+            command += " --nocell"
         if self.use_cgd:
             command += " --cgd"
         if self.numnegk > 0:
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         return command
-    
+
     def submit_pt_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
         """
         launch pt calculations manually if they have not been launched yet
-        (this method only checks that the config files are not ready or present, 
+        (this method only checks that the config files are not ready or present,
         hence this method should only be used when there are no calculations running,
         as the calculation might have already been launched and it is in the queue)
         *pbs object of type BuildPBSScript
@@ -367,12 +375,12 @@ class BVSubmitPBS(object):
                                     if not os.path.isabs(path_to_script):
                                         path_to_script = os.path.abspath(path_to_script)
                                     command = self._get_pt_command(noj, path_to_script, nodes*cores)
-                                    pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays) 
+                                    pbs = BuildPBSScript(queue_type, nodes, cores, walltime, command, outdir=path, nodays=self.nodays)
                                     pbs.submit_PBS('bv_pt'+noj+'.sh', 'bv_'+self.label+'_pt'+noj)
                             else:
                                 pass
-                    
-    def submit_chain_calculations(self, k_queue_type, k_nodes, k_cores, k_walltime, 
+
+    def submit_chain_calculations(self, k_queue_type, k_nodes, k_cores, k_walltime,
                                   pt_queue_type, pt_nodes, pt_cores, pt_walltime, path_to_script):
         """
         launch a chain of calculations. The strategy is to create all 3 bash files at the start and
@@ -398,7 +406,7 @@ class BVSubmitPBS(object):
                             kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                             pt_path = os.path.join(path, self.pt_config + noj + '.config')
                             innersphere_dos_path = os.path.join(path, self.innersphere_dos_config + noj + '.config')
-                            
+
                             if not self._check_innersphere_dos_config_file_ready(innersphere_dos_path):
                                 #########remove old innersphere data#######
                                 self._remove_innersphere_dos_old_data(explore_dir, self.innersphere_dos_config + noj,
@@ -409,7 +417,7 @@ class BVSubmitPBS(object):
                                 #kmax_fname = 'bv_kmax'+noj+'.sh' #unused
                                 kmin_fname = 'bv_kmin'+noj+'.sh'
                                 pt_fname = 'bv_pt'+noj+'.sh'
-                                innersphere_dos_fname = 'bv_innersphere_dos'+noj+'.sh'                                
+                                innersphere_dos_fname = 'bv_innersphere_dos'+noj+'.sh'
                                 innersphere_dos_command = self._get_innersphere_dos_command(noj, path_to_script, script='bv_innersphere_dos.py')
                                 pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, innersphere_dos_command, outdir=path, nodays=self.nodays)
                                 if self._check_pt_config_file_ready(pt_path):
@@ -425,7 +433,7 @@ class BVSubmitPBS(object):
                                     #prepare PT command
                                     pt_command = self._get_pt_command(noj, path_to_script, pt_nodes*pt_cores)
                                     pt_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(innersphere_dos_fname)
-                                    pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays) 
+                                    pbs = BuildPBSScript(pt_queue_type, pt_nodes, pt_cores, pt_walltime, pt_command, outdir=path, nodays=self.nodays)
                                     #if kmax is either not terminated or is reasonable then continue
                                     if check_kmax_reasonable(kmax_path):
                                         #if kmin and kmax terminated
@@ -457,14 +465,14 @@ class BVSubmitPBS(object):
                                                 kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
                                                 pbs = BuildPBSScript(k_queue_type, k_nodes, k_cores, k_walltime, kmax_command, outdir=path, nodays=self.nodays)
                                                 pbs.submit_PBS('bv_kmax'+noj+'.sh', 'bv_'+self.label+'_kmax'+noj)
-    
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
     subparsers = parser.add_subparsers(help='Choose a subparser: single to submit jobs individually, \
                                                                  chain to submit a bv jobs chain', dest='mode')
     single_parser = subparsers.add_parser('single', help='submit individual jobs')
     chain_parser = subparsers.add_parser('chain', help='submit a bv chain')
-    
+
     single_parser.add_argument("ndim", type=int, help="dimensionality")
     single_parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
     single_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
@@ -476,13 +484,14 @@ if __name__ == "__main__":
     single_parser.add_argument("--kmin", action='store_true', help="compute kmin",default=False)
     single_parser.add_argument("--kmax", action='store_true', help="compute kmax",default=False)
     single_parser.add_argument("--mbar", action='store_true', help="compute innersphere dos",default=False)
-    single_parser.add_argument("--pt", action='store_true', help="perform parallel tempering",default=False)        
+    single_parser.add_argument("--pt", action='store_true', help="perform parallel tempering",default=False)
     single_parser.add_argument("--nojmin", type=int, help="number of minimum job ID to submit (to selectively submit a range of jobs)",default=0)
     single_parser.add_argument("--nojmax", type=int, help="number of maximum job ID to submit (to selectively submit a range of jobs)",default=1e6)
     single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
     single_parser.add_argument("--fire", action='store_true', help="use fire instead of cgd",default=False)
     single_parser.add_argument("--rsts", action='store_true', help="record steps timeseries for diffusion studies, default: False",default=False)
+    single_parser.add_argument("--kmax_start", type=float, help="starting value for kmax calculation",default=500)
     single_parser.add_argument("--mintotniter", type=float, help="minimum number of energy evaluation per replica, \
     before checking for convergence default: 5e5. This sets a lower bound",default=5e5)
     single_parser.add_argument("--maxtotniter", type=float, help="maximum number of energy evaluation per replica, \
@@ -491,7 +500,8 @@ if __name__ == "__main__":
     single_parser.add_argument("--numnegk", type=int, help="number of negative ks to use", default=0)
     single_parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
     single_parser.add_argument("--force", action='store_true', help="force run",default=False)
-    
+    single_parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
+
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
     chain_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
@@ -509,6 +519,7 @@ if __name__ == "__main__":
     chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format",default=False)
     chain_parser.add_argument("--fire", action='store_true', help="use fire instead of cgd",default=False)
     chain_parser.add_argument("--rsts", action='store_true', help="record steps timeseries for diffusion studies, default: False",default=False)
+    chain_parser.add_argument("--kmax_start", type=float, help="starting value for kmax calculation",default=500)
     chain_parser.add_argument("--mintotniter", type=float, help="minimum number of energy evaluation per replica, \
     before checking for convergence default: 5e5. This sets a lower bound",default=5e5)
     chain_parser.add_argument("--maxtotniter", type=float, help="maximum number of energy evaluation per replica, \
@@ -517,17 +528,19 @@ if __name__ == "__main__":
     chain_parser.add_argument("--numnegk", type=int, help="number of negative ks to use", default=0)
     chain_parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
     chain_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
-    
+    chain_parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
+
+
     args = parser.parse_args()
     print args
-    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, 
+    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin,
                         nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, use_cgd=not args.fire,
-                        record_steps_timeseries=args.rsts, mintotniter=args.mintotniter, maxtotniter=args.maxtotniter, 
-                        relstderr=args.relstderr, numnegk=args.numnegk, lownegk=args.lownegk)
-       
+                        record_steps_timeseries=args.rsts, kmax_start=args.kmax_start, mintotniter=args.mintotniter, maxtotniter=args.maxtotniter,
+                        relstderr=args.relstderr, numnegk=args.numnegk, lownegk=args.lownegk, nocell=args.nocell)
+
     if args.mode == 'chain':
-        bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores, 
-                                        args.k_walltime_hours, args.pt_queue_type, args.pt_nodes, 
+        bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores,
+                                        args.k_walltime_hours, args.pt_queue_type, args.pt_nodes,
                                         args.pt_cores, args.pt_walltime_hours, args.path_to_script)
     else:
         assert(not ((args.kmin is True or args.kmax is True) and args.pt is True))
@@ -539,5 +552,3 @@ if __name__ == "__main__":
             bvpbs.submit_pt_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script, args.force)
         if args.mbar:
             bvpbs.submit_innersphere_dos_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours, args.path_to_script, args.force)
-        
-        

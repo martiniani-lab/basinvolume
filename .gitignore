@@ -11,3 +11,4 @@ cythonize.dat
 .project
 .pydevproject
 basinvolume/version.py
+CMakeLists.txt
