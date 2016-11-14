@@ -1,10 +1,12 @@
 from __future__ import division
 import numpy as np
 import abc
+import os
 from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
 from pele.potentials import HS_WCA
-from pele.optimize._quench import lbfgs_cpp, modifiedfire_cpp
-from basinvolume.utils import *
+from pele.optimize._quench import lbfgs_cpp
+from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
+from basinvolume.utils import volume_nball, read_xyd, read_xyzd, put_in_box
 from numpy.random import RandomState
 from mcpele.monte_carlo import NullPotential
 import argparse

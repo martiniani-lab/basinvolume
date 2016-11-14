@@ -1,5 +1,5 @@
 from __future__ import division
-from basinvolume.utils import *
+import os
 import glob
 import cPickle as pickle
 from basinvolume.post_processing import PackingData, PackingDataSet

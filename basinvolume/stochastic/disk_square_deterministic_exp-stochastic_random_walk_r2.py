@@ -2,6 +2,7 @@ from __future__ import division
 
 import copy as c
 import numpy as np
+import matplotlib.pyplot as plt
 
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import CloudTest
@@ -13,7 +14,7 @@ from basinvolume.monte_carlo import CheckExponentiallyDecayingProfile
 from basinvolume.monte_carlo import CheckHyperCubicContainer
 from basinvolume.monte_carlo import CheckHyperSphericalContainer
 from basinvolume.monte_carlo import RecordAcceptanceHistogram
-from basinvolume.utils import *
+from basinvolume.utils import BasicPlot
 
 
 def get_disk_mean_r2(radius):

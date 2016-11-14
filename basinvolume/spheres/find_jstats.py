@@ -1,11 +1,11 @@
 from __future__ import division
+import numpy as np
+import os
 from pele.potentials import HS_WCA, InversePowerStillingerCut
-from pele.optimize import Result
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import *
+from basinvolume.utils import cround, in_hull, read_xyd, read_xyzd
 import argparse
 from basinvolume.spheres import HS_Generate_Packing
-from basinvolume.spheres.generate_jammed_packing import cartesian_to_polar2d, sum_neighbor_angles2d
 from pele.utils._pressure_tensor import pressure_tensor
 from joblib import Parallel, delayed
 from numpy.random import RandomState
@@ -155,10 +155,8 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         finish this, I need to remove the rattler and break. Also need to get compare to existing jammed_packing option
         :return:
         """
-        if self.bdim == 2:
-            zmin = 3
-        elif self.bdim == 3:
-            raise NotImplementedError
+        if self.bdim < 4:
+            zmin = self.bdim + 1
         else:
             raise NotImplementedError
 
@@ -195,12 +193,11 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                     found_rattler = True
                     print "particle {} is not isostatic".format(i)
                 else:
-                    angles = [cartesian_to_polar2d(dij)[1] for dij in self.contact_list[i]]
-                    neigh_vec = [x for (y, x) in sorted(zip(angles, self.contact_list[i]))]
-                    sum_ = sum_neighbor_angles2d(neigh_vec)
-                    found_rattler = np.abs(2 * np.pi - sum_) > 1e-10
+                    p = np.zeros(self.bdim)
+                    hull = np.asarray(self.contact_list[i]).reshape((-1, self.bdim))
+                    found_rattler = not in_hull(p, hull)
                     if found_rattler:
-                        print "asymmetric contact rattler, 2pi - theta = {}".format(2 * np.pi - sum_)
+                        print "particle not in contacts convex hull"
                 # here assign correct index by searchin for the corresponding atom
                 j = get_index(coords[i1:i1 + self.bdim])
                 self.rattlers_[j] = 0 if found_rattler else 1000

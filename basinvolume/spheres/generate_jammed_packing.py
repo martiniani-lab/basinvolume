@@ -1,10 +1,12 @@
 from __future__ import division
 import numpy as np
 import abc
+import os
 from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
+from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, put_in_box, read_xydr, read_xyzdr
 import ConfigParser
 import re
 import argparse
@@ -242,120 +244,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 p = subprocess.call(shlex.split("rm {}".format(path_)))
         self.iteration+=1
 
-    # def _find_rattlers(self):
-    #     """
-    #     finish this, I need to remove the rattler and break. Also need to get compare to existing jammed_packing option
-    #     :return:
-    #     """
-    #     if self.bdim == 2:
-    #         zmin = 3
-    #     elif self.bdim == 3:
-    #         zmin = 4
-    #     else:
-    #         raise NotImplemented
-    #
-    #     def get_index(x):
-    #         # x is a 3 array with the coordinates of the particles
-    #         dij = np.zeros(self.bdim)
-    #         dmin = np.amin(self.hs_radii)/10.
-    #         for j in xrange(self.nparticles):
-    #             for k in xrange(self.bdim):
-    #                 #use distances to nearest image convention
-    #                 dij[k] = ((self.coords[j*self.bdim+k] - x[k]) -
-    #                           cround((self.coords[j*self.bdim+k] - x[k]) / self.boxv[k]) * self.boxv[k])
-    #             if np.linalg.norm(dij) < dmin:
-    #                 return j
-    #
-    #     # tesselate packing
-    #     if self.bdim == 2:
-    #         cells = pyvoro.compute_2d_voronoi(coords, limits, dispersion, radii=radii)
-    #     elif self.bdim == 3:
-    #         cells = pyvoro.compute_voronoi(coords, limits, dispersion, radii=radii)
-    #     else:
-    #         raise NotImplementedError("pyvoro bdim={} not implemented".format(self.bdim))
-    #     assert (len(cells) == int(len(self.coords) / self.bdim))
-    #
-    #     coords = np.array(self.coords)
-    #     hs_radii = np.array(self.hs_radii)
-    #     block_evalues = np.empty((self.nparticles, self.bdim))
-    #     look = True
-    #     nratls = 0
-    #     while look:
-    #         print "restarting loop"
-    #         found_rattler = False
-    #         if nratls > self.max_nrattlers:
-    #             return False
-    #         potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
-    #                            radii=hs_radii, boxvec=self.boxv, ndim=self.bdim)
-    #         hess = potential.getHessian(coords)
-    #         radii = hs_radii*(1.+self.sca)
-    #         contact_list = self._find_nearest_neighbors(coords, radii)
-    #         for i in xrange(len(hs_radii)):
-    #             i1 = self.bdim*i
-    #             no_neighbors = len(contact_list[i])
-    #             # print "no_neighbors", no_neighbors
-    #             if no_neighbors < zmin:
-    #                 hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
-    #                 w, v = np.linalg.eig(hess_block)
-    #                 print no_neighbors, w
-    #                 w = np.zeros(self.bdim)
-    #                 # print "particle {} is not isostatic".format(i)
-    #             else:
-    #                 hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
-    #                 w, v = np.linalg.eig(hess_block)
-    #                 w = np.real(w)
-    #             #here assign correct index by searchin for the corresponding atom
-    #             j = get_index(coords[i1:i1+self.bdim])
-    #             self.rattlers[j] = np.amin(w)
-    #             self.rattlers_draw[j] = float(self.rattlers[j] >= self.rattler_eval_tol)
-    #             block_evalues[j] = w
-    #             if self.rattlers_draw[j] < self.rattler_eval_tol:
-    #                 nratls += 1
-    #                 coords = np.delete(coords, [i1+k for k in xrange(self.bdim)]) #remove particle from array
-    #                 hs_radii = np.delete(hs_radii, [i]) #remove particle from array
-    #                 # print 'zero eigenvalue, particle {}'.format(j)
-    #                 # print w
-    #                 found_rattler = True
-    #                 break
-    #         look = True if found_rattler else False
-    #     #now look at validity of the packing, first check that it's a minimum
-    #     w, v = np.linalg.eig(hess)
-    #     w = np.real(w)
-    #     if np.any(w < -1e-7):
-    #         print 'e: {} eigenvalue < -1e-7'.format(np.amin(w))
-    #         return False
-    #     #check that the hessian has the correct number of 0 eigenvalues
-    #     full0evals = [x for x in w if np.abs(x) < 1e-7]
-    #     if len(full0evals) > self.bdim:
-    #         print 'hessian 0s mismatch bdim 0s, found ', len(full0evals), full0evals
-    #         return False
-    #     self.block_evalues.extend(block_evalues.flatten())
-    #     self.whole_evalues.extend(w)
-    #     return True
-
-    # force = np.zeros(self.bdim)
-    # for j, dij in zip(neighbors_index_list[i], contact_list[i]):
-    #     j1 = self.bdim * j
-    #     # DEBUG: this needs to be able to use any particular potential
-    #     pair_pot = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
-    #                       radii=np.array([hs_radii[i], hs_radii[j]]),
-    #                       boxvec=self.boxv, ndim=self.bdim)
-    #     x = np.append(coords[i1:i1 + self.bdim], coords[j1:j1 + self.bdim])
-    #     f = - dij * np.linalg.norm(pair_pot.getEnergyGradient(x)[1]) / np.linalg.norm(dij)
-    #     force += f
-    # print "|f| {}, nn {}".format(np.linalg.norm(force), no_neighbors)
-    # found_rattler = np.linalg.norm(force) > self.force_tol
-
     def _find_rattlers(self):
         """
         finish this, I need to remove the rattler and break. Also need to get compare to existing jammed_packing option
         :return:
         """
-        if self.bdim == 2:
-            zmin = 3
-        elif self.bdim == 3:
-            raise NotImplementedError
-            #zmin = 4
+        if self.bdim < 4:
+            zmin = self.bdim + 1
         else:
             raise NotImplementedError
 
@@ -390,12 +285,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     found_rattler = True
                     print "particle {} is not isostatic".format(i)
                 else:
-                    angles = [cartesian_to_polar2d(dij)[1] for dij in contact_list[i]]
-                    neigh_vec = [x for (y, x) in sorted(zip(angles, contact_list[i]))]
-                    sum_ = sum_neighbor_angles2d(neigh_vec)
-                    found_rattler =  np.abs(2*np.pi - sum_) > 1e-10
+                    # angles = [cartesian_to_polar2d(dij)[1] for dij in contact_list[i]]
+                    # neigh_vec = [x for (y, x) in sorted(zip(angles, contact_list[i]))]
+                    # sum_ = sum_neighbor_angles2d(neigh_vec)
+                    # found_rattler =  np.abs(2*np.pi - sum_) > 1e-10
+                    p = np.zeros(self.bdim)
+                    hull = np.asarray(contact_list[i]).reshape((-1,self.bdim))
+                    found_rattler = not in_hull(p, hull)
                     if found_rattler:
-                        print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
+                        # print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
+                        print "particle not in contacts convex hull"
                 #here assign correct index by searchin for the corresponding atom
                 j = get_index(coords[i1:i1+self.bdim])
                 self.rattlers[j] = 0 if found_rattler else 1000

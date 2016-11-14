@@ -1,8 +1,11 @@
 from __future__ import division
 import copy
 import numpy as np
+import os
+import ConfigParser
+import traceback
 from scipy.special import sph_harm
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, cround
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
 from pele.potentials import HS_WCA, InversePowerStillingerCut

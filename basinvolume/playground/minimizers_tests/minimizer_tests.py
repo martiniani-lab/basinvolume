@@ -3,10 +3,11 @@ from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from basinvolume.spheres._kmin_mcrunner import _kmin_mcrunner
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import *
+from basinvolume.utils import read_txt, cround
 import time
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp, steepest_descent
 try:

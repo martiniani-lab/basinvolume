@@ -3,8 +3,9 @@ from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from pele.potentials import HS_WCA
-from basinvolume.utils import *
+from basinvolume.utils import read_txt, volume_nball
 import time
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp, cg_descent, steepest_descent
 from matplotlib import pyplot as plt

@@ -3,7 +3,7 @@ import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir
 from basinvolume.playground.minimizers_tests import BVSphereMCrunner
 import ConfigParser
 import time

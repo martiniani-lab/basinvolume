@@ -4,7 +4,7 @@ import abc
 import os
 from pele.potentials import HS_WCA
 from pele.storage import Minimum
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, put_in_box, get_git_version, get_cython_version, get_python_version
 from basinvolume.gui import HSWCASystem
 import ConfigParser
 import time

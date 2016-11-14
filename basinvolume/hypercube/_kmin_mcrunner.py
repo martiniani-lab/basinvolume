@@ -1,9 +1,11 @@
 from __future__ import division
 import numpy as np
+import os
+import matplotlib.pyplot as plt
 from pele.potentials import Harmonic
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.hypercube import HypercubeMCrunner
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir, trajectory_pca, asphericity_factor, view_traceback
 import time
 import warnings
 

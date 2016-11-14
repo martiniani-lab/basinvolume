@@ -301,6 +301,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         meanvar_f_list, meanvar_pi_list = [], []
         histograms_nsamples = []
         cov_f_pi_list, logl_list = [], []
+        bw_list = []
         pjam_spline = pickle.load(open("phi_psuccess_spline.pickle", "rb"))
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
             if len(dataset.free_energies) > 0 and  phi_min < dataset.ss_phi < phi_max:
@@ -376,6 +377,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     print "min f, max f", np.amin(f), np.amax(f)
                     # f: fit to kde
                     bw = get_bandwidth_estimate(f, kernel="gaussian", method="cross_validation")
+                    bw_list.append(bw[0])
                     edges = np.linspace(120, 160, 10000)
                     kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(f[:, np.newaxis])
                     kdehist = np.exp(kde.score_samples(edges[:, np.newaxis]))
@@ -484,6 +486,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     # u_set = wpdf.resample(size=1e4)
                     # meanvar_pi_u_list.append([np.mean(u_set), np.var(u_set)])
 
+        print "bw_list ", bw_list
         ax3.set_xlabel(r'$F$')
         ax3.set_ylabel(r'$\mathcal{B}(F)$')
         ax3.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
@@ -1209,7 +1212,7 @@ if __name__ == "__main__":
     # print pts.packing_datasets[0].packing_data[0].packing_frac
     #
     # with open("packing_datasets.pickle", 'wb') as f:
-    #     pickle.dump(pts.packing_datasets, f)
+    #     pickle.dump(pts.packing_datasets, f, protocol=-1)
     #
     # with open("packing_datasets.pickle", 'rb') as f:
     #     dsets = pickle.load(f)

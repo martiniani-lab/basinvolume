@@ -1,9 +1,11 @@
 from __future__ import division
 import numpy as np
+import os
 import abc
 from pele.potentials import HS_WCA, InversePowerStillinger
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import *
+from basinvolume.utils import get_git_version, get_python_version, get_cython_version, full_coordinates
+from basinvolume.utils import read_xydfr, read_xyzdfr, reduce_coordinates, read_xydr, read_xyzdr
 import warnings
 
 class _configure_mcrunner(object):

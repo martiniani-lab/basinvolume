@@ -1,13 +1,10 @@
 from __future__ import division
 import numpy as np
-import abc
 import os
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.spheres.mcrunner import HS_MCrunner, HS_MCrunnerOptDiffusion
-from basinvolume.utils import *
+from basinvolume.utils import read_xyd, read_xyzd
 from basinvolume.spheres.generate_jammed_packing import HS_Generate_Jammed_Packing
-import ConfigParser
 import re
 import argparse
 try:
