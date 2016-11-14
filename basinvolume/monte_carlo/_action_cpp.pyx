@@ -74,9 +74,9 @@ cdef class _Cdef_RecordAcceptanceHistogram(_Cdef_Action):
     Python interface to C++ RecordAcceptanceHistogram.
     """
     cdef cppRecordAcceptanceHistogram* newptr
-    def __cinit__(self, origin, rmin, rmax, nbins):
+    def __cinit__(self, origin, rmin, rmax, nbins, eqsteps):
         cdef _pele.Array[double] origin_ = array_wrap_np(origin)
-        self.thisptr = shared_ptr[cppAction](<cppAction*> new cppRecordAcceptanceHistogram(origin_, rmin, rmax, nbins))
+        self.thisptr = shared_ptr[cppAction](<cppAction*> new cppRecordAcceptanceHistogram(origin_, rmin, rmax, nbins, eqsteps))
         self.newptr = <cppRecordAcceptanceHistogram*> self.thisptr.get()
     @cython.wraparound(False) 
     def get_acceptance_distance_values(self):

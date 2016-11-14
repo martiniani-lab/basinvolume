@@ -1,4 +1,4 @@
-from basinvolume.utils import *
+from basinvolume.utils import get_git_version, get_cython_version, get_python_version, get_git_version_from_build
 
 if __name__ == "__main__":
     git_stamp_basinvolume = get_git_version('basinvolume', False)

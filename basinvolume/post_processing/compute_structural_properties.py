@@ -1,14 +1,18 @@
 from __future__ import division
 import copy
 import numpy as np
+import os
+import ConfigParser
+import traceback
 from scipy.special import sph_harm
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, cround
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 import argparse
 import multiprocessing as mp
 from simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
+from pele.optimize._quench import modifiedfire_cpp
 
 class StructuralAnalysis(object):
     __metaclass__ = abc.ABCMeta
@@ -58,7 +62,7 @@ class StructuralAnalysis(object):
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         hs_radii = hs_diameters/2
         ss_radii = hs_radii * (1+self.sca)
-        return coords, hs_radii, ss_radii
+        return coords, hs_radii, ss_radii, rattlers
     
     def _get_dname(self, dname):
         if dname.endswith('.xyzdr'):
@@ -105,10 +109,10 @@ class BondOrientationalOrder(StructuralAnalysis):
                     except Exception:
                         compute = True
                     if compute or self.force:
-                        print dname
+                        print "boo ", dname
                         trymakedir(analysis_dir_path)
-                        coords, hs_radii, ss_radii = self._import_packing_configuration(fname)
-                        boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, ndim=self.bdim, deg=deg)
+                        coords, hs_radii, ss_radii, rattlers = self._import_packing_configuration(fname)
+                        boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, rattlers, ndim=self.bdim, deg=deg)
                         with open(boo_fname, 'w') as f:
                             f.write('#Q{} \t Z\n'.format(deg))
                             for q, z in zip(boo_list, z_list):
@@ -198,12 +202,19 @@ class BondOrientationalOrder(StructuralAnalysis):
         else:
             raise Exception('ndim not implemented')
     
-    def find_nearest_neighbors(self, coords, hs_radii):
+    def find_nearest_neighbors(self, coords, hs_radii, rattlers=None):
+        """
+        this function ignores rattlers
+        """
         nparticles = hs_radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]
-        for i in xrange(nparticles):
-            for j in xrange(i, nparticles):
-                if i != j:
+        if rattlers is None:
+            atom_labels = range(nparticles)
+        else:
+            atom_labels = np.array(range(nparticles))[np.array(rattlers[::self.bdim], dtype='int') == 1]
+        for i in atom_labels:
+            for j in atom_labels:
+                if j > i:
                     dij = np.zeros(self.bdim)
                     for k in xrange(self.bdim):
                         #use distances to nearest image convention
@@ -224,6 +235,7 @@ class BondOrientationalOrder(StructuralAnalysis):
             """
             Note that if i has neighbor j it is not obvious that j has
             neighbor i, in contrast to fixed distance cutoff.
+            Note: SimpleSolidAngleNeighbors does not exclude rattlers from the particles shells
             """
             sann = SimpleSolidAngleNeighbors(i, coords, nparticles, self.boxv)
             for j in xrange(sann.nr_neighbors):
@@ -231,12 +243,12 @@ class BondOrientationalOrder(StructuralAnalysis):
                 weights_all[i].append(sann.weight[j])
         return nnatoms_list, weights_all
     
-    def bond_orientation_order_single(self, coords, hs_radii, atom_index, ndim=3, deg=6):
-        nnatoms_list = self.find_nearest_neighbors(coords, hs_radii)
+    def bond_orientation_order_single(self, coords, hs_radii, rattlers, atom_index, ndim=3, deg=6):
+        nnatoms_list = self.find_nearest_neighbors(coords, hs_radii, rattlers=rattlers)
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
     
-    def bond_orientation_order_all(self, coords, hs_radii, ndim=3, deg=6):
+    def bond_orientation_order_all(self, coords, hs_radii, rattlers, ndim=3, deg=6):
         """
         boo_list : array
             list of bond orientational order
@@ -245,7 +257,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
-        contacts_list = self.find_nearest_neighbors(coords, hs_radii)
+        contacts_list = self.find_nearest_neighbors(coords, hs_radii, rattlers=rattlers)
         if not self.solid_angle_weighted:
             nnatoms_list = contacts_list
         else:
@@ -259,19 +271,18 @@ class BondOrientationalOrder(StructuralAnalysis):
             weights = None
             if weights_all is not None:
                 weights = weights_all[i]
-            if len(nnatoms_vec) > 0:
+            if len(nnatoms_vec) > 0 and int(rattlers[i*self.bdim]) == 1:
                 boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg, weights=weights)
                 boo_list.append(boo)
             else:
                 #rattlers
                 boo_list.append(0)
-            if len(contacts_vec) > 0:
+            if len(contacts_vec) > 0 and int(rattlers[i*self.bdim]) == 1:
                 z_list.append(len(contacts_vec))
             else:
                 #rattlers
                 z_list.append(0)
         return np.array(boo_list), np.array(z_list)
-
 
 class PressureTensor(StructuralAnalysis):
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
@@ -304,13 +315,22 @@ class PressureTensor(StructuralAnalysis):
                         configf.read(pressure_fname)
                         test_p = configf.getfloat('PRESSURE','P')
                         test_ptensor = configf.get('PRESSURE','Ptensor')
+                        test_e = configf.get('ENERGY', 'E')
                     except Exception:
                         compute = True
                     if compute or self.force:
+                        print "pressure ", dname
                         trymakedir(analysis_dir_path)
-                        self.coords, self.hs_radii, self.ss_radii = self._import_packing_configuration(fname)
+                        self.coords, self.hs_radii, self.ss_radii, self.rattlers = self._import_packing_configuration(fname)
                         potential = self.get_potential()
+                        # refine structure (does not make a difference if tol was small enough to start with)
+                        # if self.packing_frac < 0.835:
+                        #     fire_maxstep = np.amin(self.hs_radii) * self.sca
+                        #     res = modifiedfire_cpp(self.coords, potential, maxstep=fire_maxstep,
+                        #                            nsteps=1e6, tol=1e-11, iprint=-1)
+                        #     self.coords = res.coords
                         p, ptensor = pressure_tensor(potential, self.coords, self.vcavity, self.bdim)
+                        energy = potential.getEnergy(self.coords)
                         with open(pressure_fname, 'w') as f:
                             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
                             f.write('[PRESSURE]\n')
@@ -319,6 +339,8 @@ class PressureTensor(StructuralAnalysis):
                             for val in ptensor:
                                 f.write('{:.16f} '.format(val))
                             f.write('\n')
+                            f.write('[ENERGY]\n')
+                            f.write('E: {:.16f}\n'.format(energy))
 
     def get_potential(self):
         # here put a flag and pick potential
@@ -381,13 +403,14 @@ if __name__ == "__main__":
         print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
     else:
         raise NotImplementedError
-    
-    pts_only_kwargs = dict(opt_pot_str=opt_pot_str, **extra_pot_kwargs)
-    
+
     ncores = args.ncores
     kwargs = dict(force=args.force, existing_only=args.nonex)
     if args.solid:
         kwargs.update(solid_angle_weighted=args.solid)
+
+    pts_kwargs = dict(opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+    pts_kwargs.update(kwargs)
     
     if not args.all:
         if not args.workspace_dir:
@@ -395,7 +418,7 @@ if __name__ == "__main__":
         else:
             workspace_dir = os.path.abspath(args.workspace_dir)
         worker_boo(workspace_dir, kwargs)
-        worker_pts(workspace_dir, kwargs)
+        worker_pts(workspace_dir, pts_kwargs)
     else:
         mypool = mp.Pool(ncores)
         if not args.workspace_dir:
@@ -407,7 +430,7 @@ if __name__ == "__main__":
             for folder in subdirs:
                 if folder[1].isdigit() and "phi" in folder and "D" in folder:
                     mypool.apply_async(worker_boo, args=(os.path.abspath(folder),kwargs,))
-                    mypool.apply_async(worker_pts, args=(os.path.abspath(folder),kwargs, pts_only_kwargs,))
+                    mypool.apply_async(worker_pts, args=(os.path.abspath(folder),pts_kwargs,))
         except:
             mypool.terminate()
             mypool.join()

@@ -1,11 +1,10 @@
 from __future__ import division
 import numpy as np
-import abc
 import os
 from pele.potentials import Harmonic
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir
 import ConfigParser
 import time
 import cPickle as pickle

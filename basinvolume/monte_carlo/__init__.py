@@ -2,6 +2,7 @@ from _action_cpp import RecordDisp2Histogram
 from _action_cpp import Findk
 from _action_cpp import RecordDisplacementTimeseries
 from _action_cpp import FindNrDecorrelationSteps
+from _action_cpp import RecordAcceptanceHistogram
 from _action_cpp import RecordStepsTimeseries
 from _conf_test_cpp import CheckHyperSphericalContainer
 from _conf_test_cpp import CheckHyperCubicContainer

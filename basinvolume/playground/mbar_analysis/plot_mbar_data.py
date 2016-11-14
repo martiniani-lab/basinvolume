@@ -662,7 +662,7 @@ class plot_mbar_data(object):
                         ax7 = self._plot(ax7, csv_tuple, label=label, plot_err=True, plot_fit=False,
                                          color=color, marker=marker, ls=ls)
             ax6.set_ylabel(r'$\ln(\Delta r)$')
-            ax6.set_xlabel('$\ln (\Delta s)$')
+            ax6.set_xlabel(r'$\ln (\Delta s)$')
             ax6.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig6.savefig(os.path.join(self.figdir, 'diffusion_logs_logr.pdf'))
@@ -990,9 +990,9 @@ class plot_mbar_data(object):
         
         color_cycle = get_color_cycle()
         for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
-                if len(dataset.free_energies) > 0:
-                    ax, xlabel, ylabel = self._plot_correlations(ax, dataset, plot_type=plot_type, 
-                                                                  label=dataset.hs_poly, color=color_cycle.next())
+            if len(dataset.free_energies) > 0:
+                ax, xlabel, ylabel = self._plot_correlations(ax, dataset, plot_type=plot_type,
+                                                             label=dataset.hs_poly, color=color_cycle.next())
         
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -1106,7 +1106,7 @@ class plot_mbar_data(object):
         return ax, xlabel, ylabel
     
 if __name__ == "__main__":
-    show = False
+    show = True
     pts_mbar = MBARBasinAnalysis(import_diffusion_config=True)
     pts_tint = TINTBasinAnalysis()
     pts_mbar.collect_data_every_set_all(data_name="mbar_basin_analysis.pickle", dir_signature='n*phi*phi*3D*')

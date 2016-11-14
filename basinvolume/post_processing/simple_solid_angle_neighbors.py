@@ -19,6 +19,7 @@ class SimpleSolidAngleNeighbors(object):
         
     def compute_neighbors_weights(self):
         # This follows exactly: ftp://ftp.aip.org/epaps/journ_chem_phys/E-JCPSA6-136-022224/sann.c
+        # this does not exclude rattlers from the shell
         count = self.nparticles - 1
         if count < 3:
             raise Exception("SimpleSolidAngleNeighbors: too few particles")

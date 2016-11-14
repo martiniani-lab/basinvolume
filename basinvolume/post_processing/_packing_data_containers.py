@@ -1,6 +1,9 @@
 from __future__ import division
 import re
-from basinvolume.utils import *
+import os
+import numpy as np
+import ConfigParser
+from basinvolume.utils import read_xydr, read_xyzdr, Bunch
 try:
     import matplotlib.pyplot as plt
 except ImportError as err:
@@ -28,6 +31,7 @@ class PackingDataSet(object):
         self.free_energies = []
         self.free_energies_err = []
         self.pressures = []
+        self.energies = []
         self.contacts = []
         self.boos = []
         self.extras = []
@@ -35,28 +39,38 @@ class PackingDataSet(object):
     def add_data_all(self, packing_data):
         """
         packing data is a list of PackingData objects
+        # test that number of contacts is sufficient for bulk modulus to be positive,
+        # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
+        # see eq 19 in arXiv:1406.1529
         """
         self.packing_data.extend(packing_data)
         for data in packing_data:
             #the reason why they must all be true is because we are interested in the realation among these variables
-            if data.F is not None and data.Ferr is not None and data.P is not None and data.Z is not None and data.boo is not None:
-                self.free_energies.append(data.F)
-                self.free_energies_err.append(data.Ferr)
-                self.pressures.append(data.P)
-                self.contacts.append(data.Z)
-                self.boos.append(data.boo)
+            if data.F is not None and data.Ferr is not None and data.P is not None and data.energy is not None \
+                    and data.Z is not None and data.boo is not None:
+                if int(np.sum(data.Zlist)) >= int( 2 * (((data.rattlers == 1).sum() // self.bdim - 1) * self.bdim + 1)):
+                    self.free_energies.append(data.F)
+                    self.free_energies_err.append(data.Ferr)
+                    self.pressures.append(data.P)
+                    self.energies.append(data.energy)
+                    self.contacts.append(data.Z)
+                    self.boos.append(data.boo)
     
     def add_data_structure(self, packing_data):
         """
         packing data is a list of PackingData objects
+        # test that number of contacts is sufficient for bulk modulus to be positive,
+        # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
+        # see eq 19 in arXiv:1406.1529
         """
         self.packing_data.extend(packing_data)
         for data in packing_data:
             #the reason why they must all be true is because we are interested in the realation among these variables
             if data.P is not None and data.Z is not None and data.boo is not None:
-                self.pressures.append(data.P)
-                self.contacts.append(data.Z)
-                self.boos.append(data.boo)
+                if int(np.sum(data.Zlist)) >= int( 2 * (((data.rattlers == 1).sum() // self.bdim - 1) * self.bdim + 1)):
+                    self.pressures.append(data.P)
+                    self.contacts.append(data.Z)
+                    self.boos.append(data.boo)
     
     def add_extras(self, extra):
         self.extras.extend(np.array(extra).tolist())
@@ -127,13 +141,14 @@ class PackingData(object):
             except Exception,e:
                 pass
             
-    def import_pressure_data(self, path, title="PRESSURE"):
+    def import_pressure_data(self, path, pressure_title="PRESSURE", energy_title="ENERGY"):
         if os.path.isfile(path):
             configf = ConfigParser.ConfigParser()
             configf.read(path)
-            self.P = configf.getfloat(title, 'P')
-            Ptensor = configf.get(title, 'Ptensor')
+            self.P = configf.getfloat(pressure_title, 'P')
+            Ptensor = configf.get(pressure_title, 'Ptensor')
             self.Ptensor = np.array([float(x) for x in Ptensor.split()])
+            self.energy = configf.getfloat(energy_title, 'E')
     
     def import_structural_data(self, path, path2, title_boo="BOO", title_z="Z"):
         """

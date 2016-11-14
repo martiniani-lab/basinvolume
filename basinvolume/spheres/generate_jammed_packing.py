@@ -1,23 +1,44 @@
 from __future__ import division
 import numpy as np
 import abc
+import os
 from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import *
+from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
+from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, put_in_box, read_xydr, read_xyzdr
 import ConfigParser
 import re
 import argparse
+import subprocess
+import shlex
+import glob
 try:
     import pylab
 except:
     pass
 
+
+def cartesian_to_polar2d(vector):
+    vector = np.array(vector)
+    r = np.linalg.norm(vector)
+    theta = np.arctan2(vector[1], vector[0]) + np.pi
+    return r, theta
+
+def sum_neighbor_angles2d(neigh_vec):
+    sum_ = 0.
+    for idx in xrange(len(neigh_vec) - 1):
+        sum_ += np.arccos(np.dot(neigh_vec[idx], neigh_vec[idx + 1]) / \
+                         (np.linalg.norm(neigh_vec[idx]) * np.linalg.norm(neigh_vec[idx + 1])))
+    sum_ += np.arccos(np.dot(neigh_vec[-1], neigh_vec[0]) / \
+                     (np.linalg.norm(neigh_vec[-1]) * np.linalg.norm(neigh_vec[0])))
+    return sum_
+
 class _Generate_Jammed_Packing(object):
     """
     this is an abstract class that implements the basic components of a generate packing class,
     and declares a number of abstract methods which should be implemented in all inheriting classes
-    *method to generate packing, this could be for example direct sampling, 
+    *method to generate packing, this could be for example direct sampling,
     sequential sampling,quench or LSA
     *nparticles: number of particles
     *bdim: dimensionality of the box
@@ -26,7 +47,7 @@ class _Generate_Jammed_Packing(object):
     *boxv: an array of size bdim that contains the vectors defining the box
     """
     __metaclass__ = abc.ABCMeta
-    
+
     def __init__(self, packing_frac=0.65, packings_dir='packings'):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(),'jammed_packings')
@@ -36,7 +57,7 @@ class _Generate_Jammed_Packing(object):
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
-    
+
     def _import_single_packing_config_file(self, fname):
         dname = fname
         if dname.endswith('.xyzd'):
@@ -45,7 +66,7 @@ class _Generate_Jammed_Packing(object):
             dname = dname[:-4]
         self.configpath = os.path.join(self.packings_dir, dname+'.config')
         self._import_packing_config_file()
-          
+
     def _import_packing_config_file(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.configpath))
@@ -56,14 +77,14 @@ class _Generate_Jammed_Packing(object):
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
-    
+
     @abc.abstractmethod
     def _initialise(self):
         """initialisation function"""
         self.configpath = os.path.join(self.packings_dir,'packings.config')
         assert(os.path.isfile(self.configpath))
         self._import_packing_config_file()
-    
+
     @abc.abstractmethod
     def _import_packing_configuration(self, fname):
         """imports the coordinates and data relative to the shape of the particles
@@ -72,19 +93,19 @@ class _Generate_Jammed_Packing(object):
     @abc.abstractmethod
     def _generate_packing_coords(self):
         """function that generates the packing"""
-    
+
     @abc.abstractmethod
     def _write_opengl_input(self, n):
         """writes a opengl input file, n is the unique identifier of the structure"""
-        
+
     @abc.abstractmethod
     def _dump_configuration(self, n):
         """writes a configuration file, e.g .xyzd, n is the unique identifier of the structure"""
-            
+
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
-    
+
     def _print_parameters(self, n):
         """writes the simulation parameters"""
         fname = '{}/jammed_packing{}.config'.format(self.base_directory,n)
@@ -93,7 +114,7 @@ class _Generate_Jammed_Packing(object):
         f.write('#Generate_Jammed_Packings base class input parameters\n')
         f.write('[JAMMED_PACKING]\n')
         f.write('nparticles: {}\n'.format(self.nparticles))
-        f.write('packing_fraction: {}\n'.format(self.packing_frac))
+        f.write('packing_fraction: {:.16f}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')
@@ -111,7 +132,7 @@ class _Generate_Jammed_Packing(object):
         f.write('python_version: {}\n'.format(get_python_version()))
         f.write('cython_version: {}\n'.format(get_cython_version()))
         f.close()
-        
+
     def _print(self, n):
         """dump configuration and opengl input to packings directory
             n is the unique identifier of the structure
@@ -119,12 +140,12 @@ class _Generate_Jammed_Packing(object):
         self._print_parameters(n)
         self._dump_configuration(n)
         self._write_opengl_input(n)
-    
-    @abc.abstractmethod
-    def _histogram_eigenvalues(self):
-        """ method to plot eigenvalues histograms
-        """
-    
+
+    # @abc.abstractmethod
+    # def _histogram_eigenvalues(self):
+    #     """ method to plot eigenvalues histograms
+    #     """
+
     @abc.abstractmethod
     def one_iteration(self,fname):
         """perform one iteration
@@ -136,12 +157,12 @@ class _Generate_Jammed_Packing(object):
             if ('xyzd' in fname) or ('xyd' in fname):
                 print "\n",fname
                 self.one_iteration(fname)
-        self._histogram_eigenvalues()
-            
+        # self._histogram_eigenvalues()
+
 class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     """
     *this class generates packings and identifies rattlers by computing the hessian eigenvalues for each particle
-    *in the equilibrium jammed structure. A .xyzdr file is produced that contains the 3 system coordinates, the particle 
+    *in the equilibrium jammed structure. A .xyzdr file is produced that contains the 3 system coordinates, the particle
     * diameter and if not it's a rattler (0 if a rattler, 1 otherwise)
     *PARAMETERS
     *hs_radii: array with the radii of the particles, if none sample particle sizes from a normal distribution
@@ -149,45 +170,40 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *sig: standard deviaton of normal distribution from which to sample particles
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
-    """    
-    def __init__(self, packing_frac=0.7, rattler_eval_tol=1.,
+    *tol: rms tolerance for the minimizer
+    """
+    def __init__(self, packing_frac=0.7, tol=1e-9,
         packings_dir='packings', use_cell_lists=False, show=False,
         opt_pot_str='hs_wca', extra_pot_kwargs=None):
-        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, packings_dir=packings_dir)
-        
+        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
+                                                        packings_dir=packings_dir)
+
         self.opt_pot_str = opt_pot_str
         self.extra_pot_kwargs = extra_pot_kwargs
         self.use_cell_lists = use_cell_lists
+        self.tol = tol
         ##constants#
-        self.rattler_eval_tol = rattler_eval_tol
         ############
-        #histogram variables#
-        self.block_evalues = []
-        self.whole_evalues = []
-        self.nbins = 1000
-        self.nbins_low = 6000
-        self.low_range = (-0.00001,0.00001)
-        self.show = show
-    
+
     def _initialise(self):
         self._print_initialise()
-    
+
     def one_iteration(self,fname):
         """perform one iteration
         """
         self._import_single_packing_config_file(fname)
         self.rattlers = np.empty(self.nparticles,dtype='d')
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')
-        
+
         self._import_packing_configuration(fname)
-        self.max_nrattlers = int(self.nparticles*0.1)
-        
+        self.max_nrattlers = int(self.nparticles*0.5)
+
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
             print "WARNING: max soft diameter >= 1/2 box side!"
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
-        
+
         ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
         rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca) #rcut set to largest particle diameter
         if self.use_cell_lists:
@@ -213,26 +229,30 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
         else:
             raise NotImplementedError
-        
+
         success = self._generate_packing_coords() #returns false if saddle
-        
+
+        n = int(re.search(r'\d+', fname).group())
         if success:
-            n = int(re.search(r'\d+',fname).group())
             self._print(n)
-        
+        else:
+            path_list = glob.glob("{0}/jammed_packing{1}.*".format(self.base_directory, n))
+            if len(path_list) > 0:
+                with open("{0}/mismatching_rattlers.txt".format(self.base_directory), 'a') as f:
+                            f.write('jammed_packing{}\n'.format(n))
+            for path_ in path_list:
+                p = subprocess.call(shlex.split("rm {}".format(path_)))
         self.iteration+=1
-    
+
     def _find_rattlers(self):
         """
         finish this, I need to remove the rattler and break. Also need to get compare to existing jammed_packing option
         :return:
         """
-        if self.bdim == 2:
-            zmin = 3
-        elif self.bdim == 3:
-            zmin = 4
+        if self.bdim < 4:
+            zmin = self.bdim + 1
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
         def get_index(x):
             # x is a 3 array with the coordinates of the particles
@@ -248,65 +268,63 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         coords = np.array(self.coords)
         hs_radii = np.array(self.hs_radii)
-        block_evalues = np.empty((self.nparticles, self.bdim))
         look = True
         nratls = 0
         while look:
-            print "restarting loop"
+            # print "restarting loop"
             found_rattler = False
             if nratls > self.max_nrattlers:
                 return False
-            potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
-                               radii=hs_radii, boxvec=self.boxv, ndim=self.bdim)
-            hess = potential.getHessian(coords)
-            radii = hs_radii*(1.+self.sca)
-            contact_list = self._find_nearest_neighbors(coords, radii)
+            radii = hs_radii * (1. + self.sca)
+            contact_list, neighbors_index_list = self._find_nearest_neighbors(coords, radii)
             for i in xrange(len(hs_radii)):
-                i1 = self.bdim*i
+                i1 = self.bdim * i
                 no_neighbors = len(contact_list[i])
                 # print "no_neighbors", no_neighbors
                 if no_neighbors < zmin:
-                    hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
-                    w, v = np.linalg.eig(hess_block)
-                    print no_neighbors, w
-                    w = np.zeros(self.bdim)
-                    # print "particle {} is not isostatic".format(i)
+                    found_rattler = True
+                    print "particle {} is not isostatic".format(i)
                 else:
-                    hess_block = hess[i1:i1+self.bdim, i1:i1+self.bdim]
-                    w, v = np.linalg.eig(hess_block)
-                    w = np.real(w)
+                    # angles = [cartesian_to_polar2d(dij)[1] for dij in contact_list[i]]
+                    # neigh_vec = [x for (y, x) in sorted(zip(angles, contact_list[i]))]
+                    # sum_ = sum_neighbor_angles2d(neigh_vec)
+                    # found_rattler =  np.abs(2*np.pi - sum_) > 1e-10
+                    p = np.zeros(self.bdim)
+                    hull = np.asarray(contact_list[i]).reshape((-1,self.bdim))
+                    found_rattler = not in_hull(p, hull)
+                    if found_rattler:
+                        # print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
+                        print "particle not in contacts convex hull"
                 #here assign correct index by searchin for the corresponding atom
                 j = get_index(coords[i1:i1+self.bdim])
-                self.rattlers[j] = np.amin(w)
-                self.rattlers_draw[j] = float(self.rattlers[j] >= self.rattler_eval_tol)
-                block_evalues[j] = w
-                if self.rattlers_draw[j] < self.rattler_eval_tol:
-                    nratls += 1
-                    coords = np.delete(coords, [i1+k for k in xrange(self.bdim)]) #remove particle from array
+                self.rattlers[j] = 0 if found_rattler else 1000
+                self.rattlers_draw[j] = float(not found_rattler)
+                if found_rattler:
+                    coords = np.delete(coords, [i1 + k for k in xrange(self.bdim)])  # remove particle from array
                     hs_radii = np.delete(hs_radii, [i]) #remove particle from array
-                    # print 'zero eigenvalue, particle {}'.format(j)
-                    # print w
-                    found_rattler = True
+                    nratls+=1
                     break
             look = True if found_rattler else False
-        #now look at validity of the packing, first check that it's a minimum
-        w, v = np.linalg.eig(hess)
-        w = np.real(w)
-        if np.any(w < -1e-7):
-            print 'e: {} eigenvalue < -1e-7'.format(np.amin(w))
+
+        # test that number of contacts is sufficient for bulk modulus to be positive,
+        # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
+        # see eq 19 in arXiv:1406.1529
+        N_contacts = int(np.sum([len(contacts) for contacts in contact_list]))
+        no_stable = len(contact_list)
+        N_min = int(2*(self.bdim * (no_stable - 1) + 1))
+        print "N_min: {} N_contacts: {}".format(N_min, N_contacts)
+        assert (self.nparticles - no_stable) == nratls
+        print "n rattlers ", nratls
+        if N_contacts >= N_min:
+            return True
+        else:
+            print "packing is not globally stable, N_min: {} N_contacts: {}".format(N_min, N_contacts)
             return False
-        #check that the hessian has the correct number of 0 eigenvalues
-        full0evals = [x for x in w if np.abs(x) < 1e-7]
-        if len(full0evals) > self.bdim:
-            print 'hessian 0s mismatch bdim 0s, found ', len(full0evals), full0evals
-            return False
-        self.block_evalues.extend(block_evalues.flatten())
-        self.whole_evalues.extend(w)
-        return True
 
     def _find_nearest_neighbors(self, coords, radii):
         nparticles = radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]
+        nnatoms_index_list = [[] for _ in xrange(nparticles)]
         for i in xrange(nparticles):
             for j in xrange(i, nparticles):
                 if i != j:
@@ -320,33 +338,35 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     if dijnorm <= dmin:
                         nnatoms_list[i].append(dij)
                         nnatoms_list[j].append(-dij)
-        return nnatoms_list
-    
-    
+                        nnatoms_index_list[i].append(j)
+                        nnatoms_index_list[j].append(i)
+        return nnatoms_list, nnatoms_index_list
+
+
     def _generate_packing_coords(self):
         """
         perform quench and run tests
         """
-        success = self._generate_packing_coords_iteration(tol=1e-7)
+        success = self._generate_packing_coords_iteration(tol=self.tol)
         return success
-    
-    def _generate_packing_coords_iteration(self, tol=1e-7, iprint=-1):
+
+    def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
         """quenches the imported structure using FIRE"""
         fire_maxstep = np.amin(self.hs_radii)*self.sca
         res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
         if not res.success:
             print 'quench failed'
             return False
-        
+
         self.coords = res.coords
         self.energy = res.energy
-        
+
         #test that on ri-minimisation the structure does not change
         res2 = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
         if res2.nfev > 1:
             print 'quench failed (structure changed at second minimisation)'
             return False
-        
+
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
@@ -360,7 +380,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         volumes = volume_nball(self.hs_radii,self.bdim)
         vtot = np.sum(volumes)
         return vtot
-    
+
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.packings_dir, fname)
         if self.bdim == 2:
@@ -371,7 +391,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.hs_radii = hs_diameters/2
         self._compute_sca()
-    
+
     def _compute_sca(self):
         ##test##
         vol_part = self._get_particles_volume()
@@ -381,7 +401,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         ##endtest##
         ###r_soft = r_hs*(1+sca)
         self.sca = np.power(self.packing_frac/self.imp_packing_frac,1./self.bdim) - 1
-        
+
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
@@ -406,47 +426,59 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             else:
                 break
         return no_overlap
-            
+
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
         coords = self.coords.copy()
         put_in_box(coords,self.boxv)
         return coords
-    
+
     def _dump_configuration(self,n):
         """write coordinates to file .xyzdr"""
         directory = self.base_directory
         #compare to existing file (dirty hack)
-        # if False:
-        #     if self.bdim == 2:
-        #         fname = "{0}/jammed_packing{1}.xydr".format(directory, n)
-        #         coords, hs_diameters, rattlers = read_xydr(fname)
-        #     elif self.bdim == 3:
-        #         fname = "{0}/jammed_packing{1}.xyzdr".format(directory, n)
-        #         coords, hs_diameters, rattlers = read_xyzdr(fname)
-        #     old_nratls = len([x for x in rattlers if np.abs(x) < self.rattler_eval_tol])
-        #     new_nratls = len([x for x in self.rattlers if np.abs(x) < self.rattler_eval_tol])
-        #     if new_nratls != old_nratls:
-        #         with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
-        #             f.write('jammed_packing{}\n'.format(n))
+        compare = True
+        mismatch = True
+        if compare:
+            try:
+                if self.bdim == 2:
+                    fname = "{0}/jammed_packing{1}.xydr".format(directory, n)
+                    coords, hs_diameters, rattlers = read_xydr(fname)
+                elif self.bdim == 3:
+                    fname = "{0}/jammed_packing{1}.xyzdr".format(directory, n)
+                    coords, hs_diameters, rattlers = read_xyzdr(fname)
+                mismatch = False
+                n_old_nratls = (len(rattlers) - np.count_nonzero(rattlers))//self.bdim
+                n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
+                if n_new_nratls != n_old_nratls or not np.array_equal(
+                        np.nonzero(rattlers[::self.bdim]), np.nonzero(self.rattlers)):
+                    mismatch = True
+                    with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
+                        f.write('jammed_packing{}\n'.format(n))
+                    path_list = glob.glob("{0}/jammed_packing{1}.*".format(directory, n))
+                    for path_ in path_list:
+                        p = subprocess.call(shlex.split("rm {}".format(path_)))
+            except Exception, e:
+                print e
         #dump configuration
-        coords = self._correct_coords()
-        if self.bdim == 2:
-            fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
-            f = open(fname,'w')
-            for i in xrange(self.nparticles):
-                f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
-                                                                          self.hs_radii[i]*2,self.rattlers[i]))
-        elif self.bdim == 3:
-            fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
-            f = open(fname,'w')
-            for i in xrange(self.nparticles):
-                f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
-                                                                          coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
-        else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        f.close()
-    
+        if compare and mismatch:
+            coords = self._correct_coords()
+            if self.bdim == 2:
+                fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
+                f = open(fname,'w')
+                for i in xrange(self.nparticles):
+                    f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                                                                              self.hs_radii[i]*2,self.rattlers[i]))
+            elif self.bdim == 3:
+                fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
+                f = open(fname,'w')
+                for i in xrange(self.nparticles):
+                    f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
+                                                                              coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
+            else:
+                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            f.close()
+
     def _write_opengl_input(self,n):
         """write opengl input file"""
         coords = self._correct_coords()
@@ -480,60 +512,60 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         else:
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
-    
-    def _histogram_eigenvalues(self):
-        #self.eigenvalues = np.array(self.eigenvalues,dtype='d')
-        self.block_evalues = np.real(self.block_evalues)
-        pylab.figure()
-        self.block_histogram, bins = np.histogram(self.block_evalues ,bins=self.nbins)
-        width = bins[1] - bins[0]
-        center = (bins[:-1] + bins[1:]) / 2
-        pylab.bar(center, self.block_histogram, align='center', width=width)
-        pylab.savefig(os.path.join(self.base_directory,'blocks_histogram.eps'))
-        if self.show:
-            pylab.show()
-        pylab.figure()
-        self.block_histogram_low, bins = np.histogram(self.block_evalues ,bins=self.nbins_low, range=self.low_range)
-        width = bins[1] - bins[0]
-        center = (bins[:-1] + bins[1:]) / 2
-        pylab.bar(center, self.block_histogram_low, align='center', width=width)
-        pylab.savefig(os.path.join(self.base_directory, 'blocks_histogram_low{}.eps'.format(self.low_range[1])) )
-        if self.show:
-            pylab.show()
-        
-        self.whole_evalues = np.real(self.whole_evalues)
-        pylab.figure()
-        self.whole_histogram, bins = np.histogram(self.whole_evalues ,bins=self.nbins)
-        width = bins[1] - bins[0]
-        center = (bins[:-1] + bins[1:]) / 2
-        pylab.bar(center, self.whole_histogram, align='center', width=width)
-        pylab.savefig(os.path.join(self.base_directory,'whole_histogram.eps'))
-        if self.show:
-            pylab.show()
-        pylab.figure()
-        self.whole_histogram_low, bins = np.histogram(self.whole_evalues ,bins=self.nbins_low, range=self.low_range)
-        width = bins[1] - bins[0]
-        center = (bins[:-1] + bins[1:]) / 2
-        pylab.bar(center, self.whole_histogram_low, align='center', width=width)
-        pylab.savefig(os.path.join(self.base_directory,'whole_histogram_low{}.eps'.format(self.low_range[1])))
-        if self.show:
-            pylab.show()
 
-            
+    # def _histogram_eigenvalues(self):
+    #     #self.eigenvalues = np.array(self.eigenvalues,dtype='d')
+    #     self.block_evalues = np.real(self.block_evalues)
+    #     pylab.figure()
+    #     self.block_histogram, bins = np.histogram(self.block_evalues ,bins=self.nbins)
+    #     width = bins[1] - bins[0]
+    #     center = (bins[:-1] + bins[1:]) / 2
+    #     pylab.bar(center, self.block_histogram, align='center', width=width)
+    #     pylab.savefig(os.path.join(self.base_directory,'blocks_histogram.eps'))
+    #     if self.show:
+    #         pylab.show()
+    #     pylab.figure()
+    #     self.block_histogram_low, bins = np.histogram(self.block_evalues ,bins=self.nbins_low, range=self.low_range)
+    #     width = bins[1] - bins[0]
+    #     center = (bins[:-1] + bins[1:]) / 2
+    #     pylab.bar(center, self.block_histogram_low, align='center', width=width)
+    #     pylab.savefig(os.path.join(self.base_directory, 'blocks_histogram_low{}.eps'.format(self.low_range[1])) )
+    #     if self.show:
+    #         pylab.show()
+    #
+    #     self.whole_evalues = np.real(self.whole_evalues)
+    #     pylab.figure()
+    #     self.whole_histogram, bins = np.histogram(self.whole_evalues ,bins=self.nbins)
+    #     width = bins[1] - bins[0]
+    #     center = (bins[:-1] + bins[1:]) / 2
+    #     pylab.bar(center, self.whole_histogram, align='center', width=width)
+    #     pylab.savefig(os.path.join(self.base_directory,'whole_histogram.eps'))
+    #     if self.show:
+    #         pylab.show()
+    #     pylab.figure()
+    #     self.whole_histogram_low, bins = np.histogram(self.whole_evalues ,bins=self.nbins_low, range=self.low_range)
+    #     width = bins[1] - bins[0]
+    #     center = (bins[:-1] + bins[1:]) / 2
+    #     pylab.bar(center, self.whole_histogram_low, align='center', width=width)
+    #     pylab.savefig(os.path.join(self.base_directory,'whole_histogram_low{}.eps'.format(self.low_range[1])))
+    #     if self.show:
+    #         pylab.show()
+
+
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
-    parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
-    parser.add_argument("--nocell", action='store_false', help="don't use cell lists, default: True",default=True)
+    parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
+    parser.add_argument("-t", "--tol", type=float, help="rms tolerance of the minimizer", default=1e-9)
     # potential arguments
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
     print args
-    
+
     # potential type
     opt_pot_str = args.opt_pot
     extra_pot_kwargs = dict()
@@ -544,19 +576,10 @@ if __name__ == "__main__":
         print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
     else:
         raise NotImplementedError
-    
+
     print("extra_pot_kwargs", extra_pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
-        rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
-        use_cell_lists=args.nocell, show=args.show,
-        opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
+                                     packings_dir=args.packingsdir, tol=args.tol,
+                                     use_cell_lists=not args.nocell, show=args.show,
+                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
     sim.run()
-    
-    
-        
-                
-            
-              
-                
-                
-                

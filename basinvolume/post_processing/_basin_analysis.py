@@ -1,5 +1,5 @@
 from __future__ import division
-from basinvolume.utils import *
+import os
 import glob
 import cPickle as pickle
 from basinvolume.post_processing import PackingData, PackingDataSet
@@ -51,14 +51,15 @@ class BasinAnalysis(object):
         #print listdir
         data_pickle = os.path.join(self.workspace, data_name)
         if os.path.isfile(data_pickle) and not no_pickle:
-            self.packing_datasets = pickle.load( open(data_pickle, "rb") )
+            with open(data_pickle, "rb") as f:
+                self.packing_datasets = pickle.loads(f.read())
         else: 
             for set_path in listdir:
                 print("set_path", set_path)
                 print "collecting data from ", os.path.split(set_path)[1]
                 self.collect_data_single_all(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
-            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ) )
+            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ),protocol=-1)
         
     def collect_data_single_all(self, set_path=None):
         if set_path is None:
@@ -77,9 +78,10 @@ class BasinAnalysis(object):
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
+                    packing_path = os.path.join(set_path, self.jammed_packings_dir, fname)
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
                     configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
-                    pd = PackingData(str(dname), configpath, configpath_packing)
+                    pd = PackingData(str(dname), configpath, configpath_packing, packing_path=packing_path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
                     pd.import_volume_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
@@ -99,14 +101,15 @@ class BasinAnalysis(object):
         listdir = glob.glob(os.path.join(self.workspace, dir_signature))
         data_pickle = os.path.join(self.workspace, data_name)
         if os.path.isfile(data_pickle) and not no_pickle:
-            self.packing_datasets = pickle.load( open(data_pickle, "rb") )
+            with open(data_pickle, "rb") as f:
+                self.packing_datasets = pickle.loads(f.read())
         else: 
             for set_path in listdir:
                 print("set_path", set_path)
                 print "collecting data from ", os.path.split(set_path)[1]
                 self.collect_data_single_structure(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
-            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ) )
+            pickle.dump(self.packing_datasets, open( data_pickle, "wb" ), protocol=-1)
         
     def collect_data_single_structure(self, set_path=None):
         if set_path is None:
@@ -125,9 +128,10 @@ class BasinAnalysis(object):
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
+                    packing_path = os.path.join(set_path, self.jammed_packings_dir, fname)
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
                     configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
-                    pd = PackingData(str(dname), configpath, configpath_packing)
+                    pd = PackingData(str(dname), configpath, configpath_packing, packing_path=packing_path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)

@@ -81,7 +81,8 @@ class HypercubeOMCrunner(_BaseMCRunner):
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max),
-                    seed_metropolis=np.random.randint(i32max))
+                         seed_metropolis=np.random.randint(i32max),
+                         seed_cloud=np.random.randint(i32max))
         self.seeds = seeds
 
         self.conftest = ConfTestOR()
@@ -91,8 +92,8 @@ class HypercubeOMCrunner(_BaseMCRunner):
         #conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
         #self.conftest.add_test(conftest2)
 
-        self.cloud_test = CloudTest(self.seeds['seed_metropolis'], self.nr_cloud_points,
-                                    self.cloud_radius, self.potential)
+        self.cloud_test = CloudTest(self.seeds['seed_metropolis'], self.seeds['seed_cloud'],
+                                    self.nr_cloud_points, self.cloud_radius, self.potential)
 
         self.action_record_displ = RecordDisplacementTimeseries(self.origin, self.bdim, ts_niter, 
                                                                 ts_freq, fix_com=False)
@@ -190,7 +191,6 @@ class HypercubeOMCrunner(_BaseMCRunner):
         
 class HypercubeFindkOMCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
-                 cloud_radius=None, nr_cloud_points=None,
                  sidelength=1, ktarget = 0.9, knavg=500, ktol=0.05, avgcount=1e6,
                  hmin=0, hmax=1, hbinsize=0.001, seeds=None):
         #construct base class
@@ -202,12 +202,6 @@ class HypercubeFindkOMCrunner(_BaseMCRunner):
         self.origin = np.array(origin)
         self.rattlers = np.ones(self.bdim)
         self.sidelength = sidelength
-        if cloud_radius is None:
-            cloud_radius = sidelength / 20  # this choice is completely arbitrary
-        if nr_cloud_points is None:
-            nr_cloud_points = self.ndim * 2
-        self.cloud_radius = cloud_radius
-        self.nr_cloud_points = nr_cloud_points
 
         #compute seeds
         if not seeds:
@@ -253,7 +247,7 @@ class HypercubeFindkOMCrunner(_BaseMCRunner):
         """
         overloading the base class method to include stepsize
         """
-        status = super(HypercubeFindkMCrunner, self).get_status()
+        status = super(HypercubeFindkOMCrunner, self).get_status()
         status.stepsize = self.get_stepsize()
         return status
     
@@ -271,8 +265,7 @@ class HypercubeInnerSphereOMCrunner(_BaseMCRunner):
     """
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
-                 cloud_radius=None, nr_cloud_points=None,
-                 sidelength=1, hmin=0, hmax=1, hbinsize=0.001, ts_niter=None, ts_freq=1, seeds=None, 
+                 sidelength=1, hmin=0, hmax=1, hbinsize=0.001, ts_niter=None, ts_freq=1, seeds=None,
                  record_histogram=False):
         #construct base class
         super(HypercubeInnerSphereOMCrunner, self).__init__(potential, full_coords, temperature, niter)
@@ -288,13 +281,7 @@ class HypercubeInnerSphereOMCrunner(_BaseMCRunner):
         self.equilibration_steps = 0
         if ts_niter is None:
             ts_niter = niter
-        if cloud_radius is None:
-            cloud_radius = sidelength / 20  # this choice is completely arbitrary
-        if nr_cloud_points is None:
-            nr_cloud_points = self.ndim * 2
-        self.cloud_radius = cloud_radius
-        self.nr_cloud_points = nr_cloud_points
-        
+
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
@@ -406,14 +393,14 @@ if __name__ == "__main__":
     k=25
     stepsize = np.sqrt(1.0 / k)
     if False:       
-        test = HypercubeFindkMCrunner(potential, full_coords, 1, stepsize, int(1e8), origin, sidelength=1)
+        test = HypercubeFindkOMCrunner(potential, full_coords, 1, stepsize, int(1e8), origin, sidelength=1)
         start = time.time()
         test.run()
         end = time.time()
         print(end - start)
     if False:
         potential = Harmonic(origin, k, bdim=ndim, com=False)
-        test = HypercubeMCrunner(potential, full_coords, 1, stepsize, int(1e5), origin, sidelength=1,
+        test = HypercubeOMCrunner(potential, full_coords, 1, stepsize, int(1e5), origin, sidelength=1,
                                  record_histogram=True)
         start = time.time()
         test.run()
@@ -421,7 +408,7 @@ if __name__ == "__main__":
         print('displ2_kmin', test.get_displ2_kmin())
         print(end - start)
     if True:
-        test = HypercubeInnerSphereMCrunner(potential, full_coords, 1, stepsize, int(1e5), origin, sidelength=1,
+        test = HypercubeInnerSphereOMCrunner(potential, full_coords, 1, stepsize, int(1e5), origin, sidelength=1,
                                             record_histogram=True)
         start = time.time()
         test.run()

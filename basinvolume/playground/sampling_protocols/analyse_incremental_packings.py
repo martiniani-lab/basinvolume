@@ -10,7 +10,7 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib import rc
     from itertools import cycle
-    from basinvolume.utils import *
+    from basinvolume.utils import trymakedir
     import scipy
     from scipy.optimize import fmin
     from scipy.stats import t
