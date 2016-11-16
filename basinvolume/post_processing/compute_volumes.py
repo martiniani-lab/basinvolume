@@ -169,9 +169,9 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
     Used for packings with one config file for each packing.
     """
     def __init__(self, workspace_dir, nr_volume_points, force_run, method, 
-                 volume_file="volume_data", volume_title="VOLUME_FULL_PT"):
+                 volume_file="volume_data", volume_title="VOLUME_FULL_PT", explore_bv_dir="explore_bv_jammed_packing"):
         super(ComputeVolumesTINTMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
-                                                                volume_file=volume_file, volume_title=volume_title)
+                                                                volume_file=volume_file, volume_title=volume_title, explore_bv_dir=explore_bv_dir)
         self.series_collector = _collect_u2_vs_k()
     
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
@@ -186,10 +186,10 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
     """
     Used for packings with one config file for each packing.
     """
-    def __init__(self, workspace_dir, nr_volume_points, force_run, method, 
-                 volume_file="mbar_volume_data", volume_title="VOLUME_MBAR"):
+    def __init__(self, workspace_dir, nr_volume_points, force_run, method,
+                 volume_file="mbar_volume_data", volume_title="VOLUME_MBAR", explore_bv_dir="explore_bv_jammed_packing"):
         super(ComputeVolumesMBARMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
-                                                                volume_file=volume_file, volume_title=volume_title)
+                                                                volume_file=volume_file, volume_title=volume_title, explore_bv_dir=explore_bv_dir)
         self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=8)
     
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
@@ -202,7 +202,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                               show=False, verbose=False)
     def run_analysis(self):
         """
-        replace with approapriate method (this tests also if the dos calculation was succesfull)
+        replace with appropriate method (this tests also if the dos calculation was succesfull)
         """
         self.pt_failures = PTFailures()
         for (path, fname) in zip(self.explore_dirs, self.packing_strings):
@@ -239,15 +239,15 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
 
 class ComputeVolumes(object):
     def __init__(self, workspace_dir, nr_volume_points=-1,
-                 force_run=False, method="mbar"):
+                 force_run=False, method="mbar", explore_bv_dir="explore_bv_jammed_packing"):
         self.method = method
         self.experimental = "exp" in workspace_dir #THIS SHOULD BE IMPROVED
         if self.method == "mbar":
             print("using MBAR method")
-            self.computer = ComputeVolumesMBARMultiConfigFile(workspace_dir, nr_volume_points, force_run, method)
+            self.computer = ComputeVolumesMBARMultiConfigFile(workspace_dir, nr_volume_points, force_run, method, explore_bv_dir=explore_bv_dir)
         elif self.method == "tint":
             print("using thermodynamic integration method")
-            self.computer = ComputeVolumesTINTMultiConfigFile(workspace_dir, nr_volume_points, force_run, method)
+            self.computer = ComputeVolumesTINTMultiConfigFile(workspace_dir, nr_volume_points, force_run, method, explore_bv_dir=explore_bv_dir)
         else:
             raise Exception("ComputeVolumes: illegal choice of method, should be MBAR or TINT")
     def __call__(self):
@@ -265,35 +265,39 @@ def get_immediate_subdirectories(dir):
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute volumes from PT data, use either MBAR or TINT methods")
-    parser.add_argument("-d", "--workspace_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
+    parser.add_argument("-d", "--workspace_dir", type=str,
+                        help="top-level dir containing the packings, e.g. n32_phi88_2D."
+                             "If --all is activated a RegEx string matching all directories. Default: n*phi*phi*D*",
+                        default="n*phi*phi*D*")
     parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
     parser.add_argument("--nr_vpoints", type=int, default=-1, help="number of volume points, by default all otherwise select n at random")
     parser.add_argument("--force", action='store_true', help="force to recompute volumes for already computed ones", default=False)
     parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=4)
     parser.add_argument("-m", "--method", type=str, help="volume computation method", default="tint")
+    parser.add_argument("--explore_dirs", type=str, help="String that packing directories to explore start with."
+                        "Default: 'explore_bv_jammed_packing'", default="explore_bv_jammed_packing")
     args = parser.parse_args()
     
     ncores = args.ncores
     kwargs = dict(nr_volume_points=args.nr_vpoints,
                   force_run=args.force,
-                  method=args.method)
-    
+                  method=args.method,
+                  explore_bv_dir=args.explore_dirs)
     if not args.all:
         workspace_dir = os.path.abspath(args.workspace_dir)
         worker(workspace_dir, kwargs)
     else:
-        subdirs = glob.glob(os.path.join(os.getcwd(), "n*phi*phi*D*"))
+        subdirs = glob.glob(os.path.join(os.getcwd(), args.workspace_dir))
         print subdirs
         if args.ncores > 1 and args.method != 'mbar':
             mypool = mp.Pool(ncores)
             try:
                 for folder in subdirs:
-                    mypool.apply_async(worker, args=(os.path.abspath(folder),kwargs,))
+                    mypool.apply_async(worker, args=(os.path.abspath(folder), kwargs,))
             except:
                 mypool.terminate()
                 mypool.join()
                 raise
-                        
             mypool.close()
             mypool.join()
         else:
