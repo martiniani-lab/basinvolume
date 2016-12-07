@@ -32,6 +32,8 @@ if __name__ == "__main__":
     # potential arguments
     parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
+    parser.add_argument("--delraw", action='store_true', help="Delete raw timeseries textfiles "
+                        "and only use the HDF5 format.", default=False)
     args = parser.parse_args()
 
     path = args.base_directory
@@ -131,11 +133,11 @@ if __name__ == "__main__":
     print 'core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
                                                                                        ptrunner.ptiter, adjustf_niter,
                                                                                        ptrunner.skip, ptrunner.pfreq)
-    print 'convert timeseries to hf5...'
+    print 'convert timeseries to hdf5...'
     if rank == 0:
         #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
         #reduce the amount of occupied memory and i/o speed without loosing any information
         timeseries = import_pt_time_series(sim.base_directory, int(sim.mc_params['adjustf_niter']),
-                                           max_series_size=0, ncores=1, del_raw=True)
+                                           max_series_size=0, ncores=1, del_raw=args.delraw)
     print 'done'
     print 'elapsed time',end-start

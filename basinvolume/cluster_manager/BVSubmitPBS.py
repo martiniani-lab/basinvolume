@@ -33,8 +33,7 @@ class BVSubmitPBS(object):
                  pt_config='explore_jammed_packing',
                  packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False,
                  experimental=False, use_cgd=True, record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
-                 maxtotniter=2e6,
-                 relstderr=0.05, numnegk=0, lownegk=-2.5, pot_opt_str='hs_wca', nocell=False):
+                 maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5, pot_opt_str='hs_wca', nocell=False, delraw=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -62,6 +61,7 @@ class BVSubmitPBS(object):
         self.kmax_start = kmax_start
         self.pot_opt_str = pot_opt_str
         self.nocell = nocell
+        self.delraw = delraw
         self.pt_output_files = ["exchanges", "rem_permutations", "temperatures"]
         if ndim == 2:
             if not self.experimental:
@@ -212,6 +212,8 @@ class BVSubmitPBS(object):
                                                                                               self.pot_opt_str)
         if self.use_cgd:
             command += " --cgd"
+        if self.nocell:
+            command += " --nocell"
         return command
 
     def submit_kmin_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
@@ -358,6 +360,8 @@ class BVSubmitPBS(object):
             command += " --cgd"
         if self.numnegk > 0:
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
+        if self.delraw > 0:
+            command += "--delraw"
         return command
 
     def submit_pt_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
@@ -586,6 +590,8 @@ if __name__ == "__main__":
                               default=False)
     chain_parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",
                               default=False)
+    parser.add_argument("--delraw", action='store_true', help="Delete raw timeseries textfiles after "
+                        "parallel tempering and only use the HDF5 format.", default=False)
 
     args = parser.parse_args()
     print args
@@ -593,7 +599,7 @@ if __name__ == "__main__":
                         nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, use_cgd=not args.fire,
                         record_steps_timeseries=args.rsts, kmax_start=args.kmax_start, mintotniter=args.mintotniter,
                         maxtotniter=args.maxtotniter,
-                        relstderr=args.relstderr, numnegk=args.numnegk, lownegk=args.lownegk, nocell=args.nocell)
+                        relstderr=args.relstderr, numnegk=args.numnegk, lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw)
 
     if args.mode == 'chain':
         bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores,
