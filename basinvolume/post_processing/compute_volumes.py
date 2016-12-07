@@ -38,12 +38,12 @@ class ComputeVolumesCommon(object):
     independent on config file layout.
     """
     __metaclass__ = abc.ABCMeta
-    
-    def __init__(self, workspace_dir, nr_volume_points, force_run, method, 
-                 explore_bv_dir="explore_bv_jammed_packing", analysis_dir="analysis", 
-                 volume_file="volume_data", packings_dir="packings", 
+
+    def __init__(self, workspace_dir, nr_volume_points, force_run, method,
+                 explore_bv_dir="explore_bv_jammed_packing", analysis_dir="analysis",
+                 volume_file="volume_data", packings_dir="packings",
                  jammed_packings_dir="jammed_packings", volume_title = "VOLUME_FULL_PT"):
-        
+
         # Begin: store input parameters.
         self.workspace_dir = workspace_dir
         self.force_run = force_run
@@ -57,15 +57,15 @@ class ComputeVolumesCommon(object):
         self.jammed_packings_dir = jammed_packings_dir
         self.volume_file=volume_file
         self.volume_title = volume_title
-        
+
         self.set_up_directories()
-    
+
     @abc.abstractmethod
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
         """
         define method to compute volume
         """
-    
+
     def run_analysis(self):
         """
         replace with approapriate method
@@ -88,7 +88,7 @@ class ComputeVolumesCommon(object):
                             print "run_analysis Exception: ", e
                             self._compute_volume(fname, path,
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
-                                                os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))    
+                                                os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))
                     else:
                         self._compute_volume(fname, path,
                                              os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
@@ -100,7 +100,7 @@ class ComputeVolumesCommon(object):
                     print "name: ", fname
                     print "path:", path
         self.pt_failures.print_failure_info()
-        
+
     def set_up_directories(self):
         self.explore_dirs = [os.path.join(self.workspace_dir, f) for f in os.listdir(self.workspace_dir) if f.startswith(self.explore_bv_dir)]
         if self.nr_volume_points != -1:
@@ -117,7 +117,7 @@ class ComputeVolumesCommon(object):
 #        only_number = int(re.findall('\d+', volume_file)[0])
 #        return os.path.join(self.workspace_dir, self.packings_dir, "packing" + only_number + ".config")
 
-#    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS    
+#    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
 #    def collect_computed_data_F0(self):
 #        self.volume_files = [os.path.join(f, self.analysis_dir, self.volume_file) for f in self.explore_dirs]
 #        self.F0_actually_imported_files = []
@@ -126,7 +126,7 @@ class ComputeVolumesCommon(object):
 #        self.sigF0 = []
 #        for vf in self.volume_files:
 #            self.read_from_volume_file(vf)
-#            
+#
 #    def read_from_volume_file(self, vf):
 #        volf = ConfigParser.ConfigParser()
 #        volf.read(str(vf))
@@ -148,7 +148,7 @@ class ComputeVolumesCommon(object):
 #            print "Exception: ", e
 #            print "insufficient data available"
 #            print "location:", vf
-    
+
 #    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
 #    def select_final_dataset(self):
 #        self.best_integration_selection.print_fail_information(self.workspace_dir)
@@ -168,12 +168,12 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
     """
     Used for packings with one config file for each packing.
     """
-    def __init__(self, workspace_dir, nr_volume_points, force_run, method, 
+    def __init__(self, workspace_dir, nr_volume_points, force_run, method,
                  volume_file="volume_data", volume_title="VOLUME_FULL_PT", explore_bv_dir="explore_bv_jammed_packing"):
         super(ComputeVolumesTINTMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
                                                                 volume_file=volume_file, volume_title=volume_title, explore_bv_dir=explore_bv_dir)
         self.series_collector = _collect_u2_vs_k()
-    
+
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
         self.series_collector(frozen=self.experimental,
                               fname=fname,
@@ -191,14 +191,14 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
         super(ComputeVolumesMBARMultiConfigFile, self).__init__(workspace_dir, nr_volume_points, force_run, method,
                                                                 volume_file=volume_file, volume_title=volume_title, explore_bv_dir=explore_bv_dir)
         self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=8)
-    
+
     def _compute_volume(self, fname, explore_dir, jammed_packings_dir, packings_dir):
         self.series_collector(fname=fname,
                               explore_dir=explore_dir,
                               packings_dir=packings_dir,
                               jammed_packings_dir=jammed_packings_dir,
                               base_dir='analysis',
-                              frozen=self.experimental, 
+                              frozen=self.experimental,
                               show=False, verbose=False)
     def run_analysis(self):
         """
@@ -224,7 +224,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                             print "run_analysis Exception: ", e
                             self._compute_volume(fname, path,
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
-                                                os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))    
+                                                os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))
                     else:
                         self._compute_volume(fname, path,
                                              os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
@@ -252,7 +252,7 @@ class ComputeVolumes(object):
             raise Exception("ComputeVolumes: illegal choice of method, should be MBAR or TINT")
     def __call__(self):
         self.computer.run_analysis()
-            
+
 def worker(workspace_dir, kwargs):
     try:
         cv = ComputeVolumes(workspace_dir, **kwargs)
@@ -262,7 +262,7 @@ def worker(workspace_dir, kwargs):
 
 def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
-        
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute volumes from PT data, use either MBAR or TINT methods")
     parser.add_argument("-d", "--workspace_dir", type=str,
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     parser.add_argument("--explore_dirs", type=str, help="String that packing directories to explore start with."
                         "Default: 'explore_bv_jammed_packing'", default="explore_bv_jammed_packing")
     args = parser.parse_args()
-    
+
     ncores = args.ncores
     kwargs = dict(nr_volume_points=args.nr_vpoints,
                   force_run=args.force,
@@ -305,4 +305,3 @@ if __name__ == "__main__":
                 cv = ComputeVolumes(os.path.abspath(folder), **kwargs)
                 cv()
                 del cv
-            

@@ -33,22 +33,22 @@ plt.rcParams['xtick.major.pad'] = 8
 plt.rcParams['ytick.major.pad'] = 8
 plt.rcParams.update({'figure.autolayout': True})
 ##########################################################
-####SET COLOUR MAP######                                                               
+####SET COLOUR MAP######
 def get_color_cycle():
     cm = plt.get_cmap('Set2')
     color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
     return color_cycle
 ########################
-    
+
 class _collect_u2_vs_k(object):
     """
-    this is a class that implements _collect_u2_vs_k class 
+    this is a class that implements _collect_u2_vs_k class
     *ts_skip number of points skipped when printing time series (every ts_skip)
     """
     def __call__(self, ts_skip=5000, fname='jammed_packing0', base_dir='analysis',
                  explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings',
                  plot_ts_integrand_data=True, frozen=False, show=False, plot_only=False, verbose=False):
-               
+
         self.fname = fname
         if not os.path.isabs(jammed_packings_dir):
             jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
@@ -65,7 +65,7 @@ class _collect_u2_vs_k(object):
         assert os.path.isfile(self.packing_configpath)
         self.jammed_packing_configpath = os.path.join(jammed_packings_dir, '{}.config'.format(self.fname))
         assert os.path.isfile(self.jammed_packing_configpath)
-        self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')  
+        self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')
         assert os.path.isfile(self.findk_configpath)
         self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
         assert os.path.isfile(self.kmin_configpath)
@@ -77,14 +77,14 @@ class _collect_u2_vs_k(object):
             print("self.jammed_packing_configpath", self.jammed_packing_configpath)
             print("self.findk_configpath", self.findk_configpath)
             print("self.kmin_configpath", self.kmin_configpath)
-        
+
         self.ts_skip = ts_skip
         self.plot_ts_integrand_data = plot_ts_integrand_data
         self.show = show
         self.plot_only = plot_only
         self._import_config_files()
         self.run()
-    
+
     def run(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
@@ -99,7 +99,7 @@ class _collect_u2_vs_k(object):
                 self._import_u2_reverse()
                 self._remove_negative_k()
                 self._print_u2_vs_k()
-                self._compute_hs_fluid_volume() # Maybe we can move this to the entropy computation part, 
+                self._compute_hs_fluid_volume() # Maybe we can move this to the entropy computation part,
                 self._compute_volume()          # there is no reason to also compute the accessible volume at this point.
                 self._plot_data()
         except Exception as err:
@@ -108,7 +108,7 @@ class _collect_u2_vs_k(object):
         Print basin volumes for further processing
         """
         self._print_volumes()
-    
+
     def _import_config_files(self):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.jammed_packing_configpath))
@@ -137,12 +137,12 @@ class _collect_u2_vs_k(object):
         self.var_displ_k_min = configf.getfloat('KMIN', 'var_displ_k_min')
         configf.read(str(self.pt_configpath))
         self.adjustf_niter = configf.getfloat('MCRUNNER', 'adjustf_niter')
-    
+
     def _import_ks(self):
         """
         must run before import u2
         """
-        karray = [] 
+        karray = []
         path = os.path.join(self.explore_dir, 'temperatures')
         f = open(path, "r")
         while True:
@@ -156,7 +156,7 @@ class _collect_u2_vs_k(object):
     def _import_u2_reverse(self):
         n = len(self.karray)-1
         self.u2_array = [0 for _ in xrange(n)]
-        self.var_array = [0 for _ in xrange(n)] 
+        self.var_array = [0 for _ in xrange(n)]
         self.std_error_array = [0 for _ in xrange(n)]
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
@@ -176,22 +176,22 @@ class _collect_u2_vs_k(object):
         self.u2_array = np.array(self.u2_array[::-1], dtype='d')
         self.var_array = np.array(self.var_array[::-1], dtype='d')
         self.std_error_array = np.array(self.std_error_array[::-1], dtype='d')
-    
+
     def _remove_negative_k(self):
         try:
             k0_idx = next(idx for idx, value in enumerate(self.karray) if value == 0)
         except Exception:
-            k0_idx = -1 
+            k0_idx = -1
         if k0_idx >= 0:
             self.karray = self.karray[k0_idx:]
             assert all(k >= 0 for k in self.karray), "karray not all positive"
             self.u2_array = self.u2_array[k0_idx:]
             self.var_array = self.var_array[k0_idx:]
             self.std_error_array = self.std_error_array[k0_idx:]
-            
+
     def _import_time_series(self):
-        self.timeseries = import_pt_time_series(self.explore_dir, self.adjustf_niter, 
-                                                max_series_size=0, ncores=4, 
+        self.timeseries = import_pt_time_series(self.explore_dir, self.adjustf_niter,
+                                                max_series_size=0, ncores=4,
                                                 crop_adjustf_niter=False, del_raw=True)
 
     def _import_steps_time_series_diffusion(self, eqtime=int(2e5)):
@@ -226,7 +226,7 @@ class _collect_u2_vs_k(object):
             step_timeseries_mean_eucdist.append(np.mean(step_timeseries[i+1][eqtime//n:]))
             step_timeseries_mean_eucdist_std.append(np.std(step_timeseries[i+1][eqtime//n:])/np.sqrt(len(step_timeseries[i+1])))
         return step_timeseries_mean_path, step_timeseries_mean_path_std, step_timeseries_mean_eucdist, step_timeseries_mean_eucdist_std
-    
+
     def _print_u2_vs_k(self):
         """writes <u2> and variance vs """
         dname = 'u2_vs_k'
@@ -235,37 +235,37 @@ class _collect_u2_vs_k(object):
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#{:>15}\t{:>15}\n'.format('<u2>', 'var(<u2>)'))
         for i in xrange(len(self.u2_array)):
-            f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i])) 
+            f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i]))
         f.close()
-        
+
     def _compute_volume(self):
         """
         numerical volume obtained by integrating over the PT data
         Note that to function get_free_energy_F0, we need to pass the array of squared standard errors of the data points to get the correct error bars.
         This was not done previously, so the naming in the subsequent function calls can be confusing, suggesting that we are actually passing the array of variances of the displ2 points.
         """
-        
+
         #sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
         sqared_std_errors = self.std_error_array ** 2
-        
+
         self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
                                                                                 self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
-        
+
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc= F_Basin_From_MC_Data_Free_COM(self.bdim, self.nparticles, self.karray,\
                                                                                 self.u2_array, self.vcavity,\
                                                                                 self.prob_kmax, displ_k_min_trafo=self.displ_k_min).get_free_energy_F0(sqared_std_errors)
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
-        
+
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
         print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
-        
+
     def _compute_hs_fluid_volume(self, numerical_moments=False):
         volume_sanity_check = VolumeSanityCheck(self.packing_configpath, numerical_moments=numerical_moments)
         self.F0_acc = volume_sanity_check.F0_acc
         self.ideal_gas_F_acc = - self.nparticles*np.log(self.vcavity)
-        
+
     def _plot_diffusion(self):
         x, dx, y, dy = self._import_steps_time_series_diffusion()
         x, dx, y, dy = np.array(x), np.array(dx), np.array(y), np.array(dy)
@@ -281,7 +281,7 @@ class _collect_u2_vs_k(object):
         #plt.xscale('log')
         ax.legend(frameon=False, loc=1)
         plt.savefig(os.path.join(self.base_directory, 'diffusion_logr_vs_logt.pdf'))
-        write_csv_xy(np.log(x), np.log(y), xerr=dx/x, yerr=dy/y, fit=pol(np.log(x)), 
+        write_csv_xy(np.log(x), np.log(y), xerr=dx/x, yerr=dy/y, fit=pol(np.log(x)),
                      fname=os.path.join(self.base_directory, 'diffusion_logr_vs_logt.csv'))
         if self.show:
             plt.show()
@@ -292,28 +292,28 @@ class _collect_u2_vs_k(object):
         ax.set_xlabel(r'$\log (\Delta s)$')
         ax.legend(frameon=False, loc=1)
         plt.savefig(os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.pdf'))
-        write_csv_xy(np.log(x), np.log(y)-0.5*np.log(x), xerr=dx/x+dy/y, yerr=dy/y, 
+        write_csv_xy(np.log(x), np.log(y)-0.5*np.log(x), xerr=dx/x+dy/y, yerr=dy/y,
                      fname=os.path.join(self.base_directory, 'diffusion_red_logr_vs_logt.csv'))
         if self.show:
             plt.show()
-        
+
     def _plot_data(self):
         if self.plot_ts_integrand_data is False:
             return
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
-        
+
         #try to plot cumulative sum of steps_timeseries
         try:
             self._plot_diffusion()
         except Exception, e:
             print e
             print('_collect_u2_vs_k diffusion: %s' % (traceback.format_exc()))
-        
+
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
         u2_array_app = (cont_karray + (self.nparticles * self.bdim) / self.displ_k_min) / (self.nparticles * self.bdim)
         u2_array_app = 1.0 / u2_array_app
-        
+
         if True:
             #timeseries
             color_cycle = get_color_cycle()
@@ -328,29 +328,29 @@ class _collect_u2_vs_k(object):
             #plt.yscale('log')
             #plt.xscale('log')
             handles, labels = ax.get_legend_handles_labels()
-            ax.legend(handles[::-1], labels[::-1], frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1, 
+            ax.legend(handles[::-1], labels[::-1], frameon=False, loc='best', prop={'size':18}, numpoints=1, scatterpoints=1,
                       markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1)
             plt.savefig(self.base_directory + '/time_series.pdf')
             if self.show:
-                plt.show()       
-        
+                plt.show()
+
         #mean square displacement and integrand in inset
         color_cycle = get_color_cycle()
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
-        (line, caps, _) = ax2.errorbar(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), marker='o', ms=12, linestyle='', 
+        (line, caps, _) = ax2.errorbar(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), marker='o', ms=12, linestyle='',
                      color=color_cycle.next(), clip_on=False, zorder=100, capsize=5, elinewidth=2)
         for cap in caps:
             cap.set_zorder(100)
         line.set_zorder(100)
-        
+
         ax2.plot(cont_karray, u2_array_app, '--', linewidth=2, color=color_cycle.next())
         ax2.set_xlabel(r'$k$')
         ax2.set_ylabel(r'$\langle |\mathbf{r} - \mathbf{r}_0|^2\rangle_k $')
         ax2.set_ylim(bottom=0)
         #plt.xscale('symlog')
         #plt.yscale('log')
-        write_csv_xy(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), 
+        write_csv_xy(self.karray, self.u2_array, yerr=np.sqrt(self.var_array),
                      fname=os.path.join(self.base_directory, 'u2_vs_k.csv'))
         #inset
         ax3 = fig2.add_axes([0.45,0.42,0.4,0.4], alpha=0.5)
@@ -360,13 +360,13 @@ class _collect_u2_vs_k(object):
         ax3.locator_params(axis = 'y', nbins = 4)
         ax3.tick_params(axis='both', which='major', labelsize=18)
         #ax3.set_ylabel('integrand')
-        write_csv_xy(self.tarray, self.farray, yerr=self.sigfarray, 
+        write_csv_xy(self.tarray, self.farray, yerr=self.sigfarray,
                      fname=os.path.join(self.base_directory, 'integrand.csv'))
         plt.savefig(self.base_directory + '/u2_vs_k.pdf')
         if self.show:
             plt.show()
-            
-        
+
+
     def _print_volumes(self):
         dname = 'volume_data'
         fname = '{}/{}'.format(self.base_directory,dname)
@@ -384,9 +384,9 @@ class _collect_u2_vs_k(object):
             _to_file("sigF0", self.sigF0)
             _to_file("unit_box_F0", self.unit_box_F0)
         f.close()
-        
+
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     #parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument("-f","--fname", type=str, help="specify packing to analyze",default=None)
@@ -397,17 +397,17 @@ if __name__ == "__main__":
     parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
     args = parser.parse_args()
     print args
-    
+
     fname = args.fname
     fdir = args.fdir
     wdir = args.workdir
     assert(os.path.isabs(wdir))
-    
+
     if not os.path.isabs(fdir):
         fdir = os.path.join(wdir,fdir + fname)
-    
+
     sim = _collect_u2_vs_k()
-    
+
     if (fname != None):
         sim(fname=fname, explore_dir=fdir, frozen=args.frozen, plot_only=args.plotonly, show=args.show, verbose=True)
     else :
@@ -416,6 +416,6 @@ if __name__ == "__main__":
                 if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
                     path = os.path.join(wdir, dir)
                     sim(explore_dir=path, frozen=args.frozen)
-                    
-            
-    
+
+
+
