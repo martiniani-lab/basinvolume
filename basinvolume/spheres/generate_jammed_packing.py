@@ -439,38 +439,35 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #compare to existing file (dirty hack)
         compare = True
         mismatch = True
-        if compare:
-            try:
-                if self.bdim == 2:
-                    fname = "{0}/jammed_packing{1}.xydr".format(directory, n)
-                    coords, hs_diameters, rattlers = read_xydr(fname)
-                elif self.bdim == 3:
-                    fname = "{0}/jammed_packing{1}.xyzdr".format(directory, n)
-                    coords, hs_diameters, rattlers = read_xyzdr(fname)
-                mismatch = False
-                n_old_nratls = (len(rattlers) - np.count_nonzero(rattlers))//self.bdim
-                n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
-                if n_new_nratls != n_old_nratls or not np.array_equal(
-                        np.nonzero(rattlers[::self.bdim]), np.nonzero(self.rattlers)):
-                    mismatch = True
-                    with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
-                        f.write('jammed_packing{}\n'.format(n))
-                    path_list = glob.glob("{0}/jammed_packing{1}.*".format(directory, n))
-                    for path_ in path_list:
-                        p = subprocess.call(shlex.split("rm {}".format(path_)))
-            except Exception, e:
-                print e
+        if self.bdim == 2:
+            fname = "{0}/jammed_packing{1}.xydr".format(directory, n)
+        elif self.bdim == 3:
+            fname = "{0}/jammed_packing{1}.xyzdr".format(directory, n)
+        if compare and os.path.isfile(fname):
+            if self.bdim == 2:
+                coords, hs_diameters, rattlers = read_xydr(fname)
+            elif self.bdim == 3:
+                coords, hs_diameters, rattlers = read_xyzdr(fname)
+            mismatch = False
+            n_old_nratls = (len(rattlers) - np.count_nonzero(rattlers))//self.bdim
+            n_new_nratls = len(self.rattlers) - np.count_nonzero(self.rattlers)
+            if n_new_nratls != n_old_nratls or not np.array_equal(
+                    np.nonzero(rattlers[::self.bdim]), np.nonzero(self.rattlers)):
+                mismatch = True
+                with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
+                    f.write('jammed_packing{}\n'.format(n))
+                path_list = glob.glob("{0}/jammed_packing{1}.*".format(directory, n))
+                for path_ in path_list:
+                    p = subprocess.call(shlex.split("rm {}".format(path_)))
         #dump configuration
         if compare and mismatch:
             coords = self._correct_coords()
             if self.bdim == 2:
-                fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
                 f = open(fname,'w')
                 for i in xrange(self.nparticles):
                     f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                               self.hs_radii[i]*2,self.rattlers[i]))
             elif self.bdim == 3:
-                fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
                 f = open(fname,'w')
                 for i in xrange(self.nparticles):
                     f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
