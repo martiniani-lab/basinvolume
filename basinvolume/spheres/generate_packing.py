@@ -269,13 +269,12 @@ class HS_Generate_Packing(_Generate_Packing):
 #            self.hs_radii = np.array(self.hs_radii,dtype='d')
 #        assert(self.hs_radii.all() > 0)
 
-    def _distance (self, ind1, ind2):
-        if self.use_leesedwards:
-            d12 = [0 , 0]
 
-            # Calculate Lees-Edwards distance for x- and y-dimensions
-            d12[0] = self.coords[ind1 * self.bdim] - self.coords[ind2 * self.bdim]
-            d12[1] = self.coords[ind1 * self.bdim + 1] - self.coords[ind2 * self.bdim + 1]
+    def _distance_1d(self, coord1, coord2, dim):
+        if self.use_leesedwards and dim in [0, 1]:
+            d12 = [0, 0]
+            d12[0] = coord1[0] - coord2[0]
+            d12[1] = coord1[1] - coord2[1]
 
             round_y = cround(d12[1] / self.boxv[1])
             tmp12 = [d12[0] - round_y * self.shear * self.boxv[0],
@@ -285,26 +284,18 @@ class HS_Generate_Packing(_Generate_Packing):
             tmp12[0] -= cround(tmp12[0] / self.boxv[0]) * self.boxv[0]
 
             if d12[0] ** 2 + d12[1] ** 2 > tmp12[0] ** 2 + tmp12[1] ** 2:
-                d12[0] = tmp12[0]
-                d12[1] = tmp12[1]
-
-            # Calculate other dimensions
-            for dim in xrange(2, self.bdim):
-                # use distances to nearest image convention
-                d12.append((self.coords[ind1 * self.bdim + dim] - self.coords[ind2 * self.bdim + dim]) -
-                          cround((self.coords[ind1 * self.bdim + dim]
-                                  - self.coords[ind2 * self.bdim + dim]) / self.boxv[dim]) * self.boxv[dim])
-
-            # Sum up elements
-            return np.sqrt(sum([x ** 2 for x in d12]))
+                return tmp12[dim]
+            else:
+                return d12[dim]
         else:
-            d12 = 0
-            for dim in xrange(self.bdim):
-                # use distances to nearest image convention
-                d12 += np.square((self.coords[ind1 * self.bdim + dim] - self.coords[ind2 * self.bdim + dim]) -
-                          cround((self.coords[ind1 * self.bdim + dim]
-                                  - self.coords[ind2 * self.bdim + dim]) / self.boxv[dim]) * self.boxv[dim])
-            return np.sqrt(d12)
+            # Use distance to nearest image convention
+            dist = coord1[dim] - coord2[dim]
+            return dist - cround(dist / self.boxv[dim]) * self.boxv[dim]
+
+
+    def _distance (self, coord1, coord2):
+        return np.sqrt(sum([self._distance_1d(coord1, coord2, dim) ** 2 for dim in xrange(self.bdim)]))
+
 
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
@@ -312,7 +303,8 @@ class HS_Generate_Packing(_Generate_Packing):
         for i in xrange(self.nparticles):
             if no_overlap == True:
                 for j in xrange(i, self.nparticles):
-                    dij = self._distance(i, j)
+                    dij = self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                         self.coords[j * self.bdim : (j + 1) * self.bdim])
                     if i != j:
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
