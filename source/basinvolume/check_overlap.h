@@ -105,6 +105,26 @@ public:
     {}
 };
 
+template <size_t ndim>
+class CheckOverlapLeesEdwards : public CheckOverlap<pele::leesedwards_distance<ndim> > {
+public:
+    CheckOverlapLeesEdwards(pele::Array<double> hs_radii, pele::Array<double> boxvec, const double shear)
+        : CheckOverlap< pele::leesedwards_distance<ndim> >(hs_radii,
+                std::make_shared<pele::leesedwards_distance<ndim> >(boxvec, shear))
+    {}
+};
+
+template<size_t ndim>
+class CheckOverlapLeesEdwardsFrozen : public ConfTestFrozenWrapper<CheckOverlapLeesEdwards<ndim> > {
+public:
+    CheckOverlapLeesEdwardsFrozen(pele::Array<double> hs_radii, pele::Array<double> boxvec,
+            pele::Array<double>& reference_coords, pele::Array<size_t>& frozen_dof, const double shear)
+        : ConfTestFrozenWrapper< CheckOverlapLeesEdwards<ndim> > (
+                std::make_shared<CheckOverlapLeesEdwards<ndim> >(hs_radii, boxvec, shear),
+                reference_coords.copy(), frozen_dof.copy())
+    {}
+};
+
 } // namespace bv
 
 #endif // #ifndef _BV_CHECK_OVERLAP_H

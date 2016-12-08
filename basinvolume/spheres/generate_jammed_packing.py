@@ -560,6 +560,7 @@ if __name__ == "__main__":
     # potential arguments
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
+    parser.add_argument("--shear", type=float, help="Use Lees-Edwards boundary conditions to simulate given amount of shear.", default=None)
     args = parser.parse_args()
     print args
 
@@ -578,5 +579,5 @@ if __name__ == "__main__":
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
                                      packings_dir=args.packingsdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
-                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
+                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs, shear=args.shear)
     sim.run()

@@ -166,7 +166,8 @@ class HS_Generate_Packing(_Generate_Packing):
     """
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None,
                  mu = 1, sig = 0.1, new_poly=False, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10,
-                 use_cell_lists=False, single=False, seeds=None, start_iteration=0):
+                 use_cell_lists=False, single=False, seeds=None, start_iteration=0,
+                 use_leesedwards=False, shear=0.0):
         super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv,
                                                  packing_frac=packing_frac, max_iter=max_iter,
                                                  use_cell_lists=use_cell_lists, start_iteration=start_iteration)
@@ -193,6 +194,8 @@ class HS_Generate_Packing(_Generate_Packing):
         self.hsf_niter = hsf_niter #number of iteration for each hs fluid configuration
         self.hsf_stepsize = hsf_stepsize
         self.hs_radii = hs_radii
+        self.use_leesedwards = use_leesedwards
+        self.shear = shear
 
     def _initialise(self):
         if self.initialised is False:
@@ -212,12 +215,14 @@ class HS_Generate_Packing(_Generate_Packing):
                                      sca=self.sca, radii=self.hs_radii,
                                      boxvec=self.boxv,
                                      reference_coords=self.coords,
-                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
+                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0,
+                                     use_leesedwards=self.use_leesedwards, shear=self.shear)
                 else:
                     self.potential = HS_WCA(use_periodic=True, eps=self.eps,
                                      sca=self.sca, radii=self.hs_radii,
                                      boxvec=self.boxv, ndim=self.bdim,
-                                     use_cell_lists=False)
+                                     use_cell_lists=False,
+                                     use_leesedwards=self.use_leesedwards, shear=self.shear)
             else:
                 self._initialise_coords_crystal()
             self._print_initialise()
@@ -264,19 +269,51 @@ class HS_Generate_Packing(_Generate_Packing):
 #            self.hs_radii = np.array(self.hs_radii,dtype='d')
 #        assert(self.hs_radii.all() > 0)
 
+    def _distance (self, ind1, ind2):
+        if self.use_leesedwards:
+            d12 = [0 , 0]
+
+            # Calculate Lees-Edwards distance for x- and y-dimensions
+            d12[0] = self.coords[ind1 * self.bdim] - self.coords[ind2 * self.bdim]
+            d12[1] = self.coords[ind1 * self.bdim + 1] - self.coords[ind2 * self.bdim + 1]
+
+            round_y = cround(d12[1] / self.boxv[1])
+            tmp12 = [d12[0] - round_y * self.shear * self.boxv[0],
+                     d12[1] - round_y * self.boxv[1]]
+
+            d12[0] -= cround(d12[0] / self.boxv[0]) * self.boxv[0]
+            tmp12[0] -= cround(tmp12[0] / self.boxv[0]) * self.boxv[0]
+
+            if d12[0] ** 2 + d12[1] ** 2 > tmp12[0] ** 2 + tmp12[1] ** 2:
+                d12[0] = tmp12[0]
+                d12[1] = tmp12[1]
+
+            # Calculate other dimensions
+            for dim in xrange(2, self.bdim):
+                # use distances to nearest image convention
+                d12.append((self.coords[ind1 * self.bdim + dim] - self.coords[ind2 * self.bdim + dim]) -
+                          cround((self.coords[ind1 * self.bdim + dim]
+                                  - self.coords[ind2 * self.bdim + dim]) / self.boxv[dim]) * self.boxv[dim])
+
+            # Sum up elements
+            return np.sqrt(sum([x ** 2 for x in d12]))
+        else:
+            d12 = 0
+            for dim in xrange(self.bdim):
+                # use distances to nearest image convention
+                d12 += np.square((self.coords[ind1 * self.bdim + dim] - self.coords[ind2 * self.bdim + dim]) -
+                          cround((self.coords[ind1 * self.bdim + dim]
+                                  - self.coords[ind2 * self.bdim + dim]) / self.boxv[dim]) * self.boxv[dim])
+            return np.sqrt(d12)
+
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
         for i in xrange(self.nparticles):
             if no_overlap == True:
                 for j in xrange(i, self.nparticles):
-                    dij = 0
-                    for k in xrange(self.bdim):
-                        #use distances to nearest image convention
-                        dij += np.square((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) -
-                                          cround((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
+                    dij = self._distance(i, j)
                     if i != j:
-                        dij = np.sqrt(dij)
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
                             print 'invalid configuration'
@@ -328,18 +365,25 @@ class HS_Generate_Packing(_Generate_Packing):
         to be on the safe side."""
         if (self.iteration == self.start_iteration):
             temperature = 1.0
-            dif_mcrunner = HS_MCrunnerOptDiffusion(self.null_potential, self.coords, temperature, self.hsf_stepsize, 1e9,
-                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 1e6,
-                                        single=self.single, seeds = self.seeds)
+            dif_mcrunner = HS_MCrunnerOptDiffusion(self.null_potential, self.coords, temperature,
+                                                   self.hsf_stepsize, 1e9, self.hs_radii, self.boxv,
+                                                   adjustf = 0.9, acceptance=0.15, adjustf_niter = 1e6,
+                                                   single=self.single, seeds = self.seeds,
+                                                   use_cell=self.use_cell_lists,
+                                                   use_leesedwards=self.use_leesedwards,
+                                                   shear=self.shear)
             dif_mcrunner.run()
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
             hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
             self.hsf_niter = max(hsf_niter, 2*self.nparticles)
             print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
             self.coords, self.energy = dif_mcrunner.get_config()
-            self.mcrunner = HS_MCrunner(self.null_potential, self.coords, temperature, self.hsf_stepsize, self.hsf_niter,
-                                        self.hs_radii, self.boxv, adjustf = 0.9, acceptance=0.15, adjustf_niter = 0,
-                                        single=self.single, seeds = self.seeds)
+            self.mcrunner = HS_MCrunner(self.null_potential, self.coords, temperature,
+                                        self.hsf_stepsize, self.hsf_niter, self.hs_radii,
+                                        self.boxv, adjustf = 0.9, acceptance=0.15,
+                                        adjustf_niter = 0, single=self.single,
+                                        seeds = self.seeds, use_cell=self.use_cell_lists,
+                                        use_leesedwards=self.use_leesedwards, shear=self.shear)
         self.mcrunner.set_config(self.coords, self.energy)
         self.mcrunner.run()
         self.coords, self.energy = self.mcrunner.get_config()
@@ -353,7 +397,8 @@ class HS_Generate_Packing(_Generate_Packing):
         """
         #sigma =  min(self.boxv) / np.power(2,1./6) #set sigma such that the the wca radius is the same as the box smallest side length
         #pot = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of sigma might have to be different
-        pot = HS_WCA(use_periodic=True, eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+        pot = HS_WCA(use_periodic=True, eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
+                     ndim=self.bdim, use_leesedwards=self.use_leesedwards, shear=self.shear)
 
         overlap = True
         while overlap == True:
@@ -375,7 +420,7 @@ class HS_Generate_Packing(_Generate_Packing):
         the HSWCA particles are then substitued by HS
         """
         pot = HS_WCA(use_periodic=True, eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
-                     ndim=self.bdim, use_cell_lists=True)
+                     ndim=self.bdim, use_cell_lists=True, use_leesedwards=self.use_leesedwards, shear=self.shear)
         overlap = True
         while overlap == True:
             coords = self._sample_random_coords()
@@ -694,9 +739,17 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
+    parser.add_argument("--shear", type=float, help="Use Lees-Edwards boundary conditions to simulate given amount of shear.", default=None)
     args = parser.parse_args()
     print args
     single = not args.moveall
+
+    if args.shear == None:
+        use_leesedwards = False
+        shear = 0.0
+    else:
+        use_leesedwards = True
+        shear = args.shear
 
     #import radii from other configuration file
     dpath = args.dpath
@@ -713,5 +766,5 @@ if __name__ == "__main__":
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
                               hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
                               hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                              use_cell_lists=not args.nocell, single=single, start_iteration=args.start_iter)
+                              use_cell_lists=not args.nocell, single=single, start_iteration=args.start_iter, use_leesedwards=use_leesedwards, shear=shear)
     sim.run()

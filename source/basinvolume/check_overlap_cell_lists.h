@@ -127,6 +127,29 @@ public:
     {}
 };
 
+template <size_t ndim>
+class CheckOverlapLeesEdwardsCellLists : public CellListCheckOverlap<pele::leesedwards_distance<ndim> > {
+public:
+    CheckOverlapLeesEdwardsCellLists(pele::Array<double> hs_radii, pele::Array<double> boxvec, const double shear, double ncellx_scale=1.0)
+        : CellListCheckOverlap<pele::leesedwards_distance<ndim> >(hs_radii,
+            std::make_shared<pele::leesedwards_distance<ndim> >(boxvec, shear),
+            std::make_shared<pele::CellListsWithBreak<pele::leesedwards_distance<ndim> > >(std::make_shared<pele::leesedwards_distance<ndim> >(boxvec, shear), boxvec, 2 * hs_radii.get_max(), ncellx_scale))
+    {}
+};
+
+template<size_t ndim>
+class CheckOverlapLeesEdwardsCellListsFrozen : public ConfTestFrozenWrapper<CheckOverlapLeesEdwardsCellLists<ndim> > {
+public:
+    CheckOverlapLeesEdwardsCellListsFrozen(pele::Array<double> reference_coords,
+            pele::Array<size_t>& frozen_dof, pele::Array<double> hs_radii,
+            pele::Array<double> boxvec, const double shear, double ncellx_scale=1.0)
+        : ConfTestFrozenWrapper< CheckOverlapLeesEdwardsCellLists<ndim> > (
+                std::make_shared<CheckOverlapLeesEdwardsCellLists<ndim> >(
+                        hs_radii, boxvec, shear, ncellx_scale),
+                        reference_coords.copy(), frozen_dof.copy())
+    {}
+};
+
 } // namespace bv
 
 #endif // #ifndef _BV_CHECK_OVERLAP_CELL_LISTS_H

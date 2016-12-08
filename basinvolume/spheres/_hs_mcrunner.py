@@ -5,6 +5,8 @@ from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
 from basinvolume.monte_carlo import FindNrDecorrelationSteps
 from basinvolume.monte_carlo import CheckOverlapPeriodic
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
+from basinvolume.monte_carlo import CheckOverlapLeesEdwards
+from basinvolume.monte_carlo import CheckOverlapLeesEdwardsCellLists
 
 class HS_MCrunner(_BaseMCRunner):
     """This class is derived from the _base_MCrunner abstract
@@ -30,7 +32,8 @@ class HS_MCrunner(_BaseMCRunner):
     """
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter=1e4,
-                  adjustf_navg=100, single=False, seeds=None):
+                  adjustf_navg=100, single=False, seeds=None, use_cell=None,
+                  use_leesedwards=False, shear=0.0):
         #construct base class
         super(HS_MCrunner,self).__init__(potential, coords, temperature, niter)
         self.hs_radii = hs_radii
@@ -58,12 +61,26 @@ class HS_MCrunner(_BaseMCRunner):
         self.takestep.add_step(self.takestep_displacement, 0.9)
         self.takestep.add_step(self.takestep_particle_pair_swap, 0.1) #1e-3
         ##########################################
-        #NOTE
-        #should add an option to use cell lists, it shouldn't be the default behaviour
-        if np.amin(boxvec) // (2 * np.amax(hs_radii)) <= 3:
-            self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
+
+        if use_cell == None:
+            if np.amin(boxvec) // (2 * np.amax(hs_radii)) <= 3:
+                self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
+            else:
+                self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, use_frozen=False)
         else:
-            self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, use_frozen=False)
+            if use_leesedwards:
+                if use_cell:
+                    self.checkoverlap = CheckOverlapLeesEdwardsCellLists(hs_radii, boxvec, shear=shear,
+                                                                         use_frozen=False)
+                else:
+                    self.checkoverlap = CheckOverlapLeesEdwards(hs_radii, boxvec, shear)
+            else:
+                if use_cell:
+                    self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec,
+                                                                      use_frozen=False)
+                else:
+                    self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
+
         #set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.checkoverlap)
@@ -91,18 +108,21 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2,
                   adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100,
-                  desired_mean_rsm_displ=None, single=False, seeds=None):
+                  desired_mean_rsm_displ=None, single=False, seeds=None,
+                  use_cell=None, use_leesedwards=False, shear=0.0):
         #construct base class
         super(HS_MCrunnerOptDiffusion,self).__init__(potential, coords, temperature,
                                          stepsize, niter, hs_radii, boxvec, acceptance=acceptance,
                                          adjustf=adjustf, adjustf_niter=adjustf_niter,
-                                         adjustf_navg=adjustf_navg, single=single, seeds=seeds)
+                                         adjustf_navg=adjustf_navg, single=single, seeds=seeds,
+                                         use_cell=use_cell, use_leesedwards=use_leesedwards,
+                                         shear=shear)
         if not desired_mean_rsm_displ:
             desired_mean_rsm_displ = np.amax(self.hs_radii) * 2
         self.initial_stepsize = stepsize
 
-        self.diffusion = FindNrDecorrelationSteps(desired_mean_rsm_displ, adjustf_niter, nr_samples_avergage,
-                                                  coords, self.bdim)
+        self.diffusion = FindNrDecorrelationSteps(desired_mean_rsm_displ, adjustf_niter,
+                                                  nr_samples_avergage, coords, self.bdim)
         self.add_action(self.diffusion)
 
     def get_nr_decorrelation_steps(self):

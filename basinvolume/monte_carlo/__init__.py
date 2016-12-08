@@ -8,10 +8,12 @@ from _conf_test_cpp import CheckHyperSphericalContainer
 from _conf_test_cpp import CheckHyperCubicContainer
 from _conf_test_cpp import CheckOverlapPeriodic
 from _conf_test_cpp import CheckOverlapCartesian
+from _conf_test_cpp import CheckOverlapLeesEdwards
 from _conf_test_cpp import CheckSameMinimum
 from _conf_test_cpp import CheckSameMinimumConfig
 from _conf_test_cpp import CheckOverlapPeriodicCellLists
 from _conf_test_cpp import CheckOverlapCartesianCellLists
+from _conf_test_cpp import CheckOverlapLeesEdwardsCellLists
 from _conf_test_cpp import CheckMinimumIsHCP
 from _conf_test_cpp import CheckExponentiallyDecayingProfile
 from _takestep_cpp import SampleUniformSphereGaussian

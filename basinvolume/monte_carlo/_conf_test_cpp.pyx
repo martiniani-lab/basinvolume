@@ -1,5 +1,5 @@
 # distutils: language = c++
-# distutils: sources = ['check_same_minimum.cpp', 'check_hyper_spherical_container.cpp'] 
+# distutils: sources = ['check_same_minimum.cpp', 'check_hyper_spherical_container.cpp']
 
 from __future__ import division
 
@@ -17,7 +17,7 @@ from pele.potentials._pele cimport array_wrap_np
 from pele.potentials._pele cimport array_wrap_np_long
 from pele.potentials._pele cimport array_wrap_np_size_t
 from ctypes import c_size_t as size_t
-    
+
 #===============================================================================
 # Check hyper spherical container
 #===============================================================================
@@ -30,10 +30,10 @@ cdef class _Cdef_CheckHyperSphericalContainer(_Cdef_ConfTest):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
         self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckHyperSphericalContainer(ori_, radius, ndim))
         self.newptr = <cppCheckHyperSphericalContainer*> self.thisptr.get()
-        
+
 class CheckHyperSphericalContainer(_Cdef_CheckHyperSphericalContainer):
     """This class is the python interface for the c++ CheckHyperSphericalContainer implementation."""
-    
+
 #===============================================================================
 # Check exponentially decaying profile
 #===============================================================================
@@ -60,7 +60,7 @@ cdef class _Cdef_CheckExponentiallyDecayingProfile(_Cdef_ConfTest):
         return rgamma(z)
     def incomplete_gamma(self, a, z):
         return gamma(a) * gammaincc(a, z)
-    
+
 class CheckExponentiallyDecayingProfile(_Cdef_CheckExponentiallyDecayingProfile):
     """
     Python interface for above.
@@ -78,7 +78,7 @@ cdef class _Cdef_CheckHyperCubicContainer(_Cdef_ConfTest):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
         self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckHyperCubicContainer(ori_, sidelength, ndim))
         self.newptr = <cppCheckHyperCubicContainer*> self.thisptr.get()
-        
+
 class CheckHyperCubicContainer(_Cdef_CheckHyperCubicContainer):
     """This class is the python interface for the c++ CheckHyperCubicContainer implementation."""
 
@@ -96,7 +96,7 @@ cdef class _Cdef_CheckOverlapPeriodic(_Cdef_ConfTest):
         cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
         cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
         cdef _pele.Array[double] rc_
-        cdef _pele.Array[size_t] fd_ 
+        cdef _pele.Array[size_t] fd_
         if not use_frozen:
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapPeriodic[INT2](rd_, bv_))
@@ -119,7 +119,7 @@ cdef class _Cdef_CheckOverlapPeriodic(_Cdef_ConfTest):
             else:
                     raise Exception("CheckOverlap: illegal boxdimension")
         #self.newptr = <cppCheckOverlap*> self.thisptr
-        
+
 class CheckOverlapPeriodic(_Cdef_CheckOverlapPeriodic):
     """This class is the python interface for the c++ CheckOverlap implementation."""
 
@@ -138,7 +138,7 @@ cdef class _Cdef_CheckOverlapCartesian(_Cdef_ConfTest):
         if not use_frozen:
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
-                               cppCheckOverlapCartesian[INT2](rd_)) 
+                               cppCheckOverlapCartesian[INT2](rd_))
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new
                                cppCheckOverlapCartesian[INT3](rd_))
@@ -164,6 +164,47 @@ class CheckOverlapCartesian(_Cdef_CheckOverlapCartesian):
     Python interface for c++ CheckOverlapCartesian
     """
 
+
+# Check Overlap Lees-Edwards
+
+cdef class _Cdef_CheckOverlapLeesEdwards(_Cdef_ConfTest):
+    """This class is the python interface for the c++ pele::CheckOverlap configuration test class implementation
+    """
+    #cdef cppCheckOverlap* newptr
+    def __cinit__(self, hs_radii, boxvec, shear=0.0, use_frozen=False, reference_coords=None,
+                  frozen_atoms=None):
+        cdef np.ndarray[size_t, ndim=1] frozen_dof
+        cdef size_t ndim = len(boxvec)
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
+        cdef _pele.Array[double] rc_
+        cdef _pele.Array[size_t] fd_
+        if not use_frozen:
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapLeesEdwards[INT2](rd_, bv_, shear))
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapLeesEdwards[INT3](rd_, bv_, shear))
+            else:
+                    raise Exception("CheckOverlap: illegal boxdimension")
+        else:
+            assert reference_coords is not None and frozen_atoms is not None, " warning: initialising frozen particle conf test \
+                                                                                without frozen particles or reference coordinates"
+            frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
+            fd_ = array_wrap_np_size_t(frozen_dof)
+            rc_ = array_wrap_np(reference_coords)
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapLeesEdwardsFrozen[INT2]
+                                                       (rd_, bv_, rc_, fd_, shear))
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckOverlapLeesEdwardsFrozen[INT3]
+                                                       (rd_, bv_, rc_, fd_, shear))
+            else:
+                    raise Exception("CheckOverlap: illegal boxdimension")
+        #self.newptr = <cppCheckOverlap*> self.thisptr
+
+class CheckOverlapLeesEdwards(_Cdef_CheckOverlapLeesEdwards):
+    """This class is the python interface for the c++ CheckOverlap implementation."""
+
 # Check overlap cell lists
 
 cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
@@ -176,14 +217,14 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
         cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
         cdef _pele.Array[double] rc_
         cdef _pele.Array[size_t] fd_
-        
+
         if not use_frozen:
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT2]
-                                                        (rd_, bv_, ncellx_scale)) 
+                                                        (rd_, bv_, ncellx_scale))
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT3]
-                                                        (rd_, bv_, ncellx_scale)) 
+                                                        (rd_, bv_, ncellx_scale))
             else:
                 raise Exception("CheckOverlapCellLists: illegal boxdimension")
         else:
@@ -195,10 +236,10 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
             rc_ = array_wrap_np(reference_coords)
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellListsFrozen[INT2]
-                                                        (rc_, fd_, rd_, bv_, ncellx_scale)) 
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale))
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellListsFrozen[INT3]
-                                                        (rc_, fd_, rd_, bv_, ncellx_scale)) 
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale))
             else:
                 raise Exception("CheckOverlapCellLists: illegal boxdimension")
 
@@ -223,10 +264,10 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
         if not use_frozen:
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellLists[INT2]
-                                                        (rd_, bv_, ncellx_scale)) 
+                                                        (rd_, bv_, ncellx_scale))
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellLists[INT3]
-                                                        (rd_, bv_, ncellx_scale)) 
+                                                        (rd_, bv_, ncellx_scale))
             else:
                 raise Exception("CheckOverlapCellLists: illegal boxdimension")
         else:
@@ -238,7 +279,7 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
             rc_ = array_wrap_np(reference_coords)
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellListsFrozen[INT2]
-                                                        (rc_, fd_, rd_, bv_, ncellx_scale)) 
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale))
             elif (ndim == 3):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapCartesianCellListsFrozen[INT3]
                                                         (rc_, fd_, rd_, bv_, ncellx_scale))
@@ -247,7 +288,51 @@ cdef class _Cdef_CheckOverlapCartesianCellLists(_Cdef_ConfTest):
 
 class CheckOverlapCartesianCellLists(_Cdef_CheckOverlapCartesianCellLists):
     """This class is the python interface for the c++ CheckOverlapCartesianCellLists implementation."""
-        
+
+
+# Check overlap cell lists with Lees-Edwards
+
+cdef class _Cdef_CheckOverlapLeesEdwardsCellLists(_Cdef_ConfTest):
+    """define the python interface to the c++ CheckOverlapCellLists implementation
+    """
+    def __cinit__(self, hs_radii, boxvec, shear=0.0, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None, reference_coords=None):
+        cdef np.ndarray[size_t, ndim=1] frozen_dof
+        cdef size_t ndim = len(boxvec)
+        cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
+        cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
+        cdef _pele.Array[double] rc_
+        cdef _pele.Array[size_t] fd_
+
+        raise NotImplementedError("Lees-Edwards boundary conditions not implemented for cell lists!")
+
+        if not use_frozen:
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapLeesEdwardsCellLists[INT2]
+                                                        (rd_, bv_, shear, ncellx_scale))
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapLeesEdwardsCellLists[INT3]
+                                                        (rd_, bv_, shear, ncellx_scale))
+            else:
+                raise Exception("CheckOverlapCellLists: illegal boxdimension")
+        else:
+            assert frozen_atoms is not None, " warning: initialising frozen particle conf test without frozen particles"
+            frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
+            fd_ = array_wrap_np_size_t(frozen_dof)
+            if reference_coords is None:
+                raise Exception("CheckOverlapLeesEdwardsCellLists: no reference_coords specified")
+            rc_ = array_wrap_np(reference_coords)
+            if (ndim == 2):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapLeesEdwardsCellListsFrozen[INT2]
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale, shear))
+            elif (ndim == 3):
+                self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapLeesEdwardsCellListsFrozen[INT3]
+                                                        (rc_, fd_, rd_, bv_, ncellx_scale, shear))
+            else:
+                raise Exception("CheckOverlapCellLists: illegal boxdimension")
+
+class CheckOverlapLeesEdwardsCellLists(_Cdef_CheckOverlapLeesEdwardsCellLists):
+    """This class is the python interface for the c++ CheckOverlapCellLists implementation."""
+
 #===============================================================================
 # Check same minimum config
 #===============================================================================
@@ -279,7 +364,7 @@ cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
         for i in xrange(origin.size()):
             origin_result[i] = origin_data[i]
         return origin_result
-                                               
+
 class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):
     """interface
     """
@@ -302,10 +387,10 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
         self.newptr = <cppCheckMinimumIsHCP*> self.thisptr.get()
         if verbose:
             self.newptr.set_verbose()
-    
-    
+
+
     @cython.boundscheck(False)
-    @cython.wraparound(False) 
+    @cython.wraparound(False)
     def get_hist_x(self):
         cdef _pele.Array[double] histi = self.newptr.get_hist_x()
         cdef double *histdata = histi.data()
@@ -314,9 +399,9 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
         for i in xrange(histi.size()):
             hist[i] = histdata[i]
         return hist
-    
+
     @cython.boundscheck(False)
-    @cython.wraparound(False) 
+    @cython.wraparound(False)
     def get_hist_y(self):
         cdef _pele.Array[double] histi = self.newptr.get_hist_y()
         cdef double *histdata = histi.data()
@@ -325,9 +410,9 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
         for i in xrange(histi.size()):
             hist[i] = histdata[i]
         return hist
-        
+
     @cython.boundscheck(False)
-    @cython.wraparound(False) 
+    @cython.wraparound(False)
     def get_hist_ey(self):
         cdef _pele.Array[double] histi = self.newptr.get_hist_ey()
         cdef double *histdata = histi.data()
@@ -336,7 +421,7 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
         for i in xrange(histi.size()):
             hist[i] = histdata[i]
         return hist
-        
+
 class CheckMinimumIsHCP(_Cdef_CheckMinimumIsHCP):
     """interface"""
 
@@ -347,13 +432,13 @@ class CheckMinimumIsHCP(_Cdef_CheckMinimumIsHCP):
 cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     """This class is the python interface for the c++ bv::CheckSameMinimum configuration test class implementation
     """
-    
+
     cdef _pele_opt.GradientOptimizer optimizer # this is stored so that the memory is not freed
     cdef _pele.BasePotential potential
-    
+
     cdef cppCheckSameMinimumInterface* newptr
-    def __cinit__(self, pot, origin, rattlers, dtol, opt=None, bdim=3, eqsteps=0, opt_tol=1e-4, 
-                  opt_maxiter=1e5, use_cgd=False, cbool perform_convergence_test=False, 
+    def __cinit__(self, pot, origin, rattlers, dtol, opt=None, bdim=3, eqsteps=0, opt_tol=1e-4,
+                  opt_maxiter=1e5, use_cgd=False, cbool perform_convergence_test=False,
                   cbool collect_minima_list=False):
         if opt is None:
             assert use_cgd is True
@@ -366,23 +451,23 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         self.optimizer = opt
         self.potential = pot
         #print rattlers
-        
+
         if use_cgd:
             if (bdim == 2):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT2](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), opt_tol, dtol, opt_maxiter, 0, eqsteps, 
+                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), opt_tol, dtol, opt_maxiter, 0, eqsteps,
                                                                      perform_convergence_test, collect_minima_list)
                                                        )
             else:
                 assert(bdim == 3)
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT3](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), opt_tol, dtol, opt_maxiter, 0, eqsteps, 
+                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), opt_tol, dtol, opt_maxiter, 0, eqsteps,
                                                                      perform_convergence_test, collect_minima_list)
                                                    )
         else:
             if (bdim == 2):
                 self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps, 
+                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
                                                                      perform_convergence_test, collect_minima_list)
                                                        )
             else:
@@ -392,9 +477,9 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
                                                                      perform_convergence_test, collect_minima_list)
                                                        )
         self.newptr = <cppCheckSameMinimumInterface*> self.thisptr.get()
-    
+
     @cython.boundscheck(False)
-    @cython.wraparound(False) 
+    @cython.wraparound(False)
     def dump_minima(self, minima_dicts):
         cdef size_t nr_neighboring_minima = self.newptr.ml_nr_distinct_minima()
         cdef cppMinimum* minimumi
@@ -413,43 +498,43 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
             mindicti = dict(energy=minimumi.energy(), coords=coor, user_data=dict(count=minimumi.count(), distance=minimumi.delta_x()))
             minima_dicts.append(mindicti)
         assert len(minima_dicts) == nr_neighboring_minima + 1 #in the minima_dicts list, there is also the original minimum
-    
+
     def ml_nr_distinct_minima(self):
         cdef nr_distinct_minima = self.newptr.ml_nr_distinct_minima()
         return nr_distinct_minima
-    
+
     def get_failed_quench_frac(self):
         frac = self.newptr.get_failed_quench_frac()
         return frac
-        
+
 class CheckSameMinimum(_Cdef_CheckSameMinimum):
     """This class is the python interface for the c++ CheckSameMinimum implementation.
     """
 
-#        else:    
+#        else:
 #            bv = np.array(boxvec, dtype=float)
 #            if use_cgd:
 #                if (len(boxvec) == 2):
 #                    self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDPeriodic[INT2](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-#                                                                         _pele.Array[double](<double*> bv.data, bv.size), _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
+#                                                                         _pele.Array[double](<double*> bv.data, bv.size), _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
 #                                                                         opt_tol, dtol, opt_maxiter, 0, eqsteps, perform_convergence_test, collect_minima_list)
 #                                                           )
 #                else:
 #                    assert(len(boxvec) == 3)
 #                    self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDPeriodic[INT3](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-#                                                                         _pele.Array[double](<double*> bv.data, bv.size), _pele.Array[double](<double*> rattlersc.data, rattlersc.size), 
+#                                                                         _pele.Array[double](<double*> bv.data, bv.size), _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
 #                                                                         opt_tol, dtol, opt_maxiter, 0, eqsteps, perform_convergence_test, collect_minima_list)
 #            else:
 #                if (len(boxvec) == 2):
 #                    self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-#                                                                         _pele.Array[double](<double*> bv.data, bv.size), 
+#                                                                         _pele.Array[double](<double*> bv.data, bv.size),
 #                                                                         _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
 #                                                                         perform_convergence_test, collect_minima_list)
 #                                                           )
 #                else:
 #                    assert(len(boxvec) == 3)
 #                    self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumPeriodic[INT3](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-#                                                                         _pele.Array[double](<double*> bv.data, bv.size), 
+#                                                                         _pele.Array[double](<double*> bv.data, bv.size),
 #                                                                         _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
 #                                                                         perform_convergence_test, collect_minima_list)
 #                                                       )

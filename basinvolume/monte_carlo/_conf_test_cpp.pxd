@@ -7,7 +7,7 @@ from ctypes import c_size_t as size_t
 cdef extern from "basinvolume/check_hyper_spherical_container.h" namespace "bv":
     cdef cppclass cppCheckHyperSphericalContainer "bv::CheckHyperSphericalContainer":
         cppCheckHyperSphericalContainer(_pele.Array[double], double, size_t) except +
-        
+
 cdef extern from "basinvolume/check_exponentially_decaying_profile.h" namespace "bv":
     cdef cppclass cppCheckExponentiallyDecayingProfile "bv::CheckExponentiallyDecayingProfile":
         cppCheckExponentiallyDecayingProfile(_pele.Array[double], double, double, cbool) except+
@@ -30,13 +30,18 @@ cdef extern from "basinvolume/check_overlap.h" namespace "bv":
     cdef cppclass cppCheckOverlapPeriodic "bv::CheckOverlapPeriodic"[ndim]:
         cppCheckOverlapPeriodic(_pele.Array[double], _pele.Array[double]) except+
     cdef cppclass cppCheckOverlapCartesian "bv::CheckOverlapCartesian"[ndim]:
-        cppCheckOverlapCartesian(_pele.Array[double]) except + 
+        cppCheckOverlapCartesian(_pele.Array[double]) except +
+    cdef cppclass cppCheckOverlapLeesEdwards "bv::CheckOverlapLeesEdwards"[ndim]:
+        cppCheckOverlapLeesEdwards(_pele.Array[double], _pele.Array[double], const double) except+
     cdef cppclass cppCheckOverlapPeriodicFrozen "bv::CheckOverlapPeriodicFrozen"[ndim]:
         cppCheckOverlapPeriodicFrozen(_pele.Array[double], _pele.Array[double],
         _pele.Array[double], _pele.Array[size_t]) except+
     cdef cppclass cppCheckOverlapCartesianFrozen "bv::CheckOverlapCartesianFrozen"[ndim]:
         cppCheckOverlapCartesianFrozen(_pele.Array[double], _pele.Array[double],
-        _pele.Array[size_t]) except + 
+        _pele.Array[size_t]) except +
+    cdef cppclass cppCheckOverlapLeesEdwardsFrozen "bv::CheckOverlapLeesEdwardsFrozen"[ndim]:
+        cppCheckOverlapLeesEdwardsFrozen(_pele.Array[double], _pele.Array[double],
+        _pele.Array[double], _pele.Array[size_t], const double) except+
 
 cdef extern from "basinvolume/check_overlap_cell_lists.h" namespace "bv":
     cdef cppclass cppCheckOverlapPeriodicCellLists "bv::CheckOverlapPeriodicCellLists"[ndim]:
@@ -45,6 +50,9 @@ cdef extern from "basinvolume/check_overlap_cell_lists.h" namespace "bv":
     cdef cppclass cppCheckOverlapCartesianCellLists "bv::CheckOverlapCartesianCellLists"[ndim]:
         cppCheckOverlapCartesianCellLists(_pele.Array[double] radii,
         _pele.Array[double] boxvec, double ncellx_scale) except +
+    cdef cppclass cppCheckOverlapLeesEdwardsCellLists "bv::CheckOverlapLeesEdwardsCellLists"[ndim]:
+        cppCheckOverlapLeesEdwardsCellLists(_pele.Array[double] radii,
+        _pele.Array[double] boxvec, const double shear, double ncellx_scale) except +
     cdef cppclass cppCheckOverlapPeriodicCellListsFrozen "bv::CheckOverlapPeriodicCellListsFrozen"[ndim]:
         cppCheckOverlapPeriodicCellListsFrozen(_pele.Array[double] reference_coords,
         _pele.Array[size_t] frozen_ndof, _pele.Array[double] radii, _pele.Array[double] boxvec,
@@ -53,13 +61,16 @@ cdef extern from "basinvolume/check_overlap_cell_lists.h" namespace "bv":
         cppCheckOverlapCartesianCellListsFrozen(_pele.Array[double] reference_coords,
         _pele.Array[size_t] frozen_ndof, _pele.Array[double] radii, _pele.Array[double] boxvec,
         double ncellx_scale) except +
+    cdef cppclass cppCheckOverlapLeesEdwardsCellListsFrozen "bv::CheckOverlapLeesEdwardsCellListsFrozen"[ndim]:
+        cppCheckOverlapLeesEdwardsCellListsFrozen(_pele.Array[double] reference_coords,
+        _pele.Array[size_t] frozen_ndof, _pele.Array[double] radii, _pele.Array[double] boxvec, const double shear, double ncellx_scale) except +
 
 cdef extern from "basinvolume/minimum.h" namespace "bv":
     cdef cppclass cppMinimum "bv::Minimum":
         double delta_x() except +
         double energy() except +
         size_t count() except +
-        _pele.Array[double] get_coor() except + 
+        _pele.Array[double] get_coor() except +
 
 #CheckSameMinimum2D(bool perform_convergence_test=false, bool collect_minima_list=false)
 
@@ -86,23 +97,23 @@ cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
         size_t ml_nr_distinct_minima() except +
         _pele.Array[cppMinimum *] get_array_of_minima() except +
         double get_failed_quench_frac() except+
-        
+
     cdef cppclass cppCheckSameMinimumCartesian "bv::CheckSameMinimumCartesian"[ndim]:
-        cppCheckSameMinimumCartesian(shared_ptr[_pele_opt.cGradientOptimizer], 
-                                     shared_ptr[_pele.cBasePotential], _pele.Array[double], 
+        cppCheckSameMinimumCartesian(shared_ptr[_pele_opt.cGradientOptimizer],
+                                     shared_ptr[_pele.cBasePotential], _pele.Array[double],
                                      _pele.Array[double], double, size_t, cbool, cbool) except+
     cdef cppclass cppCheckSameMinimumCGDCartesian "bv::CheckSameMinimumCGDCartesian"[ndim]:
-        cppCheckSameMinimumCGDCartesian(shared_ptr[_pele.cBasePotential], _pele.Array[double], 
-                                     _pele.Array[double], double, double, size_t, size_t, 
+        cppCheckSameMinimumCGDCartesian(shared_ptr[_pele.cBasePotential], _pele.Array[double],
+                                     _pele.Array[double], double, double, size_t, size_t,
                                      size_t, cbool, cbool) except+
-                                     
+
 #    cdef cppclass cppCheckSameMinimumPeriodic "bv::CheckSameMinimumPeriodic"[ndim]:
-#        cppCheckSameMinimumPeriodic(shared_ptr[_pele_opt.cGradientOptimizer], 
-#                                    shared_ptr[_pele.cBasePotential], _pele.Array[double], 
-#                                    _pele.Array[double], _pele.Array[double], 
+#        cppCheckSameMinimumPeriodic(shared_ptr[_pele_opt.cGradientOptimizer],
+#                                    shared_ptr[_pele.cBasePotential], _pele.Array[double],
+#                                    _pele.Array[double], _pele.Array[double],
 #                                    double, size_t, cbool, cbool) except+
 #    cdef cppclass cppCheckSameMinimumCGDPeriodic "bv::CheckSameMinimumCGDPeriodic"[ndim]:
-#        cppCheckSameMinimumCGDCartesian(shared_ptr[_pele.cBasePotential], _pele.Array[double], 
-#                                        _pele.Array[double], _pele.Array[double], double, 
+#        cppCheckSameMinimumCGDCartesian(shared_ptr[_pele.cBasePotential], _pele.Array[double],
+#                                        _pele.Array[double], _pele.Array[double], double,
 #                                        double, size_t, size_t, size_t, cbool, cbool) except+
 #
