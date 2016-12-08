@@ -330,12 +330,8 @@ class HS_Generate_Packing(_Generate_Packing):
         distances = np.empty([self.nparticles,self.nparticles])
         for i in xrange(self.nparticles):
             for j in xrange(i,self.nparticles):
-                dij = 0
-                for k in xrange(self.bdim):
-                    #use distances to closest image
-                    dij += np.square((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) -
-                                      cround((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
-                distances[i,j] = np.sqrt(dij)
+                distances[i,j] = self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                                self.coords[j * self.bdim : (j + 1) * self.bdim])
                 if i != j:
                     distances[j,i] = distances[i,j]
         return distances
@@ -351,7 +347,7 @@ class HS_Generate_Packing(_Generate_Packing):
         return success
 
     def _generate_packing_coords_quench(self):
-        """do a MCMC walk using the quenched coordinates. Here we do not satisfy detailed balance and we set the number
+        """do an MCMC walk using the quenched coordinates. Here we do not satisfy detailed balance and we set the number
         of steps over which the stepsize is adjusted equal to the total number of steps. The value of the temperature should
         not matter as these are hard spehres and the difference in energy between valid configurations is 0. We set it high
         to be on the safe side."""

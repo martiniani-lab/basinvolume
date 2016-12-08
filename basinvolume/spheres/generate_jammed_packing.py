@@ -174,7 +174,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     """
     def __init__(self, packing_frac=0.7, tol=1e-9,
         packings_dir='packings', use_cell_lists=False, show=False,
-        opt_pot_str='hs_wca', extra_pot_kwargs=None):
+        opt_pot_str='hs_wca', extra_pot_kwargs=None,
+        use_leesedwards=False, shear=0.0):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
                                                         packings_dir=packings_dir)
 
@@ -182,6 +183,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.extra_pot_kwargs = extra_pot_kwargs
         self.use_cell_lists = use_cell_lists
         self.tol = tol
+        self.use_leesedwards = use_leesedwards
+        self.shear = shear
         ##constants#
         ############
 
@@ -215,11 +218,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     use_cell_lists=True, eps=self.eps, sca=self.sca,
                     radii=self.hs_radii, boxvec=self.boxv,
                     reference_coords=self.coords, rcut=rcut,
-                    ndim=self.bdim, ncellx_scale=1.0)
+                    ndim=self.bdim, ncellx_scale=1.0,
+                    use_leesedwards=self.use_leesedwards, shear=self.shear)
             else:
                 self.potential = HS_WCA(use_periodic=True, eps=self.eps,
                     sca=self.sca, radii=self.hs_radii, boxvec=self.boxv,
-                    ndim=self.bdim)
+                    ndim=self.bdim,
+                    use_leesedwards=self.use_leesedwards, shear=self.shear)
         elif self.opt_pot_str.lower() == "inverse_power_stillinger":
             self.stillinger_a_radii = self.hs_radii * (1 + self.sca)
             pow = self.extra_pot_kwargs["pow"]
@@ -242,7 +247,35 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                             f.write('jammed_packing{}\n'.format(n))
             for path_ in path_list:
                 p = subprocess.call(shlex.split("rm {}".format(path_)))
-        self.iteration+=1
+        self.iteration += 1
+
+
+    def _distance_1d(self, coord1, coord2, dim):
+        if self.use_leesedwards and dim in [0, 1]:
+            d12 = [0, 0]
+            d12[0] = coord1[0] - coord2[0]
+            d12[1] = coord1[1] - coord2[1]
+
+            round_y = cround(d12[1] / self.boxv[1])
+            tmp12 = [d12[0] - round_y * self.shear * self.boxv[0],
+                     d12[1] - round_y * self.boxv[1]]
+
+            d12[0] -= cround(d12[0] / self.boxv[0]) * self.boxv[0]
+            tmp12[0] -= cround(tmp12[0] / self.boxv[0]) * self.boxv[0]
+
+            if d12[0] ** 2 + d12[1] ** 2 > tmp12[0] ** 2 + tmp12[1] ** 2:
+                return tmp12[dim]
+            else:
+                return d12[dim]
+        else:
+            # Use distance to nearest image convention
+            dist = coord1[dim] - coord2[dim]
+            return dist - cround(dist / self.boxv[dim]) * self.boxv[dim]
+
+
+    def _distance (self, coord1, coord2):
+        return np.sqrt(sum([self._distance_1d(coord1, coord2, dim) ** 2 for dim in xrange(self.bdim)]))
+
 
     def _find_rattlers(self):
         """
@@ -256,14 +289,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         def get_index(x):
             # x is a 3 array with the coordinates of the particles
-            dij = np.zeros(self.bdim)
             dmin = np.amin(self.hs_radii)/10.
             for j in xrange(self.nparticles):
-                for k in xrange(self.bdim):
-                    #use distances to nearest image convention
-                    dij[k] = ((self.coords[j*self.bdim+k] - x[k]) -
-                              cround((self.coords[j*self.bdim+k] - x[k]) / self.boxv[k]) * self.boxv[k])
-                if np.linalg.norm(dij) < dmin:
+                dij = self._distance(self.coords[j * self.bdim : (j + 1) * self.bdim], x)
+                if dij < dmin:
                     return j
 
         coords = np.array(self.coords)
@@ -330,9 +359,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 if i != j:
                     dij = np.zeros(self.bdim)
                     for k in xrange(self.bdim):
-                        #use distances to nearest image convention
-                        dij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) -
-                                           cround((coords[j*self.bdim+k] - coords[i*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
+                        dij[k] = self._distance_1d(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                             self.coords[j * self.bdim : (j + 1) * self.bdim], k)
                     dijnorm = np.linalg.norm(dij)
                     dmin = radii[i] + radii[j]
                     if dijnorm <= dmin:
@@ -408,13 +436,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         for i in xrange(self.nparticles):
             if no_overlap == True:
                 for j in xrange(self.nparticles):
-                    dij = 0
-                    for k in xrange(self.bdim):
-                        #use distances to nearest image convention
-                        dij += np.square((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) -
-                                          cround((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
                     if i != j:
-                        dij = np.sqrt(dij)
+                        dij = self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                             self.coords[j * self.bdim : (j + 1) * self.bdim])
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
                             print 'invalid configuration'
@@ -564,6 +588,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print args
 
+    if args.shear == None:
+        use_leesedwards = False
+        shear = 0.0
+    else:
+        use_leesedwards = True
+        shear = args.shear
+
     # potential type
     opt_pot_str = args.opt_pot
     extra_pot_kwargs = dict()
@@ -579,5 +610,5 @@ if __name__ == "__main__":
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
                                      packings_dir=args.packingsdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
-                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs, shear=args.shear)
+                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs, use_leesedwards=use_leesedwards, shear=shear)
     sim.run()
