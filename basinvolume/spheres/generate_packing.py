@@ -3,6 +3,7 @@ import numpy as np
 import abc
 import os
 from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
+from pele.distance import get_distance
 from pele.potentials import HS_WCA
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
@@ -270,31 +271,12 @@ class HS_Generate_Packing(_Generate_Packing):
 #        assert(self.hs_radii.all() > 0)
 
 
-    def _distance_1d(self, coord1, coord2, dim):
-        if self.use_leesedwards and dim in [0, 1]:
-            d12 = [0, 0]
-            d12[0] = coord1[0] - coord2[0]
-            d12[1] = coord1[1] - coord2[1]
-
-            round_y = cround(d12[1] / self.boxv[1])
-            tmp12 = [d12[0] - round_y * self.shear * self.boxv[0],
-                     d12[1] - round_y * self.boxv[1]]
-
-            d12[0] -= cround(d12[0] / self.boxv[0]) * self.boxv[0]
-            tmp12[0] -= cround(tmp12[0] / self.boxv[0]) * self.boxv[0]
-
-            if d12[0] ** 2 + d12[1] ** 2 > tmp12[0] ** 2 + tmp12[1] ** 2:
-                return tmp12[dim]
-            else:
-                return d12[dim]
-        else:
-            # Use distance to nearest image convention
-            dist = coord1[dim] - coord2[dim]
-            return dist - cround(dist / self.boxv[dim]) * self.boxv[dim]
-
-
     def _distance (self, coord1, coord2):
-        return np.sqrt(sum([self._distance_1d(coord1, coord2, dim) ** 2 for dim in xrange(self.bdim)]))
+        dist_method = 'lees-edwards' if self.use_leesedwards else 'periodic'
+        dist_kwargs = {'box': self.boxv}
+        if self.use_leesedwards:
+            dist_kwargs['shear'] = self.shear
+        return np.array(get_distance(coord1, coord2, self.bdim, dist_method, dist_kwargs))
 
 
     def _check_no_overlaps(self):
@@ -303,8 +285,9 @@ class HS_Generate_Packing(_Generate_Packing):
         for i in xrange(self.nparticles):
             if no_overlap == True:
                 for j in xrange(i, self.nparticles):
-                    dij = self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                         self.coords[j * self.bdim : (j + 1) * self.bdim])
+
+                    dij = np.linalg.norm(self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                         self.coords[j * self.bdim : (j + 1) * self.bdim]))
                     if i != j:
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
