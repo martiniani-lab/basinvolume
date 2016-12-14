@@ -2,12 +2,12 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.distance import get_distance
+from pele.distance import get_distance, put_in_box
 from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
-from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, put_in_box, read_xydr, read_xyzdr
+from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, read_xydr, read_xyzdr
 import ConfigParser
 import re
 import argparse
@@ -125,6 +125,8 @@ class _Generate_Jammed_Packing(object):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
+        f.write('dist_method: {}\n'.format(self.dist_method))
+        f.write('dist_kwargs: {}\n'.format(self.dist_kwargs))
         assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('\n')
@@ -178,8 +180,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     """
     def __init__(self, packing_frac=0.7, tol=1e-9,
         packings_dir='packings', use_cell_lists=False, show=False,
-        opt_pot_str='hs_wca', extra_pot_kwargs=None,
-        use_leesedwards=False, shear=0.0):
+        opt_pot_str='hs_wca', extra_pot_kwargs=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
                                                         packings_dir=packings_dir)
 
@@ -187,8 +188,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.extra_pot_kwargs = extra_pot_kwargs
         self.use_cell_lists = use_cell_lists
         self.tol = tol
-        self.use_leesedwards = use_leesedwards
-        self.shear = shear
         ##constants#
         ############
 
@@ -254,8 +253,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
 
     def _distance (self, coord1, coord2):
-        dist_method = 'lees-edwards' if self.use_leesedwards else 'periodic'
-        return np.array(get_distance(coord1, coord2, self.bdim, dist_method, box=self.boxv, shear=self.shear))
+        return np.array(get_distance(coord1, coord2, self.bdim, self.dist_method, box=self.boxv, shear=self.dist_kwargs['shear']))
 
 
     def _find_rattlers(self):
@@ -432,9 +430,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
-        coords = self.coords.copy()
-        put_in_box(coords,self.boxv)
-        return coords
+        if self.dist_method == 'lees-edwards':
+            return put_in_box(self.coords, self.bdim, self.dist_method, self.boxv, self.dist_kwargs['shear'])
+        else:
+            return put_in_box(self.coords, self.bdim, self.dist_method, self.boxv)
 
     def _dump_configuration(self,n):
         """write coordinates to file .xyzdr"""

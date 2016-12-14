@@ -1,6 +1,5 @@
 from pele.systems import BaseSystem
 from pele.landscape import smoothPath
-from basinvolume.utils import put_in_box
 from pele.potentials import HS_WCA
 import numpy as np
 
@@ -8,9 +7,9 @@ from pele.transition_states._zeroev import orthogonalize
 
 class HSWCASystem(BaseSystem):
     """
-    etol: tolerance to classify eigenvalues, if e<etol the it's a rattler 
+    etol: tolerance to classify eigenvalues, if e<etol the it's a rattler
     dtol: rms tolerance on distance between two structures
-    """    
+    """
     def __init__(self, eps, sca, hs_radii, boxv, dtol=1e-3, etol=1, bdim=3):
         super(HSWCASystem, self).__init__()
         self.potential = HS_WCA(eps, sca, hs_radii, boxvec=boxv)
@@ -22,9 +21,9 @@ class HSWCASystem(BaseSystem):
         self.natoms = len(self.radii)
         self.etol=etol
         self.dtol = dtol
-            
+
         self.set_params(self.params)
-    
+
     def set_params(self, params):
         nebparams = params.double_ended_connect.local_connect_params.NEBparams
         nebparams.adjustk_freq = 10
@@ -32,14 +31,14 @@ class HSWCASystem(BaseSystem):
         nebparams.adaptive_nimages = True
         nebparams.adaptive_niter = True
         nebparams.iter_density = 40
-        
+
         tsparams = params.double_ended_connect.local_connect_params.tsSearchParams
         tsparams.hessian_diagonalization=True
         tsparams.lowestEigenvectorQuenchParams["iprint"] = 0
         tsparams.tangentSpaceQuenchParams["iprint"] = 0
         tsparams.iprint=0
         tsparams.verbosity=0
-    
+
     def get_system_properties(self):
         return dict(potential = 'HS WCA smooth',
                     bdim = self.bdim,
@@ -50,24 +49,24 @@ class HSWCASystem(BaseSystem):
                     etol = self.etol,
                     dtol = self.dtol
                     )
-            
+
     def get_potential(self):
         return self.potential
-    
+
     def get_random_configuration(self):
         return np.random.uniform(-1,1,3*10)
-    
+
 #    def get_system_properties(self):
 
     def get_pgorder(self, coords):
         return 1
-    
+
     def get_metric_tensor(self, coords):
         return None
-    
+
     def get_nzero_modes(self):
         return self.bdim
-    
+
     def _find_zero_modes(self, coords):
         hess = self.potential.getHessian(coords)
         vall = []
@@ -85,10 +84,10 @@ class HSWCASystem(BaseSystem):
 
     def _orthog_to_zero(self, v, coords):
         return orthogonalize(v, self._find_zero_modes(coords))
-    
+
     def get_orthogonalize_to_zero_eigenvectors(self):
         return self._orthog_to_zero
-    
+
     def get_mindist(self):
         """
         align wrt one particle that is not a rattler in both configurations
@@ -113,7 +112,7 @@ class HSWCASystem(BaseSystem):
             dist = np.linalg.norm(dist.flatten())
             return dist, x1, alg_x2
         return mindist
-    
+
     def get_compare_exact(self, **kwargs):
         """this function quickly determines whether two clusters are identical
         given translational symmetries
@@ -124,7 +123,7 @@ class HSWCASystem(BaseSystem):
     def smooth_path(self, path, **kwargs):
         mindist = self.get_mindist()
         return smoothPath(path, mindist, **kwargs)
-        
+
 
     def find_rattlers(self, coords):
         hess = self.potential.getHessian(coords)
@@ -137,17 +136,17 @@ class HSWCASystem(BaseSystem):
             if np.any(np.absolute(w) < self.etol):
                 rattlers[i] = 0
         return rattlers
-                
-    
+
+
     def draw(self, coordslinear, index):
         from pele.systems._opengl_tools import draw_atomic_binary_polydisperse
 #        m = self.database.findMinimum(self.potential.getEnergy(coordslinear), coordslinear)
 #        rattlers = m.user_data["rattlers"]
         #put_in_box(coordslinear, self.boxv)
-        draw_atomic_binary_polydisperse(coordslinear, index, bdim=self.bdim, subtract_com=True, 
+        draw_atomic_binary_polydisperse(coordslinear, index, bdim=self.bdim, subtract_com=True,
                                         radii=self.radii*(1+self.sca), Batoms=self.find_rattlers(coordslinear))
-        
-    
+
+
 #    def draw(self, coordslinear, index):
 #        from pele.systems._opengl_tools import draw_atomic_single_atomtype
 #        draw_atomic_single_atomtype(coordslinear, index, subtract_com=True)
@@ -158,10 +157,10 @@ def test():
     db = system.create_database()
     pot = system.get_potential()
     db.addMinimum(pot.getEnergy(coords), coords)
-    
+
     from pele.gui import run_gui
     run_gui(system, db)
-    
+
 
 if __name__ == "__main__":
     test()

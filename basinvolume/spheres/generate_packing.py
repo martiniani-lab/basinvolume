@@ -3,11 +3,11 @@ import numpy as np
 import abc
 import os
 from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
-from pele.distance import get_distance
+from pele.distance import get_distance, put_in_box
 from pele.potentials import HS_WCA
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
-from basinvolume.utils import volume_nball, read_xyd, read_xyzd, put_in_box
+from basinvolume.utils import volume_nball, read_xyd, read_xyzd
 from numpy.random import RandomState
 from mcpele.monte_carlo import NullPotential
 import argparse
@@ -136,11 +136,11 @@ class _Generate_Packing(object):
     def one_iteration(self):
         """perform one iteration"""
         self._initialise()
+        print 'iteration ', self.iteration
         success = self._generate_packing_coords()
         if success:
             self._print()
-            self.iteration+=1
-        print 'iteration ',self.iteration
+            self.iteration += 1
 
     def run(self):
         """run generate packings"""
@@ -602,9 +602,10 @@ class HS_Generate_Packing(_Generate_Packing):
 
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
-        coords = self.coords.copy()
-        put_in_box(coords,self.boxv)
-        return coords
+        if self.dist_method == 'lees-edwards':
+            return put_in_box(self.coords, self.bdim, self.dist_method, self.boxv, self.dist_kwargs['shear'])
+        else:
+            return put_in_box(self.coords, self.bdim, self.dist_method, self.boxv)
 
     def _dump_configuration(self):
         """write coordinates to file .xyzd"""

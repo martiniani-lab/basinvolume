@@ -102,7 +102,7 @@ def cround(r):
 def trymakedir(path):
     """this function deals with common race conditions"""
     while True:
-        if not os.path.exists(path): 
+        if not os.path.exists(path):
             try:
                 os.makedirs(path)
                 break
@@ -122,10 +122,6 @@ def view_traceback():
     traceback.print_tb(tb)
     del tb
 
-def put_in_box(x, boxvec):
-    x = x.reshape(-1, len(boxvec))
-    x -= boxvec * np.round(x / boxvec)
-    
 def read_xyd(fname):
     coords = []
     radii = []
@@ -202,7 +198,7 @@ def read_xydr(fname, etol=1.0, bdim=2):
         coords.extend([float(x), float(y)])
         radii.extend([float(d)])
         rattler = float(float(r) >= etol)
-        for _ in xrange(bdim): 
+        for _ in xrange(bdim):
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
 
@@ -224,7 +220,7 @@ def read_xydfr(fname, etol=1.0, bdim=2):
         if bool(int(fr)):
             frozen.extend([i])
         rattler = float(float(r) >= etol)
-        for _ in xrange(bdim): 
+        for _ in xrange(bdim):
             rattlers.extend([rattler])
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
@@ -242,7 +238,7 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
         coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
         rattler = float(float(r) >= etol)
-        for _ in xrange(bdim): 
+        for _ in xrange(bdim):
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
 
@@ -263,7 +259,7 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         if bool(int(fr)):
             frozen.extend([i])
         rattler = float(float(r) >= etol)
-        for _ in xrange(bdim): 
+        for _ in xrange(bdim):
             rattlers.extend([rattler])
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
@@ -278,7 +274,7 @@ def read_single_column_coords(fname):
         coords.append(float(line))
     f.close()
     return np.array(coords, dtype="d")
-    
+
 def read_multi_column(fname):
     coords = []
     f = open(fname, "r")
@@ -309,18 +305,18 @@ def full_coordinates(reduced_list, old_full_list, indexes, bdim):
     return np.array(newlist)
 
 def plot_disks(coords, radii, boxv, colors=None, sca=0):
-    import matplotlib 
-    from matplotlib.patches import Circle 
-    import pylab 
-    def myscatter(ax, colormap, x, y, radii, colors): 
-        for x1,y1,r,c in zip(x, y, radii, colormap(colors)): 
-            ax.add_patch(Circle((x1,y1), r, fc=c)) 
+    import matplotlib
+    from matplotlib.patches import Circle
+    import pylab
+    def myscatter(ax, colormap, x, y, radii, colors):
+        for x1,y1,r,c in zip(x, y, radii, colormap(colors)):
+            ax.add_patch(Circle((x1,y1), r, fc=c))
     put_in_box(coords, boxv)
     coords = np.reshape(coords, (len(radii), 2))
-    fig=pylab.figure() 
-    ax=fig.add_subplot(111, aspect='equal') 
+    fig=pylab.figure()
+    ax=fig.add_subplot(111, aspect='equal')
     myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii * sca, np.ones(len(radii)))
-    myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii, np.ones(len(radii)) * -1) 
+    myscatter(ax, matplotlib.cm.jet, coords[:,0],coords[:,1], radii, np.ones(len(radii)) * -1)
     ax.axis('equal')
     if boxv is not None:
         ax.axes.set_xlim([-boxv[0] / 2, boxv[0] / 2])
@@ -334,7 +330,7 @@ def plot_disks(coords, radii, boxv, colors=None, sca=0):
 #
 # Make the git revision visible.  Most of this is copied from scipy
 # In turn, most of this is copied from pele.
-# 
+#
 # Return the git revision as a string
 def get_git_version_direct(repository='basinvolume'):
     def _minimal_ext_cmd(cmd):
@@ -438,13 +434,13 @@ class ResultsFile(object):
         self.f.write((name + ": {}\n").format(value))
     def close(self):
         self.f.close()
-        
+
 class OutlierDetection(object):
     """
     Classification of an array of numbers in outliers and non-outliers
     according to the definition in Knorr98,
     http://www.vldb.org/conf/1998/p392.pdf
-    An object O in a dataset T is a DB(p,D) outlier if at least fraction p of 
+    An object O in a dataset T is a DB(p,D) outlier if at least fraction p of
     the obects in T lies greater than distance D from O.
     Parameters are p and D.
     """
@@ -493,7 +489,7 @@ class OutlierDetection(object):
         print "mean of non_outliers:", np.mean(self.non_outliers)
         print "mean of outliers:", np.mean(self.outliers)
         print "outliers:", self.outliers
-        
+
 class MomentsAcc(object):
     def __init__(self):
         self.mean = 0
@@ -519,7 +515,7 @@ class MedianAcc(object):
         self.data.append(inp)
     def get_median(self):
         return np.median(np.asarray(self.data))
-    
+
 class CDFAccumulator(object):
     """
     Preliminary version; maybe there will be a better implementation.
@@ -547,7 +543,7 @@ class CDFAccumulator(object):
             remaining_x -= self.data_x[xi]
             del self.data_x[xi]
         return x, cdf_x
-        
+
 def gen_gauss(x, pars):
     mu = pars[0]
     alpha = pars[1]
@@ -565,28 +561,28 @@ def log_gen_gauss(x, pars):
     alpha = pars[1]
     zeta = pars[2]
     return -np.power((np.abs(x - mu) / alpha), zeta) + np.log(zeta) - np.log(2 * alpha) - gammaln(1 / zeta)
-    
+
 #replaced by a c++ function
 #class CrossValidationCost(BasePotential):
 #    """
 #    Use leave-one-out cross validation to estimate bandwidth for kernel density.
-#    
+#
 #    Parameters
 #    ----------
 #    data : array of floats
 #        The observed data.
 #    kernel : string, optional
 #        The used kernel type.
-#    
+#
 #    Examples
 #    --------
 #    To get a bandwidth estimate, do e.g.:
-#    
+#
 #        pot = CrossValidationCost(data)
 #        optimizer = LBFGS_CPP(h_initial, pot)
 #        result = optimizer.run()
 #        opt_h = result.coords
-#        
+#
 #    References
 #    ----------
 #    http://en.wikipedia.org/wiki/Kernel_density_estimation
@@ -600,7 +596,7 @@ def log_gen_gauss(x, pars):
 #        self.kernel = kernel
 #        if self.kernel != "gaussian":
 #            raise Exception("CrossValidationCost: convolution only implemented for gaussian kernel")
-#        
+#
 #    def getEnergy(self, h):
 #        """
 #        See: http://www.jstor.org/stable/2336252
@@ -608,13 +604,13 @@ def log_gen_gauss(x, pars):
 #        self.h = h
 #        self.compute_sums()
 #        return 1 / (self.N - 1) * self.term_A + (self.N - 2) / (self.N * (self.N - 1) ** 2) * self.term_B - 2 / (self.N * (self.N - 1)) * self.term_C
-#    
+#
 #    def compute_sums(self):
 #        def nd(x, h2):
 #            return np.exp(-0.5 * x**2 / h2) / np.sqrt(2 * np.pi * h2)
 #        self.term_A = nd(0, 2 * self.h**2)
 #        self.term_B = 0
-#        self.term_C = 0        
+#        self.term_C = 0
 #        for ii in xrange(self.N):
 #            for jj in xrange(ii+1, self.N):
 #                self.term_B += 2*nd(self.data[ii] - self.data[jj], 2 * self.h**2)
@@ -623,13 +619,13 @@ def log_gen_gauss(x, pars):
 def simple_overlap_check(coords, radii, boxlength):
     """
     Perform overlap check.
-    
+
     This is not very efficient, it is just a direct implementation of a
     double loop.
     Returns True if there is at least one overlap.
     Returns False if there is no overlap.
     Assums periodic boundary conditions in box of length boxlength
-    
+
     Parameters
     ----------
     coords : array
@@ -716,7 +712,7 @@ def asphericity_factor(evals):
     Asphericity has 0 as its lower bound, achieved for a walk that is
     spherical, and has an upper bound of 1, achieved when the walk is extended
     in one dimension only.
-    
+
     Parameters
     ----------
     evals : array
@@ -734,10 +730,10 @@ def asphericity_factor(evals):
 def trajectory_pca(traj):
     """
     Perform Principal Component Analysis
-    
-    returns eigenvalues and eigenvectors from 
+
+    returns eigenvalues and eigenvectors from
     principal componenent analysis of a trajectory
-    
+
     Parameters
     ----------
     traj : 2d array
@@ -746,7 +742,7 @@ def trajectory_pca(traj):
     ndof = np.shape(traj)[1]
     cov_mat = np.cov([traj[:,i] for i in xrange(ndof)])
     eig_val_cov, eig_vec_cov = np.linalg.eig(cov_mat)
-    idx = eig_val_cov.argsort()[::-1]   
+    idx = eig_val_cov.argsort()[::-1]
     eig_val_cov = eig_val_cov[idx]
     eig_vec_cov = eig_vec_cov[:,idx]
     return eig_val_cov, eig_vec_cov
@@ -764,8 +760,8 @@ def read_hf5_to_2d_array(path, key):
     array = np.array(df.values)
     return array
 
-def import_pt_time_series(explore_dir, adjustf_niter, 
-                          max_series_size=0, ncores=4, 
+def import_pt_time_series(explore_dir, adjustf_niter,
+                          max_series_size=0, ncores=4,
                           del_raw=False, crop_adjustf_niter=False):
         """
         to import without loss of data set max_series_size=0 and crop_adjustf_niter=False
@@ -773,7 +769,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
         therefore max_series_size=0 indicates that there is no loss from raw to hf5.
         If want to remove the equilibration region when importing the full dataset in hf5 format set
         crop_adjustf_niter=True
-        
+
         explore_dir string
             path to the directory containing raw data
         max_series_size int
@@ -788,7 +784,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
         tsframe = os.path.join(explore_dir, 'timeseries.h5')
         try:
             timeseries = read_hf5_to_2d_array(tsframe, 'ts')
-            if crop_adjustf_niter: 
+            if crop_adjustf_niter:
                 print 'cropping adjustf_niter'
                 timeseries = timeseries[:,adjustf_niter:]
             print 'timeseries shape ', np.shape(timeseries)
@@ -801,7 +797,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
         except Exception:
             traceback.print_exc(file=sys.stdout)
             try:
-                timeseries = import_pt_time_series_raw(explore_dir, adjustf_niter, 
+                timeseries = import_pt_time_series_raw(explore_dir, adjustf_niter,
                                                        max_series_size=max_series_size,
                                                        ncores=ncores)
                 write_2d_array_to_hf5(timeseries, 'ts', tsframe)
@@ -815,7 +811,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
                 traceback.print_exc(file=sys.stdout)
                 sys.exit(0)
         return timeseries
-            
+
 def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, ncores=7):
     """
     max_series_size int
@@ -845,7 +841,7 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
                 series.extend(read_txt(file_list[0], adjustf_niter, max_series_size).tolist() )
                 results = Parallel(n_jobs=ncores)(delayed(read_txt)(series_path, 0, other_max_size) for series_path in file_list[1:])
                 series.extend( list(chain.from_iterable(results)) )
-                timeseries.append(series)        
+                timeseries.append(series)
     X = np.array(timeseries)
     Y = series_order
     timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
@@ -865,7 +861,7 @@ def get_uniform_in_sphere(radius, dim):
     x = np.random.normal(0, 1, dim)
     return x / np.linalg.norm(x) * radius * np.power(np.random.uniform(0, 1), 1 / dim)
 
-try:    
+try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except Exception as e:
