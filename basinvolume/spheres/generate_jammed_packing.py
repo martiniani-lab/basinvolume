@@ -14,6 +14,7 @@ import argparse
 import subprocess
 import shlex
 import glob
+import ast
 try:
     import pylab
 except:
@@ -78,6 +79,8 @@ class _Generate_Jammed_Packing(object):
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
+        self.dist_method = configf.get('PACKING', 'dist_method')
+        self.dist_kwargs = ast.literal_eval(configf.get('PACKING', 'dist_kwargs'))
 
     @abc.abstractmethod
     def _initialise(self):
@@ -215,17 +218,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 self.use_cell_lists = False
         if self.opt_pot_str.lower() == "hs_wca":
             if self.use_cell_lists:
-                self.potential = HS_WCA(use_periodic=True,
-                    use_cell_lists=True, eps=self.eps, sca=self.sca,
+                self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
                     radii=self.hs_radii, boxvec=self.boxv,
                     reference_coords=self.coords, rcut=rcut,
                     ndim=self.bdim, ncellx_scale=1.0,
-                    use_leesedwards=self.use_leesedwards, shear=self.shear)
+                    dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
             else:
-                self.potential = HS_WCA(use_periodic=True, eps=self.eps,
+                self.potential = HS_WCA(eps=self.eps,
                     sca=self.sca, radii=self.hs_radii, boxvec=self.boxv,
                     ndim=self.bdim,
-                    use_leesedwards=self.use_leesedwards, shear=self.shear)
+                    dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
         elif self.opt_pot_str.lower() == "inverse_power_stillinger":
             self.stillinger_a_radii = self.hs_radii * (1 + self.sca)
             pow = self.extra_pot_kwargs["pow"]
@@ -561,16 +563,8 @@ if __name__ == "__main__":
     # potential arguments
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
-    parser.add_argument("--shear", type=float, help="Use Lees-Edwards boundary conditions to simulate given amount of shear.", default=None)
     args = parser.parse_args()
     print args
-
-    if args.shear == None:
-        use_leesedwards = False
-        shear = 0.0
-    else:
-        use_leesedwards = True
-        shear = args.shear
 
     # potential type
     opt_pot_str = args.opt_pot
@@ -587,5 +581,5 @@ if __name__ == "__main__":
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
                                      packings_dir=args.packingsdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
-                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs, use_leesedwards=use_leesedwards, shear=shear)
+                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
     sim.run()
