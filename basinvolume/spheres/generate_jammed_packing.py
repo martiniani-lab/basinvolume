@@ -253,10 +253,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def _distance (self, coord1, coord2):
         dist_method = 'lees-edwards' if self.use_leesedwards else 'periodic'
-        dist_kwargs = {'box': self.boxv}
-        if self.use_leesedwards:
-            dist_kwargs['shear'] = self.shear
-        return np.array(get_distance(coord1, coord2, self.bdim, dist_method, dist_kwargs))
+        return np.array(get_distance(coord1, coord2, self.bdim, dist_method, box=self.boxv, shear=self.shear))
 
 
     def _find_rattlers(self):
