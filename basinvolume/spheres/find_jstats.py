@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
+from pele.distance import get_distance
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import cround, in_hull, read_xyd, read_xyzd
@@ -161,14 +162,12 @@ class GeneratePackingFindJ(HS_Generate_Packing):
 
         def get_index(x):
             # x is a 3 array with the coordinates of the particles
-            dij = np.zeros(self.bdim)
             dmin = np.amin(self.hs_radii) / 10.
             for j in xrange(self.nparticles):
-                for k in xrange(self.bdim):
-                    # use distances to nearest image convention
-                    dij[k] = ((self.coords_ss[j * self.bdim + k] - x[k]) -
-                              cround((self.coords_ss[j * self.bdim + k] - x[k]) / self.boxv[k]) * self.boxv[k])
-                if np.linalg.norm(dij) < dmin:
+                dij = np.linalg.norm(get_distance(
+                    self.coords[j * self.bdim : (j + 1) * self.bdim], x,
+                    self.bdim, 'periodic', box=self.boxv))
+                if dij < dmin:
                     return j
 
         coords = np.array(self.coords_ss)
@@ -228,12 +227,9 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         for i in xrange(nparticles):
             for j in xrange(i, nparticles):
                 if i != j:
-                    dij = np.zeros(self.bdim)
-                    for k in xrange(self.bdim):
-                        # use distances to nearest image convention
-                        dij[k] = ((coords[j * self.bdim + k] - coords[i * self.bdim + k]) -
-                                  cround((coords[j * self.bdim + k] - coords[i * self.bdim + k]) / self.boxv[k]) *
-                                  self.boxv[k])
+                    dij = get_distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                       self.coords[j * self.bdim : (j + 1) * self.bdim],
+                                       self.bdim, 'periodic', box=self.boxv)
                     dijnorm = np.linalg.norm(dij)
                     dmin = radii[i] + radii[j]
                     if dijnorm <= dmin:

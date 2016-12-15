@@ -414,8 +414,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             if no_overlap == True:
                 for j in xrange(self.nparticles):
                     if i != j:
-                        dij = np.linalg.norm(self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                             self.coords[j * self.bdim : (j + 1) * self.bdim]))
+                        dij = np.linalg.norm(self._distance(
+                            self.coords[i * self.bdim : (i + 1) * self.bdim],
+                            self.coords[j * self.bdim : (j + 1) * self.bdim]))
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
                             print 'invalid configuration'

@@ -8,6 +8,7 @@ from scipy.special import sph_harm
 from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, cround
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
+from pele.distance import get_distance
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 import argparse
 import multiprocessing as mp
@@ -215,18 +216,16 @@ class BondOrientationalOrder(StructuralAnalysis):
         for i in atom_labels:
             for j in atom_labels:
                 if j > i:
-                    dij = np.zeros(self.bdim)
-                    for k in xrange(self.bdim):
-                        #use distances to nearest image convention
-                        dij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) -
-                                           cround((coords[j*self.bdim+k] - coords[i*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
+                    dij = get_distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                       self.coords[j * self.bdim : (j + 1) * self.bdim],
+                                       self.bdim, 'periodic', box=self.boxv)
                     dijnorm = np.linalg.norm(dij)
                     dmin = hs_radii[i] + hs_radii[j]
                     if dijnorm <= dmin:
                         nnatoms_list[i].append(dij)
                         nnatoms_list[j].append(-dij)
         return nnatoms_list
-    
+
     def find_nearest_neighbors_solid_angle(self, coords, hs_radii):
         nparticles = hs_radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]

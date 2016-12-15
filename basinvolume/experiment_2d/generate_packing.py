@@ -1,19 +1,20 @@
 from __future__ import division
 import numpy as np
 import os
+from pele.distance import get_distance
 from basinvolume.spheres import _Generate_Packing
 from basinvolume.utils import trymakedir, volume_nball, get_git_version, get_cython_version, get_python_version
 from basinvolume.experiment_2d import Experimental_Packing
 import pyvoro
 import argparse
-            
+
 class HS_Exp_Generate_Packing(_Generate_Packing):
     """
     *DESCRIPTION
     this class imports packings coordinated from images and prints a .xyrf file and a config file for
     each packing after computing the packing fraction
     *PARAMETERS
-    *max_iter is the number of desired packings    
+    *max_iter is the number of desired packings
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential, here irrelevant because 'sca' is set to 0
     *hsf stands for hard sphere fluid
@@ -182,19 +183,18 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
 #        phi = vol_part/vol_box
 #        assert(phi - self.packing_frac < 1e-4)
 #        #endtest
-    
+
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
         for i in xrange(self.nparticles):
             if no_overlap == True:
                 for j in xrange(i, self.nparticles):
-                    dij = 0
-                    for k in xrange(self.bdim):
-                        #use distances to nearest image convention
-                        dij += np.square(self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k])
+                    dij = np.linalg.norm(get_distance(
+                            self.coords[i * self.bdim : (i + 1) * self.bdim],
+                            self.coords[j * self.bdim : (j + 1) * self.bdim],
+                            self.bdim, 'periodic', box=self.boxv))
                     if i != j:
-                        dij = np.sqrt(dij)
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
                             print 'invalid configuration'

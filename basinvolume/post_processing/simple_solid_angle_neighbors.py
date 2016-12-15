@@ -1,5 +1,6 @@
 from __future__ import division
 from basinvolume.utils import cround
+from pele.distance import get_distance
 import numpy as np
 from numpy import linalg as la
 
@@ -43,15 +44,13 @@ class SimpleSolidAngleNeighbors(object):
         self.weight = np.asarray([1 - s / radius for s in sk])
         self.nr_neighbors = i
         assert(self.center not in self.neighbor_labels)
-        
+
     def get_delta_vector(self, j):
-        result = np.zeros(self.boxdim)
-        for k in xrange(self.boxdim):
-            #use distances to nearest image convention
-            result[k] = ((self.coords[j*self.boxdim+k] - self.coords[self.center*self.boxdim+k]) -
-                               cround((self.coords[j*self.boxdim+k] - self.coords[self.center*self.boxdim+k]) / self.boxv[k]) * self.boxv[k])
-        return result
-        
+        return np.linalg.norm(get_distance(
+            self.coords[j * self.boxdim : (j + 1) * self.boxdim],
+            self.coords[self.center * self.boxdim : (self.center + 1) * self.boxdim],
+            self.boxdim, 'periodic', box=self.boxv))
+
     def get_distance(self, k):
         assert(k != self.center)
         return la.norm(self.get_delta_vector(k))
