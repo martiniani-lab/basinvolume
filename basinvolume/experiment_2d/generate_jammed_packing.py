@@ -54,29 +54,29 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self._import_packing_configuration(fname)
         self._compute_sca()
         self.max_nrattlers = int(self.nparticles*0.1)
-               
+
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii)*2*(1+self.sca) >= np.amin(self.boxv)/2:
             print "WARNING: max soft diameter >= 1/2 box side!"
 
         assert(len(self.coords)/self.bdim == len(self.hs_radii))
-        
+
         #rcut = np.amax(self.hs_radii)*2
-        #use_cell_lists=True, rcut=rcut, boxvec=self.boxv
-        self.potential = HS_WCA(reference_coords=self.coords, eps=self.eps, sca=self.sca, 
-                                radii=self.hs_radii, use_frozen=True, frozen_atoms=self.frozen, 
-                                ndim=self.bdim, use_cell_lists=False, use_periodic=False)
-        
+        #use_cell_lists=True, boxvec=self.boxv
+        self.potential = HS_WCA(reference_coords=self.coords, eps=self.eps, sca=self.sca,
+                                radii=self.hs_radii, use_frozen=True, frozen_atoms=self.frozen,
+                                ndim=self.bdim, use_cell_lists=False, distance_method='cartesian')
+
         success = self._generate_packing_coords() #returns false if saddle
-        
+
         if success:
             self._find_rattlers()
             #strips the integer unique identifier out of fname
             n = int(re.search(r'\d+',fname).group())
             self._print(n)
-        
+
         self.iteration+=1
-    
+
     def _find_rattlers(self):
         self.rattlers = np.empty(self.nparticles,dtype='d')
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')
@@ -433,9 +433,9 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         pylab.savefig(os.path.join(self.base_directory,'whole_histogram_low{}.eps'.format(self.low_range[1])))
         if self.show:
             pylab.show()
-                    
+
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
     parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
@@ -443,16 +443,7 @@ if __name__ == "__main__":
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
     args = parser.parse_args()
     print args
-    
+
     sim = HS_Exp_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
                                          show=args.show)
     sim.run()
-    
-    
-        
-                
-            
-              
-                
-                
-                

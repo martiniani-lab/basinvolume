@@ -31,27 +31,27 @@ from scipy.integrate import quad
 try:
     import matplotlib.pyplot as plt
     #more stuff for plotting histogram and comparing to prediction
-    #######################SET LATEX OPTIONS###################                            
+    #######################SET LATEX OPTIONS###################
     plt.rc('text', usetex=True)
     plt.rc('font',**{'family':'serif','serif':['Computer Modern']})
-    #rc('text.latex',preamble=r'\usepackage{times}')                                       
+    #rc('text.latex',preamble=r'\usepackage{times}')
     plt.rcParams.update({'font.size': 20})
     plt.rcParams['xtick.major.pad'] = 8
     plt.rcParams['ytick.major.pad'] = 8
 
 
-    ##########################################################                             
-    ####SET COLOUR MAP######                                                               
+    ##########################################################
+    ####SET COLOUR MAP######
     cm = plt.get_cmap('Dark2')
-    ########################                                                               
-    #####################LINE STYLE CYCLER####################                             
+    ########################
+    #####################LINE STYLE CYCLER####################
     lines = ["-","--","-."]
     linecycler = cycle(lines)
     color_cycle=[cm(1. * i / 6) for i in xrange(6)]
     ##########################################################
 except ImportError as err:
     print(err)
-    
+
 def analytical_d2(x, k, N, boxdim=2):
     f = float(k * x) / 2
     g = float(boxdim * N - boxdim) / 2 - 1
@@ -67,7 +67,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 * construct _base_MCrunner
 * construct takestep, accept test, configuration test, action classes
 * add these to the pele::MC class
-* write a set_control function, for example you may want to set the temperature 
+* write a set_control function, for example you may want to set the temperature
   (this is done this way to be compatible with the MPI replica exchange/parallel tempering
   implementation)
 * add other functionalities that you may find desirable, e.g. dump histogram to file
@@ -107,7 +107,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
     def get_pot_optimizer(self):
         # here put a flag and pick potential
         if self.opt_pot_str.lower() == 'hs_wca':
-            pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
+            distance_method = 'periodic' if self.use_periodic else 'cartesian'
+            pot_optimizer = HS_WCA(distance_method=distance_method,
                                    use_cell_lists=self.use_cell_lists,
                                    use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
                                    radii=self.hs_radii, boxvec=self.boxv,
@@ -559,10 +560,10 @@ class Findk_MCrunner(SpheresMCRunner):
         plt.tight_layout()
         plt.savefig('findk_histogram.eps')
         plt.show()
-    
+
 if __name__ == "__main__":
     #to run harmonic potential go to tests
-    
+
     from pele.utils.rotations import vector_random_uniform_hypersphere
     from pele.optimize._quench import modifiedfire_cpp
     import time
@@ -576,9 +577,9 @@ if __name__ == "__main__":
     #Harmonic(origin,1)
     res = modifiedfire_cpp(start_coords,Harmonic(origin, 1))
     print(res)
-    
+
 #    print res.coords
-    
+
     #Parallel Tempering
 #   test = BV_MCrunner(start_coords, origin, temperature=1, k=1, niter=1e5, hEmin=0,hEmax=100,
 #                       stepsize=0.5, adjustf = 0.9, adjustf_niter = 5000, radius=100)
@@ -588,4 +589,3 @@ if __name__ == "__main__":
     end = time.time()
     print(end - start)
     #test.show_histogram()
-    

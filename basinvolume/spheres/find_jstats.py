@@ -129,15 +129,14 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             if np.amin(self.boxv) // rcut <= 3:
                 self.use_cell_lists = False
         if self.opt_pot_str.lower() == "hs_wca":
-            self.potential_ss_p = HS_WCA(use_periodic=True, eps=self.eps,
-                                       sca=self.sca_ss, radii=self.hs_radii, boxvec=self.boxv,
-                                       ndim=self.bdim)
+            self.potential_ss_p = HS_WCA(distance_method='periodic', eps=self.eps,
+                                         sca=self.sca_ss, radii=self.hs_radii, boxvec=self.boxv,
+                                         ndim=self.bdim)
             if self.use_cell_lists:
-                self.potential_ss = HS_WCA(use_periodic=True,
-                                        use_cell_lists=True, eps=self.eps, sca=self.sca_ss,
-                                        radii=self.hs_radii, boxvec=self.boxv,
-                                        reference_coords=self.coords, rcut=rcut,
-                                        ndim=self.bdim, ncellx_scale=1.0)
+                self.potential_ss = HS_WCA(distance_method='periodic', use_cell_lists=True,
+                                           eps=self.eps, sca=self.sca_ss, radii=self.hs_radii,
+                                           boxvec=self.boxv, reference_coords=self.coords,
+                                           ndim=self.bdim, ncellx_scale=1.0)
             else:
                 self.potential_ss = self.potential_ss_p
         elif self.opt_pot_str.lower() == "inverse_power_stillinger":

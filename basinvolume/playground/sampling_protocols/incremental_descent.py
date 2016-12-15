@@ -61,10 +61,13 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
                 if np.amin(self.boxv) // rcut <= 3:
                     self.use_cell_lists = False
             if self.use_cell_lists:
-                self.potential = HS_WCA(use_periodic=True, use_cell_lists=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, reference_coords=self.coords,
-                                                         rcut=rcut, ndim=self.bdim, ncellx_scale=1.0)
+                self.potential = HS_WCA(distance_method='periodic', use_cell_lists=True,
+                                        eps=self.eps, sca=self.sca, radii=self.hs_radii,
+                                        boxvec=self.boxv, reference_coords=self.coords,
+                                        ndim=self.bdim, ncellx_scale=1.0)
             else:
-                self.potential = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+                self.potential = HS_WCA(distance_method='periodic', eps=self.eps, sca=self.sca,
+                                        radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
 
             success = self._generate_packing_coords(i) #returns false if saddle
             if not success:

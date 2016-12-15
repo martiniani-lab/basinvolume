@@ -6,9 +6,9 @@ from pele.optimize import ModifiedFireCPP
 from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner
-from mcpele.monte_carlo import CheckSphericalContainer 
+from mcpele.monte_carlo import CheckSphericalContainer
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
-from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian 
+from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian
 from basinvolume.monte_carlo import RecordDisplacementTimeseries
 from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
@@ -23,25 +23,25 @@ from scipy.integrate import quad
 try:
     import matplotlib.pyplot as plt
     #more stuff for plotting histogram and comparing to prediction
-    #######################SET LATEX OPTIONS###################                            
+    #######################SET LATEX OPTIONS###################
     plt.rc('text', usetex=True)
     plt.rc('font',**{'family':'serif','serif':['Computer Modern']})
-    #rc('text.latex',preamble=r'\usepackage{times}')                                       
+    #rc('text.latex',preamble=r'\usepackage{times}')
     plt.rcParams.update({'font.size': 20})
     plt.rcParams['xtick.major.pad'] = 8
     plt.rcParams['ytick.major.pad'] = 8
-    ##########################################################                             
-    ####SET COLOUR MAP######                                                               
+    ##########################################################
+    ####SET COLOUR MAP######
     cm = plt.get_cmap('Dark2')
-    ########################                                                               
-    #####################LINE STYLE CYCLER####################                             
+    ########################
+    #####################LINE STYLE CYCLER####################
     lines = ["-","--","-."]
     linecycler = cycle(lines)
     color_cycle=[cm(1. * i / 6) for i in xrange(6)]
     ##########################################################
 except ImportError as err:
     print(err)
-    
+
 def analytical_d2(x, k, N, boxdim=2):
     f = float(k * x) / 2
     g = float(boxdim * N - boxdim) / 2 - 1
@@ -57,7 +57,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 * construct _base_MCrunner
 * construct takestep, accept test, configuration test, action classes
 * add these to the pele::MC class
-* write a set_control function, for example you may want to set the temperature 
+* write a set_control function, for example you may want to set the temperature
   (this is done this way to be compatible with the MPI replica exchange/parallel tempering
   implementation)
 * add other functionalities that you may find desirable, e.g. dump histogram to file
@@ -73,7 +73,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 class BVSphereMCrunner(_BaseMCRunner):
     """
     Basin volume Sphere MC runner
-    
+
     Parameters
     ----------
     potential : pele potential
@@ -164,14 +164,14 @@ class BVSphereMCrunner(_BaseMCRunner):
             red_coords = full_coords
         #potential = as_cpp_potential(NullPotential())
         super(BVSphereMCrunner, self).__init__(potential, red_coords, temperature, niter)
-        
+
         self.boxv = boxv
         self.bdim = len(boxv)
         self.origin = np.array(origin)
         self.red_origin = np.array(origin)
         self.hs_radii = np.array(hs_radii)
         self.red_radii = np.array(hs_radii)
-        if use_frozen:            
+        if use_frozen:
             self.red_radii = np.delete(self.red_radii, frozen_atoms)
             self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
             assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
@@ -191,9 +191,9 @@ class BVSphereMCrunner(_BaseMCRunner):
         self.equilibration_steps = 0
         if ts_niter is None:
             ts_niter = niter
-        
+
         #manage array of rattlers, if not rattler: 1 -> jammed dof
-        #                                          0 -> rattler dof 
+        #                                          0 -> rattler dof
         if (rattlers is None):
             self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
         else:
@@ -202,7 +202,7 @@ class BVSphereMCrunner(_BaseMCRunner):
             self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
         assert(len(self.rattlers) == self.ndim)
         assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
-                   
+
         #construct optimizer potential
         #rcut set to largest particle diameter
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
@@ -212,46 +212,46 @@ class BVSphereMCrunner(_BaseMCRunner):
                 print ("setting use_cell_lists to False")
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
-        self.pot_optimizer = HS_WCA(use_periodic=self.use_periodic,
+        self.pot_optimizer = HS_WCA(distance_method='periodic',
                              use_cell_lists=self.use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
                              reference_coords=self.origin,
                              ndim=self.bdim, ncellx_scale=self.ncellx_scale,
                              frozen_atoms=self.frozen_atoms)
-        
-        #construct gradient optimizer    
+
+        #construct gradient optimizer
         self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
                                          dtmax=opt_dtmax, maxstep=opt_maxstep,
                                          tol=opt_tol, nsteps=opt_nsteps)
-        
+
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max),
                     seed_metropolis=np.random.randint(i32max))
         self.seeds = seeds
-        
+
         #construct test/action classes
         if record_histogram:
             self.binsize = hbinsize
             self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
                                                   self.binsize, self.equilibration_steps)
             self.add_action(self.histogram)
-        
+
         if self.use_periodic:
             if self.use_cell_lists:
                 self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
                                  self.boxv, ncellx_scale=self.ncellx_scale,
                                  use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
-                                 reference_coords=self.origin) 
-            
+                                 reference_coords=self.origin)
+
             else:
                 self.conftest1 = CheckOverlapPeriodic(self.hs_radii,
                                  self.boxv, use_frozen=self.use_frozen,
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
-        else: 
+        else:
             if self.use_cell_lists:
                 self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
                                  self.boxv, ncellx_scale=self.ncellx_scale,
@@ -263,18 +263,18 @@ class BVSphereMCrunner(_BaseMCRunner):
                                  self.bdim, use_frozen=self.use_frozen,
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
-            
-        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol, 
+
+        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
                                           opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,
                                           bdim=self.bdim, eqsteps=self.equilibration_steps,
                                           use_cgd=self.use_cgd,
-                                          perform_convergence_test=perform_convergence_test, 
+                                          perform_convergence_test=perform_convergence_test,
                                           collect_minima_list=collect_minima_list)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)
-        
+
         self.set_report_steps(0)
         self.takestep = SampleUniformSphereGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
-        
+
         #set up pele:MC
         self.set_takestep(self.takestep)
         if self.use_frozen:
@@ -283,21 +283,21 @@ class BVSphereMCrunner(_BaseMCRunner):
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(self.conftest2) #conf_test will happen after accept test because it is much cheaper
         self.add_action(self.time_series)
-        
+
     def set_control(self, c):
         """set k"""
         print("WARNING: set control is not defined, spring constant is set through stepsize", file=sys.stderr)
-    
+
     def get_stepsize(self):
         return self.takestep.get_stepsize()
-    
+
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
         k = 1.0 / (stepsize * stepsize)
         #k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
         return k
-    
+
     def dump_histogram(self, fname):
         """write histogram to fname"""
         Emin, Emax = self.histogram.get_bounds_val()
@@ -309,7 +309,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
-    
+
     def dump_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
@@ -317,19 +317,19 @@ class BVSphereMCrunner(_BaseMCRunner):
         if clear:
             self.time_series.clear()
         return timeseries
-    
+
     def get_timeseries(self):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
         return timeseries
-    
+
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.time_series.check_convergence(nr_steps_to_check=nr_steps_to_check,
                                                    rel_std_threshold=rel_std_threshold)
-        
+
     def dump_minima_list(self, fname):
         """write minima list to pele database"""
-        system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, 
+        system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv,
                              bdim=self.bdim, dtol=self.dtol, etol=1)
         db = system.create_database(fname)
         minima_dicts = []
@@ -352,13 +352,13 @@ class BVSphereMCrunner(_BaseMCRunner):
         print(len(minima_dicts))
         db.engine.execute(Minimum.__table__.insert(), minima_dicts)
         db.session.commit()
-        
+
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
-    
+
     def show_histogram_kmax(self):
         """
         shows the histogram against the analytical curve when k=kmax
@@ -366,7 +366,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         """
         hist = self.histogram.get_histogram()
         val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
-        
+
         n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
@@ -381,21 +381,21 @@ class BVSphereMCrunner(_BaseMCRunner):
         plt.tight_layout()
         plt.savefig('kmax_histogram.eps')
         plt.show()
-    
+
 if __name__ == "__main__":
     #to run harmonic potential go to tests
-    
+
     from pele.utils.rotations import vector_random_uniform_hypersphere
     from pele.optimize._quench import modifiedfire_cpp
     import time
-    
+
     natoms = 4
     L = 4.
     boxvec = np.ones(3) * L
     x0 = np.random.uniform(0, L, 3*natoms)
     #x0 = _subtract_com(x0)
     #build start configuration
-    
+
 #    test = BV_MCrunner(start_coords, origin, temperature=1, k=1, niter=1e5, hEmin=0,hEmax=100,
 #                       stepsize=0.5, adjustf = 0.9, adjustf_niter = 5000, radius=100)
     #test.set_control(1)
@@ -404,4 +404,3 @@ if __name__ == "__main__":
     end = time.time()
     print(end - start)
     #test.show_histogram()
-    

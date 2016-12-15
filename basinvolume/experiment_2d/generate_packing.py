@@ -21,21 +21,21 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
     *data_set_index: selects the experimental image, it's the number at the end of the data_set image file
     *small packings is a list of Small_Packing_Information objects
     *deflation: factor by which the radius of the hard cores should be deflated
-    """    
+    """
     def __init__(self, nparticles, bdim=2, boxv=None, max_iter=1, data_set_index=1,
-                 distance_from_boundary_x=0.04, distance_from_boundary_y=0.04, frozen_shell_thickness=2, 
-                 grid_version=0, grid_all=True, deflation=1, data_file_name="PackingsData_", 
+                 distance_from_boundary_x=0.04, distance_from_boundary_y=0.04, frozen_shell_thickness=2,
+                 grid_version=0, grid_all=True, deflation=1, data_file_name="PackingsData_",
                  data_dir="packingsData"):
-        super(HS_Exp_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv, 
-                                                 packing_frac=0, max_iter = max_iter, 
+        super(HS_Exp_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv,
+                                                 packing_frac=0, max_iter = max_iter,
                                                  use_cell_lists = False)
-        
+
         self.sca = 0. #this must be 0 for hard spheres
         self.deflation = deflation #factor by which diameters should be contracted
         self.mu = 0.
         self.sig = 0.
         assert(self.sca == 0.)
-        
+
         if nparticles <= 0:
             raise Exception('expect finite number of particles')
         if self.max_iter <= 0:
@@ -53,19 +53,19 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         self.grid_version = grid_version
         self.grid_all = grid_all
         #read experimental data
-        self.all_particles = Experimental_Packing(self.path_to_datafile, self.nparticles, 
-                                                  self.distance_from_boundary_x, self.distance_from_boundary_y, 
+        self.all_particles = Experimental_Packing(self.path_to_datafile, self.nparticles,
+                                                  self.distance_from_boundary_x, self.distance_from_boundary_y,
                                                   self.frozen_shell_thickness, self.grid_version, self.grid_all)
         if self.all_particles.grid.nr_of_cells < self.max_iter:
             self.max_iter = self.all_particles.grid.nr_of_cells
-        
+
     def _initialise(self):
         """
         this function needs to import the data and initialise the output
         """
         self._print_initialise()
         self.initialised = True
-        
+
     def _generate_packing_coords(self):
         """
         pick the next packing
@@ -95,7 +95,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         #compute packing fraction
         self._set_packing_fraction()
         return True
-    
+
     def _rescale_packing(self):
         rescale_factor = np.mean(self.hs_radii)
         self.hs_radii /= rescale_factor #rescale radii so that mean radius is 1
@@ -103,7 +103,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         self.boxv /= rescale_factor
         self.mobile_particle_radius /= rescale_factor
         self.frozen_particle_radius /= rescale_factor
-        
+
     def _find_one_small_packing(self, index):
         small_packing = self.all_particles.extract_small_packing(index)
         print("found packing %d of %d" % (self.iteration+1, self.max_iter))
@@ -113,7 +113,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
             self.boxv[i] = self.frozen_particle_radius*2.1 # extra 0.1 because the box must fit the whole particle for voro
         print "boxv", self.boxv
         return small_packing
-    
+
     def _set_packing_fraction(self):
         """
         compute volume fraction of mobile particles
@@ -123,7 +123,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         assert(0 < vparticle < vcavity)
         self.packing_frac = vparticle/vcavity
         print "phi ",self.packing_frac
-    
+
     def _get_particles_volume(self):
         """returns volume of n=self.bdim dimensional sphere for mobile particles """
         volume = 0.
@@ -131,7 +131,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
             if not frozen:
                 volume += volume_nball(self.hs_radii[i],self.bdim)
         return volume
-    
+
     def _get_voronoi_mobile_area(self):
         """
         Voronoi tesselates the packing and adds up the areas of the mobile particles. This should
@@ -170,7 +170,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         assert(abs(vtot - np.product(self.boxv)) < 1e-3)
         assert(0 < vcavity < vtot)
         return vcavity
-    
+
 #    def _rescale_radii(self):
 #        """rescale radii to meet target packing fraction"""
 #        vol_box = np.power(self.boxl,self.bdim)
@@ -206,17 +206,17 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
             else:
                 break
         return no_overlap
-    
+
     def _print_initialise(self):
         base_directory = self.base_directory
-        trymakedir(base_directory)    
-    
+        trymakedir(base_directory)
+
     def _print(self):
         """dump configuration and opengl input to packings directory"""
         self._print_parameters()
         self._dump_configuration()
         self._write_opengl_input()
-    
+
     def _dump_configuration(self):
         """write coordinates to file .xyzdf"""
         coords = self.coords
@@ -237,7 +237,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         else:
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
-    
+
     def _write_opengl_input(self):
         """write opengl input file"""
         coords = self.coords
@@ -248,7 +248,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         fname = "{0}/packing{1}.dat".format(directory,self.iteration)
         f = open(fname,'w')
         f.write('{}\n'.format(nparticles))
-        
+
         if self.bdim == 2:
             f.write('{} {} {}\n'.format(-boxv[0]/2,-boxv[1]/2, -np.amax(self.hs_radii)))
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
@@ -273,7 +273,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         else:
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
-        
+
     def _print_parameters(self):
         """writes the simulation parameters"""
         fname = '{}/packing{}.config'.format(self.base_directory, self.iteration)
@@ -313,7 +313,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         f.close()
 
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument("-n","--npackings", type=int, default=1, help="number of packings to produce")
@@ -329,15 +329,9 @@ if __name__ == "__main__":
     parser.add_argument("--datafname", type=str, default="PackingsData_", help="file name of experimental data")
     args = parser.parse_args()
     print args
-        
+
     sim = HS_Exp_Generate_Packing(args.nparticles, bdim=args.boxdim, max_iter=args.npackings, data_set_index=args.dataset_index,
-                                  distance_from_boundary_x=args.distance_from_boundary_x, distance_from_boundary_y=args.distance_from_boundary_y, 
-                                  frozen_shell_thickness=args.frozen_shell_thickness, grid_version=args.grid_version, 
+                                  distance_from_boundary_x=args.distance_from_boundary_x, distance_from_boundary_y=args.distance_from_boundary_y,
+                                  frozen_shell_thickness=args.frozen_shell_thickness, grid_version=args.grid_version,
                                   grid_all=args.all, deflation=args.deflation, data_file_name=args.datafname, data_dir=args.datadir)
-    sim.run()    
-                
-            
-              
-                
-                
-                
+    sim.run()

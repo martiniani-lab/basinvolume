@@ -17,7 +17,7 @@ from pele.optimize._quench import modifiedfire_cpp
 class StructuralAnalysis(object):
     __metaclass__ = abc.ABCMeta
     #@abc.abstractmethod
-    
+
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis',
                  force=False, existing_only=True):
         if not os.path.isabs(workspace):
@@ -35,7 +35,7 @@ class StructuralAnalysis(object):
         self.frozen = False
         self.force = force
         self.existing_only = existing_only
-    
+
     def _import_packing_config_file(self, configpath):
         configf = ConfigParser.ConfigParser()
         configf.read(str(configpath))
@@ -51,7 +51,7 @@ class StructuralAnalysis(object):
             self.vcavity = np.prod(self.boxv)
         self.packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
-        
+
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.jammed_packings_dir, fname)
         if self.bdim == 2:
@@ -63,23 +63,23 @@ class StructuralAnalysis(object):
         hs_radii = hs_diameters/2
         ss_radii = hs_radii * (1+self.sca)
         return coords, hs_radii, ss_radii, rattlers
-    
+
     def _get_dname(self, dname):
         if dname.endswith('.xyzdr'):
             dname = dname[:-6]
         elif dname.endswith('.xydr'):
             dname = dname[:-5]
         return dname
-    
+
 class BondOrientationalOrder(StructuralAnalysis):
     def __init__(self, workspace, packings_dir='packings',
-        jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
+        jammed_packings_dir='jammed_packings', analysis_dir='analysis',
         force=False, existing_only=True, solid_angle_weighted=False):
-        super(BondOrientationalOrder,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
+        super(BondOrientationalOrder,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir,
                                                     analysis_dir=analysis_dir, force=force, existing_only=existing_only)
         self.solid_angle_weighted = solid_angle_weighted
         print("self.solid_angle_weighted", self.solid_angle_weighted)
-        
+
     def run(self, deg=6, pinit=True):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
         exisisting_only: bool
@@ -124,7 +124,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                                 f.write('Z: {:.16f} \n'.format(np.sum(z_list) / (z_list > 1e-12).sum()))
                                 f.write('[BOO] \n')
                             f.write('Q{}: {:.16f} \n'.format(deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
-    
+
     def run_all(self, deg_list=[4,6,8,10,12]):
         if any('xyzd' in fname for fname in os.listdir(self.jammed_packings_dir)):
             for i,deg in enumerate(deg_list):
@@ -133,14 +133,14 @@ class BondOrientationalOrder(StructuralAnalysis):
         elif any('xyd' in fname for fname in os.listdir(self.jammed_packings_dir)):
             self.run(6, pinit=True)
             assert self.bdim == 2
-    
+
     def _cartesian_to_polar3d(self, vector):
         vector = np.array(vector)
         r = np.linalg.norm(vector)
         theta = np.arctan2(vector[1], vector[0]) + np.pi    #[0, 2*pi]
         phi = np.arccos(vector[2]/r)                        #[0, pi]
         return r, theta, phi
-    
+
     def _cartesian_to_polar2d(self, vector):
         vector = np.array(vector)
         r = np.linalg.norm(vector)
@@ -149,7 +149,7 @@ class BondOrientationalOrder(StructuralAnalysis):
 
     def _qsum(self, nnatoms_vec, order, ndim=3, deg=6, weights=None):
         """
-        this method compute the qsum, necessary for computing 
+        this method compute the qsum, necessary for computing
         nn_atoms: array
             array of indexes of the nearest neighbours
         ndim: int
@@ -182,18 +182,18 @@ class BondOrientationalOrder(StructuralAnalysis):
         else:
             raise Exception('ndim not implemented')
         return qsum / np.sum(weights)
-    
+
     def _bond_orientational_order3d(self, nnatoms_vec, deg=6, weights=None):
         q = 0.
         for m in xrange(-deg,deg+1):
             c = self._qsum(nnatoms_vec, m, ndim=3, deg=deg, weights=weights)
             q += np.absolute(c)**2
         return np.sqrt(q * 4 * np.pi / (2*deg+1))
-    
+
     def _bond_orientational_order2d(self, nnatoms_vec, deg=6, weights=None):
         c = self._qsum(nnatoms_vec, 0, ndim=2, deg=deg, weights=weights)
         return np.absolute(c)
-    
+
     def _bond_orientational_order(self, nnatoms_vec, ndim=3, deg=6, weights=None):
         if ndim == 3:
             return self._bond_orientational_order3d(nnatoms_vec, deg=deg, weights=weights)
@@ -201,7 +201,7 @@ class BondOrientationalOrder(StructuralAnalysis):
             return self._bond_orientational_order2d(nnatoms_vec, deg=deg, weights=weights)
         else:
             raise Exception('ndim not implemented')
-    
+
     def find_nearest_neighbors(self, coords, hs_radii, rattlers=None):
         """
         this function ignores rattlers
@@ -242,12 +242,12 @@ class BondOrientationalOrder(StructuralAnalysis):
                 nnatoms_list[i].append(sann.nn_vector[j])
                 weights_all[i].append(sann.weight[j])
         return nnatoms_list, weights_all
-    
+
     def bond_orientation_order_single(self, coords, hs_radii, rattlers, atom_index, ndim=3, deg=6):
         nnatoms_list = self.find_nearest_neighbors(coords, hs_radii, rattlers=rattlers)
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
-    
+
     def bond_orientation_order_all(self, coords, hs_radii, rattlers, ndim=3, deg=6):
         """
         boo_list : array
@@ -285,9 +285,9 @@ class BondOrientationalOrder(StructuralAnalysis):
         return np.array(boo_list), np.array(z_list)
 
 class PressureTensor(StructuralAnalysis):
-    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis', 
+    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis',
                  force=False, existing_only=True, opt_pot_str='hs_wca', **extra_pot_kwargs):
-        super(PressureTensor,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
+        super(PressureTensor,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir,
                                             analysis_dir=analysis_dir, force=force, existing_only=existing_only)
         self.opt_pot_str = opt_pot_str
         self.extra_pot_kwargs = extra_pot_kwargs
@@ -308,7 +308,7 @@ class PressureTensor(StructuralAnalysis):
                 self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
-                    analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir) 
+                    analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
                     pressure_fname = os.path.join(analysis_dir_path,'pressure_data')
                     try:
                         configf = ConfigParser.ConfigParser()
@@ -345,7 +345,7 @@ class PressureTensor(StructuralAnalysis):
     def get_potential(self):
         # here put a flag and pick potential
         if self.opt_pot_str.lower() == 'hs_wca':
-            pot = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca,
+            pot = HS_WCA(distance_method='periodic', eps=self.eps, sca=self.sca,
                          radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
         elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
             pow = self.extra_pot_kwargs['pow']
@@ -375,7 +375,7 @@ def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
 if __name__ == "__main__":
-    
+
 #    #boo.run(deg=12)
 #    boo.run_all()
 #    pts = PressureTensor()
@@ -411,7 +411,7 @@ if __name__ == "__main__":
 
     pts_kwargs = dict(opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     pts_kwargs.update(kwargs)
-    
+
     if not args.all:
         if not args.workspace_dir:
             workspace_dir = os.getcwd()
@@ -435,6 +435,6 @@ if __name__ == "__main__":
             mypool.terminate()
             mypool.join()
             raise
-                    
+
         mypool.close()
         mypool.join()

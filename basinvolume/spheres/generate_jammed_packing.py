@@ -79,8 +79,8 @@ class _Generate_Jammed_Packing(object):
         boxv = configf.get('PACKING','boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
-        self.dist_method = configf.get('PACKING', 'dist_method')
-        self.dist_kwargs = ast.literal_eval(configf.get('PACKING', 'dist_kwargs'))
+        self.distance_method = configf.get('PACKING', 'distance_method')
+        self.pot_kwargs.update(ast.literal_eval(configf.get('PACKING', 'pot_kwargs')))
 
     @abc.abstractmethod
     def _initialise(self):
@@ -125,8 +125,8 @@ class _Generate_Jammed_Packing(object):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        f.write('dist_method: {}\n'.format(self.dist_method))
-        f.write('dist_kwargs: {}\n'.format(self.dist_kwargs))
+        f.write('distance_method: {}\n'.format(self.distance_method))
+        f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('\n')
@@ -180,12 +180,12 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     """
     def __init__(self, packing_frac=0.7, tol=1e-9,
         packings_dir='packings', use_cell_lists=False, show=False,
-        opt_pot_str='hs_wca', extra_pot_kwargs=None):
+        opt_pot_str='hs_wca', pot_kwargs=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
                                                         packings_dir=packings_dir)
 
         self.opt_pot_str = opt_pot_str
-        self.extra_pot_kwargs = extra_pot_kwargs
+        self.pot_kwargs = pot_kwargs
         self.use_cell_lists = use_cell_lists
         self.tol = tol
         ##constants#
@@ -218,19 +218,19 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if self.opt_pot_str.lower() == "hs_wca":
             if self.use_cell_lists:
                 self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
-                    radii=self.hs_radii, boxvec=self.boxv,
-                    reference_coords=self.coords, rcut=rcut,
-                    ndim=self.bdim, ncellx_scale=1.0,
-                    dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
+                                        radii=self.hs_radii, boxvec=self.boxv,
+                                        reference_coords=self.coords, ndim=self.bdim,
+                                        ncellx_scale=1.0, distance_method=self.distance_method,
+                                        pot_kwargs=self.pot_kwargs)
             else:
-                self.potential = HS_WCA(eps=self.eps,
-                    sca=self.sca, radii=self.hs_radii, boxvec=self.boxv,
-                    ndim=self.bdim,
-                    dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
+                self.potential = HS_WCA(eps=self.eps, sca=self.sca, radii=self.hs_radii,
+                                        boxvec=self.boxv, ndim=self.bdim,
+                                        distance_method=self.distance_method,
+                                        pot_kwargs=self.pot_kwargs)
         elif self.opt_pot_str.lower() == "inverse_power_stillinger":
             self.stillinger_a_radii = self.hs_radii * (1 + self.sca)
-            pow = self.extra_pot_kwargs["pow"]
-            rcut = self.extra_pot_kwargs["rcut"]
+            pow = self.pot_kwargs["pow"]
+            rcut = self.pot_kwargs["rcut"]
             self.potential = InversePowerStillingerCut(pow,
                 self.stillinger_a_radii, ndim=self.bdim,
                 boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
@@ -253,7 +253,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
 
     def _distance (self, coord1, coord2):
-        return np.array(get_distance(coord1, coord2, self.bdim, self.dist_method, box=self.boxv, shear=self.dist_kwargs['shear']))
+        return np.array(get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv, shear=self.pot_kwargs['shear']))
 
 
     def _find_rattlers(self):
@@ -430,10 +430,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
-        if self.dist_method == 'lees-edwards':
-            return put_in_box(self.coords, self.bdim, self.dist_method, self.boxv, self.dist_kwargs['shear'])
+        if self.distance_method == 'lees-edwards':
+            return put_in_box(self.coords, self.bdim, self.distance_method, self.boxv, self.pot_kwargs['shear'])
         else:
-            return put_in_box(self.coords, self.bdim, self.dist_method, self.boxv)
+            return put_in_box(self.coords, self.bdim, self.distance_method, self.boxv)
 
     def _dump_configuration(self,n):
         """write coordinates to file .xyzdr"""
@@ -567,18 +567,18 @@ if __name__ == "__main__":
 
     # potential type
     opt_pot_str = args.opt_pot
-    extra_pot_kwargs = dict()
+    pot_kwargs = dict()
     if opt_pot_str.lower() == 'hs_wca':
         pass
     elif opt_pot_str.lower() == 'inverse_power_stillinger':
-        extra_pot_kwargs = dict(pow=8, rcut=4.5)
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+        pot_kwargs.update(pow=8, rcut=4.5)
+        print 'setting inverse_power_stillinger parameters: ', pot_kwargs
     else:
         raise NotImplementedError
 
-    print("extra_pot_kwargs", extra_pot_kwargs)
+    print("pot_kwargs", pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
                                      packings_dir=args.packingsdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
-                                     opt_pot_str=args.opt_pot, extra_pot_kwargs=extra_pot_kwargs)
+                                     opt_pot_str=args.opt_pot, pot_kwargs=pot_kwargs)
     sim.run()

@@ -14,28 +14,28 @@ class _configure_mcrunner(object):
     and declares a number of abstract methods which should be implemented in all inheriting classes
     """
     __metaclass__ = abc.ABCMeta
-     
+
     @abc.abstractmethod
     def _set_paths(self, *args, **kwargs):
         """
         set base_directory, packings_directory and configpaths
         """
-    
+
     def _get_opt_maxstep(self, opt_maxstep):
         """returns opt max step"""
         if opt_maxstep is None:
             #opt_maxstep = self.boxv[0] * 0.01
             opt_maxstep = self.sca * np.amin(self.red_radii)
         return opt_maxstep
-    
+
     @abc.abstractmethod
     def _initialise(self):
         """initialisation function"""
-    
+
     @abc.abstractmethod
     def _print_initialise(self):
         """"print initialise"""
-    
+
     def _print_success(self, success):
         """
         print whether calculation has completed successfully
@@ -46,14 +46,14 @@ class _configure_mcrunner(object):
         f.write('[STATUS]\n')
         f.write('success: {}\n'.format(str(success)))
         f.close()
-    
+
     def _print_parameters(self):
         """writes the simulation parameters"""
         f = self._open_param_stream()
         self._write_sim_params(f)
         self._write_code_version(f)
         f.close()
-    
+
     def _open_param_stream(self):
         """
         returns a stream where to write the parameters
@@ -62,13 +62,13 @@ class _configure_mcrunner(object):
         fname = self.configfile
         f = open(fname, 'w')
         return f
-    
+
     @abc.abstractmethod
     def _write_sim_params(self, f):
         """
         write simulation parameters
         """
-    
+
     def _write_code_version(self, f):
         """print software version"""
         f.write('[CODEVERSION]\n')
@@ -77,7 +77,7 @@ class _configure_mcrunner(object):
         f.write('pele_version: {}\n'.format(get_git_version('pele')))
         f.write('python_version: {}\n'.format(get_python_version()))
         f.write('cython_version: {}\n'.format(get_cython_version()))
-    
+
     def _requench_coords(self, dtol, opt_maxstep, verbose, gtol=1e-7, frozen=False,
                          opt_pot_str='hs_wca', **extra_pot_kwargs):
         """re-quench origin to avoid rounding errors"""
@@ -86,15 +86,15 @@ class _configure_mcrunner(object):
                                                                     tol=gtol)
         if opt_pot_str.lower() == 'hs_wca':
             if frozen:
-                pot_optimizer = HS_WCA(use_periodic=False, reference_coords=self.coords, eps=self.eps,
-                                       sca=self.sca, radii=self.hs_radii, use_frozen=True,
-                                       frozen_atoms=self.frozen, ndim=self.bdim)
+                pot_optimizer = HS_WCA(distance_method='periodic', reference_coords=self.coords,
+                                       eps=self.eps, sca=self.sca, radii=self.hs_radii,
+                                       use_frozen=True, frozen_atoms=self.frozen, ndim=self.bdim)
                 res = quench(self.red_coords, pot_optimizer)
                 new_coords = full_coordinates(res.coords, self.coords, self.frozen, self.bdim)
                 self.red_coords = np.array(res.coords)
             else:
-                pot_optimizer = HS_WCA(use_periodic=True, eps=self.eps, sca=self.sca, radii=self.hs_radii,
-                                       ndim=self.bdim, boxvec=self.boxv)
+                pot_optimizer = HS_WCA(distance_method='periodic', eps=self.eps, sca=self.sca,
+                                       radii=self.hs_radii, ndim=self.bdim, boxvec=self.boxv)
                 res = quench(self.red_coords, pot_optimizer)
                 new_coords = res.coords
         elif opt_pot_str.lower() == 'inverse_power_stillinger':
@@ -110,11 +110,11 @@ class _configure_mcrunner(object):
             assert(False)
         elif res.nfev > 1:
             warnings.warn('Configuration has moved on re-quenching, this should not happen')
-             
+
         drms = np.sqrt(np.dot(self.coords - new_coords, self.coords - new_coords) / self.ndim)
         assert(drms <= dtol)
         self.coords = np.array(new_coords)
-        
+
         if verbose:
             print 'results from quench \n'
             print res
@@ -123,14 +123,14 @@ class _configure_mcrunner(object):
             w = np.real(w)
             print 'eigenvalues'
             print sorted(w)
-    
-    @abc.abstractmethod 
+
+    @abc.abstractmethod
     def _import_packing_config_files(self):
         """import packings configuration file"""
-        
+
     def _import_packing_configuration(self, frozen=False):
         """imports the coordinates, data relative to the shape of the particles and
-        whether the particles are rattlers or not. Note that self.rattlers returned 
+        whether the particles are rattlers or not. Note that self.rattlers returned
         here is of size self.ndim but in generate_jammed_packings is of size self.nparticles.
         This should be run in initialise()
         """
@@ -157,9 +157,3 @@ class _configure_mcrunner(object):
             self.red_coords = self.coords
             self.red_radii = self.hs_radii
             self.red_rattlers = self.rattlers
-                
-            
-              
-                
-                
-                

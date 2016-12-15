@@ -15,7 +15,7 @@ try:
 except Exception as e:
     print(e)
 """
-run tests in 
+run tests in
 /scratch/sm958/Results/basinvolume_tests/n32_phi88_2D
 """
 
@@ -49,8 +49,8 @@ def _check_no_overlaps(coords, hs_radii, boxv):
 
 def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(2e5)):
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
-    sim = _kmin_mcrunner('jammed_packing1.xydr', k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5, 
-                         seeds=seeds, niter=5e3, adjustf_niter=5e3, single=True, use_cell_lists=False, 
+    sim = _kmin_mcrunner('jammed_packing1.xydr', k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5,
+                         seeds=seeds, niter=5e3, adjustf_niter=5e3, single=True, use_cell_lists=False,
                          use_cgd=True, verbose=False)
     try:
         print "loading data...",
@@ -64,21 +64,21 @@ def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(2e5)):
         print e
         mcrunner = sim.mcrunner
         adjust_niter = sim.mc_params['adjustf_niter'] = 5e3
-        
+
         #equilibrate
         print "Equilibrating for {}...".format(adjust_niter),
         mcrunner.run()
         print "done"
-        
+
         #get training data
         X_success = np.empty([0,64])
         X_out = np.empty([0,64])
         X_overlap = np.empty([0,64])
-        
+
         print "Generating training samples...",
         for _ in xrange(nconf):
             mcrunner.one_iteration()
-            success = mcrunner.get_success() 
+            success = mcrunner.get_success()
             coords = mcrunner.get_trial_coords()
             if success:
                 coords = np.reshape(coords, [1,64])
@@ -92,7 +92,7 @@ def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(2e5)):
                     X_overlap = np.concatenate((X_overlap, coords), axis=0)
         print "done"
         np.savez(fname, X_success=X_success, X_out=X_out, X_overlap=X_overlap)
-    
+
     return X_success, X_out, X_overlap, sim
 
 def test_minimizer(minimizer, potential, X, origin, Etol=1e-6, dtol=1e-4, **kwargs):
@@ -136,26 +136,26 @@ def test_minimizer_single(minimizer, potential, coords, origin, Etol=1e-6, dtol=
     Eorigin = potential.getEnergy(origin)
     res = minimizer(coords, potential, **kwargs)
     return test_same_minimum(res.coords, res.energy)
-    
+
 def test1(X, potential, origin, nconf, maxstep, fname="test"):
     print "test1 nconf", nconf
-    
-    fire_Xbool, fire_count, fire_nfev = test_minimizer(modifiedfire_cpp, potential, X[:nconf], origin, 
+
+    fire_Xbool, fire_count, fire_nfev = test_minimizer(modifiedfire_cpp, potential, X[:nconf], origin,
                                              tol=1e-7, maxstep=maxstep, nsteps=int(1e6))
     lbfgs_Xbool, lbfgs_count, lbfgs_nfev = test_minimizer(lbfgs_cpp, potential, X[:nconf], origin,
-                                             tol=1e-7, M=1, maxErise=1e-4, maxstep=maxstep/10, 
+                                             tol=1e-7, M=1, maxErise=1e-4, maxstep=maxstep/10,
                                              nsteps=int(1e6))
     cgd_Xbool, cgd_count, cgd_nfev = test_minimizer(CGDescent, potential, X[:nconf], origin,
                                              tol=1e-7, nsteps=int(1e6))
-    
-    print "accuracy: fire {} lbfgs {} cgd {} ".format(fire_count/nconf, 
-                                                     lbfgs_count/nconf, 
+
+    print "accuracy: fire {} lbfgs {} cgd {} ".format(fire_count/nconf,
+                                                     lbfgs_count/nconf,
                                                      cgd_count/nconf)
-    
+
     print "nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(fire_nfev, lbfgs_nfev, cgd_nfev)
-    
-    np.savez("xbool_n{}_{}.npz".format(nconf, fname), X=X[:nconf], 
-             fire_Xbool=fire_Xbool, lbfgs_Xbool=lbfgs_Xbool, 
+
+    np.savez("xbool_n{}_{}.npz".format(nconf, fname), X=X[:nconf],
+             fire_Xbool=fire_Xbool, lbfgs_Xbool=lbfgs_Xbool,
              cgd_Xbool=cgd_Xbool)
 
 def _plot_simple_projection(X, Xbool=None, color='b', pair=[0,2], plt_density=False):
@@ -168,9 +168,9 @@ def _plot_simple_projection(X, Xbool=None, color='b', pair=[0,2], plt_density=Fa
     x, y = [x[pair[0]] for x in Xpos], [x[pair[1]] for x in Xpos]
     if plt_density:
         plot_density(x, y)
-    else:    
-        plt.scatter(x, y, color=color, marker='s', s=10, edgecolor='none') 
-    
+    else:
+        plt.scatter(x, y, color=color, marker='s', s=10, edgecolor='none')
+
 def plot_file_simple(fname, array_name='fire_Xbool', pair=[7,3], plt_density=False):
     print "loading data...",
     data = np.load(fname)
@@ -229,7 +229,7 @@ def _plot_dist_projection(sim, X, origin=None, orth='min', marker='s', color='b'
     for coords in X:
         x.append(np.linalg.norm(coords))
         y.append(np.dot(coords,v)/np.linalg.norm(coords))
-        
+
     if plt_density:
         plot_density(x, y)
     else:
@@ -239,7 +239,7 @@ def _plot_dist_projection(sim, X, origin=None, orth='min', marker='s', color='b'
         plt.ylabel(r'$(\mathbf{x}-\mathbf{x}_o) \cdot \mathbf{e}_{max}$')
     else:
         plt.ylabel(r'$(\mathbf{x}-\mathbf{x}_o) \cdot \mathbf{e}_{min}$')
-    
+
 def plot_file_eig(raw_fname, req_fname, array_name='fire_Xbool', plt_density=False):
     X_success, X_out, X_overlap, sim = get_X(fname=raw_fname, pppn=[3,6], nconf=int(1e5))
     print "loading data...",
@@ -250,7 +250,7 @@ def plot_file_eig(raw_fname, req_fname, array_name='fire_Xbool', plt_density=Fal
     except:
         Xbool=None
     _plot_eig_projection(sim, X, Xbool=Xbool, plt_density=plt_density)
-    
+
 def _hist_nnb_midpoint(fname, Xin, Xout):
     """
     histogram the distance from the midpoint of all pairs of nearest neighbours to the closest point out of the basin
@@ -273,7 +273,7 @@ def _hist_nnb_midpoint(fname, Xin, Xout):
         array_dist.append(dx)
     np.savez(fname[:-4]+"_array_dist_midpoint", array_dist=array_dist)
     plt.hist(array_dist)
-    
+
 def _hist_nnb(fname, Xin, Xout):
     """
     histogram the distance from the midpoint of all pairs of nearest neighbours to the closest point out of the basin
@@ -299,7 +299,7 @@ def hist_nnb(fname, Xin, Xout):
         print "done"
     except:
         array_dist = _hist_nnb(fname, Xin, Xout)
-    
+
     plt.hist(array_dist, normed=True, bins=14)
     plt.xlabel(r'$|x_{in}-x_{out}|_{nnb}$')
     plt.ylabel(r'$p(|x_{in}-x_{out}|_{nnb})$')
@@ -406,10 +406,10 @@ def _walk_eig_loop(fname, ndim=128, npackings=250):
     for i in xrange(ndim):
         for j in xrange(npackings):
             try:
-                sim = _kmin_mcrunner('jammed_packing{}.xydr'.format(j), k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5, 
-                                     seeds=seeds, niter=5e3, adjustf_niter=5e3, single=True, use_cell_lists=False, 
+                sim = _kmin_mcrunner('jammed_packing{}.xydr'.format(j), k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5,
+                                     seeds=seeds, niter=5e3, adjustf_niter=5e3, single=True, use_cell_lists=False,
                                      use_cgd=True, verbose=False)
-                _walk_eig_direction(sim, stepsize=0.01, index_evec=i, distance_array=distance_array, 
+                _walk_eig_direction(sim, stepsize=0.01, index_evec=i, distance_array=distance_array,
                                     te_array=te_array, ev_array=ev_array)
             except:
                 pass
@@ -433,7 +433,7 @@ def walk_eig(fname):
     plt.xscale('log')
     plt.yscale('log')
     plt.savefig(fname[:-4]+"_lamb_dx.pdf")
-    
+
     from scipy.stats import binned_statistic
     plt.figure()
     dx_means, bin_edges, binnumber = binned_statistic(ev_array, distance_array, statistic='mean', bins=20)
@@ -444,7 +444,7 @@ def walk_eig(fname):
     plt.xlabel(r'$\lambda$')
     plt.ylabel(r'$\mathbf{x}_o + \delta \mathbf{e}_{\lambda}$')
     plt.savefig(fname[:-4]+"_lamb_dx_mean.pdf")
-    
+
     plt.figure()
     plt.scatter(ev_array, te_array, color='k', marker='s', s=2, edgecolor='none')
     plt.xlabel(r'$\lambda$')
@@ -452,7 +452,7 @@ def walk_eig(fname):
     plt.xscale('log')
     plt.yscale('log')
     plt.savefig(fname[:-4]+"_lamb_te.pdf")
-    
+
     plt.figure()
     te_means, bin_edges, binnumber = binned_statistic(ev_array, te_array, statistic='mean', bins=8)
     bin_means = [(bin_edges[i]+bin_edges[i+1])/2 for i in xrange(len(te_means))]
@@ -462,7 +462,7 @@ def walk_eig(fname):
     plt.xscale('log')
     plt.yscale('log')
     plt.savefig(fname[:-4]+"_lamb_te_mean.pdf")
-    
+
 ##import time series routines
 
 def _import_time_series(explore_dir):
@@ -491,7 +491,7 @@ def _import_ks(explore_dir):
     """
     import spring constants
     """
-    karray = [] 
+    karray = []
     path = os.path.join(explore_dir, 'temperatures')
     f = open(path, "r")
     while True:
@@ -499,7 +499,7 @@ def _import_ks(explore_dir):
         if not k: break
         karray.extend([float(k)])
     #kmax is not included because we don't have a time series for it
-    #karray = np.array(karray[::-1], dtype='d')    
+    #karray = np.array(karray[::-1], dtype='d')
     return karray
 
 def build_histogram(explore_dir, bins=100):
@@ -521,17 +521,17 @@ def main(fname="test_data20k.npz"):
     xmean, ymean = np.mean(origin[::2]), np.mean(origin[1::2])
     origin[::2] -= xmean
     origin[1::2] -= ymean
-    
+
     for i,x in enumerate(X_success):
         xm, ym = np.mean(x[::2]), np.mean(x[1::2])
         X_success[i][::2] -= xm
         X_success[i][1::2] -= ym
-        
+
     for i,x in enumerate(X_out):
         xm, ym = np.mean(x[::2]), np.mean(x[1::2])
         X_out[i][::2] -= xm
         X_out[i][1::2] -= ym
-    
+
     for i,x in enumerate(X_overlap):
         xm, ym = np.mean(x[::2]), np.mean(x[1::2])
         X_overlap[i][::2] -= xm
@@ -575,7 +575,7 @@ def main(fname="test_data20k.npz"):
         X_out[i] -= origin
     for i,x in enumerate(X_overlap):
         X_overlap[i] -= origin
-            
+
     if False:
         msize = 0.5
         plt.figure()
@@ -624,17 +624,11 @@ def main(fname="test_data20k.npz"):
         #_hist_nnb_midpoint(fname, X_success, np.concatenate((X_out, X_overlap), axis=0))
         hist_nnb(fname, X_success, np.concatenate((X_out, X_overlap), axis=0))
         plt.savefig(fname[:-4]+"_Xsuc_nnb_hist.pdf")
-        
+
 if __name__ == "__main__":
     #main("test_data20k.npz")
     walk_eig("test")
     #classify_points()
     #plot_file_simple("xbool_n13097_test_data10k.npz.npz", pair=[2,3], plt_density=False)
     #plot_file_eig("test_data10k.npz", "xbool_n13097_test_data10k.npz.npz", plt_density=False)
-    #plt.show()    
-                
-            
-              
-                
-                
-                
+    #plt.show()

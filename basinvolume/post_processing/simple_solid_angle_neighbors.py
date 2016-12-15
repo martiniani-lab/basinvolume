@@ -16,7 +16,7 @@ class SimpleSolidAngleNeighbors(object):
         self.nn_vector = []
         self.weight = []
         self.compute_neighbors_weights()
-        
+
     def compute_neighbors_weights(self):
         # This follows exactly: ftp://ftp.aip.org/epaps/journ_chem_phys/E-JCPSA6-136-022224/sann.c
         # this does not exclude rattlers from the shell

@@ -116,8 +116,8 @@ class _Generate_Packing(object):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        f.write('dist_method: {}\n'.format(self.dist_method))
-        f.write('dist_kwargs: {}\n'.format(self.dist_kwargs))
+        f.write('distance_method: {}\n'.format(self.distance_method))
+        f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         #print software version
         f.write('[CODEVERSION]\n')
         f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
@@ -170,7 +170,7 @@ class HS_Generate_Packing(_Generate_Packing):
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None,
                  mu = 1, sig = 0.1, new_poly=False, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10,
                  use_cell_lists=False, single=False, seeds=None, start_iteration=0,
-                 dist_method='periodic', dist_kwargs={}):
+                 distance_method='periodic', pot_kwargs={}):
         super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv,
                                                  packing_frac=packing_frac, max_iter=max_iter,
                                                  use_cell_lists=use_cell_lists, start_iteration=start_iteration)
@@ -197,8 +197,8 @@ class HS_Generate_Packing(_Generate_Packing):
         self.hsf_niter = hsf_niter #number of iteration for each hs fluid configuration
         self.hsf_stepsize = hsf_stepsize
         self.hs_radii = hs_radii
-        self.dist_method = dist_method
-        self.dist_kwargs = dist_kwargs
+        self.distance_method = distance_method
+        self.pot_kwargs = pot_kwargs
 
     def _initialise(self):
         if self.initialised is False:
@@ -217,14 +217,14 @@ class HS_Generate_Packing(_Generate_Packing):
                                      sca=self.sca, radii=self.hs_radii,
                                      boxvec=self.boxv,
                                      reference_coords=self.coords,
-                                     rcut=rcut, ndim=self.bdim, ncellx_scale=1.0,
-                                     dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
+                                     ndim=self.bdim, ncellx_scale=1.0,
+                                     distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
                 else:
                     self.potential = HS_WCA(eps=self.eps,
                                      sca=self.sca, radii=self.hs_radii,
                                      boxvec=self.boxv, ndim=self.bdim,
                                      use_cell_lists=False,
-                                     dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
+                                     distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
             else:
                 self._initialise_coords_crystal()
             self._print_initialise()
@@ -273,10 +273,10 @@ class HS_Generate_Packing(_Generate_Packing):
 
 
     def _distance (self, coord1, coord2):
-        if self.dist_method == "lees-edwards":
-            return np.array(get_distance(coord1, coord2, self.bdim, self.dist_method, box=self.boxv, shear=self.dist_kwargs['shear']))
+        if self.distance_method == "lees-edwards":
+            return np.array(get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv, shear=self.pot_kwargs['shear']))
         else:
-            return np.array(get_distance(coord1, coord2, self.bdim, self.dist_method, box=self.boxv))
+            return np.array(get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv))
 
 
     def _check_no_overlaps(self):
@@ -341,7 +341,7 @@ class HS_Generate_Packing(_Generate_Packing):
                                                    adjustf = 0.9, acceptance=0.15, adjustf_niter = 1e6,
                                                    single=self.single, seeds = self.seeds,
                                                    use_cell=self.use_cell_lists,
-                                                   dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
+                                                   distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
             dif_mcrunner.run()
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
             hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
@@ -353,7 +353,7 @@ class HS_Generate_Packing(_Generate_Packing):
                                         self.boxv, adjustf = 0.9, acceptance=0.15,
                                         adjustf_niter = 0, single=self.single,
                                         seeds = self.seeds, use_cell=self.use_cell_lists,
-                                        dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
+                                        distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
         self.mcrunner.set_config(self.coords, self.energy)
         self.mcrunner.run()
         self.coords, self.energy = self.mcrunner.get_config()
@@ -368,7 +368,7 @@ class HS_Generate_Packing(_Generate_Packing):
         #sigma =  min(self.boxv) / np.power(2,1./6) #set sigma such that the the wca radius is the same as the box smallest side length
         #pot = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of sigma might have to be different
         pot = HS_WCA(eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
-                     ndim=self.bdim, dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
+                     ndim=self.bdim, distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
 
         overlap = True
         while overlap == True:
@@ -390,7 +390,7 @@ class HS_Generate_Packing(_Generate_Packing):
         the HSWCA particles are then substitued by HS
         """
         pot = HS_WCA(eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
-                     ndim=self.bdim, use_cell_lists=True, dist_method=self.dist_method, dist_kwargs=self.dist_kwargs)
+                     ndim=self.bdim, use_cell_lists=True, distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
         overlap = True
         while overlap == True:
             coords = self._sample_random_coords()
@@ -602,10 +602,10 @@ class HS_Generate_Packing(_Generate_Packing):
 
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
-        if self.dist_method == 'lees-edwards':
-            return put_in_box(self.coords, self.bdim, self.dist_method, self.boxv, self.dist_kwargs['shear'])
+        if self.distance_method == 'lees-edwards':
+            return put_in_box(self.coords, self.bdim, self.distance_method, self.boxv, self.pot_kwargs['shear'])
         else:
-            return put_in_box(self.coords, self.bdim, self.dist_method, self.boxv)
+            return put_in_box(self.coords, self.bdim, self.distance_method, self.boxv)
 
     def _dump_configuration(self):
         """write coordinates to file .xyzd"""
@@ -684,8 +684,8 @@ class HS_Generate_Packing(_Generate_Packing):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        f.write('dist_method: {}\n'.format(self.dist_method))
-        f.write('dist_kwargs: {}\n'.format(self.dist_kwargs))
+        f.write('distance_method: {}\n'.format(self.distance_method))
+        f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         #print software version
         f.write('[CODEVERSION]\n')
         f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
@@ -712,17 +712,17 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
-    parser.add_argument("--dist_method", type=str, help="Define distance measurement method, "
+    parser.add_argument("--distance-method", type=str, help="Define distance measurement method, "
                         "e.g. 'periodic' or 'lees-edwards'. Default: 'periodic'", default='periodic')
     parser.add_argument("--shear", type=float, help="Amount of shear for Lees-Edwards boundary conditions.", default=0.)
     args = parser.parse_args()
     print args
     single = not args.moveall
 
-    if args.dist_method == 'lees-edwards':
-        dist_kwargs = {'shear': args.shear}
+    if args.distance_method == 'lees-edwards':
+        pot_kwargs = {'shear': args.shear}
     else:
-        dist_kwargs = {}
+        pot_kwargs = {}
 
     #import radii from other configuration file
     dpath = args.dpath
@@ -739,5 +739,5 @@ if __name__ == "__main__":
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
                               hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
                               hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                              use_cell_lists=not args.nocell, single=single, start_iteration=args.start_iter, dist_method=args.dist_method, dist_kwargs=dist_kwargs)
+                              use_cell_lists=not args.nocell, single=single, start_iteration=args.start_iter, distance_method=args.distance_method, pot_kwargs=pot_kwargs)
     sim.run()

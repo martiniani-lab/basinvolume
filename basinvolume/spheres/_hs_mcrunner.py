@@ -33,7 +33,7 @@ class HS_MCrunner(_BaseMCRunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter=1e4,
                   adjustf_navg=100, single=False, seeds=None, use_cell=None,
-                  dist_method='periodic', dist_kwargs={}):
+                  distance_method='periodic', pot_kwargs={}):
         #construct base class
         super(HS_MCrunner,self).__init__(potential, coords, temperature, niter)
         self.hs_radii = hs_radii
@@ -51,11 +51,13 @@ class HS_MCrunner(_BaseMCRunner):
 
         #construct test/action classes
         self.set_report_steps(adjustf_niter)
-        self.takestep_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'], stepsize,
-                                                                     report_interval=adjustf_navg, factor=adjustf,
-                                                                     min_acc_ratio=0.2, max_acc_ratio=0.5,
-                                                                     single=single, nparticles=self.nparticles,
-                                                                     bdim=self.bdim)
+        self.takestep_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'],
+                                                              stepsize,
+                                                              report_interval=adjustf_navg,
+                                                              factor=adjustf, min_acc_ratio=0.2,
+                                                              max_acc_ratio=0.5, single=single,
+                                                              nparticles=self.nparticles,
+                                                              bdim=self.bdim)
         self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
         self.takestep = TakeStepProbabilities(self.seeds['seed_probability_step_pattern'])
         self.takestep.add_step(self.takestep_displacement, 0.9)
@@ -68,12 +70,12 @@ class HS_MCrunner(_BaseMCRunner):
             else:
                 self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, use_frozen=False)
         else:
-            if dist_method == 'lees-edwards':
+            if distance_method == 'lees-edwards':
                 if use_cell:
-                    self.checkoverlap = CheckOverlapLeesEdwardsCellLists(hs_radii, boxvec, shear=dist_kwargs['shear'],
+                    self.checkoverlap = CheckOverlapLeesEdwardsCellLists(hs_radii, boxvec, shear=pot_kwargs['shear'],
                                                                          use_frozen=False)
                 else:
-                    self.checkoverlap = CheckOverlapLeesEdwards(hs_radii, boxvec, shear=dist_kwargs['shear'])
+                    self.checkoverlap = CheckOverlapLeesEdwards(hs_radii, boxvec, shear=pot_kwargs['shear'])
             else:
                 if use_cell:
                     self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec,
@@ -109,14 +111,14 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
                   hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2,
                   adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100,
                   desired_mean_rsm_displ=None, single=False, seeds=None,
-                  use_cell=None, dist_method='periodic', dist_kwargs={}):
+                  use_cell=None, distance_method='periodic', pot_kwargs={}):
         #construct base class
         super(HS_MCrunnerOptDiffusion,self).__init__(potential, coords, temperature,
                                          stepsize, niter, hs_radii, boxvec, acceptance=acceptance,
                                          adjustf=adjustf, adjustf_niter=adjustf_niter,
                                          adjustf_navg=adjustf_navg, single=single, seeds=seeds,
-                                         use_cell=use_cell, dist_method=dist_method,
-                                         dist_kwargs=dist_kwargs)
+                                         use_cell=use_cell, distance_method=distance_method,
+                                         pot_kwargs=pot_kwargs)
         if not desired_mean_rsm_displ:
             desired_mean_rsm_displ = np.amax(self.hs_radii) * 2
         self.initial_stepsize = stepsize
