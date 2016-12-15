@@ -4,7 +4,8 @@ import abc
 import os
 from pele.potentials import HS_WCA
 from pele.storage import Minimum
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, put_in_box, get_git_version, get_cython_version, get_python_version
+from pele.distance import put_in_box
+from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, get_git_version, get_cython_version, get_python_version
 from basinvolume.gui import HSWCASystem
 import ConfigParser
 import time
@@ -114,15 +115,15 @@ class analyse_jammed_packings(object):
             self.db = self.system.create_database()
         self.analyse_hessian(fname)
         coords = self.coords.copy()
-        np.array(put_in_box(coords,self.boxv))
+        coords = put_in_box(coords, self.bdim, 'periodic', self.boxv)
         self.db.addMinimum(self.potential.getEnergy(self.coords), coords)
 #        m = Minimum(self.potential.getEnergy(self.coords), coords)
 #        m.user_data = dict(rattlers=self.rattlers[::self.bdim])
 #        self.db.session.add(m)
 #        self.db.session.commit()
-        
-        
-    
+
+
+
     def run(self):
         """run generate packings"""
         for fname in os.listdir(self.packings_dir):

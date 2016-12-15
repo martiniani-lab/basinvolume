@@ -5,7 +5,7 @@ from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.spheres import HS_MCrunnerOptDiffusion
-from basinvolume.utils import put_in_box
+from pele.distance import put_in_box
 
 class MC(_BaseMCRunner):
     def set_control(self, temp):
@@ -64,7 +64,7 @@ class EqFluidSnapshots(object):
     def print_Lorenzo_style(self):
         print("number of MC steps", self.mc.get_iterations_count())
         self.coordinates = self.mc.get_coords()
-        put_in_box(self.coordinates, self.boxvec)
+        self.coordinates = put_in_box(self.coordinates, 2, 'periodic', self.boxvec)
         out_file = open(self.base_out_file_name + "_" + str(self.printed_images), "w")
         for particle_index in xrange(self.nr_particles):
             out_file.write(self.get_Lorenzo_style_string(particle_index) + "\n")

@@ -13,6 +13,7 @@ import pandas as pd
 import glob
 from itertools import chain
 from basinvolume.utils._utils_cpp import read_txt
+from pele.distance import put_in_box
 try:
     from joblib import Parallel, delayed
     import matplotlib.pyplot as plt
@@ -311,7 +312,7 @@ def plot_disks(coords, radii, boxv, colors=None, sca=0):
     def myscatter(ax, colormap, x, y, radii, colors):
         for x1,y1,r,c in zip(x, y, radii, colormap(colors)):
             ax.add_patch(Circle((x1,y1), r, fc=c))
-    put_in_box(coords, boxv)
+    coords = put_in_box(coords, 2, 'periodic', boxv)
     coords = np.reshape(coords, (len(radii), 2))
     fig=pylab.figure()
     ax=fig.add_subplot(111, aspect='equal')
