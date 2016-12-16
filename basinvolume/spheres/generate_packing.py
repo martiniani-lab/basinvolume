@@ -274,9 +274,10 @@ class HS_Generate_Packing(_Generate_Packing):
 
     def _distance (self, coord1, coord2):
         if self.distance_method == "lees-edwards":
-            return np.array(get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv, shear=self.pot_kwargs['shear']))
+            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv,
+                                shear=self.pot_kwargs['shear'])
         else:
-            return np.array(get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv))
+            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv)
 
 
     def _check_no_overlaps(self):
