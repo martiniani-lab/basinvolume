@@ -283,16 +283,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         look = True
         nratls = 0
         while look:
-            # print "restarting loop"
             found_rattler = False
             if nratls > self.max_nrattlers:
+                print "Too many rattlers. Discarding packing."
                 return False
             radii = hs_radii * (1. + self.sca)
             contact_list, neighbors_index_list = self._find_nearest_neighbors(coords, radii)
             for i in xrange(len(hs_radii)):
                 i1 = self.bdim * i
                 no_neighbors = len(contact_list[i])
-                # print "no_neighbors", no_neighbors
                 if no_neighbors < zmin:
                     found_rattler = True
                     print "particle {} is not isostatic".format(i)
@@ -307,7 +306,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     if found_rattler:
                         # print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
                         print "particle not in contacts convex hull"
-                #here assign correct index by searchin for the corresponding atom
+                #here assign correct index by searching for the corresponding atom
                 j = get_index(coords[i1:i1+self.bdim])
                 self.rattlers[j] = 0 if found_rattler else 1000
                 self.rattlers_draw[j] = float(not found_rattler)
@@ -337,18 +336,17 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         nparticles = radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]
         nnatoms_index_list = [[] for _ in xrange(nparticles)]
-        for i in xrange(nparticles):
-            for j in xrange(i, nparticles):
-                if i != j:
-                    dij = self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                             self.coords[j * self.bdim : (j + 1) * self.bdim])
-                    dijnorm = np.linalg.norm(dij)
-                    dmin = radii[i] + radii[j]
-                    if dijnorm <= dmin:
-                        nnatoms_list[i].append(dij)
-                        nnatoms_list[j].append(-dij)
-                        nnatoms_index_list[i].append(j)
-                        nnatoms_index_list[j].append(i)
+        for i in xrange(nparticles - 1):
+            for j in xrange(i + 1, nparticles):
+                dij = self._distance(coords[i * self.bdim : (i + 1) * self.bdim],
+                                         coords[j * self.bdim : (j + 1) * self.bdim])
+                dijnorm = np.linalg.norm(dij)
+                dmin = radii[i] + radii[j]
+                if dijnorm <= dmin:
+                    nnatoms_list[i].append(dij)
+                    nnatoms_list[j].append(-dij)
+                    nnatoms_index_list[i].append(j)
+                    nnatoms_index_list[j].append(i)
         return nnatoms_list, nnatoms_index_list
 
 

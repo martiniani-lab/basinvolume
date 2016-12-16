@@ -224,19 +224,18 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         nparticles = radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]
         nnatoms_index_list = [[] for _ in xrange(nparticles)]
-        for i in xrange(nparticles):
-            for j in xrange(i, nparticles):
-                if i != j:
-                    dij = get_distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                       self.coords[j * self.bdim : (j + 1) * self.bdim],
-                                       self.bdim, 'periodic', box=self.boxv)
-                    dijnorm = np.linalg.norm(dij)
-                    dmin = radii[i] + radii[j]
-                    if dijnorm <= dmin:
-                        nnatoms_list[i].append(dij)
-                        nnatoms_list[j].append(-dij)
-                        nnatoms_index_list[i].append(j)
-                        nnatoms_index_list[j].append(i)
+        for i in xrange(nparticles - 1):
+            for j in xrange(i + 1, nparticles):
+                dij = get_distance(coords[i * self.bdim : (i + 1) * self.bdim],
+                                   coords[j * self.bdim : (j + 1) * self.bdim],
+                                   self.bdim, 'periodic', box=self.boxv)
+                dijnorm = np.linalg.norm(dij)
+                dmin = radii[i] + radii[j]
+                if dijnorm <= dmin:
+                    nnatoms_list[i].append(dij)
+                    nnatoms_list[j].append(-dij)
+                    nnatoms_index_list[i].append(j)
+                    nnatoms_index_list[j].append(i)
         return nnatoms_list, nnatoms_index_list
 
     def _generate_packing_coords_ss(self):

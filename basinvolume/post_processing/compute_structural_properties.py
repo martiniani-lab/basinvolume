@@ -213,17 +213,16 @@ class BondOrientationalOrder(StructuralAnalysis):
             atom_labels = range(nparticles)
         else:
             atom_labels = np.array(range(nparticles))[np.array(rattlers[::self.bdim], dtype='int') == 1]
-        for i in atom_labels:
-            for j in atom_labels:
-                if j > i:
-                    dij = get_distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                       self.coords[j * self.bdim : (j + 1) * self.bdim],
-                                       self.bdim, 'periodic', box=self.boxv)
-                    dijnorm = np.linalg.norm(dij)
-                    dmin = hs_radii[i] + hs_radii[j]
-                    if dijnorm <= dmin:
-                        nnatoms_list[i].append(dij)
-                        nnatoms_list[j].append(-dij)
+        for i in xrange(nparticles - 1):
+            for j in xrange(i + 1, nparticles):
+                dij = get_distance(coords[i * self.bdim : (i + 1) * self.bdim],
+                                   coords[j * self.bdim : (j + 1) * self.bdim],
+                                   self.bdim, 'periodic', box=self.boxv)
+                dijnorm = np.linalg.norm(dij)
+                dmin = hs_radii[i] + hs_radii[j]
+                if dijnorm <= dmin:
+                    nnatoms_list[i].append(dij)
+                    nnatoms_list[j].append(-dij)
         return nnatoms_list
 
     def find_nearest_neighbors_solid_angle(self, coords, hs_radii):
