@@ -291,10 +291,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             contact_list, neighbors_index_list = self._find_nearest_neighbors(coords, radii)
             for i in xrange(len(hs_radii)):
                 i1 = self.bdim * i
+                j = get_index(coords[i1:i1+self.bdim])
                 no_neighbors = len(contact_list[i])
                 if no_neighbors < zmin:
                     found_rattler = True
-                    print "particle {} is not isostatic".format(i)
+                    print "particle {} is not isostatic".format(j)
                 else:
                     # angles = [cartesian_to_polar2d(dij)[1] for dij in contact_list[i]]
                     # neigh_vec = [x for (y, x) in sorted(zip(angles, contact_list[i]))]
@@ -305,9 +306,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     found_rattler = not in_hull(p, hull)
                     if found_rattler:
                         # print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
-                        print "particle not in contacts convex hull"
+                        print "particle {} is not in contacts' convex hull".format(j)
                 #here assign correct index by searching for the corresponding atom
-                j = get_index(coords[i1:i1+self.bdim])
                 self.rattlers[j] = 0 if found_rattler else 1000
                 self.rattlers_draw[j] = float(not found_rattler)
                 if found_rattler:
