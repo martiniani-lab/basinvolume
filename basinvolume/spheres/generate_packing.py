@@ -112,7 +112,7 @@ class _Generate_Packing(object):
         f.write('ndim: {}\n'.format(self.ndof))
         f.write('max_iter: {}\n'.format(self.max_iter))
         assert(self.box_resized)
-        f.write('boxv: {}\n'.format(boxv))
+        f.write('boxv: ')
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
