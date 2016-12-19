@@ -4,6 +4,7 @@ import numpy as np
 import os
 import ConfigParser
 import traceback
+import ast
 from scipy.special import sph_harm
 from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, cround
 from pele.utils._pressure_tensor import pressure_tensor
@@ -52,6 +53,11 @@ class StructuralAnalysis(object):
             self.vcavity = np.prod(self.boxv)
         self.packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
+        self.distance_method = configf.get('JAMMED_PACKING', 'distance_method')
+        if hasattr(self, 'pot_kwargs'):
+            self.pot_kwargs.update(ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs')))
+        else:
+            self.pot_kwargs = ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs'))
 
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.jammed_packings_dir, fname)
@@ -128,7 +134,7 @@ class BondOrientationalOrder(StructuralAnalysis):
 
     def run_all(self, deg_list=[4,6,8,10,12]):
         if any('xyzd' in fname for fname in os.listdir(self.jammed_packings_dir)):
-            for i,deg in enumerate(deg_list):
+            for i, deg in enumerate(deg_list):
                 self.run(deg, pinit=i<1)
                 assert self.bdim == 3
         elif any('xyd' in fname for fname in os.listdir(self.jammed_packings_dir)):
@@ -203,6 +209,13 @@ class BondOrientationalOrder(StructuralAnalysis):
         else:
             raise Exception('ndim not implemented')
 
+    def _distance (self, coord1, coord2):
+        if self.distance_method == 'lees-edwards':
+            return get_distance(coord1, coord2, self.bdim, self.distance_method,
+                                box=self.boxv, shear=self.pot_kwargs['shear'])
+        else:
+            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv)
+
     def find_nearest_neighbors(self, coords, hs_radii, rattlers=None):
         """
         this function ignores rattlers
@@ -216,9 +229,8 @@ class BondOrientationalOrder(StructuralAnalysis):
         for i in atom_labels:
             for j in atom_labels:
                 if j > i:
-                    dij = get_distance(coords[i * self.bdim : (i + 1) * self.bdim],
-                                       coords[j * self.bdim : (j + 1) * self.bdim],
-                                       self.bdim, 'periodic', box=self.boxv)
+                    dij = self._distance(coords[i * self.bdim : (i + 1) * self.bdim],
+                                    coords[j * self.bdim : (j + 1) * self.bdim])
                     dijnorm = np.linalg.norm(dij)
                     dmin = hs_radii[i] + hs_radii[j]
                     if dijnorm <= dmin:
@@ -285,11 +297,10 @@ class BondOrientationalOrder(StructuralAnalysis):
 
 class PressureTensor(StructuralAnalysis):
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis',
-                 force=False, existing_only=True, opt_pot_str='hs_wca', **extra_pot_kwargs):
+                 force=False, existing_only=True, opt_pot_str='hs_wca'):
         super(PressureTensor,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir,
                                             analysis_dir=analysis_dir, force=force, existing_only=existing_only)
         self.opt_pot_str = opt_pot_str
-        self.extra_pot_kwargs = extra_pot_kwargs
 
     def run(self):
         """compute boo for packings
@@ -344,11 +355,12 @@ class PressureTensor(StructuralAnalysis):
     def get_potential(self):
         # here put a flag and pick potential
         if self.opt_pot_str.lower() == 'hs_wca':
-            pot = HS_WCA(distance_method='periodic', eps=self.eps, sca=self.sca,
-                         radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
+            pot = HS_WCA(eps=self.eps, sca=self.sca,
+                         radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim,
+                         distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
         elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
-            pow = self.extra_pot_kwargs['pow']
-            rcut = self.extra_pot_kwargs["rcut"]
+            pow = self.pot_kwargs['pow']
+            rcut = self.pot_kwargs["rcut"]
             pot_optimizer = InversePowerStillingerCut(pow,
                 self.stillinger_a_radii, ndim=self.bdim,
                 boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
@@ -388,27 +400,19 @@ if __name__ == "__main__":
     parser.add_argument("--solid", action="store_true", help="use solid angle method to find and weight neighbors", default=False)
     parser.add_argument("--nonex", action='store_false', help="run also the non packings for which there aren't working folders", default=True)
     # potential arguments
-    parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
+    parser.add_argument("--opt-pot", type=str, help="optimizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
 
     # potential type
     opt_pot_str = args.opt_pot
-    extra_pot_kwargs = dict()
-    if opt_pot_str == 'hs_wca':
-        pass
-    elif opt_pot_str == 'inverse_power_stillinger':
-        extra_pot_kwargs.update(dict(pow=3, rcut=1.5))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
-    else:
-        raise NotImplementedError
 
     ncores = args.ncores
     kwargs = dict(force=args.force, existing_only=args.nonex)
     if args.solid:
         kwargs.update(solid_angle_weighted=args.solid)
 
-    pts_kwargs = dict(opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+    pts_kwargs = dict(opt_pot_str=opt_pot_str)
     pts_kwargs.update(kwargs)
 
     if not args.all:
