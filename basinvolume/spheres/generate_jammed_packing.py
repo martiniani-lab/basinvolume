@@ -50,12 +50,15 @@ class _Generate_Jammed_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, packing_frac=0.65, packings_dir='packings'):
+    def __init__(self, packing_frac=0.65, packings_dir='packings', import_jammed=False,
+                 outdir='jammed_packings', override_shear=None):
         self.packing_frac = packing_frac
-        self.base_directory = os.path.join(os.getcwd(),'jammed_packings')
+        self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
+        self.import_jammed = import_jammed
+        self.override_shear = override_shear
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
@@ -66,21 +69,36 @@ class _Generate_Jammed_Packing(object):
             dname = dname[:-5]
         elif dname.endswith('.xyd'):
             dname = dname[:-4]
+        elif dname.endswith('.xydr'):
+            dname = dname[:-5]
+        elif dname.endswith('.xyzdr'):
+            dname = dname[:-6]
         self.configpath = os.path.join(self.packings_dir, dname+'.config')
-        self._import_packing_config_file()
+        self._import_packing_config_file("JAMMED_PACKING" if self.import_jammed else "PACKING")
 
-    def _import_packing_config_file(self):
+    def _import_packing_config_file(self, section):
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.configpath))
-        self.nparticles = configf.getint('PACKING','nparticles')
-        self.bdim = configf.getint('PACKING','boxdim')
+        self.nparticles = configf.getint(section,'nparticles')
+        self.bdim = configf.getint(section,'boxdim')
         assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
-        boxv = configf.get('PACKING','boxv')
+        boxv = configf.get(section,'boxv')
         self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat('PACKING','packing_fraction')
-        self.distance_method = configf.get('PACKING', 'distance_method')
-        self.pot_kwargs.update(ast.literal_eval(configf.get('PACKING', 'pot_kwargs')))
+        if self.import_jammed:
+            imp_sca = configf.getfloat(section, 'sca')
+            self.imp_packing_frac = self.packing_frac / (1 + imp_sca)**2
+        else:
+            self.imp_packing_frac = configf.getfloat(section,'packing_fraction')
+        self.distance_method = configf.get(section, 'distance_method')
+        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
+            self.pot_kwargs.update(ast.literal_eval(configf.get(section, 'pot_kwargs')))
+        else:
+            self.pot_kwargs = ast.literal_eval(configf.get(section, 'pot_kwargs'))
+        if self.override_shear is not None:
+            self.pot_kwargs['shear'] = self.override_shear
+
+
 
     @abc.abstractmethod
     def _initialise(self):
@@ -94,6 +112,7 @@ class _Generate_Jammed_Packing(object):
         """imports the coordinates and data relative to the shape of the particles
             this should be run in initialise()
         """
+
     @abc.abstractmethod
     def _generate_packing_coords(self):
         """function that generates the packing"""
@@ -156,13 +175,19 @@ class _Generate_Jammed_Packing(object):
     def one_iteration(self,fname):
         """perform one iteration
         """
+
     def run(self):
         """run generate packings"""
         self._initialise()
         for fname in os.listdir(self.packings_dir):
-            if ('xyzd' in fname) or ('xyd' in fname):
-                print "\n",fname
-                self.one_iteration(fname)
+            if self.import_jammed:
+                if ('xyzdr' in fname) or ('xydr' in fname):
+                    print "\n",fname
+                    self.one_iteration(fname)
+            else:
+                if ('xyzd' in fname) or ('xyd' in fname):
+                    print "\n",fname
+                    self.one_iteration(fname)
         # self._histogram_eigenvalues()
 
 class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
@@ -179,10 +204,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *tol: rms tolerance for the minimizer
     """
     def __init__(self, packing_frac=0.7, tol=1e-9,
-        packings_dir='packings', use_cell_lists=False, show=False,
-        opt_pot_str='hs_wca', pot_kwargs=None):
+        packings_dir='packings', import_jammed=False, outdir='jammed_packings',
+        use_cell_lists=False, show=False,
+        opt_pot_str='hs_wca', pot_kwargs=None, override_shear=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
-                                                        packings_dir=packings_dir)
+                                                        packings_dir=packings_dir,
+                                                        import_jammed=import_jammed,
+                                                        outdir=outdir, override_shear=override_shear)
 
         self.opt_pot_str = opt_pot_str
         self.pot_kwargs = pot_kwargs
@@ -390,12 +418,20 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.packings_dir, fname)
-        if self.bdim == 2:
-            self.coords, hs_diameters = read_xyd(path)
-        elif self.bdim == 3:
-            self.coords, hs_diameters = read_xyzd(path)
+        if self.import_jammed:
+            if self.bdim == 2:
+                self.coords, hs_diameters, _ = read_xydr(path)
+            elif self.bdim == 3:
+                self.coords, hs_diameters, _ = read_xyzdr(path)
+            else:
+                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            if self.bdim == 2:
+                self.coords, hs_diameters = read_xyd(path)
+            elif self.bdim == 3:
+                self.coords, hs_diameters = read_xyzd(path)
+            else:
+                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         self.hs_radii = hs_diameters/2
         self._compute_sca()
 
@@ -560,11 +596,16 @@ if __name__ == "__main__":
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
+    parser.add_argument("--import_jammed", action='store_true', help="Take a jammed packing as input "
+                        "instead of an unjammed one.", default=False)
+    parser.add_argument("-o", "--outdir", type=str, help="Directory to save jammed packings in. "
+                        "Default: 'jammed_packings'", default='jammed_packings')
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
     parser.add_argument("-t", "--tol", type=float, help="rms tolerance of the minimizer", default=1e-9)
     # potential arguments
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
+
     args = parser.parse_args()
     print args
 
@@ -581,7 +622,8 @@ if __name__ == "__main__":
 
     print("pot_kwargs", pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
-                                     packings_dir=args.packingsdir, tol=args.tol,
+                                     packings_dir=args.packingsdir, import_jammed=args.import_jammed,
+                                     outdir=args.outdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
                                      opt_pot_str=args.opt_pot, pot_kwargs=pot_kwargs)
     sim.run()

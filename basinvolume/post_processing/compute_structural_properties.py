@@ -54,7 +54,7 @@ class StructuralAnalysis(object):
         self.packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
         self.sca = configf.getfloat('JAMMED_PACKING','sca')
         self.distance_method = configf.get('JAMMED_PACKING', 'distance_method')
-        if hasattr(self, 'pot_kwargs'):
+        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
             self.pot_kwargs.update(ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs')))
         else:
             self.pot_kwargs = ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs'))
