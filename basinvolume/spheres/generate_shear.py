@@ -54,14 +54,14 @@ if __name__ == "__main__":
 
     # Generate packing at no shear
     pot_kwargs = {'shear': 0.0}
-    # gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method, bdim=args.boxdim,
-    #                                   packing_frac=args.density_hs, hs_radii=hs_radii,
-    #                                   mu=args.rmean, sig=args.rsigma, new_poly=False,
-    #                                   hsf_niter=args.hsfniter, hsf_stepsize=args.hsfstep, max_iter=1,
-    #                                   use_cell_lists=args.cell, single=not args.packing_moveall,
-    #                                   start_iteration=0, distance_method='lees-edwards',
-    #                                   pot_kwargs=pot_kwargs)
-    # gen_packing.run()
+    gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method, bdim=args.boxdim,
+                                      packing_frac=args.density_hs, hs_radii=hs_radii,
+                                      mu=args.rmean, sig=args.rsigma, new_poly=False,
+                                      hsf_niter=args.hsfniter, hsf_stepsize=args.hsfstep, max_iter=1,
+                                      use_cell_lists=args.cell, single=not args.packing_moveall,
+                                      start_iteration=0, distance_method='lees-edwards',
+                                      pot_kwargs=pot_kwargs)
+    gen_packing.run()
 
     # Generate jammed packing at no shear
     gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
@@ -76,4 +76,5 @@ if __name__ == "__main__":
                                          import_jammed=True, outdir="shear_{}".format(shear),
                                          tol=args.min_tol, use_cell_lists=args.cell,
                                          show=False, opt_pot_str='hs_wca', override_shear=shear)
+        print("shear: {}".format(shear))
         gen_jammed_packing.run()
