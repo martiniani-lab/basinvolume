@@ -101,7 +101,7 @@ if __name__ == "__main__":
                                          show=False, opt_pot_str='hs_wca', override_pot_kwargs=pot_kwargs)
         gen_jammed_packing.run()
 
-    # Check for flowing packings.
+    # Check for unjammed packings.
     finished_packings = []
     for fname in os.listdir("shear_{}".format(args.final_shear)):
         if 'xydr' in fname:
@@ -109,16 +109,16 @@ if __name__ == "__main__":
             finished_packings.append(packing_nr)
 
     target_packings = range(args.npackings)
-    flow_packings = filter(lambda pack: pack not in finished_packings, target_packings)
+    unjammed_packings = filter(lambda pack: pack not in finished_packings, target_packings)
 
-    if len(flow_packings) != 0:
-        print("\n{} packing(s) started flowing:".format(len(flow_packings)))
+    if len(unjammed_packings) != 0:
+        print("\n{} packing(s) unjammed:".format(len(unjammed_packings)))
 
-        packing_fnames = ["jammed_packing{}.xydr".format(packing) for packing in flow_packings]
+        packing_fnames = ["jammed_packing{}.xydr".format(packing) for packing in unjammed_packings]
         for shear in np.arange(0., args.final_shear, args.step) + args.step:
             for i, fname in enumerate(packing_fnames):
                 if not fname in os.listdir("shear_{}".format(shear)):
-                    print("Packing {} started flowing at shear {}".format(flow_packings[i], shear))
+                    print("Packing {} unjammed at shear {}".format(unjammed_packings[i], shear))
                     del packing_fnames[i]
             if len(packing_fnames) == 0:
                 break
