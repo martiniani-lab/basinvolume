@@ -51,14 +51,14 @@ class _Generate_Jammed_Packing(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, packing_frac=0.65, packings_dir='packings', import_jammed=False,
-                 outdir='jammed_packings', override_shear=None):
+                 outdir='jammed_packings', override_pot_kwargs=None):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
         self.import_jammed = import_jammed
-        self.override_shear = override_shear
+        self.override_pot_kwargs = override_pot_kwargs
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
@@ -95,8 +95,8 @@ class _Generate_Jammed_Packing(object):
             self.pot_kwargs.update(ast.literal_eval(configf.get(section, 'pot_kwargs')))
         else:
             self.pot_kwargs = ast.literal_eval(configf.get(section, 'pot_kwargs'))
-        if self.override_shear is not None:
-            self.pot_kwargs['shear'] = self.override_shear
+        if self.override_pot_kwargs is not None:
+            self.pot_kwargs.update(self.override_pot_kwargs)
 
 
 
@@ -206,11 +206,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, packing_frac=0.7, tol=1e-9,
         packings_dir='packings', import_jammed=False, outdir='jammed_packings',
         use_cell_lists=False, show=False,
-        opt_pot_str='hs_wca', pot_kwargs=None, override_shear=None):
+        opt_pot_str='hs_wca', pot_kwargs=None, override_pot_kwargs=None):
         super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
                                                         packings_dir=packings_dir,
                                                         import_jammed=import_jammed,
-                                                        outdir=outdir, override_shear=override_shear)
+                                                        outdir=outdir, override_pot_kwargs=override_pot_kwargs)
 
         self.opt_pot_str = opt_pot_str
         self.pot_kwargs = pot_kwargs
@@ -594,19 +594,18 @@ if __name__ == "__main__":
 
     # potential type
     opt_pot_str = args.opt_pot
-    pot_kwargs = dict()
+    override_pot_kwargs = dict()
     if opt_pot_str.lower() == 'hs_wca':
         pass
     elif opt_pot_str.lower() == 'inverse_power_stillinger':
-        pot_kwargs.update(pow=8, rcut=4.5)
-        print 'setting inverse_power_stillinger parameters: ', pot_kwargs
+        override_pot_kwargs.update(pow=8, rcut=4.5)
+        print 'setting inverse_power_stillinger parameters: ', override_pot_kwargs
     else:
         raise NotImplementedError
 
-    print("pot_kwargs", pot_kwargs)
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
                                      packings_dir=args.packingsdir, import_jammed=args.import_jammed,
                                      outdir=args.outdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
-                                     opt_pot_str=args.opt_pot, pot_kwargs=pot_kwargs)
+                                     opt_pot_str=args.opt_pot, override_pot_kwargs=override_pot_kwargs)
     sim.run()

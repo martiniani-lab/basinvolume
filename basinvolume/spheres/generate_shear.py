@@ -71,10 +71,11 @@ if __name__ == "__main__":
 
     # Generate sheared packings
     for shear in np.arange(0., args.final_shear, args.step) + args.step:
+        pot_kwargs['shear'] = shear
+        print("\n--------- Shear: {} ---------".format(shear))
         gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
                                          packings_dir="shear_{}".format(shear - args.step),
                                          import_jammed=True, outdir="shear_{}".format(shear),
                                          tol=args.min_tol, use_cell_lists=args.cell,
-                                         show=False, opt_pot_str='hs_wca', override_shear=shear)
-        print("shear: {}".format(shear))
+                                         show=False, opt_pot_str='hs_wca', override_pot_kwargs=pot_kwargs)
         gen_jammed_packing.run()
