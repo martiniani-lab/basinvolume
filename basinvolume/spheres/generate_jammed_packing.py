@@ -325,7 +325,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 no_neighbors = len(contact_list[i])
                 if no_neighbors < zmin:
                     found_rattler = True
-                    print "particle {} is not isostatic".format(j)
+                    print "Particle {} is not isostatic.".format(j)
                 else:
                     # angles = [cartesian_to_polar2d(dij)[1] for dij in contact_list[i]]
                     # neigh_vec = [x for (y, x) in sorted(zip(angles, contact_list[i]))]
@@ -336,7 +336,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     found_rattler = not in_hull(p, hull)
                     if found_rattler:
                         # print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
-                        print "particle {} is not in contacts' convex hull".format(j)
+                        print "Particle {} is not in contacts' convex hull.".format(j)
                 #here assign correct index by searching for the corresponding atom
                 self.rattlers[j] = 0 if found_rattler else 1000
                 self.rattlers_draw[j] = float(not found_rattler)
@@ -359,7 +359,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if N_contacts >= N_min:
             return True
         else:
-            print "packing is not globally stable, N_min: {} N_contacts: {}".format(N_min, N_contacts)
+            print "Packing is not globally stable, N_min: {} N_contacts: {}".format(N_min, N_contacts)
             return False
 
     def _find_nearest_neighbors(self, coords, radii):
