@@ -52,6 +52,7 @@ if __name__ == "__main__":
         hs_radii = hs_diameters/2
 
     # Generate packing at no shear
+    print("\n--------- Generating loose packings ---------")
     pot_kwargs = {'shear': 0.0}
     gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method, bdim=args.boxdim,
                                       packing_frac=args.density_hs, hs_radii=hs_radii,
@@ -63,6 +64,7 @@ if __name__ == "__main__":
     gen_packing.run()
 
     # Generate jammed packing at no shear
+    print("\n--------- Generating jammed packings ---------")
     gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
                                      packings_dir="packings", outdir="shear_0.0",
                                      tol=args.min_tol, use_cell_lists=args.cell,

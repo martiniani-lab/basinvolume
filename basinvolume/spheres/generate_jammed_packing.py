@@ -182,12 +182,14 @@ class _Generate_Jammed_Packing(object):
         for fname in os.listdir(self.packings_dir):
             if self.import_jammed:
                 if ('xyzdr' in fname) or ('xydr' in fname):
-                    print "\n",fname
+                    print(fname)
                     self.one_iteration(fname)
+                    print("")
             else:
                 if ('xyzd' in fname) or ('xyd' in fname):
-                    print "\n",fname
+                    print(fname)
                     self.one_iteration(fname)
+                    print("")
         # self._histogram_eigenvalues()
 
 class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
