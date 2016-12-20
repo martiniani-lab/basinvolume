@@ -1,5 +1,7 @@
 import numpy as np
 import argparse
+import os
+import shutil
 from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
 
@@ -13,6 +15,8 @@ if __name__ == "__main__":
     parser.add_argument("--npackings", type=int, help="Number of packings to produce. Default: 1", default=1)
     parser.add_argument("-n", "--nparticles", type=int, help="Number of particles. Default: 32", default=32)
     parser.add_argument("-d", "--boxdim", type=int, help="Box dimensions. Default: 3", default=2)
+    parser.add_argument("--input_packings", type=str, help="Use precalculated loose packings from directory.")
+    parser.add_argument("--input_jammed", type=str, help="Use precalculated jammed packings from directory.")
 
     # Arguments for generating packings
     parser.add_argument("-phs", "--density_hs", type=float, help="Target hard sphere packing fraction. "
@@ -37,6 +41,7 @@ if __name__ == "__main__":
                         "Default: 0.85", default=0.85)
     parser.add_argument("--min_tol", type=float, help="RMS tolerance of the minimizer. Default: 1e-9",
                         default=1e-9)
+
     args = parser.parse_args()
 
     #import radii from other configuration file
@@ -51,25 +56,39 @@ if __name__ == "__main__":
             coords, hs_diameters = read_xyzd(dpath)
         hs_radii = hs_diameters/2
 
-    # Generate packing at no shear
-    print("\n--------- Generating loose packings ---------")
+    # Generate packings at no shear
     pot_kwargs = {'shear': 0.0}
-    gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method, bdim=args.boxdim,
-                                      packing_frac=args.density_hs, hs_radii=hs_radii,
-                                      mu=args.rmean, sig=args.rsigma, new_poly=False,
-                                      hsf_niter=args.hsfniter, hsf_stepsize=args.hsfstep, max_iter=args.npackings,
-                                      use_cell_lists=args.cell, single=not args.packing_moveall,
-                                      start_iteration=0, distance_method='lees-edwards',
-                                      pot_kwargs=pot_kwargs)
-    gen_packing.run()
+    if args.input_packings is not None:
+        if not os.path.isdir(args.input_packings):
+            raise IOError("The specified input packings-directory does not exist "
+                          "({})!".format(args.input_packings))
+        if not os.path.isdir("packings"):
+            shutil.copytree(args.input_packings, "packings")
+    elif args.input_jammed is None:
+        print("\n--------- Generating loose packings ---------")
+        gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method, bdim=args.boxdim,
+                                          packing_frac=args.density_hs, hs_radii=hs_radii,
+                                          mu=args.rmean, sig=args.rsigma, new_poly=False,
+                                          hsf_niter=args.hsfniter, hsf_stepsize=args.hsfstep, max_iter=args.npackings,
+                                          use_cell_lists=args.cell, single=not args.packing_moveall,
+                                          start_iteration=0, distance_method='lees-edwards',
+                                          pot_kwargs=pot_kwargs)
+        gen_packing.run()
 
-    # Generate jammed packing at no shear
-    print("\n--------- Generating jammed packings ---------")
-    gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
-                                     packings_dir="packings", outdir="shear_0.0",
-                                     tol=args.min_tol, use_cell_lists=args.cell,
-                                     show=False, opt_pot_str='hs_wca', pot_kwargs=pot_kwargs)
-    gen_jammed_packing.run()
+    # Generate jammed packings at no shear
+    if args.input_jammed is not None:
+        if not os.path.isdir(args.input_jammed):
+            raise IOError("The specified input packings-directory does not exist "
+                          "({})!".format(args.input_jammed))
+        if not os.path.isdir("shear_0.0"):
+            shutil.copytree(args.input_jammed, "shear_0.0")
+    else:
+        print("\n--------- Generating jammed packings ---------")
+        gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
+                                         packings_dir="packings", outdir="shear_0.0",
+                                         tol=args.min_tol, use_cell_lists=args.cell,
+                                         show=False, opt_pot_str='hs_wca')
+        gen_jammed_packing.run()
 
     # Generate sheared packings
     for shear in np.arange(0., args.final_shear, args.step) + args.step:
