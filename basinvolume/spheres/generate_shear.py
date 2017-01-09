@@ -66,10 +66,11 @@ if __name__ == "__main__":
             shutil.copytree(args.input_packings, "packings")
     elif args.input_jammed is None:
         print("\n--------- Generating loose packings ---------")
-        gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method, bdim=args.boxdim,
-                                          packing_frac=args.density_hs, hs_radii=hs_radii,
-                                          mu=args.rmean, sig=args.rsigma, new_poly=False,
-                                          hsf_niter=args.hsfniter, hsf_stepsize=args.hsfstep, max_iter=args.npackings,
+        gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method,
+                                          bdim=args.boxdim, packing_frac=args.density_hs,
+                                          hs_radii=hs_radii, mu=args.rmean, sig=args.rsigma,
+                                          new_poly=False, hsf_niter=args.hsfniter,
+                                          hsf_stepsize=args.hsfstep, max_iter=args.npackings,
                                           use_cell_lists=args.cell, single=not args.packing_moveall,
                                           start_iteration=0, distance_method='lees-edwards',
                                           pot_kwargs=pot_kwargs)
@@ -91,6 +92,7 @@ if __name__ == "__main__":
         gen_jammed_packing.run()
 
     # Generate sheared packings
+    unjammed_packings = []
     for shear in np.arange(0., args.final_shear, args.step) + args.step:
         pot_kwargs['shear'] = shear
         print("\n--------- Shear: {} ---------".format(shear))
@@ -98,27 +100,18 @@ if __name__ == "__main__":
                                          packings_dir="shear_{}".format(shear - args.step),
                                          import_jammed=True, outdir="shear_{}".format(shear),
                                          tol=args.min_tol, use_cell_lists=args.cell,
-                                         show=False, opt_pot_str='hs_wca', override_pot_kwargs=pot_kwargs)
-        gen_jammed_packing.run()
+                                         show=False, opt_pot_str='hs_wca',
+                                         override_pot_kwargs=pot_kwargs)
+        successes = gen_jammed_packing.run()
 
-    # Check for unjammed packings.
-    finished_packings = []
-    for fname in os.listdir("shear_{}".format(args.final_shear)):
-        if 'xydr' in fname:
-            packing_nr = int(fname[len("jammed_packing"):].split('.')[0])
-            finished_packings.append(packing_nr)
+        # Check for failed (unjammed) packings and save them with packing number and current shear
+        if not all(success for (_, success) in successes):
+            unjammed_packings += [(int(fname[len("jammed_packing"):].split('.')[0]), shear)
+                         for (fname, success) in successes if not success]
 
-    target_packings = range(args.npackings)
-    unjammed_packings = filter(lambda pack: pack not in finished_packings, target_packings)
-
+    # Check for unjammed packings
     if len(unjammed_packings) != 0:
         print("\n{} packing(s) unjammed:".format(len(unjammed_packings)))
 
-        packing_fnames = ["jammed_packing{}.xydr".format(packing) for packing in unjammed_packings]
-        for shear in np.arange(0., args.final_shear, args.step) + args.step:
-            for i, fname in enumerate(packing_fnames):
-                if not fname in os.listdir("shear_{}".format(shear)):
-                    print("Packing {} unjammed at shear {}".format(unjammed_packings[i], shear))
-                    del packing_fnames[i]
-            if len(packing_fnames) == 0:
-                break
+        for packing, shear in unjammed_packings:
+            print("Packing {} unjammed at shear {}".format(packing, shear))

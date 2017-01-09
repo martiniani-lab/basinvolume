@@ -179,17 +179,21 @@ class _Generate_Jammed_Packing(object):
     def run(self):
         """run generate packings"""
         self._initialise()
+        successes = []
         for fname in os.listdir(self.packings_dir):
             if self.import_jammed:
                 if ('xyzdr' in fname) or ('xydr' in fname):
                     print(fname)
-                    self.one_iteration(fname)
+                    success = self.one_iteration(fname)
+                    successes.append((fname, success))
                     print("")
             else:
                 if ('xyzd' in fname) or ('xyd' in fname):
                     print(fname)
-                    self.one_iteration(fname)
+                    success = self.one_iteration(fname)
+                    successes.append((fname, success))
                     print("")
+        return successes
         # self._histogram_eigenvalues()
 
 class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
@@ -280,7 +284,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             for path_ in path_list:
                 p = subprocess.call(shlex.split("rm {}".format(path_)))
         self.iteration += 1
-
+        return success
 
     def _distance (self, coord1, coord2):
         if self.distance_method == 'lees-edwards':
