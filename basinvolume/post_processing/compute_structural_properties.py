@@ -20,8 +20,8 @@ class StructuralAnalysis(object):
     __metaclass__ = abc.ABCMeta
     #@abc.abstractmethod
 
-    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis',
-                 force=False, existing_only=True):
+    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings',
+                 analysis_dir='analysis', force=False, existing_only=True, prefix='explore_bv_'):
         if not os.path.isabs(workspace):
             workspace = os.path.abspath(workspace)
         self.workspace = workspace
@@ -37,6 +37,7 @@ class StructuralAnalysis(object):
         self.frozen = False
         self.force = force
         self.existing_only = existing_only
+        self.prefix = prefix
 
     def _import_packing_config_file(self, configpath):
         configf = ConfigParser.ConfigParser()
@@ -68,7 +69,7 @@ class StructuralAnalysis(object):
         else:
             raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         hs_radii = hs_diameters/2
-        ss_radii = hs_radii * (1+self.sca)
+        ss_radii = hs_radii * (1 + self.sca)
         return coords, hs_radii, ss_radii, rattlers
 
     def _get_dname(self, dname):
@@ -79,11 +80,13 @@ class StructuralAnalysis(object):
         return dname
 
 class BondOrientationalOrder(StructuralAnalysis):
-    def __init__(self, workspace, packings_dir='packings',
-        jammed_packings_dir='jammed_packings', analysis_dir='analysis',
-        force=False, existing_only=True, solid_angle_weighted=False):
-        super(BondOrientationalOrder,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir,
-                                                    analysis_dir=analysis_dir, force=force, existing_only=existing_only)
+    def __init__(self, workspace, jammed_packings_dir='jammed_packings',
+                 analysis_dir='analysis', force=False, existing_only=True,
+                 solid_angle_weighted=False, prefix='explore_bv_'):
+        super(BondOrientationalOrder,self).__init__(workspace,
+                                                    jammed_packings_dir=jammed_packings_dir,
+                                                    analysis_dir=analysis_dir, force=force,
+                                                    existing_only=existing_only, prefix=prefix)
         self.solid_angle_weighted = solid_angle_weighted
         print("self.solid_angle_weighted", self.solid_angle_weighted)
 
@@ -98,19 +101,19 @@ class BondOrientationalOrder(StructuralAnalysis):
             if 'xyzd' in fname or 'xyd' in fname:
                 compute = False
                 dname = self._get_dname(fname)
-                base_directory_path = os.path.join(self.workspace,'explore_bv_'+str(dname))
+                base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
-                    boo_fname = os.path.join(analysis_dir_path,'boo_deg{}'.format(deg))
-                    global_boo_fname = os.path.join(analysis_dir_path,'glob_boo')
+                    boo_fname = os.path.join(analysis_dir_path, 'boo_deg{}'.format(deg))
+                    global_boo_fname = os.path.join(analysis_dir_path, 'glob_boo')
                     try:
                         configf = ConfigParser.ConfigParser()
                         configf.read(str(global_boo_fname))
-                        test_z = configf.getfloat('Z','Z')
-                        test_boo = configf.getfloat('BOO','Q{}'.format(deg))
+                        test_z = configf.getfloat('Z', 'Z')
+                        test_boo = configf.getfloat('BOO', 'Q{}'.format(deg))
                         if not os.path.isfile(boo_fname):
                             raise Exception
                     except Exception:
@@ -296,14 +299,16 @@ class BondOrientationalOrder(StructuralAnalysis):
         return np.array(boo_list), np.array(z_list)
 
 class PressureTensor(StructuralAnalysis):
-    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis',
-                 force=False, existing_only=True, opt_pot_str='hs_wca'):
-        super(PressureTensor,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir,
-                                            analysis_dir=analysis_dir, force=force, existing_only=existing_only)
+    def __init__(self, workspace, jammed_packings_dir='jammed_packings',
+                 analysis_dir='analysis', force=False, existing_only=True, opt_pot_str='hs_wca',
+                 prefix='explore_bv_'):
+        super(PressureTensor,self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
+                                            analysis_dir=analysis_dir, force=force,
+                                            existing_only=existing_only, prefix=prefix)
         self.opt_pot_str = opt_pot_str
 
     def run(self):
-        """compute boo for packings
+        """compute the pressure tensor for packings
         exisisting_only: bool
             run on already existing packings only
         pinit : bool
@@ -313,7 +318,7 @@ class PressureTensor(StructuralAnalysis):
             if 'xyzd' in fname or 'xyd' in fname:
                 compute = False
                 dname = self._get_dname(fname)
-                base_directory_path = os.path.join(self.workspace,'explore_bv_'+str(dname))
+                base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not self.existing_only:
@@ -323,8 +328,8 @@ class PressureTensor(StructuralAnalysis):
                     try:
                         configf = ConfigParser.ConfigParser()
                         configf.read(pressure_fname)
-                        test_p = configf.getfloat('PRESSURE','P')
-                        test_ptensor = configf.get('PRESSURE','Ptensor')
+                        test_p = configf.getfloat('PRESSURE', 'P')
+                        test_ptensor = configf.get('PRESSURE', 'Ptensor')
                         test_e = configf.get('ENERGY', 'E')
                     except Exception:
                         compute = True
@@ -386,21 +391,27 @@ def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Compute bond-orientational order "
+                                     "and the pressure tensor for jammed packings.")
+    parser.add_argument("-d", "--workspace_dir", type=str, help="Top-level dir containing "
+                        "the packings, e.g. 'n32_phi88_2D'.")
+    parser.add_argument("--all", action='store_true', help="Run for all packing subdirectories.",
+                        default=False)
+    parser.add_argument("-j","--ncores", type=int, help="Threads for prallel execution.", default=7)
+    parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
+                        default=False)
+    parser.add_argument("--solid", action="store_true", help="Use solid angle method "
+                        "to find and weight neighbors.", default=False)
+    parser.add_argument("--nonex", action='store_false', help="Run also for packings "
+                        "for which there are no work folders ('explore_bv_[...]', "
+                        "created e.g. by parallel tempering).", default=True)
+    parser.add_argument("--prefix", type=str, help="Prefix for the work directory. "
+                        "Default: 'explore_bv_'", default='explore_bv_')
+    parser.add_argument("--input_dir", type=str, help="Directory containing the "
+                        "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
 
-#    #boo.run(deg=12)
-#    boo.run_all()
-#    pts = PressureTensor()
-#    pts.run()
-
-    parser = argparse.ArgumentParser(description="Compute volumes from PT data, use either MBAR or TINT methods")
-    parser.add_argument("-d", "--workspace_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
-    parser.add_argument("--all", action='store_true', help="run for all packing subdirectories", default=False)
-    parser.add_argument("-j","--ncores", type=int, help="threads for prallel execution", default=7)
-    parser.add_argument("--force", action='store_true', help="force to run on all packings", default=False)
-    parser.add_argument("--solid", action="store_true", help="use solid angle method to find and weight neighbors", default=False)
-    parser.add_argument("--nonex", action='store_false', help="run also the non packings for which there aren't working folders", default=True)
     # potential arguments
-    parser.add_argument("--opt-pot", type=str, help="optimizer's potential, 1) (default) hs_wca "
+    parser.add_argument("--opt-pot", type=str, help="Optimizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
 
@@ -408,7 +419,8 @@ if __name__ == "__main__":
     opt_pot_str = args.opt_pot
 
     ncores = args.ncores
-    kwargs = dict(force=args.force, existing_only=args.nonex)
+    kwargs = dict(force=args.force, existing_only=args.nonex,
+                  jammed_packings_dir=args.input_dir, prefix=args.prefix)
     if args.solid:
         kwargs.update(solid_angle_weighted=args.solid)
 
@@ -434,10 +446,6 @@ if __name__ == "__main__":
                 if folder[1].isdigit() and "phi" in folder and "D" in folder:
                     mypool.apply_async(worker_boo, args=(os.path.abspath(folder),kwargs,))
                     mypool.apply_async(worker_pts, args=(os.path.abspath(folder),pts_kwargs,))
-        except:
+        finally:
             mypool.terminate()
             mypool.join()
-            raise
-
-        mypool.close()
-        mypool.join()
