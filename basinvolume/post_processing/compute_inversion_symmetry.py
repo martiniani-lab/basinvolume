@@ -4,6 +4,7 @@ import ast
 import numpy as np
 import argparse
 from pele.distance import get_distance
+from pele.potentials import HS_WCA
 from compute_structural_properties import StructuralAnalysis
 from basinvolume.utils import trymakedir, read_xydr, read_xyzdr
 
@@ -15,9 +16,6 @@ class InversionSymmetry(StructuralAnalysis):
         super(InversionSymmetry, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix)
-        self.potential = HS_WCA(eps=self.eps, sca=self.sca,
-                                radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim,
-                                distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
 
 
     def _distance (self, coord1, coord2):
@@ -52,52 +50,70 @@ class InversionSymmetry(StructuralAnalysis):
 
         return neighbour_distancess, neighbour_indicess
 
+
     # Returns the affine force of a pair of particles
     # Indices:
     # List index is direction perpendicular to the sheared boundary (beta)
     # Matrix (numpy-array):
     # row index is the shear direction (alpha)
     # column index is the affine force component
-    def _affine_force_pair(distance):
-        hessian = self.potential.getHessian(distance)
+    def _affine_force_pair(self, distance, atomi, atomj):
+        # Get hessian in interaction direction
+        dist_norm = np.linalg.norm(distance)
+        hess_norm = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
+        print("hess_norm: {}".format(hess_norm))
+
+        # Transform into coordinate system
+        dist_dir = distance / dist_norm
+        if self.bdim == 2:
+            # Transformation defined by base vectors dist_dir and its normal
+            rot_matrix = np.array([[dist_dir[0], dist_dir[1]], [-dist_dir[1], dist_dir[0]]])
+        elif self.bdim == 3:
+            # Transformation defined by base vectors dist_dir,
+            # its normal in the xy-plane and their cross product
+            rot_matrix = np.array([[dist_dir[0], dist_dir[1], dist_dir[2]], [-dist_dir[1], dist_dir[0], 0], [-dist_dir[0]*dist_dir[2], dist_dir[1] * dist_dir[2], dist_dir[0]**2 + dist_dir[1]**2]])
+        else:
+            raise NotImplementedError
+        hessian_particle_system = np.array([[hess_norm, 0], [0, 0]])
+        hessian = np.dot(rot_matrix.T, np.dot(hessian_particle_system, rot_matrix))
+
         return [hessian * d for d in distance]
 
 
-    def _affine_forces_total(neighbour_distancess):
-        affine_forces_total = [np.zeros((self.bdim, self.bdim)) for _ in range(self.bdim)]
-
-        # Sum up all affine forces
-        for distances in neighbour_distancess:
-            for distance in distances:
-                affine_force = _affine_force_pair(distance)
-                for i in range(self.bdim):
-                    affine_forces_total[i] = affine_forces_total[i] + affine_force[i]
-
-        return affine_forces_total
+    def _affine_force_particle(self, index, distances, neighbours):
+        affine_force_particle = [np.zeros((self.bdim, self.bdim)) for _ in range(self.bdim)]
+        for i in range(len(neighbours)):
+            affine_force = self._affine_force_pair(distances[i], index, neighbours[i])
+            for j in range(self.bdim):
+                affine_force_particle[j] += affine_force[j]
+        return affine_force_particle
 
 
-    def _sum_affine_forces(neighbour_distancess):
-        affine_forces = _affine_forces_total(neighbour_distancess)
-        for i in range(self.bdim):
-            affine_forces[i] = affine_forces[i] ** 2
+    def _sum_affine_forces(self, neighbour_distancess, neighbour_listss):
+        affine_forces = [np.zeros((self.bdim, self.bdim)) for _ in range(self.bdim)]
+        for i in range(self.nparticles):
+            affine_force = self._affine_force_particle(i, neighbour_distancess[i], neighbour_listss[i])
+            for i in range(self.bdim):
+                affine_forces[i] += affine_force[i] ** 2
         return np.sum(sum(affine_forces))
 
 
-    def _affine_force_sym_broken_pair(distance, shear_direction, shear_perpendicular):
+    def _affine_force_sym_broken_pair(self, distance, atomi, atomj, shear_direction, shear_perpendicular):
         distance_norm = np.linalg.norm(distance)
         distance_direction = distance / distance_norm
-        grad_norm = self.potential.getGradient(np.array([distance_norm, 0, 0]))[0]
+        grad_norm = self.potential.getInteractionGradient(distance_norm, atomi, atomj)
+        print("grad_norm: {}".format(grad_norm))
         return grad_norm * distance_direction[shear_direction] \
                * distance_direction[shear_perpendicular]
 
 
-    def _sum_affine_forces_sym_broken(neighbour_distancess):
+    def _sum_affine_forces_sym_broken(self, neighbour_distancess, neighbour_listss):
         affine_forces_isb = 0
         for alpha in range(self.bdim):
             for beta in range(self.bdim):
-                for distances in neighbour_distancess:
-                    for distance in distances:
-                        affine_forces_isb += _affine_force_sym_broken_pair(distance, alpha, beta) ** 2
+                for i in range(len(neighbour_listss)):
+                    for j in range(len(neighbour_listss[i])):
+                        affine_forces_isb += self._affine_force_sym_broken_pair(neighbour_distancess[i][j], i, neighbour_listss[i][j], alpha, beta) ** 2
         return affine_forces_isb
 
 
@@ -122,7 +138,7 @@ class InversionSymmetry(StructuralAnalysis):
                     try:
                         configf = ConfigParser.ConfigParser()
                         configf.read(invsym_fname)
-                        configf.getfloat('INVERSION_SYMMETRY', 'inversion_symmetry'))
+                        configf.getfloat('INVERSION_SYMMETRY', 'inversion_symmetry')
                     except Exception:
                         compute = True
 
@@ -131,14 +147,23 @@ class InversionSymmetry(StructuralAnalysis):
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute distances to neighbours
-                        self.coords, _, self.ss_radii, _ = self._import_packing_configuration(fname)
-                        neighbour_distancess, _ = self._find_nearest_neighbours(self.coords,
+                        print(fname)
+                        self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(fname)
+                        neighbour_distancess, neighbour_listss = self._find_nearest_neighbours(self.coords,
                                                                                 self.ss_radii)
 
+                        # Create potential
+                        self.potential = HS_WCA(eps=self.eps, sca=self.sca,
+                                                radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim,
+                                                distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
+
                         # Compute local inversion symmetry
-                        affine_forces_sum = _sum_affine_forces(neighbour_distancess)
-                        affine_forces_isb = _sum_affine_forces_sym_broken(neighbour_distancess)
+                        affine_forces_sum = self._sum_affine_forces(neighbour_distancess, neighbour_listss)
+                        affine_forces_isb = self._sum_affine_forces_sym_broken(neighbour_distancess, neighbour_listss)
                         inv_sym = 1 - affine_forces_sum / affine_forces_isb
+                        print("affine_forces_sum: {}".format(affine_forces_sum))
+                        print("affine_forces_isb: {}".format(affine_forces_isb))
+                        print("inv_sym: {}".format(inv_sym))
 
                         # Output inversion symmetry to file
                         with open(invsym_fname, 'w') as f:
