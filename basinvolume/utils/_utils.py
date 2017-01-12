@@ -188,7 +188,7 @@ def read_xyzdf(fname):
 def read_xydr(fname, etol=1.0, bdim=2):
     coords = []
     radii = []
-    rattlers = []
+    not_rattlers = []
     f = open(fname, "r")
     while True:
         xydr = f.readline()
@@ -198,16 +198,16 @@ def read_xydr(fname, etol=1.0, bdim=2):
         x, y, d, r = xydr.split()
         coords.extend([float(x), float(y)])
         radii.extend([float(d)])
-        rattler = float(float(r) >= etol)
+        not_rattler = float(float(r) >= etol)
         for _ in xrange(bdim):
-            rattlers.extend([rattler])
-    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
+            not_rattlers.extend([not_rattler])
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(not_rattlers, dtype='d')
 
 def read_xydfr(fname, etol=1.0, bdim=2):
     coords = []
     radii = []
     frozen = []
-    rattlers = []
+    not_rattlers = []
     f = open(fname, "r")
     i=0
     while True:
@@ -220,16 +220,16 @@ def read_xydfr(fname, etol=1.0, bdim=2):
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
-        rattler = float(float(r) >= etol)
+        not_rattler = float(float(r) >= etol)
         for _ in xrange(bdim):
-            rattlers.extend([rattler])
+            not_rattlers.extend([not_rattler])
         i+=1
-    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(not_rattlers, dtype='d')
 
 def read_xyzdr(fname, etol=1.0, bdim=3):
     coords = []
     radii = []
-    rattlers = []
+    not_rattlers = []
     f = open(fname, "r")
     while True:
         xyzdr = f.readline()
@@ -238,16 +238,16 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
         x, y, z, d, r = xyzdr.split()
         coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
-        rattler = float(float(r) >= etol)
+        not_rattler = float(float(r) >= etol)
         for _ in xrange(bdim):
-            rattlers.extend([rattler])
-    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
+            not_rattlers.extend([not_rattler])
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(not_rattlers, dtype='d')
 
 def read_xyzdfr(fname, etol=1.0, bdim=3):
     coords = []
     radii = []
     frozen = []
-    rattlers = []
+    not_rattlers = []
     f = open(fname, "r")
     i=0
     while True:
@@ -259,11 +259,11 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
-        rattler = float(float(r) >= etol)
+        not_rattler = float(float(r) >= etol)
         for _ in xrange(bdim):
-            rattlers.extend([rattler])
+            not_rattlers.extend([not_rattler])
         i+=1
-    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(not_rattlers, dtype='d')
 
 def read_single_column_coords(fname):
     coords = []
