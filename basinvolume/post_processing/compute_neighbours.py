@@ -39,7 +39,7 @@ class Neighbours(StructuralAnalysis):
                     try:
                         configf = ConfigParser.ConfigParser()
                         configf.read(neighbours_fname)
-                        ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_listss'))
+                        ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_lists'))
                         ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_counts'))
                     except Exception:
                         compute = True
@@ -50,14 +50,14 @@ class Neighbours(StructuralAnalysis):
 
                         # Read coordinates and compute neighbours
                         self.coords, _, self.ss_radii, _ = self._import_packing_configuration(fname)
-                        _, neighbour_listss = find_neighbours(self.coords, self.ss_radii, self.bdim,
+                        _, neighbour_lists = find_neighbours(self.coords, self.ss_radii, self.bdim,
                                                               self.boxv, self.distance_method,
                                                               self.pot_kwargs, cutoff_factor=self.cutoff)
 
                         # Filter neighbours
                         if self.include_neighbourss is not None:
-                            neighbour_listss = [filter(lambda particle: particle in
-                                                      include_neighbourss[i], neighbour_listss[i])
+                            neighbour_lists = [filter(lambda particle: particle in
+                                                      include_neighbourss[i], neighbour_lists[i])
                                                for i in range(self.nparticles)]
 
                         # Output neighbour lists to file
@@ -65,8 +65,8 @@ class Neighbours(StructuralAnalysis):
                             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
                             f.write('[NEIGHBOURS]\n')
                             f.write('neighbour_counts: {}\n'.format([len(neighbours) for neighbours
-                                                                     in neighbour_listss]))
-                            f.write('neighbour_listss: {}\n'.format(neighbour_listss))
+                                                                     in neighbour_lists]))
+                            f.write('neighbour_lists: {}\n'.format(neighbour_lists))
 
 
 if __name__ == "__main__":
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     if args.restrict_neighbours is not None:
         configf = ConfigParser.ConfigParser()
         configf.read(args.restrict_neighbours)
-        include_neighbourss = ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_listss'))
+        include_neighbourss = ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_lists'))
         kwargs.update(include_neighbourss=include_neighbourss)
 
     # Create workspace directory name

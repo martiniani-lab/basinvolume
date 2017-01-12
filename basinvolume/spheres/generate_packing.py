@@ -311,9 +311,9 @@ class HS_Generate_Packing(_Generate_Packing):
         for i in xrange(self.nparticles):
             for j in xrange(i,self.nparticles):
                 distances[i,j] = calc_distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                           self.coords[j * self.bdim : (j + 1) * self.bdim],
-                                           self.bdim, self.distance_method,
-                                           self.boxv, self.pot_kwargs)
+                                               self.coords[j * self.bdim : (j + 1) * self.bdim],
+                                               self.bdim, self.distance_method,
+                                               self.boxv, self.pot_kwargs)
                 if i != j:
                     distances[j,i] = distances[i,j]
         return distances

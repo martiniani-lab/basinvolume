@@ -302,8 +302,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             dmin = np.amin(self.hs_radii)/10.
             for j in xrange(self.nparticles):
                 dij = np.linalg.norm(calc_distance(self.coords[j * self.bdim : (j + 1) * self.bdim],
-                                                  x, self.bdim, self.distance_method, self.boxv,
-                                                  self.pot_kwargs))
+                                                   x, self.bdim, self.distance_method, self.boxv,
+                                                   self.pot_kwargs))
                 if dij < dmin:
                     return j
 
