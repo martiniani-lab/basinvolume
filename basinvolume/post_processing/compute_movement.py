@@ -20,7 +20,6 @@ class Movement:
         self.packings_orig = packings_orig
         self.packings_new = packings_new
         self.analysis_dir = analysis_dir
-        self.eps = 1.
         self.frozen = False
         self.force = force
         self.existing_only = existing_only
@@ -106,7 +105,7 @@ class Movement:
                         coords_orig, _, _, _ = self._import_packing_configuration(path_orig)
 
                         # Calculate distances
-                        # The distance is measure with the boundary conditions of the new packing
+                        # The distance is measured with the boundary conditions of the new packing
                         distances = []
                         for i in xrange(self.nparticles):
                             distance = calc_distance(

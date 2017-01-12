@@ -10,12 +10,12 @@ from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
 class Neighbours(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_', include_neighbourss = None, cutoff = 1.):
+                 prefix='explore_bv_', restrict_neighbours = None, cutoff = 1.):
         super(Neighbours, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix)
         self.cutoff = cutoff
-        self.include_neighbourss = include_neighbourss
+        self.restrict_neighbours = restrict_neighbours
 
 
     def run(self):
@@ -34,7 +34,7 @@ class Neighbours(StructuralAnalysis):
 
                     # Check if this packing has already been analysed
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
-                    neighbours_fname = os.path.join(analysis_dir_path,'neighbours')
+                    neighbours_fname = os.path.join(analysis_dir_path, 'neighbours')
                     compute = False
                     try:
                         configf = ConfigParser.ConfigParser()
@@ -55,9 +55,19 @@ class Neighbours(StructuralAnalysis):
                                                               self.pot_kwargs, cutoff_factor=self.cutoff)
 
                         # Filter neighbours
-                        if self.include_neighbourss is not None:
+                        if self.restrict_neighbours is not None:
+                            # Get conditional neighbour lists
+                            base_restrict_path = os.path.join(self.workspace,
+                                                              self.restrict_neighbours + str(dname))
+                            restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
+                            restrict_path = os.path.join(restrict_dir, 'neighbours')
+                            configf = ConfigParser.ConfigParser()
+                            configf.read(restrict_path)
+                            restrict_neighbour_lists = ast.literal_eval(configf.get('NEIGHBOURS',
+                                                                                    'neighbour_lists'))
+
                             neighbour_lists = [filter(lambda particle: particle in
-                                                      include_neighbourss[i], neighbour_lists[i])
+                                                      restrict_neighbour_lists[i], neighbour_lists[i])
                                                for i in range(self.nparticles)]
 
                         # Output neighbour lists to file
@@ -82,8 +92,9 @@ if __name__ == "__main__":
                         "Default: 'explore_bv_'", default='explore_bv_')
     parser.add_argument("--input_dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
-    parser.add_argument("--restrict_neighbours", type=str, help="File containing "
-                        "neighbour lists. Only neighbours in these lists will be considered.",
+    parser.add_argument("--restrict_neighbours", type=str, help="Prefix leading to "
+                        "a neighbour lists file. This string is analogous to the normal prefix. "
+                        "Only neighbours in these lists are considered.",
                         default=None)
     parser.add_argument("--cutoff", type=float, help="Multiple of particle radii "
                         "defining the maximum neighbour distance. Default: 1", default=1.)
@@ -91,14 +102,8 @@ if __name__ == "__main__":
 
     # Set up arguments
     kwargs = dict(force=args.force, existing_only=args.nonex,
-                  jammed_packings_dir=args.input_dir, prefix=args.prefix, cutoff=args.cutoff)
-
-    # Get conditional neighbour lists
-    if args.restrict_neighbours is not None:
-        configf = ConfigParser.ConfigParser()
-        configf.read(args.restrict_neighbours)
-        include_neighbourss = ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_lists'))
-        kwargs.update(include_neighbourss=include_neighbourss)
+                  jammed_packings_dir=args.input_dir, prefix=args.prefix, cutoff=args.cutoff,
+                  restrict_neighbours=args.restrict_neighbours)
 
     # Create workspace directory name
     if not args.workspace_dir:
