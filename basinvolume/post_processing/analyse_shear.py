@@ -1,6 +1,7 @@
 import numpy as np
 import argparse
 import os
+import sys
 from compute_neighbours import Neighbours
 from compute_inversion_symmetry import InversionSymmetry
 from compute_movement import Movement
@@ -30,6 +31,9 @@ class AnalyseShear:
     def calc_parameters(self):
         for shear in np.arange(self.start, self.stop + self.step, self.step):
             dname = "shear_{}".format(shear)
+            if not os.path.isdir(dname):
+                print("The shear directory {} does not exist. Stopping analysis.".format(dname))
+                sys.exit(1)
             workspace_dir = os.getcwd()
             kwargs = dict(force=self.force, existing_only=False,
                           jammed_packings_dir=dname, prefix="{}/explore_bv_".format(dname))
@@ -82,6 +86,7 @@ class AnalyseShear:
                 movement = Movement(workspace_dir, "shear_{}".format(self.start), dname, **movement_kwargs)
                 movement.run()
 
+
     def collect_parameters(self):
         pass
 
@@ -102,8 +107,8 @@ if __name__ == "__main__":
     parser.add_argument("--start", type=float, help="Lowest shear to analyse. Default: 0.0", default=0.)
     parser.add_argument("--step", type=float, help="Shear step size for structural properties. "
                         "Default: 0.01", default=0.01)
-    parser.add_argument("--substep", type=float, help="Actual shear step size. Default: 0.001",
-                        default=0.001)
+    parser.add_argument("--substep", type=float, help="Actual shear step size. Default: step size",
+                        default=None)
     parser.add_argument("--stop", type=float, help="Highest shear to analyse. Default: 1.0", default=1.)
     parser.add_argument("-z", "--neighbours", action='store_true',
                         help="Calculate the static coordination numbers. Default: False",
@@ -123,8 +128,13 @@ if __name__ == "__main__":
                         help="Calculate the movement of the particles. Default: False", default=False)
     args = parser.parse_args()
 
+    if args.substep is None:
+        substep = args.step
+    else:
+        substep = args.substep
+
     analyse_shear = AnalyseShear(input_dir=args.input_dir, output_dir=args.output_dir, force=args.force,
-                                 start=args.start, step=args.step, substep=args.substep, stop=args.stop,
+                                 start=args.start, step=args.step, substep=substep, stop=args.stop,
                                  calc_neighbours=args.neighbours, calc_neighbours_dyn=args.neighbours_dynamic,
                                  calc_boo=args.bond_orientation_order, calc_invsym=args.inversion_symmetry,
                                  calc_pressure=args.pressure_tensor, calc_movement=args.movement)

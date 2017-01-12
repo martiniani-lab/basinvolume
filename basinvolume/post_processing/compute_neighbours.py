@@ -65,6 +65,9 @@ class Neighbours(StructuralAnalysis):
                                                               self.restrict_neighbours + str(dname))
                             restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
                             restrict_path = os.path.join(restrict_dir, self.analysis_fname)
+                            if not os.path.isfile(restrict_path):
+                                raise IOError("The restrict neighbours file {} does "
+                                              "not exist.".format(restrict_path))
                             configf = ConfigParser.ConfigParser()
                             configf.read(restrict_path)
                             restrict_neighbour_lists = ast.literal_eval(configf.get('NEIGHBOURS',
