@@ -9,13 +9,14 @@ from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
 
 class Neighbours(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
-                 analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_', restrict_neighbours = None, cutoff = 1.):
+                 analysis_dir='analysis', analysis_fname='neighbours', force=False,
+                 existing_only=True, prefix='explore_bv_', restrict_neighbours=None, cutoff=1.):
         super(Neighbours, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix)
         self.cutoff = cutoff
         self.restrict_neighbours = restrict_neighbours
+        self.analysis_fname = analysis_fname
 
 
     def run(self):
@@ -34,7 +35,7 @@ class Neighbours(StructuralAnalysis):
 
                     # Check if this packing has already been analysed
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
-                    neighbours_fname = os.path.join(analysis_dir_path, 'neighbours')
+                    neighbours_fname = os.path.join(analysis_dir_path, self.analysis_fname)
                     compute = False
                     try:
                         configf = ConfigParser.ConfigParser()
@@ -45,7 +46,10 @@ class Neighbours(StructuralAnalysis):
                         compute = True
 
                     if compute or self.force:
-                        print("Calculating neighbours: {}".format(self.prefix + str(dname)))
+                        if self.restrict_neighbours is None:
+                            print("Calculating neighbours: {}".format(self.prefix + str(dname)))
+                        else:
+                            print("Calculating restricted neighbours: {}".format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute neighbours
@@ -60,7 +64,7 @@ class Neighbours(StructuralAnalysis):
                             base_restrict_path = os.path.join(self.workspace,
                                                               self.restrict_neighbours + str(dname))
                             restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
-                            restrict_path = os.path.join(restrict_dir, 'neighbours')
+                            restrict_path = os.path.join(restrict_dir, self.analysis_fname)
                             configf = ConfigParser.ConfigParser()
                             configf.read(restrict_path)
                             restrict_neighbour_lists = ast.literal_eval(configf.get('NEIGHBOURS',
