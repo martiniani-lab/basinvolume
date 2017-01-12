@@ -63,7 +63,7 @@ class InversionSymmetry(StructuralAnalysis):
         return np.sum(sum(affine_forces))
 
 
-    def _affine_force_sym_broken_pair(self, distance, atomi, atomj, shear_direction, shear_perpendicular):
+    def _affine_force_interaction_sym_broken(self, distance, atomi, atomj, shear_direction, shear_perpendicular):
         dist_norm = np.linalg.norm(distance)
         dist_dir = distance / dist_norm
         hess_radial = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
@@ -77,7 +77,10 @@ class InversionSymmetry(StructuralAnalysis):
             for beta in range(self.bdim):
                 for i in range(len(neighbour_listss)):
                     for j in range(len(neighbour_listss[i])):
-                        affine_forces_isb += self._affine_force_sym_broken_pair(neighbour_distancess[i][j], i, neighbour_listss[i][j], alpha, beta) ** 2
+                        affine_forces_isb += \
+                            self._affine_force_interaction_sym_broken(neighbour_distancess[i][j],
+                                                                      i, neighbour_listss[i][j],
+                                                                      alpha, beta) ** 2
         return affine_forces_isb
 
 
@@ -107,11 +110,10 @@ class InversionSymmetry(StructuralAnalysis):
                         compute = True
 
                     if compute or self.force:
-                        print "local inversion symmetry ", dname
+                        print("Calculating local inversion symmetry: {}".format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute distances to neighbours
-                        print(fname)
                         self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(fname)
                         neighbour_distancess, neighbour_listss = \
                             find_neighbours(self.coords, self.ss_radii, self.bdim, self.boxv,
@@ -128,9 +130,6 @@ class InversionSymmetry(StructuralAnalysis):
                         affine_forces_isb = self._sum_affine_forces_sym_broken(neighbour_distancess,
                                                                                neighbour_listss)
                         inv_sym = 1 - affine_forces_sum / affine_forces_isb
-                        print("affine_forces_sum: {}".format(affine_forces_sum))
-                        print("affine_forces_isb: {}".format(affine_forces_isb))
-                        print("inv_sym: {}".format(inv_sym))
 
                         # Output inversion symmetry to file
                         with open(invsym_fname, 'w') as f:

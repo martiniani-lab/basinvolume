@@ -45,7 +45,7 @@ class Neighbours(StructuralAnalysis):
                         compute = True
 
                     if compute or self.force:
-                        print "neighbours ", dname
+                        print("Calculating neighbours: {}".format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute neighbours

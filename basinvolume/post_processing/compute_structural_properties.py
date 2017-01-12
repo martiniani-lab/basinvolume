@@ -87,7 +87,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                                                     analysis_dir=analysis_dir, force=force,
                                                     existing_only=existing_only, prefix=prefix)
         self.solid_angle_weighted = solid_angle_weighted
-        print("self.solid_angle_weighted", self.solid_angle_weighted)
+        print("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
 
     def run(self, deg=6, pinit=True):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
@@ -118,7 +118,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                     except Exception:
                         compute = True
                     if compute or self.force:
-                        print "boo ", dname
+                        print("Calculating bond orientational order: {}".format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
                         coords, hs_radii, ss_radii, rattlers = self._import_packing_configuration(fname)
                         boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, rattlers,
@@ -309,7 +309,7 @@ class PressureTensor(StructuralAnalysis):
                     except Exception:
                         compute = True
                     if compute or self.force:
-                        print "pressure ", dname
+                        print("Calculating pressure: {}".format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
                         self.coords, self.hs_radii, self.ss_radii, self.rattlers = self._import_packing_configuration(fname)
                         potential = self.get_potential()
