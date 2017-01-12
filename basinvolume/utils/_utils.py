@@ -13,7 +13,7 @@ import pandas as pd
 import glob
 from itertools import chain
 from basinvolume.utils._utils_cpp import read_txt
-from pele.distance import put_in_box
+from pele.distance import get_distance, put_in_box
 try:
     from joblib import Parallel, delayed
     import matplotlib.pyplot as plt
@@ -899,3 +899,34 @@ def in_hull(p, hull):
         hull = Delaunay(hull)
 
     return hull.find_simplex(p)>=0
+
+
+def find_neighbours(coords, radii, bdim, box, distance_method='periodic',
+                    pot_kwargs={'shear': 0.}, include=None, cutoff_factor=1.):
+    nparticles = radii.size
+    neighbour_distancess = [[] for _ in xrange(nparticles)]
+    neighbour_indicess = [[] for _ in xrange(nparticles)]
+
+    # Only include given particles (e.g. for excluding rattlers)
+    if include is None:
+        atom_labels = range(nparticles)
+    else:
+        atom_labels = [i for i in range(nparticles) if include[i]]
+
+    # Loop over all unique pairs of different particles
+    for i, atomi in enumerate(atom_labels):
+        for atomj in atom_labels[i+1:]:
+
+            # Calculate distance
+            dij = get_distance(coords[atomi * bdim : (atomi + 1) * bdim],
+                               coords[atomj * bdim : (atomj + 1) * bdim],
+                               bdim, distance_method, box, pot_kwargs)
+            dijnorm = np.linalg.norm(dij)
+
+            # Check if this particle lies within neighbour range
+            dmax = cutoff_factor * (radii[atomi] + radii[atomj])
+            if dijnorm <= dmax:
+                neighbour_distancess[atomi].append(dij)
+                neighbour_distancess[atomj].append(-dij)
+                neighbour_indicess[atomi].append(atomj)
+                neighbour_indicess[atomj].append(atomi)

@@ -6,10 +6,9 @@ import ConfigParser
 import traceback
 import ast
 from scipy.special import sph_harm
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, cround
+from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, cround, find_neighbours
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
-from pele.distance import get_distance
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 import argparse
 import multiprocessing as mp
@@ -122,7 +121,8 @@ class BondOrientationalOrder(StructuralAnalysis):
                         print "boo ", dname
                         trymakedir(analysis_dir_path)
                         coords, hs_radii, ss_radii, rattlers = self._import_packing_configuration(fname)
-                        boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, rattlers, ndim=self.bdim, deg=deg)
+                        boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, rattlers,
+                                                                           ndim=self.bdim, deg=deg)
                         with open(boo_fname, 'w') as f:
                             f.write('#Q{} \t Z\n'.format(deg))
                             for q, z in zip(boo_list, z_list):
@@ -212,37 +212,8 @@ class BondOrientationalOrder(StructuralAnalysis):
         else:
             raise Exception('ndim not implemented')
 
-    def _distance (self, coord1, coord2):
-        if self.distance_method == 'lees-edwards':
-            return get_distance(coord1, coord2, self.bdim, self.distance_method,
-                                box=self.boxv, shear=self.pot_kwargs['shear'])
-        else:
-            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv)
-
-    def find_nearest_neighbors(self, coords, hs_radii, rattlers=None):
-        """
-        this function ignores rattlers
-        """
-        nparticles = hs_radii.size
-        nnatoms_list = [[] for _ in xrange(nparticles)]
-        if rattlers is None:
-            atom_labels = range(nparticles)
-        else:
-            atom_labels = np.array(range(nparticles))[np.array(rattlers[::self.bdim], dtype='int') == 1]
-        for i in atom_labels:
-            for j in atom_labels:
-                if j > i:
-                    dij = self._distance(coords[i * self.bdim : (i + 1) * self.bdim],
-                                    coords[j * self.bdim : (j + 1) * self.bdim])
-                    dijnorm = np.linalg.norm(dij)
-                    dmin = hs_radii[i] + hs_radii[j]
-                    if dijnorm <= dmin:
-                        nnatoms_list[i].append(dij)
-                        nnatoms_list[j].append(-dij)
-        return nnatoms_list
-
-    def find_nearest_neighbors_solid_angle(self, coords, hs_radii):
-        nparticles = hs_radii.size
+    def find_nearest_neighbors_solid_angle(self, coords, ss_radii):
+        nparticles = ss_radii.size
         nnatoms_list = [[] for _ in xrange(nparticles)]
         weights_all = copy.deepcopy(nnatoms_list)
         for i in xrange(nparticles):
@@ -257,12 +228,14 @@ class BondOrientationalOrder(StructuralAnalysis):
                 weights_all[i].append(sann.weight[j])
         return nnatoms_list, weights_all
 
-    def bond_orientation_order_single(self, coords, hs_radii, rattlers, atom_index, ndim=3, deg=6):
-        nnatoms_list = self.find_nearest_neighbors(coords, hs_radii, rattlers=rattlers)
+    def bond_orientation_order_single(self, coords, ss_radii, rattlers, atom_index, ndim=3, deg=6):
+        nnatoms_list = find_neighbours(coords, ss_radii, self.bdim, self.boxv,
+                                       self.distance_method, self.pot_kwargs,
+                                       include=[r == 1 for r in rattlers])
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
 
-    def bond_orientation_order_all(self, coords, hs_radii, rattlers, ndim=3, deg=6):
+    def bond_orientation_order_all(self, coords, ss_radii, rattlers, ndim=3, deg=6):
         """
         boo_list : array
             list of bond orientational order
@@ -271,15 +244,17 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
-        contacts_list = self.find_nearest_neighbors(coords, hs_radii, rattlers=rattlers)
+        contacts_list = find_neighbours(coords, ss_radii, self.bdim, self.boxv,
+                                        self.distance_method, self.pot_kwargs,
+                                        include=[r == 1 for r in rattlers])
         if not self.solid_angle_weighted:
             nnatoms_list = contacts_list
         else:
-            nnatoms_list, weights_all = self.find_nearest_neighbors_solid_angle(coords, hs_radii)
+            nnatoms_list, weights_all = self.find_nearest_neighbors_solid_angle(coords, ss_radii)
 
         boo_list = []
         z_list = []
-        for i in xrange(hs_radii.size):
+        for i in xrange(ss_radii.size):
             contacts_vec = contacts_list[i]
             nnatoms_vec = nnatoms_list[i]
             weights = None

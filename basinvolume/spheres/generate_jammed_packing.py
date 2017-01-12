@@ -7,7 +7,7 @@ from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
-from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, read_xydr, read_xyzdr
+from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, read_xydr, read_xyzdr, find_neighbours
 import ConfigParser
 import re
 import argparse
@@ -286,13 +286,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.iteration += 1
         return success
 
-    def _distance (self, coord1, coord2):
-        if self.distance_method == 'lees-edwards':
-            return get_distance(coord1, coord2, self.bdim, self.distance_method,
-                                box=self.boxv, shear=self.pot_kwargs['shear'])
-        else:
-            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv)
-
 
     def _find_rattlers(self):
         """
@@ -308,7 +301,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             # x is a 3 array with the coordinates of the particles
             dmin = np.amin(self.hs_radii)/10.
             for j in xrange(self.nparticles):
-                dij = np.linalg.norm(self._distance(self.coords[j * self.bdim : (j + 1) * self.bdim], x))
+                dij = np.linalg.norm(get_distance(self.coords[j * self.bdim : (j + 1) * self.bdim],
+                                                  x, self.bdim, self.distance_method, self.boxv,
+                                                  self.pot_kwargs))
                 if dij < dmin:
                     return j
 
@@ -322,7 +317,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 print "Too many rattlers. Discarding packing."
                 return False
             radii = hs_radii * (1. + self.sca)
-            contact_list, neighbors_index_list = self._find_nearest_neighbors(coords, radii)
+            contact_list, neighbors_index_list = find_neighbours(coords, radii, self.bdim,
+                                                                 self.boxv, self.distance_method,
+                                                                 self.pot_kwargs)
             for i in xrange(len(hs_radii)):
                 i1 = self.bdim * i
                 j = get_index(coords[i1:i1+self.bdim])
@@ -365,23 +362,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         else:
             print "Packing is not globally stable, N_min: {} N_contacts: {}".format(N_min, N_contacts)
             return False
-
-    def _find_nearest_neighbors(self, coords, radii):
-        nparticles = radii.size
-        nnatoms_list = [[] for _ in xrange(nparticles)]
-        nnatoms_index_list = [[] for _ in xrange(nparticles)]
-        for i in xrange(nparticles - 1):
-            for j in xrange(i + 1, nparticles):
-                dij = self._distance(coords[i * self.bdim : (i + 1) * self.bdim],
-                                         coords[j * self.bdim : (j + 1) * self.bdim])
-                dijnorm = np.linalg.norm(dij)
-                dmin = radii[i] + radii[j]
-                if dijnorm <= dmin:
-                    nnatoms_list[i].append(dij)
-                    nnatoms_list[j].append(-dij)
-                    nnatoms_index_list[i].append(j)
-                    nnatoms_index_list[j].append(i)
-        return nnatoms_list, nnatoms_index_list
 
 
     def _generate_packing_coords(self):
@@ -458,9 +438,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             if no_overlap == True:
                 for j in xrange(self.nparticles):
                     if i != j:
-                        dij = np.linalg.norm(self._distance(
+                        dij = np.linalg.norm(self.get_distance(
                             self.coords[i * self.bdim : (i + 1) * self.bdim],
-                            self.coords[j * self.bdim : (j + 1) * self.bdim]))
+                            self.coords[j * self.bdim : (j + 1) * self.bdim],
+                            self.bdim, self.distance_method, self.boxv, self.pot_kwargs))
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
                             print 'invalid configuration'

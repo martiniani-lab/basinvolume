@@ -3,9 +3,8 @@ import os
 import ast
 import numpy as np
 import argparse
-from pele.distance import get_distance
 from compute_structural_properties import StructuralAnalysis
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr
+from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
 
 
 class Neighbours(StructuralAnalysis):
@@ -17,39 +16,6 @@ class Neighbours(StructuralAnalysis):
                                                 existing_only=existing_only, prefix=prefix)
         self.cutoff = cutoff
         self.include_neighbourss = include_neighbourss
-
-
-    def _distance (self, coord1, coord2):
-        if self.distance_method == 'lees-edwards':
-            return get_distance(coord1, coord2, self.bdim, self.distance_method,
-                                box=self.boxv, shear=self.pot_kwargs['shear'])
-        else:
-            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv)
-
-
-    def _find_neighbours(self, coords, radii):
-        nparticles = radii.size
-        neighbour_distancess = [[] for _ in xrange(nparticles)]
-        neighbour_indicess = [[] for _ in xrange(nparticles)]
-
-        # Loop over all unique pairs of different particles
-        for i in xrange(nparticles - 1):
-            for j in xrange(i + 1, nparticles):
-
-                # Calculate distance
-                dij = self._distance(coords[i * self.bdim : (i + 1) * self.bdim],
-                                         coords[j * self.bdim : (j + 1) * self.bdim])
-                dijnorm = np.linalg.norm(dij)
-
-                # Check if this particle lies within neighbour range
-                dmax = self.cutoff * (radii[i] + radii[j])
-                if dijnorm <= dmax:
-                    neighbour_distancess[i].append(dij)
-                    neighbour_distancess[j].append(-dij)
-                    neighbour_indicess[i].append(j)
-                    neighbour_indicess[j].append(i)
-
-        return neighbour_distancess, neighbour_indicess
 
 
     def run(self):
@@ -84,7 +50,10 @@ class Neighbours(StructuralAnalysis):
 
                         # Read coordinates and compute neighbours
                         self.coords, _, self.ss_radii, _ = self._import_packing_configuration(fname)
-                        _, neighbour_listss = self._find_neighbours(self.coords, self.ss_radii)
+                        _, neighbour_listss = find_neighbours(self.coords, self.ss_radii, self.bdim,
+                                                              self.boxv, self.distance_method,
+                                                              self.pot_kwargs,
+                                                              cutoff_factor=self.cutoff)
 
                         # Filter neighbours
                         if self.include_neighbourss is not None:

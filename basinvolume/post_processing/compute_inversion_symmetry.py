@@ -3,10 +3,9 @@ import os
 import ast
 import numpy as np
 import argparse
-from pele.distance import get_distance
 from pele.potentials import HS_WCA
 from compute_structural_properties import StructuralAnalysis
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr
+from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
 
 
 class InversionSymmetry(StructuralAnalysis):
@@ -18,46 +17,13 @@ class InversionSymmetry(StructuralAnalysis):
                                                 existing_only=existing_only, prefix=prefix)
 
 
-    def _distance (self, coord1, coord2):
-        if self.distance_method == 'lees-edwards':
-            return get_distance(coord1, coord2, self.bdim, self.distance_method,
-                                box=self.boxv, shear=self.pot_kwargs['shear'])
-        else:
-            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv)
-
-
-    def _find_nearest_neighbours(self, coords, radii):
-        nparticles = radii.size
-        neighbour_distancess = [[] for _ in xrange(nparticles)]
-        neighbour_indicess = [[] for _ in xrange(nparticles)]
-
-        # Loop over all unique pairs of different particles
-        for i in xrange(nparticles - 1):
-            for j in xrange(i + 1, nparticles):
-
-                # Calculate distance
-                dij = self._distance(coords[i * self.bdim : (i + 1) * self.bdim],
-                                         coords[j * self.bdim : (j + 1) * self.bdim])
-                dijnorm = np.linalg.norm(dij)
-
-                # Check if this particle lies within neighbour range
-                dmax = radii[i] + radii[j]
-                if dijnorm <= dmax:
-                    neighbour_distancess[i].append(dij)
-                    neighbour_distancess[j].append(-dij)
-                    neighbour_indicess[i].append(j)
-                    neighbour_indicess[j].append(i)
-
-        return neighbour_distancess, neighbour_indicess
-
-
     # Returns the affine force of a pair of particles
     # Indices:
     # List index is direction perpendicular to the sheared boundary (beta)
     # Matrix (numpy-array):
     # row index is the shear direction (alpha)
     # column index is the affine force component
-    def _affine_force_pair(self, distance, atomi, atomj):
+    def _affine_force_interaction(self, distance, atomi, atomj):
         # Get hessian in interaction direction
         dist_norm = np.linalg.norm(distance)
         hess_norm = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
@@ -83,7 +49,7 @@ class InversionSymmetry(StructuralAnalysis):
     def _affine_force_particle(self, index, distances, neighbours):
         affine_force_particle = [np.zeros((self.bdim, self.bdim)) for _ in range(self.bdim)]
         for i in range(len(neighbours)):
-            affine_force = self._affine_force_pair(distances[i], index, neighbours[i])
+            affine_force = self._affine_force_interaction(distances[i], index, neighbours[i])
             for j in range(self.bdim):
                 affine_force_particle[j] += affine_force[j]
         return affine_force_particle
@@ -101,6 +67,7 @@ class InversionSymmetry(StructuralAnalysis):
     def _affine_force_sym_broken_pair(self, distance, atomi, atomj, shear_direction, shear_perpendicular):
         distance_norm = np.linalg.norm(distance)
         distance_direction = distance / distance_norm
+        # it's probably not correct to take the gradient
         grad_norm = self.potential.getInteractionGradient(distance_norm, atomi, atomj)
         print("grad_norm: {}".format(grad_norm))
         return grad_norm * distance_direction[shear_direction] \
@@ -149,8 +116,9 @@ class InversionSymmetry(StructuralAnalysis):
                         # Read coordinates and compute distances to neighbours
                         print(fname)
                         self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(fname)
-                        neighbour_distancess, neighbour_listss = self._find_nearest_neighbours(self.coords,
-                                                                                self.ss_radii)
+                        neighbour_distancess, neighbour_listss = \
+                            find_neighbours(self.coords, self.ss_radii, self.bdim, self.boxv,
+                                            self.distance_method, self.pot_kwargs, self.cutoff)
 
                         # Create potential
                         self.potential = HS_WCA(eps=self.eps, sca=self.sca,
@@ -158,8 +126,10 @@ class InversionSymmetry(StructuralAnalysis):
                                                 distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
 
                         # Compute local inversion symmetry
-                        affine_forces_sum = self._sum_affine_forces(neighbour_distancess, neighbour_listss)
-                        affine_forces_isb = self._sum_affine_forces_sym_broken(neighbour_distancess, neighbour_listss)
+                        affine_forces_sum = self._sum_affine_forces(neighbour_distancess,
+                                                                    neighbour_listss)
+                        affine_forces_isb = self._sum_affine_forces_sym_broken(neighbour_distancess,
+                                                                               neighbour_listss)
                         inv_sym = 1 - affine_forces_sum / affine_forces_isb
                         print("affine_forces_sum: {}".format(affine_forces_sum))
                         print("affine_forces_isb: {}".format(affine_forces_isb))

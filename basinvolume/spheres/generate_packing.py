@@ -272,14 +272,6 @@ class HS_Generate_Packing(_Generate_Packing):
 #        assert(self.hs_radii.all() > 0)
 
 
-    def _distance (self, coord1, coord2):
-        if self.distance_method == "lees-edwards":
-            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv,
-                                shear=self.pot_kwargs['shear'])
-        else:
-            return get_distance(coord1, coord2, self.bdim, self.distance_method, box=self.boxv)
-
-
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
@@ -287,8 +279,10 @@ class HS_Generate_Packing(_Generate_Packing):
             if no_overlap == True:
                 for j in xrange(i, self.nparticles):
 
-                    dij = np.linalg.norm(self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                         self.coords[j * self.bdim : (j + 1) * self.bdim]))
+                    dij = np.linalg.norm(get_distance(
+                        self.coords[i * self.bdim : (i + 1) * self.bdim],
+                        self.coords[j * self.bdim : (j + 1) * self.bdim],
+                        self.bdim, self.distance_method, self.boxv, self.pot_kwargs))
                     if i != j:
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
@@ -314,8 +308,10 @@ class HS_Generate_Packing(_Generate_Packing):
         distances = np.empty([self.nparticles,self.nparticles])
         for i in xrange(self.nparticles):
             for j in xrange(i,self.nparticles):
-                distances[i,j] = self._distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                                self.coords[j * self.bdim : (j + 1) * self.bdim])
+                distances[i,j] = get_distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                               self.coords[j * self.bdim : (j + 1) * self.bdim],
+                                               self.bdim, self.distance_method, self.boxv,
+                                               self.pot_kwargs)
                 if i != j:
                     distances[j,i] = distances[i,j]
         return distances
