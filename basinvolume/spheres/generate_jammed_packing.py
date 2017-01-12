@@ -2,12 +2,12 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.distance import get_distance, put_in_box
+from pele.distance import put_in_box
 from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
-from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, read_xydr, read_xyzdr, find_neighbours
+from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, read_xydr, read_xyzdr, find_neighbours, calc_distance
 import ConfigParser
 import re
 import argparse
@@ -301,7 +301,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             # x is a 3 array with the coordinates of the particles
             dmin = np.amin(self.hs_radii)/10.
             for j in xrange(self.nparticles):
-                dij = np.linalg.norm(get_distance(self.coords[j * self.bdim : (j + 1) * self.bdim],
+                dij = np.linalg.norm(calc_distance(self.coords[j * self.bdim : (j + 1) * self.bdim],
                                                   x, self.bdim, self.distance_method, self.boxv,
                                                   self.pot_kwargs))
                 if dij < dmin:
@@ -438,7 +438,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             if no_overlap == True:
                 for j in xrange(self.nparticles):
                     if i != j:
-                        dij = np.linalg.norm(self.get_distance(
+                        dij = np.linalg.norm(self.calc_distance(
                             self.coords[i * self.bdim : (i + 1) * self.bdim],
                             self.coords[j * self.bdim : (j + 1) * self.bdim],
                             self.bdim, self.distance_method, self.boxv, self.pot_kwargs))

@@ -901,6 +901,14 @@ def in_hull(p, hull):
     return hull.find_simplex(p)>=0
 
 
+def calc_distance (coord1, coord2, bdim, distance_method, box, pot_kwargs={}):
+    if distance_method == "lees-edwards":
+        return get_distance(coord1, coord2, bdim, distance_method, box=box,
+                            shear=pot_kwargs['shear'])
+    else:
+        return get_distance(coord1, coord2, bdim, distance_method, box=box)
+
+
 def find_neighbours(coords, radii, bdim, box, distance_method='periodic',
                     pot_kwargs={'shear': 0.}, include=None, cutoff_factor=1.):
     nparticles = radii.size
@@ -918,9 +926,9 @@ def find_neighbours(coords, radii, bdim, box, distance_method='periodic',
         for atomj in atom_labels[i+1:]:
 
             # Calculate distance
-            dij = get_distance(coords[atomi * bdim : (atomi + 1) * bdim],
-                               coords[atomj * bdim : (atomj + 1) * bdim],
-                               bdim, distance_method, box, pot_kwargs)
+            dij = calc_distance(coords[atomi * bdim : (atomi + 1) * bdim],
+                                coords[atomj * bdim : (atomj + 1) * bdim],
+                                bdim, distance_method, box, pot_kwargs)
             dijnorm = np.linalg.norm(dij)
 
             # Check if this particle lies within neighbour range
@@ -930,3 +938,5 @@ def find_neighbours(coords, radii, bdim, box, distance_method='periodic',
                 neighbour_distancess[atomj].append(-dij)
                 neighbour_indicess[atomi].append(atomj)
                 neighbour_indicess[atomj].append(atomi)
+
+    return neighbour_distancess, neighbour_indicess

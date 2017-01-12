@@ -52,8 +52,7 @@ class Neighbours(StructuralAnalysis):
                         self.coords, _, self.ss_radii, _ = self._import_packing_configuration(fname)
                         _, neighbour_listss = find_neighbours(self.coords, self.ss_radii, self.bdim,
                                                               self.boxv, self.distance_method,
-                                                              self.pot_kwargs,
-                                                              cutoff_factor=self.cutoff)
+                                                              self.pot_kwargs, cutoff_factor=self.cutoff)
 
                         # Filter neighbours
                         if self.include_neighbourss is not None:

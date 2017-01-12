@@ -3,10 +3,10 @@ import numpy as np
 import abc
 import os
 from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
-from pele.distance import get_distance, put_in_box
+from pele.distance import put_in_box
 from pele.potentials import HS_WCA
 from pele.optimize._quench import lbfgs_cpp
-from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
+from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround, calc_distance
 from basinvolume.utils import volume_nball, read_xyd, read_xyzd
 from numpy.random import RandomState
 from mcpele.monte_carlo import NullPotential
@@ -214,17 +214,19 @@ class HS_Generate_Packing(_Generate_Packing):
                         self.use_cell_lists = False
                 if self.use_cell_lists:
                     self.potential = HS_WCA(use_cell_lists=True, eps=self.eps,
-                                     sca=self.sca, radii=self.hs_radii,
-                                     boxvec=self.boxv,
-                                     reference_coords=self.coords,
-                                     ndim=self.bdim, ncellx_scale=1.0,
-                                     distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
+                                            sca=self.sca, radii=self.hs_radii,
+                                            boxvec=self.boxv,
+                                            reference_coords=self.coords,
+                                            ndim=self.bdim, ncellx_scale=1.0,
+                                            distance_method=self.distance_method,
+                                            pot_kwargs=self.pot_kwargs)
                 else:
                     self.potential = HS_WCA(eps=self.eps,
-                                     sca=self.sca, radii=self.hs_radii,
-                                     boxvec=self.boxv, ndim=self.bdim,
-                                     use_cell_lists=False,
-                                     distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
+                                            sca=self.sca, radii=self.hs_radii,
+                                            boxvec=self.boxv, ndim=self.bdim,
+                                            use_cell_lists=False,
+                                            distance_method=self.distance_method,
+                                            pot_kwargs=self.pot_kwargs)
             else:
                 self._initialise_coords_crystal()
             self._print_initialise()
@@ -279,7 +281,7 @@ class HS_Generate_Packing(_Generate_Packing):
             if no_overlap == True:
                 for j in xrange(i, self.nparticles):
 
-                    dij = np.linalg.norm(get_distance(
+                    dij = np.linalg.norm(calc_distance(
                         self.coords[i * self.bdim : (i + 1) * self.bdim],
                         self.coords[j * self.bdim : (j + 1) * self.bdim],
                         self.bdim, self.distance_method, self.boxv, self.pot_kwargs))
@@ -308,10 +310,10 @@ class HS_Generate_Packing(_Generate_Packing):
         distances = np.empty([self.nparticles,self.nparticles])
         for i in xrange(self.nparticles):
             for j in xrange(i,self.nparticles):
-                distances[i,j] = get_distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
-                                               self.coords[j * self.bdim : (j + 1) * self.bdim],
-                                               self.bdim, self.distance_method, self.boxv,
-                                               self.pot_kwargs)
+                distances[i,j] = calc_distance(self.coords[i * self.bdim : (i + 1) * self.bdim],
+                                           self.coords[j * self.bdim : (j + 1) * self.bdim],
+                                           self.bdim, self.distance_method,
+                                           self.boxv, self.pot_kwargs)
                 if i != j:
                     distances[j,i] = distances[i,j]
         return distances
@@ -733,8 +735,11 @@ if __name__ == "__main__":
             coords, hs_diameters = read_xyzd(dpath)
         hs_radii = hs_diameters/2
 
-    sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim, packing_frac=args.density,
-                              hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
-                              hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
-                              use_cell_lists=not args.nocell, single=single, start_iteration=args.start_iter, distance_method=args.distance_method, pot_kwargs=pot_kwargs)
+    sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim,
+                              packing_frac=args.density, hs_radii=hs_radii,
+                              mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
+                              hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep,
+                              max_iter =args.npackings, use_cell_lists=not args.nocell,
+                              single=single, start_iteration=args.start_iter,
+                              distance_method=args.distance_method, pot_kwargs=pot_kwargs)
     sim.run()
