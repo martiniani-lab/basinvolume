@@ -26,8 +26,7 @@ class InversionSymmetry(StructuralAnalysis):
     def _affine_force_interaction(self, distance, atomi, atomj):
         # Get hessian in interaction direction
         dist_norm = np.linalg.norm(distance)
-        hess_norm = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
-        print("hess_norm: {}".format(hess_norm))
+        hess_radial = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
 
         # Transform into coordinate system
         dist_dir = distance / dist_norm
@@ -40,7 +39,7 @@ class InversionSymmetry(StructuralAnalysis):
             rot_matrix = np.array([[dist_dir[0], dist_dir[1], dist_dir[2]], [-dist_dir[1], dist_dir[0], 0], [-dist_dir[0]*dist_dir[2], dist_dir[1] * dist_dir[2], dist_dir[0]**2 + dist_dir[1]**2]])
         else:
             raise NotImplementedError
-        hessian_particle_system = np.array([[hess_norm, 0], [0, 0]])
+        hessian_particle_system = np.array([[hess_radial, 0], [0, 0]])
         hessian = np.dot(rot_matrix.T, np.dot(hessian_particle_system, rot_matrix))
 
         return [hessian * d for d in distance]
@@ -65,13 +64,11 @@ class InversionSymmetry(StructuralAnalysis):
 
 
     def _affine_force_sym_broken_pair(self, distance, atomi, atomj, shear_direction, shear_perpendicular):
-        distance_norm = np.linalg.norm(distance)
-        distance_direction = distance / distance_norm
-        # it's probably not correct to take the gradient
-        grad_norm = self.potential.getInteractionGradient(distance_norm, atomi, atomj)
-        print("grad_norm: {}".format(grad_norm))
-        return grad_norm * distance_direction[shear_direction] \
-               * distance_direction[shear_perpendicular]
+        dist_norm = np.linalg.norm(distance)
+        dist_dir = distance / dist_norm
+        hess_radial = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
+        return hess_radial * dist_norm * dist_dir[shear_direction] \
+               * dist_dir[shear_perpendicular]
 
 
     def _sum_affine_forces_sym_broken(self, neighbour_distancess, neighbour_listss):
@@ -118,7 +115,7 @@ class InversionSymmetry(StructuralAnalysis):
                         self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(fname)
                         neighbour_distancess, neighbour_listss = \
                             find_neighbours(self.coords, self.ss_radii, self.bdim, self.boxv,
-                                            self.distance_method, self.pot_kwargs, self.cutoff)
+                                            self.distance_method, self.pot_kwargs)
 
                         # Create potential
                         self.potential = HS_WCA(eps=self.eps, sca=self.sca,
