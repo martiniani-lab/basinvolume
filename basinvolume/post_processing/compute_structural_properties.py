@@ -229,7 +229,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         return nnatoms_list, weights_all
 
     def bond_orientation_order_single(self, coords, ss_radii, rattlers, atom_index, ndim=3, deg=6):
-        nnatoms_list = find_neighbours(coords, ss_radii, self.bdim, self.boxv,
+        nnatoms_list, _ = find_neighbours(coords, ss_radii, self.bdim, self.boxv,
                                        self.distance_method, self.pot_kwargs,
                                        include=[r == 1 for r in rattlers])
         nnatoms_vec = nnatoms_list[atom_index]
@@ -244,7 +244,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
-        contacts_list = find_neighbours(coords, ss_radii, self.bdim, self.boxv,
+        contacts_list, _ = find_neighbours(coords, ss_radii, self.bdim, self.boxv,
                                         self.distance_method, self.pot_kwargs,
                                         include=[r == 1 for r in rattlers])
         if not self.solid_angle_weighted:
