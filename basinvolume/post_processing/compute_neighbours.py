@@ -42,8 +42,9 @@ class Neighbours(StructuralAnalysis):
                     try:
                         configf = ConfigParser.ConfigParser()
                         configf.read(neighbours_fname)
-                        ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_lists'))
+                        configf.getfloat('NEIGHBOURS', 'avg_neighbours')
                         ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_counts'))
+                        ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_lists'))
                     except Exception:
                         compute = True
 
@@ -85,6 +86,8 @@ class Neighbours(StructuralAnalysis):
                         with open(neighbours_fname, 'w') as f:
                             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
                             f.write('[NEIGHBOURS]\n')
+                            f.write('avg_neighbours: {}\n'.format(np.mean([len(neighbours) for neighbours
+                                                                     in neighbour_lists])))
                             f.write('neighbour_counts: {}\n'.format([len(neighbours) for neighbours
                                                                      in neighbour_lists]))
                             f.write('neighbour_lists: {}\n'.format(neighbour_lists))
