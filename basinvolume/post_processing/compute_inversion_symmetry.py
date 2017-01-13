@@ -11,10 +11,11 @@ from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
 class InversionSymmetry(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_'):
+                 prefix='explore_bv_', verbose=True):
         super(InversionSymmetry, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
-                                                existing_only=existing_only, prefix=prefix)
+                                                existing_only=existing_only, prefix=prefix,
+                                                verbose=verbose)
 
 
     # Returns the affine force of a pair of particles
@@ -110,7 +111,9 @@ class InversionSymmetry(StructuralAnalysis):
                         compute = True
 
                     if compute or self.force:
-                        print("Calculating local inversion symmetry: {}".format(self.prefix + str(dname)))
+                        if self.verbose:
+                            print("Calculating local inversion symmetry: {}".format(self.prefix +
+                                                                                    str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute distances to neighbours

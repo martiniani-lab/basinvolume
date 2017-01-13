@@ -20,7 +20,7 @@ class StructuralAnalysis(object):
     #@abc.abstractmethod
 
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings',
-                 analysis_dir='analysis', force=False, existing_only=True, prefix='explore_bv_'):
+                 analysis_dir='analysis', force=False, existing_only=True, prefix='explore_bv_', verbose=True):
         if not os.path.isabs(workspace):
             workspace = os.path.abspath(workspace)
         self.workspace = workspace
@@ -37,6 +37,7 @@ class StructuralAnalysis(object):
         self.force = force
         self.existing_only = existing_only
         self.prefix = prefix
+        self.verbose = verbose
 
     def _import_packing_config_file(self, configpath):
         configf = ConfigParser.ConfigParser()
@@ -81,13 +82,15 @@ class StructuralAnalysis(object):
 class BondOrientationalOrder(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 solid_angle_weighted=False, prefix='explore_bv_'):
+                 solid_angle_weighted=False, prefix='explore_bv_', verbose=True):
         super(BondOrientationalOrder,self).__init__(workspace,
                                                     jammed_packings_dir=jammed_packings_dir,
                                                     analysis_dir=analysis_dir, force=force,
-                                                    existing_only=existing_only, prefix=prefix)
+                                                    existing_only=existing_only, prefix=prefix,
+                                                    verbose=verbose)
         self.solid_angle_weighted = solid_angle_weighted
-        print("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
+        if self.verbose:
+            print("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
 
     def run(self, deg=6, pinit=True):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
@@ -118,7 +121,8 @@ class BondOrientationalOrder(StructuralAnalysis):
                     except Exception:
                         compute = True
                     if compute or self.force:
-                        print("Calculating bond orientational order: {}".format(self.prefix + str(dname)))
+                        if self.verbose:
+                            print("Calculating bond orientational order: {}".format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
                         coords, hs_radii, ss_radii, rattlers = self._import_packing_configuration(fname)
                         boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, rattlers,
@@ -276,10 +280,11 @@ class BondOrientationalOrder(StructuralAnalysis):
 class PressureTensor(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True, opt_pot_str='hs_wca',
-                 prefix='explore_bv_'):
+                 prefix='explore_bv_', verbose=True):
         super(PressureTensor,self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                             analysis_dir=analysis_dir, force=force,
-                                            existing_only=existing_only, prefix=prefix)
+                                            existing_only=existing_only, prefix=prefix,
+                                            verbose=verbose)
         self.opt_pot_str = opt_pot_str
 
     def run(self):
@@ -309,7 +314,8 @@ class PressureTensor(StructuralAnalysis):
                     except Exception:
                         compute = True
                     if compute or self.force:
-                        print("Calculating pressure: {}".format(self.prefix + str(dname)))
+                        if self.verbose:
+                            print("Calculating pressure: {}".format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
                         self.coords, self.hs_radii, self.ss_radii, self.rattlers = self._import_packing_configuration(fname)
                         potential = self.get_potential()

@@ -10,10 +10,12 @@ from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
 class Neighbours(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', analysis_fname='neighbours', force=False,
-                 existing_only=True, prefix='explore_bv_', restrict_neighbours=None, cutoff=1.):
+                 existing_only=True, prefix='explore_bv_', verbose=True,
+                 restrict_neighbours=None, cutoff=1.):
         super(Neighbours, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
-                                                existing_only=existing_only, prefix=prefix)
+                                                existing_only=existing_only, prefix=prefix,
+                                                verbose=verbose)
         self.cutoff = cutoff
         self.restrict_neighbours = restrict_neighbours
         self.analysis_fname = analysis_fname
@@ -46,10 +48,12 @@ class Neighbours(StructuralAnalysis):
                         compute = True
 
                     if compute or self.force:
-                        if self.restrict_neighbours is None:
-                            print("Calculating neighbours: {}".format(self.prefix + str(dname)))
-                        else:
-                            print("Calculating restricted neighbours: {}".format(self.prefix + str(dname)))
+                        if self.verbose:
+                            if self.restrict_neighbours is None:
+                                print("Calculating neighbours: {}".format(self.prefix + str(dname)))
+                            else:
+                                print("Calculating restricted neighbours: {}".format(self.prefix +
+                                                                                     str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute neighbours

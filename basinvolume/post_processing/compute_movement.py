@@ -9,7 +9,7 @@ from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, calc_distance
 class Movement:
     def __init__(self, workspace, packings_orig, packings_new,
                  analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_'):
+                 prefix='explore_bv_', verbose=True):
         if not os.path.isabs(workspace):
             workspace = os.path.abspath(workspace)
         self.workspace = workspace
@@ -24,6 +24,7 @@ class Movement:
         self.force = force
         self.existing_only = existing_only
         self.prefix = prefix
+        self.verbose = verbose
 
 
     def _import_packing_config_file(self, configpath):
@@ -95,7 +96,8 @@ class Movement:
                         compute = True
 
                     if compute or self.force:
-                        print("Calculating movements: {}".format(self.prefix + str(dname)))
+                        if self.verbose:
+                            print("Calculating movements: {}".format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates
