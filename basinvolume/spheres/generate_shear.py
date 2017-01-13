@@ -4,6 +4,7 @@ import os
 import shutil
 from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
+from basinvolume.utils import read_xyd, read_xyzd
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a sequence of packings with increasing shear.")
@@ -29,7 +30,7 @@ if __name__ == "__main__":
                         "between 2 samples. Default: 1e6", default=1e6)
     parser.add_argument("--hsfstep", type=float, help="Stepsize for hard sphere fluid MC "
                         "simulation. Default: 1e-3", default=1e-3)
-    parser.add_argument("--dpath", type=str, help="Path to xy(z)d path from where to import diameters. "
+    parser.add_argument("--dpath", type=str, help="Path to xy(z)d file from which to import diameters. "
                         "Default: None", default=None)
     parser.add_argument("--packing_moveall", action='store_true', help="Move all particles at each hard "
                         "sphere fluid MC step. Default: False",default=False)
@@ -96,7 +97,7 @@ if __name__ == "__main__":
 
     # Generate sheared packings
     unjammed_packings = []
-    for shear in np.arange(0., args.final_shear, args.step) + args.step:
+    for shear in np.arange(0., args.final_shear, args.step) + 1.5 * args.step:
         pot_kwargs['shear'] = shear
         print("\n--------- Shear: {} ---------".format(shear))
         gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,

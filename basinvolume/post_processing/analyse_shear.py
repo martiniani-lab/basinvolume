@@ -271,7 +271,7 @@ class AnalyseShear:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyse a shearing process.")
     parser.add_argument("--input_dir", type=str, help="Directory containing the "
-                        "shearing process. Default: Current directory", default=None)
+                        "shearing process. Default: Current directory", default=".")
     parser.add_argument("--output_dir", type=str, help="Directory for saving the analyses. "
                         "Default: 'shear_analysis'", default='shear_analysis')
     parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
