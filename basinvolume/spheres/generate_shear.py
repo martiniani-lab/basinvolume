@@ -14,7 +14,7 @@ if __name__ == "__main__":
                         "Default: False", default=False)
     parser.add_argument("--npackings", type=int, help="Number of packings to produce. Default: 1", default=1)
     parser.add_argument("-n", "--nparticles", type=int, help="Number of particles. Default: 32", default=32)
-    parser.add_argument("-d", "--boxdim", type=int, help="Box dimensions. Default: 3", default=2)
+    parser.add_argument("-d", "--boxdim", type=int, help="Box dimensions. Default: 2", default=2)
     parser.add_argument("--input_packings", type=str, help="Use precalculated loose packings from directory.")
     parser.add_argument("--input_jammed", type=str, help="Use precalculated jammed packings from directory.")
 
@@ -41,6 +41,8 @@ if __name__ == "__main__":
                         "Default: 0.85", default=0.85)
     parser.add_argument("--min_tol", type=float, help="RMS tolerance of the minimizer. Default: 1e-9",
                         default=1e-9)
+    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm used for quenching. "
+                        "Options: 'cg', 'fire'. Default: 'fire'", default='fire')
 
     args = parser.parse_args()
 
@@ -86,9 +88,10 @@ if __name__ == "__main__":
     else:
         print("\n--------- Generating jammed packings ---------")
         gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
-                                         packings_dir="packings", outdir="shear_0.0",
-                                         tol=args.min_tol, use_cell_lists=args.cell,
-                                         show=False, opt_pot_str='hs_wca')
+                                                        packings_dir="packings", outdir="shear_0.0",
+                                                        tol=args.min_tol, use_cell_lists=args.cell,
+                                                        show=False, opt_pot_str='hs_wca',
+                                                        minimizer=args.minimizer)
         gen_jammed_packing.run()
 
     # Generate sheared packings
@@ -97,11 +100,13 @@ if __name__ == "__main__":
         pot_kwargs['shear'] = shear
         print("\n--------- Shear: {} ---------".format(shear))
         gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
-                                         packings_dir="shear_{}".format(shear - args.step),
-                                         import_jammed=True, outdir="shear_{}".format(shear),
-                                         tol=args.min_tol, use_cell_lists=args.cell,
-                                         show=False, opt_pot_str='hs_wca',
-                                         override_pot_kwargs=pot_kwargs)
+                                                        packings_dir="shear_{}".format(shear - args.step),
+                                                        import_jammed=True,
+                                                        outdir="shear_{}".format(shear),
+                                                        tol=args.min_tol, use_cell_lists=args.cell,
+                                                        show=False, opt_pot_str='hs_wca',
+                                                        override_pot_kwargs=pot_kwargs,
+                                                        minimizer=args.minimizer)
         successes = gen_jammed_packing.run()
 
         # Check for failed (unjammed) packings and save them with packing number and current shear

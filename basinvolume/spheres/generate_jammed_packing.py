@@ -5,7 +5,7 @@ import os
 from pele.distance import put_in_box
 from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
-from pele.optimize._quench import modifiedfire_cpp
+from pele.optimize._quench import modifiedfire_cpp, cg
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
 from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, read_xydr, read_xyzdr, find_neighbours, calc_distance
 import ConfigParser
@@ -51,7 +51,7 @@ class _Generate_Jammed_Packing(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, packing_frac=0.65, packings_dir='packings', import_jammed=False,
-                 outdir='jammed_packings', override_pot_kwargs=None):
+                 outdir='jammed_packings', override_pot_kwargs=None, minimizer="fire"):
         self.packing_frac = packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
@@ -62,6 +62,7 @@ class _Generate_Jammed_Packing(object):
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
+        self.minimizer=minimizer
 
     def _import_single_packing_config_file(self, fname):
         dname = fname
@@ -209,14 +210,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *eps: LJ interaction energy of WCA part of the HS potential
     *tol: rms tolerance for the minimizer
     """
-    def __init__(self, packing_frac=0.7, tol=1e-9,
-        packings_dir='packings', import_jammed=False, outdir='jammed_packings',
-        use_cell_lists=False, show=False,
-        opt_pot_str='hs_wca', pot_kwargs=None, override_pot_kwargs=None):
-        super(HS_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac,
-                                                        packings_dir=packings_dir,
-                                                        import_jammed=import_jammed,
-                                                        outdir=outdir, override_pot_kwargs=override_pot_kwargs)
+    def __init__(self, packing_frac=0.7, tol=1e-9, packings_dir='packings',
+                 import_jammed=False, outdir='jammed_packings', use_cell_lists=False,
+                 show=False, opt_pot_str='hs_wca', pot_kwargs=None, override_pot_kwargs=None,
+                 minimizer="fire"):
+        super(HS_Generate_Jammed_Packing, self).__init__(packing_frac=packing_frac,
+                                                         packings_dir=packings_dir,
+                                                         import_jammed=import_jammed,
+                                                         outdir=outdir, minimizer=minimizer,
+                                                         override_pot_kwargs=override_pot_kwargs)
 
         self.opt_pot_str = opt_pot_str
         self.pot_kwargs = pot_kwargs
@@ -372,9 +374,17 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         return success
 
     def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
-        """quenches the imported structure using FIRE"""
-        fire_maxstep = np.amin(self.hs_radii)*self.sca
-        res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
+        """quenches the imported structure"""
+        if self.minimizer == "fire":
+            fire_maxstep = np.amin(self.hs_radii)*self.sca
+            res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
+        elif self.minimizer == "cg":
+            # Not working
+            raise NotImplementedError
+            res = cg(self.coords, self.potential, iprint=iprint, tol=tol, nsteps=1e6)
+        else:
+            raise NotImplementedError
+
         if not res.success:
             print 'quench failed'
             return False
@@ -382,8 +392,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.coords = res.coords
         self.energy = res.energy
 
-        #test that on ri-minimisation the structure does not change
-        res2 = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
+        #test that on re-minimisation the structure does not change
+        if self.minimizer == "fire":
+            res2 = modifiedfire_cpp(self.coords, self.potential,
+                                    maxstep=fire_maxstep, nsteps=1e6, tol=tol)
+        elif self.minimzer == "cg":
+            res2 = cg(self.coords, self.potential, iprint=iprint, tol=tol, nsteps=1e6)
+        else:
+            raise NotImplementedError
         if res2.nfev > 1:
             print 'quench failed (structure changed at second minimisation)'
             return False
@@ -438,7 +454,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             if no_overlap == True:
                 for j in xrange(self.nparticles):
                     if i != j:
-                        dij = np.linalg.norm(self.calc_distance(
+                        dij = np.linalg.norm(calc_distance(
                             self.coords[i * self.bdim : (i + 1) * self.bdim],
                             self.coords[j * self.bdim : (j + 1) * self.bdim],
                             self.bdim, self.distance_method, self.boxv, self.pot_kwargs))
@@ -564,14 +580,18 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.7)
-    parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
-    parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
+    parser.add_argument("--nocell", action='store_true', help="don't use cell lists, "
+                        "default: False",default=False)
+    parser.add_argument("--packingsdir", type=str, help="name of directory with packings, "
+                        "must be in cwd", default="packings")
     parser.add_argument("--import_jammed", action='store_true', help="Take a jammed packing as input "
                         "instead of an unjammed one.", default=False)
     parser.add_argument("-o", "--outdir", type=str, help="Directory to save jammed packings in. "
                         "Default: 'jammed_packings'", default='jammed_packings')
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
     parser.add_argument("-t", "--tol", type=float, help="rms tolerance of the minimizer", default=1e-9)
+    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm used for quenching. "
+                        "Options: 'cg', 'fire'. Default: 'fire'", default='fire')
     # potential arguments
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
@@ -594,5 +614,6 @@ if __name__ == "__main__":
                                      packings_dir=args.packingsdir, import_jammed=args.import_jammed,
                                      outdir=args.outdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
-                                     opt_pot_str=args.opt_pot, override_pot_kwargs=override_pot_kwargs)
+                                     opt_pot_str=args.opt_pot, minimizer=args.minimizer,
+                                     override_pot_kwargs=override_pot_kwargs)
     sim.run()
