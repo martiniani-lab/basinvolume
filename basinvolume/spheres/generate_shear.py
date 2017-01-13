@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     # Generate sheared packings
     unjammed_packings = []
-    for shear in np.arange(0., args.final_shear, args.step) + 1.5 * args.step:
+    for shear in np.arange(0., args.final_shear + 0.5 * args.step, args.step) + args.step:
         pot_kwargs['shear'] = shear
         print("\n--------- Shear: {} ---------".format(shear))
         gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
