@@ -86,7 +86,7 @@ class AnalyseShear:
                 neighbours_dyn = Neighbours(workspace_dir, **neighbours_dyn_kwargs)
                 neighbours_dyn.run()
             else:
-                for subshear in np.arange(shear - self.step, shear, self.substep):
+                for subshear in np.arange(shear - self.step, shear - 0.5 * self.substep, self.substep):
                     restrict_prefix = os.path.join("shear_{}".format(subshear), "explore_bv_")
                     subshear_dname = "shear_{}".format(subshear + self.substep)
                     subshear_prefix = os.path.join(subshear_dname, "explore_bv_")
@@ -132,7 +132,8 @@ class AnalyseShear:
         explore_dirs = filter(lambda expname: "explore_bv_jammed_packing" in expname
                               and os.path.isdir(os.path.join(self.input_dir, input_relpath, expname)),
                               input_files)
-        analysis_paths = [os.path.join(self.input_dir, input_relpath, expdir, "analysis") for expdir in explore_dirs]
+        analysis_paths = [os.path.join(self.input_dir, input_relpath, expdir, "analysis")
+                          for expdir in explore_dirs]
 
         # Get the output directory paths
         output_files = os.listdir(self.output_dir)
@@ -260,7 +261,7 @@ class AnalyseShear:
 
     def run(self):
         self.make_output_dirs()
-        for shear in np.arange(self.start, self.stop + self.step, self.step):
+        for shear in np.arange(self.start, self.stop + 0.5 * self.step, self.step):
             input_dir = "shear_{}".format(shear)
             self.calc_parameters(shear, input_dir)
             self.collect_files(shear, input_dir)
