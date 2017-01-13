@@ -65,7 +65,9 @@ if __name__ == "__main__":
         if not os.path.isdir(args.input_packings):
             raise IOError("The specified input packings-directory does not exist "
                           "({})!".format(args.input_packings))
-        if not os.path.isdir("packings"):
+        if os.path.isdir("packings"):
+            print("The packings directory already exists!")
+        else:
             shutil.copytree(args.input_packings, "packings")
     elif args.input_jammed is None:
         print("\n--------- Generating loose packings ---------")
@@ -84,7 +86,9 @@ if __name__ == "__main__":
         if not os.path.isdir(args.input_jammed):
             raise IOError("The specified input packings-directory does not exist "
                           "({})!".format(args.input_jammed))
-        if not os.path.isdir("shear_0.0"):
+        if os.path.isdir("shear_0.0"):
+            print("The shear_0.0 directory already exists!")
+        else:
             shutil.copytree(args.input_jammed, "shear_0.0")
     else:
         print("\n--------- Generating jammed packings ---------")
