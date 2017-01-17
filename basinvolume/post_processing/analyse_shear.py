@@ -114,12 +114,15 @@ class AnalyseShear:
             pressure = PressureTensor(workspace_dir, **pressure_kwargs)
             pressure.run()
 
-        # Calculate movement away from start packing
+        # Calculate movement from previous packing
         if self.calc_movement:
             movement_kwargs = dict(kwargs)
             del movement_kwargs['jammed_packings_dir']
-            orig_path = "shear_{}".format(self.start)
-            movement = Movement(workspace_dir, orig_path, input_relpath, **movement_kwargs)
+            if shear == self.start:
+                prev_path = input_relpath
+            else:
+                prev_path = "shear_{}".format(shear - self.step)
+            movement = Movement(workspace_dir, prev_path, input_relpath, **movement_kwargs)
             movement.run()
 
 
