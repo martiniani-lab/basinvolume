@@ -3,11 +3,12 @@ import argparse
 import os
 import sys
 import shutil
+import ast
 import ConfigParser
 import pandas as pd
 from compute_neighbours import Neighbours
 from compute_inversion_symmetry import InversionSymmetry
-from compute_movement import Movement
+from compute_displacement import Displacement
 from compute_structural_properties import BondOrientationalOrder, PressureTensor
 
 
@@ -15,7 +16,7 @@ class AnalyseShear:
     def __init__(self, input_dir=".", output_dir="shear_analysis", force=False,
                  start=0., step=0.01, substep=0.001, stop=1., calc_neighbours=False,
                  calc_neighbours_dyn=False, calc_boo=False, calc_invsym=False,
-                 calc_pressure=False, calc_movement=False):
+                 calc_pressure=False, calc_displacement=False):
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.force = force
@@ -28,7 +29,7 @@ class AnalyseShear:
         self.calc_boo = calc_boo
         self.calc_invsym = calc_invsym
         self.calc_pressure = calc_pressure
-        self.calc_movement = calc_movement
+        self.calc_displacement = calc_displacement
 
 
     def make_output_dirs(self):
@@ -38,9 +39,9 @@ class AnalyseShear:
 
         # Get parameter directories to create
         all_param_dirs = ["neighbours", "neighbours_dyn", "boo", "inversion_symmetry",
-                          "pressure_tensor", "movements"]
+                          "pressure_tensor", "displacement"]
         params = [self.calc_neighbours, self.calc_neighbours_dyn, self.calc_boo,
-                  self.calc_invsym, self.calc_pressure, self.calc_movement]
+                  self.calc_invsym, self.calc_pressure, self.calc_displacement]
         param_dirs = [all_param_dirs[i] for i in range(len(params)) if params[i]]
 
         # Get packings to create
@@ -114,16 +115,18 @@ class AnalyseShear:
             pressure = PressureTensor(workspace_dir, **pressure_kwargs)
             pressure.run()
 
-        # Calculate movement from previous packing
-        if self.calc_movement:
-            movement_kwargs = dict(kwargs)
-            del movement_kwargs['jammed_packings_dir']
+        # Calculate displacement from previous packing
+        if self.calc_displacement:
+            displacement_kwargs = dict(kwargs)
+            del displacement_kwargs['jammed_packings_dir']
             if shear == self.start:
+                displacement_kwargs['shear'] = 0.
                 prev_path = input_relpath
             else:
+                displacement_kwargs['shear'] = self.step
                 prev_path = "shear_{}".format(shear - self.step)
-            movement = Movement(workspace_dir, prev_path, input_relpath, **movement_kwargs)
-            movement.run()
+            displacement = Displacement(workspace_dir, prev_path, input_relpath, **displacement_kwargs)
+            displacement.run()
 
 
     def collect_files(self, shear, input_relpath):
@@ -148,9 +151,9 @@ class AnalyseShear:
         # Get parameter directory and file names
         params_from_to_all = [("neighbours", "neighbours"), ("neighbours_dyn", "neighbours_dyn"),
                               ("glob_boo", "boo"), ("inversion_symmetry", "inversion_symmetry"),
-                              ("pressure_data", "pressure_tensor"), ("movements", "movements")]
+                              ("pressure_data", "pressure_tensor"), ("displacement", "displacement")]
         params_choice = [self.calc_neighbours, self.calc_neighbours_dyn, self.calc_boo,
-                         self.calc_invsym, self.calc_pressure, self.calc_movement]
+                         self.calc_invsym, self.calc_pressure, self.calc_displacement]
         params_from_to = [params_from_to_all[i] for i in range(len(params_choice)) if params_choice[i]]
 
         # Iterate over packings and parameters
@@ -245,16 +248,26 @@ class AnalyseShear:
                         raise NotImplementedError
                     data = data.append(pressure_entry)
 
-            # Movement away from start packing
-            if self.calc_movement:
-                movement_path = os.path.join(path, "movements")
-                for shear_file in os.listdir(movement_path):
-                    movement_entry = pd.Series()
-                    movement_entry.name = float(shear_file.split('_')[1])
-                    configf.read(os.path.join(movement_path, shear_file))
-                    movement_entry['Average movement'] = configf.getfloat("MOVEMENTS",
-                                                                          "avg_distance")
-                    data = data.append(movement_entry)
+            # Displacement from previous packing
+            if self.calc_displacement:
+                displacement_path = os.path.join(path, "displacement")
+                for shear_file in os.listdir(displacement_path):
+                    displacement_entry = pd.Series()
+                    displacement_entry.name = float(shear_file.split('_')[1])
+                    displ_dict = Displacement.read(os.path.join(displacement_path,
+                                                               shear_file))
+                    displacement_entry['Average absolute displacement'] \
+                        = displ_dict['avg_abs_displacement_norm']
+                    displacement_entry['Average absolute non-affine displacement'] \
+                        = displ_dict['avg_abs_nonaff_displacement_norm']
+                    dims = ['x', 'y', 'z']
+                    for i in xrange(len(displ_dict['avg_displacement'])):
+                        displacement_entry['Average absolute displacement {}'.format(dims[i])] \
+                            = displ_dict['avg_abs_displacement'][i]
+                        displacement_entry['Average absolute non-affine displacement {}'
+                                           .format(dims[i])] \
+                            = displ_dict['avg_abs_nonaff_displacement'][i]
+                    data = data.append(displacement_entry)
 
             # Merge on indices
             data = data.groupby(data.index).sum()
@@ -300,8 +313,8 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--pressure_tensor", action='store_true',
                         help="Calculate the pressure tensor (shear stress). Default: False",
                         default=False)
-    parser.add_argument("-m", "--movement", action='store_true',
-                        help="Calculate the movement of the particles. Default: False", default=False)
+    parser.add_argument("-d", "--displacement", action='store_true',
+                        help="Calculate the displacement of the particles. Default: False", default=False)
     args = parser.parse_args()
 
     if args.substep is None:
@@ -317,5 +330,5 @@ if __name__ == "__main__":
                                  calc_boo=args.bond_orientation_order,
                                  calc_invsym=args.inversion_symmetry,
                                  calc_pressure=args.pressure_tensor,
-                                 calc_movement=args.movement)
+                                 calc_displacement=args.displacement)
     analyse_shear.run()

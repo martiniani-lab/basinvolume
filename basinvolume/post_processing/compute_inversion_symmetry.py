@@ -78,10 +78,10 @@ class InversionSymmetry(StructuralAnalysis):
             for beta in range(self.bdim):
                 for i in range(len(neighbour_lists)):
                     for j in range(len(neighbour_lists[i])):
-                        affine_forces_isb += \
-                            self._affine_force_interaction_sym_broken(neighbour_distancess[i][j],
-                                                                      i, neighbour_lists[i][j],
-                                                                      alpha, beta) ** 2
+                        affine_forces_isb \
+                            += self._affine_force_interaction_sym_broken(neighbour_distancess[i][j],
+                                                                         i, neighbour_lists[i][j],
+                                                                         alpha, beta) ** 2
         return affine_forces_isb
 
 
@@ -117,10 +117,11 @@ class InversionSymmetry(StructuralAnalysis):
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute distances to neighbours
-                        self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(fname)
-                        neighbour_distancess, neighbour_lists = \
-                            find_neighbours(self.coords, self.ss_radii, self.bdim, self.boxv,
-                                            self.distance_method, self.pot_kwargs)
+                        self.coords, self.hs_radii, self.ss_radii, _ \
+                            = self._import_packing_configuration(fname)
+                        neighbour_distancess, neighbour_lists \
+                            = find_neighbours(self.coords, self.ss_radii, self.bdim, self.boxv,
+                                              self.distance_method, self.pot_kwargs)
 
                         # Create potential
                         self.potential = HS_WCA(eps=self.eps, sca=self.sca,
