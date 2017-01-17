@@ -375,6 +375,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
         """quenches the imported structure"""
+
+        #asserts that none of the hard sphere is overlapping before quenching
+        no_overlap = self._check_no_overlaps()
+        if not no_overlap:
+            print("Overlap found before quenching")
+            return False
+
         if self.minimizer == "fire":
             fire_maxstep = np.amin(self.hs_radii)*self.sca
             res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
@@ -407,7 +414,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
-            print 'overlap found'
+            print("Overlap found after quenching")
             return False
 
         return self._find_rattlers()
