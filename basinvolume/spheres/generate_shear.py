@@ -21,7 +21,8 @@ if __name__ == "__main__":
 
     # Arguments for generating packings
     parser.add_argument("-phs", "--density_hs", type=float, help="Target hard sphere packing fraction. "
-                        "Default: 0.68", default=0.68)
+                        "Default: Calculated from soft sphere packing fraction by phs = pss * 0.7/0.88",
+                        default=None)
     parser.add_argument("--rmean", type=float, help="Mean particle radius. Default: 1.0",
                         default=1.0)
     parser.add_argument("--rsigma", type=float, help="Percent standard deviation. Default: 0.1",
@@ -47,7 +48,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    #import radii from other configuration file
+    # Calculate hard sphere density
+    if args.density_hs is None:
+        density_hs = args.density_ss * 0.7/0.88
+    else:
+        density_hs = args.density_hs
+
+    # Import radii from other configuration file
     dpath = args.dpath
     hs_radii = None
     if dpath:
@@ -72,7 +79,7 @@ if __name__ == "__main__":
     elif args.input_jammed is None:
         print("\n--------- Generating loose packings ---------")
         gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method,
-                                          bdim=args.boxdim, packing_frac=args.density_hs,
+                                          bdim=args.boxdim, packing_frac=density_hs,
                                           hs_radii=hs_radii, mu=args.rmean, sig=args.rsigma,
                                           new_poly=False, hsf_niter=args.hsfniter,
                                           hsf_stepsize=args.hsfstep, max_iter=args.npackings,
