@@ -309,6 +309,7 @@ class PressureTensor(StructuralAnalysis):
                         configf = ConfigParser.ConfigParser()
                         configf.read(pressure_fname)
                         test_p = configf.getfloat('PRESSURE', 'P')
+                        test_maxshear = configf.getfloat('PRESSURE', 'maxshear_xyplane')
                         test_ptensor = configf.get('PRESSURE', 'Ptensor')
                         test_e = configf.get('ENERGY', 'E')
                     except Exception:
@@ -326,11 +327,13 @@ class PressureTensor(StructuralAnalysis):
                         #                            nsteps=1e6, tol=1e-11, iprint=-1)
                         #     self.coords = res.coords
                         p, ptensor = pressure_tensor(potential, self.coords, self.vcavity, self.bdim)
+                        max_shear_xyplane = np.sqrt(((ptensor[0] - ptensor[3]) / 2.) ** 2 + ptensor[1] ** 2)
                         energy = potential.getEnergy(self.coords)
                         with open(pressure_fname, 'w') as f:
                             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
                             f.write('[PRESSURE]\n')
                             f.write('P: {:.16f}\n'.format(p))
+                            f.write('maxshear_xyplane: {:.16f}\n'.format(max_shear_xyplane))
                             f.write('Ptensor: ')
                             for val in ptensor:
                                 f.write('{:.16f} '.format(val))

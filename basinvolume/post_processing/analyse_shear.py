@@ -230,9 +230,10 @@ class AnalyseShear:
                     configf.read(os.path.join(pressure_path, shear_file))
                     pressure_entry['Energy'] = configf.getfloat("ENERGY", "E")
                     pressure_entry['Pressure'] = configf.getfloat("PRESSURE", "P")
+                    pressure_entry['Shear stress'] = configf.getfloat("PRESSURE", "maxshear_xyplane")
                     p_tensor = [float(p) for p in configf.get("PRESSURE", "Ptensor").split(' ')]
                     if len(p_tensor) == 4:
-                        pressure_entry['Shear stress'] = p_tensor[1]
+                        pressure_entry['Shear stress xy'] = p_tensor[1]
                     elif len(p_tensor) == 9:
                         pressure_entry['Shear stress xy'] = p_tensor[1]
                         pressure_entry['Shear stress xz'] = p_tensor[2]
