@@ -862,12 +862,6 @@ def get_uniform_in_sphere(radius, dim):
     x = np.random.normal(0, 1, dim)
     return x / np.linalg.norm(x) * radius * np.power(np.random.uniform(0, 1), 1 / dim)
 
-try:
-    import matplotlib.pyplot as plt
-    from matplotlib.backends.backend_pdf import PdfPages
-except Exception as e:
-    print(e)
-
 class BasicPlot(object):
     """
     Set up reasonable font sizes and pdf saving etc.
