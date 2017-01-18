@@ -133,7 +133,7 @@ class Displacement:
                     displacement_fname = os.path.join(analysis_dir_path,'displacement')
                     compute = False
                     try:
-                        test_disp_dict = read_displacement(displacement_fname)
+                        read(displacement_fname)
                     except Exception:
                         compute = True
 
