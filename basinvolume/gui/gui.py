@@ -6,7 +6,7 @@ from basinvolume.gui import HSWCASystem
 from pele.gui.run import run_gui
 from pele.storage import Database, Minimum
 from pele.optimize._quench import modifiedfire_cpp
-from pylab import *
+import pylab as pl
 
 def quench(coords, potential, boxv, nsteps=1e6, tol=1e-9):
     res = modifiedfire_cpp(coords, potential, maxstep=(boxv[0]*0.1), nsteps=nsteps, tol=tol)
@@ -16,7 +16,7 @@ def quench(coords, potential, boxv, nsteps=1e6, tol=1e-9):
     return res.coords, res.energy
 
 def merge_db(explore_dir, fname='merged_minima_list.sqlite', distinct=False):
-    created_newdb=False 
+    created_newdb=False
     for subdir, dirs, files in os.walk(explore_dir):
         for dir in dirs:
             if dir.isdigit():
@@ -30,7 +30,7 @@ def merge_db(explore_dir, fname='merged_minima_list.sqlite', distinct=False):
                     print file
                     db = Database(file)
                     for m in db.minima():
-                        m.coords, m.energy = quench(m.coords, system.potential, system.boxv) 
+                        m.coords, m.energy = quench(m.coords, system.potential, system.boxv)
                         if not distinct:
                             mnew = Minimum(m.energy,m.coords)
                         else:
@@ -61,7 +61,7 @@ def create_system(dbname):
     except IOError:
         print dbname, "doesn't exist"
         sys.exit(0)
-    system = HSWCASystem(eps, sca, radii, boxv, 
+    system = HSWCASystem(eps, sca, radii, boxv,
                          bdim=bdim, dtol=dtol, etol=etol)
     return system
 
@@ -84,7 +84,7 @@ def minimum_to_value_k(m):
         k = m.user_data["k"] + 1
         return k
     except TypeError:
-        return None  
+        return None
 
 def get_minima_k_less_than(db, val):
     new_min_list = []
@@ -110,14 +110,14 @@ def get_origin(db):
 def dgraph(dbname=None):
     from PyQt4.QtGui import QApplication
     from pele.gui.ui.dgraph_dlg import DGraphDialog, reduced_db2graph
-    
+
     if dbname is None:
         dbname = "minima_list.sqlite"
     system = create_system(dbname=dbname)
     db = system.create_database(dbname)
     groups = None
-    
-    app = QApplication(sys.argv) 
+
+    app = QApplication(sys.argv)
     kwargs = {}
     kwargs["show_minima"] = False
     kwargs["order_by_energy"] = False
@@ -131,7 +131,7 @@ def dgraph(dbname=None):
     md = DGraphDialog(db, params=kwargs)
     md.dgraph_widget._set_lineEdit("linewidth",  default=0.4)
     md.rebuild_disconnectivity_graph()
-    
+
     dwargs = {}
     #draw all the minima with k<=val
     dwargs['color']='blue'
@@ -146,9 +146,9 @@ def dgraph(dbname=None):
     dwargs['zorder']=100
     m_origin = [get_origin(db)]
     md.dgraph_widget.dg.draw_minima(m_origin, **dwargs)
-    
+
     md.dgraph_widget.canvas.draw()
-    
+
 #    md.dgraph_widget.dg.color_by_value(minimum_to_value_count,colormap=get_cmap('jet'))
 #    md.dgraph_widget.redraw_disconnectivity_graph()
     md.show()
