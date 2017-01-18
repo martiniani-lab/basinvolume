@@ -220,11 +220,11 @@ class AnalyseShear:
             if self.calc_invsym:
                 invsym_path = os.path.join(path, "inversion_symmetry")
                 for shear_file in os.listdir(invsym_path):
+                    invsym_dict = InversionSymmetry.read(os.path.join(invsym_path,
+                                                                      shear_file))
                     invsym_entry = pd.Series()
                     invsym_entry.name = float(shear_file.split('_')[1])
-                    configf.read(os.path.join(invsym_path, shear_file))
-                    invsym_entry['Local inversion symmetry'] = configf.getfloat("INVERSION_SYMMETRY",
-                                                                                "inversion_symmetry")
+                    invsym_entry['Local inversion symmetry'] = invsym_dict['inversion_symmetry']
                     data = data.append(invsym_entry)
 
             # Pressure tensor
@@ -252,10 +252,10 @@ class AnalyseShear:
             if self.calc_displacement:
                 displacement_path = os.path.join(path, "displacement")
                 for shear_file in os.listdir(displacement_path):
+                    displ_dict = Displacement.read(os.path.join(displacement_path,
+                                                                shear_file))
                     displacement_entry = pd.Series()
                     displacement_entry.name = float(shear_file.split('_')[1])
-                    displ_dict = Displacement.read(os.path.join(displacement_path,
-                                                               shear_file))
                     displacement_entry['Average absolute displacement'] \
                         = displ_dict['avg_abs_displacement_norm']
                     displacement_entry['Average absolute non-affine displacement'] \

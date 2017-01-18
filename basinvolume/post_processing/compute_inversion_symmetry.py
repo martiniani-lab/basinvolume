@@ -40,7 +40,10 @@ class InversionSymmetry(StructuralAnalysis):
             rot_matrix = np.array([[dist_dir[0], dist_dir[1], dist_dir[2]], [-dist_dir[1], dist_dir[0], 0], [-dist_dir[0]*dist_dir[2], dist_dir[1] * dist_dir[2], dist_dir[0]**2 + dist_dir[1]**2]])
         else:
             raise NotImplementedError
-        hessian_particle_system = np.array([[hess_radial, 0], [0, 0]])
+        if self.bdim == 2:
+            hessian_particle_system = np.array([[hess_radial, 0], [0, 0]])
+        elif self.bdim == 3:
+            hessian_particle_system = np.array([[hess_radial, 0, 0], [0, 0, 0], [0, 0, 0]])
         hessian = np.dot(rot_matrix.T, np.dot(hessian_particle_system, rot_matrix))
 
         return [hessian * d for d in distance]
@@ -85,6 +88,15 @@ class InversionSymmetry(StructuralAnalysis):
         return affine_forces_isb
 
 
+    @staticmethod
+    def read(invsym_fname):
+        configf = ConfigParser.ConfigParser()
+        configf.read(invsym_fname)
+        invsym_dict = {}
+        invsym_dict['inversion_symmetry'] \
+            = configf.getfloat('INVERSION_SYMMETRY', 'inversion_symmetry')
+        return invsym_dict
+
     def run(self):
         for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzdr' in fname or 'xydr' in fname:
@@ -104,9 +116,7 @@ class InversionSymmetry(StructuralAnalysis):
                     invsym_fname = os.path.join(analysis_dir_path,'inversion_symmetry')
                     compute = False
                     try:
-                        configf = ConfigParser.ConfigParser()
-                        configf.read(invsym_fname)
-                        configf.getfloat('INVERSION_SYMMETRY', 'inversion_symmetry')
+                        read(invsym_fname)
                     except Exception:
                         compute = True
 
