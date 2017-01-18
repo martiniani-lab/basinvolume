@@ -34,8 +34,8 @@ class _Generate_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, nparticles, bdim=3, boxv=None, packing_frac=0.4, max_iter=1, use_cell_lists=False,
-                 start_iteration=0):
+    def __init__(self, nparticles, bdim=3, boxv=None, packing_frac=0.4, max_iter=1,
+                 use_cell_lists=False, start_iteration=0):
         assert bdim==2 or bdim==3, "bdim={} not implemented".format(bdim)
         self.nparticles = nparticles
         self.bdim = bdim
@@ -167,11 +167,11 @@ class HS_Generate_Packing(_Generate_Packing):
     seeds: array
         set seed to something other than none to remove randomness between instances of the class
     """
-    def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4, hs_radii=None,
-                 mu = 1, sig = 0.1, new_poly=False, hsf_niter=1e6, hsf_stepsize = 1e-3, max_iter = 10,
-                 use_cell_lists=False, single=False, seeds=None, start_iteration=0,
-                 distance_method='periodic', pot_kwargs={}):
-        super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv = boxv,
+    def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4,
+                 hs_radii=None, mu=1, sig = 0.1, new_poly=False, hsf_niter=1e6,
+                 hsf_stepsize=1e-3, max_iter=10, use_cell_lists=False, single=False,
+                 seeds=None, start_iteration=0, distance_method='periodic', pot_kwargs={}):
+        super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv=boxv,
                                                  packing_frac=packing_frac, max_iter=max_iter,
                                                  use_cell_lists=use_cell_lists, start_iteration=start_iteration)
         self.method = method
@@ -280,7 +280,6 @@ class HS_Generate_Packing(_Generate_Packing):
         for i in xrange(self.nparticles):
             if no_overlap == True:
                 for j in xrange(i, self.nparticles):
-
                     dij = np.linalg.norm(calc_distance(
                         self.coords[i * self.bdim : (i + 1) * self.bdim],
                         self.coords[j * self.bdim : (j + 1) * self.bdim],
@@ -471,10 +470,10 @@ class HS_Generate_Packing(_Generate_Packing):
         See e.g. here: Frenkel and Smit: Understanding Molecular Simulation, page 252
         http://www.uic.edu/eng/ems/MEng/ChEME494/pdf/L8pt2.pdf
         """
-        n = int(np.power(self.nparticles/4,1./self.bdim))
-        assert ( n - np.power(int(n),self.bdim)) < 1e-8, "Nparticles is not (N/4)^3"
+        n = np.power(self.nparticles/4., 1./self.bdim)
+        assert abs(n - int(round(n))) < 1e-8, "Nparticles is not (N/4)^(1/3)"
         #assuming that box is cubic
-        L_cube = int((self.nparticles/4) ** (1/3))
+        L_cube = int(round((self.nparticles/4.) ** (1./3)))
         NX = L_cube
         NY = L_cube
         NZ = L_cube
@@ -737,9 +736,9 @@ if __name__ == "__main__":
 
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim,
                               packing_frac=args.density, hs_radii=hs_radii,
-                              mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
+                              mu=args.rmean, sig=args.rsigma, new_poly=args.newpoly,
                               hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep,
-                              max_iter =args.npackings, use_cell_lists=not args.nocell,
+                              max_iter=args.npackings, use_cell_lists=not args.nocell,
                               single=single, start_iteration=args.start_iter,
                               distance_method=args.distance_method, pot_kwargs=pot_kwargs)
     sim.run()
