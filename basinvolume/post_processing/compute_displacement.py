@@ -3,7 +3,7 @@ import os
 import ast
 import numpy as np
 import argparse
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, calc_distance
+from basinvolume.utils import trymakedir, import_packing, calc_distance
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 
 
@@ -28,18 +28,6 @@ class Displacement:
         self.verbose = verbose
         self.shear = shear
         self.sub_centre_mass = sub_centre_mass
-
-
-    def _import_packing_configuration(self, path):
-        if self.bdim == 2:
-            coords, hs_diameters, rattlers = read_xydr(path)
-        elif self.bdim == 3:
-            coords, hs_diameters, rattlers = read_xyzdr(path)
-        else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        hs_radii = hs_diameters/2
-        ss_radii = hs_radii * (1 + self.sca)
-        return coords, hs_radii, ss_radii, rattlers
 
 
     def _get_dname(self, dname):
@@ -123,9 +111,9 @@ class Displacement:
 
                         # Read coordinates
                         path_new = os.path.join(self.packings_new, fname)
-                        coords_new, _, _, _ = self._import_packing_configuration(path_new)
+                        coords_new = import_packing(path_new, True, self.bdim)['coords']
                         path_old = os.path.join(self.packings_old, fname)
-                        coords_old, _, _, _ = self._import_packing_configuration(path_old)
+                        coords_old = import_packing(path_old, True, self.bdim)['coords']
 
                         # Calculate displacements
                         # The displacement is measured with the boundary conditions of the new packing

@@ -63,9 +63,6 @@ class AnalyseShear:
 
     def calc_parameters(self, shear, input_relpath):
         print("Calculating parameters for shear={}".format(shear))
-        if not os.path.isdir(os.path.join(self.input_dir, input_relpath)):
-            print("The shear directory {} does not exist. Stopping analysis.".format(input_relpath))
-            sys.exit(1)
         if os.path.isabs(self.input_dir):
             workspace_dir = self.input_dir
         else:
@@ -279,9 +276,13 @@ class AnalyseShear:
     def run(self):
         self.make_output_dirs()
         for shear in np.arange(self.start, self.stop + 0.5 * self.step, self.step):
-            input_dir = "shear_{}".format(shear)
-            self.calc_parameters(shear, input_dir)
-            self.collect_files(shear, input_dir)
+            shear_dir = "shear_{}".format(shear)
+            if not os.path.isdir(os.path.join(self.input_dir, shear_dir)):
+                print("The shear directory {} does not exist. Stopping analysis."
+                      .format(shear_dir))
+                sys.exit(1)
+            self.calc_parameters(shear, shear_dir)
+            self.collect_files(shear, shear_dir)
         self.collect_parameters()
 
 

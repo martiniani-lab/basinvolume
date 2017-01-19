@@ -5,7 +5,7 @@ import os
 from pele.potentials import HS_WCA
 from pele.storage import Minimum
 from pele.distance import put_in_box
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, get_git_version, get_cython_version, get_python_version
+from basinvolume.utils import trymakedir, import_packing, get_git_version, get_cython_version, get_python_version
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from basinvolume.gui import HSWCASystem
 import ConfigParser
@@ -53,13 +53,10 @@ class analyse_jammed_packings(object):
             this should be run in initialise()
         """
         path = os.path.join(self.packings_dir,fname)
-        if self.bdim == 2:
-            self.coords, hs_diameters, self.rattlers = read_xydr(path)
-        elif self.bdim == 3:
-            self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
-        else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        self.hs_radii = hs_diameters/2
+        packing = import_packing(path, True, self.bdim)
+        self.coords = packing['coords']
+        self.hs_radii = packing['hs_radii']
+        self.rattlers = packing['rattlers']
 
     def analyse_hessian(self,fname):
         """compute hessian and its eigenvalues

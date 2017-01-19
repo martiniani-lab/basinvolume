@@ -4,7 +4,7 @@ import os
 from pele.distance import get_distance
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import cround, in_hull, read_xyd, read_xyzd, find_neighbours
+from basinvolume.utils import cround, in_hull, import_packing, find_neighbours
 import argparse
 from basinvolume.spheres import HS_Generate_Packing
 from pele.utils._pressure_tensor import pressure_tensor
@@ -318,11 +318,7 @@ if __name__ == "__main__":
     if dpath:
         if not os.path.isabs(args.dpath):
             dpath = os.path.abspath(dpath)
-        if args.boxdim == 2:
-            coords, hs_diameters = read_xyd(dpath)
-        else:
-            coords, hs_diameters = read_xyzd(dpath)
-        hs_radii = hs_diameters/2
+        hs_radii = import_packing(dpath, False, args.boxdim)['hs_radii']
 
     # density = args.density
     density = np.logspace(np.log10(args.phimin), np.log10(args.phimax), args.nphi)

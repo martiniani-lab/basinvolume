@@ -4,7 +4,7 @@ import ast
 import numpy as np
 import argparse
 from compute_structural_properties import StructuralAnalysis
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
+from basinvolume.utils import trymakedir, find_neighbours
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 
 

@@ -3,7 +3,6 @@ import shutil
 from basinvolume.post_processing.compute_inversion_symmetry import InversionSymmetry
 from basinvolume.spheres import HS_Generate_Packing
 from basinvolume.spheres import HS_Generate_Jammed_Packing
-from basinvolume.utils import read_xyzd
 
 if __name__ == "__main__":
     fcc_dens = np.pi / (np.sqrt(2) * 3) - 0.1

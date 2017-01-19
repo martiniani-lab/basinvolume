@@ -4,7 +4,7 @@ import os
 import shutil
 from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
-from basinvolume.utils import read_xyd, read_xyzd
+from basinvolume.utils import import_packing
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a sequence of packings with increasing shear.")
@@ -60,11 +60,7 @@ if __name__ == "__main__":
     if dpath:
         if not os.path.isabs(args.dpath):
             dpath = os.path.abspath(dpath)
-        if args.boxdim == 2:
-            coords, hs_diameters = read_xyd(dpath)
-        else:
-            coords, hs_diameters = read_xyzd(dpath)
-        hs_radii = hs_diameters/2
+        hs_radii = import_packing(dpath, False, args.boxdim)['hs_radii']
 
     # Generate packings at no shear
     pot_kwargs = {'shear': 0.0}

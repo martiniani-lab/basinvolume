@@ -6,7 +6,7 @@ import ConfigParser
 import traceback
 import ast
 from scipy.special import sph_harm
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, cround, find_neighbours
+from basinvolume.utils import trymakedir, import_packing, cround, find_neighbours
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
@@ -42,15 +42,8 @@ class StructuralAnalysis(object):
 
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.jammed_packings_dir, fname)
-        if self.bdim == 2:
-            coords, hs_diameters, rattlers = read_xydr(path)
-        elif self.bdim == 3:
-            coords, hs_diameters, rattlers = read_xyzdr(path)
-        else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        hs_radii = hs_diameters/2
-        ss_radii = hs_radii * (1 + self.sca)
-        return coords, hs_radii, ss_radii, rattlers
+        packing = import_packing(path, True, self.bdim, self.sca)
+        return packing['coords'], packing['hs_radii'], packing['ss_radii'], packing['rattlers']
 
     def _get_dname(self, dname):
         if dname.endswith('.xyzdr'):

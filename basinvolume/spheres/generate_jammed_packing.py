@@ -7,7 +7,7 @@ from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp, cg
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
-from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, read_xydr, read_xyzdr, find_neighbours, calc_distance
+from basinvolume.utils import volume_nball, in_hull, import_packing, find_neighbours, calc_distance
 from basinvolume.spheres.generate_packing import import_packing_config
 import ConfigParser
 import re
@@ -445,21 +445,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.packings_dir, fname)
-        if self.import_jammed:
-            if self.bdim == 2:
-                self.coords, hs_diameters, _ = read_xydr(path)
-            elif self.bdim == 3:
-                self.coords, hs_diameters, _ = read_xyzdr(path)
-            else:
-                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        else:
-            if self.bdim == 2:
-                self.coords, hs_diameters = read_xyd(path)
-            elif self.bdim == 3:
-                self.coords, hs_diameters = read_xyzd(path)
-            else:
-                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        self.hs_radii = hs_diameters/2
+        packing = import_packing(path, self.import_jammed, self.bdim)
+        self.coords = packing['coords']
+        self.hs_radii = packing['hs_radii']
         self._compute_sca()
 
     def _compute_sca(self):

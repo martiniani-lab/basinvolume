@@ -3,7 +3,7 @@ import numpy as np
 import os
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import read_xyd, read_xyzd
+from basinvolume.utils import import_packing
 from basinvolume.spheres.generate_jammed_packing import HS_Generate_Jammed_Packing
 import re
 import argparse
@@ -89,13 +89,9 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
 
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.packings_dir, fname)
-        if self.bdim == 2:
-            self.coords, hs_diameters = read_xyd(path)
-        elif self.bdim == 3:
-            self.coords, hs_diameters = read_xyzd(path)
-        else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        self.hs_radii = hs_diameters/2
+        packing = import_packing(path, False, self.bdim)
+        self.coords = packing['coords']
+        self.hs_radii = packing['hs_radii']
 
     def _compute_sca(self, packing_frac):
         ##test##

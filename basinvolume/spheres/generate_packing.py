@@ -7,7 +7,7 @@ from pele.distance import put_in_box
 from pele.potentials import HS_WCA
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround, calc_distance
-from basinvolume.utils import volume_nball, read_xyd, read_xyzd
+from basinvolume.utils import volume_nball, import_packing
 from numpy.random import RandomState
 from mcpele.monte_carlo import NullPotential
 import argparse
@@ -774,11 +774,7 @@ if __name__ == "__main__":
     if dpath:
         if not os.path.isabs(args.dpath):
             dpath = os.path.abspath(dpath)
-        if args.boxdim == 2:
-            coords, hs_diameters = read_xyd(dpath)
-        else:
-            coords, hs_diameters = read_xyzd(dpath)
-        hs_radii = hs_diameters/2
+        hs_radii = import_packing(dpath, False, args.boxdim)['hs_radii']
 
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim,
                               packing_frac=args.density, hs_radii=hs_radii,

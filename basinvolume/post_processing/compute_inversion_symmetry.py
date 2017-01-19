@@ -5,7 +5,7 @@ import numpy as np
 import argparse
 from pele.potentials import HS_WCA
 from compute_structural_properties import StructuralAnalysis
-from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
+from basinvolume.utils import trymakedir, find_neighbours
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 
 
@@ -82,10 +82,9 @@ class InversionSymmetry(StructuralAnalysis):
             for beta in range(self.bdim):
                 for i in range(len(neighbour_lists)):
                     for j in range(len(neighbour_lists[i])):
-                        affine_forces_isb \
-                            += self._affine_force_interaction_sym_broken(neighbour_distancess[i][j],
-                                                                         i, neighbour_lists[i][j],
-                                                                         alpha, beta) ** 2
+                        affine_forces_isb += self._affine_force_interaction_sym_broken(
+                                neighbour_distancess[i][j], i, neighbour_lists[i][j],
+                                alpha, beta) ** 2
         return affine_forces_isb
 
 
@@ -142,8 +141,8 @@ class InversionSymmetry(StructuralAnalysis):
                         # Compute local inversion symmetry
                         affine_forces_sum = self._sum_affine_forces(neighbour_distancess,
                                                                     neighbour_lists)
-                        affine_forces_isb = self._sum_affine_forces_sym_broken(neighbour_distancess,
-                                                                               neighbour_lists)
+                        affine_forces_isb = self._sum_affine_forces_sym_broken(
+                            neighbour_distancess, neighbour_lists)
                         inv_sym = 1 - affine_forces_sum / affine_forces_isb
 
                         # Output inversion symmetry to file

@@ -3,7 +3,7 @@ import re
 import os
 import numpy as np
 import ConfigParser
-from basinvolume.utils import read_xydr, read_xyzdr, Bunch
+from basinvolume.utils import import_packing, Bunch
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from basinvolume.spheres.generate_packing import import_packing_config
 try:
@@ -101,18 +101,11 @@ class PackingData(object):
 
     def _import_packing_configuration(self, path):
         #path = os.path.join(self.packings_dir, fname)
-        if self.bdim == 2:
-            coords, hs_diameters, rattlers = read_xydr(path)
-        elif self.bdim == 3:
-            coords, hs_diameters, rattlers = read_xyzdr(path)
-        else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        hs_radii = hs_diameters/2
-        ss_radii = hs_radii * (1+self.sca)
-        self.coords = coords
-        self.hs_radii = hs_radii
-        self.ss_radii = ss_radii
-        self.rattlers = rattlers
+        packing = import_packing(path, True, self.bdim, self.sca)
+        self.coords = packing['coords']
+        self.hs_radii = packing['hs_radii']
+        self.ss_radii = packing['ss_radii']
+        self.rattlers = packing['rattlers']
 
     def import_volume_data(self, path, title="VOLUME_FULL_PT", vfluid_title="VOLUME_HS_FLUID"):
         if os.path.isfile(path):

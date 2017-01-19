@@ -4,7 +4,7 @@ import abc
 import os
 from pele.potentials import HS_WCA
 from pele.storage import Minimum
-from basinvolume.utils import read_xydr, read_xyzdr
+from basinvolume.utils import import_packing
 from basinvolume.gui import HSWCASystem
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 import ConfigParser
@@ -65,13 +65,10 @@ class build_minima_list_db(object):
         This should be run in initialise()
         """
         path = os.path.join(self.packings_dir,self.fname)
-        if self.bdim == 2:
-            self.coords, hs_diameters, self.rattlers = read_xydr(path)
-        elif self.bdim == 3:
-            self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
-        else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-        self.hs_radii = hs_diameters/2
+        packing = import_packing(path, True, self.bdim)
+        self.coords = packing['coords']
+        self.hs_radii = packing['hs_radii']
+        self.rattlers = packing['rattlers']
 
 def main():
 #    parser = argparse.ArgumentParser(description="analyse hard disks/spheres packings")

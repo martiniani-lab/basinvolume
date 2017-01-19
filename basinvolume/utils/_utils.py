@@ -265,6 +265,27 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(not_rattlers, dtype='d')
 
+def import_packing(fname, jammed, bdim, sca=0.):
+    results = {}
+    if jammed:
+        if bdim == 2:
+            results['coords'], hs_diameters, results['rattlers'] = read_xydr(fname)
+        elif bdim == 3:
+            results['coords'], hs_diameters, results['rattlers'] = read_xyzdr(fname)
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+        results['ss_radii'] = hs_diameters * 0.5 * (1 + sca)
+    else:
+        if bdim == 2:
+            results['coords'], hs_diameters = read_xyd(fname)
+        elif bdim == 3:
+            results['coords'], hs_diameters = read_xyzd(fname)
+        else:
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+    results['hs_radii'] = hs_diameters * 0.5
+    return results
+
+
 def read_single_column_coords(fname):
     coords = []
     f = open(fname, "r")
