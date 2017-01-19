@@ -8,6 +8,7 @@ from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp, cg
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
 from basinvolume.utils import volume_nball, in_hull, read_xyd, read_xyzd, read_xydr, read_xyzdr, find_neighbours, calc_distance
+from basinvolume.spheres.generate_packing import import_packing_config
 import ConfigParser
 import re
 import argparse
@@ -15,10 +16,10 @@ import subprocess
 import shlex
 import glob
 import ast
-try:
-    import pylab
-except:
-    pass
+# try:
+#     import pylab
+# except:
+#     pass
 
 
 def cartesian_to_polar2d(vector):
@@ -36,6 +37,42 @@ def sum_neighbor_angles2d(neigh_vec):
                      (np.linalg.norm(neigh_vec[-1]) * np.linalg.norm(neigh_vec[0])))
     return sum_
 
+def read_jammed_packing_config(configpath, frozen=False):
+    configf = ConfigParser.ConfigParser()
+    configf.read(str(configpath))
+    parameters = {}
+    parameters['nparticles'] = configf.getint('JAMMED_PACKING','nparticles')
+    parameters['packing_frac'] = configf.getfloat('JAMMED_PACKING','packing_fraction')
+    parameters['bdim'] = configf.getint('JAMMED_PACKING','boxdim')
+    assert parameters['bdim'] == 2 or parameters['bdim'] == 3, \
+        "bdim={} not implemented".format(parameters['bdim'])
+    parameters['ndim'] = parameters['nparticles'] * parameters['bdim']
+    boxv = configf.get('JAMMED_PACKING','boxv')
+    parameters['boxv'] = np.array([float(x) for x in boxv.split()])
+    if frozen:
+        parameters['vcavity'] = configf.getfloat('JAMMED_PACKING', 'vcavity')
+    else:
+        parameters['vcavity'] = np.prod(parameters['boxv'])
+    parameters['distance_method'] = configf.get('JAMMED_PACKING', 'distance_method')
+    parameters['pot_kwargs'] = ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs'))
+    parameters['sca'] = configf.getfloat('JAMMED_PACKING','sca')
+    return parameters
+
+def import_jammed_packing_config(obj, configpath, frozen=False):
+    parameters = read_jammed_packing_config(configpath, frozen)
+    obj.nparticles = parameters['nparticles']
+    obj.packing_frac = parameters['packing_frac']
+    obj.bdim = parameters['bdim']
+    obj.ndim = parameters['ndim']
+    obj.boxv = parameters['boxv'].copy()
+    obj.vcavity = parameters['vcavity']
+    obj.distance_method = parameters['distance_method']
+    if hasattr(obj, 'pot_kwargs') and obj.pot_kwargs is not None:
+        obj.pot_kwargs.update(parameters['pot_kwargs'])
+    else:
+        obj.pot_kwargs = parameters['pot_kwargs'].copy()
+    obj.sca = parameters['sca']
+
 class _Generate_Jammed_Packing(object):
     """
     this is an abstract class that implements the basic components of a generate packing class,
@@ -45,14 +82,14 @@ class _Generate_Jammed_Packing(object):
     *nparticles: number of particles
     *bdim: dimensionality of the box
     *ndim: dimensionality of the problem (i.e. size of the coordinates array)
-    *packing_frac: target jammed packing fraction
+    *target_packing_frac: target jammed packing fraction
     *boxv: an array of size bdim that contains the vectors defining the box
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, packing_frac=0.65, packings_dir='packings', import_jammed=False,
+    def __init__(self, target_packing_frac=0.65, packings_dir='packings', import_jammed=False,
                  outdir='jammed_packings', override_pot_kwargs=None, minimizer="fire"):
-        self.packing_frac = packing_frac
+        self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
@@ -75,30 +112,11 @@ class _Generate_Jammed_Packing(object):
         elif dname.endswith('.xyzdr'):
             dname = dname[:-6]
         self.configpath = os.path.join(self.packings_dir, dname+'.config')
-        self._import_packing_config_file("JAMMED_PACKING" if self.import_jammed else "PACKING")
-
-    def _import_packing_config_file(self, section):
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(self.configpath))
-        self.nparticles = configf.getint(section,'nparticles')
-        self.bdim = configf.getint(section,'boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
-        self.ndim = self.nparticles * self.bdim
-        boxv = configf.get(section,'boxv')
-        self.boxv = np.array([float(x) for x in boxv.split()])
         if self.import_jammed:
-            imp_sca = configf.getfloat(section, 'sca')
-            self.imp_packing_frac = self.packing_frac / (1 + imp_sca)**2
+            import_jammed_packing_config(self, str(self.configpath))
+            self.packing_frac = self.target_packing_frac / (1 + self.sca)**2
         else:
-            self.imp_packing_frac = configf.getfloat(section,'packing_fraction')
-        self.distance_method = configf.get(section, 'distance_method')
-        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
-            self.pot_kwargs.update(ast.literal_eval(configf.get(section, 'pot_kwargs')))
-        else:
-            self.pot_kwargs = ast.literal_eval(configf.get(section, 'pot_kwargs'))
-        if self.override_pot_kwargs is not None:
-            self.pot_kwargs.update(self.override_pot_kwargs)
-
+            import_packing_config(self, str(self.configpath))
 
 
     @abc.abstractmethod
@@ -106,7 +124,7 @@ class _Generate_Jammed_Packing(object):
         """initialisation function"""
         self.configpath = os.path.join(self.packings_dir,'packings.config')
         assert(os.path.isfile(self.configpath))
-        self._import_packing_config_file()
+        import_packing_config(self, str(self.configpath))
 
     @abc.abstractmethod
     def _import_packing_configuration(self, fname):
@@ -138,7 +156,7 @@ class _Generate_Jammed_Packing(object):
         f.write('#Generate_Jammed_Packings base class input parameters\n')
         f.write('[JAMMED_PACKING]\n')
         f.write('nparticles: {}\n'.format(self.nparticles))
-        f.write('packing_fraction: {:.16f}\n'.format(self.packing_frac))
+        f.write('packing_fraction: {:.16f}\n'.format(self.target_packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')
@@ -210,11 +228,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *eps: LJ interaction energy of WCA part of the HS potential
     *tol: rms tolerance for the minimizer
     """
-    def __init__(self, packing_frac=0.7, tol=1e-9, packings_dir='packings',
+    def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  import_jammed=False, outdir='jammed_packings', use_cell_lists=False,
                  show=False, opt_pot_str='hs_wca', pot_kwargs=None, override_pot_kwargs=None,
                  minimizer="fire"):
-        super(HS_Generate_Jammed_Packing, self).__init__(packing_frac=packing_frac,
+        super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          import_jammed=import_jammed,
                                                          outdir=outdir, minimizer=minimizer,
@@ -449,10 +467,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         vol_part = self._get_particles_volume()
         vol_box = np.prod(self.boxv)
         phi = vol_part/vol_box #instanteneous pack frac
-        assert(phi - self.imp_packing_frac < 1e-4)
+        assert(phi - self.packing_frac < 1e-4)
         ##endtest##
         ###r_soft = r_hs*(1+sca)
-        self.sca = np.power(self.packing_frac/self.imp_packing_frac,1./self.bdim) - 1
+        self.sca = np.power(self.target_packing_frac/self.packing_frac,1./self.bdim) - 1
 
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
@@ -617,7 +635,7 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError
 
-    sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
+    sim = HS_Generate_Jammed_Packing(target_packing_frac=args.density,
                                      packings_dir=args.packingsdir, import_jammed=args.import_jammed,
                                      outdir=args.outdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,

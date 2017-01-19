@@ -99,7 +99,7 @@ if __name__ == "__main__":
             shutil.copytree(args.input_jammed, "shear_0.0")
     else:
         print("\n--------- Generating jammed packings ---------")
-        gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
+        gen_jammed_packing = HS_Generate_Jammed_Packing(target_packing_frac=args.density_ss,
                                                         packings_dir="packings", outdir="shear_0.0",
                                                         tol=args.min_tol, use_cell_lists=args.cell,
                                                         show=False, opt_pot_str='hs_wca',
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     for shear in np.arange(0., args.final_shear - 0.5 * args.step, args.step) + args.step:
         pot_kwargs['shear'] = shear
         print("\n--------- Shear: {} ---------".format(shear))
-        gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=args.density_ss,
+        gen_jammed_packing = HS_Generate_Jammed_Packing(target_packing_frac=args.density_ss,
                                                         packings_dir="shear_{}".format(shear - args.step),
                                                         import_jammed=True,
                                                         outdir="shear_{}".format(shear),

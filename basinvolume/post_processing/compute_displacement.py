@@ -4,6 +4,7 @@ import ast
 import numpy as np
 import argparse
 from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, calc_distance
+from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 
 
 class Displacement:
@@ -27,28 +28,6 @@ class Displacement:
         self.verbose = verbose
         self.shear = shear
         self.sub_centre_mass = sub_centre_mass
-
-
-    def _import_packing_config_file(self, configpath):
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
-        self.ndof = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING','boxv')
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        if self.frozen:
-            self.vcavity = configf.getfloat('JAMMED_PACKING', 'vcavity')
-        else:
-            self.vcavity = np.prod(self.boxv)
-        self.packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING','sca')
-        self.distance_method = configf.get('JAMMED_PACKING', 'distance_method')
-        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
-            self.pot_kwargs.update(ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs')))
-        else:
-            self.pot_kwargs = ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs'))
 
 
     def _import_packing_configuration(self, path):
@@ -121,7 +100,7 @@ class Displacement:
 
                 # Get configuration
                 configpath = os.path.join(self.packings_new, dname + '.config')
-                self._import_packing_config_file(configpath)
+                import_jammed_packing_config(self, configpath, self.frozen)
 
                 # Check if the work directory exists
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))

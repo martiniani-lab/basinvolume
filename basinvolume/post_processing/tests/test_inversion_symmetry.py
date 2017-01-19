@@ -12,7 +12,7 @@ if __name__ == "__main__":
                                       distance_method='periodic')
     gen_packing.run()
 
-    gen_jammed_packing = HS_Generate_Jammed_Packing(packing_frac=fcc_dens * 1.2,
+    gen_jammed_packing = HS_Generate_Jammed_Packing(target_packing_frac=fcc_dens * 1.2,
                                                     packings_dir="packings",
                                                     use_cell_lists=False,
                                                     show=False, opt_pot_str='hs_wca')

@@ -6,6 +6,7 @@ import argparse
 from pele.potentials import HS_WCA
 from compute_structural_properties import StructuralAnalysis
 from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, find_neighbours
+from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 
 
 class InversionSymmetry(StructuralAnalysis):
@@ -104,7 +105,7 @@ class InversionSymmetry(StructuralAnalysis):
 
                 # Get configuration
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
-                self._import_packing_config_file(configpath)
+                import_jammed_packing_config(self, configpath, self.frozen)
 
                 # Check if the work directory exists
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))

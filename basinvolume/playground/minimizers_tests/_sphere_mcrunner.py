@@ -4,6 +4,7 @@ import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import trymakedir
+from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from basinvolume.playground.minimizers_tests import BVSphereMCrunner
 import ConfigParser
 import time
@@ -19,27 +20,27 @@ class _sphere_mcrunner(_configure_mcrunner):
     *nparticles: number of particles
     *bdim: dimensionality of the box
     *ndim: dimensionality of the problem (i.e. size of the coordinates array)
-    *packing_frac: target jammed packing fraction
+    *target_packing_frac: target jammed packing fraction
     *boxv: an array of size bdim that contains the vectors defining the box
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     """
-        
+
     def __init__(self, fname, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0,
                  hmax=0.01, hbinsize=0.0005, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', verbose=False):
-                
+
         self.fname = fname
         self.temperature=1.0
         self.eps = eps
         k = 1.0 / (stepsize * stepsize)
 
         self._set_paths(packings_dir)
-        self._import_packing_config_files()
+        import_jammed_packing_config(self, str(self.configpath))
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
-        
-        #self.mc_params = dict(k=k, temperature=temperature, )    
+
+        #self.mc_params = dict(k=k, temperature=temperature, )
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,
                           'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
@@ -50,22 +51,22 @@ class _sphere_mcrunner(_configure_mcrunner):
             self.mc_params.update(seeds)
         except:
             print "WARNING:seeds not passed"
-        
+
         self._requench_coords(dtol, opt_maxstep, verbose)
-        
+
         #construct mcrunner
         self.coords = _subtract_com(self.coords)
         potential = NullPotential()
         self.mcrunner = BVSphereMCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords,
-                                    self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, dtol=dtol, 
+                                    self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, dtol=dtol,
                                     eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
-                                    perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list, 
+                                    perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True,
-                                    use_cgd=use_cgd, use_periodic=True, use_frozen=False) 
-        
+                                    use_cgd=use_cgd, use_periodic=True, use_frozen=False)
+
         self._initialise()
-        
+
     def run(self):
         try:
             self.mcrunner.run()
@@ -74,7 +75,7 @@ class _sphere_mcrunner(_configure_mcrunner):
             self._print_success(True)
         except:
             self._print_success(False)
-    
+
     def _set_paths(self, packings_dir):
         dname = self.fname
         if dname.endswith('.xyzdr'):
@@ -88,27 +89,15 @@ class _sphere_mcrunner(_configure_mcrunner):
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
         configfile = 'kmin_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
-    
-    def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(self.configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
-        self.ndim = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING','boxv')
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING','sca')
-    
+
     def _initialise(self):
         self._print_initialise()
-         
+
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
         self._print_parameters()
-    
+
     def _write_sim_params(self, f):
         """
         write simulation parameters
@@ -117,7 +106,7 @@ class _sphere_mcrunner(_configure_mcrunner):
         f.write('#Explore_Jammed_Packings wrapper class input parameters\n')
         f.write('[KMIN_IMPORTED_JAMMED_PACKING]\n')
         f.write('nparticles: {}\n'.format(self.nparticles))
-        f.write('packing_fraction: {}\n'.format(self.imp_packing_frac))
+        f.write('packing_fraction: {}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')
@@ -129,11 +118,11 @@ class _sphere_mcrunner(_configure_mcrunner):
         f.write('[KMIN_MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value))
-    
+
     def _print_results(self):
         """
-        note that self.displ_k_min *= 1.5 to account for the limited computation time, 
-        this is just an approximation 
+        note that self.displ_k_min *= 1.5 to account for the limited computation time,
+        this is just an approximation
         """
         fname = self.configfile
         f = open(fname,'a')
@@ -145,12 +134,12 @@ class _sphere_mcrunner(_configure_mcrunner):
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
         f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
         f.close()
-    
+
 if __name__ == "__main__":
-    
+
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
-    
+
     sim = _sphere_mcrunner('jammed_packing1.xyzdr', niter=5e5, opt_tol=1e-4, seeds=seeds,
                          stepsize=1/np.sqrt(11), use_cell_lists=False, verbose=False, use_cgd=True,
                          hmax=0.1, hbinsize=0.001, opt_nsteps=1e6)
@@ -166,12 +155,3 @@ if __name__ == "__main__":
     print 'var: ',sim.var_displ_k_min
     sim.mcrunner.dump_timeseries("test_time_series_unif", clear=True)
     sim.mcrunner.show_histogram_kmax()
-    
-    
-        
-                
-            
-              
-                
-                
-                

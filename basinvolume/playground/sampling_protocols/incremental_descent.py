@@ -24,10 +24,10 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
     *sca: determines % by which the hs is inflated
     *eps: LJ interaction energy of WCA part of the HS potential
     """
-    def __init__(self, packing_frac=0.7, nincrements=1, rattler_eval_tol=1.,packings_dir='packings', use_cell_lists=False, show=False):
-        super(Incremental_Generate_Jammed_Packing,self).__init__(packing_frac=packing_frac, rattler_eval_tol=rattler_eval_tol,
-                                                                 packings_dir=packings_dir, use_cell_lists=use_cell_lists,
-                                                                 show=show)
+    def __init__(self, target_packing_frac=0.7, nincrements=1, rattler_eval_tol=1.,packings_dir='packings', use_cell_lists=False, show=False):
+        super(Incremental_Generate_Jammed_Packing,self).__init__(
+            target_packing_frac=target_packing_frac, rattler_eval_tol=rattler_eval_tol,
+            packings_dir=packings_dir, use_cell_lists=use_cell_lists, show=show)
         self.nincrements = nincrements
         print "nincrements", self.nincrements
 
@@ -49,10 +49,10 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
 
         #test change radius
         self.hs_radii /= rd #test half the radius
-        self.imp_packing_frac = self._get_particles_volume()/np.prod(self.boxv)
+        self.packing_frac = self._get_particles_volume()/np.prod(self.boxv)
 
         ###potential needs to be called because self.coords is an input argument of HS_WCAPeriodicCellLists
-        phi_increments = np.linspace(self.imp_packing_frac, self.packing_frac, self.nincrements+1)[1:]
+        phi_increments = np.linspace(self.packing_frac, self.target_packing_frac, self.nincrements+1)[1:]
         for i, phi in enumerate(phi_increments):
             new_phi = phi
             self._compute_sca(phi)
@@ -75,7 +75,7 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
 
         #test change radius back
         self.hs_radii *= rd #test half the radius
-        self.imp_packing_frac = self._get_particles_volume()/np.prod(self.boxv)
+        self.packing_frac = self._get_particles_volume()/np.prod(self.boxv)
         self._compute_sca(new_phi)
         success = self._generate_packing_coords(0) #returns false if saddle
 
@@ -102,10 +102,10 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
         vol_part = self._get_particles_volume()
         vol_box = np.prod(self.boxv)
         phi = vol_part/vol_box #instanteneous pack frac
-        assert(phi - self.imp_packing_frac < 1e-4)
+        assert(phi - self.packing_frac < 1e-4)
         ##endtest##
         ###r_soft = r_hs*(1+sca)
-        self.sca = np.power(packing_frac/self.imp_packing_frac,1./self.bdim) - 1
+        self.sca = np.power(packing_frac/self.packing_frac,1./self.bdim) - 1
 
     def _generate_packing_coords(self, phi_iteration):
         """
@@ -179,6 +179,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print args
 
-    sim = Incremental_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
+    sim = Incremental_Generate_Jammed_Packing(target_packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
                                               use_cell_lists=not args.nocell, show=args.show)
     sim.run()

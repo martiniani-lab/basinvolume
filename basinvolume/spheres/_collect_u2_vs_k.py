@@ -15,6 +15,7 @@ from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import VolumeSanityCheck
+from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 import traceback
 import argparse
 from itertools import cycle
@@ -110,20 +111,8 @@ class _collect_u2_vs_k(object):
         self._print_volumes()
 
     def _import_config_files(self):
+        import_jammed_packing_config(self, str(self.jammed_packing_configpath), self.frozen)
         configf = ConfigParser.ConfigParser()
-        configf.read(str(self.jammed_packing_configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING', 'nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
-        self.ndim = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING', 'boxv')
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat('JAMMED_PACKING', 'packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING', 'sca')
-        if self.frozen:
-            self.vcavity = configf.getfloat('JAMMED_PACKING', 'vcavity')
-        else:
-            self.vcavity = np.prod(self.boxv)
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
@@ -416,6 +405,3 @@ if __name__ == "__main__":
                 if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
                     path = os.path.join(wdir, dir)
                     sim(explore_dir=path, frozen=args.frozen)
-
-
-

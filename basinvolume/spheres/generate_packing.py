@@ -11,6 +11,52 @@ from basinvolume.utils import volume_nball, read_xyd, read_xyzd
 from numpy.random import RandomState
 from mcpele.monte_carlo import NullPotential
 import argparse
+import ConfigParser
+import ast
+
+def read_packing_config(configpath, frozen=False):
+    configf = ConfigParser.ConfigParser()
+    configf.read(str(configpath))
+    parameters = {}
+    parameters['seed_takestep'] = configf.getint('PACKING','seed_takestep')
+    parameters['seed_generate_packing'] = configf.getint('PACKING','seed_generate_packing')
+    parameters['seed_swap'] = configf.getint('PACKING','seed_swap')
+    parameters['seed_probability_step_pattern'] = configf.getint('PACKING','seed_probability_step_pattern')
+    parameters['method'] = configf.get('PACKING', 'method')
+    parameters['nparticles'] = configf.getint('PACKING','nparticles')
+    parameters['packing_frac'] = configf.getfloat('PACKING','packing_fraction')
+    parameters['bdim'] = configf.getint('PACKING','boxdim')
+    assert parameters['bdim'] == 2 or parameters['bdim'] == 3, \
+        "bdim={} not implemented".format(parameters['bdim'])
+    parameters['ndim'] = parameters['nparticles'] * parameters['bdim']
+    parameters['radii_mean'] = configf.getfloat('PACKING', 'radii_mean')
+    parameters['radii_stddev'] = configf.getfloat('PACKING', 'radii_stdev')
+    parameters['max_iter'] = configf.getint('PACKING','max_iter')
+    boxv = configf.get('PACKING','boxv')
+    parameters['boxv'] = np.array([float(x) for x in boxv.split()])
+    if frozen:
+        parameters['vcavity'] = configf.getfloat('PACKING', 'vcavity')
+    else:
+        parameters['vcavity'] = np.prod(parameters['boxv'])
+    parameters['distance_method'] = configf.get('PACKING', 'distance_method')
+    parameters['pot_kwargs'] = ast.literal_eval(configf.get('PACKING', 'pot_kwargs'))
+    return parameters
+
+def import_packing_config(obj, configpath, frozen=False):
+    parameters = read_packing_config(configpath, frozen)
+    obj.nparticles = parameters['nparticles']
+    obj.packing_frac = parameters['packing_frac']
+    obj.bdim = parameters['bdim']
+    obj.ndim = parameters['ndim']
+    obj.hs_mean = parameters['radii_mean']
+    obj.hs_stddev = parameters['radii_stddev']
+    obj.boxv = parameters['boxv'].copy()
+    obj.vcavity = parameters['vcavity']
+    obj.distance_method = parameters['distance_method']
+    if hasattr(obj, 'pot_kwargs') and obj.pot_kwargs is not None:
+        obj.pot_kwargs.update(parameters['pot_kwargs'])
+    else:
+        obj.pot_kwargs = parameters['pot_kwargs'].copy()
 
 class _Generate_Packing(object):
     """

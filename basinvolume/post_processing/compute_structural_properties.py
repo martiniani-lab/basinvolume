@@ -7,6 +7,7 @@ import traceback
 import ast
 from scipy.special import sph_harm
 from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, cround, find_neighbours
+from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from pele.utils._pressure_tensor import pressure_tensor
 import abc
 from pele.potentials import HS_WCA, InversePowerStillingerCut
@@ -38,27 +39,6 @@ class StructuralAnalysis(object):
         self.existing_only = existing_only
         self.prefix = prefix
         self.verbose = verbose
-
-    def _import_packing_config_file(self, configpath):
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
-        self.ndof = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING','boxv')
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        if self.frozen:
-            self.vcavity = configf.getfloat('JAMMED_PACKING', 'vcavity')
-        else:
-            self.vcavity = np.prod(self.boxv)
-        self.packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING','sca')
-        self.distance_method = configf.get('JAMMED_PACKING', 'distance_method')
-        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
-            self.pot_kwargs.update(ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs')))
-        else:
-            self.pot_kwargs = ast.literal_eval(configf.get('JAMMED_PACKING', 'pot_kwargs'))
 
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.jammed_packings_dir, fname)
@@ -105,7 +85,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                 dname = self._get_dname(fname)
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
-                self._import_packing_config_file(configpath)
+                import_jammed_packing_config(self, configpath, self.frozen)
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
@@ -300,7 +280,7 @@ class PressureTensor(StructuralAnalysis):
                 dname = self._get_dname(fname)
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
-                self._import_packing_config_file(configpath)
+                import_jammed_packing_config(self, configpath, self.frozen)
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)

@@ -4,6 +4,7 @@ import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback, get_dist_com, get_dist_vec_com, trajectory_pca, asphericity_factor
+from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 import ConfigParser
 import warnings
 import time
@@ -21,16 +22,16 @@ class _kmin_mcrunner(_configure_mcrunner):
         print diffusion data only and none of the other configuration files
     *base_directory is the path to explore_bv_* folders, set by default as cwd/explore_bv_*
     """
-        
-    def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0, 
-                 hmax=0.01, hbinsize=0.0005, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, 
+
+    def __init__(self, fname, k=0.0, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0,
+                 hmax=0.01, hbinsize=0.0005, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3,
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  record_steps_timeseries=False, record_steps_timeseries_every=[1], print_diffusion_only=False,
                  record_trajectory=True, record_trajectory_npoints=1e4,
-                 perform_convergence_test=False, collect_minima_list=False, single=False, 
+                 perform_convergence_test=False, collect_minima_list=False, single=False,
                  seeds=None, use_cell_lists=False, use_cgd=False, opt_pot_str='hs_wca',
                  packings_dir='jammed_packings', verbose=False, workspace=None, **extra_pot_kwargs):
-                
+
         self.fname = fname
         self.temperature=1.0
         self.eps = eps
@@ -40,12 +41,12 @@ class _kmin_mcrunner(_configure_mcrunner):
             self.workspace = os.getcwd()
         else:
             self.workspace = os.path.abspath(workspace)
-        
+
         self._set_paths(packings_dir)
-        self._import_packing_config_files()
+        import_jammed_packing_config(self, str(self.configpath))
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
-        
+
         #self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                       acceptance=acceptance, adjustf=adjustf, adjustf_niter=adjustf_niter,
@@ -64,18 +65,18 @@ class _kmin_mcrunner(_configure_mcrunner):
 
         if seeds is None:
             warnings.warn("seeds not passed")
-        
+
         self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
-        
+
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
         # harmonic potential with fixed centre of mass
         potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
-        self.mcrunner = BV_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords, 
+        self.mcrunner = BV_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords,
                                     self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, **kwargs)
-        
+
         self._initialise()
-        
+
     def run(self):
         try:
             self.mcrunner.run()
@@ -86,17 +87,17 @@ class _kmin_mcrunner(_configure_mcrunner):
         except:
             view_traceback()
             self._print_success(False)
-    
+
     def _collect_trajectory(self, fix_com=True):
         mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
         self.mean_coord_dist, self.var_coord_dist = get_dist_com(mean_coord, self.mcrunner.origin, self.bdim), np.sum(var_coord)
         self.trajectory = self.mcrunner.dump_trajectory(self.trajectory_path, clear=True)
         if fix_com:
             for i,coords in enumerate(self.trajectory):
-                self.trajectory[i] = get_dist_vec_com(coords, self.mcrunner.origin, self.mcrunner.bdim)        
+                self.trajectory[i] = get_dist_vec_com(coords, self.mcrunner.origin, self.mcrunner.bdim)
         self.traj_eval, self.traj_evec = trajectory_pca(self.trajectory)
         self.pca_asphericity = asphericity_factor(self.traj_eval)
-    
+
     def _set_paths(self, packings_dir):
         dname = self.fname
         if dname.endswith('.xyzdr'):
@@ -116,22 +117,10 @@ class _kmin_mcrunner(_configure_mcrunner):
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = 'diffusion_' + dname
         self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)
-    
-    def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(self.configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
-        self.ndim = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING','boxv')
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING','sca')
-    
+
     def _initialise(self):
         self._print_initialise()
-         
+
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
@@ -139,14 +128,14 @@ class _kmin_mcrunner(_configure_mcrunner):
             self._print_parameters()
         if self.record_steps_timeseries:
             self._print_diffusion_params()
-            
+
     def _print_diffusion_params(self):
         trymakedir(self.diffusion_dir)
         fname = '{}.{}.config'.format(self.diffusion_configfname, int(self.mc_params['niter']))
         f = open(fname, 'w')
         self._write_sim_params(f)
         f.close()
-    
+
     def _write_sim_params(self, f):
         """
         write simulation parameters
@@ -155,7 +144,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         f.write('#Explore_Jammed_Packings wrapper class input parameters\n')
         f.write('[KMIN_IMPORTED_JAMMED_PACKING]\n')
         f.write('nparticles: {}\n'.format(self.nparticles))
-        f.write('packing_fraction: {}\n'.format(self.imp_packing_frac))
+        f.write('packing_fraction: {}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')
@@ -167,11 +156,11 @@ class _kmin_mcrunner(_configure_mcrunner):
         f.write('[KMIN_MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value))
-    
+
     def _print_results_once(self, fname):
         """
-        note that self.displ_k_min *= 1.5 to account for the limited computation time, 
-        this is just an approximation 
+        note that self.displ_k_min *= 1.5 to account for the limited computation time,
+        this is just an approximation
         """
         f = open(fname,'a')
         f.write('[KMIN_MCRUNNER_STATUS]\n')
@@ -185,12 +174,12 @@ class _kmin_mcrunner(_configure_mcrunner):
         f.write('var_coord_dist: {:.16f}\n'.format(self.var_coord_dist))
         f.write('pca_asphericity: {:.16f}\n'.format(self.pca_asphericity))
         f.close()
-    
+
     def _dump_diffusion_timeseries(self):
         fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params['niter']))
         print "fname", fname
         self.mcrunner.dump_steps_timeseries(fname, clear=True)
-    
+
     def _print_results(self):
         if not self.print_diffusion_only:
             assert(hasattr(self, 'configfile'))
@@ -200,18 +189,18 @@ class _kmin_mcrunner(_configure_mcrunner):
             assert(os.path.isfile(configfile))
             self._print_results_once(configfile)
             self._dump_diffusion_timeseries()
-    
+
     def _print_success_once(self, success, fname):
         """
         print whether calculation has completed successfully
-        this method is overloaded her to check whether this is a 
-        diffusion only calculations 
+        this method is overloaded her to check whether this is a
+        diffusion only calculations
         """
         f = open(fname, 'a')
         f.write('[STATUS]\n')
         f.write('success: {}\n'.format(str(success)))
         f.close()
-    
+
     def _print_success(self, success):
         if not self.print_diffusion_only:
             assert(hasattr(self, 'configfile'))
@@ -220,9 +209,9 @@ class _kmin_mcrunner(_configure_mcrunner):
             configfile = '{}.{}.config'.format(self.diffusion_configfname, int(self.mc_params['niter']))
             assert(os.path.isfile(configfile))
             self._print_success_once(success, configfile)
-    
+
 if __name__ == "__main__":
-    
+
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     extra_pot_kwargs = dict(pow=3, a=1)
@@ -244,12 +233,3 @@ if __name__ == "__main__":
     print 'mean_coord_dist: ',sim.mean_coord_dist
     print 'var_coord_dist: ', sim.var_coord_dist
     #sim.mcrunner.show_histogram_kmax()
-    
-    
-        
-                
-            
-              
-                
-                
-                

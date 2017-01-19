@@ -124,10 +124,6 @@ class _configure_mcrunner(object):
             print 'eigenvalues'
             print sorted(w)
 
-    @abc.abstractmethod
-    def _import_packing_config_files(self):
-        """import packings configuration file"""
-
     def _import_packing_configuration(self, frozen=False):
         """imports the coordinates, data relative to the shape of the particles and
         whether the particles are rattlers or not. Note that self.rattlers returned

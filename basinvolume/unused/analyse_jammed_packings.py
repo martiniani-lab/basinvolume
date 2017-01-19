@@ -6,6 +6,7 @@ from pele.potentials import HS_WCA
 from pele.storage import Minimum
 from pele.distance import put_in_box
 from basinvolume.utils import trymakedir, read_xydr, read_xyzdr, get_git_version, get_cython_version, get_python_version
+from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from basinvolume.gui import HSWCASystem
 import ConfigParser
 import time
@@ -21,7 +22,7 @@ class analyse_jammed_packings(object):
     *nparticles: number of particles
     *bdim: dimensionality of the box
     *ndim: dimensionality of the problem (i.e. size of the coordinates array)
-    *packing_frac: target jammed packing fraction
+    *target_packing_frac: target jammed packing fraction
     *boxv: an array of size bdim that contains the vectors defining the box
     """
 
@@ -29,7 +30,7 @@ class analyse_jammed_packings(object):
         self.base_directory = os.path.join(os.getcwd(),'analyse_jammed_packings')
         self.packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
-        self._import_packing_config_file()
+        import_jammed_packing_config(self, str(self.configpath))
         self.eps=1.
         self.etol = 0.1
         self.show = hist_show
@@ -42,22 +43,10 @@ class analyse_jammed_packings(object):
 
     def _initialise(self):
         """initialisation function"""
-        self._import_packing_config_file()
+        import_jammed_packing_config(self, str(self.configpath))
         #change directory only at the end of initialise
         self._print_initialise()
         os.chdir(self.base_directory)
-
-    def _import_packing_config_file(self):
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(self.configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
-        self.ndim = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING','boxv')
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING','sca')
 
     def _import_packing_configuration(self,fname):
         """imports the coordinates and data relative to the shinitape of the particles
@@ -186,7 +175,7 @@ class analyse_jammed_packings(object):
         f.write('#Explore_Jammed_Packings wrapper class input parameters\n')
         f.write('[IMPORTED_JAMMED_PACKING]\n')
         f.write('nparticles: {}\n'.format(self.nparticles))
-        f.write('packing_fraction: {}\n'.format(self.imp_packing_frac))
+        f.write('packing_fraction: {}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('ndim: {}\n'.format(self.ndim))
         f.write('boxv: ')

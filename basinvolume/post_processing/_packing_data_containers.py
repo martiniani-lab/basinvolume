@@ -4,6 +4,8 @@ import os
 import numpy as np
 import ConfigParser
 from basinvolume.utils import read_xydr, read_xyzdr, Bunch
+from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_packing import import_packing_config
 try:
     import matplotlib.pyplot as plt
 except ImportError as err:
@@ -12,7 +14,7 @@ except ImportError as err:
 class PackingDataSet(object):
     """
     this assumes naming convention n24_phi50_phi70_3D
-    
+
     Parameters
     ----------
     set_path : string
@@ -35,7 +37,7 @@ class PackingDataSet(object):
         self.contacts = []
         self.boos = []
         self.extras = []
-    
+
     def add_data_all(self, packing_data):
         """
         packing data is a list of PackingData objects
@@ -55,7 +57,7 @@ class PackingDataSet(object):
                     self.energies.append(data.energy)
                     self.contacts.append(data.Z)
                     self.boos.append(data.boo)
-    
+
     def add_data_structure(self, packing_data):
         """
         packing data is a list of PackingData objects
@@ -71,10 +73,10 @@ class PackingDataSet(object):
                     self.pressures.append(data.P)
                     self.contacts.append(data.Z)
                     self.boos.append(data.boo)
-    
+
     def add_extras(self, extra):
         self.extras.extend(np.array(extra).tolist())
-    
+
 class PackingData(object):
     def __init__(self, name, configpath, configpath_packing, packing_path=None):
         self.eps = 1.
@@ -82,11 +84,12 @@ class PackingData(object):
         self.name = name
         self.configpath = configpath
         self.configpath_packing = configpath_packing
-        self._import_packing_config_file(self.configpath, self.configpath_packing)
+        import_jammed_packing_config(self, self.configpath)
+        import_packing_config(self, self.configpath_packing)
         if packing_path is not None:
             self._import_packing_configuration(packing_path)
         self.jammed_packing_name = os.path.split(os.path.splitext(self.configpath)[0])[1]
-        self.F = None 
+        self.F = None
         self.Ferr = None
         self.P = None
         self.Ptensor = None
@@ -95,27 +98,7 @@ class PackingData(object):
         self.Zlist = None
         self.boo = None
         self.boolist = None
-        
-    def _import_packing_config_file(self, configpath, configpath_packing):
-        configf = ConfigParser.ConfigParser()
-        configf.read(str(configpath))
-        self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
-        self.bdim = configf.getint('JAMMED_PACKING','boxdim')
-        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
-        self.ndof = self.nparticles * self.bdim
-        boxv = configf.get('JAMMED_PACKING','boxv')
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        if self.frozen:
-            self.vcavity = configf.getfloat('JAMMED_PACKING', 'vcavity')
-        else:
-            self.vcavity = np.prod(self.boxv)
-        self.packing_frac = configf.getfloat('JAMMED_PACKING','packing_fraction')
-        self.sca = configf.getfloat('JAMMED_PACKING','sca')
-        #import hs packing info
-        configf.read(str(configpath_packing))
-        self.hs_mean = configf.getfloat('PACKING','radii_mean')
-        self.hs_stdev = configf.getfloat('PACKING','radii_stdev')
-    
+
     def _import_packing_configuration(self, path):
         #path = os.path.join(self.packings_dir, fname)
         if self.bdim == 2:
@@ -130,7 +113,7 @@ class PackingData(object):
         self.hs_radii = hs_radii
         self.ss_radii = ss_radii
         self.rattlers = rattlers
-            
+
     def import_volume_data(self, path, title="VOLUME_FULL_PT", vfluid_title="VOLUME_HS_FLUID"):
         if os.path.isfile(path):
             configf = ConfigParser.ConfigParser()
@@ -140,7 +123,7 @@ class PackingData(object):
                 self.Facc = configf.getfloat(vfluid_title, 'F0_acc')
             except Exception,e:
                 pass
-            
+
     def import_pressure_data(self, path, pressure_title="PRESSURE", energy_title="ENERGY"):
         if os.path.isfile(path):
             configf = ConfigParser.ConfigParser()
@@ -149,7 +132,7 @@ class PackingData(object):
             Ptensor = configf.get(pressure_title, 'Ptensor')
             self.Ptensor = np.array([float(x) for x in Ptensor.split()])
             self.energy = configf.getfloat(energy_title, 'E')
-    
+
     def import_structural_data(self, path, path2, title_boo="BOO", title_z="Z"):
         """
         import average contact number and bond orientational order parameters
