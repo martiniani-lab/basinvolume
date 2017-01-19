@@ -73,11 +73,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
         """
         set base_directory, packings_directory and configpaths, configfile
         """
-        dname = self.fname
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
+        dname = os.path.splitext(self.fname)[0]
 
         if base_dir is None:
             base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))

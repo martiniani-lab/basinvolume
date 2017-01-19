@@ -35,7 +35,7 @@ params = {'backend': 'pdf',
 }
 matplotlib.rcParams.update(params)
 ##########################################################
-####SET COLOUR MAP######                                                               
+####SET COLOUR MAP######
 def get_color_cycle():
     cm = plt.get_cmap('Accent')
     color_cycle=cycle([cm(1. * i / 12) for i in xrange(12)][::-1])
@@ -73,9 +73,9 @@ class MBARHypercubeData(object):
         self.log_gr_ratio = None
         self.gr_ratio = None
         self.dos = None
-    
-    def import_dos_data(self, path, log_gr_file = "log_gr.csv", log_gr_ratio_file = "log_gr_ratio.csv", 
-                        gr_ratio_file = "gr_ratio.csv", dos_file = "dos.csv"): 
+
+    def import_dos_data(self, path, log_gr_file = "log_gr.csv", log_gr_ratio_file = "log_gr_ratio.csv",
+                        gr_ratio_file = "gr_ratio.csv", dos_file = "dos.csv"):
         """
         I have removed mean, that can be added to the set
         """
@@ -108,13 +108,13 @@ class MBARPackingData(PackingData):
         self.gr_ratio = None
         self.dos = None
         self.step_timeseries_mean_path = None
-        self.step_timeseries_mean_path_std = None 
+        self.step_timeseries_mean_path_std = None
         self.step_timeseries_mean_eucdist = None
         self.step_timeseries_mean_eucdist_std = None
         self.step_timeseries_stepsize = None
-        
-    def import_dos_data(self, path, log_gr_file = "log_gr.csv", log_gr_ratio_file = "log_gr_ratio.csv", 
-                        gr_ratio_file = "gr_ratio.csv", dos_file = "dos.csv"): 
+
+    def import_dos_data(self, path, log_gr_file = "log_gr.csv", log_gr_ratio_file = "log_gr_ratio.csv",
+                        gr_ratio_file = "gr_ratio.csv", dos_file = "dos.csv"):
         """
         I have removed mean, that can be added to the set
         """
@@ -138,7 +138,7 @@ class MBARPackingData(PackingData):
         if os.path.isfile(fpath):
             x, xerr, y, yerr, fit = read_csv_xy(fpath)
             self.dos = np.transpose(np.array([x, xerr, y, yerr, fit]))
-    
+
     def import_steps_time_series_diffusion_config(self, path, niter=int(1e7), eqtime=int(5e5)):
         if os.path.isdir(path):
             #import stepsize
@@ -150,11 +150,11 @@ class MBARPackingData(PackingData):
             self.pca_asphericity = complex(configf.get('KMIN', 'pca_asphericity')).real
             self.mean_coord_dist = configf.getfloat('KMIN', 'mean_coord_dist')
             self.var_coord_dist = configf.getfloat('KMIN', 'var_coord_dist')
-    
+
     def import_steps_time_series_diffusion(self, path, niter=int(1e7), eqtime=int(5e5)):
         timeseries = []
         series_order = []
-        step_timeseries_mean_path, step_timeseries_mean_path_std = [], [] 
+        step_timeseries_mean_path, step_timeseries_mean_path_std = [], []
         step_timeseries_mean_eucdist, step_timeseries_mean_eucdist_std = [], []
         if os.path.isdir(path):
             #import timeseries
@@ -176,7 +176,7 @@ class MBARPackingData(PackingData):
             for i,n in enumerate(step_timeseries_order[1:]):
                 #step_timeseries[0] is the timeseries recorded at every step, we use this to compute the path length
                 #the other step_timeseries are recorded every nth entry and tells us what distance we have covered since
-                #the last nth step 
+                #the last nth step
                 mean_arr = []
                 nsubs = step_timeseries[0][eqtime:].size // n
                 for j in xrange(nsubs):
@@ -196,7 +196,7 @@ class MBARPackingData(PackingData):
 #                ax = fig.add_subplot(111)
 #                ax.errorbar(np.log(x), np.log(y), fmt='o', xerr=dx/x, yerr=dy/y)
 #                plt.show()
-        
+
 class PolyPackingDataSet(PackingDataSet):
     def __init__(self, set_path):
         super(PolyPackingDataSet, self).__init__(set_path)
@@ -217,12 +217,12 @@ class PolyPackingDataSet(PackingDataSet):
             print "cannot recognise structural label (fcc or disordered), set to None"
 
 class TINTBasinAnalysis(BasinAnalysis):
-    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
-                 analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data", 
+    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings',
+                 analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data",
                  zboo_file="glob_boo", volume_title = "VOLUME_FULL_PT"):
-        super(TINTBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir, 
-                                                jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir, 
-                                                volume_file=volume_file, pressure_file=pressure_file, 
+        super(TINTBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir,
+                                                jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir,
+                                                volume_file=volume_file, pressure_file=pressure_file,
                                                 zboo_file=zboo_file, volume_title=volume_title)
         print self.volume_title
     def _collect_data_single_all(self, set_path):
@@ -230,7 +230,7 @@ class TINTBasinAnalysis(BasinAnalysis):
         packing_dataset = PolyPackingDataSet(set_path)
         for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
             if 'xyzd' in fname or 'xyd' in fname:
-                dname = self._get_dname(fname)
+                dname = os.path.splitext(fname)[0]
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
@@ -253,7 +253,7 @@ class MBARPackingDataSet(PolyPackingDataSet):
     def __init__(self, set_path):
         super(MBARPackingDataSet, self).__init__(set_path)
         self.log_gr_data = []
-        self.log_gr_ratio_data = [] 
+        self.log_gr_ratio_data = []
         self.gr_ratio_data = []
         self.dos_data = []
         self.dos_mean = []
@@ -262,11 +262,11 @@ class MBARPackingDataSet(PolyPackingDataSet):
         self.gr_ratio_mean = []
         self.dos_moments = []
         self.step_timeseries_mean_path_data = []
-        self.step_timeseries_mean_path_std_data = [] 
+        self.step_timeseries_mean_path_std_data = []
         self.step_timeseries_mean_eucdist_data = []
         self.step_timeseries_mean_eucdist_std_data = []
         self.step_timeseries_stepsize_data = []
-    
+
     def add_data_all(self, packing_data, import_diffusion=False):
         """
         packing data is a list of PackingData objects
@@ -275,7 +275,7 @@ class MBARPackingDataSet(PolyPackingDataSet):
             self._add_data_all_diffusion(packing_data)
         else:
             self._add_data_all(packing_data)
-    
+
     def _add_data_all(self, packing_data):
         self.packing_data.extend(packing_data)
         for data in packing_data:
@@ -289,17 +289,17 @@ class MBARPackingDataSet(PolyPackingDataSet):
                 self.contacts.append(data.Z)
                 self.boos.append(data.boo)
                 self.log_gr_data.append(data.log_gr)
-                self.log_gr_ratio_data.append(data.log_gr_ratio) 
+                self.log_gr_ratio_data.append(data.log_gr_ratio)
                 self.gr_ratio_data.append(data.gr_ratio)
                 self.dos_data.append(data.dos)
-    
+
     def _add_data_all_diffusion(self, packing_data):
         self.packing_data.extend(packing_data)
         for data in packing_data:
             #the reason why they must all be true is because we are interested in the relation among these variables
             if (data.F is not None and data.P is not None and data.Z is not None and data.boo is not None and
                 data.log_gr is not None and data.log_gr_ratio is not None and data.gr_ratio is not None and
-                data.dos is not None and len(data.step_timeseries_mean_path) > 0 
+                data.dos is not None and len(data.step_timeseries_mean_path) > 0
                 and len(data.step_timeseries_mean_eucdist) > 0):
                 self.free_energies.append(data.F)
                 self.free_energies_err.append(data.Ferr)
@@ -307,7 +307,7 @@ class MBARPackingDataSet(PolyPackingDataSet):
                 self.contacts.append(data.Z)
                 self.boos.append(data.boo)
                 self.log_gr_data.append(data.log_gr)
-                self.log_gr_ratio_data.append(data.log_gr_ratio) 
+                self.log_gr_ratio_data.append(data.log_gr_ratio)
                 self.gr_ratio_data.append(data.gr_ratio)
                 self.dos_data.append(data.dos)
                 self.step_timeseries_mean_path_data.append(data.step_timeseries_mean_path)
@@ -315,7 +315,7 @@ class MBARPackingDataSet(PolyPackingDataSet):
                 self.step_timeseries_mean_eucdist_data.append(data.step_timeseries_mean_eucdist)
                 self.step_timeseries_mean_eucdist_std_data.append(data.step_timeseries_mean_eucdist_std)
                 self.step_timeseries_stepsize_data.append(data.step_timeseries_stepsize)
-                
+
     def _compute_mean(self):
         def get_mean(data):
             #pick the smallest range that works for all curves
@@ -343,9 +343,9 @@ class MBARPackingDataSet(PolyPackingDataSet):
             mu = np.mean(all, axis=0)
             std = np.std(all, axis=0)
             return np.transpose(np.array([xref, np.zeros(xref.size), mu, std, np.zeros(xref.size)]))
-        
+
         self.log_gr_mean = get_mean(self.log_gr_data)
-        self.log_gr_ratio_mean = get_mean(self.log_gr_ratio_data)  
+        self.log_gr_ratio_mean = get_mean(self.log_gr_ratio_data)
         self.dos_mean = get_mean(self.dos_data)
         for i,arr in enumerate(self.gr_ratio_data):
             x, y = arr[:,0], arr[:,2]
@@ -353,7 +353,7 @@ class MBARPackingDataSet(PolyPackingDataSet):
             y /= np.mean(y[:j])
             self.gr_ratio_data[i][:,2] = y
         self.gr_ratio_mean = get_mean(self.gr_ratio_data)
-    
+
     def _compute_dos_moments(self):
         def normalize_dist(y, x):
             area = simps(y, x)
@@ -379,25 +379,25 @@ class MBARPackingDataSet(PolyPackingDataSet):
             self._compute_dos_moments()
 
 class MBARBasinAnalysis(BasinAnalysis):
-    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
-                 analysis_dir='analysis', volume_file="mbar_volume_data", pressure_file="pressure_data", 
-                 zboo_file="glob_boo", volume_title = "VOLUME_MBAR", diffusion_dir="diffusion", 
+    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings',
+                 analysis_dir='analysis', volume_file="mbar_volume_data", pressure_file="pressure_data",
+                 zboo_file="glob_boo", volume_title = "VOLUME_MBAR", diffusion_dir="diffusion",
                  import_diffusion=False, import_diffusion_config=False):
-        super(MBARBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir, 
-                                                jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir, 
-                                                volume_file=volume_file, pressure_file=pressure_file, 
+        super(MBARBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir,
+                                                jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir,
+                                                volume_file=volume_file, pressure_file=pressure_file,
                                                 zboo_file=zboo_file, volume_title=volume_title)
         self.diffusion_dir = diffusion_dir
         self.import_diffusion = import_diffusion
         self.import_diffusion_config = import_diffusion_config
         print self.volume_title
-    
+
     def _collect_data_single_all(self, set_path):
         pd_list = []
         packing_dataset = MBARPackingDataSet(set_path)
         for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
             if 'xyzd' in fname or 'xyd' in fname:
-                dname = self._get_dname(fname)
+                dname = os.path.splitext(fname)[0]
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
@@ -427,11 +427,11 @@ class MBARBasinAnalysis(BasinAnalysis):
                         print(traceback.format_exc())
                         print "{} packing import failed".format(base_directory_path)
         packing_dataset.add_data_all(pd_list, import_diffusion=self.import_diffusion)
-        packing_dataset.compute_mean_and_moments()    
+        packing_dataset.compute_mean_and_moments()
         return packing_dataset
 
 class plot_mbar_data(object):
-    def __init__(self, mbar_packing_datasets, tint_packing_datasets, hypercube_data=None, 
+    def __init__(self, mbar_packing_datasets, tint_packing_datasets, hypercube_data=None,
                  figdir="figures", show=False):
         if not os.path.isabs(figdir):
             figdir = os.path.join(os.getcwd(), figdir)
@@ -441,7 +441,7 @@ class plot_mbar_data(object):
         self.tint_packing_datasets = tint_packing_datasets
         self.show = show
         self.hypercube_data = hypercube_data
-    
+
     def __call__(self):
         if True:
             color_cycle = get_color_cycle()
@@ -451,7 +451,7 @@ class plot_mbar_data(object):
             for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 1:
                     poly = dataset.hs_poly
-                    structural_label = dataset.structural_label 
+                    structural_label = dataset.structural_label
                     print structural_label, poly
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
                     x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
@@ -507,35 +507,35 @@ class plot_mbar_data(object):
                     y1 = [np.mean(dataset.pressures)]
                     y1err = [np.std(dataset.pressures)]
                     x = [dataset.hs_poly]
-                    
+
                     color=color_cycle.next()
                     marker = marker_cycle.next()
-                    ax.errorbar(x, y, yerr=yerr, marker=marker, ms=9, 
-                                label='{} {}'.format(dataset.structural_label, x[0]), color=color)        
-                    ax1.errorbar(x, y1, yerr=y1err, marker=marker, ms=9, 
+                    ax.errorbar(x, y, yerr=yerr, marker=marker, ms=9,
+                                label='{} {}'.format(dataset.structural_label, x[0]), color=color)
+                    ax1.errorbar(x, y1, yerr=y1err, marker=marker, ms=9,
                                  label='{} {}'.format(dataset.structural_label, x[0]), color=color)
-                    ax2.errorbar(y1, y, yerr=yerr, xerr=y1err, marker=marker, ms=9, 
+                    ax2.errorbar(y1, y, yerr=yerr, xerr=y1err, marker=marker, ms=9,
                                  label='{} {}'.format(dataset.structural_label, x[0]), color=color)
-            
-            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+
+            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             ax.set_xscale('log')
             ax.set_xlabel(r"$\eta$")
             ax.set_ylabel(r"$Q12$")
             fig.savefig(os.path.join(self.figdir, 'poly_q12.pdf'))
-            ax1.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            ax1.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             ax1.set_xscale('log')
             ax1.set_xlabel(r"$\eta$")
             ax1.set_ylabel(r"$\mathcal{P}$")
-            fig1.savefig(os.path.join(self.figdir, 'poly_p.pdf'))        
-            
-            ax2.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            fig1.savefig(os.path.join(self.figdir, 'poly_p.pdf'))
+
+            ax2.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             ax2.set_ylabel(r"$Q12$")
             ax2.set_xlabel(r"$\mathcal{P}$")
             fig2.savefig(os.path.join(self.figdir, 'q12_p.pdf'))
-        
+
         if False:
             #plot cdf of maximum r value visited by pt simulation
             color_cycle = get_color_cycle()
@@ -545,7 +545,7 @@ class plot_mbar_data(object):
             for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 1:
                     x = []
-                    for arr in dataset.log_gr_ratio_data: 
+                    for arr in dataset.log_gr_ratio_data:
                         x.append(arr[-1,0])
                     cdf = CDFAccumulator()
                     cdf.add_array(x)
@@ -556,10 +556,10 @@ class plot_mbar_data(object):
                             linewidth=3, color=color_cycle.next(), linestyle=line_cycle.next())
             ax3.set_xlabel(r'$r_{max}$')
             ax3.set_ylabel(r'$\mathrm{cdf}[\mathrm{max}_r(h(r)/r^{N-1})]$')
-            ax3.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            ax3.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig3.savefig(os.path.join(self.figdir, 'maxr_cdf.pdf'))
-            
+
         if True:
             #plot correlation between volume and volume of core region
             color_cycle = get_color_cycle()
@@ -572,7 +572,7 @@ class plot_mbar_data(object):
                 if len(dataset.free_energies) > 0:
                     log_core_vol = []
                     log_tot_vol = []
-                    for packing in dataset.packing_data: 
+                    for packing in dataset.packing_data:
                         arr = packing.log_gr_ratio
                         if arr is not None:
                             (x, xerr, y, yerr, fit) = arr[:,0], arr[:,1], arr[:,2], arr[:,3], arr[:,4]
@@ -607,14 +607,14 @@ class plot_mbar_data(object):
             marker_cycle = get_marker_cycle()
             fig5 = plt.figure()
             ax5 = fig5.add_subplot(111)
-            for mbar_dataset, tint_dataset in zip(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly), 
+            for mbar_dataset, tint_dataset in zip(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly),
                                                   sorted(self.tint_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(mbar_dataset.free_energies) > 0 and len(tint_dataset.free_energies) > 0:
                     assert mbar_dataset.structural_label == tint_dataset.structural_label
-                    assert mbar_dataset.hs_poly == tint_dataset.hs_poly 
+                    assert mbar_dataset.hs_poly == tint_dataset.hs_poly
                     assert len(mbar_dataset.free_energies) == len(tint_dataset.free_energies)
-                    ax5.errorbar(mbar_dataset.free_energies, tint_dataset.free_energies, 
-                                 xerr=mbar_dataset.free_energies_err, yerr=tint_dataset.free_energies_err, 
+                    ax5.errorbar(mbar_dataset.free_energies, tint_dataset.free_energies,
+                                 xerr=mbar_dataset.free_energies_err, yerr=tint_dataset.free_energies_err,
                                  color=color_cycle.next(), linestyle="None", marker=marker_cycle.next(), markersize=15,
                                  label='{} {:.1E}'.format(mbar_dataset.structural_label[:3], mbar_dataset.hs_poly),
                                  alpha=0.7, markeredgecolor='none')
@@ -625,9 +625,9 @@ class plot_mbar_data(object):
             ax5.legend(fancybox=True, framealpha=0.5, loc=2, prop={'size':18}, numpoints=1, markerscale=1,
                       columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=1, scatterpoints = 1)
             fig5.savefig(os.path.join(self.figdir, 'mbar_tint_comparison.pdf'))
-        
+
         if False:
-            #plot diffusion curves 
+            #plot diffusion curves
             color_cycle = get_color_cycle()
             marker_cycle = get_marker_cycle()
             line_cycle = get_line_cycle()
@@ -653,9 +653,9 @@ class plot_mbar_data(object):
                         #print w
                         #if w[1] > -5: #this removes a couple of outliers DEBUG, check this
                         fit = pol(np.log(x))
-                        csv_tuple = np.array([np.log(x), dx/x, np.log(y), dy/y, fit]).transpose() 
-                        ax6 = self._plot(ax6, csv_tuple, label=label, 
-                                        plot_err=True, plot_fit=True, color=color, 
+                        csv_tuple = np.array([np.log(x), dx/x, np.log(y), dy/y, fit]).transpose()
+                        ax6 = self._plot(ax6, csv_tuple, label=label,
+                                        plot_err=True, plot_fit=True, color=color,
                                         marker=marker, ls=ls)
                         redy = np.log(y)-0.5*np.log(x)
                         csv_tuple = np.array([np.log(x), dx/x+dy/y, redy, dy/y, np.zeros(len(x))]).transpose() #redy - np.amax(redy)
@@ -663,15 +663,15 @@ class plot_mbar_data(object):
                                          color=color, marker=marker, ls=ls)
             ax6.set_ylabel(r'$\ln(\Delta r)$')
             ax6.set_xlabel(r'$\ln (\Delta s)$')
-            ax6.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            ax6.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig6.savefig(os.path.join(self.figdir, 'diffusion_logs_logr.pdf'))
             ax7.set_ylabel(r'$\ln(\Delta r) - \frac{1}{2}\ln(\Delta s)$')
             ax7.set_xlabel(r'$\ln (\Delta s)$')
-            ax7.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            ax7.legend(frameon=False, loc=2, prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             fig7.savefig(os.path.join(self.figdir, 'diffusion_logs_logr_red.pdf'))
-        
+
         if True:
             import matplotlib.gridspec as gridspec
             from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
@@ -688,25 +688,25 @@ class plot_mbar_data(object):
             ax10 = fig8.add_axes([0.63,0.74,0.3,0.2], alpha=0.5) # x, y, w, h
             fig8.subplots_adjust(hspace=0)
             axins = zoomed_inset_axes(ax8, 500, bbox_to_anchor=(0.4, 0.13), bbox_transform=plt.gcf().transFigure) # zoom = 6
-            
+
             #hypercube data logr
             hyp_label = ['iso-hcube','hcube']
             for i,hd in enumerate(self.hypercube_data):
                 ls = line_cycle.next()
                 hc_arr = hd.log_gr_ratio
                 (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
-                csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose() 
-                ax8 = self._plot(ax8, csv_tuple, label=hyp_label[i], 
-                                 plot_err=False, plot_fit=False, color='slategray', 
+                csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose()
+                ax8 = self._plot(ax8, csv_tuple, label=hyp_label[i],
+                                 plot_err=False, plot_fit=False, color='slategray',
                                  marker=None, ls=ls)
                 #hypercube data dos
                 hc_arr = hd.dos
                 (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
-                csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose() 
-                ax9 = self._plot(ax9, csv_tuple, label=hyp_label[i], 
-                                 plot_err=False, plot_fit=False, color='slategray', 
+                csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose()
+                ax9 = self._plot(ax9, csv_tuple, label=hyp_label[i],
+                                 plot_err=False, plot_fit=False, color='slategray',
                                  marker=None, ls=ls)
-            
+
             #packing data
             for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 print '{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly)
@@ -714,17 +714,17 @@ class plot_mbar_data(object):
                 if len(dataset.free_energies) > 1:
                     color = color_cycle.next()
                     ls = line_cycle.next()
-                    ax8, xlabel, ylabel = self._plot_all(ax8, dataset, plot_type="log_gr_ratio", 
-                                                        average=False, 
-                                                        label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
+                    ax8, xlabel, ylabel = self._plot_all(ax8, dataset, plot_type="log_gr_ratio",
+                                                        average=False,
+                                                        label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
                                                         color=color, ls=ls, alpha=0.7)
-                    ax9, xlabel, ylabel = self._plot_all(ax9, dataset, plot_type="dos", 
-                                                        average=False, 
-                                                        label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
+                    ax9, xlabel, ylabel = self._plot_all(ax9, dataset, plot_type="dos",
+                                                        average=False,
+                                                        label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
                                                         color=color, ls=ls, alpha=0.7)
-                    axins, xlabel, ylabel = self._plot_all(axins, dataset, plot_type="log_gr_ratio", 
-                                                           average=False, 
-                                                           label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly), 
+                    axins, xlabel, ylabel = self._plot_all(axins, dataset, plot_type="log_gr_ratio",
+                                                           average=False,
+                                                           label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
                                                            color=color, ls=ls, alpha=0.7)
                     #inset
                     dos = dataset.dos_data
@@ -754,7 +754,7 @@ class plot_mbar_data(object):
             ax9.set_xlim((0,8))
             ax8.set_xlabel(r'$r$')
             ax8.set_ylabel(r'$\ln(h(r)/r^{N-1})$')
-            ax8.legend(fancybox=True, framealpha=0.5, loc="best", prop={'size':18}, numpoints=1, markerscale=1, 
+            ax8.legend(fancybox=True, framealpha=0.5, loc="best", prop={'size':18}, numpoints=1, markerscale=1,
                        columnspacing=0.25, labelspacing=0.25, handlelength=1, ncol=1)
             #ax9.set_xlabel(r'$r$')
             ax9.set_ylabel(r'$h(r)$')
@@ -764,41 +764,41 @@ class plot_mbar_data(object):
             axins.set_xticks([])
             mark_inset(ax8, axins, loc1=3, loc2=4, fc="none", ec="0.0", zorder=3)
             plt.setp([a.get_xticklabels() for a in fig8.axes[1:-2]], visible=False)
-            
-            
-            
+
+
+
             fig8.savefig(os.path.join(self.figdir, 'hypercube_logr_comparison.pdf'))
-        
+
         if True:
             #plot Q12 vs poly and pressure vs poly
             from mpl_toolkits.axes_grid1 import host_subplot
             import mpl_toolkits.axisartist as AA
             color_cycle = get_color_cycle2()
             marker_cycle = get_marker_cycle()
-            
+
             fig9 = plt.figure(figsize=(9,5))
             host = host_subplot(111, axes_class=AA.Axes)
             host.set_aspect('auto')
             plt.subplots_adjust(left=0.25, right=0.75)
-        
+
             par1 = host.twinx()
             par2 = host.twinx()
             par3 = host.twinx()
-            
+
             offset = 69
             new_fixed_axis = par2.get_grid_helper().new_fixed_axis
             par2.axis["right"] = new_fixed_axis(loc="right",
                                                 axes=par2,
                                                 offset=(offset, 0))
             par2.axis["right"].toggle(all=True)
-           
+
             offset = -75
             new_fixed_axis = par3.get_grid_helper().new_fixed_axis
             par3.axis["right"] = new_fixed_axis(loc="left", axes=par3, offset=(offset, 0))
             par3.axis["right"].toggle(all=True)
-            
-            
-            
+
+
+
             color = [color_cycle.next(), color_cycle.next(), color_cycle.next()]
             marker = [marker_cycle.next(), marker_cycle.next(), marker_cycle.next(), "D"]
             for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
@@ -818,7 +818,7 @@ class plot_mbar_data(object):
                     x = [dataset.hs_poly]
                     # compute the mean as a weighted mean and the standard error from the weighted average
                     p1, caplines1, barlinecols1 =  host.errorbar(x, [np.mean(np.array(boo)[:,1])], yerr=boo_std,
-                                                                 marker=marker[0], ms=9, label=None, color=color[0], 
+                                                                 marker=marker[0], ms=9, label=None, color=color[0],
                                                                  markeredgecolor=color[0], mew=2,
                                                                  markerfacecolor='none' if dataset.structural_label == 'disordered' else color[0],
                                                                  zorder=2 if dataset.structural_label == 'disordered' else 1)
@@ -860,7 +860,7 @@ class plot_mbar_data(object):
             par1.axis["right"].label.set_color(p2.get_color())
             par2.axis["right"].label.set_color(p3.get_color())
 
-            #host.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            #host.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
             #          columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
             host.set_xscale('log')
             par1.set_xscale('log')
@@ -876,31 +876,31 @@ class plot_mbar_data(object):
             # par2.set_ylim((0,1.3))
             par3.set_ylim((5,12.5))
             fig9.savefig(os.path.join(self.figdir, 'poly_q12.pdf'))
-            
+
     def plot_all(self, plot_type="gr_ratio", figname=None, title=None, show=False, savefig=False, average=True, logx=False):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        
+
         color_cycle = get_color_cycle()
         line_cycle = get_line_cycle()
         for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 print '{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly)
                 print len(dataset.free_energies)
                 if len(dataset.free_energies) > 1:
-                    ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type, 
-                                                        average=average, 
-                                                        label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly), 
+                    ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type,
+                                                        average=average,
+                                                        label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly),
                                                         color=color_cycle.next(), ls=line_cycle.next())
-        
+
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         if logx:
             ax.set_xscale('log')
         try:
-            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
         except Exception, e:
-            print e    
+            print e
         if title:
             ax.set_title(title)
         if figname is None:
@@ -912,7 +912,7 @@ class plot_mbar_data(object):
             plt.savefig(os.path.join(self.figdir, figname))
         if show:
             plt.show()
-        
+
     def _plot_all(self, ax, mbar_data, plot_type="log_gr", label=None, average=False, color='k', ls='-', ndof=None, alpha=1):
         if plot_type == "log_gr":
             if average:
@@ -970,7 +970,7 @@ class plot_mbar_data(object):
             #ax.set_ylim((1e-27,3))
             #ax.set_yscale('log')
         return ax, xlabel, ylabel
-    
+
     def _plot(self, ax, arr, label=None, plot_err=False, plot_fit=False, normalize=False, color='k', marker='o', ls='-', alpha=1):
         (x, xerr, y, yerr, fit) = arr[:,0], arr[:,1], arr[:,2], arr[:,3], arr[:,4]
         if normalize:
@@ -983,21 +983,21 @@ class plot_mbar_data(object):
         if plot_fit:
             ax.plot(x, fit, linestyle='-', linewidth=1, color='k', marker='', alpha=alpha)
         return ax
-    
+
     def plot_correlations(self, plot_type="f_m1", figname=None, title=None, show=False, savefig=False, logx=False, logy=False):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        
+
         color_cycle = get_color_cycle()
         for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
             if len(dataset.free_energies) > 0:
                 ax, xlabel, ylabel = self._plot_correlations(ax, dataset, plot_type=plot_type,
                                                              label=dataset.hs_poly, color=color_cycle.next())
-        
+
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         try:
-            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1, 
+            ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
         except Exception, e:
             print e
@@ -1013,21 +1013,21 @@ class plot_mbar_data(object):
             plt.savefig(os.path.join(self.figdir, figname))
         if show:
             plt.show()
-    
+
     def _plot_correlations(self, ax, mbar_data, plot_type="f_m1", label=None, color='b'):
         moments = np.array(mbar_data.dos_moments)
         free_energies = np.array(mbar_data.free_energies)
         #this gives the -log probability of being in a basin
         #for i,packing in enumerate(mbar_data.packing_data):
-        #    free_energies[i] += packing.Facc 
-        
+        #    free_energies[i] += packing.Facc
+
         boo = []
         for bunch in mbar_data.boos:
             boo.append([bunch.Q4, bunch.Q6, bunch.Q8, bunch.Q10, bunch.Q12])
         boo = np.array(boo)
         z_numbers = mbar_data.contacts
         xlabel=r'$-\ln(p)=f_i+f_{acc}$'
-        
+
         #volume-moments correlations
         if plot_type == "f_m0":
             ax.scatter(free_energies, np.log(moments[:,0]), label=label, c=color, alpha=0.5)
@@ -1044,7 +1044,7 @@ class plot_mbar_data(object):
         elif plot_type == "f_m4":
             ax.scatter(free_energies, np.log(moments[:,4]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}})$'
-        
+
         #moment-moment correlations
         #a = np.exp(-free_energies[:,0] + np.amax(free_energies[:,0]))
         #area = np.pi * (10 *  a / np.amax(a))**2 # 0 to 10 point radiuses
@@ -1057,7 +1057,7 @@ class plot_mbar_data(object):
             ax.scatter(moments[:,3], moments[:,4], s=area, label=label, c=color, alpha=0.5)
             xlabel=r'$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$'
             ylabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
-        
+
         #boo-volume correlations
         if plot_type == "f_z":
             ax.scatter(free_energies, np.log(z_numbers), label=label, c=color, alpha=0.5)
@@ -1077,7 +1077,7 @@ class plot_mbar_data(object):
         elif plot_type == "f_q12":
             ax.scatter(free_energies, np.log(boo[:,4]), label=label, c=color, alpha=0.5)
             ylabel=r'$log(Q12)$'
-        
+
         #boo-moments correlations
         if plot_type == "m0_q6":
             ax.scatter(moments[:,0], boo[:,1], s=area, label=label, c=color, alpha=0.5)
@@ -1099,12 +1099,12 @@ class plot_mbar_data(object):
             ax.scatter(moments[:,4], boo[:,1], s=area, label=label, c=color, alpha=0.5)
             ylabel=r'$Q6$'
             xlabel=r'$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$'
-        
+
         #NOTE: here add boo-pressure correlations
         #NOTE: here add pressure-volume correlations
-        
+
         return ax, xlabel, ylabel
-    
+
 if __name__ == "__main__":
     show = True
     pts_mbar = MBARBasinAnalysis(import_diffusion_config=True)
@@ -1114,7 +1114,7 @@ if __name__ == "__main__":
     hypercube_data = MBARHypercubeData()
     hypercube_data2 = MBARHypercubeData()
     hypercube_data.import_dos_data('/home/sm958/Work/basinvolume/basinvolume/hypercube/one_cube/explore_bv_hypercube_n93_l1_tmp2/analysis')
-    hypercube_data2.import_dos_data('/home/sm958/Work/basinvolume/basinvolume/hypercube/one_cube/explore_bv_hypercube_n93_l1_tmp3/analysis') 
+    hypercube_data2.import_dos_data('/home/sm958/Work/basinvolume/basinvolume/hypercube/one_cube/explore_bv_hypercube_n93_l1_tmp3/analysis')
     pmd = plot_mbar_data(pts_mbar.packing_datasets, pts_tint.packing_datasets, hypercube_data=[hypercube_data, hypercube_data2] )
     pmd()
     if show:

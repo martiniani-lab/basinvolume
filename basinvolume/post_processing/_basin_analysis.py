@@ -15,8 +15,8 @@ class BasinAnalysis(object):
     volume_file = "mbar_volume"
     volume_title = "MBAR_VOLUME"
     """
-    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings', 
-                 analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data", 
+    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings',
+                 analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data",
                  zboo_file="glob_boo", zboolist_file="boo_deg6", volume_title = "VOLUME_FULL_PT"):
         if workspace is None:
             workspace = os.getcwd()
@@ -33,19 +33,12 @@ class BasinAnalysis(object):
         self.zboolist_file = zboolist_file
         self.iteration = 0
         self.packing_datasets = []
-    
-    def _get_dname(self, dname):
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
-        return dname    
-        
+
     def _get_dname_packing(self, inp):
-        jammed_dname = self._get_dname(inp)
+        jammed_dname = os.path.splitext(inp)[0]
         return jammed_dname.split("_")[1]
-    
-    def collect_data_every_set_all(self, data_name="basin_analysis.pickle", no_pickle=False, 
+
+    def collect_data_every_set_all(self, data_name="basin_analysis.pickle", no_pickle=False,
                                    dir_signature='n*_phi*_phi*_*D*'):
         listdir = glob.glob(os.path.join(self.workspace, dir_signature))
         #print listdir
@@ -53,20 +46,20 @@ class BasinAnalysis(object):
         if os.path.isfile(data_pickle) and not no_pickle:
             with open(data_pickle, "rb") as f:
                 self.packing_datasets = pickle.loads(f.read())
-        else: 
+        else:
             for set_path in listdir:
                 print("set_path", set_path)
                 print "collecting data from ", os.path.split(set_path)[1]
                 self.collect_data_single_all(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
             pickle.dump(self.packing_datasets, open( data_pickle, "wb" ),protocol=-1)
-        
+
     def collect_data_single_all(self, set_path=None):
         if set_path is None:
             set_path = self.workspace
         packing_dataset = self._collect_data_single_all(set_path)
         self.packing_datasets.append(packing_dataset)
-    
+
     def _collect_data_single_all(self, set_path):
         """compute boo for packings
         """
@@ -74,7 +67,7 @@ class BasinAnalysis(object):
         packing_dataset = PackingDataSet(set_path)
         for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
             if 'xyzd' in fname or 'xyd' in fname:
-                dname = self._get_dname(fname)
+                dname = os.path.splitext(fname)[0]
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
@@ -92,7 +85,7 @@ class BasinAnalysis(object):
                     pd_list.append(pd)
         packing_dataset.add_data_all(pd_list)
         return packing_dataset
-    
+
     def collect_data_every_set_structure(self, data_name="basin_analysis.pickle", no_pickle=False,
                                          dir_signature='n*_phi*_phi*_*D*'):
         """
@@ -103,20 +96,20 @@ class BasinAnalysis(object):
         if os.path.isfile(data_pickle) and not no_pickle:
             with open(data_pickle, "rb") as f:
                 self.packing_datasets = pickle.loads(f.read())
-        else: 
+        else:
             for set_path in listdir:
                 print("set_path", set_path)
                 print "collecting data from ", os.path.split(set_path)[1]
                 self.collect_data_single_structure(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
             pickle.dump(self.packing_datasets, open( data_pickle, "wb" ), protocol=-1)
-        
+
     def collect_data_single_structure(self, set_path=None):
         if set_path is None:
             set_path = self.workspace
         packing_dataset = self._collect_data_single_structure(set_path)
         self.packing_datasets.append(packing_dataset)
-    
+
     def _collect_data_single_structure(self, set_path):
         """
         """
@@ -124,7 +117,7 @@ class BasinAnalysis(object):
         packing_dataset = PackingDataSet(set_path)
         for fname in os.listdir(os.path.join(set_path, self.jammed_packings_dir)):
             if 'xyzd' in fname or 'xyd' in fname:
-                dname = self._get_dname(fname)
+                dname = os.path.splitext(fname)[0]
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
@@ -145,4 +138,3 @@ if __name__ == "__main__":
     pts = BasinAnalysis()
     pts.collect_data_every_set_all()
     pts.collect_data_every_set_strcture()
-    

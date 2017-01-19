@@ -99,11 +99,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         self.pca_asphericity = asphericity_factor(self.traj_eval)
 
     def _set_paths(self, packings_dir):
-        dname = self.fname
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
+        dname = os.path.splitext(self.fname)[0]
         self.base_directory = os.path.join(self.workspace,'explore_bv_'+str(dname))
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(self.workspace,packings_dir)

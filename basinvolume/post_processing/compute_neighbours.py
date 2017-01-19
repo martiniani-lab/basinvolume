@@ -25,7 +25,7 @@ class Neighbours(StructuralAnalysis):
     def run(self):
         for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzdr' in fname or 'xydr' in fname:
-                dname = self._get_dname(fname)
+                dname = os.path.splitext(fname)[0]
 
                 # Get configuration
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')

@@ -77,11 +77,7 @@ class _sphere_mcrunner(_configure_mcrunner):
             self._print_success(False)
 
     def _set_paths(self, packings_dir):
-        dname = self.fname
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
+        dname = os.path.splitext(self.fname)[0]
         self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)

@@ -102,15 +102,7 @@ class _Generate_Jammed_Packing(object):
         self.minimizer=minimizer
 
     def _import_single_packing_config_file(self, fname):
-        dname = fname
-        if dname.endswith('.xyzd'):
-            dname = dname[:-5]
-        elif dname.endswith('.xyd'):
-            dname = dname[:-4]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
-        elif dname.endswith('.xyzdr'):
-            dname = dname[:-6]
+        dname = os.path.splitext(fname)[0]
         self.configpath = os.path.join(self.packings_dir, dname+'.config')
         if self.import_jammed:
             import_jammed_packing_config(self, str(self.configpath))

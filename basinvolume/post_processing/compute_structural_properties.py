@@ -45,13 +45,6 @@ class StructuralAnalysis(object):
         packing = import_packing(path, True, self.bdim, self.sca)
         return packing['coords'], packing['hs_radii'], packing['ss_radii'], packing['rattlers']
 
-    def _get_dname(self, dname):
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
-        return dname
-
 class BondOrientationalOrder(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
@@ -75,7 +68,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzd' in fname or 'xyd' in fname:
                 compute = False
-                dname = self._get_dname(fname)
+                dname = os.path.splitext(fname)[0]
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 import_jammed_packing_config(self, configpath, self.frozen)
@@ -270,7 +263,7 @@ class PressureTensor(StructuralAnalysis):
         for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzd' in fname or 'xyd' in fname:
                 compute = False
-                dname = self._get_dname(fname)
+                dname = os.path.splitext(fname)[0]
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 import_jammed_packing_config(self, configpath, self.frozen)

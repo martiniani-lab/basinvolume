@@ -30,14 +30,6 @@ class Displacement:
         self.sub_centre_mass = sub_centre_mass
 
 
-    def _get_dname(self, dname):
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
-        return dname
-
-
     @staticmethod
     def read(displacement_fname):
         configf = ConfigParser.ConfigParser()
@@ -84,7 +76,7 @@ class Displacement:
     def run(self):
         for fname in os.listdir(self.packings_new):
             if 'xyzdr' in fname or 'xydr' in fname:
-                dname = self._get_dname(fname)
+                dname = os.path.splitext(fname)[0]
 
                 # Get configuration
                 configpath = os.path.join(self.packings_new, dname + '.config')

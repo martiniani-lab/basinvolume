@@ -26,11 +26,7 @@ class build_minima_list_db(object):
 
     def __init__(self, fname, db_path='minima_list.sqlite', packings_dir='jammed_packings', base_dir=None):
         self.fname = fname
-        dname = fname
-        if dname.endswith('.xyzdr'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydr'):
-            dname = dname[:-5]
+        dname = os.path.splitext(fname)[0]
 
         if base_dir is None:
             base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))

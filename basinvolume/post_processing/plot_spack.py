@@ -18,7 +18,7 @@ class GenerateSpackPlot(StructuralAnalysis):
         """
         import matplotlib.pyplot as plt
         assert 'xyzd' in fname or 'xyd' in fname
-        dname = self._get_dname(fname)
+        dname = os.path.splitext(fname)[0]
         jammed_packing_configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
         print jammed_packing_configpath
         import_jammed_packing_config(self, jammed_packing_configpath)

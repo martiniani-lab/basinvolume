@@ -209,11 +209,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.hs_radii = hs_diameters/2
 
     def _import_single_packing_config_file(self, fname):
-        dname = fname
-        if dname.endswith('.xyzdf'):
-            dname = dname[:-6]
-        elif dname.endswith('.xydf'):
-            dname = dname[:-5]
+        dname = os.path.splitext(fname)[0]
         self.configpath = os.path.join(self.packings_dir, dname+'.config')
         self._import_packing_config_file()
         #self.packing_frac = np.power(1+self.imp_sca,self.bdim)*self.imp_packing_frac
