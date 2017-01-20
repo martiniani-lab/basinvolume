@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 import shutil
 from basinvolume.post_processing.structural_properties import InversionSymmetry
