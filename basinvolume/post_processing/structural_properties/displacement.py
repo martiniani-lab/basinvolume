@@ -3,32 +3,24 @@ import os
 import ast
 import numpy as np
 import argparse
-from basinvolume.utils import trymakedir, import_packing, calc_distance
+from basinvolume.utils import trymakedir, calc_distance
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from _structural_analysis import StructuralAnalysis
 
 
-class Displacement:
-    def __init__(self, workspace, packings_old, packings_new,
+class Displacement(StructuralAnalysis):
+    def __init__(self, workspace, packings_old, jammed_packings_dir,
                  analysis_dir='analysis', force=False, existing_only=True,
                  prefix='explore_bv_', verbose=True, shear=None, sub_centre_mass=True):
-        if not os.path.isabs(workspace):
-            workspace = os.path.abspath(workspace)
-        self.workspace = workspace
+        super(Displacement, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
+                                                analysis_dir=analysis_dir, force=force,
+                                                existing_only=existing_only, prefix=prefix,
+                                                verbose=verbose)
         if not os.path.isabs(packings_old):
             packings_old = os.path.join(self.workspace, packings_old)
-        if not os.path.isabs(packings_new):
-            packings_new = os.path.join(self.workspace, packings_new)
         self.packings_old = packings_old
-        self.packings_new = packings_new
-        self.analysis_dir = analysis_dir
-        self.frozen = False
-        self.force = force
-        self.existing_only = existing_only
-        self.prefix = prefix
-        self.verbose = verbose
         self.shear = shear
         self.sub_centre_mass = sub_centre_mass
-
 
     @staticmethod
     def read(displacement_fname):
@@ -54,7 +46,6 @@ class Displacement:
                 = ast.literal_eval(configf.get('NONAFFINE_DISPLACEMENT', 'displacements'))
         return disp_dict
 
-
     def _averages(self, displacements):
         avg_displacement = [np.mean(displacements_1d)
                             for displacements_1d in zip(*displacements)]
@@ -72,14 +63,13 @@ class Displacement:
         avg_abs_displacement_norm = np.linalg.norm(avg_abs_displacement)
         return avg_displacement, avg_abs_displacement, avg_abs_displacement_norm
 
-
     def run(self):
-        for fname in os.listdir(self.packings_new):
+        for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzdr' in fname or 'xydr' in fname:
                 dname = os.path.splitext(fname)[0]
 
                 # Get configuration
-                configpath = os.path.join(self.packings_new, dname + '.config')
+                configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
                 import_jammed_packing_config(self, configpath, self.frozen)
 
                 # Check if the work directory exists
@@ -92,7 +82,7 @@ class Displacement:
                     displacement_fname = os.path.join(analysis_dir_path,'displacement')
                     compute = False
                     try:
-                        read(displacement_fname)
+                        self.read(displacement_fname)
                     except Exception:
                         compute = True
 
@@ -102,10 +92,10 @@ class Displacement:
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates
-                        path_new = os.path.join(self.packings_new, fname)
-                        coords_new = import_packing(path_new, True, self.bdim)['coords']
+                        path_new = os.path.join(self.jammed_packings_dir, fname)
+                        coords_new, _, _, _ = self._import_packing_configuration(path_new)
                         path_old = os.path.join(self.packings_old, fname)
-                        coords_old = import_packing(path_old, True, self.bdim)['coords']
+                        coords_old, _, _, _ = self._import_packing_configuration(path_old)
 
                         # Calculate displacements
                         # The displacement is measured with the boundary conditions of the new packing
@@ -168,11 +158,19 @@ class Displacement:
                                         .format([disp.tolist() for disp in nonaff_displacements]))
 
 
+def worker_disp(workspace, kwargs):
+    try:
+        disp = Displacement(workspace, **kwargs)
+        disp.run()
+    except:
+        print('worker_disp worker: %s' % (traceback.format_exc()))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compares the particle positions "
                                      "in different sets of jammed packings.")
     parser.add_argument("packings_old", type=str, help="Directory containing the "
-                        "jammed packings with the original particle positions.")
+                        "jammed packings with the old particle positions.")
     parser.add_argument("packings_new", type=str, help="Directory containing the "
                         "changed jammed packings.")
     parser.add_argument("-d", "--workspace_dir", type=str, help="Top-level dir containing "
@@ -192,9 +190,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up arguments
-    kwargs = dict(packings_old=args.packings_old, packings_new=args.packings_new,
+    kwargs = dict(packings_old=args.packings_old, jammed_packings_dir=args.packings_new,
                   force=args.force, existing_only=args.nonex, prefix=args.prefix,
-                  shear=shear, sub_centre_mass=not args.drift)
+                  shear=args.shear, sub_centre_mass=not args.drift)
 
     # Create workspace directory name
     if not args.workspace_dir:

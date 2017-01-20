@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from spack import Packing
-from basinvolume.post_processing import StructuralAnalysis
+from basinvolume.post_processing.structural_properties import StructuralAnalysis
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 
 class GenerateSpackPlot(StructuralAnalysis):
@@ -9,9 +9,11 @@ class GenerateSpackPlot(StructuralAnalysis):
     fname jammed_packing1.xydr
     workspace n32_phi...
     """
-    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings'):
-        super(GenerateSpackPlot, self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir,
-                                                    analysis_dir=None)
+    def __init__(self, workspace, packings_dir='packings',
+                 jammed_packings_dir='jammed_packings'):
+        super(GenerateSpackPlot, self).__init__(workspace, packings_dir=packings_dir,
+                                                jammed_packings_dir=jammed_packings_dir,
+                                                analysis_dir=None)
 
     def create_image(self, fname, size=1000, cmap=None, glass=True):
         """

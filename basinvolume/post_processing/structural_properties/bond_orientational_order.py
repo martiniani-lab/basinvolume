@@ -3,49 +3,15 @@ import copy
 import numpy as np
 import os
 import ConfigParser
-import traceback
-import ast
 from scipy.special import sph_harm
-from basinvolume.utils import trymakedir, import_packing, cround, find_neighbours
+from basinvolume.utils import trymakedir, find_neighbours
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
-from pele.utils._pressure_tensor import pressure_tensor
-import abc
-from pele.potentials import HS_WCA, InversePowerStillingerCut
-import argparse
-import multiprocessing as mp
-from simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
-from pele.optimize._quench import modifiedfire_cpp
+from basinvolume.post_processing.simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
+from _structural_analysis import StructuralAnalysis
 
-class StructuralAnalysis(object):
-    __metaclass__ = abc.ABCMeta
-    #@abc.abstractmethod
-
-    def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings',
-                 analysis_dir='analysis', force=False, existing_only=True, prefix='explore_bv_', verbose=True):
-        if not os.path.isabs(workspace):
-            workspace = os.path.abspath(workspace)
-        self.workspace = workspace
-        if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(self.workspace, packings_dir)
-        if not os.path.isabs(jammed_packings_dir):
-            jammed_packings_dir = os.path.join(self.workspace, jammed_packings_dir)
-        self.packings_dir = packings_dir
-        self.jammed_packings_dir = jammed_packings_dir
-        self.analysis_dir = analysis_dir
-        self.iteration = 0
-        self.eps = 1.
-        self.frozen = False
-        self.force = force
-        self.existing_only = existing_only
-        self.prefix = prefix
-        self.verbose = verbose
-
-    def _import_packing_configuration(self, fname):
-        path = os.path.join(self.jammed_packings_dir, fname)
-        packing = import_packing(path, True, self.bdim, self.sca)
-        return packing['coords'], packing['hs_radii'], packing['ss_radii'], packing['rattlers']
 
 class BondOrientationalOrder(StructuralAnalysis):
+
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
                  solid_angle_weighted=False, prefix='explore_bv_', verbose=True):
@@ -57,6 +23,20 @@ class BondOrientationalOrder(StructuralAnalysis):
         self.solid_angle_weighted = solid_angle_weighted
         if self.verbose:
             print("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
+
+    @staticmethod
+    def read(boo_fname):
+        configf = ConfigParser.ConfigParser()
+        configf.read(boo_fname)
+        boo_dict = {}
+        boo_dict['Z'] = configf.getfloat('Z', 'Z')
+        boo_items = configf.items('BOO')
+        for i, boo in enumerate(boo_items):
+            if i > 0:
+                raise IOError("Too many items in bond-orientational order file "
+                              "(expected: 1): {}".format(boo_items))
+            boo_dict['BOO'] = (boo[0].upper(), float(boo[1]))
+        return boo_dict
 
     def run(self, deg=6, pinit=True):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
@@ -78,21 +58,23 @@ class BondOrientationalOrder(StructuralAnalysis):
                     boo_fname = os.path.join(analysis_dir_path, 'boo_deg{}'.format(deg))
                     global_boo_fname = os.path.join(analysis_dir_path, 'glob_boo')
                     try:
-                        configf = ConfigParser.ConfigParser()
-                        configf.read(str(global_boo_fname))
-                        test_z = configf.getfloat('Z', 'Z')
-                        test_boo = configf.getfloat('BOO', 'Q{}'.format(deg))
+                        self.read(str(global_boo_fname))
                         if not os.path.isfile(boo_fname):
                             raise Exception
                     except Exception:
                         compute = True
                     if compute or self.force:
                         if self.verbose:
-                            print("Calculating bond orientational order: {}".format(self.prefix + str(dname)))
+                            print("Calculating bond orientational order: {}"
+                                  .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
-                        coords, hs_radii, ss_radii, rattlers = self._import_packing_configuration(fname)
-                        boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, rattlers,
-                                                                           ndim=self.bdim, deg=deg)
+                        coords, hs_radii, ss_radii, rattlers = \
+                            self._import_packing_configuration(fname)
+                        boo_list, z_list = self.bond_orientation_order_all(coords,
+                                                                           ss_radii,
+                                                                           rattlers,
+                                                                           ndim=self.bdim,
+                                                                           deg=deg)
                         with open(boo_fname, 'w') as f:
                             f.write('#Q{} \t Z\n'.format(deg))
                             for q, z in zip(boo_list, z_list):
@@ -243,85 +225,6 @@ class BondOrientationalOrder(StructuralAnalysis):
                 z_list.append(0)
         return np.array(boo_list), np.array(z_list)
 
-class PressureTensor(StructuralAnalysis):
-    def __init__(self, workspace, jammed_packings_dir='jammed_packings',
-                 analysis_dir='analysis', force=False, existing_only=True, opt_pot_str='hs_wca',
-                 prefix='explore_bv_', verbose=True):
-        super(PressureTensor,self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
-                                            analysis_dir=analysis_dir, force=force,
-                                            existing_only=existing_only, prefix=prefix,
-                                            verbose=verbose)
-        self.opt_pot_str = opt_pot_str
-
-    def run(self):
-        """compute the pressure tensor for packings
-        exisisting_only: bool
-            run on already existing packings only
-        pinit : bool
-            initialise printing
-        """
-        for fname in os.listdir(self.jammed_packings_dir):
-            if 'xyzd' in fname or 'xyd' in fname:
-                compute = False
-                dname = os.path.splitext(fname)[0]
-                base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
-                configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
-                import_jammed_packing_config(self, configpath, self.frozen)
-                if os.path.isdir(base_directory_path) or not self.existing_only:
-                    trymakedir(base_directory_path)
-                    analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
-                    pressure_fname = os.path.join(analysis_dir_path,'pressure_data')
-                    try:
-                        configf = ConfigParser.ConfigParser()
-                        configf.read(pressure_fname)
-                        test_p = configf.getfloat('PRESSURE', 'P')
-                        test_maxshear = configf.getfloat('PRESSURE', 'maxshear_xyplane')
-                        test_ptensor = configf.get('PRESSURE', 'Ptensor')
-                        test_e = configf.get('ENERGY', 'E')
-                    except Exception:
-                        compute = True
-                    if compute or self.force:
-                        if self.verbose:
-                            print("Calculating pressure: {}".format(self.prefix + str(dname)))
-                        trymakedir(analysis_dir_path)
-                        self.coords, self.hs_radii, self.ss_radii, self.rattlers = self._import_packing_configuration(fname)
-                        potential = self.get_potential()
-                        # refine structure (does not make a difference if tol was small enough to start with)
-                        # if self.packing_frac < 0.835:
-                        #     fire_maxstep = np.amin(self.hs_radii) * self.sca
-                        #     res = modifiedfire_cpp(self.coords, potential, maxstep=fire_maxstep,
-                        #                            nsteps=1e6, tol=1e-11, iprint=-1)
-                        #     self.coords = res.coords
-                        p, ptensor = pressure_tensor(potential, self.coords, self.vcavity, self.bdim)
-                        max_shear_xyplane = np.sqrt(((ptensor[0] - ptensor[3]) / 2.) ** 2 + ptensor[1] ** 2)
-                        energy = potential.getEnergy(self.coords)
-                        with open(pressure_fname, 'w') as f:
-                            f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
-                            f.write('[PRESSURE]\n')
-                            f.write('P: {:.16f}\n'.format(p))
-                            f.write('maxshear_xyplane: {:.16f}\n'.format(max_shear_xyplane))
-                            f.write('Ptensor: ')
-                            for val in ptensor:
-                                f.write('{:.16f} '.format(val))
-                            f.write('\n')
-                            f.write('[ENERGY]\n')
-                            f.write('E: {:.16f}\n'.format(energy))
-
-    def get_potential(self):
-        # here put a flag and pick potential
-        if self.opt_pot_str.lower() == 'hs_wca':
-            pot = HS_WCA(eps=self.eps, sca=self.sca,
-                         radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim,
-                         distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
-        elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
-            pow = self.pot_kwargs['pow']
-            rcut = self.pot_kwargs["rcut"]
-            pot_optimizer = InversePowerStillingerCut(pow,
-                self.stillinger_a_radii, ndim=self.bdim,
-                boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
-        else:
-            raise NotImplementedError
-        return pot
 
 def worker_boo(workspace, kwargs):
     try:
@@ -330,24 +233,12 @@ def worker_boo(workspace, kwargs):
     except:
         print('worker_boo worker: %s' % (traceback.format_exc()))
 
-def worker_pts(workspace, kwargs):
-    try:
-        pts = PressureTensor(workspace, **kwargs)
-        pts.run()
-    except:
-        print('worker_pts worker: %s' % (traceback.format_exc()))
-
-def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute bond-orientational order "
-                                     "and the pressure tensor for jammed packings.")
+                                     "for jammed packings.")
     parser.add_argument("-d", "--workspace_dir", type=str, help="Top-level dir containing "
                         "the packings, e.g. 'n32_phi88_2D'.")
-    parser.add_argument("--all", action='store_true', help="Run for all packing subdirectories.",
-                        default=False)
-    parser.add_argument("-j","--ncores", type=int, help="Threads for prallel execution.", default=7)
     parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
                         default=False)
     parser.add_argument("--solid", action="store_true", help="Use solid angle method "
@@ -359,43 +250,17 @@ if __name__ == "__main__":
                         "Default: 'explore_bv_'", default='explore_bv_')
     parser.add_argument("--input_dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
-
-    # potential arguments
-    parser.add_argument("--opt-pot", type=str, help="Optimizer's potential, 1) (default) hs_wca "
-                                                    "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
 
-    # potential type
-    opt_pot_str = args.opt_pot
-
-    ncores = args.ncores
     kwargs = dict(force=args.force, existing_only=args.nonex,
                   jammed_packings_dir=args.input_dir, prefix=args.prefix)
     if args.solid:
         kwargs.update(solid_angle_weighted=args.solid)
 
-    pts_kwargs = dict(opt_pot_str=opt_pot_str)
-    pts_kwargs.update(kwargs)
-
-    if not args.all:
-        if not args.workspace_dir:
-            workspace_dir = os.getcwd()
-        else:
-            workspace_dir = os.path.abspath(args.workspace_dir)
-        worker_boo(workspace_dir, kwargs)
-        worker_pts(workspace_dir, pts_kwargs)
+    if not args.workspace_dir:
+        workspace_dir = os.getcwd()
     else:
-        mypool = mp.Pool(ncores)
-        if not args.workspace_dir:
-            workspace_dir = os.getcwd()
-        else:
-            workspace_dir = os.path.abspath(args.workspace_dir)
-        subdirs = get_immediate_subdirectories(workspace_dir)
-        try:
-            for folder in subdirs:
-                if folder[1].isdigit() and "phi" in folder and "D" in folder:
-                    mypool.apply_async(worker_boo, args=(os.path.abspath(folder),kwargs,))
-                    mypool.apply_async(worker_pts, args=(os.path.abspath(folder),pts_kwargs,))
-        finally:
-            mypool.terminate()
-            mypool.join()
+        workspace_dir = os.path.abspath(args.workspace_dir)
+
+    boo = BondOrientationalOrder(workspace_dir, **kwargs)
+    boo.run_all()

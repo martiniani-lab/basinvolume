@@ -3,12 +3,13 @@ import os
 import ast
 import numpy as np
 import argparse
-from compute_structural_properties import StructuralAnalysis
 from basinvolume.utils import trymakedir, find_neighbours
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from _structural_analysis import StructuralAnalysis
 
 
 class Neighbours(StructuralAnalysis):
+
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', analysis_fname='neighbours', force=False,
                  existing_only=True, prefix='explore_bv_', verbose=True,
@@ -21,6 +22,18 @@ class Neighbours(StructuralAnalysis):
         self.restrict_neighbours = restrict_neighbours
         self.analysis_fname = analysis_fname
 
+    @staticmethod
+    def read(neighbours_fname):
+        configf = ConfigParser.ConfigParser()
+        configf.read(neighbours_fname)
+        neighbours_dict = {}
+        neighbours_dict['avg_neighbours'] = \
+            configf.getfloat('NEIGHBOURS', 'avg_neighbours')
+        neighbours_dict['neighbour_counts'] = \
+            ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_counts'))
+        neighbours_dict['neighbour_lists'] = \
+            ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_lists'))
+        return neighbours_dict
 
     def run(self):
         for fname in os.listdir(self.jammed_packings_dir):
@@ -41,11 +54,7 @@ class Neighbours(StructuralAnalysis):
                     neighbours_fname = os.path.join(analysis_dir_path, self.analysis_fname)
                     compute = False
                     try:
-                        configf = ConfigParser.ConfigParser()
-                        configf.read(neighbours_fname)
-                        configf.getfloat('NEIGHBOURS', 'avg_neighbours')
-                        ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_counts'))
-                        ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_lists'))
+                        self.read(neighbours_fname)
                     except Exception:
                         compute = True
 
@@ -92,6 +101,14 @@ class Neighbours(StructuralAnalysis):
                             f.write('neighbour_counts: {}\n'.format([len(neighbours) for neighbours
                                                                      in neighbour_lists]))
                             f.write('neighbour_lists: {}\n'.format(neighbour_lists))
+
+
+def worker_neighbours(workspace, kwargs):
+    try:
+        neighbours = Neighbours(workspace, **kwargs)
+        neighbours.run()
+    except:
+        print('worker_neighbours worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":

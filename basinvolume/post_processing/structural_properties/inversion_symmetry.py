@@ -4,12 +4,13 @@ import ast
 import numpy as np
 import argparse
 from pele.potentials import HS_WCA
-from compute_structural_properties import StructuralAnalysis
 from basinvolume.utils import trymakedir, find_neighbours
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from _structural_analysis import StructuralAnalysis
 
 
 class InversionSymmetry(StructuralAnalysis):
+
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
                  prefix='explore_bv_', verbose=True):
@@ -17,7 +18,6 @@ class InversionSymmetry(StructuralAnalysis):
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix,
                                                 verbose=verbose)
-
 
     # Returns the affine force of a pair of particles
     # Indices:
@@ -49,7 +49,6 @@ class InversionSymmetry(StructuralAnalysis):
 
         return [hessian * d for d in distance]
 
-
     def _affine_force_particle(self, index, distances, neighbours):
         affine_force_particle = [np.zeros((self.bdim, self.bdim)) for _ in range(self.bdim)]
         for i in range(len(neighbours)):
@@ -57,7 +56,6 @@ class InversionSymmetry(StructuralAnalysis):
             for j in range(self.bdim):
                 affine_force_particle[j] += affine_force[j]
         return affine_force_particle
-
 
     def _sum_affine_forces(self, neighbour_distancess, neighbour_lists):
         affine_forces = [np.zeros((self.bdim, self.bdim)) for _ in range(self.bdim)]
@@ -67,14 +65,12 @@ class InversionSymmetry(StructuralAnalysis):
                 affine_forces[i] += affine_force[i] ** 2
         return np.sum(sum(affine_forces))
 
-
     def _affine_force_interaction_sym_broken(self, distance, atomi, atomj, shear_direction, shear_perpendicular):
         dist_norm = np.linalg.norm(distance)
         dist_dir = distance / dist_norm
         hess_radial = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
         return hess_radial * dist_norm * dist_dir[shear_direction] \
                * dist_dir[shear_perpendicular]
-
 
     def _sum_affine_forces_sym_broken(self, neighbour_distancess, neighbour_lists):
         affine_forces_isb = 0
@@ -86,7 +82,6 @@ class InversionSymmetry(StructuralAnalysis):
                                 neighbour_distancess[i][j], i, neighbour_lists[i][j],
                                 alpha, beta) ** 2
         return affine_forces_isb
-
 
     @staticmethod
     def read(invsym_fname):
@@ -116,7 +111,7 @@ class InversionSymmetry(StructuralAnalysis):
                     invsym_fname = os.path.join(analysis_dir_path,'inversion_symmetry')
                     compute = False
                     try:
-                        read(invsym_fname)
+                        self.read(invsym_fname)
                     except Exception:
                         compute = True
 
@@ -150,6 +145,14 @@ class InversionSymmetry(StructuralAnalysis):
                             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
                             f.write('[INVERSION_SYMMETRY]\n')
                             f.write('inversion_symmetry: {:.16f}\n'.format(inv_sym))
+
+
+def worker_invsym(workspace, kwargs):
+    try:
+        invsym = InversionSymmetry(workspace, **kwargs)
+        invsym.run()
+    except:
+        print('worker_invsym worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":
