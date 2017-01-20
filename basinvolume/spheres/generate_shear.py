@@ -2,9 +2,28 @@ import numpy as np
 import argparse
 import os
 import shutil
+import traceback
+import multiprocessing as mp
 from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
 from basinvolume.utils import import_packing
+
+
+def worker_packing(kwargs, nparticles, start_iteration=0):
+    try:
+        gen_packing = HS_Generate_Packing(nparticles, start_iteration=start_iteration, **kwargs)
+        gen_packing.run()
+    except:
+        print('worker_packing worker: %s' % (traceback.format_exc()))
+
+
+def worker_jammed_packing(kwargs, packing_nrs=None):
+    try:
+        gen_jammed_packing = HS_Generate_Jammed_Packing(packing_nrs=packing_nrs, **kwargs)
+        return gen_jammed_packing.run()
+    except:
+        print('worker_jammed_packing worker: %s' % (traceback.format_exc()))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a sequence of packings with increasing shear.")
@@ -18,6 +37,8 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--boxdim", type=int, help="Box dimensions. Default: 2", default=2)
     parser.add_argument("--input_packings", type=str, help="Use precalculated loose packings from directory.")
     parser.add_argument("--input_jammed", type=str, help="Use precalculated jammed packings from directory.")
+    parser.add_argument("-j", "--njobs", type=int, help="Number of jobs to run in parallel. "
+                        "Default: 1 (serial)", default=1)
 
     # Arguments for generating packings
     parser.add_argument("-phs", "--density_hs", type=float, help="Target hard sphere packing fraction. "
@@ -29,8 +50,9 @@ if __name__ == "__main__":
                         default=0.1)
     parser.add_argument("--dpath", type=str, help="Path to xy(z)d file from which to import diameters. "
                         "Default: None", default=None)
-    parser.add_argument("--packing_moveall", action='store_true', help="Move all particles at each hard "
-                        "sphere fluid MC step. Default: False",default=False)
+    parser.add_argument("--packing_moveall", action='store_true', help="Move all "
+                        "particles at each hard sphere fluid MC step. Default: False",
+                        default=False)
     parser.add_argument("--packing_method", type=str, help="Protocol for generating packings. Default: "
                         "'quench'", default="quench")
 
@@ -43,6 +65,10 @@ if __name__ == "__main__":
                         "Options: 'cg', 'fire'. Default: 'fire'", default='fire')
 
     args = parser.parse_args()
+
+    # Set up calculation queue
+    if args.njobs > 1:
+        mypool = mp.Pool(args.njobs)
 
     # Calculate hard sphere density
     if args.density_hs is None:
@@ -70,17 +96,32 @@ if __name__ == "__main__":
             shutil.copytree(args.input_packings, "packings")
     elif args.input_jammed is None:
         print("\n--------- Generating loose packings ---------")
-        gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method,
-                                          bdim=args.boxdim, packing_frac=density_hs,
-                                          hs_radii=hs_radii, mu=args.rmean, sig=args.rsigma,
-                                          new_poly=False, max_iter=args.npackings,
-                                          use_cell_lists=args.cell,
-                                          single=not args.packing_moveall,
-                                          start_iteration=0, distance_method='lees-edwards',
-                                          pot_kwargs=pot_kwargs)
-        gen_packing.run()
+        packing_kwargs = dict(method=args.packing_method,
+                              bdim=args.boxdim, packing_frac=density_hs,
+                              hs_radii=hs_radii, mu=args.rmean, sig=args.rsigma,
+                              new_poly=False, max_iter=args.npackings,
+                              use_cell_lists=args.cell,
+                              single=not args.packing_moveall,
+                              distance_method='lees-edwards',
+                              pot_kwargs=pot_kwargs)
+        if args.njobs > 1:
+            packing_kwargs['max_iter'] = 1
+            worker_packing(packing_kwargs, args.nparticles)
+            packing_kwargs['precalc_config_file'] = os.path.join('packings', 'packing0.config')
+            results = []
+            for packing_nr in xrange(1, args.npackings):
+                results.append(mypool.apply_async(
+                    worker_packing, args=(packing_kwargs, args.nparticles, packing_nr)))
+            for result in results:
+                result.get()
+        else:
+            worker_packing(packing_kwargs, args.nparticles)
 
     # Generate jammed packings at no shear
+    jammed_kwargs = dict(target_packing_frac=args.density_ss,
+                         tol=args.min_tol, use_cell_lists=args.cell,
+                         show=False, opt_pot_str='hs_wca',
+                         minimizer=args.minimizer)
     if args.input_jammed is not None:
         if not os.path.isdir(args.input_jammed):
             raise IOError("The specified input packings-directory does not exist "
@@ -91,27 +132,36 @@ if __name__ == "__main__":
             shutil.copytree(args.input_jammed, "shear_0.0")
     else:
         print("\n--------- Generating jammed packings ---------")
-        gen_jammed_packing = HS_Generate_Jammed_Packing(target_packing_frac=args.density_ss,
-                                                        packings_dir="packings", outdir="shear_0.0",
-                                                        tol=args.min_tol, use_cell_lists=args.cell,
-                                                        show=False, opt_pot_str='hs_wca',
-                                                        minimizer=args.minimizer)
-        gen_jammed_packing.run()
+        unsheared_kwargs = dict(jammed_kwargs, packings_dir="packings", outdir="shear_0.0")
+        if args.njobs > 1:
+            results = []
+            for packing_nr in xrange(args.npackings):
+                results.append(mypool.apply_async(
+                    worker_jammed_packing, args=(unsheared_kwargs, [packing_nr])))
+            for result in results:
+                result.get()
+        else:
+            worker_jammed_packing(unsheared_kwargs)
 
     # Generate sheared packings
     unjammed_packings = []
     for shear in np.arange(0., args.final_shear - 0.5 * args.step, args.step) + args.step:
         pot_kwargs['shear'] = shear
+        sheared_kwargs = dict(jammed_kwargs,
+                              packings_dir="shear_{}".format(shear - args.step),
+                              outdir="shear_{}".format(shear), import_jammed=True,
+                              override_pot_kwargs=pot_kwargs)
         print("\n--------- Shear: {} ---------".format(shear))
-        gen_jammed_packing = HS_Generate_Jammed_Packing(target_packing_frac=args.density_ss,
-                                                        packings_dir="shear_{}".format(shear - args.step),
-                                                        import_jammed=True,
-                                                        outdir="shear_{}".format(shear),
-                                                        tol=args.min_tol, use_cell_lists=args.cell,
-                                                        show=False, opt_pot_str='hs_wca',
-                                                        override_pot_kwargs=pot_kwargs,
-                                                        minimizer=args.minimizer)
-        successes = gen_jammed_packing.run()
+        if args.njobs > 1:
+            results = []
+            for packing_nr in xrange(args.npackings):
+                results.append(mypool.apply_async(
+                    worker_jammed_packing, args=(sheared_kwargs, [packing_nr])))
+            successes = []
+            for result in results:
+                successes += result.get()
+        else:
+            successes = worker_jammed_packing(sheared_kwargs)
 
         # Check for failed (unjammed) packings and save them with packing number and current shear
         if not all(success for (_, success) in successes):
@@ -124,3 +174,6 @@ if __name__ == "__main__":
 
         for packing, shear in unjammed_packings:
             print("Packing {} unjammed at shear {}".format(packing, shear))
+
+    if args.njobs > 1:
+        mypool.terminate()
