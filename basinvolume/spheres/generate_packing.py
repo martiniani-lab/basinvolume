@@ -256,12 +256,7 @@ class HS_Generate_Packing(_Generate_Packing):
             and self.bdim == self.precalc_config['boxdim']
             and abs(self.mu - self.precalc_config['radii_mean']) < 1e-10
             and abs(self.sig - self.precalc_config['radii_stddev']) < 1e-10
-            and self.distance_method == self.precalc_config['distance_method']
-            and all(map(lambda key: key in self.pot_kwargs
-                        and self.pot_kwargs[key] == self.precalc_config['pot_kwargs'][key],
-                        self.precalc_config['pot_kwargs']))
-            and all(map(lambda key: key in self.precalc_config['pot_kwargs'],
-                        self.pot_kwargs))):
+            and self.distance_method == self.precalc_config['distance_method']):
             self.hsf_stepsize = self.precalc_config['hsf_stepsize']
             self.hsf_niter = self.precalc_config['hsf_niter']
         else:
