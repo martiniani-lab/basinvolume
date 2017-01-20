@@ -87,13 +87,15 @@ class _Generate_Jammed_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, target_packing_frac=0.65, packings_dir='packings', import_jammed=False,
-                 outdir='jammed_packings', override_pot_kwargs=None, minimizer="fire"):
+    def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
+                 import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
+                 minimizer="fire"):
         self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.packings_dir = packings_dir
+        self.packing_nrs = packing_nrs
         self.import_jammed = import_jammed
         self.override_pot_kwargs = override_pot_kwargs
         self.iteration = 0
@@ -191,19 +193,21 @@ class _Generate_Jammed_Packing(object):
         """run generate packings"""
         self._initialise()
         successes = []
+        # list of lists of strings. One string out of each list of strings must be in the filename
+        filter_stringss = []
+        if self.import_jammed:
+            filter_stringss.append(['xyzdr', 'xydr'])
+        else:
+            filter_stringss.append(['xyzd', 'xyd'])
+        if self.packing_nrs is not None:
+            filter_stringss.append([str(nr) + '.' for nr in self.packing_nrs])
         for fname in os.listdir(self.packings_dir):
-            if self.import_jammed:
-                if ('xyzdr' in fname) or ('xydr' in fname):
-                    print(fname)
-                    success = self.one_iteration(fname)
-                    successes.append((fname, success))
-                    print("")
-            else:
-                if ('xyzd' in fname) or ('xyd' in fname):
-                    print(fname)
-                    success = self.one_iteration(fname)
-                    successes.append((fname, success))
-                    print("")
+            if all([any([filter_str in fname for filter_str in filter_strings])
+                    for filter_strings in filter_stringss]):
+                print(fname)
+                success = self.one_iteration(fname)
+                successes.append((fname, success))
+                print("")
         return successes
         # self._histogram_eigenvalues()
 
@@ -221,15 +225,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     *tol: rms tolerance for the minimizer
     """
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
-                 import_jammed=False, outdir='jammed_packings', use_cell_lists=False,
-                 show=False, opt_pot_str='hs_wca', pot_kwargs=None, override_pot_kwargs=None,
-                 minimizer="fire"):
+                 packing_nrs=None, import_jammed=False, outdir='jammed_packings',
+                 use_cell_lists=False, show=False, opt_pot_str='hs_wca',
+                 pot_kwargs=None, override_pot_kwargs=None, minimizer="fire"):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
+                                                         packing_nrs=packing_nrs,
                                                          import_jammed=import_jammed,
                                                          outdir=outdir, minimizer=minimizer,
                                                          override_pot_kwargs=override_pot_kwargs)
-
         self.opt_pot_str = opt_pot_str
         self.pot_kwargs = pot_kwargs
         self.use_cell_lists = use_cell_lists
@@ -589,7 +593,9 @@ if __name__ == "__main__":
                         "default: False",default=False)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, "
                         "must be in cwd", default="packings")
-    parser.add_argument("--import_jammed", action='store_true', help="Take a jammed packing as input "
+    parser.add_argument("--packing-nrs", type=int, nargs='*', help="Restrict the "
+                        "packings to jam by a list of packing numbers.", default=None)
+    parser.add_argument("--import-jammed", action='store_true', help="Take a jammed packing as input "
                         "instead of an unjammed one.", default=False)
     parser.add_argument("-o", "--outdir", type=str, help="Directory to save jammed packings in. "
                         "Default: 'jammed_packings'", default='jammed_packings')
@@ -616,7 +622,9 @@ if __name__ == "__main__":
         raise NotImplementedError
 
     sim = HS_Generate_Jammed_Packing(target_packing_frac=args.density,
-                                     packings_dir=args.packingsdir, import_jammed=args.import_jammed,
+                                     packings_dir=args.packingsdir,
+                                     packing_nrs=args.packing_nrs,
+                                     import_jammed=args.import_jammed,
                                      outdir=args.outdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
                                      opt_pot_str=args.opt_pot, minimizer=args.minimizer,
