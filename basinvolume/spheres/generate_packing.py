@@ -149,9 +149,6 @@ class _Generate_Packing(object):
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
         f.write('[PACKING]\n')
-        for key, value in self.seeds.iteritems() :
-            f.write('{}: {}\n'.format(key,value))
-        f.write('method: {}\n'.format(self.method))
         f.write('nparticles: {}\n'.format(self.nparticles))
         f.write('packing_fraction: {:.16f}\n'.format(self.packing_frac))
         f.write('boxdim: {}\n'.format(self.bdim))
@@ -162,8 +159,6 @@ class _Generate_Packing(object):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        f.write('distance_method: {}\n'.format(self.distance_method))
-        f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         #print software version
         f.write('[CODEVERSION]\n')
         f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
