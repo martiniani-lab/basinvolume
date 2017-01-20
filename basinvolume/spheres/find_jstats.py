@@ -48,7 +48,7 @@ class SoftPackingData(object):
 class GeneratePackingFindJ(HS_Generate_Packing):
     def __init__(self, nparticles, workspace=None, method='quench', bdim=3, boxv=None,
                  ss_packing_frac=0.86, sca=0.1212238211627763,
-                 hs_radii=None, mu=1, sig=0.05, new_poly=False, hsf_niter=1e6, hsf_stepsize=1e-3,
+                 hs_radii=None, mu=1, sig=0.05, new_poly=False, hsf_stepsize=1e-3,
                  max_iter=10, tol=1e-9, use_cell_lists=True, single=True, seeds=None,
                  opt_pot_str='hs_wca', start_iteration=0):
         if workspace is None:
@@ -65,7 +65,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         print self.hs_packing_frac, self.ss_packing_frac
         super(GeneratePackingFindJ, self).__init__(nparticles, method=method, bdim=bdim, boxv=boxv,
                                                    packing_frac=self.hs_packing_frac, hs_radii=hs_radii, mu=mu,
-                                                   sig=sig, new_poly=new_poly, hsf_niter=hsf_niter,
+                                                   sig=sig, new_poly=new_poly,
                                                    hsf_stepsize=hsf_stepsize, max_iter=max_iter,
                                                    use_cell_lists=use_cell_lists, single=single,
                                                    seeds=seeds, start_iteration=start_iteration)
@@ -259,7 +259,7 @@ def run_hsgp(hsgp):
 class FindJ(object):
     def __init__(self, nparticles, workspace=None, method='quench', bdim=3, boxv=None,
                  ss_packing_frac=[0.84], sca=0.1212238211627763, hs_radii=None, mu=1, sig=0.05,
-                 new_poly=False, hsf_niter=1e6, hsf_stepsize=1e-3, max_iter=10, tol=1e-9,
+                 new_poly=False, hsf_stepsize=1e-3, max_iter=10, tol=1e-9,
                  use_cell_lists=True, single=True, seeds=None, opt_pot_str='hs_wca',
                  start_iteration=0, ncores=2):
 
@@ -272,7 +272,7 @@ class FindJ(object):
             hsgp_ = GeneratePackingFindJ(nparticles, workspace=workspace, method=method,
                                          bdim=bdim, boxv=boxv, ss_packing_frac=phi,
                                          sca=sca, hs_radii=hs_radii, mu=mu,
-                                         sig=sig, new_poly=new_poly, hsf_niter=hsf_niter,
+                                         sig=sig, new_poly=new_poly,
                                          hsf_stepsize=hsf_stepsize, max_iter=max_iter, tol=tol,
                                          use_cell_lists=use_cell_lists, single=single,
                                          seeds=seeds, opt_pot_str=opt_pot_str, start_iteration=start_iteration)
@@ -295,7 +295,6 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--sca", type=float, help="1+a = r_ss/r_hs", default=0.1212238211627763)
     parser.add_argument("-u","--rmean", type=float, help="mean particle radius",default=1.0)
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.1)
-    parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-3)
     parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
@@ -324,8 +323,8 @@ if __name__ == "__main__":
     density = np.logspace(np.log10(args.phimin), np.log10(args.phimax), args.nphi)
 
     sim = FindJ(args.nparticles, method=args.method, bdim=args.boxdim, ss_packing_frac=density,
-                sca=args.sca, hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma, new_poly=args.newpoly,
-                hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
+                sca=args.sca, hs_radii=hs_radii, mu = args.rmean, sig = args.rsigma,
+                new_poly=args.newpoly, hsf_stepsize = args.hsfstep, max_iter =args.npackings,
                 use_cell_lists=not args.nocell, single=single, ncores=args.ncores, tol=args.tol,
                 start_iteration=args.start_iter)
 

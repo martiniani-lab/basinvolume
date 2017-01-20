@@ -25,10 +25,10 @@ def read_packing_config(configpath, frozen=False):
     parameters['method'] = configf.get('PACKING', 'method')
     parameters['nparticles'] = configf.getint('PACKING','nparticles')
     parameters['packing_frac'] = configf.getfloat('PACKING','packing_fraction')
-    parameters['bdim'] = configf.getint('PACKING','boxdim')
-    assert parameters['bdim'] == 2 or parameters['bdim'] == 3, \
-        "bdim={} not implemented".format(parameters['bdim'])
-    parameters['ndim'] = parameters['nparticles'] * parameters['bdim']
+    parameters['boxdim'] = configf.getint('PACKING','boxdim')
+    assert parameters['boxdim'] == 2 or parameters['boxdim'] == 3, \
+        "boxdim={} not implemented".format(parameters['boxdim'])
+    parameters['ndim'] = parameters['nparticles'] * parameters['boxdim']
     parameters['radii_mean'] = configf.getfloat('PACKING', 'radii_mean')
     parameters['radii_stddev'] = configf.getfloat('PACKING', 'radii_stdev')
     parameters['max_iter'] = configf.getint('PACKING','max_iter')
@@ -46,7 +46,7 @@ def import_packing_config(obj, configpath, frozen=False):
     parameters = read_packing_config(configpath, frozen)
     obj.nparticles = parameters['nparticles']
     obj.packing_frac = parameters['packing_frac']
-    obj.bdim = parameters['bdim']
+    obj.bdim = parameters['boxdim']
     obj.ndim = parameters['ndim']
     obj.hs_mean = parameters['radii_mean']
     obj.hs_stddev = parameters['radii_stddev']
@@ -214,7 +214,7 @@ class HS_Generate_Packing(_Generate_Packing):
         set seed to something other than none to remove randomness between instances of the class
     """
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4,
-                 hs_radii=None, mu=1, sig = 0.1, new_poly=False, hsf_niter=1e6,
+                 hs_radii=None, mu=1, sig = 0.1, new_poly=False,
                  hsf_stepsize=1e-3, max_iter=10, use_cell_lists=False, single=False,
                  seeds=None, start_iteration=0, distance_method='periodic', pot_kwargs={}):
         super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv=boxv,
@@ -240,7 +240,6 @@ class HS_Generate_Packing(_Generate_Packing):
         self.sca = 0. #this must be 0 for hard spheres
         self.mu = mu
         self.sig = sig * mu
-        self.hsf_niter = hsf_niter #number of iteration for each hs fluid configuration
         self.hsf_stepsize = hsf_stepsize
         self.hs_radii = hs_radii
         self.distance_method = distance_method
@@ -748,7 +747,6 @@ if __name__ == "__main__":
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.5)
     parser.add_argument("-u","--rmean", type=float, help="mean particle radius",default=1.0)
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
-    parser.add_argument("-m","--hsfniter", type=int, help="number of hard sphere fluid MC steps between 2 samples",default=1e6)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-3)
     parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
@@ -779,7 +777,7 @@ if __name__ == "__main__":
     sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim,
                               packing_frac=args.density, hs_radii=hs_radii,
                               mu=args.rmean, sig=args.rsigma, new_poly=args.newpoly,
-                              hsf_niter=args.hsfniter, hsf_stepsize = args.hsfstep,
+                              hsf_stepsize = args.hsfstep,
                               max_iter=args.npackings, use_cell_lists=not args.nocell,
                               single=single, start_iteration=args.start_iter,
                               distance_method=args.distance_method, pot_kwargs=pot_kwargs)

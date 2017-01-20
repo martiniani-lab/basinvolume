@@ -27,10 +27,6 @@ if __name__ == "__main__":
                         default=1.0)
     parser.add_argument("--rsigma", type=float, help="Percent standard deviation. Default: 0.1",
                         default=0.1)
-    parser.add_argument("--hsfniter", type=int, help="Number of hard sphere fluid MC steps "
-                        "between 2 samples. Default: 1e6", default=1e6)
-    parser.add_argument("--hsfstep", type=float, help="Stepsize for hard sphere fluid MC "
-                        "simulation. Default: 1e-3", default=1e-3)
     parser.add_argument("--dpath", type=str, help="Path to xy(z)d file from which to import diameters. "
                         "Default: None", default=None)
     parser.add_argument("--packing_moveall", action='store_true', help="Move all particles at each hard "
@@ -77,9 +73,9 @@ if __name__ == "__main__":
         gen_packing = HS_Generate_Packing(args.nparticles, method=args.packing_method,
                                           bdim=args.boxdim, packing_frac=density_hs,
                                           hs_radii=hs_radii, mu=args.rmean, sig=args.rsigma,
-                                          new_poly=False, hsf_niter=args.hsfniter,
-                                          hsf_stepsize=args.hsfstep, max_iter=args.npackings,
-                                          use_cell_lists=args.cell, single=not args.packing_moveall,
+                                          new_poly=False, max_iter=args.npackings,
+                                          use_cell_lists=args.cell,
+                                          single=not args.packing_moveall,
                                           start_iteration=0, distance_method='lees-edwards',
                                           pot_kwargs=pot_kwargs)
         gen_packing.run()

@@ -13,16 +13,13 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         self.bdim = 3
         self.packing_frac = 0.4
         self.sig = 0.2
-        self.hsf_niter = 1e5
         self.hs_radii = None #np.random.normal(1,self.sig,self.nparticles)
         self.gp_nocell = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                             packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                             hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                             packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                              max_iter = 10, use_cell_lists=False, seeds=self.seeds)
 
         self.gp_cell = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                           packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                           hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                           packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                            max_iter = 10, use_cell_lists=True, seeds=self.seeds)
 
     def test_seed_initialise_nocell(self):
@@ -31,14 +28,12 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         #print "test_seed_initialise_nocell"
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                         hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                          max_iter = 1, use_cell_lists=False, seeds=self.seeds)
         gp._initialise()
         coords_nocell1 = gp.coords
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                         hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                          max_iter = 1, use_cell_lists=False, seeds=self.seeds)
         gp._initialise()
         coords_nocell2 = gp.coords
@@ -50,14 +45,12 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         #print "test_seed_initialise_cell"
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                         hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                          max_iter = 1, use_cell_lists=True, seeds=self.seeds)
         gp._initialise()
         coords_cell1 = gp.coords
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                         hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                          max_iter = 1, use_cell_lists=True, seeds=self.seeds)
         gp._initialise()
         coords_cell2 = gp.coords
@@ -78,15 +71,13 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         #print "test_seed_generate_packing_nocell"
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                         hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                          max_iter = 1, use_cell_lists=False, seeds=self.seeds)
         gp._initialise()
         gp._generate_packing_coords()
         coords_nocell1 = gp.coords
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                         hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                          max_iter = 1, use_cell_lists=False, seeds=self.seeds)
         gp._initialise()
         gp._generate_packing_coords()
@@ -99,15 +90,13 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         """
         #print "test_seed_generate_packing_cell"
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                         hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                          max_iter = 1, use_cell_lists=True, seeds=self.seeds)
         gp._initialise()
         gp._generate_packing_coords()
         coords_nocell1 = gp.coords
         gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig,
-                                         hsf_niter=self.hsf_niter, hsf_stepsize = 1e-3,
+                                         packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
                                          max_iter = 1, use_cell_lists=True, seeds=self.seeds)
         gp._initialise()
         gp._generate_packing_coords()
