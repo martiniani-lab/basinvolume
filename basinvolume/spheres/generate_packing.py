@@ -40,6 +40,8 @@ def read_packing_config(configpath, frozen=False):
         parameters['vcavity'] = np.prod(parameters['boxv'])
     parameters['distance_method'] = configf.get('PACKING', 'distance_method')
     parameters['pot_kwargs'] = ast.literal_eval(configf.get('PACKING', 'pot_kwargs'))
+    parameters['hsf_niter'] = configf.getint('PACKING','hsf_niter')
+    parameters['hsf_stepsize'] = configf.getfloat('PACKING','hsf_stepsize')
     return parameters
 
 def import_packing_config(obj, configpath, frozen=False):
@@ -211,7 +213,8 @@ class HS_Generate_Packing(_Generate_Packing):
     def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4,
                  hs_radii=None, mu=1, sig = 0.1, new_poly=False,
                  hsf_stepsize=1e-3, max_iter=10, use_cell_lists=False, single=False,
-                 seeds=None, start_iteration=0, distance_method='periodic', pot_kwargs={}):
+                 seeds=None, start_iteration=0, distance_method='periodic', pot_kwargs={},
+                 precalc_config_file=None):
         super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv=boxv,
                                                  packing_frac=packing_frac, max_iter=max_iter,
                                                  use_cell_lists=use_cell_lists, start_iteration=start_iteration)
@@ -239,6 +242,31 @@ class HS_Generate_Packing(_Generate_Packing):
         self.hs_radii = hs_radii
         self.distance_method = distance_method
         self.pot_kwargs = pot_kwargs
+        if precalc_config_file is not None:
+            self._import_precalc_config(precalc_config_file)
+        else:
+            self.precalc_config = None
+
+    def _import_precalc_config(self, precalc_config_file):
+        self.precalc_config = read_packing_config(precalc_config_file)
+        # Check if all relevant settings are the same
+        if (self.method == self.precalc_config['method']
+            and self.nparticles == self.precalc_config['nparticles']
+            and abs(self.packing_frac - self.precalc_config['packing_frac']) < 1e-10
+            and self.bdim == self.precalc_config['boxdim']
+            and abs(self.mu - self.precalc_config['radii_mean']) < 1e-10
+            and abs(self.sig - self.precalc_config['radii_stddev']) < 1e-10
+            and self.distance_method == self.precalc_config['distance_method']
+            and all(map(lambda key: key in self.pot_kwargs
+                        and self.pot_kwargs[key] == self.precalc_config['pot_kwargs'][key],
+                        self.precalc_config['pot_kwargs']))
+            and all(map(lambda key: key in self.precalc_config['pot_kwargs'],
+                        self.pot_kwargs))):
+            self.hsf_stepsize = self.precalc_config['hsf_stepsize']
+            self.hsf_niter = self.precalc_config['hsf_niter']
+        else:
+            self.precalc_config = None
+
 
     def _initialise(self):
         if self.initialised is False:
@@ -370,10 +398,17 @@ class HS_Generate_Packing(_Generate_Packing):
     def _generate_packing_coords_quench(self):
         """do an MCMC walk using the quenched coordinates. Here we do not satisfy detailed balance and we set the number
         of steps over which the stepsize is adjusted equal to the total number of steps. The value of the temperature should
-        not matter as these are hard spehres and the difference in energy between valid configurations is 0. We set it high
+        not matter as these are hard spheres and the difference in energy between valid configurations is 0. We set it high
         to be on the safe side."""
         if (self.iteration == self.start_iteration):
-            temperature = 1.0
+            self._initialise_mc_runner_quench()
+        self.mcrunner.set_config(self.coords, self.energy)
+        self.mcrunner.run()
+        self.coords, self.energy = self.mcrunner.get_config()
+
+    def _initialise_mc_runner_quench(self):
+        temperature = 1.0
+        if self.precalc_config is None:
             dif_mcrunner = HS_MCrunnerOptDiffusion(self.null_potential, self.coords, temperature,
                                                    self.hsf_stepsize, 1e9, self.hs_radii, self.boxv,
                                                    adjustf = 0.9, acceptance=0.15, adjustf_niter = 1e6,
@@ -384,17 +419,14 @@ class HS_Generate_Packing(_Generate_Packing):
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
             hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
             self.hsf_niter = max(hsf_niter, 2*self.nparticles)
-            print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
             self.coords, self.energy = dif_mcrunner.get_config()
-            self.mcrunner = HS_MCrunner(self.null_potential, self.coords, temperature,
-                                        self.hsf_stepsize, self.hsf_niter, self.hs_radii,
-                                        self.boxv, adjustf = 0.9, acceptance=0.15,
-                                        adjustf_niter = 0, single=self.single,
-                                        seeds = self.seeds, use_cell=self.use_cell_lists,
-                                        distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
-        self.mcrunner.set_config(self.coords, self.energy)
-        self.mcrunner.run()
-        self.coords, self.energy = self.mcrunner.get_config()
+        print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
+        self.mcrunner = HS_MCrunner(self.null_potential, self.coords, temperature,
+                                    self.hsf_stepsize, self.hsf_niter, self.hs_radii,
+                                    self.boxv, adjustf = 0.9, acceptance=0.15,
+                                    adjustf_niter = 0, single=self.single,
+                                    seeds = self.seeds, use_cell=self.use_cell_lists,
+                                    distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
 
     def _initialise_coords_quench(self):
         """
@@ -415,6 +447,7 @@ class HS_Generate_Packing(_Generate_Packing):
             #res = lbfgs_cpp(coords,pot,nsteps=10000)
             #assert(res.success is True) #checks that a minimum configuration has been found
             self.coords = np.array(res.coords)
+            self.energy = res.energy
 #            print "generated new start coords "
 #            sort radii in cavity
 #            self._sort_radii_in_cavities()
@@ -724,6 +757,8 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write('\n')
         f.write('distance_method: {}\n'.format(self.distance_method))
         f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
+        f.write('hsf_niter: {}\n'.format(self.hsf_niter))
+        f.write('hsf_stepsize: {}\n'.format(self.hsf_stepsize))
         #print software version
         f.write('[CODEVERSION]\n')
         f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
@@ -752,6 +787,8 @@ if __name__ == "__main__":
     parser.add_argument("--distance-method", type=str, help="Define distance measurement method, "
                         "e.g. 'periodic' or 'lees-edwards'. Default: 'periodic'", default='periodic')
     parser.add_argument("--shear", type=float, help="Amount of shear for Lees-Edwards boundary conditions.", default=0.)
+    parser.add_argument("--precalc_config", type=str, help="Take a precalculated hsf_niter and "
+                        "hsf_stepsize from this config-file.", default=None)
     args = parser.parse_args()
     print args
     single = not args.moveall
@@ -775,5 +812,6 @@ if __name__ == "__main__":
                               hsf_stepsize = args.hsfstep,
                               max_iter=args.npackings, use_cell_lists=not args.nocell,
                               single=single, start_iteration=args.start_iter,
-                              distance_method=args.distance_method, pot_kwargs=pot_kwargs)
+                              distance_method=args.distance_method, pot_kwargs=pot_kwargs,
+                              precalc_config_file=args.precalc_config)
     sim.run()
