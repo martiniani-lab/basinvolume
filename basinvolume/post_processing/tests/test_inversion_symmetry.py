@@ -1,6 +1,6 @@
 import numpy as np
 import shutil
-from basinvolume.post_processing.compute_inversion_symmetry import InversionSymmetry
+from basinvolume.post_processing.structural_properties import InversionSymmetry
 from basinvolume.spheres import HS_Generate_Packing
 from basinvolume.spheres import HS_Generate_Jammed_Packing
 

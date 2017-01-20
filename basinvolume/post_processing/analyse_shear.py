@@ -4,6 +4,7 @@ import os
 import sys
 import shutil
 import pandas as pd
+import multiprocessing as mp
 from basinvolume.post_processing.structural_properties \
     import BondOrientationalOrder,  PressureTensor, Neighbours, InversionSymmetry, \
            Displacement, worker_boo, worker_disp, worker_invsym, worker_neighbours, \
@@ -117,7 +118,7 @@ class AnalyseShear:
         if self.calc_neighbours_dyn:
             neighbours_dyn_kwargs = dict(kwargs, cutoff=1., analysis_fname="neighbours_dyn")
             if shear == self.start:
-                structural_props.append((worker_neighbours, neighbours_dyn_kwargs))
+                worker_neighbours(workspace_dir, neighbours_dyn_kwargs)
             else:
                 for subshear in np.arange(shear - self.step, shear - 0.5 * self.substep, self.substep):
                     restrict_prefix = os.path.join("shear_{}".format(subshear), "explore_bv_")
