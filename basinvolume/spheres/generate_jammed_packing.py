@@ -592,7 +592,7 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, "
                         "default: False",default=False)
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, "
-                        "must be in cwd", default="packings")
+                        "must be in cwd", default='packings')
     parser.add_argument("--packing-nrs", type=int, nargs='*', help="Restrict the "
                         "packings to jam by a list of packing numbers.", default=None)
     parser.add_argument("--import-jammed", action='store_true', help="Take a jammed packing as input "

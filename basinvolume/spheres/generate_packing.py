@@ -82,10 +82,11 @@ class _Generate_Packing(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, nparticles, bdim=3, boxv=None, packing_frac=0.4, max_iter=1,
-                 use_cell_lists=False, start_iteration=0):
+    def __init__(self, nparticles, output_dir='packings', bdim=3, boxv=None,
+                 packing_frac=0.4, max_iter=1, use_cell_lists=False, start_iteration=0):
         assert bdim==2 or bdim==3, "bdim={} not implemented".format(bdim)
         self.nparticles = nparticles
+        self.output_dir = output_dir
         self.bdim = bdim
         self.ndof = self.nparticles * self.bdim
         if boxv is None:
@@ -94,7 +95,7 @@ class _Generate_Packing(object):
             assert(len(boxv) == self.bdim)
             self.boxv = np.array(boxv,dtype='d')
         self.packing_frac = packing_frac
-        self.base_directory = os.path.join(os.getcwd(),'packings')
+        self.base_directory = os.path.join(os.getcwd(), self.output_dir)
         self.use_cell_lists = use_cell_lists
         self.start_iteration = start_iteration
         self.iteration = start_iteration
@@ -210,13 +211,14 @@ class HS_Generate_Packing(_Generate_Packing):
     seeds: array
         set seed to something other than none to remove randomness between instances of the class
     """
-    def __init__(self, nparticles, method='quench', bdim=3, boxv=None, packing_frac=0.4,
+    def __init__(self, nparticles, output_dir='packings', method='quench', bdim=3, boxv=None, packing_frac=0.4,
                  hs_radii=None, mu=1, sig = 0.1, new_poly=False,
                  hsf_stepsize=1e-3, max_iter=10, use_cell_lists=False, single=False,
                  seeds=None, start_iteration=0, distance_method='periodic', pot_kwargs={},
                  precalc_config_file=None):
-        super(HS_Generate_Packing,self).__init__(nparticles, bdim=bdim, boxv=boxv,
-                                                 packing_frac=packing_frac, max_iter=max_iter,
+        super(HS_Generate_Packing,self).__init__(nparticles, output_dir=output_dir, bdim=bdim,
+                                                 boxv=boxv, packing_frac=packing_frac,
+                                                 max_iter=max_iter,
                                                  use_cell_lists=use_cell_lists, start_iteration=start_iteration)
         self.method = method
         self.new_poly = new_poly
@@ -767,6 +769,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("nparticles", type=int, help="number of particles")
+    parser.add_argument("-o", "--outdir", type=str, help="Directory to save packings in. "
+                        "Default: 'packings'", default='packings')
     parser.add_argument("-n","--npackings", type=int, help="number of packings to produce",default=1)
     parser.add_argument("-d","--boxdim", type=int, help="box dimensions",default=3)
     parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.5)
@@ -801,8 +805,8 @@ if __name__ == "__main__":
             dpath = os.path.abspath(dpath)
         hs_radii = import_packing(dpath, False, args.boxdim)['hs_radii']
 
-    sim = HS_Generate_Packing(args.nparticles, method=args.method, bdim=args.boxdim,
-                              packing_frac=args.density, hs_radii=hs_radii,
+    sim = HS_Generate_Packing(args.nparticles, output_dir=outdir, method=args.method,
+                              bdim=args.boxdim, packing_frac=args.density, hs_radii=hs_radii,
                               mu=args.rmean, sig=args.rsigma, new_poly=args.newpoly,
                               hsf_stepsize = args.hsfstep,
                               max_iter=args.npackings, use_cell_lists=not args.nocell,
