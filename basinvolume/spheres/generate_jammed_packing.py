@@ -5,7 +5,8 @@ import os
 from pele.distance import put_in_box
 from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
-from pele.optimize._quench import modifiedfire_cpp, cg
+from pele.optimize._quench import modifiedfire_cpp
+from PyCG_DESCENT import CGDescent
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
 from basinvolume.utils import volume_nball, in_hull, import_packing, find_neighbours, calc_distance
 from basinvolume.spheres.generate_packing import read_packing_config
@@ -86,7 +87,7 @@ class _Generate_Jammed_Packing(object):
         self.iteration = 0
         self.sca = -1
         self.eps = 1.
-        self.minimizer=minimizer
+        self.minimizer = minimizer
 
     def _import_single_packing_config_file(self, fname):
         dname = os.path.splitext(fname)[0]
@@ -99,11 +100,13 @@ class _Generate_Jammed_Packing(object):
             self.ndim = imp_packing['ndim']
             self.boxv = imp_packing['boxv'].copy()
             self.vcavity = imp_packing['vcavity']
-            self.distance_method = parameters['distance_method']
+            self.distance_method = imp_packing['distance_method']
             if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
-                self.pot_kwargs.update(parameters['pot_kwargs'])
+                self.pot_kwargs.update(imp_packing['pot_kwargs'])
             else:
-                self.pot_kwargs = parameters['pot_kwargs'].copy()
+                self.pot_kwargs = imp_packing['pot_kwargs'].copy()
+            if self.override_pot_kwargs is not None:
+                self.pot_kwargs.update(self.override_pot_kwargs)
             self.sca = imp_packing['sca']
             self.packing_frac = self.target_packing_frac / (1 + self.sca)**2
         else:
@@ -132,6 +135,8 @@ class _Generate_Jammed_Packing(object):
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:
             self.pot_kwargs = imp_packing['pot_kwargs'].copy()
+        if self.override_pot_kwargs is not None:
+            self.pot_kwargs.update(self.override_pot_kwargs)
 
     @abc.abstractmethod
     def _import_packing_configuration(self, fname):
@@ -240,7 +245,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
                  use_cell_lists=False, show=False, opt_pot_str='hs_wca',
-                 pot_kwargs=None, override_pot_kwargs=None, minimizer="fire"):
+                 override_pot_kwargs=None, minimizer="fire"):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          packing_nrs=packing_nrs,
@@ -248,7 +253,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                                                          outdir=outdir, minimizer=minimizer,
                                                          override_pot_kwargs=override_pot_kwargs)
         self.opt_pot_str = opt_pot_str
-        self.pot_kwargs = pot_kwargs
         self.use_cell_lists = use_cell_lists
         self.tol = tol
         ##constants#
@@ -413,9 +417,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             fire_maxstep = np.amin(self.hs_radii)*self.sca
             res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
         elif self.minimizer == "cg":
-            # Not working
-            raise NotImplementedError
-            res = cg(self.coords, self.potential, iprint=iprint, tol=tol, nsteps=1e6)
+            optimizer = CGDescent(self.coords, self.potential, tol=tol,
+                                  nsteps=1e6, print_level=iprint)
+            res = optimizer.run()
         else:
             raise NotImplementedError
 
@@ -430,8 +434,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if self.minimizer == "fire":
             res2 = modifiedfire_cpp(self.coords, self.potential,
                                     maxstep=fire_maxstep, nsteps=1e6, tol=tol)
-        elif self.minimzer == "cg":
-            res2 = cg(self.coords, self.potential, iprint=iprint, tol=tol, nsteps=1e6)
+        elif self.minimizer == "cg":
+            optimizer = CGDescent(self.coords, self.potential, tol=tol,
+                                  nsteps=1e6, print_level=iprint)
+            res2 = optimizer.run()
         else:
             raise NotImplementedError
         if res2.nfev > 1:

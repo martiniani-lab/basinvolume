@@ -99,7 +99,7 @@ if __name__ == "__main__":
             raise IOError("The specified input packings-directory does not exist "
                           "({})!".format(args.input_packings))
         if os.path.isdir("packings"):
-            print("The packings directory already exists!")
+            print("The packings directory already exists.")
         else:
             shutil.copytree(args.input_packings, "packings")
     elif args.input_jammed is None:
