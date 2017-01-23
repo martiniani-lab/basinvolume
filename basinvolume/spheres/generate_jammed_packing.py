@@ -5,7 +5,7 @@ import os
 from pele.distance import put_in_box
 from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
-from pele.optimize._quench import modifiedfire_cpp
+from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
 from PyCG_DESCENT import CGDescent
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
 from basinvolume.utils import volume_nball, in_hull, import_packing, find_neighbours, calc_distance
@@ -415,11 +415,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         if self.minimizer == "fire":
             fire_maxstep = np.amin(self.hs_radii)*self.sca
-            res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
+            res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
+                                   nsteps=1e6, tol=tol, iprint=iprint)
         elif self.minimizer == "cg":
             optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                   nsteps=1e6, print_level=iprint)
             res = optimizer.run()
+        elif self.minimizer == "lbfgs":
+            res = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
+                            iprint=iprint)
         else:
             raise NotImplementedError
 
@@ -438,6 +442,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                   nsteps=1e6, print_level=iprint)
             res2 = optimizer.run()
+        elif self.minimizer == "lbfgs":
+            res2 = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
+                            iprint=iprint)
         else:
             raise NotImplementedError
         if res2.nfev > 1:
@@ -620,8 +627,9 @@ if __name__ == "__main__":
                         "Default: 'jammed_packings'", default='jammed_packings')
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
     parser.add_argument("-t", "--tol", type=float, help="rms tolerance of the minimizer", default=1e-9)
-    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm used for quenching. "
-                        "Options: 'cg', 'fire'. Default: 'fire'", default='fire')
+    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
+                        "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
+                        "Default: 'fire'", default='fire')
     # potential arguments
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
