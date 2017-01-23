@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 import os
-import traceback
 import argparse
 import multiprocessing as mp
 from bond_orientational_order import worker_boo

@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
+import traceback
 import ConfigParser
 from basinvolume.utils import trymakedir
 from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config

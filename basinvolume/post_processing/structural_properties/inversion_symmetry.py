@@ -2,6 +2,7 @@ from __future__ import division
 import ConfigParser
 import os
 import ast
+import traceback
 import numpy as np
 import argparse
 from pele.potentials import HS_WCA

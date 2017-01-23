@@ -2,6 +2,7 @@ from __future__ import division
 import copy
 import numpy as np
 import os
+import traceback
 import ConfigParser
 from scipy.special import sph_harm
 from basinvolume.utils import trymakedir, find_neighbours
