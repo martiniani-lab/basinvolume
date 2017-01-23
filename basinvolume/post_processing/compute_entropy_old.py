@@ -64,7 +64,7 @@ class ComputeEntropyCommon(object):
     Contains common functionality of entropy computation which is
     independent on config file layout.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error, 
+    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, max_relative_GL_error,
                  kmax_threshold, nr_volume_points, force_run, numerical_moments):
         # Begin: store input parameters.
         self.packings_dir = packings_dir
@@ -226,10 +226,10 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
     Used for numerical packings wich have one and only one config file
     for all basins.
     """
-    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation, 
+    def __init__(self, packings_dir, plot_ts_integrand_data, skip_volume_computation,
                  max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, numerical_moments):
-        super(ComputeEntropyNumerical, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation, 
-                                                      max_relative_GL_error, kmax_threshold, nr_volume_points, force_run, 
+        super(ComputeEntropyNumerical, self).__init__(packings_dir, plot_ts_integrand_data, skip_volume_computation,
+                                                      max_relative_GL_error, kmax_threshold, nr_volume_points, force_run,
                                                       numerical_moments)
     def get_packing_configpath(self, volume_file):
         return os.path.join(self.packings_dir, "packings/packing0.config")
@@ -289,7 +289,7 @@ class ComputeEntropy(object):
     ("packings_dir").
     """
     def __init__(self, packings_dir, plot_ts_integrand_data=False,
-                 skip_volume_computation=False, max_relative_GL_error=0.2, 
+                 skip_volume_computation=False, max_relative_GL_error=0.2,
                  kmax_threshold=1000, nr_volume_points=-1, force_run=False,
                  numerical_moments=False):
         self.experimental = "exp" in packings_dir
@@ -313,7 +313,7 @@ def worker(packings_dir, kwargs):
 
 def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
-        
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
     parser.add_argument("-d", "--packings_dir", type=str, help="top-level dir containing the packings, e.g. n32_phi88_2D")
@@ -327,12 +327,12 @@ if __name__ == "__main__":
     parser.add_argument("--numerical_moments", action="store_true", help="compute moments of radii distribution numerically from the sample of radii instead of analytically from the parameters of the distribution", default=False)
     parser.add_argument("-j","--ncores", type=int, help="number of packings to produce",default=4)
     args = parser.parse_args()
-    
+
     ncores = args.ncores
     kwargs = dict(plot_ts_integrand_data=False, skip_volume_computation=args.plot_only,
                   max_relative_GL_error=args.max_relative_GL_error, kmax_threshold=args.kmax_threshold,
                   nr_volume_points=args.nr_vpoints, force_run=args.force, numerical_moments=args.numerical_moments)
-    
+
     if not args.all:
         packings_dir = os.path.abspath(args.packings_dir)
         worker(packings_dir, kwargs)
@@ -348,7 +348,6 @@ if __name__ == "__main__":
             mypool.terminate()
             mypool.join()
             raise
-                    
+
         mypool.close()
         mypool.join()
-

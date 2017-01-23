@@ -45,7 +45,7 @@ class AnalyseShear:
             self.calc_parameters(shear, shear_dir)
             self.collect_files(shear, shear_dir)
         if self.njobs > 1:
-            self.mypool.terminate()
+            self.mypool.close()
             self.mypool.join()
         self.collect_parameters()
 

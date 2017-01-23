@@ -27,17 +27,23 @@ def worker_jammed_packing(kwargs, packing_nrs=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate a sequence of packings with increasing shear.")
+    parser = argparse.ArgumentParser(description="Generate a sequence of packings "
+                                     "with increasing shear.")
     # General arguments
-    parser.add_argument("-s", "--step", type=float, help="Size of shearing steps. Default: 0.001", default=0.001)
+    parser.add_argument("-s", "--step", type=float, help="Size of shearing steps. "
+                        "Default: 0.001", default=0.001)
     parser.add_argument("-f", "--final_shear", type=float, help="Final shear. Default: 1.0", default=1.)
     parser.add_argument("--cell", action='store_true', help="Use cell lists. Not yet supported! "
                         "Default: False", default=False)
-    parser.add_argument("--npackings", type=int, help="Number of packings to produce. Default: 1", default=1)
-    parser.add_argument("-n", "--nparticles", type=int, help="Number of particles. Default: 32", default=32)
+    parser.add_argument("--npackings", type=int, help="Number of packings to produce. "
+                        "Default: 1", default=1)
+    parser.add_argument("-n", "--nparticles", type=int, help="Number of particles. "
+                        "Default: 32", default=32)
     parser.add_argument("-d", "--boxdim", type=int, help="Box dimensions. Default: 2", default=2)
-    parser.add_argument("--input_packings", type=str, help="Use precalculated loose packings from directory.")
-    parser.add_argument("--input_jammed", type=str, help="Use precalculated jammed packings from directory.")
+    parser.add_argument("--input_packings", type=str, help="Use precalculated "
+                        "loose packings from directory.")
+    parser.add_argument("--input_jammed", type=str, help="Use precalculated jammed "
+                        "packings from directory.")
     parser.add_argument("-j", "--njobs", type=int, help="Number of jobs to run in parallel. "
                         "Default: 1 (serial)", default=1)
 
@@ -62,12 +68,13 @@ if __name__ == "__main__":
                         "Default: 0.85", default=0.85)
     parser.add_argument("--min_tol", type=float, help="RMS tolerance of the minimizer. Default: 1e-9",
                         default=1e-9)
-    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm used for quenching. "
-                        "Options: 'cg', 'fire'. Default: 'fire'", default='fire')
+    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
+                        "used for quenching. Options: 'cg', 'fire'. Default: 'fire'",
+                        default='fire')
 
     args = parser.parse_args()
 
-    # Set up calculation queue
+    # Set up thread pool
     if args.njobs > 1:
         mypool = mp.Pool(args.njobs)
 
@@ -177,4 +184,5 @@ if __name__ == "__main__":
             print("Packing {} unjammed at shear {}".format(packing, shear))
 
     if args.njobs > 1:
-        mypool.terminate()
+        mypool.close()
+        mypool.join()

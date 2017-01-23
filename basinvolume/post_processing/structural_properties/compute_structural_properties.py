@@ -113,6 +113,9 @@ if __name__ == "__main__":
                 if folder[1].isdigit() and "phi" in folder and "D" in folder:
                     for prop in structural_props:
                         mypool.apply_async(prop[0], args=(os.path.abspath(folder), prop[1],))
-        finally:
+        except:
             mypool.terminate()
             mypool.join()
+            raise
+        mypool.close()
+        mypool.join()
