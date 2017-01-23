@@ -195,10 +195,11 @@ class HS_Generate_Packing(_Generate_Packing):
     seeds: array
         set seed to something other than none to remove randomness between instances of the class
     """
-    def __init__(self, nparticles, output_dir='packings', method='quench', bdim=3, boxv=None, packing_frac=0.4,
-                 hs_radii=None, mu=1, sig = 0.1, new_poly=False,
-                 hsf_stepsize=1e-3, max_iter=10, use_cell_lists=False, single=False,
-                 seeds=None, start_iteration=0, distance_method='periodic', pot_kwargs={},
+    def __init__(self, nparticles, output_dir='packings', method='quench',
+                 bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, mu=1,
+                 sig=0.1, new_poly=False, hsf_stepsize=1e-3, hsf_niter_dif=1e9,
+                 max_iter=10, use_cell_lists=False, single=False, seeds=None,
+                 start_iteration=0, distance_method='periodic', pot_kwargs={},
                  precalc_config_file=None):
         super(HS_Generate_Packing,self).__init__(nparticles, output_dir=output_dir, bdim=bdim,
                                                  boxv=boxv, packing_frac=packing_frac,
@@ -225,6 +226,7 @@ class HS_Generate_Packing(_Generate_Packing):
         self.mu = mu
         self.sig = sig * mu
         self.hsf_stepsize = hsf_stepsize
+        self.hsf_niter_dif = hsf_niter_dif
         self.hs_radii = hs_radii
         self.distance_method = distance_method
         self.pot_kwargs = pot_kwargs
@@ -390,12 +392,12 @@ class HS_Generate_Packing(_Generate_Packing):
     def _initialise_mc_runner_quench(self):
         temperature = 1.0
         if self.precalc_config is None:
-            dif_mcrunner = HS_MCrunnerOptDiffusion(self.null_potential, self.coords, temperature,
-                                                   self.hsf_stepsize, 1e9, self.hs_radii, self.boxv,
-                                                   adjustf = 0.9, acceptance=0.15, adjustf_niter = 1e6,
-                                                   single=self.single, seeds = self.seeds,
-                                                   use_cell=self.use_cell_lists,
-                                                   distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
+            dif_mcrunner = HS_MCrunnerOptDiffusion(
+                self.null_potential, self.coords, temperature, self.hsf_stepsize,
+                self.hsf_niter_dif, self.hs_radii, self.boxv, adjustf = 0.9,
+                acceptance=0.15, adjustf_niter = 1e6, single=self.single,
+                seeds = self.seeds, use_cell=self.use_cell_lists,
+                distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
             dif_mcrunner.run()
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
             hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
