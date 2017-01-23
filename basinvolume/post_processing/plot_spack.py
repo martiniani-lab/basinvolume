@@ -2,7 +2,7 @@ import numpy as np
 import os
 from spack import Packing
 from basinvolume.post_processing.structural_properties import StructuralAnalysis
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 
 class GenerateSpackPlot(StructuralAnalysis):
     """
@@ -23,7 +23,14 @@ class GenerateSpackPlot(StructuralAnalysis):
         dname = os.path.splitext(fname)[0]
         jammed_packing_configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
         print jammed_packing_configpath
-        import_jammed_packing_config(self, jammed_packing_configpath)
+        imp_packing = read_jammed_packing_config(jammed_packing_configpath)
+        self.nparticles = imp_packing['nparticles']
+        self.packing_frac = imp_packing['packing_frac']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.vcavity = imp_packing['vcavity']
+        self.sca = imp_packing['sca']
         hs_coords, hs_radii, ss_radii, rattlers = self._import_packing_configuration(fname)
         hs_coords = np.reshape(hs_coords, (-1,self.bdim))
 

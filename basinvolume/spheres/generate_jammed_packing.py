@@ -8,7 +8,7 @@ from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp, cg
 from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
 from basinvolume.utils import volume_nball, in_hull, import_packing, find_neighbours, calc_distance
-from basinvolume.spheres.generate_packing import import_packing_config
+from basinvolume.spheres.generate_packing import read_packing_config
 import ConfigParser
 import re
 import argparse
@@ -58,21 +58,6 @@ def read_jammed_packing_config(configpath, frozen=False):
     parameters['sca'] = configf.getfloat('JAMMED_PACKING','sca')
     return parameters
 
-def import_jammed_packing_config(obj, configpath, frozen=False):
-    parameters = read_jammed_packing_config(configpath, frozen)
-    obj.nparticles = parameters['nparticles']
-    obj.packing_frac = parameters['packing_frac']
-    obj.bdim = parameters['bdim']
-    obj.ndim = parameters['ndim']
-    obj.boxv = parameters['boxv'].copy()
-    obj.vcavity = parameters['vcavity']
-    obj.distance_method = parameters['distance_method']
-    if hasattr(obj, 'pot_kwargs') and obj.pot_kwargs is not None:
-        obj.pot_kwargs.update(parameters['pot_kwargs'])
-    else:
-        obj.pot_kwargs = parameters['pot_kwargs'].copy()
-    obj.sca = parameters['sca']
-
 class _Generate_Jammed_Packing(object):
     """
     this is an abstract class that implements the basic components of a generate packing class,
@@ -107,10 +92,22 @@ class _Generate_Jammed_Packing(object):
         dname = os.path.splitext(fname)[0]
         self.configpath = os.path.join(self.packings_dir, dname+'.config')
         if self.import_jammed:
-            import_jammed_packing_config(self, str(self.configpath))
+            imp_packing = read_jammed_packing_config(str(self.configpath))
+            self.nparticles = imp_packing['nparticles']
+            self.packing_frac = imp_packing['packing_frac']
+            self.bdim = imp_packing['bdim']
+            self.ndim = imp_packing['ndim']
+            self.boxv = imp_packing['boxv'].copy()
+            self.vcavity = imp_packing['vcavity']
+            self.distance_method = parameters['distance_method']
+            if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
+                self.pot_kwargs.update(parameters['pot_kwargs'])
+            else:
+                self.pot_kwargs = parameters['pot_kwargs'].copy()
+            self.sca = imp_packing['sca']
             self.packing_frac = self.target_packing_frac / (1 + self.sca)**2
         else:
-            import_packing_config(self, str(self.configpath))
+            self._import_packing_config_file(str(self.configpath))
 
 
     @abc.abstractmethod
@@ -118,7 +115,23 @@ class _Generate_Jammed_Packing(object):
         """initialisation function"""
         self.configpath = os.path.join(self.packings_dir,'packings.config')
         assert(os.path.isfile(self.configpath))
-        import_packing_config(self, str(self.configpath))
+        self._import_packing_config_file(str(self.configpath))
+
+    def _import_packing_config_file(self, configpath):
+        imp_packing = read_packing_config(configpath)
+        self.nparticles = imp_packing['nparticles']
+        self.packing_frac = imp_packing['packing_frac']
+        self.bdim = imp_packing['boxdim']
+        self.ndim = imp_packing['ndim']
+        self.hs_mean = imp_packing['radii_mean']
+        self.hs_stddev = imp_packing['radii_stddev']
+        self.boxv = imp_packing['boxv'].copy()
+        self.vcavity = imp_packing['vcavity']
+        self.distance_method = imp_packing['distance_method']
+        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
+            self.pot_kwargs.update(imp_packing['pot_kwargs'])
+        else:
+            self.pot_kwargs = imp_packing['pot_kwargs'].copy()
 
     @abc.abstractmethod
     def _import_packing_configuration(self, fname):

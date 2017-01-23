@@ -15,7 +15,7 @@ from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import VolumeSanityCheck
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 import traceback
 import argparse
 from itertools import cycle
@@ -111,7 +111,14 @@ class _collect_u2_vs_k(object):
         self._print_volumes()
 
     def _import_config_files(self):
-        import_jammed_packing_config(self, str(self.jammed_packing_configpath), self.frozen)
+        imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath), self.frozen)
+        self.nparticles = imp_packing['nparticles']
+        self.packing_frac = imp_packing['packing_frac']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.vcavity = imp_packing['vcavity']
+        self.sca = imp_packing['sca']
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')

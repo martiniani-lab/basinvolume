@@ -6,7 +6,6 @@ import traceback
 import ConfigParser
 from scipy.special import sph_harm
 from basinvolume.utils import trymakedir, find_neighbours
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from basinvolume.post_processing.simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
 from _structural_analysis import StructuralAnalysis
 
@@ -52,7 +51,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                 dname = os.path.splitext(fname)[0]
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
-                import_jammed_packing_config(self, configpath, self.frozen)
+                self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)

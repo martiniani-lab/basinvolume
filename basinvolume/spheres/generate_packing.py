@@ -44,22 +44,6 @@ def read_packing_config(configpath, frozen=False):
     parameters['hsf_stepsize'] = configf.getfloat('PACKING','hsf_stepsize')
     return parameters
 
-def import_packing_config(obj, configpath, frozen=False):
-    parameters = read_packing_config(configpath, frozen)
-    obj.nparticles = parameters['nparticles']
-    obj.packing_frac = parameters['packing_frac']
-    obj.bdim = parameters['boxdim']
-    obj.ndim = parameters['ndim']
-    obj.hs_mean = parameters['radii_mean']
-    obj.hs_stddev = parameters['radii_stddev']
-    obj.boxv = parameters['boxv'].copy()
-    obj.vcavity = parameters['vcavity']
-    obj.distance_method = parameters['distance_method']
-    if hasattr(obj, 'pot_kwargs') and obj.pot_kwargs is not None:
-        obj.pot_kwargs.update(parameters['pot_kwargs'])
-    else:
-        obj.pot_kwargs = parameters['pot_kwargs'].copy()
-
 class _Generate_Packing(object):
     """
     this is an abstract class that implements the basic components of a generate packing class,

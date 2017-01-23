@@ -4,7 +4,7 @@ import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 import ConfigParser
 import time
 import warnings
@@ -28,7 +28,14 @@ class _findk_mcrunner(_configure_mcrunner):
         self.fname = fname
 
         self._set_paths(packings_dir)
-        import_jammed_packing_config(self, str(self.configpath))
+        imp_packing = read_jammed_packing_config(str(self.configpath))
+        self.nparticles = imp_packing['nparticles']
+        self.packing_frac = imp_packing['packing_frac']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.vcavity = imp_packing['vcavity']
+        self.sca = imp_packing['sca']
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         #self.coords is origin, set initial configuration and origin to be the same

@@ -4,7 +4,6 @@ import os
 import traceback
 import ConfigParser
 from basinvolume.utils import trymakedir
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from pele.utils._pressure_tensor import pressure_tensor
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
@@ -50,7 +49,7 @@ class PressureTensor(StructuralAnalysis):
                 dname = os.path.splitext(fname)[0]
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
-                import_jammed_packing_config(self, configpath, self.frozen)
+                self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)

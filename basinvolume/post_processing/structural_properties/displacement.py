@@ -6,7 +6,6 @@ import traceback
 import numpy as np
 import argparse
 from basinvolume.utils import trymakedir, calc_distance
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
 from _structural_analysis import StructuralAnalysis
 
 
@@ -72,7 +71,7 @@ class Displacement(StructuralAnalysis):
 
                 # Get configuration
                 configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
-                import_jammed_packing_config(self, configpath, self.frozen)
+                self._import_packing_config_file(configpath)
 
                 # Check if the work directory exists
                 base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))

@@ -4,7 +4,7 @@ import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 import ConfigParser
 import time
 import warnings
@@ -135,7 +135,14 @@ class configure_bv_mcrunner(_configure_mcrunner):
             f.write('success_rank{}: {}\n'.format(str(i), "False"))
 
     def _import_packing_config_files(self):
-        import_jammed_packing_config(self, str(self.packing_configpath))
+        imp_packing = read_jammed_packing_config(str(self.packing_configpath))
+        self.nparticles = imp_packing['nparticles']
+        self.packing_frac = imp_packing['packing_frac']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.vcavity = imp_packing['vcavity']
+        self.sca = imp_packing['sca']
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')

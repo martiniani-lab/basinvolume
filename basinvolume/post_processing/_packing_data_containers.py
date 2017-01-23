@@ -4,8 +4,8 @@ import os
 import numpy as np
 import ConfigParser
 from basinvolume.utils import import_packing, Bunch
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
-from basinvolume.spheres.generate_packing import import_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres.generate_packing import read_packing_config
 try:
     import matplotlib.pyplot as plt
 except ImportError as err:
@@ -84,8 +84,17 @@ class PackingData(object):
         self.name = name
         self.configpath = configpath
         self.configpath_packing = configpath_packing
-        import_jammed_packing_config(self, self.configpath)
-        import_packing_config(self, self.configpath_packing)
+        imp_jammed_packing = read_jammed_packing_config(self.configpath)
+        self.nparticles = imp_jammed_packing['nparticles']
+        self.packing_frac = imp_jammed_packing['packing_frac']
+        self.bdim = imp_jammed_packing['bdim']
+        self.ndim = imp_jammed_packing['ndim']
+        self.boxv = imp_jammed_packing['boxv'].copy()
+        self.vcavity = imp_jammed_packing['vcavity']
+        self.sca = imp_jammed_packing['sca']
+        imp_packing = read_packing_config(self.configpath_packing)
+        self.hs_mean = imp_packing['radii_mean']
+        self.hs_stddev = imp_packing['radii_stddev']
         if packing_path is not None:
             self._import_packing_configuration(packing_path)
         self.jammed_packing_name = os.path.split(os.path.splitext(self.configpath)[0])[1]

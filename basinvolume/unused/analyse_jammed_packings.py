@@ -6,7 +6,7 @@ from pele.potentials import HS_WCA
 from pele.storage import Minimum
 from pele.distance import put_in_box
 from basinvolume.utils import trymakedir, import_packing, get_git_version, get_cython_version, get_python_version
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 from basinvolume.gui import HSWCASystem
 import ConfigParser
 import time
@@ -30,7 +30,14 @@ class analyse_jammed_packings(object):
         self.base_directory = os.path.join(os.getcwd(),'analyse_jammed_packings')
         self.packings_dir = os.path.join(os.getcwd(),packings_dir)
         self.configpath = os.path.join(packings_dir,'jammed_packings.config')
-        import_jammed_packing_config(self, str(self.configpath))
+        imp_packing = read_jammed_packing_config(str(self.configpath))
+        self.nparticles = imp_packing['nparticles']
+        self.packing_frac = imp_packing['packing_frac']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.vcavity = imp_packing['vcavity']
+        self.sca = imp_packing['sca']
         self.eps=1.
         self.etol = 0.1
         self.show = hist_show
@@ -43,7 +50,14 @@ class analyse_jammed_packings(object):
 
     def _initialise(self):
         """initialisation function"""
-        import_jammed_packing_config(self, str(self.configpath))
+        imp_packing = read_jammed_packing_config(str(self.configpath))
+        self.nparticles = imp_packing['nparticles']
+        self.packing_frac = imp_packing['packing_frac']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.vcavity = imp_packing['vcavity']
+        self.sca = imp_packing['sca']
         #change directory only at the end of initialise
         self._print_initialise()
         os.chdir(self.base_directory)

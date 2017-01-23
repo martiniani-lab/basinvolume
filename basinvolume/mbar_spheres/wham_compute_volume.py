@@ -7,7 +7,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, volume_nball
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 import argparse
 from itertools import cycle
 try:
@@ -92,7 +92,14 @@ class wham_compute_dos(object):
         self._print_volumes()
 
     def _import_config_files(self):
-        import_jammed_packing_config(self, str(self.packing_configpath), self.frozen)
+        imp_packing = read_jammed_packing_config(str(self.packing_configpath), self.frozen)
+        self.nparticles = imp_packing['nparticles']
+        self.packing_frac = imp_packing['packing_frac']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.vcavity = imp_packing['vcavity']
+        self.sca = imp_packing['sca']
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.adjustf_niter = configf.getfloat('MCRUNNER', 'adjustf_niter')

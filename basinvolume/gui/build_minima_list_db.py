@@ -6,7 +6,7 @@ from pele.potentials import HS_WCA
 from pele.storage import Minimum
 from basinvolume.utils import import_packing
 from basinvolume.gui import HSWCASystem
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 import ConfigParser
 import time
 import re
@@ -46,8 +46,13 @@ class build_minima_list_db(object):
 
         self.packing_configpath = os.path.join(packings_dir,'jammed_packings.config')
 
-        import_jammed_packing_config(self, str(self.packing_configpath))
-        self._import_packing_configuration()
+        imp_packing = read_jammed_packing_config(str(self.packing_configpath))
+        self.nparticles = imp_packing['nparticles']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.packing_frac = imp_packing['packing_frac']
+        self.sca = imp_packing['sca']
 
         self.eps = 1
         self.system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim)

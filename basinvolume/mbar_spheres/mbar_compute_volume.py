@@ -9,7 +9,7 @@ import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
-from basinvolume.spheres.generate_jammed_packing import import_jammed_packing_config
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 import argparse
 from itertools import cycle
 from scipy.integrate import simps
@@ -207,7 +207,14 @@ class mbar_compute_dos(object):
             self._plot_dos_data()
 
     def _import_config_files(self):
-        import_jammed_packing_config(self, str(self.jammed_packing_configpath))
+        imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath))
+        self.nparticles = imp_packing['nparticles']
+        self.bdim = imp_packing['bdim']
+        self.ndim = imp_packing['ndim']
+        self.boxv = imp_packing['boxv'].copy()
+        self.packing_frac = imp_packing['packing_frac']
+        self.vcavity = parameters['vcavity']
+        self.sca = imp_packing['sca']
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.adjustf_niter = configf.getfloat('MCRUNNER', 'adjustf_niter')
