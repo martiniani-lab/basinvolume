@@ -55,6 +55,9 @@ if __name__ == "__main__":
                         default=1.0)
     parser.add_argument("--rsigma", type=float, help="Percent standard deviation. Default: 0.1",
                         default=0.1)
+    parser.add_argument("--hsf-niter-dif", type=int, help="Step count for the "
+                        "estimation of the decorrelation step count. Default: 1e9",
+                        default=1e9)
     parser.add_argument("--dpath", type=str, help="Path to xy(z)d file from which to import diameters. "
                         "Default: None", default=None)
     parser.add_argument("--packing_moveall", action='store_true', help="Move all "
@@ -107,7 +110,8 @@ if __name__ == "__main__":
         packing_kwargs = dict(method=args.packing_method,
                               bdim=args.boxdim, packing_frac=density_hs,
                               hs_radii=hs_radii, mu=args.rmean, sig=args.rsigma,
-                              new_poly=False, max_iter=args.npackings,
+                              new_poly=False, hsf_niter_dif=args.hsf_niter_dif,
+                              max_iter=args.npackings,
                               use_cell_lists=args.cell,
                               single=not args.packing_moveall,
                               distance_method='lees-edwards',

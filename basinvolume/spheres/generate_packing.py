@@ -763,6 +763,9 @@ if __name__ == "__main__":
     parser.add_argument("-u","--rmean", type=float, help="mean particle radius",default=1.0)
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.05)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-3)
+    parser.add_argument("--hsf-niter-dif", type=int, help="Step count for the "
+                        "estimation of the decorrelation step count. Default: 1e9",
+                        default=1e9)
     parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
@@ -794,7 +797,7 @@ if __name__ == "__main__":
     sim = HS_Generate_Packing(args.nparticles, output_dir=outdir, method=args.method,
                               bdim=args.boxdim, packing_frac=args.density, hs_radii=hs_radii,
                               mu=args.rmean, sig=args.rsigma, new_poly=args.newpoly,
-                              hsf_stepsize = args.hsfstep,
+                              hsf_niter_dif=args.hsf_niter_dif, hsf_stepsize=args.hsfstep,
                               max_iter=args.npackings, use_cell_lists=not args.nocell,
                               single=single, start_iteration=args.start_iter,
                               distance_method=args.distance_method, pot_kwargs=pot_kwargs,
