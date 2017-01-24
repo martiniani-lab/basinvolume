@@ -303,8 +303,6 @@ cdef class _Cdef_CheckOverlapLeesEdwardsCellLists(_Cdef_ConfTest):
         cdef _pele.Array[double] rc_
         cdef _pele.Array[size_t] fd_
 
-        raise NotImplementedError("Lees-Edwards boundary conditions not implemented for cell lists!")
-
         if not use_frozen:
             if (ndim == 2):
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapLeesEdwardsCellLists[INT2]

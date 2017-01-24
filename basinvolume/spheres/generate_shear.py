@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--step", type=float, help="Size of shearing steps. "
                         "Default: 0.001", default=0.001)
     parser.add_argument("-f", "--final_shear", type=float, help="Final shear. Default: 1.0", default=1.)
-    parser.add_argument("--cell", action='store_true', help="Use cell lists. Not yet supported! "
+    parser.add_argument("--cell", action='store_true', help="Use cell lists. "
                         "Default: False", default=False)
     parser.add_argument("--npackings", type=int, help="Number of packings to produce. "
                         "Default: 1", default=1)
