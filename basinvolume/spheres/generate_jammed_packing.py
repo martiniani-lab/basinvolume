@@ -75,7 +75,7 @@ class _Generate_Jammed_Packing(object):
 
     def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
                  import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
-                 minimizer="fire", debugging=True):
+                 minimizer="fire"):
         self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
@@ -88,7 +88,6 @@ class _Generate_Jammed_Packing(object):
         self.sca = -1
         self.eps = 1.
         self.minimizer = minimizer
-        self.debugging = debugging
 
     def _import_single_packing_config_file(self, fname):
         dname = os.path.splitext(fname)[0]
@@ -246,14 +245,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
                  use_cell_lists=False, show=False, opt_pot_str='hs_wca',
-                 override_pot_kwargs=None, minimizer="fire", debugging=True):
+                 override_pot_kwargs=None, minimizer="fire"):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          packing_nrs=packing_nrs,
                                                          import_jammed=import_jammed,
                                                          outdir=outdir, minimizer=minimizer,
-                                                         override_pot_kwargs=override_pot_kwargs,
-                                                         debugging=debugging)
+                                                         override_pot_kwargs=override_pot_kwargs)
         self.opt_pot_str = opt_pot_str
         self.use_cell_lists = use_cell_lists
         self.tol = tol
@@ -410,7 +408,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """quenches the imported structure"""
 
         #asserts that none of the hard sphere is overlapping before quenching
-        if self.debugging:
+        if __debug__:
             no_overlap = self._check_no_overlaps()
             if not no_overlap:
                 print("Overlap found before quenching")
@@ -438,7 +436,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.energy = res.energy
 
         #test that on re-minimisation the structure does not change
-        if self.debugging:
+        if __debug__:
             if self.minimizer == "fire":
                 res2 = modifiedfire_cpp(self.coords, self.potential,
                                         maxstep=fire_maxstep, nsteps=1e6, tol=tol)
@@ -456,7 +454,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 return False
 
         #asserts that none of the hard sphere is overlapping
-        if self.debugging:
+        if __debug__:
             no_overlap = self._check_no_overlaps()
             if not no_overlap:
                 print("Overlap found after quenching")
