@@ -133,7 +133,7 @@ if __name__ == "__main__":
     jammed_kwargs = dict(target_packing_frac=args.density_ss,
                          tol=args.min_tol, use_cell_lists=args.cell,
                          show=False, opt_pot_str='hs_wca',
-                         minimizer=args.minimizer)
+                         minimizer=args.minimizer, debugging=False)
     if args.input_jammed is not None:
         if not os.path.isdir(args.input_jammed):
             raise IOError("The specified input packings-directory does not exist "

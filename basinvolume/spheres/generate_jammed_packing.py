@@ -75,7 +75,7 @@ class _Generate_Jammed_Packing(object):
 
     def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
                  import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
-                 minimizer="fire"):
+                 minimizer="fire", debugging=True):
         self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
@@ -88,6 +88,7 @@ class _Generate_Jammed_Packing(object):
         self.sca = -1
         self.eps = 1.
         self.minimizer = minimizer
+        self.debugging = debugging
 
     def _import_single_packing_config_file(self, fname):
         dname = os.path.splitext(fname)[0]
@@ -245,13 +246,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
                  use_cell_lists=False, show=False, opt_pot_str='hs_wca',
-                 override_pot_kwargs=None, minimizer="fire"):
+                 override_pot_kwargs=None, minimizer="fire", debugging=True):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          packing_nrs=packing_nrs,
                                                          import_jammed=import_jammed,
                                                          outdir=outdir, minimizer=minimizer,
-                                                         override_pot_kwargs=override_pot_kwargs)
+                                                         override_pot_kwargs=override_pot_kwargs,
+                                                         debugging=debugging)
         self.opt_pot_str = opt_pot_str
         self.use_cell_lists = use_cell_lists
         self.tol = tol
@@ -408,10 +410,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """quenches the imported structure"""
 
         #asserts that none of the hard sphere is overlapping before quenching
-        no_overlap = self._check_no_overlaps()
-        if not no_overlap:
-            print("Overlap found before quenching")
-            return False
+        if self.debugging:
+            no_overlap = self._check_no_overlaps()
+            if not no_overlap:
+                print("Overlap found before quenching")
+                return False
 
         if self.minimizer == "fire":
             fire_maxstep = np.amin(self.hs_radii)*self.sca
@@ -435,27 +438,29 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.energy = res.energy
 
         #test that on re-minimisation the structure does not change
-        if self.minimizer == "fire":
-            res2 = modifiedfire_cpp(self.coords, self.potential,
-                                    maxstep=fire_maxstep, nsteps=1e6, tol=tol)
-        elif self.minimizer == "cg":
-            optimizer = CGDescent(self.coords, self.potential, tol=tol,
-                                  nsteps=1e6, print_level=iprint)
-            res2 = optimizer.run()
-        elif self.minimizer == "lbfgs":
-            res2 = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
-                            iprint=iprint)
-        else:
-            raise NotImplementedError
-        if res2.nfev > 1:
-            print 'quench failed (structure changed at second minimisation)'
-            return False
+        if self.debugging:
+            if self.minimizer == "fire":
+                res2 = modifiedfire_cpp(self.coords, self.potential,
+                                        maxstep=fire_maxstep, nsteps=1e6, tol=tol)
+            elif self.minimizer == "cg":
+                optimizer = CGDescent(self.coords, self.potential, tol=tol,
+                                      nsteps=1e6, print_level=iprint)
+                res2 = optimizer.run()
+            elif self.minimizer == "lbfgs":
+                res2 = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
+                                iprint=iprint)
+            else:
+                raise NotImplementedError
+            if res2.nfev > 1:
+                print 'quench failed (structure changed at second minimisation)'
+                return False
 
         #asserts that none of the hard sphere is overlapping
-        no_overlap = self._check_no_overlaps()
-        if not no_overlap:
-            print("Overlap found after quenching")
-            return False
+        if self.debugging:
+            no_overlap = self._check_no_overlaps()
+            if not no_overlap:
+                print("Overlap found after quenching")
+                return False
 
         return self._find_rattlers()
 
