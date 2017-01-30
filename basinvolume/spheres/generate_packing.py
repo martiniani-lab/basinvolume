@@ -13,6 +13,7 @@ from mcpele.monte_carlo import NullPotential
 import argparse
 import ConfigParser
 import ast
+import logging
 
 def read_packing_config(configpath, frozen=False):
     configf = ConfigParser.ConfigParser()
@@ -164,7 +165,7 @@ class _Generate_Packing(object):
     def one_iteration(self):
         """perform one iteration"""
         self._initialise()
-        print 'iteration ', self.iteration
+        logging.info("Packing {}".format(self.iteration))
         success = self._generate_packing_coords()
         if success:
             self._print()
@@ -307,10 +308,10 @@ class HS_Generate_Packing(_Generate_Packing):
 
     def _sample_hs_radii(self, new_poly=False):
         if (self.hs_radii is None or new_poly) and self.sig > 1e-8:
-            print "sampling hs_radii"
+            logging.info("Sampling hs_radii")
             self.hs_radii = self.rng.normal(self.mu,self.sig,self.nparticles)
         elif (self.hs_radii is None or new_poly) and self.sig <= 1e-8:
-            print "sampling hs_radii, setting to ones because sig <= 1e-8"
+            logging.info("Sampling hs_radii, setting to ones because sig <= 1e-8")
             self.hs_radii = np.ones(self.nparticles)*self.mu
         else:
             self.hs_radii = np.array(self.hs_radii,dtype='d')
@@ -338,10 +339,10 @@ class HS_Generate_Packing(_Generate_Packing):
                     if i != j:
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
-                            print 'invalid configuration'
-                            print 'atoms {} {} are overlapping'.format(i,j)
-                            print 'real distance {}'.format(dij)
-                            print 'min distance {}'.format(dmin)
+                            logging.warning("Invalid configuration")
+                            logging.warning("Atoms {} {} are overlapping".format(i,j))
+                            logging.warning("Real distance {}".format(dij))
+                            logging.warning("Min distance {}".format(dmin))
                             no_overlap = False
                             break
             else:
@@ -403,7 +404,7 @@ class HS_Generate_Packing(_Generate_Packing):
             hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
             self.hsf_niter = max(hsf_niter, 2*self.nparticles)
             self.coords, self.energy = dif_mcrunner.get_config()
-        print "stepsize {} niter {}".format(self.hsf_stepsize, self.hsf_niter)
+        logging.debug("Stepsize {}, niter {}".format(self.hsf_stepsize, self.hsf_niter))
         self.mcrunner = HS_MCrunner(self.null_potential, self.coords, temperature,
                                     self.hsf_stepsize, self.hsf_niter, self.hs_radii,
                                     self.boxv, adjustf = 0.9, acceptance=0.15,
@@ -431,12 +432,12 @@ class HS_Generate_Packing(_Generate_Packing):
             #assert(res.success is True) #checks that a minimum configuration has been found
             self.coords = np.array(res.coords)
             self.energy = res.energy
-#            print "generated new start coords "
+#            logging.info("Generated new start coords")
 #            sort radii in cavity
 #            self._sort_radii_in_cavities()
             #check that no two particles are overlapping (using nearest image convention)
             overlap = not self._check_no_overlaps()
-            print "overlap",overlap
+            logging.debug("Overlap: {}".format(overlap))
 
     def _generate_packing_coords_direct(self):
         """
@@ -455,7 +456,7 @@ class HS_Generate_Packing(_Generate_Packing):
                 overlap = not self._check_no_overlaps()
             else:
                 overlap = True
-            print "overlap",overlap
+            logging.debug("Overlap: {}".format(overlap))
 
     def _initialise_coords_crystal(self):
         pass
@@ -499,7 +500,7 @@ class HS_Generate_Packing(_Generate_Packing):
         boxx = self.boxv[0]
         boxy = self.boxv[1]
         if boxx / boxy != 1:
-            print "_generate_packing_coords_lattice_2d: warning: works best for aspect ratio unity"
+            logging.warning("_generate_packing_coords_lattice_2d: works best for aspect ratio unity")
         maximum_radius = np.amax(self.hs_radii)
         minimum_spacing_x = 2 * maximum_radius
         minimum_spacing_y = np.sqrt(3) * 0.5 * minimum_spacing_x
@@ -533,7 +534,6 @@ class HS_Generate_Packing(_Generate_Packing):
         NX = L_cube
         NY = L_cube
         NZ = L_cube
-        #print L_cube
         dx = self.boxv[0] / NX
         dy = self.boxv[1] / NY
         dz = self.boxv[2] / NZ
@@ -562,7 +562,7 @@ class HS_Generate_Packing(_Generate_Packing):
         NX = L_cube
         NY = L_cube
         NZ = L_cube
-        print L_cube
+        logging.debug(L_cube)
         dx = self.boxv[0] / NX
         dy = self.boxv[1] / NY
         dz = self.boxv[2] / NZ
@@ -590,7 +590,7 @@ class HS_Generate_Packing(_Generate_Packing):
 #        NX = L_cube
 #        NY = L_cube
 #        NZ = L_cube
-#        print L_cube
+#        logging.debug(L_cube)
 #        dx = self.boxv[0] / NX
 #        dy = self.boxv[1] / NY
 #        dz = self.boxv[2] / NZ
@@ -612,7 +612,7 @@ class HS_Generate_Packing(_Generate_Packing):
 #        NX = L_cube
 #        NY = L_cube
 #        NZ = L_cube
-#        print L_cube
+#        logging.debug(L_cube)
 #        a1 = (np.prod(self.boxv) / (NX * NY * NZ)) ** (1/3)
 #        for iz in xrange(NZ):
 #            for iy in xrange(NY):
@@ -641,18 +641,15 @@ class HS_Generate_Packing(_Generate_Packing):
         weight = [CTE**i for i in xrange(neighbours)]
         weight = weight[::-1]
         weight.extend([0 for i in xrange(self.nparticles-neighbours)])
-        #print 'weights',weight
         dmin = np.average(dmin,axis=1,weights=weight)
         #sort and return a map of indices in descending order
         dmap = np.argsort(dmin)[::-1]
         #order particle sizes so that they are associated to coordinates with appropriate gaps
-        #print 'old radii',self.hs_radii
         hs_radii = np.zeros(self.nparticles)
         sorted_radii = np.sort(self.hs_radii)[::-1]
         for i in xrange(self.nparticles):
             hs_radii[dmap[i]] = sorted_radii[i]
         self.hs_radii = hs_radii.copy()
-        #print 'new radii',self.hs_radii
 
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
@@ -778,7 +775,11 @@ if __name__ == "__main__":
     parser.add_argument("--precalc_config", type=str, help="Take a precalculated hsf_niter and "
                         "hsf_stepsize from this config-file.", default=None)
     args = parser.parse_args()
-    print args
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
+    logging.info(args)
     single = not args.moveall
 
     if args.distance_method == 'lees-edwards':

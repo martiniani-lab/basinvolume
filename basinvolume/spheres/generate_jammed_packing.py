@@ -17,6 +17,7 @@ import subprocess
 import shlex
 import glob
 import ast
+import logging
 # try:
 #     import pylab
 # except:
@@ -75,7 +76,7 @@ class _Generate_Jammed_Packing(object):
 
     def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
                  import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
-                 minimizer="fire"):
+                 minimizer='fire', logging_tag=""):
         self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
@@ -88,6 +89,7 @@ class _Generate_Jammed_Packing(object):
         self.sca = -1
         self.eps = 1.
         self.minimizer = minimizer
+        self.logging_tag = logging_tag
 
     def _import_single_packing_config_file(self, fname):
         dname = os.path.splitext(fname)[0]
@@ -157,8 +159,7 @@ class _Generate_Jammed_Packing(object):
         """writes a configuration file, e.g .xyzd, n is the unique identifier of the structure"""
 
     def _print_initialise(self):
-        base_directory = self.base_directory
-        trymakedir(base_directory)
+        trymakedir(self.base_directory)
 
     def _print_parameters(self, n):
         """writes the simulation parameters"""
@@ -197,6 +198,12 @@ class _Generate_Jammed_Packing(object):
         self._dump_configuration(n)
         self._write_opengl_input(n)
 
+    def _log(self, message):
+        if self.logging_tag == None or self.logging_tag == "":
+            return "{}".format(message)
+        else:
+            return "{}: {}".format(self.logging_tag, message)
+
     # @abc.abstractmethod
     # def _histogram_eigenvalues(self):
     #     """ method to plot eigenvalues histograms
@@ -222,10 +229,10 @@ class _Generate_Jammed_Packing(object):
         for fname in os.listdir(self.packings_dir):
             if all([any([filter_str in fname for filter_str in filter_strings])
                     for filter_strings in filter_stringss]):
-                print(fname)
+                logging.debug("")
+                logging.info(self._log(fname))
                 success = self.one_iteration(fname)
                 successes.append((fname, success))
-                print("")
         return successes
         # self._histogram_eigenvalues()
 
@@ -245,13 +252,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
                  use_cell_lists=False, show=False, opt_pot_str='hs_wca',
-                 override_pot_kwargs=None, minimizer="fire"):
+                 override_pot_kwargs=None, minimizer="fire", logging_tag=""):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          packing_nrs=packing_nrs,
                                                          import_jammed=import_jammed,
                                                          outdir=outdir, minimizer=minimizer,
-                                                         override_pot_kwargs=override_pot_kwargs)
+                                                         override_pot_kwargs=override_pot_kwargs,
+                                                         logging_tag=logging_tag)
         self.opt_pot_str = opt_pot_str
         self.use_cell_lists = use_cell_lists
         self.tol = tol
@@ -273,7 +281,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
-            print "WARNING: max soft diameter >= 1/2 box side!"
+            logging.warning(self._log("Max soft diameter >= 1/2 box side!"))
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
 
@@ -347,7 +355,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         while look:
             found_rattler = False
             if nratls > self.max_nrattlers:
-                print "Too many rattlers. Discarding packing."
+                logging.warning(self._log("Too many rattlers. Discarding packing."))
                 return False
             radii = hs_radii * (1. + self.sca)
             contact_list, neighbors_index_list = find_neighbours(coords, radii, self.bdim,
@@ -359,7 +367,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 no_neighbors = len(contact_list[i])
                 if no_neighbors < zmin:
                     found_rattler = True
-                    print "Particle {} is not isostatic.".format(j)
+                    logging.debug(self._log("Particle {} is not isostatic.".format(j)))
                 else:
                     # angles = [cartesian_to_polar2d(dij)[1] for dij in contact_list[i]]
                     # neigh_vec = [x for (y, x) in sorted(zip(angles, contact_list[i]))]
@@ -370,7 +378,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     found_rattler = not in_hull(p, hull)
                     if found_rattler:
                         # print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
-                        print "Particle {} is not in contacts' convex hull.".format(j)
+                        logging.debug(self._log("Particle {} is not in contacts' convex hull.".format(j)))
                 #here assign correct index by searching for the corresponding atom
                 self.rattlers[j] = 0 if found_rattler else 1000
                 self.rattlers_draw[j] = float(not found_rattler)
@@ -387,13 +395,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         N_contacts = int(np.sum([len(contacts) for contacts in contact_list]))
         no_stable = len(contact_list)
         N_min = int(2*(self.bdim * (no_stable - 1) + 1))
-        print "N_min: {} N_contacts: {}".format(N_min, N_contacts)
+        logging.debug(self._log("N_min: {} N_contacts: {}".format(N_min, N_contacts)))
         assert (self.nparticles - no_stable) == nratls
-        print "n rattlers ", nratls
+        logging.debug(self._log("Number of rattlers: {}".format(nratls)))
         if N_contacts >= N_min:
             return True
         else:
-            print "Packing is not globally stable, N_min: {} N_contacts: {}".format(N_min, N_contacts)
+            logging.warning(self._log("Packing is not globally stable, N_min: {} "
+                                      "N_contacts: {}".format(N_min, N_contacts)))
             return False
 
 
@@ -411,7 +420,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if __debug__:
             no_overlap = self._check_no_overlaps()
             if not no_overlap:
-                print("Overlap found before quenching")
+                logging.warning(self._log("Overlap found before quenching"))
                 return False
 
         if self.minimizer == "fire":
@@ -429,7 +438,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             raise NotImplementedError
 
         if not res.success:
-            print 'quench failed'
+            logging.warning(self._log("Quench failed"))
             return False
 
         self.coords = res.coords
@@ -450,14 +459,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             else:
                 raise NotImplementedError
             if res2.nfev > 1:
-                print 'quench failed (structure changed at second minimisation)'
+                logging.warning(self._log("Quench failed (structure changed at second minimisation)"))
                 return False
 
         #asserts that none of the hard sphere is overlapping
         if __debug__:
             no_overlap = self._check_no_overlaps()
             if not no_overlap:
-                print("Overlap found after quenching")
+                logging.warning(self._log("Overlap found after quenching"))
                 return False
 
         return self._find_rattlers()
@@ -498,10 +507,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                             self.bdim, self.distance_method, self.boxv, self.pot_kwargs))
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
-                            print 'invalid configuration'
-                            print 'atoms {} {} are overlapping'.format(i,j)
-                            print 'real distance {}'.format(dij)
-                            print 'min distance {}'.format(dmin)
+                            logging.warning(self._log("Invalid configuration"))
+                            logging.warning(self._log("Atoms {} {} are overlapping".format(i,j)))
+                            logging.warning(self._log("Real distance {}".format(dij)))
+                            logging.warning(self._log("Min distance {}".format(dmin)))
                             no_overlap = False
                             break
             else:
@@ -636,9 +645,12 @@ if __name__ == "__main__":
     # potential arguments
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
-
     args = parser.parse_args()
-    print args
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
+    logging.info(args)
 
     # potential type
     opt_pot_str = args.opt_pot
@@ -647,7 +659,7 @@ if __name__ == "__main__":
         pass
     elif opt_pot_str.lower() == 'inverse_power_stillinger':
         override_pot_kwargs.update(pow=8, rcut=4.5)
-        print 'setting inverse_power_stillinger parameters: ', override_pot_kwargs
+        logging.info("Setting inverse_power_stillinger parameters: {}".format(override_pot_kwargs))
     else:
         raise NotImplementedError
 

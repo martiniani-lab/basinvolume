@@ -3,11 +3,12 @@ import numpy as np
 import argparse
 import os
 import shutil
+import logging
 import traceback
 import multiprocessing as mp
 from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
-from basinvolume.utils import import_packing
+from basinvolume.utils import import_packing, trymakedir
 
 
 def worker_packing(kwargs, nparticles, start_iteration=0):
@@ -15,15 +16,17 @@ def worker_packing(kwargs, nparticles, start_iteration=0):
         gen_packing = HS_Generate_Packing(nparticles, start_iteration=start_iteration, **kwargs)
         gen_packing.run()
     except:
-        print('worker_packing worker: %s' % (traceback.format_exc()))
+        logging.error('worker_packing worker: %s' % (traceback.format_exc()))
 
 
-def worker_jammed_packing(kwargs, packing_nrs=None):
+def worker_jammed_packing(kwargs, logging_tag, packing_nrs=None):
     try:
-        gen_jammed_packing = HS_Generate_Jammed_Packing(packing_nrs=packing_nrs, **kwargs)
+        gen_jammed_packing = HS_Generate_Jammed_Packing(packing_nrs=packing_nrs,
+                                                        logging_tag=logging_tag,
+                                                        **kwargs)
         return gen_jammed_packing.run()
     except:
-        print('worker_jammed_packing worker: %s' % (traceback.format_exc()))
+        logging.error('worker_jammed_packing worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":
@@ -77,6 +80,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
+
     # Set up thread pool
     if args.njobs > 1:
         mypool = mp.Pool(args.njobs)
@@ -102,11 +109,12 @@ if __name__ == "__main__":
             raise IOError("The specified input packings-directory does not exist "
                           "({})!".format(args.input_packings))
         if os.path.isdir("packings"):
-            print("The packings directory already exists.")
+            if args.input_packings != "packings":
+                logging.warning("The packings directory already exists.")
         else:
             shutil.copytree(args.input_packings, "packings")
     elif args.input_jammed is None:
-        print("\n--------- Generating loose packings ---------")
+        logging.info("Generating loose packings:")
         packing_kwargs = dict(method=args.packing_method,
                               bdim=args.boxdim, packing_frac=density_hs,
                               hs_radii=hs_radii, mu=args.rmean, sig=args.rsigma,
@@ -133,27 +141,32 @@ if __name__ == "__main__":
     jammed_kwargs = dict(target_packing_frac=args.density_ss,
                          tol=args.min_tol, use_cell_lists=args.cell,
                          show=False, opt_pot_str='hs_wca',
-                         minimizer=args.minimizer, debugging=False)
+                         minimizer=args.minimizer)
     if args.input_jammed is not None:
         if not os.path.isdir(args.input_jammed):
             raise IOError("The specified input packings-directory does not exist "
                           "({})!".format(args.input_jammed))
         if os.path.isdir("shear_0.0"):
-            print("The shear_0.0 directory already exists!")
+            if args.input_jammed != "shear_0.0":
+                logging.warning("The shear_0.0 directory already exists.")
         else:
             shutil.copytree(args.input_jammed, "shear_0.0")
     else:
-        print("\n--------- Generating jammed packings ---------")
-        unsheared_kwargs = dict(jammed_kwargs, packings_dir="packings", outdir="shear_0.0")
+        logging.info("Generating jammed packings")
+        unsheared_kwargs = dict(jammed_kwargs, packings_dir="packings",
+                                outdir="shear_0.0")
+        trymakedir(unsheared_kwargs['outdir'])
         if args.njobs > 1:
             results = []
             for packing_nr in xrange(args.npackings):
                 results.append(mypool.apply_async(
-                    worker_jammed_packing, args=(unsheared_kwargs, [packing_nr])))
+                    worker_jammed_packing, args=(unsheared_kwargs,
+                                                 "Shear 0.0, {}".format(packing_nr),
+                                                 [packing_nr])))
             for result in results:
                 result.get()
         else:
-            worker_jammed_packing(unsheared_kwargs)
+            worker_jammed_packing(unsheared_kwargs, "Shear 0.0")
 
     # Generate sheared packings
     unjammed_packings = []
@@ -161,19 +174,25 @@ if __name__ == "__main__":
         pot_kwargs['shear'] = shear
         sheared_kwargs = dict(jammed_kwargs,
                               packings_dir="shear_{}".format(shear - args.step),
-                              outdir="shear_{}".format(shear), import_jammed=True,
+                              outdir="shear_{}".format(shear),
+                              import_jammed=True,
                               override_pot_kwargs=pot_kwargs)
-        print("\n--------- Shear: {} ---------".format(shear))
+        trymakedir(sheared_kwargs['outdir'])
         if args.njobs > 1:
             results = []
             for packing_nr in xrange(args.npackings):
                 results.append(mypool.apply_async(
-                    worker_jammed_packing, args=(sheared_kwargs, [packing_nr])))
+                    worker_jammed_packing,
+                    args=(sheared_kwargs,
+                          "Shear {}, {}".format(shear, packing_nr),
+                          [packing_nr])))
             successes = []
             for result in results:
                 successes += result.get()
         else:
-            successes = worker_jammed_packing(sheared_kwargs)
+            successes = worker_jammed_packing(
+                sheared_kwargs,
+                "Shear {}".format(shear))
 
         # Check for failed (unjammed) packings and save them with packing number and current shear
         if not all(success for (_, success) in successes):
@@ -182,10 +201,10 @@ if __name__ == "__main__":
 
     # Check for unjammed packings
     if len(unjammed_packings) != 0:
-        print("\n{} packing(s) unjammed:".format(len(unjammed_packings)))
+        logging.warning("{} packing(s) unjammed:".format(len(unjammed_packings)))
 
         for packing, shear in unjammed_packings:
-            print("Packing {} unjammed at shear {}".format(packing, shear))
+            logging.warning("Packing {} unjammed at shear {}".format(packing, shear))
 
     if args.njobs > 1:
         mypool.close()
