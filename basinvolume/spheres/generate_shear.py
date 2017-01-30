@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # General arguments
     parser.add_argument("-s", "--step", type=float, help="Size of shearing steps. "
                         "Default: 0.001", default=0.001)
-    parser.add_argument("-f", "--final_shear", type=float, help="Final shear. Default: 1.0", default=1.)
+    parser.add_argument("-f", "--final-shear", type=float, help="Final shear. Default: 1.0", default=1.)
     parser.add_argument("--cell", action='store_true', help="Use cell lists. "
                         "Default: False", default=False)
     parser.add_argument("--npackings", type=int, help="Number of packings to produce. "
@@ -43,15 +43,15 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--nparticles", type=int, help="Number of particles. "
                         "Default: 32", default=32)
     parser.add_argument("-d", "--boxdim", type=int, help="Box dimensions. Default: 2", default=2)
-    parser.add_argument("--input_packings", type=str, help="Use precalculated "
+    parser.add_argument("--input-packings", type=str, help="Use precalculated "
                         "loose packings from directory.")
-    parser.add_argument("--input_jammed", type=str, help="Use precalculated jammed "
+    parser.add_argument("--input-jammed", type=str, help="Use precalculated jammed "
                         "packings from directory.")
     parser.add_argument("-j", "--njobs", type=int, help="Number of jobs to run in parallel. "
                         "Default: 1 (serial)", default=1)
 
     # Arguments for generating packings
-    parser.add_argument("-phs", "--density_hs", type=float, help="Target hard sphere packing fraction. "
+    parser.add_argument("-phs", "--density-hs", type=float, help="Target hard sphere packing fraction. "
                         "Default: Calculated from soft sphere packing fraction by phs = pss * 0.7/0.88",
                         default=None)
     parser.add_argument("--rmean", type=float, help="Mean particle radius. Default: 1.0",
@@ -63,16 +63,16 @@ if __name__ == "__main__":
                         default=1e9)
     parser.add_argument("--dpath", type=str, help="Path to xy(z)d file from which to import diameters. "
                         "Default: None", default=None)
-    parser.add_argument("--packing_moveall", action='store_true', help="Move all "
+    parser.add_argument("--packing-moveall", action='store_true', help="Move all "
                         "particles at each hard sphere fluid MC step. Default: False",
                         default=False)
-    parser.add_argument("--packing_method", type=str, help="Protocol for generating packings. Default: "
+    parser.add_argument("--packing-method", type=str, help="Protocol for generating packings. Default: "
                         "'quench'", default="quench")
 
     # Arguments for generating jammed packings
     parser.add_argument("-pss", "--density_ss", type=float, help="Target soft sphere packing fraction. "
                         "Default: 0.85", default=0.85)
-    parser.add_argument("--min_tol", type=float, help="RMS tolerance of the minimizer. Default: 1e-9",
+    parser.add_argument("--min-tol", type=float, help="RMS tolerance of the minimizer. Default: 1e-9",
                         default=1e-9)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                         "used for quenching. Options: 'cg', 'fire'. Default: 'fire'",

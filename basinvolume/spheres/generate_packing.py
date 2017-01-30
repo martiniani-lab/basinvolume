@@ -772,7 +772,7 @@ if __name__ == "__main__":
     parser.add_argument("--distance-method", type=str, help="Define distance measurement method, "
                         "e.g. 'periodic' or 'lees-edwards'. Default: 'periodic'", default='periodic')
     parser.add_argument("--shear", type=float, help="Amount of shear for Lees-Edwards boundary conditions.", default=0.)
-    parser.add_argument("--precalc_config", type=str, help="Take a precalculated hsf_niter and "
+    parser.add_argument("--precalc-config", type=str, help="Take a precalculated hsf_niter and "
                         "hsf_stepsize from this config-file.", default=None)
     args = parser.parse_args()
 

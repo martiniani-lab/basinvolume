@@ -159,7 +159,7 @@ def worker_invsym(workspace, kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute local inversion symmetry "
                                      "for jammed packings.")
-    parser.add_argument("-d", "--workspace_dir", type=str, help="Top-level dir containing "
+    parser.add_argument("-d", "--workspace-dir", type=str, help="Top-level dir containing "
                         "the packings, e.g. 'n32_phi88_2D'.")
     parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
                         default=False)
@@ -168,7 +168,7 @@ if __name__ == "__main__":
                         "created e.g. by parallel tempering).", default=True)
     parser.add_argument("--prefix", type=str, help="Prefix for the work directory. "
                         "Default: 'explore_bv_'", default='explore_bv_')
-    parser.add_argument("--input_dir", type=str, help="Directory containing the "
+    parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
     args = parser.parse_args()
 

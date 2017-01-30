@@ -290,9 +290,9 @@ class AnalyseShear:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyse a shearing process.")
-    parser.add_argument("--input_dir", type=str, help="Directory containing the "
+    parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "shearing process. Default: Current directory", default=".")
-    parser.add_argument("--output_dir", type=str, help="Directory for saving the analyses. "
+    parser.add_argument("--output-dir", type=str, help="Directory for saving the analyses. "
                         "Default: 'shear_analysis'", default='shear_analysis')
     parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
                         default=False)
@@ -309,15 +309,15 @@ if __name__ == "__main__":
     parser.add_argument("-z", "--neighbours", action='store_true',
                         help="Calculate the static coordination numbers. Default: False",
                         default=False)
-    parser.add_argument("-zd", "--neighbours_dynamic", action='store_true',
+    parser.add_argument("-zd", "--neighbours-dynamic", action='store_true',
                         help="Calculate the dynamic coordination numbers (counts "
                         "lasting neighbours). Default: False",
                         default=False)
-    parser.add_argument("-b", "--bond_orientation_order", action='store_true',
+    parser.add_argument("-b", "--bond-orientation-order", action='store_true',
                         help="Calculate the bond orientational order. Default: False", default=False)
-    parser.add_argument("-i", "--inversion_symmetry", action='store_true',
+    parser.add_argument("-i", "--inversion-symmetry", action='store_true',
                         help="Calculate the local inversion symmetry. Default: False", default=False)
-    parser.add_argument("-p", "--pressure_tensor", action='store_true',
+    parser.add_argument("-p", "--pressure-tensor", action='store_true',
                         help="Calculate the pressure tensor (shear stress). Default: False",
                         default=False)
     parser.add_argument("-d", "--displacement", action='store_true',

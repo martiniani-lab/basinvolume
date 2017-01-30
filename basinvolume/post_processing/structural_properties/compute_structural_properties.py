@@ -22,7 +22,7 @@ if __name__ == "__main__":
                         default=False)
     parser.add_argument("-j","--ncores", type=int, help="Threads for prallel execution.", default=7)
 
-    parser.add_argument("-d", "--workspace_dir", type=str, help="Top-level dir containing "
+    parser.add_argument("-d", "--workspace-dir", type=str, help="Top-level dir containing "
                         "the packings, e.g. 'n32_phi88_2D'.")
     parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
                         default=False)
@@ -31,7 +31,7 @@ if __name__ == "__main__":
                         "created e.g. by parallel tempering).", default=True)
     parser.add_argument("--prefix", type=str, help="Prefix for the work directory. "
                         "Default: 'explore_bv_'", default='explore_bv_')
-    parser.add_argument("--input_dir", type=str, help="Directory containing the "
+    parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
 
     # bond-orientational order
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         "to find and weight neighbors.", default=False)
 
     # displacement
-    parser.add_argument("--packings_old", type=str, help="Directory containing the "
+    parser.add_argument("--packings-old", type=str, help="Directory containing the "
                         "jammed packings with the particle positions to calculate the "
                         "displacement from. Displacement calculation is turned off by default.",
                         default=None)
@@ -50,7 +50,7 @@ if __name__ == "__main__":
                         "calculation of non-affine displacements.", default=None)
 
     # neighbours
-    parser.add_argument("--restrict_neighbours", type=str, help="Prefix leading to "
+    parser.add_argument("--restrict-neighbours", type=str, help="Prefix leading to "
                         "a neighbour lists file. This string is analogous to the normal prefix. "
                         "Only neighbours in these lists are considered.",
                         default=None)

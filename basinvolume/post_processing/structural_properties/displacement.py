@@ -170,11 +170,11 @@ def worker_disp(workspace, kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compares the particle positions "
                                      "in different sets of jammed packings.")
-    parser.add_argument("packings_old", type=str, help="Directory containing the "
+    parser.add_argument("packings-old", type=str, help="Directory containing the "
                         "jammed packings with the old particle positions.")
-    parser.add_argument("packings_new", type=str, help="Directory containing the "
+    parser.add_argument("packings-new", type=str, help="Directory containing the "
                         "changed jammed packings.")
-    parser.add_argument("-d", "--workspace_dir", type=str, help="Top-level dir containing "
+    parser.add_argument("-d", "--workspace-dir", type=str, help="Top-level dir containing "
                         "the packings, e.g. 'n32_phi88_2D'.")
     parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
                         default=False)
