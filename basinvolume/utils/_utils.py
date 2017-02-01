@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
-from scipy.special import gamma, gammaln
+from scipy.special import gamma, gammaln, Delaunay
 import subprocess
 import platform
 import basinvolume
@@ -909,11 +909,10 @@ def in_hull(p, hull):
     coordinates of `M` points in `K`dimensions for which Delaunay triangulation
     will be computed
     """
-    from scipy.spatial import Delaunay
-    if not isinstance(hull,Delaunay):
+    if not isinstance(hull, Delaunay):
         hull = Delaunay(hull)
 
-    return hull.find_simplex(p)>=0
+    return hull.find_simplex(p) >= 0
 
 
 def calc_distance (coord1, coord2, bdim, distance_method, box, pot_kwargs={}):
