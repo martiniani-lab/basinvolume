@@ -21,8 +21,8 @@ protected:
     {}
 public:
     virtual ~CrossValidationCost() {}
-    /*virtual double inline get_energy(pele::Array<double> x) =0;
-    virtual double get_energy_gradient(pele::Array<double> x, pele::Array<double> grad)
+    /*virtual double inline get_energy(pele::Array<double> & x) =0;
+    virtual double get_energy_gradient(pele::Array<double> & x, pele::Array<double> & grad)
     {
         double energy = this->get_energy(x);
         this->numerical_gradient(x, grad);
@@ -39,14 +39,14 @@ public:
             : CrossValidationCost(data)
     {}
     virtual ~GaussianCrossValidationCost() {}
-    virtual double inline get_energy(pele::Array<double> x);
+    virtual double inline get_energy(pele::Array<double> & x);
 };
 
 inline double GaussianCrossValidationCost::m_nd(double x, double h2){
     return std::exp(-0.5 * x*x / h2) / std::sqrt(2 * pi * h2);
 }
 
-inline double GaussianCrossValidationCost::get_energy(pele::Array<double> x){
+inline double GaussianCrossValidationCost::get_energy(pele::Array<double> & x){
     m_h = x[0];
     double termA = this->m_nd(0.0, 2 * m_h*m_h);
     double termB = 0.0;
