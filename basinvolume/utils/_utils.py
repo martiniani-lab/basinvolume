@@ -1,7 +1,8 @@
 from __future__ import division
 import numpy as np
 import os
-from scipy.special import gamma, gammaln, Delaunay
+from scipy.special import gamma, gammaln
+from scipy.spatial import Delaunay
 import subprocess
 import platform
 import basinvolume
