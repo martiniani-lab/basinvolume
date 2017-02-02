@@ -68,7 +68,8 @@ class _Generate_Packing(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, nparticles, output_dir='packings', bdim=3, boxv=None,
-                 packing_frac=0.4, max_iter=1, use_cell_lists=False, start_iteration=0):
+                 packing_frac=0.4, max_iter=1, use_cell_lists=False, start_iteration=0,
+                 write_opengl=False):
         assert bdim==2 or bdim==3, "bdim={} not implemented".format(bdim)
         self.nparticles = nparticles
         self.output_dir = output_dir
@@ -87,6 +88,7 @@ class _Generate_Packing(object):
         self.max_iter = max_iter
         self.box_resized = False
         self.initialised = False
+        self.write_opengl = write_opengl
 
         ##constants#
         self.eps = 1. #energy unit
@@ -160,7 +162,8 @@ class _Generate_Packing(object):
         """dump configuration and opengl input to packings directory"""
         self._print_parameters()
         self._dump_configuration()
-        self._write_opengl_input()
+        if self.write_opengl:
+            self._write_opengl_input()
 
     def one_iteration(self):
         """perform one iteration"""
@@ -200,12 +203,13 @@ class HS_Generate_Packing(_Generate_Packing):
                  bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, mu=1,
                  sig=0.1, new_poly=False, hsf_stepsize=1e-3, hsf_niter_dif=1e9,
                  max_iter=10, use_cell_lists=False, single=False, seeds=None,
-                 start_iteration=0, distance_method='periodic', pot_kwargs={},
-                 precalc_config_file=None):
+                 write_opengl=False, start_iteration=0, distance_method='periodic',
+                 pot_kwargs={}, precalc_config_file=None):
         super(HS_Generate_Packing,self).__init__(nparticles, output_dir=output_dir, bdim=bdim,
                                                  boxv=boxv, packing_frac=packing_frac,
                                                  max_iter=max_iter,
-                                                 use_cell_lists=use_cell_lists, start_iteration=start_iteration)
+                                                 use_cell_lists=use_cell_lists, start_iteration=start_iteration,
+                                                 write_opengl=write_opengl)
         self.method = method
         self.new_poly = new_poly
         assert not (self.method == 'quench' and self.new_poly is True)
@@ -768,6 +772,8 @@ if __name__ == "__main__":
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
+    parser.add_argument("--write-opengl", action='store_true',
+                        help="Write input for OpenGL.", default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
     parser.add_argument("--distance-method", type=str, help="Define distance measurement method, "
                         "e.g. 'periodic' or 'lees-edwards'. Default: 'periodic'", default='periodic')
@@ -800,7 +806,8 @@ if __name__ == "__main__":
                               mu=args.rmean, sig=args.rsigma, new_poly=args.newpoly,
                               hsf_niter_dif=args.hsf_niter_dif, hsf_stepsize=args.hsfstep,
                               max_iter=args.npackings, use_cell_lists=not args.nocell,
-                              single=single, start_iteration=args.start_iter,
+                              single=single, write_opengl=args.write_opengl,
+                              start_iteration=args.start_iter,
                               distance_method=args.distance_method, pot_kwargs=pot_kwargs,
                               precalc_config_file=args.precalc_config)
     sim.run()

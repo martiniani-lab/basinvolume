@@ -77,7 +77,7 @@ class _Generate_Jammed_Packing(object):
 
     def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
                  import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
-                 minimizer='fire', logging_tag=""):
+                 minimizer='fire', logging_tag="", write_opengl=False):
         self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
@@ -91,6 +91,7 @@ class _Generate_Jammed_Packing(object):
         self.eps = 1.
         self.minimizer = minimizer
         self.logging_tag = logging_tag
+        self.write_opengl = write_opengl
 
     def _import_single_packing_config_file(self, fname):
         dname = os.path.splitext(fname)[0]
@@ -197,7 +198,8 @@ class _Generate_Jammed_Packing(object):
         """
         self._print_parameters(n)
         self._dump_configuration(n)
-        self._write_opengl_input(n)
+        if self.write_opengl:
+            self._write_opengl_input(n)
 
     def _log(self, message):
         if self.logging_tag == None or self.logging_tag == "":
@@ -253,14 +255,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
                  use_cell_lists=False, show=False, opt_pot_str='hs_wca',
-                 override_pot_kwargs=None, minimizer="fire", logging_tag=""):
+                 override_pot_kwargs=None, minimizer="fire", logging_tag="", write_opengl=False):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          packing_nrs=packing_nrs,
                                                          import_jammed=import_jammed,
                                                          outdir=outdir, minimizer=minimizer,
                                                          override_pot_kwargs=override_pot_kwargs,
-                                                         logging_tag=logging_tag)
+                                                         logging_tag=logging_tag,
+                                                         write_opengl=write_opengl)
         self.opt_pot_str = opt_pot_str
         self.use_cell_lists = use_cell_lists
         self.tol = tol
@@ -624,6 +627,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--outdir", type=str, help="Directory to save jammed packings in. "
                         "Default: 'jammed_packings'", default='jammed_packings')
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
+    parser.add_argument("--write-opengl", action='store_true',
+                        help="Write input for OpenGL.", default=False)
     parser.add_argument("-t", "--tol", type=float, help="rms tolerance of the minimizer", default=1e-9)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                         "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
@@ -656,5 +661,6 @@ if __name__ == "__main__":
                                      outdir=args.outdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
                                      opt_pot_str=args.opt_pot, minimizer=args.minimizer,
-                                     override_pot_kwargs=override_pot_kwargs)
+                                     override_pot_kwargs=override_pot_kwargs,
+                                     write_opengl=args.write_opengl)
     sim.run()
