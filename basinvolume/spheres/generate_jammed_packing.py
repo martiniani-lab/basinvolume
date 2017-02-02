@@ -339,9 +339,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         surviving_inds = range(len(self.hs_radii))
         self.ss_radii = self.hs_radii * (1. + self.sca)
-        neighbour_distancess, neighbour_indicess = \
-            find_neighbours(self.coords, self.ss_radii, self.bdim,
-                            self.boxv, self.distance_method, self.pot_kwargs)
+        neighbour_indicess, neighbour_distancess = self.potential.getNeighbours(self.coords)
         look = True
         nrattlers = 0
         origin = np.zeros(self.bdim)
