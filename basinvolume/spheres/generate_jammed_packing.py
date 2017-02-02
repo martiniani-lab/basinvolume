@@ -338,52 +338,51 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         else:
             raise NotImplementedError
 
-        surviving_inds = range(len(self.hs_radii))
+        check_again = range(len(self.hs_radii))
         self.ss_radii = self.hs_radii * (1. + self.sca)
         neighbour_indicess, neighbour_distancess = self.potential.getNeighbours(self.coords)
-        look = True
         nrattlers = 0
         if self.bdim != 2:
             origin = np.zeros(self.bdim)
-        while look:
-            total_contacts = 0
-            found_rattler = False
+        while len(check_again) > 0:
+            check_inds = list(check_again)
+            check_again = []
             if nrattlers > self.max_nrattlers:
                 logging.warning(self._log("Too many rattlers. Discarding packing."))
                 return False
-            for i, atomi in enumerate(surviving_inds):
+            for atomi in check_inds:
+                found_rattler = False
                 no_neighbors = len(neighbour_indicess[atomi])
-                total_contacts += no_neighbors
                 if no_neighbors < zmin:
                     found_rattler = True
                     logging.debug(self._log("Particle {} is not isostatic.".format(atomi)))
                 else:
-                    points = np.asarray(neighbour_distancess[atomi]).reshape((-1,self.bdim))
                     if self.bdim == 2:
-                        found_rattler = not origin_in_hull_2d(points)
+                        found_rattler = not origin_in_hull_2d(neighbour_distancess[atomi])
                     else:
+                        points = np.asarray(neighbour_distancess[atomi]).reshape((-1,self.bdim))
                         found_rattler = not in_hull(origin, points)
                     if found_rattler:
                         logging.debug(self._log("Particle {} is not in contacts' convex hull.".format(atomi)))
                 self.rattlers[atomi] = 0 if found_rattler else 1000
                 self.rattlers_draw[atomi] = float(not found_rattler)
                 if found_rattler:
-                    del surviving_inds[i]
+                    if atomi in check_again:
+                        check_again.remove(atomi)
                     for atomj in neighbour_indicess[atomi]:
+                        check_again.append(atomj)
                         i_in_j = neighbour_indicess[atomj].index(atomi)
                         del neighbour_indicess[atomj][i_in_j]
                         del neighbour_distancess[atomj][i_in_j]
                     nrattlers += 1
-                    break
-            look = True if found_rattler else False
 
         # test that number of contacts is sufficient for bulk modulus to be positive,
         # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
         # see eq 19 in arXiv:1406.1529
-        no_stable = len(surviving_inds)
+        no_stable = self.nparticles - nrattlers
+        total_contacts = sum([len(neighbour_indices) for neighbour_indices in neighbour_indicess])
         N_min = int(2*(self.bdim * (no_stable - 1) + 1))
         logging.debug(self._log("N_min: {} total_contacts: {}".format(N_min, total_contacts)))
-        assert (self.nparticles - no_stable) == nrattlers
         logging.debug(self._log("Number of rattlers: {}".format(nrattlers)))
         if total_contacts >= N_min:
             return True
