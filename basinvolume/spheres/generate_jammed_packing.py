@@ -7,8 +7,9 @@ from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
 from PyCG_DESCENT import CGDescent
-from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround
-from basinvolume.utils import volume_nball, in_hull, import_packing, find_neighbours, calc_distance
+from basinvolume.utils import trymakedir, get_git_version, get_python_version
+from basinvolume.utils import volume_nball, import_packing, find_neighbours, calc_distance
+from basinvolume.utils import get_cython_version, cround, in_hull, origin_in_hull_2d
 from basinvolume.spheres.generate_packing import read_packing_config
 import ConfigParser
 import re
@@ -342,7 +343,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         neighbour_indicess, neighbour_distancess = self.potential.getNeighbours(self.coords)
         look = True
         nrattlers = 0
-        origin = np.zeros(self.bdim)
+        if self.bdim != 2:
+            origin = np.zeros(self.bdim)
         while look:
             total_contacts = 0
             found_rattler = False
@@ -356,8 +358,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     found_rattler = True
                     logging.debug(self._log("Particle {} is not isostatic.".format(atomi)))
                 else:
-                    hull = np.asarray(neighbour_distancess[atomi]).reshape((-1,self.bdim))
-                    found_rattler = not in_hull(origin, hull)
+                    points = np.asarray(neighbour_distancess[atomi]).reshape((-1,self.bdim))
+                    if self.bdim == 2:
+                        found_rattler = not origin_in_hull_2d(points)
+                    else:
+                        found_rattler = not in_hull(origin, points)
                     if found_rattler:
                         logging.debug(self._log("Particle {} is not in contacts' convex hull.".format(atomi)))
                 self.rattlers[atomi] = 0 if found_rattler else 1000

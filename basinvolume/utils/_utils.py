@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import os
 from scipy.special import gamma, gammaln
-from scipy.spatial import Delaunay
+from scipy.spatial import Delaunay, ConvexHull
 import subprocess
 import platform
 import basinvolume
@@ -903,7 +903,7 @@ class BasicPlot(object):
 def in_hull(p, hull):
     """
     http://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl
-    Test if points in `p` are in `hull`
+    Test if points in `p` are in (the convex hull defined by) `hull`
 
     `p` should be a `NxK` coordinates of `N` points in `K` dimensions
     `hull` is either a scipy.spatial.Delaunay object or the `MxK` array of the
@@ -914,6 +914,68 @@ def in_hull(p, hull):
         hull = Delaunay(hull)
 
     return hull.find_simplex(p) >= 0
+
+def is_left(coords, index1, index2, point):
+    """
+    Checks if a point is left of the line defined by the 2d vertices at
+    coords[index1] and coords[index2]
+    Returns:
+    > 0 for point left of the line
+    = 0 for point on the line
+    < 0 for point right of the line
+    """
+    return (coords[index2][0] - coords[index1][0]) * (point[1] - coords[index1][1]) \
+           - (point[0] - coords[index1][0]) * (coords[index2][1] - coords[index1][1])
+
+def origin_is_left(coords, index1, index2):
+    """
+    Checks if the origin is left of the line defined by the 2d vertices at
+    coords[index1] and coords[index2]
+    Returns:
+    > 0 for origin left of the line
+    = 0 for origin on the line
+    < 0 for origin right of the line
+    """
+    return  coords[index1][0] * coords[index2][1] - coords[index2][0] * coords[index1][1]
+
+def in_hull_2d(point, vertices):
+    """
+    Checks if a point is inside the convex hull defined by the 2d vertices.
+    """
+    hull = ConvexHull(vertices)
+    for pnt in xrange(len(vertices)): # traverse hull vertices counter-clockwise
+        next_pnt = pnt + 1 if pnt + 1 < len(vertices) else 0
+        if is_left(vertices, hull.vertices[pnt], hull.vertices[next_pnt], point) < 0:
+            return False # Point right of line
+    return True
+
+
+def sort_circle(vertices):
+    """
+    Sorts vertices by polar angle
+    """
+    tans = [y / x for [x, y] in vertices]
+    rights = {}
+    lefts = {}
+    for i, coord in enumerate(vertices):
+        if coord[0] >= 0:
+            rights[tans[i]] = i
+        else:
+            lefts[tans[i]] = i
+    return [vertices[rights[tan]] for tan in sorted(rights.iterkeys())] \
+           + [vertices[lefts[tan]] for tan in sorted(lefts.iterkeys())]
+
+
+def origin_in_hull_2d(vertices):
+    """
+    Checks if the origin is inside the convex hull defined by the 2d vertices.
+    """
+    sorted_vertices = sort_circle(vertices)
+    for pnt in xrange(len(sorted_vertices)): # traverse hull vertices counter-clockwise
+        next_pnt = pnt + 1 if pnt + 1 < len(sorted_vertices) else 0
+        if origin_is_left(sorted_vertices, pnt, next_pnt) < 0:
+            return False # Origin right of line
+    return True
 
 
 def calc_distance (coord1, coord2, bdim, distance_method, box, pot_kwargs={}):
