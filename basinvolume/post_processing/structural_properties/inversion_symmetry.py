@@ -5,6 +5,7 @@ import ast
 import traceback
 import numpy as np
 import argparse
+import logging
 from pele.potentials import HS_WCA
 from basinvolume.utils import trymakedir, find_neighbours
 from _structural_analysis import StructuralAnalysis
@@ -118,8 +119,8 @@ class InversionSymmetry(StructuralAnalysis):
 
                     if compute or self.force:
                         if self.verbose:
-                            print("Calculating local inversion symmetry: {}".format(self.prefix +
-                                                                                    str(dname)))
+                            logging.info("Calculating local inversion symmetry: {}"
+                                         .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute distances to neighbours
@@ -153,7 +154,7 @@ def worker_invsym(workspace, kwargs):
         invsym = InversionSymmetry(workspace, **kwargs)
         invsym.run()
     except:
-        print('worker_invsym worker: %s' % (traceback.format_exc()))
+        logging.error('worker_invsym worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":
@@ -171,6 +172,10 @@ if __name__ == "__main__":
     parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
     args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
 
     # Set up arguments
     kwargs = dict(force=args.force, existing_only=args.nonex,

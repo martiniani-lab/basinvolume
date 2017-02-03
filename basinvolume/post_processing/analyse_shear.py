@@ -6,6 +6,7 @@ import sys
 import shutil
 import pandas as pd
 import multiprocessing as mp
+import logging
 from basinvolume.post_processing.structural_properties \
     import BondOrientationalOrder,  PressureTensor, Neighbours, InversionSymmetry, \
            Displacement, worker_boo, worker_disp, worker_invsym, worker_neighbours, \
@@ -39,8 +40,8 @@ class AnalyseShear:
         for shear in np.arange(self.start, self.stop + 0.5 * self.step, self.step):
             shear_dir = "shear_{}".format(shear)
             if not os.path.isdir(os.path.join(self.input_dir, shear_dir)):
-                print("The shear directory {} does not exist. Stopping analysis."
-                      .format(shear_dir))
+                logging.error("The shear directory {} does not exist. Stopping analysis."
+                              .format(shear_dir))
                 sys.exit(1)
             self.calc_parameters(shear, shear_dir)
             self.collect_files(shear, shear_dir)
@@ -78,7 +79,7 @@ class AnalyseShear:
                     os.mkdir(param_path)
 
     def calc_parameters(self, shear, input_relpath):
-        print("Calculating parameters for shear={}".format(shear))
+        logging.info("Calculating parameters for shear={}".format(shear))
 
         if os.path.isabs(self.input_dir):
             workspace_dir = self.input_dir
@@ -144,7 +145,7 @@ class AnalyseShear:
                 prop[0](workspace_dir, prop[1])
 
     def collect_files(self, shear, input_relpath):
-        print("Collecting files for shear={}".format(shear))
+        logging.info("Collecting files for shear={}".format(shear))
 
         # Get the input directory paths
         input_files = os.listdir(os.path.join(self.input_dir, input_relpath))
@@ -178,7 +179,7 @@ class AnalyseShear:
                                                  "shear_{}".format(shear)))
 
     def collect_parameters(self):
-        print("Collecting parameters")
+        logging.info("Collecting parameters")
 
         # Get the output directory paths
         output_files = os.listdir(self.output_dir)
@@ -323,6 +324,10 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--displacement", action='store_true',
                         help="Calculate the displacement of the particles. Default: False", default=False)
     args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
 
     if args.substep is None:
         substep = args.step

@@ -5,6 +5,7 @@ import ast
 import traceback
 import numpy as np
 import argparse
+import logging
 from basinvolume.utils import trymakedir, calc_distance
 from _structural_analysis import StructuralAnalysis
 
@@ -89,7 +90,8 @@ class Displacement(StructuralAnalysis):
 
                     if compute or self.force:
                         if self.verbose:
-                            print("Calculating displacements: {}".format(self.prefix + str(dname)))
+                            logging.info("Calculating displacements: {}"
+                                         .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates
@@ -164,7 +166,7 @@ def worker_disp(workspace, kwargs):
         disp = Displacement(workspace, **kwargs)
         disp.run()
     except:
-        print('worker_disp worker: %s' % (traceback.format_exc()))
+        logging.error('worker_disp worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":
@@ -189,6 +191,10 @@ if __name__ == "__main__":
                         "the two packings. Setting this triggers the additional "
                         "calculation of non-affine displacements.", default=None)
     args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
 
     # Set up arguments
     kwargs = dict(packings_old=args.packings_old, jammed_packings_dir=args.packings_new,

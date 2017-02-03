@@ -3,6 +3,7 @@ import numpy as np
 import os
 import argparse
 import multiprocessing as mp
+import logging
 from bond_orientational_order import worker_boo
 from displacement import worker_disp
 from inversion_symmetry import worker_invsym
@@ -61,6 +62,10 @@ if __name__ == "__main__":
     parser.add_argument("--opt-pot", type=str, help="Optimizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
 
     ncores = args.ncores
     kwargs = dict(verbose=True, force=args.force, existing_only=args.nonex,

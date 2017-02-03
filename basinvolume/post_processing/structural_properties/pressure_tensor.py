@@ -3,6 +3,7 @@ import numpy as np
 import os
 import traceback
 import ConfigParser
+import logging
 from basinvolume.utils import trymakedir
 from pele.utils._pressure_tensor import pressure_tensor
 from pele.potentials import HS_WCA, InversePowerStillingerCut
@@ -60,7 +61,8 @@ class PressureTensor(StructuralAnalysis):
                         compute = True
                     if compute or self.force:
                         if self.verbose:
-                            print("Calculating pressure: {}".format(self.prefix + str(dname)))
+                            logging.info("Calculating pressure: {}"
+                                         .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
                         self.coords, self.hs_radii, self.ss_radii, self.rattlers = self._import_packing_configuration(fname)
                         potential = self.get_potential()
@@ -107,7 +109,7 @@ def worker_pressure(workspace, kwargs):
         pressure = PressureTensor(workspace, **kwargs)
         pressure.run()
     except:
-        print('worker_pressure worker: %s' % (traceback.format_exc()))
+        logging.error('worker_pressure worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":
@@ -127,6 +129,10 @@ if __name__ == "__main__":
     parser.add_argument("--opt-pot", type=str, help="Optimizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
 
     kwargs = dict(force=args.force, existing_only=args.nonex,
                   jammed_packings_dir=args.input_dir, prefix=args.prefix,

@@ -4,6 +4,7 @@ import numpy as np
 import os
 import traceback
 import ConfigParser
+import logging
 from scipy.special import sph_harm
 from basinvolume.utils import trymakedir, find_neighbours
 from basinvolume.post_processing.simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
@@ -22,7 +23,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                                                     verbose=verbose)
         self.solid_angle_weighted = solid_angle_weighted
         if self.verbose:
-            print("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
+            logging.debug("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
 
     @staticmethod
     def read(boo_fname):
@@ -65,8 +66,8 @@ class BondOrientationalOrder(StructuralAnalysis):
                         compute = True
                     if compute or self.force:
                         if self.verbose:
-                            print("Calculating bond orientational order: {}"
-                                  .format(self.prefix + str(dname)))
+                            logging.info("Calculating bond orientational order: {}"
+                                         .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
                         coords, hs_radii, ss_radii, rattlers = \
                             self._import_packing_configuration(fname)
@@ -231,7 +232,7 @@ def worker_boo(workspace, kwargs):
         boo = BondOrientationalOrder(workspace, **kwargs)
         boo.run_all()
     except:
-        print('worker_boo worker: %s' % (traceback.format_exc()))
+        logging.error('worker_boo worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":
@@ -251,6 +252,10 @@ if __name__ == "__main__":
     parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
     args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
 
     kwargs = dict(force=args.force, existing_only=args.nonex,
                   jammed_packings_dir=args.input_dir, prefix=args.prefix)

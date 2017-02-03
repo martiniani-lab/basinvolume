@@ -5,6 +5,7 @@ import ast
 import traceback
 import numpy as np
 import argparse
+import logging
 from basinvolume.utils import trymakedir, find_neighbours
 from _structural_analysis import StructuralAnalysis
 
@@ -62,10 +63,11 @@ class Neighbours(StructuralAnalysis):
                     if compute or self.force:
                         if self.verbose:
                             if self.restrict_neighbours is None:
-                                print("Calculating neighbours: {}".format(self.prefix + str(dname)))
+                                logging.info("Calculating neighbours: {}"
+                                             .format(self.prefix + str(dname)))
                             else:
-                                print("Calculating restricted neighbours: {}".format(self.prefix +
-                                                                                     str(dname)))
+                                logging.info("Calculating restricted neighbours: {}"
+                                             .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute neighbours
@@ -109,7 +111,7 @@ def worker_neighbours(workspace, kwargs):
         neighbours = Neighbours(workspace, **kwargs)
         neighbours.run()
     except:
-        print('worker_neighbours worker: %s' % (traceback.format_exc()))
+        logging.error('worker_neighbours worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":
@@ -132,6 +134,10 @@ if __name__ == "__main__":
     parser.add_argument("--cutoff", type=float, help="Multiple of particle radii "
                         "defining the maximum neighbour distance. Default: 1", default=1.)
     args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
 
     # Set up arguments
     kwargs = dict(force=args.force, existing_only=args.nonex,
