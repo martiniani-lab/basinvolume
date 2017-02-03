@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--step", type=float, help="Size of shearing steps. "
                         "Default: 0.001", default=0.001)
     parser.add_argument("-f", "--final-shear", type=float, help="Final shear. Default: 1.0", default=1.)
-    parser.add_argument("--cell", action='store_true', help="Use cell lists. "
+    parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
                         "Default: False", default=False)
     parser.add_argument("--npackings", type=int, help="Number of packings to produce. "
                         "Default: 1", default=1)
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                               hs_radii=hs_radii, mu=args.rmean, sig=args.rsigma,
                               new_poly=False, hsf_niter_dif=args.hsf_niter_dif,
                               max_iter=args.npackings,
-                              use_cell_lists=args.cell,
+                              use_cell_lists=not args.nocell,
                               single=not args.packing_moveall,
                               distance_method='lees-edwards',
                               pot_kwargs=pot_kwargs)
@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     # Generate jammed packings at no shear
     jammed_kwargs = dict(target_packing_frac=args.density_ss,
-                         tol=args.min_tol, use_cell_lists=args.cell,
+                         tol=args.min_tol, use_cell_lists=not args.nocell,
                          show=False, opt_pot_str='hs_wca',
                          minimizer=args.minimizer)
     if args.input_jammed is not None:
