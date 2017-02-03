@@ -97,14 +97,14 @@ class InversionSymmetry(StructuralAnalysis):
     def run(self):
         for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzdr' in fname or 'xydr' in fname:
-                dname = os.path.splitext(fname)[0]
+                packing_name = os.path.splitext(fname)[0]
 
                 # Get configuration
-                configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
+                configpath = os.path.join(self.jammed_packings_dir, packing_name + '.config')
                 self._import_packing_config_file(configpath)
 
                 # Check if the work directory exists
-                base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
+                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
 
@@ -120,7 +120,7 @@ class InversionSymmetry(StructuralAnalysis):
                     if compute or self.force:
                         if self.verbose:
                             logging.info("Calculating local inversion symmetry: {}"
-                                         .format(self.prefix + str(dname)))
+                                         .format(self.prefix + str(packing_name)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates

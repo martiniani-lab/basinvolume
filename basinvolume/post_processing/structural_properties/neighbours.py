@@ -41,14 +41,14 @@ class Neighbours(StructuralAnalysis):
     def run(self):
         for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzdr' in fname or 'xydr' in fname:
-                dname = os.path.splitext(fname)[0]
+                packing_name = os.path.splitext(fname)[0]
 
                 # Get configuration
-                configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
+                configpath = os.path.join(self.jammed_packings_dir, packing_name + '.config')
                 self._import_packing_config_file(configpath)
 
                 # Check if the work directory exists
-                base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
+                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
 
@@ -65,10 +65,10 @@ class Neighbours(StructuralAnalysis):
                         if self.verbose:
                             if self.restrict_neighbours is None:
                                 logging.info("Calculating neighbours: {}"
-                                             .format(self.prefix + str(dname)))
+                                             .format(self.prefix + str(packing_name)))
                             else:
                                 logging.info("Calculating restricted neighbours: {}"
-                                             .format(self.prefix + str(dname)))
+                                             .format(self.prefix + str(packing_name)))
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute neighbours
@@ -96,7 +96,7 @@ class Neighbours(StructuralAnalysis):
                         if self.restrict_neighbours is not None:
                             # Get conditional neighbour lists
                             base_restrict_path = os.path.join(self.workspace,
-                                                              self.restrict_neighbours + str(dname))
+                                                              self.restrict_neighbours + str(packing_name))
                             restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
                             restrict_path = os.path.join(restrict_dir, self.analysis_fname)
                             if not os.path.isfile(restrict_path):

@@ -51,9 +51,9 @@ class BondOrientationalOrder(StructuralAnalysis):
         for fname in os.listdir(self.jammed_packings_dir):
             if 'xyzd' in fname or 'xyd' in fname:
                 compute = False
-                dname = os.path.splitext(fname)[0]
-                base_directory_path = os.path.join(self.workspace, self.prefix + str(dname))
-                configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
+                packing_name = os.path.splitext(fname)[0]
+                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
+                configpath = os.path.join(self.jammed_packings_dir, packing_name + '.config')
                 self._import_packing_config_file(configpath)
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
@@ -69,7 +69,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                     if compute or self.force:
                         if self.verbose:
                             logging.info("Calculating bond orientational order: {}"
-                                         .format(self.prefix + str(dname)))
+                                         .format(self.prefix + str(packing_name)))
                         trymakedir(analysis_dir_path)
                         coords, hs_radii, ss_radii, stable_atoms = \
                             self._import_packing_configuration(fname)
