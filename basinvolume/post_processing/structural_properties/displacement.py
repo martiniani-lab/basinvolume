@@ -13,11 +13,12 @@ from _structural_analysis import StructuralAnalysis
 class Displacement(StructuralAnalysis):
     def __init__(self, workspace, packings_old, jammed_packings_dir,
                  analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_', verbose=True, shear=None, sub_centre_mass=True):
+                 prefix='explore_bv_', verbose=True, shear=None, sub_centre_mass=True,
+                 use_cell_lists=True):
         super(Displacement, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix,
-                                                verbose=verbose)
+                                                verbose=verbose, use_cell_lists=use_cell_lists)
         if not os.path.isabs(packings_old):
             packings_old = os.path.join(self.workspace, packings_old)
         self.packings_old = packings_old

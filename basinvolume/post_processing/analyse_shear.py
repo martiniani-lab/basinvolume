@@ -15,7 +15,7 @@ from basinvolume.post_processing.structural_properties \
 
 class AnalyseShear:
     def __init__(self, input_dir=".", output_dir="shear_analysis", force=False,
-                 start=0., step=0.01, substep=0.001, stop=1., njobs=1,
+                 start=0., step=0.01, substep=0.001, stop=1., njobs=1, use_cell_lists=True,
                  calc_neighbours=False, calc_neighbours_dyn=False, calc_boo=False,
                  calc_invsym=False, calc_pressure=False, calc_displacement=False):
         self.input_dir = input_dir
@@ -26,6 +26,7 @@ class AnalyseShear:
         self.substep = substep
         self.stop = stop
         self.njobs = njobs
+        self.use_cell_lists = use_cell_lists
         self.calc_neighbours = calc_neighbours
         self.calc_neighbours_dyn = calc_neighbours_dyn
         self.calc_boo = calc_boo
@@ -87,7 +88,8 @@ class AnalyseShear:
             workspace_dir = os.path.abspath(self.input_dir)
         kwargs = dict(verbose=False, force=self.force, existing_only=False,
                       jammed_packings_dir=input_relpath,
-                      prefix=os.path.join(input_relpath, "explore_bv_"))
+                      prefix=os.path.join(input_relpath, "explore_bv_"),
+                      use_cell_lists=self.use_cell_lists)
         structural_props = []
 
         # Bond orientational order
@@ -307,6 +309,8 @@ if __name__ == "__main__":
                         default=1.)
     parser.add_argument("-j", "--njobs", type=int, help="Number of jobs to run in parallel. "
                         "Default: 1 (serial)", default=1)
+    parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
+                        "Default: False", default=False)
     parser.add_argument("-z", "--neighbours", action='store_true',
                         help="Calculate the static coordination numbers. Default: False",
                         default=False)
@@ -337,6 +341,7 @@ if __name__ == "__main__":
     analyse_shear = AnalyseShear(input_dir=args.input_dir, output_dir=args.output_dir,
                                  force=args.force, start=args.start, step=args.step,
                                  substep=substep, stop=args.stop, njobs=args.njobs,
+                                 use_cell_lists=not args.nocell,
                                  calc_neighbours=args.neighbours,
                                  calc_neighbours_dyn=args.neighbours_dynamic,
                                  calc_boo=args.bond_orientation_order,

@@ -34,6 +34,8 @@ if __name__ == "__main__":
                         "Default: 'explore_bv_'", default='explore_bv_')
     parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
+    parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
+                        "Default: False", default=False)
 
     # bond-orientational order
     parser.add_argument("--solid", action="store_true", help="Use solid angle method "
@@ -69,7 +71,8 @@ if __name__ == "__main__":
 
     ncores = args.ncores
     kwargs = dict(verbose=True, force=args.force, existing_only=args.nonex,
-                  jammed_packings_dir=args.input_dir, prefix=args.prefix)
+                  jammed_packings_dir=args.input_dir, prefix=args.prefix,
+                  use_cell_lists=not args.nocell)
 
     structural_props = []
 

@@ -15,11 +15,11 @@ class PressureTensor(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True, opt_pot_str='hs_wca',
-                 prefix='explore_bv_', verbose=True):
+                 prefix='explore_bv_', verbose=True, use_cell_lists=True):
         super(PressureTensor,self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                             analysis_dir=analysis_dir, force=force,
                                             existing_only=existing_only, prefix=prefix,
-                                            verbose=verbose)
+                                            verbose=verbose, use_cell_lists=use_cell_lists)
         self.opt_pot_str = opt_pot_str
 
     @staticmethod

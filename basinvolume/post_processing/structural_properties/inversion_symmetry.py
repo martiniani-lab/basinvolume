@@ -7,7 +7,7 @@ import numpy as np
 import argparse
 import logging
 from pele.potentials import HS_WCA
-from basinvolume.utils import trymakedir, find_neighbours
+from basinvolume.utils import trymakedir
 from _structural_analysis import StructuralAnalysis
 
 
@@ -15,11 +15,11 @@ class InversionSymmetry(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_', verbose=True):
+                 prefix='explore_bv_', verbose=True, use_cell_lists=True):
         super(InversionSymmetry, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix,
-                                                verbose=verbose)
+                                                verbose=verbose, use_cell_lists=use_cell_lists)
 
     # Returns the affine force of a pair of particles
     # Indices:
@@ -123,17 +123,26 @@ class InversionSymmetry(StructuralAnalysis):
                                          .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
 
-                        # Read coordinates and compute distances to neighbours
+                        # Read coordinates
                         self.coords, self.hs_radii, self.ss_radii, _ \
                             = self._import_packing_configuration(fname)
-                        neighbour_distancess, neighbour_lists \
-                            = find_neighbours(self.coords, self.ss_radii, self.bdim, self.boxv,
-                                              self.distance_method, self.pot_kwargs)
 
                         # Create potential
-                        self.potential = HS_WCA(eps=self.eps, sca=self.sca,
-                                                radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim,
-                                                distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
+                        if self.use_cell_lists:
+                            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
+                                                    radii=self.hs_radii, boxvec=self.boxv,
+                                                    reference_coords=self.coords, ndim=self.bdim,
+                                                    ncellx_scale=1.0, distance_method=self.distance_method,
+                                                    pot_kwargs=self.pot_kwargs)
+                        else:
+                            self.potential = HS_WCA(eps=self.eps, sca=self.sca, radii=self.hs_radii,
+                                                    boxvec=self.boxv, ndim=self.bdim,
+                                                    distance_method=self.distance_method,
+                                                    pot_kwargs=self.pot_kwargs)
+
+                        # Compute distances to neighbours
+                        neighbour_lists, neighbour_distancess \
+                            = self.potential.getNeighbours(self.coords)
 
                         # Compute local inversion symmetry
                         affine_forces_sum = self._sum_affine_forces(neighbour_distancess,
@@ -171,6 +180,8 @@ if __name__ == "__main__":
                         "Default: 'explore_bv_'", default='explore_bv_')
     parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
+    parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
+                        "Default: False", default=False)
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -179,7 +190,8 @@ if __name__ == "__main__":
 
     # Set up arguments
     kwargs = dict(force=args.force, existing_only=args.nonex,
-                  jammed_packings_dir=args.input_dir, prefix=args.prefix)
+                  jammed_packings_dir=args.input_dir, prefix=args.prefix,
+                  use_cell_lists=not args.nocell)
 
     # Create workspace directory name
     if not args.workspace_dir:

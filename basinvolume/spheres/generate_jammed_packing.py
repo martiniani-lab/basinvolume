@@ -8,7 +8,7 @@ from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
 from PyCG_DESCENT import CGDescent
 from basinvolume.utils import trymakedir, get_git_version, get_python_version
-from basinvolume.utils import volume_nball, import_packing, find_neighbours, calc_distance
+from basinvolume.utils import volume_nball, import_packing, calc_distance
 from basinvolume.utils import get_cython_version, cround, in_hull, origin_in_hull_2d
 from basinvolume.spheres.generate_packing import read_packing_config
 import ConfigParser

@@ -6,21 +6,23 @@ import traceback
 import ConfigParser
 import logging
 from scipy.special import sph_harm
-from basinvolume.utils import trymakedir, find_neighbours
+from basinvolume.utils import trymakedir
 from basinvolume.post_processing.simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
 from _structural_analysis import StructuralAnalysis
+from pele.potentials import HS_WCA
 
 
 class BondOrientationalOrder(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 solid_angle_weighted=False, prefix='explore_bv_', verbose=True):
+                 solid_angle_weighted=False, prefix='explore_bv_', verbose=True,
+                 use_cell_lists=True):
         super(BondOrientationalOrder,self).__init__(workspace,
                                                     jammed_packings_dir=jammed_packings_dir,
                                                     analysis_dir=analysis_dir, force=force,
                                                     existing_only=existing_only, prefix=prefix,
-                                                    verbose=verbose)
+                                                    verbose=verbose, use_cell_lists=use_cell_lists)
         self.solid_angle_weighted = solid_angle_weighted
         if self.verbose:
             logging.debug("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
@@ -71,6 +73,17 @@ class BondOrientationalOrder(StructuralAnalysis):
                         trymakedir(analysis_dir_path)
                         coords, hs_radii, ss_radii, stable_atoms = \
                             self._import_packing_configuration(fname)
+                        if self.use_cell_lists:
+                            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
+                                                    radii=hs_radii, boxvec=self.boxv,
+                                                    reference_coords=coords, ndim=self.bdim,
+                                                    ncellx_scale=1.0, distance_method=self.distance_method,
+                                                    pot_kwargs=self.pot_kwargs)
+                        else:
+                            self.potential = HS_WCA(eps=self.eps, sca=self.sca, radii=hs_radii,
+                                                    boxvec=self.boxv, ndim=self.bdim,
+                                                    distance_method=self.distance_method,
+                                                    pot_kwargs=self.pot_kwargs)
                         boo_list, z_list = self.bond_orientation_order_all(coords,
                                                                            ss_radii,
                                                                            stable_atoms,
@@ -181,10 +194,8 @@ class BondOrientationalOrder(StructuralAnalysis):
                 weights_all[i].append(sann.weight[j])
         return nnatoms_list, weights_all
 
-    def bond_orientation_order_single(self, coords, ss_radii, rattlers, atom_index, ndim=3, deg=6):
-        nnatoms_list, _ = find_neighbours(coords, ss_radii, self.bdim, self.boxv,
-                                       self.distance_method, self.pot_kwargs,
-                                       include=[r == 1 for r in rattlers])
+    def bond_orientation_order_single(self, coords, ss_radii, stable_atoms, atom_index, ndim=3, deg=6):
+        _, nnatoms_list = self.potential.getNeighbours(coords, include_atoms=stable_atoms)
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
 
@@ -197,9 +208,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
-        contacts_list, _ = find_neighbours(coords, ss_radii, self.bdim, self.boxv,
-                                        self.distance_method, self.pot_kwargs,
-                                        include=[r == 1 for r in rattlers])
+        _, contacts_list = self.potential.getNeighbours(coords, include_atoms=stable_atoms)
         if not self.solid_angle_weighted:
             nnatoms_list = contacts_list
         else:
@@ -251,6 +260,8 @@ if __name__ == "__main__":
                         "Default: 'explore_bv_'", default='explore_bv_')
     parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
+    parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
+                        "Default: False", default=False)
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -258,7 +269,8 @@ if __name__ == "__main__":
                         level=logging.INFO)
 
     kwargs = dict(force=args.force, existing_only=args.nonex,
-                  jammed_packings_dir=args.input_dir, prefix=args.prefix)
+                  jammed_packings_dir=args.input_dir, prefix=args.prefix,
+                  use_cell_lists=not args.nocell)
     if args.solid:
         kwargs.update(solid_angle_weighted=args.solid)
 

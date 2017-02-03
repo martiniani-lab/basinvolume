@@ -6,8 +6,9 @@ import traceback
 import numpy as np
 import argparse
 import logging
-from basinvolume.utils import trymakedir, find_neighbours
+from basinvolume.utils import trymakedir
 from _structural_analysis import StructuralAnalysis
+from pele.potentials import HS_WCA
 
 
 class Neighbours(StructuralAnalysis):
@@ -15,11 +16,11 @@ class Neighbours(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', analysis_fname='neighbours', force=False,
                  existing_only=True, prefix='explore_bv_', verbose=True,
-                 restrict_neighbours=None, cutoff=1.):
+                 restrict_neighbours=None, cutoff=1., use_cell_lists=True):
         super(Neighbours, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix,
-                                                verbose=verbose)
+                                                verbose=verbose, use_cell_lists=use_cell_lists)
         self.cutoff = cutoff
         self.restrict_neighbours = restrict_neighbours
         self.analysis_fname = analysis_fname
@@ -71,10 +72,25 @@ class Neighbours(StructuralAnalysis):
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute neighbours
-                        self.coords, _, self.ss_radii, _ = self._import_packing_configuration(fname)
-                        _, neighbour_lists = find_neighbours(self.coords, self.ss_radii, self.bdim,
-                                                              self.boxv, self.distance_method,
-                                                              self.pot_kwargs, cutoff_factor=self.cutoff)
+                        self.coords, self.hs_radii, self.ss_radii, _ = \
+                            self._import_packing_configuration(fname)
+
+                        # Initialise potential
+                        if self.use_cell_lists:
+                            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
+                                                    radii=self.hs_radii, boxvec=self.boxv,
+                                                    reference_coords=self.coords, ndim=self.bdim,
+                                                    ncellx_scale=1.0, distance_method=self.distance_method,
+                                                    pot_kwargs=self.pot_kwargs)
+                        else:
+                            self.potential = HS_WCA(eps=self.eps, sca=self.sca, radii=self.hs_radii,
+                                                    boxvec=self.boxv, ndim=self.bdim,
+                                                    distance_method=self.distance_method,
+                                                    pot_kwargs=self.pot_kwargs)
+
+                        # Compute neighbours
+                        neighbour_lists, _ = self.potential.getNeighbours(
+                            self.coords, cutoff_factor=self.cutoff)
 
                         # Filter neighbours
                         if self.restrict_neighbours is not None:
@@ -133,6 +149,8 @@ if __name__ == "__main__":
                         default=None)
     parser.add_argument("--cutoff", type=float, help="Multiple of particle radii "
                         "defining the maximum neighbour distance. Default: 1", default=1.)
+    parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
+                        "Default: False", default=False)
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -141,8 +159,9 @@ if __name__ == "__main__":
 
     # Set up arguments
     kwargs = dict(force=args.force, existing_only=args.nonex,
-                  jammed_packings_dir=args.input_dir, prefix=args.prefix, cutoff=args.cutoff,
-                  restrict_neighbours=args.restrict_neighbours)
+                  jammed_packings_dir=args.input_dir, prefix=args.prefix,
+                  cutoff=args.cutoff, restrict_neighbours=args.restrict_neighbours,
+                  use_cell_lists=not args.nocell)
 
     # Create workspace directory name
     if not args.workspace_dir:
