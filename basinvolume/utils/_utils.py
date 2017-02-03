@@ -189,7 +189,7 @@ def read_xyzdf(fname):
 def read_xydr(fname, etol=1.0, bdim=2):
     coords = []
     radii = []
-    not_rattlers = []
+    stable_atoms = []
     f = open(fname, "r")
     while True:
         xydr = f.readline()
@@ -199,16 +199,16 @@ def read_xydr(fname, etol=1.0, bdim=2):
         x, y, d, r = xydr.split()
         coords.extend([float(x), float(y)])
         radii.extend([float(d)])
-        not_rattler = float(float(r) >= etol)
+        stable = float(float(r) >= etol)
         for _ in xrange(bdim):
-            not_rattlers.extend([not_rattler])
-    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(not_rattlers, dtype='d')
+            stable_atoms.extend([stable])
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(stable_atoms, dtype='d')
 
 def read_xydfr(fname, etol=1.0, bdim=2):
     coords = []
     radii = []
     frozen = []
-    not_rattlers = []
+    stable_atoms = []
     f = open(fname, "r")
     i=0
     while True:
@@ -221,16 +221,16 @@ def read_xydfr(fname, etol=1.0, bdim=2):
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
-        not_rattler = float(float(r) >= etol)
+        stable = float(float(r) >= etol)
         for _ in xrange(bdim):
-            not_rattlers.extend([not_rattler])
+            stable_atoms.extend([stable])
         i+=1
-    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(not_rattlers, dtype='d')
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(stable_atoms, dtype='d')
 
 def read_xyzdr(fname, etol=1.0, bdim=3):
     coords = []
     radii = []
-    not_rattlers = []
+    stable_atoms = []
     f = open(fname, "r")
     while True:
         xyzdr = f.readline()
@@ -239,16 +239,16 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
         x, y, z, d, r = xyzdr.split()
         coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
-        not_rattler = float(float(r) >= etol)
+        stable = float(float(r) >= etol)
         for _ in xrange(bdim):
-            not_rattlers.extend([not_rattler])
-    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(not_rattlers, dtype='d')
+            stable_atoms.extend([stable])
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(stable_atoms, dtype='d')
 
 def read_xyzdfr(fname, etol=1.0, bdim=3):
     coords = []
     radii = []
     frozen = []
-    not_rattlers = []
+    stable_atoms = []
     f = open(fname, "r")
     i=0
     while True:
@@ -260,29 +260,32 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         radii.extend([float(d)])
         if bool(int(fr)):
             frozen.extend([i])
-        not_rattler = float(float(r) >= etol)
+        stable = float(float(r) >= etol)
         for _ in xrange(bdim):
-            not_rattlers.extend([not_rattler])
+            stable_atoms.extend([stable])
         i+=1
-    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(not_rattlers, dtype='d')
+    return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(stable_atoms, dtype='d')
 
 def import_packing(fname, jammed, bdim, sca=0.):
     results = {}
     if jammed:
         if bdim == 2:
-            results['coords'], hs_diameters, results['rattlers'] = read_xydr(fname)
+            results['coords'], hs_diameters, results['stable_atoms_float_bdim'] = read_xydr(fname)
         elif bdim == 3:
-            results['coords'], hs_diameters, results['rattlers'] = read_xyzdr(fname)
+            results['coords'], hs_diameters, results['stable_atoms_float_bdim'] = read_xyzdr(fname)
         else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            raise NotImplementedError("bdim={} not implemented".format(bdim))
         results['ss_radii'] = hs_diameters * 0.5 * (1 + sca)
+        results['stable_atoms'] = []
+        for i in xrange(0, len(results['stable_atoms_float_bdim']), bdim):
+            results['stable_atoms'].append(results['stable_atoms_float_bdim'][i] == 1.0)
     else:
         if bdim == 2:
             results['coords'], hs_diameters = read_xyd(fname)
         elif bdim == 3:
             results['coords'], hs_diameters = read_xyzd(fname)
         else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            raise NotImplementedError("bdim={} not implemented".format(bdim))
     results['hs_radii'] = hs_diameters * 0.5
     return results
 

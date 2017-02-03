@@ -47,4 +47,4 @@ class StructuralAnalysis(object):
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.jammed_packings_dir, fname)
         packing = import_packing(path, True, self.bdim, self.sca)
-        return packing['coords'], packing['hs_radii'], packing['ss_radii'], packing['rattlers']
+        return packing['coords'], packing['hs_radii'], packing['ss_radii'], packing['stable_atoms']

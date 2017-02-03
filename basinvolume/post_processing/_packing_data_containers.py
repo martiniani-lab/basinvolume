@@ -114,7 +114,7 @@ class PackingData(object):
         self.coords = packing['coords']
         self.hs_radii = packing['hs_radii']
         self.ss_radii = packing['ss_radii']
-        self.rattlers = packing['rattlers']
+        self.rattlers = packing['stable_atoms_float_bdim']
 
     def import_volume_data(self, path, title="VOLUME_FULL_PT", vfluid_title="VOLUME_HS_FLUID"):
         if os.path.isfile(path):

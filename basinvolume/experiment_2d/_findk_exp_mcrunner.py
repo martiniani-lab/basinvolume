@@ -5,7 +5,7 @@ import os
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
-from basinvolume.utils import trymakedir, read_xyzdr, read_xydr
+from basinvolume.utils import trymakedir
 from basinvolume.utils import get_git_version, get_python_version, get_cython_version
 import ConfigParser
 import time

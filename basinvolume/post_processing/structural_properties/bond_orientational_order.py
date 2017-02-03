@@ -69,11 +69,11 @@ class BondOrientationalOrder(StructuralAnalysis):
                             logging.info("Calculating bond orientational order: {}"
                                          .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
-                        coords, hs_radii, ss_radii, rattlers = \
+                        coords, hs_radii, ss_radii, stable_atoms = \
                             self._import_packing_configuration(fname)
                         boo_list, z_list = self.bond_orientation_order_all(coords,
                                                                            ss_radii,
-                                                                           rattlers,
+                                                                           stable_atoms,
                                                                            ndim=self.bdim,
                                                                            deg=deg)
                         with open(boo_fname, 'w') as f:
@@ -188,7 +188,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
 
-    def bond_orientation_order_all(self, coords, ss_radii, rattlers, ndim=3, deg=6):
+    def bond_orientation_order_all(self, coords, ss_radii, stable_atoms, ndim=3, deg=6):
         """
         boo_list : array
             list of bond orientational order
@@ -213,13 +213,13 @@ class BondOrientationalOrder(StructuralAnalysis):
             weights = None
             if weights_all is not None:
                 weights = weights_all[i]
-            if len(nnatoms_vec) > 0 and int(rattlers[i*self.bdim]) == 1:
+            if len(nnatoms_vec) > 0 and stable_atoms[i]:
                 boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg, weights=weights)
                 boo_list.append(boo)
             else:
                 #rattlers
                 boo_list.append(0)
-            if len(contacts_vec) > 0 and int(rattlers[i*self.bdim]) == 1:
+            if len(contacts_vec) > 0 and stable_atoms[i]:
                 z_list.append(len(contacts_vec))
             else:
                 #rattlers

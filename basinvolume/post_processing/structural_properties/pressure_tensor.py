@@ -64,7 +64,7 @@ class PressureTensor(StructuralAnalysis):
                             logging.info("Calculating pressure: {}"
                                          .format(self.prefix + str(dname)))
                         trymakedir(analysis_dir_path)
-                        self.coords, self.hs_radii, self.ss_radii, self.rattlers = self._import_packing_configuration(fname)
+                        self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(fname)
                         potential = self.get_potential()
                         # refine structure (does not make a difference if tol was small enough to start with)
                         # if self.packing_frac < 0.835:

@@ -70,7 +70,7 @@ class analyse_jammed_packings(object):
         packing = import_packing(path, True, self.bdim)
         self.coords = packing['coords']
         self.hs_radii = packing['hs_radii']
-        self.rattlers = packing['rattlers']
+        self.rattlers = packing['stable_atoms_float_bdim']
 
     def analyse_hessian(self,fname):
         """compute hessian and its eigenvalues

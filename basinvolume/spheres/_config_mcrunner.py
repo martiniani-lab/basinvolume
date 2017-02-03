@@ -143,13 +143,10 @@ class _configure_mcrunner(object):
             self.red_radii = np.delete(self.hs_radii.copy(), self.frozen)
             self.red_rattlers = reduce_coordinates(self.rattlers, self.frozen, self.bdim)
         else:
-            if self.bdim == 2:
-                self.coords, hs_diameters, self.rattlers = read_xydr(path)
-            elif self.bdim == 3:
-                self.coords, hs_diameters, self.rattlers = read_xyzdr(path)
-            else:
-                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
-            self.hs_radii = hs_diameters / 2.0
+            imp_packing = import_packing(path, False, self.bdim)
+            self.coords = imp_packing['coords']
             self.red_coords = self.coords
-            self.red_radii = self.hs_radii
+            self.rattlers = imp_packing['stable_atoms_float_bdim']
             self.red_rattlers = self.rattlers
+            self.hs_radii = imp_packing['hs_radii']
+            self.red_radii = self.hs_radii
