@@ -989,8 +989,8 @@ def calc_distance (coord1, coord2, bdim, distance_method, box, pot_kwargs={}):
         return get_distance(coord1, coord2, bdim, distance_method, box=box)
 
 
-def find_neighbours(coords, radii, bdim, box, distance_method='periodic',
-                    pot_kwargs={'shear': 0.}, include=None, cutoff_factor=1.):
+def find_neighbours_slow(coords, radii, bdim, box, distance_method='periodic',
+                         pot_kwargs={'shear': 0.}, include=None, cutoff_factor=1.):
     nparticles = radii.size
     neighbour_distancess = [[] for _ in xrange(nparticles)]
     neighbour_indicess = [[] for _ in xrange(nparticles)]
@@ -1019,4 +1019,4 @@ def find_neighbours(coords, radii, bdim, box, distance_method='periodic',
                 neighbour_indicess[atomi].append(atomj)
                 neighbour_indicess[atomj].append(atomi)
 
-    return neighbour_distancess, neighbour_indicess
+    return neighbour_indicess, neighbour_distancess
