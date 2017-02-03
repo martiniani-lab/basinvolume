@@ -6,7 +6,6 @@ import traceback
 import numpy as np
 import argparse
 import logging
-from pele.potentials import HS_WCA
 from basinvolume.utils import trymakedir
 from _structural_analysis import StructuralAnalysis
 
@@ -15,11 +14,13 @@ class InversionSymmetry(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_', verbose=True, use_cell_lists=True):
+                 prefix='explore_bv_', verbose=True, use_cell_lists=True,
+                 import_config_once=False):
         super(InversionSymmetry, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix,
-                                                verbose=verbose, use_cell_lists=use_cell_lists)
+                                                verbose=verbose, use_cell_lists=use_cell_lists,
+                                                import_config_once=import_config_once)
 
     # Returns the affine force of a pair of particles
     # Indices:
@@ -52,18 +53,18 @@ class InversionSymmetry(StructuralAnalysis):
         return [hessian * d for d in distance]
 
     def _affine_force_particle(self, index, distances, neighbours):
-        affine_force_particle = [np.zeros((self.bdim, self.bdim)) for _ in range(self.bdim)]
-        for i in range(len(neighbours)):
+        affine_force_particle = [np.zeros((self.bdim, self.bdim)) for _ in xrange(self.bdim)]
+        for i in xrange(len(neighbours)):
             affine_force = self._affine_force_interaction(distances[i], index, neighbours[i])
-            for j in range(self.bdim):
+            for j in xrange(self.bdim):
                 affine_force_particle[j] += affine_force[j]
         return affine_force_particle
 
     def _sum_affine_forces(self, neighbour_distancess, neighbour_lists):
-        affine_forces = [np.zeros((self.bdim, self.bdim)) for _ in range(self.bdim)]
-        for i in range(self.nparticles):
+        affine_forces = [np.zeros((self.bdim, self.bdim)) for _ in xrange(self.bdim)]
+        for i in xrange(self.nparticles):
             affine_force = self._affine_force_particle(i, neighbour_distancess[i], neighbour_lists[i])
-            for i in range(self.bdim):
+            for i in xrange(self.bdim):
                 affine_forces[i] += affine_force[i] ** 2
         return np.sum(sum(affine_forces))
 
@@ -76,10 +77,10 @@ class InversionSymmetry(StructuralAnalysis):
 
     def _sum_affine_forces_sym_broken(self, neighbour_distancess, neighbour_lists):
         affine_forces_isb = 0
-        for alpha in range(self.bdim):
-            for beta in range(self.bdim):
-                for i in range(len(neighbour_lists)):
-                    for j in range(len(neighbour_lists[i])):
+        for alpha in xrange(self.bdim):
+            for beta in xrange(self.bdim):
+                for i in xrange(len(neighbour_lists)):
+                    for j in xrange(len(neighbour_lists[i])):
                         affine_forces_isb += self._affine_force_interaction_sym_broken(
                                 neighbour_distancess[i][j], i, neighbour_lists[i][j],
                                 alpha, beta) ** 2
@@ -128,17 +129,8 @@ class InversionSymmetry(StructuralAnalysis):
                             = self._import_packing_configuration(fname)
 
                         # Create potential
-                        if self.use_cell_lists:
-                            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
-                                                    radii=self.hs_radii, boxvec=self.boxv,
-                                                    reference_coords=self.coords, ndim=self.bdim,
-                                                    ncellx_scale=1.0, distance_method=self.distance_method,
-                                                    pot_kwargs=self.pot_kwargs)
-                        else:
-                            self.potential = HS_WCA(eps=self.eps, sca=self.sca, radii=self.hs_radii,
-                                                    boxvec=self.boxv, ndim=self.bdim,
-                                                    distance_method=self.distance_method,
-                                                    pot_kwargs=self.pot_kwargs)
+                        if not hasattr(self, 'potential') or not self.import_config_once:
+                            self._initialise_potential()
 
                         # Compute distances to neighbours
                         neighbour_lists, neighbour_distancess \

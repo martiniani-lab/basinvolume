@@ -8,7 +8,6 @@ import argparse
 import logging
 from basinvolume.utils import trymakedir
 from _structural_analysis import StructuralAnalysis
-from pele.potentials import HS_WCA
 
 
 class Neighbours(StructuralAnalysis):
@@ -16,11 +15,13 @@ class Neighbours(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', analysis_fname='neighbours', force=False,
                  existing_only=True, prefix='explore_bv_', verbose=True,
-                 restrict_neighbours=None, cutoff=1., use_cell_lists=True):
+                 restrict_neighbours=None, cutoff=1., use_cell_lists=True,
+                 import_config_once=False):
         super(Neighbours, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix,
-                                                verbose=verbose, use_cell_lists=use_cell_lists)
+                                                verbose=verbose, use_cell_lists=use_cell_lists,
+                                                import_config_once=import_config_once)
         self.cutoff = cutoff
         self.restrict_neighbours = restrict_neighbours
         self.analysis_fname = analysis_fname
@@ -72,21 +73,12 @@ class Neighbours(StructuralAnalysis):
                         trymakedir(analysis_dir_path)
 
                         # Read coordinates and compute neighbours
-                        self.coords, self.hs_radii, self.ss_radii, _ = \
+                        self.coords, self.hs_radii, _, _ = \
                             self._import_packing_configuration(fname)
 
-                        # Initialise potential
-                        if self.use_cell_lists:
-                            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
-                                                    radii=self.hs_radii, boxvec=self.boxv,
-                                                    reference_coords=self.coords, ndim=self.bdim,
-                                                    ncellx_scale=1.0, distance_method=self.distance_method,
-                                                    pot_kwargs=self.pot_kwargs)
-                        else:
-                            self.potential = HS_WCA(eps=self.eps, sca=self.sca, radii=self.hs_radii,
-                                                    boxvec=self.boxv, ndim=self.bdim,
-                                                    distance_method=self.distance_method,
-                                                    pot_kwargs=self.pot_kwargs)
+                        # Create potential
+                        if not hasattr(self, 'potential') or not self.import_config_once:
+                            self._initialise_potential()
 
                         # Compute neighbours
                         neighbour_lists, _ = self.potential.getNeighbours(
@@ -94,32 +86,40 @@ class Neighbours(StructuralAnalysis):
 
                         # Filter neighbours
                         if self.restrict_neighbours is not None:
-                            # Get conditional neighbour lists
-                            base_restrict_path = os.path.join(self.workspace,
-                                                              self.restrict_neighbours + str(packing_name))
-                            restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
-                            restrict_path = os.path.join(restrict_dir, self.analysis_fname)
-                            if not os.path.isfile(restrict_path):
-                                raise IOError("The restrict neighbours file {} does "
-                                              "not exist.".format(restrict_path))
-                            configf = ConfigParser.ConfigParser()
-                            configf.read(restrict_path)
-                            restrict_neighbour_lists = ast.literal_eval(configf.get('NEIGHBOURS',
-                                                                                    'neighbour_lists'))
+                            self._filter_neighbours(neighbour_lists, packing_name)
 
-                            neighbour_lists = [filter(lambda particle: particle in
-                                                      restrict_neighbour_lists[i], neighbour_lists[i])
-                                               for i in range(self.nparticles)]
 
                         # Output neighbour lists to file
-                        with open(neighbours_fname, 'w') as f:
-                            f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-                            f.write('[NEIGHBOURS]\n')
-                            f.write('avg_neighbours: {}\n'.format(np.mean([len(neighbours) for neighbours
-                                                                     in neighbour_lists])))
-                            f.write('neighbour_counts: {}\n'.format([len(neighbours) for neighbours
-                                                                     in neighbour_lists]))
-                            f.write('neighbour_lists: {}\n'.format(neighbour_lists))
+                        self._write_output(neighbours_fname, neighbour_lists)
+
+    def _filter_neighbours(self, neighbour_lists, packing_name):
+        # Get conditional neighbour lists
+        base_restrict_path = os.path.join(self.workspace,
+                                          self.restrict_neighbours + str(packing_name))
+        restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
+        restrict_path = os.path.join(restrict_dir, self.analysis_fname)
+        if not os.path.isfile(restrict_path):
+            raise IOError("The restrict neighbours file {} does "
+                          "not exist.".format(restrict_path))
+        configf = ConfigParser.ConfigParser()
+        configf.read(restrict_path)
+        restrict_neighbour_lists = ast.literal_eval(configf.get('NEIGHBOURS',
+                                                                'neighbour_lists'))
+
+        # Filter neighbours
+        neighbour_lists = [filter(lambda particle: particle in
+                                  restrict_neighbour_lists[i], neighbour_lists[i])
+                           for i in xrange(self.nparticles)]
+
+    def _write_output(self, neighbours_fname, neighbour_lists):
+        with open(neighbours_fname, 'w') as f:
+            f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+            f.write('[NEIGHBOURS]\n')
+            f.write('avg_neighbours: {}\n'.format(np.mean([len(neighbours) for neighbours
+                                                     in neighbour_lists])))
+            f.write('neighbour_counts: {}\n'.format([len(neighbours) for neighbours
+                                                     in neighbour_lists]))
+            f.write('neighbour_lists: {}\n'.format(neighbour_lists))
 
 
 def worker_neighbours(workspace, kwargs):

@@ -6,7 +6,7 @@ import ConfigParser
 import logging
 from basinvolume.utils import trymakedir
 from pele.utils._pressure_tensor import pressure_tensor
-from pele.potentials import HS_WCA, InversePowerStillingerCut
+from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
 from _structural_analysis import StructuralAnalysis
 
@@ -15,11 +15,12 @@ class PressureTensor(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True, opt_pot_str='hs_wca',
-                 prefix='explore_bv_', verbose=True, use_cell_lists=True):
+                 prefix='explore_bv_', verbose=True, use_cell_lists=True, import_config_once=False):
         super(PressureTensor,self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                             analysis_dir=analysis_dir, force=force,
                                             existing_only=existing_only, prefix=prefix,
-                                            verbose=verbose, use_cell_lists=use_cell_lists)
+                                            verbose=verbose, use_cell_lists=use_cell_lists,
+                                            import_config_once=import_config_once)
         self.opt_pot_str = opt_pot_str
 
     @staticmethod
@@ -65,16 +66,17 @@ class PressureTensor(StructuralAnalysis):
                                          .format(self.prefix + str(packing_name)))
                         trymakedir(analysis_dir_path)
                         self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(fname)
-                        potential = self.get_potential()
+                        if not hasattr(self, 'potential') or not self.import_config_once:
+                            self.init_pressure_potential()
                         # refine structure (does not make a difference if tol was small enough to start with)
                         # if self.packing_frac < 0.835:
                         #     fire_maxstep = np.amin(self.hs_radii) * self.sca
-                        #     res = modifiedfire_cpp(self.coords, potential, maxstep=fire_maxstep,
+                        #     res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
                         #                            nsteps=1e6, tol=1e-11, iprint=-1)
                         #     self.coords = res.coords
-                        p, ptensor = pressure_tensor(potential, self.coords, self.vcavity, self.bdim)
+                        p, ptensor = pressure_tensor(self.potential, self.coords, self.vcavity, self.bdim)
                         max_shear_xyplane = np.sqrt(((ptensor[0] - ptensor[3]) / 2.) ** 2 + ptensor[1] ** 2)
-                        energy = potential.getEnergy(self.coords)
+                        energy = self.potential.getEnergy(self.coords)
                         with open(pressure_fname, 'w') as f:
                             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
                             f.write('[PRESSURE]\n')
@@ -87,12 +89,10 @@ class PressureTensor(StructuralAnalysis):
                             f.write('[ENERGY]\n')
                             f.write('E: {:.16f}\n'.format(energy))
 
-    def get_potential(self):
+    def init_pressure_potential(self):
         # here put a flag and pick potential
         if self.opt_pot_str.lower() == 'hs_wca':
-            pot = HS_WCA(eps=self.eps, sca=self.sca,
-                         radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim,
-                         distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
+            self._initialise_potential()
         elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
             pow = self.pot_kwargs['pow']
             rcut = self.pot_kwargs["rcut"]
@@ -101,7 +101,6 @@ class PressureTensor(StructuralAnalysis):
                 boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
         else:
             raise NotImplementedError
-        return pot
 
 
 def worker_pressure(workspace, kwargs):

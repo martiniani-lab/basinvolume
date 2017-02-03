@@ -9,7 +9,6 @@ from scipy.special import sph_harm
 from basinvolume.utils import trymakedir
 from basinvolume.post_processing.simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
 from _structural_analysis import StructuralAnalysis
-from pele.potentials import HS_WCA
 
 
 class BondOrientationalOrder(StructuralAnalysis):
@@ -17,12 +16,13 @@ class BondOrientationalOrder(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
                  solid_angle_weighted=False, prefix='explore_bv_', verbose=True,
-                 use_cell_lists=True):
+                 use_cell_lists=True, import_config_once=False):
         super(BondOrientationalOrder,self).__init__(workspace,
                                                     jammed_packings_dir=jammed_packings_dir,
                                                     analysis_dir=analysis_dir, force=force,
                                                     existing_only=existing_only, prefix=prefix,
-                                                    verbose=verbose, use_cell_lists=use_cell_lists)
+                                                    verbose=verbose, use_cell_lists=use_cell_lists,
+                                                    import_config_once=import_config_once)
         self.solid_angle_weighted = solid_angle_weighted
         if self.verbose:
             logging.debug("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
@@ -71,24 +71,16 @@ class BondOrientationalOrder(StructuralAnalysis):
                             logging.info("Calculating bond orientational order: {}"
                                          .format(self.prefix + str(packing_name)))
                         trymakedir(analysis_dir_path)
-                        coords, hs_radii, ss_radii, stable_atoms = \
+                        self.coords, self.hs_radii, ss_radii, stable_atoms = \
                             self._import_packing_configuration(fname)
-                        if self.use_cell_lists:
-                            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
-                                                    radii=hs_radii, boxvec=self.boxv,
-                                                    reference_coords=coords, ndim=self.bdim,
-                                                    ncellx_scale=1.0, distance_method=self.distance_method,
-                                                    pot_kwargs=self.pot_kwargs)
-                        else:
-                            self.potential = HS_WCA(eps=self.eps, sca=self.sca, radii=hs_radii,
-                                                    boxvec=self.boxv, ndim=self.bdim,
-                                                    distance_method=self.distance_method,
-                                                    pot_kwargs=self.pot_kwargs)
-                        boo_list, z_list = self.bond_orientation_order_all(coords,
-                                                                           ss_radii,
-                                                                           stable_atoms,
-                                                                           ndim=self.bdim,
-                                                                           deg=deg)
+
+                        # Create potential
+                        if not hasattr(self, 'potential') or not self.import_config_once:
+                            self._initialise_potential()
+
+                        boo_list, z_list = self.bond_orientation_order_all(
+                            self.coords, ss_radii, stable_atoms, ndim=self.bdim, deg=deg)
+
                         with open(boo_fname, 'w') as f:
                             f.write('#Q{} \t Z\n'.format(deg))
                             for q, z in zip(boo_list, z_list):

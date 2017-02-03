@@ -2,15 +2,34 @@ from __future__ import division
 import numpy as np
 import argparse
 import os
+import traceback
 import sys
 import shutil
 import pandas as pd
 import multiprocessing as mp
 import logging
+from basinvolume.utils import import_packing
+from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from pele.potentials import HS_WCA
 from basinvolume.post_processing.structural_properties \
     import BondOrientationalOrder,  PressureTensor, Neighbours, InversionSymmetry, \
            Displacement, worker_boo, worker_disp, worker_invsym, worker_neighbours, \
            worker_pressure
+
+def worker_lasting_neighbours(workspace_dir, kwargs):
+    try:
+        for subshear in np.arange(kwargs['shear'] - kwargs['step'],
+                                  kwargs['shear'] - 0.5 * kwargs['substep'],
+                                  kwargs['substep']):
+            restrict_prefix = os.path.join("shear_{}".format(subshear), "explore_bv_")
+            subshear_dname = "shear_{}".format(subshear + kwargs['substep'])
+            subshear_prefix = os.path.join(subshear_dname, "explore_bv_")
+            kwargs.update(jammed_packings_dir=subshear_dname,
+                                         prefix=subshear_prefix,
+                                         restrict_neighbours=restrict_prefix)
+            worker_neighbours(workspace_dir, kwargs['neighbours_dyn_kwargs'])
+    except:
+        logging.error('worker_lasting_neighbours worker: %s' % (traceback.format_exc()))
 
 
 class AnalyseShear:
@@ -38,6 +57,7 @@ class AnalyseShear:
         self.make_output_dirs()
         if self.njobs > 1:
             self.mypool = mp.Pool(self.njobs)
+        self.results = []
         for shear in np.arange(self.start, self.stop + 0.5 * self.step, self.step):
             shear_dir = "shear_{}".format(shear)
             if not os.path.isdir(os.path.join(self.input_dir, shear_dir)):
@@ -45,6 +65,9 @@ class AnalyseShear:
                               .format(shear_dir))
                 sys.exit(1)
             self.calc_parameters(shear, shear_dir)
+            if self.njobs > 1:
+                for result in self.results:
+                    result.get()
             self.collect_files(shear, shear_dir)
         if self.njobs > 1:
             self.mypool.close()
@@ -89,7 +112,8 @@ class AnalyseShear:
         kwargs = dict(verbose=False, force=self.force, existing_only=False,
                       jammed_packings_dir=input_relpath,
                       prefix=os.path.join(input_relpath, "explore_bv_"),
-                      use_cell_lists=self.use_cell_lists)
+                      use_cell_lists=self.use_cell_lists,
+                      import_config_once=True)
         structural_props = []
 
         # Bond orientational order
@@ -122,16 +146,12 @@ class AnalyseShear:
         if self.calc_neighbours_dyn:
             neighbours_dyn_kwargs = dict(kwargs, cutoff=1., analysis_fname="neighbours_dyn")
             if shear == self.start:
-                worker_neighbours(workspace_dir, neighbours_dyn_kwargs)
+                structural_props.append((worker_neighbours, neighbours_dyn_kwargs))
             else:
-                for subshear in np.arange(shear - self.step, shear - 0.5 * self.substep, self.substep):
-                    restrict_prefix = os.path.join("shear_{}".format(subshear), "explore_bv_")
-                    subshear_dname = "shear_{}".format(subshear + self.substep)
-                    subshear_prefix = os.path.join(subshear_dname, "explore_bv_")
-                    neighbours_dyn_kwargs.update(jammed_packings_dir=subshear_dname,
-                                                 prefix=subshear_prefix,
-                                                 restrict_neighbours=restrict_prefix)
-                    worker_neighbours(workspace_dir, neighbours_dyn_kwargs)
+                neighbours_dyn_worker_kwargs = dict(neighbours_dyn_kwargs=neighbours_dyn_kwargs,
+                                                    shear=shear, step=self.step,
+                                                    substep=self.substep)
+                structural_props.append((worker_lasting_neighbours, neighbours_dyn_worker_kwargs))
 
         # Pressure tensor
         if self.calc_pressure:
@@ -141,7 +161,7 @@ class AnalyseShear:
         # Start parallel calculations
         if self.njobs > 1:
             for prop in structural_props:
-                self.mypool.apply_async(prop[0], args=(workspace_dir, prop[1],))
+                self.results.append(self.mypool.apply_async(prop[0], args=(workspace_dir, prop[1],)))
         else:
             for prop in structural_props:
                 prop[0](workspace_dir, prop[1])
