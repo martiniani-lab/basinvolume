@@ -332,26 +332,7 @@ class HS_Generate_Packing(_Generate_Packing):
 
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
-        no_overlap = True
-        for i in xrange(self.nparticles):
-            if no_overlap == True:
-                for j in xrange(i, self.nparticles):
-                    dij = np.linalg.norm(calc_distance(
-                        self.coords[i * self.bdim : (i + 1) * self.bdim],
-                        self.coords[j * self.bdim : (j + 1) * self.bdim],
-                        self.bdim, self.distance_method, self.boxv, self.pot_kwargs))
-                    if i != j:
-                        dmin = self.hs_radii[i]+self.hs_radii[j]
-                        if dij - dmin <= 0:
-                            logging.warning("Invalid configuration")
-                            logging.warning("Atoms {} {} are overlapping".format(i,j))
-                            logging.warning("Real distance {}".format(dij))
-                            logging.warning("Min distance {}".format(dmin))
-                            no_overlap = False
-                            break
-            else:
-                break
-        return no_overlap
+        return len(self.potential.getOverlaps(self.coords)) == 0
 
     def _sample_random_coords(self):
         """returns random coordinates for the particles uniformly distributed in the box"""

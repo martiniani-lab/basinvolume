@@ -485,26 +485,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
-        no_overlap = True
-        for i in xrange(self.nparticles):
-            if no_overlap == True:
-                for j in xrange(self.nparticles):
-                    if i != j:
-                        dij = np.linalg.norm(calc_distance(
-                            self.coords[i * self.bdim : (i + 1) * self.bdim],
-                            self.coords[j * self.bdim : (j + 1) * self.bdim],
-                            self.bdim, self.distance_method, self.boxv, self.pot_kwargs))
-                        dmin = self.hs_radii[i]+self.hs_radii[j]
-                        if dij - dmin <= 0:
-                            logging.warning(self._log("Invalid configuration"))
-                            logging.warning(self._log("Atoms {} {} are overlapping".format(i,j)))
-                            logging.warning(self._log("Real distance {}".format(dij)))
-                            logging.warning(self._log("Min distance {}".format(dmin)))
-                            no_overlap = False
-                            break
-            else:
-                break
-        return no_overlap
+        return len(self.potential.getOverlaps(self.coords)) == 0
 
     def _correct_coords(self):
         """this function returns the nearest images in the central box, useful for dumping the configurations"""
