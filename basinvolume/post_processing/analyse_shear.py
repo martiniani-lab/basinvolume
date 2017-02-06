@@ -327,6 +327,7 @@ class AnalyseShear:
                     data['Shear stress {}'.format(shears[i])] = shear_tensor[i]
 
             # Save data to csv
+            data.index.name = 'Shear'
             data.to_csv(os.path.join(path, "data.csv"))
 
 
