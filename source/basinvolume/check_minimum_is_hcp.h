@@ -90,34 +90,34 @@ public:
     }
     double get_abs2_qlm(const pele::Array<double>& x, const size_t particle_index, const int m) const
     {
-        std::vector<size_t> neighbours;
+        std::vector<size_t> neighbors;
         std::vector<double> weights;
-        get_neighbours(x, particle_index, neighbours, weights);
-        const size_t nr_neighbours = neighbours.size();
+        get_neighbors(x, particle_index, neighbors, weights);
+        const size_t nr_neighbors = neighbors.size();
         std::complex<double> sum = 0;
-        for (size_t k = 0; k < nr_neighbours; ++k) {
-            const size_t i = neighbours.at(k);
+        for (size_t k = 0; k < nr_neighbors; ++k) {
+            const size_t i = neighbors.at(k);
             pele::Array<double> rij(m_boxdim);
             m_dist.get_rij(rij.data(), x.data() + particle_index * m_boxdim, x.data() + i * m_boxdim);
             sum += Y4M(m, rij[0], rij[1], rij[2]) * weights.at(k);
         }
-        if (nr_neighbours == 0) {
+        if (nr_neighbors == 0) {
             return 0;
         }
         const double tmp = std::abs(sum) / std::accumulate(weights.begin(), weights.end(), double(0));
         return tmp * tmp;
     }
-    void get_neighbours(const pele::Array<double>& x, const size_t centre, std::vector<size_t>& neighbours, std::vector<double>& weights) const
+    void get_neighbors(const pele::Array<double>& x, const size_t centre, std::vector<size_t>& neighbors, std::vector<double>& weights) const
     {
         if (m_fixed_distance_cutoff) {
-            get_fixed_distance_cutoff_neighbours(x, centre, neighbours);
-            weights.assign(neighbours.size(), 1);
+            get_fixed_distance_cutoff_neighbors(x, centre, neighbors);
+            weights.assign(neighbors.size(), 1);
         }
         else {
-            get_sann_neighbours(x, centre, neighbours, weights);
+            get_sann_neighbors(x, centre, neighbors, weights);
         }
     }
-    void get_fixed_distance_cutoff_neighbours(const pele::Array<double>& x, const size_t centre, std::vector<size_t>& neighbours) const
+    void get_fixed_distance_cutoff_neighbors(const pele::Array<double>& x, const size_t centre, std::vector<size_t>& neighbors) const
     {
         const size_t nr_particles = x.size() / m_boxdim;
         for (size_t i = 0; i < nr_particles; ++i) {
@@ -126,12 +126,12 @@ public:
                 m_dist.get_rij(rij.data(), x.data() + centre * m_boxdim, x.data() + i * m_boxdim);
                 const double r2 = pele::dot(rij, rij);
                 if (r2 < m_rcut2) {
-                    neighbours.push_back(i);
+                    neighbors.push_back(i);
                 }
             }
         }
     }
-    void get_sann_neighbours(const pele::Array<double>& x, const size_t center, std::vector<size_t>& neighbors, std::vector<double>& weights) const
+    void get_sann_neighbors(const pele::Array<double>& x, const size_t center, std::vector<size_t>& neighbors, std::vector<double>& weights) const
     {
         SimpleSolidAngleNeighbors<pele::periodic_distance<3> > sann(x, x.size() / m_boxdim, m_dist);
         sann.compute_neighbors_weights(center, neighbors, weights);

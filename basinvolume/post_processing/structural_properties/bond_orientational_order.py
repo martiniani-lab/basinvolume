@@ -119,7 +119,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         this method compute the qsum, necessary for computing
         nn_atoms: array
-            array of indexes of the nearest neighbours
+            array of indexes of the nearest neighbors
         ndim: int
             dimensionality of space (box)
         order: int
@@ -187,7 +187,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         return nnatoms_list, weights_all
 
     def bond_orientation_order_single(self, coords, ss_radii, stable_atoms, atom_index, ndim=3, deg=6):
-        _, nnatoms_list = self.potential.getNeighbours(coords, include_atoms=stable_atoms)
+        _, nnatoms_list = self.potential.getNeighbors(coords, include_atoms=stable_atoms)
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
 
@@ -200,7 +200,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
-        _, contacts_list = self.potential.getNeighbours(coords, include_atoms=stable_atoms)
+        _, contacts_list = self.potential.getNeighbors(coords, include_atoms=stable_atoms)
         if not self.solid_angle_weighted:
             nnatoms_list = contacts_list
         else:

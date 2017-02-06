@@ -7,7 +7,7 @@ import logging
 from bond_orientational_order import worker_boo
 from displacement import worker_disp
 from inversion_symmetry import worker_invsym
-from neighbours import worker_neighbours
+from neighbors import worker_neighbors
 from pressure_tensor import worker_pressure
 
 
@@ -52,13 +52,13 @@ if __name__ == "__main__":
                         "the two packings. Setting this triggers the additional "
                         "calculation of non-affine displacements.", default=None)
 
-    # neighbours
-    parser.add_argument("--restrict-neighbours", type=str, help="Prefix leading to "
-                        "a neighbour lists file. This string is analogous to the normal prefix. "
-                        "Only neighbours in these lists are considered.",
+    # neighbors
+    parser.add_argument("--restrict-neighbors", type=str, help="Prefix leading to "
+                        "a neighbor lists file. This string is analogous to the normal prefix. "
+                        "Only neighbors in these lists are considered.",
                         default=None)
     parser.add_argument("--cutoff", type=float, help="Multiple of particle radii "
-                        "defining the maximum neighbour distance. Default: 1", default=1.)
+                        "defining the maximum neighbor distance. Default: 1", default=1.)
 
     # pressure tensor
     parser.add_argument("--opt-pot", type=str, help="Optimizer's potential, 1) (default) hs_wca "
@@ -92,10 +92,10 @@ if __name__ == "__main__":
     invsym_kwargs = dict(kwargs)
     structural_props.append((worker_invsym, invsym_kwargs))
 
-    # neighbours
-    neighbours_kwargs = dict(kwargs, restrict_neighbours=args.restrict_neighbours,
+    # neighbors
+    neighbors_kwargs = dict(kwargs, restrict_neighbors=args.restrict_neighbors,
                              cutoff=args.cutoff)
-    structural_props.append((worker_neighbours, neighbours_kwargs))
+    structural_props.append((worker_neighbors, neighbors_kwargs))
 
     # pressure tensor
     pressure_kwargs = dict(kwargs, opt_pot_str=args.opt_pot)

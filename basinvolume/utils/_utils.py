@@ -989,11 +989,11 @@ def calc_distance (coord1, coord2, bdim, distance_method, box, pot_kwargs={}):
         return get_distance(coord1, coord2, bdim, distance_method, box=box)
 
 
-def find_neighbours_slow(coords, radii, bdim, box, distance_method='periodic',
+def find_neighbors_slow(coords, radii, bdim, box, distance_method='periodic',
                          pot_kwargs={'shear': 0.}, include=None, cutoff_factor=1.):
     nparticles = radii.size
-    neighbour_distancess = [[] for _ in xrange(nparticles)]
-    neighbour_indicess = [[] for _ in xrange(nparticles)]
+    neighbor_distancess = [[] for _ in xrange(nparticles)]
+    neighbor_indicess = [[] for _ in xrange(nparticles)]
 
     # Only include given particles (e.g. for excluding rattlers)
     if include is None:
@@ -1011,12 +1011,12 @@ def find_neighbours_slow(coords, radii, bdim, box, distance_method='periodic',
                                 bdim, distance_method, box, pot_kwargs)
             dijnorm = np.linalg.norm(dij)
 
-            # Check if this particle lies within neighbour range
+            # Check if this particle lies within neighbor range
             dmax = cutoff_factor * (radii[atomi] + radii[atomj])
             if dijnorm <= dmax:
-                neighbour_distancess[atomi].append(dij)
-                neighbour_distancess[atomj].append(-dij)
-                neighbour_indicess[atomi].append(atomj)
-                neighbour_indicess[atomj].append(atomi)
+                neighbor_distancess[atomi].append(dij)
+                neighbor_distancess[atomj].append(-dij)
+                neighbor_indicess[atomi].append(atomj)
+                neighbor_indicess[atomj].append(atomi)
 
-    return neighbour_indicess, neighbour_distancess
+    return neighbor_indicess, neighbor_distancess

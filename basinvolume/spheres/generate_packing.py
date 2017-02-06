@@ -637,18 +637,18 @@ class HS_Generate_Packing(_Generate_Packing):
         """
         #build a matrix with the distances between particles i and j
         distances = self._build_distance_matrix()
-        #build an array with the weighted distance to neighbours, the shortest distance is 10 times heavier than the largest
+        #build an array with the weighted distance to neighbors, the shortest distance is 10 times heavier than the largest
         dmin = np.sort(distances,axis=1)
 
         if (self.nparticles > 8):
-            neighbours = 8
+            neighbors = 8
         else:
-            neighbours = self.nparticles-2
+            neighbors = self.nparticles-2
 
-        CTE = np.exp( np.log(12) / (neighbours-1))
-        weight = [CTE**i for i in xrange(neighbours)]
+        CTE = np.exp( np.log(12) / (neighbors-1))
+        weight = [CTE**i for i in xrange(neighbors)]
         weight = weight[::-1]
-        weight.extend([0 for i in xrange(self.nparticles-neighbours)])
+        weight.extend([0 for i in xrange(self.nparticles-neighbors)])
         dmin = np.average(dmin,axis=1,weights=weight)
         #sort and return a map of indices in descending order
         dmap = np.argsort(dmin)[::-1]

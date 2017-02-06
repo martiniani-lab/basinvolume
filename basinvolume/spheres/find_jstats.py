@@ -4,7 +4,7 @@ import os
 from pele.distance import get_distance
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import cround, in_hull, import_packing, find_neighbours_slow
+from basinvolume.utils import cround, in_hull, import_packing, find_neighbors_slow
 import argparse
 from basinvolume.spheres import HS_Generate_Packing
 from pele.utils._pressure_tensor import pressure_tensor
@@ -182,7 +182,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             if self.nratls_ > self.max_nrattlers:
                 return False
             radii = hs_radii * (1. + self.sca_ss)
-            neighbors_index_list, self.contact_list = find_neighbours_slow(coords, radii, self.bdim,
+            neighbors_index_list, self.contact_list = find_neighbors_slow(coords, radii, self.bdim,
                                                                            self.boxv)
             for i in xrange(len(hs_radii)):
                 i1 = self.bdim * i

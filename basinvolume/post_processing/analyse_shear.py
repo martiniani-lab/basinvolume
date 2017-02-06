@@ -12,11 +12,11 @@ from basinvolume.utils import import_packing
 from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 from pele.potentials import HS_WCA
 from basinvolume.post_processing.structural_properties \
-    import BondOrientationalOrder,  PressureTensor, Neighbours, InversionSymmetry, \
-           Displacement, worker_boo, worker_disp, worker_invsym, worker_neighbours, \
+    import BondOrientationalOrder,  PressureTensor, Neighbors, InversionSymmetry, \
+           Displacement, worker_boo, worker_disp, worker_invsym, worker_neighbors, \
            worker_pressure
 
-def worker_lasting_neighbours(workspace_dir, kwargs):
+def worker_lasting_neighbors(workspace_dir, kwargs):
     try:
         for subshear in np.arange(kwargs['shear'] - kwargs['step'],
                                   kwargs['shear'] - 0.5 * kwargs['substep'],
@@ -25,19 +25,19 @@ def worker_lasting_neighbours(workspace_dir, kwargs):
             subshear_dname = "shear_{}".format(subshear + kwargs['substep'])
             subshear_prefix = os.path.join(subshear_dname, "explore_bv_")
             last_substep = subshear == kwargs['shear']
-            kwargs['neighbours_dyn_kwargs'].update(jammed_packings_dir=subshear_dname,
+            kwargs['neighbors_dyn_kwargs'].update(jammed_packings_dir=subshear_dname,
                                                    prefix=subshear_prefix,
-                                                   restrict_neighbours=restrict_prefix,
+                                                   restrict_neighbors=restrict_prefix,
                                                    write_analysis=last_substep)
-            worker_neighbours(workspace_dir, kwargs['neighbours_dyn_kwargs'])
+            worker_neighbors(workspace_dir, kwargs['neighbors_dyn_kwargs'])
     except:
-        logging.error('worker_lasting_neighbours worker: %s' % (traceback.format_exc()))
+        logging.error('worker_lasting_neighbors worker: %s' % (traceback.format_exc()))
 
 
 class AnalyseShear:
     def __init__(self, input_dir=".", output_dir="shear_analysis", force=False,
                  start=0., step=0.01, substep=0.001, stop=1., njobs=1, use_cell_lists=True,
-                 calc_neighbours=False, calc_neighbours_dyn=False, calc_boo=False,
+                 calc_neighbors=False, calc_neighbors_dyn=False, calc_boo=False,
                  calc_invsym=False, calc_pressure=False, calc_displacement=False):
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -48,8 +48,8 @@ class AnalyseShear:
         self.stop = stop
         self.njobs = njobs
         self.use_cell_lists = use_cell_lists
-        self.calc_neighbours = calc_neighbours
-        self.calc_neighbours_dyn = calc_neighbours_dyn
+        self.calc_neighbors = calc_neighbors
+        self.calc_neighbors_dyn = calc_neighbors_dyn
         self.calc_boo = calc_boo
         self.calc_invsym = calc_invsym
         self.calc_pressure = calc_pressure
@@ -82,9 +82,9 @@ class AnalyseShear:
             os.mkdir(self.output_dir)
 
         # Get parameter directories to create
-        all_param_dirs = ["neighbours", "neighbours_dyn", "boo", "inversion_symmetry",
+        all_param_dirs = ["neighbors", "neighbors_dyn", "boo", "inversion_symmetry",
                           "pressure_tensor", "displacement"]
-        params = [self.calc_neighbours, self.calc_neighbours_dyn, self.calc_boo,
+        params = [self.calc_neighbors, self.calc_neighbors_dyn, self.calc_boo,
                   self.calc_invsym, self.calc_pressure, self.calc_displacement]
         param_dirs = [all_param_dirs[i] for i in range(len(params)) if params[i]]
 
@@ -139,21 +139,21 @@ class AnalyseShear:
             invsym_kwargs = dict(kwargs)
             structural_props.append((worker_invsym, invsym_kwargs))
 
-        # Neighbours (coordination number)
-        if self.calc_neighbours:
-            neighbours_kwargs = dict(kwargs, cutoff=1.)
-            structural_props.append((worker_neighbours, neighbours_kwargs))
+        # Neighbors (coordination number)
+        if self.calc_neighbors:
+            neighbors_kwargs = dict(kwargs, cutoff=1.)
+            structural_props.append((worker_neighbors, neighbors_kwargs))
 
-        # Lasting neighbours
-        if self.calc_neighbours_dyn:
-            neighbours_dyn_kwargs = dict(kwargs, cutoff=1., analysis_fname="neighbours_dyn")
+        # Lasting neighbors
+        if self.calc_neighbors_dyn:
+            neighbors_dyn_kwargs = dict(kwargs, cutoff=1., analysis_fname="neighbors_dyn")
             if shear == self.start:
-                structural_props.append((worker_neighbours, neighbours_dyn_kwargs))
+                structural_props.append((worker_neighbors, neighbors_dyn_kwargs))
             else:
-                neighbours_dyn_worker_kwargs = dict(neighbours_dyn_kwargs=neighbours_dyn_kwargs,
+                neighbors_dyn_worker_kwargs = dict(neighbors_dyn_kwargs=neighbors_dyn_kwargs,
                                                     shear=shear, step=self.step,
                                                     substep=self.substep)
-                structural_props.append((worker_lasting_neighbours, neighbours_dyn_worker_kwargs))
+                structural_props.append((worker_lasting_neighbors, neighbors_dyn_worker_kwargs))
 
         # Pressure tensor
         if self.calc_pressure:
@@ -187,10 +187,10 @@ class AnalyseShear:
         output_paths = [os.path.join(self.output_dir, packing) for packing in output_packings]
 
         # Get parameter directory and file names
-        params_from_to_all = [("neighbours", "neighbours"), ("neighbours_dyn", "neighbours_dyn"),
+        params_from_to_all = [("neighbors", "neighbors"), ("neighbors_dyn", "neighbors_dyn"),
                               ("glob_boo", "boo"), ("inversion_symmetry", "inversion_symmetry"),
                               ("pressure_data", "pressure_tensor"), ("displacement", "displacement")]
-        params_choice = [self.calc_neighbours, self.calc_neighbours_dyn, self.calc_boo,
+        params_choice = [self.calc_neighbors, self.calc_neighbors_dyn, self.calc_boo,
                          self.calc_invsym, self.calc_pressure, self.calc_displacement]
         params_from_to = [params_from_to_all[i] for i in range(len(params_choice)) if params_choice[i]]
 
@@ -261,29 +261,29 @@ class AnalyseShear:
                     invsym_entry['Local inversion symmetry'] = invsym_dict['inversion_symmetry']
                     data = data.append(invsym_entry)
 
-            # Neighbours (coordination number)
-            if self.calc_neighbours:
-                neighbours_path = os.path.join(path, "neighbours")
-                for shear_file in os.listdir(neighbours_path):
-                    neighbours_dict = Neighbours.read(os.path.join(neighbours_path,
+            # Neighbors (coordination number)
+            if self.calc_neighbors:
+                neighbors_path = os.path.join(path, "neighbors")
+                for shear_file in os.listdir(neighbors_path):
+                    neighbors_dict = Neighbors.read(os.path.join(neighbors_path,
                                                                    shear_file))
-                    neighbours_entry = pd.Series()
-                    neighbours_entry.name = float(shear_file.split('_')[1])
-                    neighbours_entry['Average neighbours'] = \
-                        neighbours_dict['avg_neighbours']
-                    data = data.append(neighbours_entry)
+                    neighbors_entry = pd.Series()
+                    neighbors_entry.name = float(shear_file.split('_')[1])
+                    neighbors_entry['Average neighbors'] = \
+                        neighbors_dict['avg_neighbors']
+                    data = data.append(neighbors_entry)
 
-            # Lasting neighbours
-            if self.calc_neighbours_dyn:
-                neighbours_dyn_path = os.path.join(path, "neighbours_dyn")
-                for shear_file in os.listdir(neighbours_dyn_path):
-                    neighbours_dyn_dict = Neighbours.read(os.path.join(neighbours_dyn_path,
+            # Lasting neighbors
+            if self.calc_neighbors_dyn:
+                neighbors_dyn_path = os.path.join(path, "neighbors_dyn")
+                for shear_file in os.listdir(neighbors_dyn_path):
+                    neighbors_dyn_dict = Neighbors.read(os.path.join(neighbors_dyn_path,
                                                                        shear_file))
-                    neighbours_dyn_entry = pd.Series()
-                    neighbours_dyn_entry.name = float(shear_file.split('_')[1])
-                    neighbours_dyn_entry['Average lasting neighbours'] = \
-                        neighbours_dyn_dict['avg_neighbours']
-                    data = data.append(neighbours_dyn_entry)
+                    neighbors_dyn_entry = pd.Series()
+                    neighbors_dyn_entry.name = float(shear_file.split('_')[1])
+                    neighbors_dyn_entry['Average lasting neighbors'] = \
+                        neighbors_dyn_dict['avg_neighbors']
+                    data = data.append(neighbors_dyn_entry)
 
             # Pressure tensor
             if self.calc_pressure:
@@ -333,12 +333,12 @@ if __name__ == "__main__":
                         "Default: 1 (serial)", default=1)
     parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
                         "Default: False", default=False)
-    parser.add_argument("-z", "--neighbours", action='store_true',
+    parser.add_argument("-z", "--neighbors", action='store_true',
                         help="Calculate the static coordination numbers. Default: False",
                         default=False)
-    parser.add_argument("-zd", "--neighbours-dynamic", action='store_true',
+    parser.add_argument("-zd", "--neighbors-dynamic", action='store_true',
                         help="Calculate the dynamic coordination numbers (counts "
-                        "lasting neighbours). Default: False",
+                        "lasting neighbors). Default: False",
                         default=False)
     parser.add_argument("-b", "--bond-orientation-order", action='store_true',
                         help="Calculate the bond orientational order. Default: False", default=False)
@@ -364,8 +364,8 @@ if __name__ == "__main__":
                                  force=args.force, start=args.start, step=args.step,
                                  substep=substep, stop=args.stop, njobs=args.njobs,
                                  use_cell_lists=not args.nocell,
-                                 calc_neighbours=args.neighbours,
-                                 calc_neighbours_dyn=args.neighbours_dynamic,
+                                 calc_neighbors=args.neighbors,
+                                 calc_neighbors_dyn=args.neighbors_dynamic,
                                  calc_boo=args.bond_orientation_order,
                                  calc_invsym=args.inversion_symmetry,
                                  calc_pressure=args.pressure_tensor,

@@ -55,17 +55,17 @@ class InversionSymmetry(StructuralAnalysis):
 
         return result
 
-    def _affine_force_particle(self, index, distances, neighbours):
+    def _affine_force_particle(self, index, distances, neighbors):
         affine_force_particle = np.zeros((self.bdim, self.bdim, self.bdim))
-        for i in xrange(len(neighbours)):
-            affine_force = self._affine_force_interaction(distances[i], index, neighbours[i])
+        for i in xrange(len(neighbors)):
+            affine_force = self._affine_force_interaction(distances[i], index, neighbors[i])
             affine_force_particle += affine_force
         return affine_force_particle
 
-    def _sum_affine_forces(self, neighbour_distancess, neighbour_lists):
+    def _sum_affine_forces(self, neighbor_distancess, neighbor_lists):
         affine_forces = 0
         for i in xrange(self.nparticles):
-            affine_force = self._affine_force_particle(i, neighbour_distancess[i], neighbour_lists[i])
+            affine_force = self._affine_force_particle(i, neighbor_distancess[i], neighbor_lists[i])
             affine_forces += np.sum(affine_force ** 2)
         return affine_forces
 
@@ -75,12 +75,12 @@ class InversionSymmetry(StructuralAnalysis):
         hess_radial = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
         return hess_radial * dist_norm * np.outer(dist_dir, dist_dir)
 
-    def _sum_affine_forces_sym_broken(self, neighbour_distancess, neighbour_lists):
+    def _sum_affine_forces_sym_broken(self, neighbor_distancess, neighbor_lists):
         affine_forces_isb = 0
-        for i in xrange(len(neighbour_lists)):
-            for j in xrange(len(neighbour_lists[i])):
+        for i in xrange(len(neighbor_lists)):
+            for j in xrange(len(neighbor_lists[i])):
                 affine_forces_isb += np.sum(self._affine_force_interaction_sym_broken(
-                    neighbour_distancess[i][j], i, neighbour_lists[i][j]) ** 2)
+                    neighbor_distancess[i][j], i, neighbor_lists[i][j]) ** 2)
         return affine_forces_isb
 
     @staticmethod
@@ -129,15 +129,15 @@ class InversionSymmetry(StructuralAnalysis):
                         if not hasattr(self, 'potential') or not self.import_config_once:
                             self._initialise_potential()
 
-                        # Compute distances to neighbours
-                        neighbour_lists, neighbour_distancess \
-                            = self.potential.getNeighbours(self.coords)
+                        # Compute distances to neighbors
+                        neighbor_lists, neighbor_distancess \
+                            = self.potential.getNeighbors(self.coords)
 
                         # Compute local inversion symmetry
-                        affine_forces_sum = self._sum_affine_forces(neighbour_distancess,
-                                                                    neighbour_lists)
+                        affine_forces_sum = self._sum_affine_forces(neighbor_distancess,
+                                                                    neighbor_lists)
                         affine_forces_isb = self._sum_affine_forces_sym_broken(
-                            neighbour_distancess, neighbour_lists)
+                            neighbor_distancess, neighbor_lists)
                         inv_sym = 1 - affine_forces_sum / affine_forces_isb
 
                         # Output inversion symmetry to file
