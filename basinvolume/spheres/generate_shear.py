@@ -176,7 +176,8 @@ if __name__ == "__main__":
                               packings_dir="shear_{}".format(shear - args.step),
                               outdir="shear_{}".format(shear),
                               import_jammed=True,
-                              override_pot_kwargs=pot_kwargs)
+                              override_pot_kwargs=pot_kwargs,
+                              check_packing=False)
         trymakedir(sheared_kwargs['outdir'])
         if args.njobs > 1:
             results = []

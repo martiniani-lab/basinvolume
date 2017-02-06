@@ -255,7 +255,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
                  use_cell_lists=False, show=False, opt_pot_str='hs_wca',
-                 override_pot_kwargs=None, minimizer="fire", logging_tag="", write_opengl=False):
+                 override_pot_kwargs=None, minimizer="fire", logging_tag="",
+                 write_opengl=False, check_packing=True):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          packing_nrs=packing_nrs,
@@ -267,6 +268,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.opt_pot_str = opt_pot_str
         self.use_cell_lists = use_cell_lists
         self.tol = tol
+        self.check_packing = check_packing
         ##constants#
         ############
 
@@ -406,7 +408,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """quenches the imported structure"""
 
         #asserts that none of the hard sphere is overlapping before quenching
-        if __debug__:
+        if __debug__ and self.check_packing:
             no_overlap = self._check_no_overlaps()
             if not no_overlap:
                 logging.warning(self._log("Overlap found before quenching"))
@@ -434,7 +436,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.energy = res.energy
 
         #test that on re-minimisation the structure does not change
-        if __debug__:
+        if __debug__ and self.check_packing:
             if self.minimizer == "fire":
                 res2 = modifiedfire_cpp(self.coords, self.potential,
                                         maxstep=fire_maxstep, nsteps=1e6, tol=tol)
@@ -452,7 +454,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 return False
 
         #asserts that none of the hard sphere is overlapping
-        if __debug__:
+        if __debug__ and self.check_packing:
             no_overlap = self._check_no_overlaps()
             if not no_overlap:
                 logging.warning(self._log("Overlap found after quenching"))
