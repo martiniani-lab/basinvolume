@@ -18,7 +18,6 @@ if __name__ == "__main__":
                                                     show=False, opt_pot_str='hs_wca')
     gen_jammed_packing.run()
 
-
     invsym = InversionSymmetry(".", verbose=False, force=True, existing_only=False,
                                jammed_packings_dir='jammed_packings', prefix="explore_bv_")
     invsym.run()

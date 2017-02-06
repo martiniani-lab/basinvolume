@@ -23,11 +23,10 @@ class InversionSymmetry(StructuralAnalysis):
                                                 import_config_once=import_config_once)
 
     # Returns the affine force of a pair of particles
-    # Indices:
-    # List index is direction perpendicular to the sheared boundary (beta)
-    # Matrix (numpy-array):
-    # row index is the shear direction (alpha)
+    # Tensor (numpy-array):
+    # depth index is the direction perpendicular to the sheared boundary (beta)
     # column index is the affine force component
+    # row index is the shear direction (alpha)
     def _affine_force_interaction(self, distance, atomi, atomj):
         # Get hessian in interaction direction
         dist_norm = np.linalg.norm(distance)
@@ -50,40 +49,38 @@ class InversionSymmetry(StructuralAnalysis):
             hessian_particle_system = np.array([[hess_radial, 0, 0], [0, 0, 0], [0, 0, 0]])
         hessian = np.dot(rot_matrix.T, np.dot(hessian_particle_system, rot_matrix))
 
-        return [hessian * d for d in distance]
+        result = np.empty((self.bdim, self.bdim, self.bdim))
+        for i in xrange(self.bdim):
+            result[i,:,:] = distance[i] * hessian
+
+        return result
 
     def _affine_force_particle(self, index, distances, neighbours):
-        affine_force_particle = [np.zeros((self.bdim, self.bdim)) for _ in xrange(self.bdim)]
+        affine_force_particle = np.zeros((self.bdim, self.bdim, self.bdim))
         for i in xrange(len(neighbours)):
             affine_force = self._affine_force_interaction(distances[i], index, neighbours[i])
-            for j in xrange(self.bdim):
-                affine_force_particle[j] += affine_force[j]
+            affine_force_particle += affine_force
         return affine_force_particle
 
     def _sum_affine_forces(self, neighbour_distancess, neighbour_lists):
-        affine_forces = [np.zeros((self.bdim, self.bdim)) for _ in xrange(self.bdim)]
+        affine_forces = 0
         for i in xrange(self.nparticles):
             affine_force = self._affine_force_particle(i, neighbour_distancess[i], neighbour_lists[i])
-            for i in xrange(self.bdim):
-                affine_forces[i] += affine_force[i] ** 2
-        return np.sum(sum(affine_forces))
+            affine_forces += np.sum(affine_force ** 2)
+        return affine_forces
 
-    def _affine_force_interaction_sym_broken(self, distance, atomi, atomj, shear_direction, shear_perpendicular):
+    def _affine_force_interaction_sym_broken(self, distance, atomi, atomj):
         dist_norm = np.linalg.norm(distance)
-        dist_dir = distance / dist_norm
+        dist_dir = np.array(distance / dist_norm)
         hess_radial = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
-        return hess_radial * dist_norm * dist_dir[shear_direction] \
-               * dist_dir[shear_perpendicular]
+        return hess_radial * dist_norm * np.outer(dist_dir, dist_dir)
 
     def _sum_affine_forces_sym_broken(self, neighbour_distancess, neighbour_lists):
         affine_forces_isb = 0
-        for alpha in xrange(self.bdim):
-            for beta in xrange(self.bdim):
-                for i in xrange(len(neighbour_lists)):
-                    for j in xrange(len(neighbour_lists[i])):
-                        affine_forces_isb += self._affine_force_interaction_sym_broken(
-                                neighbour_distancess[i][j], i, neighbour_lists[i][j],
-                                alpha, beta) ** 2
+        for i in xrange(len(neighbour_lists)):
+            for j in xrange(len(neighbour_lists[i])):
+                affine_forces_isb += np.sum(self._affine_force_interaction_sym_broken(
+                    neighbour_distancess[i][j], i, neighbour_lists[i][j]) ** 2)
         return affine_forces_isb
 
     @staticmethod
