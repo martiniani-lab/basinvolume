@@ -63,7 +63,7 @@ class Neighbors(StructuralAnalysis):
 
         # Filter neighbors
         if self.restrict_neighbors is not None:
-            self._filter_neighbors(neighbor_lists, packing_name)
+            neighbor_lists = self._filter_neighbors(neighbor_lists, packing_name)
 
 
         # Output neighbor lists to file
@@ -83,9 +83,9 @@ class Neighbors(StructuralAnalysis):
         restrict_neighbor_lists = cPickle.load(open(restrict_path, 'r'))
 
         # Filter neighbors
-        neighbor_lists = [filter(lambda particle: particle in
-                                  restrict_neighbor_lists[i], neighbor_lists[i])
-                           for i in xrange(self.nparticles)]
+        return [filter(lambda particle: particle in
+                       restrict_neighbor_lists[i], neighbor_lists[i])
+                for i in xrange(self.nparticles)]
 
     def _write_output(self, neighbors_fname, neighbor_lists):
         with open(neighbors_fname, 'w') as f:
