@@ -6,8 +6,9 @@ from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
 from pele.distance import put_in_box
 from pele.potentials import HS_WCA
 from pele.optimize._quench import lbfgs_cpp
-from basinvolume.utils import trymakedir, get_git_version, get_python_version, get_cython_version, cround, calc_distance
-from basinvolume.utils import volume_nball, import_packing
+from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
+                               get_cython_version, cround, calc_distance,
+                               volume_nball, import_packing)
 from numpy.random import RandomState
 from mcpele.monte_carlo import NullPotential
 import argparse
@@ -41,8 +42,9 @@ def read_packing_config(configpath, frozen=False):
         parameters['vcavity'] = np.prod(parameters['boxv'])
     parameters['distance_method'] = configf.get('PACKING', 'distance_method')
     parameters['pot_kwargs'] = ast.literal_eval(configf.get('PACKING', 'pot_kwargs'))
-    parameters['hsf_niter'] = configf.getint('PACKING','hsf_niter')
-    parameters['hsf_stepsize'] = configf.getfloat('PACKING','hsf_stepsize')
+    if parameters['method'] == 'quench':
+        parameters['hsf_niter'] = configf.getint('PACKING','hsf_niter')
+        parameters['hsf_stepsize'] = configf.getfloat('PACKING','hsf_stepsize')
     return parameters
 
 class _Generate_Packing(object):
@@ -332,7 +334,28 @@ class HS_Generate_Packing(_Generate_Packing):
 
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
-        return len(self.potential.getOverlaps(self.coords)) == 0
+        if hasattr(self, 'potential'):
+            return len(self.potential.getOverlaps(self.coords)) == 0
+        else:
+            return self._check_no_overlaps_slow()
+
+    def _check_no_overlaps_slow(self):
+        """check that no two particles are overlapping (using nearest image convention)"""
+        for i in xrange(self.nparticles):
+            for j in xrange(i, self.nparticles):
+                dij = np.linalg.norm(calc_distance(
+                    self.coords[i * self.bdim : (i + 1) * self.bdim],
+                    self.coords[j * self.bdim : (j + 1) * self.bdim],
+                    self.bdim, self.distance_method, self.boxv, self.pot_kwargs))
+                if i != j:
+                    dmin = self.hs_radii[i]+self.hs_radii[j]
+                    if dij - dmin <= 0:
+                        logging.warning("Invalid configuration")
+                        logging.warning("Atoms {} {} are overlapping".format(i,j))
+                        logging.warning("Real distance {}".format(dij))
+                        logging.warning("Min distance {}".format(dmin))
+                        return False
+        return True
 
     def _sample_random_coords(self):
         """returns random coordinates for the particles uniformly distributed in the box"""
@@ -722,8 +745,9 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write('\n')
         f.write('distance_method: {}\n'.format(self.distance_method))
         f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
-        f.write('hsf_niter: {}\n'.format(self.hsf_niter))
-        f.write('hsf_stepsize: {}\n'.format(self.hsf_stepsize))
+        if self.method == 'quench':
+            f.write('hsf_niter: {}\n'.format(self.hsf_niter))
+            f.write('hsf_stepsize: {}\n'.format(self.hsf_stepsize))
         #print software version
         f.write('[CODEVERSION]\n')
         f.write('basinvolume_version: {}\n'.format(get_git_version('basinvolume')))
