@@ -6,6 +6,7 @@ import traceback
 import numpy as np
 import argparse
 import logging
+import cPickle
 from basinvolume.utils import trymakedir
 from _structural_analysis import StructuralAnalysis
 
@@ -16,7 +17,7 @@ class Neighbours(StructuralAnalysis):
                  analysis_dir='analysis', analysis_fname='neighbours', force=False,
                  existing_only=True, prefix='explore_bv_', verbose=True,
                  restrict_neighbours=None, cutoff=1., use_cell_lists=True,
-                 import_config_once=False):
+                 import_config_once=False, write_analysis=True):
         super(Neighbours, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix,
@@ -25,6 +26,7 @@ class Neighbours(StructuralAnalysis):
         self.cutoff = cutoff
         self.restrict_neighbours = restrict_neighbours
         self.analysis_fname = analysis_fname
+        self.write_analysis = write_analysis
 
     @staticmethod
     def read(neighbours_fname):
@@ -35,8 +37,6 @@ class Neighbours(StructuralAnalysis):
             configf.getfloat('NEIGHBOURS', 'avg_neighbours')
         neighbours_dict['neighbour_counts'] = \
             ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_counts'))
-        neighbours_dict['neighbour_lists'] = \
-            ast.literal_eval(configf.get('NEIGHBOURS', 'neighbour_lists'))
         return neighbours_dict
 
     def run(self):
@@ -56,6 +56,7 @@ class Neighbours(StructuralAnalysis):
                     # Check if this packing has already been analysed
                     analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
                     neighbours_fname = os.path.join(analysis_dir_path, self.analysis_fname)
+                    neighbours_dumpname = os.path.join(analysis_dir_path, self.analysis_fname + '_dump.p')
                     compute = False
                     try:
                         self.read(neighbours_fname)
@@ -90,21 +91,20 @@ class Neighbours(StructuralAnalysis):
 
 
                         # Output neighbour lists to file
-                        self._write_output(neighbours_fname, neighbour_lists)
+                        self._dump_neighbours(neighbours_dumpname, neighbour_lists)
+                        if self.write_analysis:
+                            self._write_output(neighbours_fname, neighbour_lists)
 
     def _filter_neighbours(self, neighbour_lists, packing_name):
         # Get conditional neighbour lists
         base_restrict_path = os.path.join(self.workspace,
                                           self.restrict_neighbours + str(packing_name))
         restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
-        restrict_path = os.path.join(restrict_dir, self.analysis_fname)
+        restrict_path = os.path.join(restrict_dir, self.analysis_fname + '_dump.p')
         if not os.path.isfile(restrict_path):
             raise IOError("The restrict neighbours file {} does "
                           "not exist.".format(restrict_path))
-        configf = ConfigParser.ConfigParser()
-        configf.read(restrict_path)
-        restrict_neighbour_lists = ast.literal_eval(configf.get('NEIGHBOURS',
-                                                                'neighbour_lists'))
+        restrict_neighbour_lists = cPickle.load(open(restrict_path, 'r'))
 
         # Filter neighbours
         neighbour_lists = [filter(lambda particle: particle in
@@ -115,11 +115,12 @@ class Neighbours(StructuralAnalysis):
         with open(neighbours_fname, 'w') as f:
             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
             f.write('[NEIGHBOURS]\n')
-            f.write('avg_neighbours: {}\n'.format(np.mean([len(neighbours) for neighbours
-                                                     in neighbour_lists])))
-            f.write('neighbour_counts: {}\n'.format([len(neighbours) for neighbours
-                                                     in neighbour_lists]))
-            f.write('neighbour_lists: {}\n'.format(neighbour_lists))
+            neighbour_counts = [len(neighbours) for neighbours in neighbour_lists]
+            f.write('avg_neighbours: {}\n'.format(np.mean(neighbour_counts)))
+            f.write('neighbour_counts: {}\n'.format(neighbour_counts))
+
+    def _dump_neighbours(self, neighbours_dumpname, neighbour_lists):
+        cPickle.dump(neighbour_lists, open(neighbours_dumpname, 'w'))
 
 
 def worker_neighbours(workspace, kwargs):

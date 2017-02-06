@@ -24,9 +24,11 @@ def worker_lasting_neighbours(workspace_dir, kwargs):
             restrict_prefix = os.path.join("shear_{}".format(subshear), "explore_bv_")
             subshear_dname = "shear_{}".format(subshear + kwargs['substep'])
             subshear_prefix = os.path.join(subshear_dname, "explore_bv_")
-            kwargs.update(jammed_packings_dir=subshear_dname,
-                                         prefix=subshear_prefix,
-                                         restrict_neighbours=restrict_prefix)
+            last_substep = subshear == kwargs['shear']
+            kwargs['neighbours_dyn_kwargs'].update(jammed_packings_dir=subshear_dname,
+                                                   prefix=subshear_prefix,
+                                                   restrict_neighbours=restrict_prefix,
+                                                   write_analysis=last_substep)
             worker_neighbours(workspace_dir, kwargs['neighbours_dyn_kwargs'])
     except:
         logging.error('worker_lasting_neighbours worker: %s' % (traceback.format_exc()))
