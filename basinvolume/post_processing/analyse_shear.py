@@ -24,7 +24,7 @@ def worker_lasting_neighbors(workspace_dir, kwargs):
             restrict_prefix = os.path.join("shear_{}".format(subshear), "explore_bv_")
             subshear_dname = "shear_{}".format(subshear + kwargs['substep'])
             subshear_prefix = os.path.join(subshear_dname, "explore_bv_")
-            last_substep = subshear == kwargs['shear']
+            last_substep = subshear == kwargs['shear'] - kwargs['substep']
             kwargs['neighbors_dyn_kwargs'].update(jammed_packings_dir=subshear_dname,
                                                    prefix=subshear_prefix,
                                                    restrict_neighbors=restrict_prefix,
