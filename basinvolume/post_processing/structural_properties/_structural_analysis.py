@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import os
 import abc
-from basinvolume.utils import import_packing
+from basinvolume.utils import import_packing, trymakedir
 from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 from pele.potentials import HS_WCA
 
@@ -70,3 +70,38 @@ class StructuralAnalysis(object):
                                     boxvec=self.boxv, ndim=self.bdim,
                                     distance_method=self.distance_method,
                                     pot_kwargs=self.pot_kwargs)
+
+    def run(self):
+        for fname in os.listdir(self.jammed_packings_dir):
+            if 'xyzdr' in fname or 'xydr' in fname:
+                packing_name = os.path.splitext(fname)[0]
+
+                # Get configuration
+                configpath = os.path.join(self.jammed_packings_dir, packing_name + '.config')
+                self._import_packing_config_file(configpath)
+
+                # Check if the work directory exists
+                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
+                if os.path.isdir(base_directory_path) or not self.existing_only:
+                    trymakedir(base_directory_path)
+
+                    # Check if this packing has already been analysed
+                    self.analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
+                    analysis_fname = os.path.join(self.analysis_dir_path, self.analysis_name)
+                    compute = False
+                    try:
+                        self.read(analysis_fname)
+                    except Exception:
+                        compute = True
+
+                    if compute or self.force:
+                        trymakedir(self.analysis_dir_path)
+                        self._calculate(analysis_fname, packing_name, fname)
+
+    @abc.abstractmethod
+    def read(self):
+        """Read structural property from a file"""
+
+    @abc.abstractmethod
+    def _calculate(self, analysis_fname, input_packing, input_fname):
+        """Calculate the structural property"""

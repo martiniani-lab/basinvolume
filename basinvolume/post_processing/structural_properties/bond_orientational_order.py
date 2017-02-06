@@ -16,7 +16,7 @@ class BondOrientationalOrder(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
                  solid_angle_weighted=False, prefix='explore_bv_', verbose=True,
-                 use_cell_lists=True, import_config_once=False):
+                 use_cell_lists=True, import_config_once=False, deg=6, pinit=True):
         super(BondOrientationalOrder,self).__init__(workspace,
                                                     jammed_packings_dir=jammed_packings_dir,
                                                     analysis_dir=analysis_dir, force=force,
@@ -26,6 +26,9 @@ class BondOrientationalOrder(StructuralAnalysis):
         self.solid_angle_weighted = solid_angle_weighted
         if self.verbose:
             logging.debug("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
+        self.analysis_name = 'glob_boo'
+        self.deg = deg
+        self.pinit = pinit # initialise printing
 
     @staticmethod
     def read(boo_fname):
@@ -41,65 +44,47 @@ class BondOrientationalOrder(StructuralAnalysis):
             boo_dict['BOO'] = (boo[0].upper(), float(boo[1]))
         return boo_dict
 
-    def run(self, deg=6, pinit=True):
+    def _calculate(self, global_boo_fname, packing_name, input_fname):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
-        exisisting_only: bool
-            run on already existing packings only
-        pinit : bool
-            initialise printing
         """
-        for fname in os.listdir(self.jammed_packings_dir):
-            if 'xyzd' in fname or 'xyd' in fname:
-                compute = False
-                packing_name = os.path.splitext(fname)[0]
-                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
-                configpath = os.path.join(self.jammed_packings_dir, packing_name + '.config')
-                self._import_packing_config_file(configpath)
-                if os.path.isdir(base_directory_path) or not self.existing_only:
-                    trymakedir(base_directory_path)
-                    analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
-                    boo_fname = os.path.join(analysis_dir_path, 'boo_deg{}'.format(deg))
-                    global_boo_fname = os.path.join(analysis_dir_path, 'glob_boo')
-                    try:
-                        self.read(str(global_boo_fname))
-                        if not os.path.isfile(boo_fname):
-                            raise Exception
-                    except Exception:
-                        compute = True
-                    if compute or self.force:
-                        if self.verbose:
-                            logging.info("Calculating bond orientational order: {}"
-                                         .format(self.prefix + str(packing_name)))
-                        trymakedir(analysis_dir_path)
-                        self.coords, self.hs_radii, ss_radii, stable_atoms = \
-                            self._import_packing_configuration(fname)
+        if self.verbose:
+            logging.info("Calculating bond orientational order: {}"
+                         .format(self.prefix + str(packing_name)))
+        boo_fname = os.path.join(self.analysis_dir_path, 'boo_deg{}'.format(self.deg))
 
-                        # Create potential
-                        if not hasattr(self, 'potential') or not self.import_config_once:
-                            self._initialise_potential()
+        self.coords, self.hs_radii, ss_radii, stable_atoms = \
+            self._import_packing_configuration(input_fname)
 
-                        boo_list, z_list = self.bond_orientation_order_all(
-                            self.coords, ss_radii, stable_atoms, ndim=self.bdim, deg=deg)
+        # Create potential
+        if not hasattr(self, 'potential') or not self.import_config_once:
+            self._initialise_potential()
 
-                        with open(boo_fname, 'w') as f:
-                            f.write('#Q{} \t Z\n'.format(deg))
-                            for q, z in zip(boo_list, z_list):
-                                f.write('{:.16f} \t {}\n'.format(q, z))
-                        opt = 'w' if pinit else 'a'
-                        with open(global_boo_fname, opt) as f:
-                            if pinit:
-                                f.write('[Z] \n')
-                                f.write('Z: {:.16f} \n'.format(np.sum(z_list) / (z_list > 1e-12).sum()))
-                                f.write('[BOO] \n')
-                            f.write('Q{}: {:.16f} \n'.format(deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
+        boo_list, z_list = self.bond_orientation_order_all(
+            self.coords, ss_radii, stable_atoms, ndim=self.bdim, deg=self.deg)
+
+        with open(boo_fname, 'w') as f:
+            f.write('#Q{} \t Z\n'.format(self.deg))
+            for q, z in zip(boo_list, z_list):
+                f.write('{:.16f} \t {}\n'.format(q, z))
+        opt = 'w' if self.pinit else 'a'
+        with open(global_boo_fname, opt) as f:
+            if self.pinit:
+                f.write('[Z] \n')
+                f.write('Z: {:.16f} \n'.format(np.sum(z_list) / (z_list > 1e-12).sum()))
+                f.write('[BOO] \n')
+            f.write('Q{}: {:.16f} \n'.format(self.deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
 
     def run_all(self, deg_list=[4,6,8,10,12]):
         if any('xyzd' in fname for fname in os.listdir(self.jammed_packings_dir)):
             for i, deg in enumerate(deg_list):
-                self.run(deg, pinit=i<1)
+                self.deg = deg
+                self.pinit = i < 1
+                self.run()
                 assert self.bdim == 3
         elif any('xyd' in fname for fname in os.listdir(self.jammed_packings_dir)):
-            self.run(6, pinit=True)
+            self.deg = 6
+            pinit = True
+            self.run()
             assert self.bdim == 2
 
     def _cartesian_to_polar3d(self, vector):

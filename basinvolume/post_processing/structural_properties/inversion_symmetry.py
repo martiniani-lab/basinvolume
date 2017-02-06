@@ -21,6 +21,7 @@ class InversionSymmetry(StructuralAnalysis):
                                                 existing_only=existing_only, prefix=prefix,
                                                 verbose=verbose, use_cell_lists=use_cell_lists,
                                                 import_config_once=import_config_once)
+        self.analysis_name = 'inversion_symmetry'
 
     # Returns the affine force of a pair of particles
     # Tensor (numpy-array):
@@ -92,59 +93,35 @@ class InversionSymmetry(StructuralAnalysis):
             = configf.getfloat('INVERSION_SYMMETRY', 'inversion_symmetry')
         return invsym_dict
 
-    def run(self):
-        for fname in os.listdir(self.jammed_packings_dir):
-            if 'xyzdr' in fname or 'xydr' in fname:
-                packing_name = os.path.splitext(fname)[0]
+    def _calculate(self, invsym_fname, packing_name, input_fname):
+        if self.verbose:
+            logging.info("Calculating local inversion symmetry: {}"
+                         .format(self.prefix + str(packing_name)))
 
-                # Get configuration
-                configpath = os.path.join(self.jammed_packings_dir, packing_name + '.config')
-                self._import_packing_config_file(configpath)
+        # Read coordinates
+        self.coords, self.hs_radii, self.ss_radii, _ \
+            = self._import_packing_configuration(input_fname)
 
-                # Check if the work directory exists
-                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
-                if os.path.isdir(base_directory_path) or not self.existing_only:
-                    trymakedir(base_directory_path)
+        # Create potential
+        if not hasattr(self, 'potential') or not self.import_config_once:
+            self._initialise_potential()
 
-                    # Check if this packing has already been analysed
-                    analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
-                    invsym_fname = os.path.join(analysis_dir_path,'inversion_symmetry')
-                    compute = False
-                    try:
-                        self.read(invsym_fname)
-                    except Exception:
-                        compute = True
+        # Compute distances to neighbors
+        neighbor_lists, neighbor_distancess \
+            = self.potential.getNeighbors(self.coords)
 
-                    if compute or self.force:
-                        if self.verbose:
-                            logging.info("Calculating local inversion symmetry: {}"
-                                         .format(self.prefix + str(packing_name)))
-                        trymakedir(analysis_dir_path)
+        # Compute local inversion symmetry
+        affine_forces_sum = self._sum_affine_forces(neighbor_distancess,
+                                                    neighbor_lists)
+        affine_forces_isb = self._sum_affine_forces_sym_broken(
+            neighbor_distancess, neighbor_lists)
+        inv_sym = 1 - affine_forces_sum / affine_forces_isb
 
-                        # Read coordinates
-                        self.coords, self.hs_radii, self.ss_radii, _ \
-                            = self._import_packing_configuration(fname)
-
-                        # Create potential
-                        if not hasattr(self, 'potential') or not self.import_config_once:
-                            self._initialise_potential()
-
-                        # Compute distances to neighbors
-                        neighbor_lists, neighbor_distancess \
-                            = self.potential.getNeighbors(self.coords)
-
-                        # Compute local inversion symmetry
-                        affine_forces_sum = self._sum_affine_forces(neighbor_distancess,
-                                                                    neighbor_lists)
-                        affine_forces_isb = self._sum_affine_forces_sym_broken(
-                            neighbor_distancess, neighbor_lists)
-                        inv_sym = 1 - affine_forces_sum / affine_forces_isb
-
-                        # Output inversion symmetry to file
-                        with open(invsym_fname, 'w') as f:
-                            f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-                            f.write('[INVERSION_SYMMETRY]\n')
-                            f.write('inversion_symmetry: {:.16f}\n'.format(inv_sym))
+        # Output inversion symmetry to file
+        with open(invsym_fname, 'w') as f:
+            f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+            f.write('[INVERSION_SYMMETRY]\n')
+            f.write('inversion_symmetry: {:.16f}\n'.format(inv_sym))
 
 
 def worker_invsym(workspace, kwargs):

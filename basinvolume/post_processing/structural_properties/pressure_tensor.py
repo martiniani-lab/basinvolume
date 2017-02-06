@@ -22,6 +22,7 @@ class PressureTensor(StructuralAnalysis):
                                             verbose=verbose, use_cell_lists=use_cell_lists,
                                             import_config_once=import_config_once)
         self.opt_pot_str = opt_pot_str
+        self.analysis_name = 'pressure_data'
 
     @staticmethod
     def read(pressure_fname):
@@ -38,56 +39,35 @@ class PressureTensor(StructuralAnalysis):
             configf.getfloat('ENERGY', 'E')
         return pressure_dict
 
-    def run(self):
+    def _calculate(self, pressure_fname, packing_name, input_fname):
         """compute the pressure tensor for packings
-        exisisting_only: bool
-            run on already existing packings only
-        pinit : bool
-            initialise printing
         """
-        for fname in os.listdir(self.jammed_packings_dir):
-            if 'xyzd' in fname or 'xyd' in fname:
-                compute = False
-                packing_name = os.path.splitext(fname)[0]
-                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
-                configpath = os.path.join(self.jammed_packings_dir, packing_name + '.config')
-                self._import_packing_config_file(configpath)
-                if os.path.isdir(base_directory_path) or not self.existing_only:
-                    trymakedir(base_directory_path)
-                    analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
-                    pressure_fname = os.path.join(analysis_dir_path,'pressure_data')
-                    try:
-                        self.read(pressure_fname)
-                    except Exception:
-                        compute = True
-                    if compute or self.force:
-                        if self.verbose:
-                            logging.info("Calculating pressure: {}"
-                                         .format(self.prefix + str(packing_name)))
-                        trymakedir(analysis_dir_path)
-                        self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(fname)
-                        if not hasattr(self, 'potential') or not self.import_config_once:
-                            self.init_pressure_potential()
-                        # refine structure (does not make a difference if tol was small enough to start with)
-                        # if self.packing_frac < 0.835:
-                        #     fire_maxstep = np.amin(self.hs_radii) * self.sca
-                        #     res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
-                        #                            nsteps=1e6, tol=1e-11, iprint=-1)
-                        #     self.coords = res.coords
-                        p, ptensor = pressure_tensor(self.potential, self.coords, self.vcavity, self.bdim)
-                        max_shear_xyplane = np.sqrt(((ptensor[0] - ptensor[3]) / 2.) ** 2 + ptensor[1] ** 2)
-                        energy = self.potential.getEnergy(self.coords)
-                        with open(pressure_fname, 'w') as f:
-                            f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
-                            f.write('[PRESSURE]\n')
-                            f.write('P: {:.16f}\n'.format(p))
-                            f.write('maxshear_xyplane: {:.16f}\n'.format(max_shear_xyplane))
-                            f.write('Ptensor: ')
-                            for val in ptensor:
-                                f.write('{:.16f} '.format(val))
-                            f.write('\n')
-                            f.write('[ENERGY]\n')
-                            f.write('E: {:.16f}\n'.format(energy))
+        if self.verbose:
+            logging.info("Calculating pressure: {}"
+                         .format(self.prefix + str(packing_name)))
+        self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(input_fname)
+        if not hasattr(self, 'potential') or not self.import_config_once:
+            self.init_pressure_potential()
+        # refine structure (does not make a difference if tol was small enough to start with)
+        # if self.packing_frac < 0.835:
+        #     fire_maxstep = np.amin(self.hs_radii) * self.sca
+        #     res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
+        #                            nsteps=1e6, tol=1e-11, iprint=-1)
+        #     self.coords = res.coords
+        p, ptensor = pressure_tensor(self.potential, self.coords, self.vcavity, self.bdim)
+        max_shear_xyplane = np.sqrt(((ptensor[0] - ptensor[3]) / 2.) ** 2 + ptensor[1] ** 2)
+        energy = self.potential.getEnergy(self.coords)
+        with open(pressure_fname, 'w') as f:
+            f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
+            f.write('[PRESSURE]\n')
+            f.write('P: {:.16f}\n'.format(p))
+            f.write('maxshear_xyplane: {:.16f}\n'.format(max_shear_xyplane))
+            f.write('Ptensor: ')
+            for val in ptensor:
+                f.write('{:.16f} '.format(val))
+            f.write('\n')
+            f.write('[ENERGY]\n')
+            f.write('E: {:.16f}\n'.format(energy))
 
     def init_pressure_potential(self):
         # here put a flag and pick potential

@@ -146,7 +146,7 @@ class AnalyseShear:
 
         # Lasting neighbors
         if self.calc_neighbors_dyn:
-            neighbors_dyn_kwargs = dict(kwargs, cutoff=1., analysis_fname="neighbors_dyn")
+            neighbors_dyn_kwargs = dict(kwargs, cutoff=1., analysis_name="neighbors_dyn")
             if shear == self.start:
                 structural_props.append((worker_neighbors, neighbors_dyn_kwargs))
             else:
@@ -311,14 +311,14 @@ class AnalyseShear:
                     pressure_entry[shear] = pressure_dict['P']
                     shear_entry[shear] = pressure_dict['maxshear_xyplane']
                     shear_tensor[0][shear] = pressure_dict['Ptensor'][1]
-                    elif len(pressure_dict['Ptensor']) == 9:
+                    if len(pressure_dict['Ptensor']) == 9:
                         if len(shears) == 1:
                             shears += ['xz', 'yz']
                             shear_tensor.append(pd.Series())
                             shear_tensor.append(pd.Series())
                         shear_tensor[1][shear] = pressure_dict['Ptensor'][2]
                         shear_tensor[2][shear] = pressure_dict['Ptensor'][5]
-                    else:
+                    elif not len(pressure_dict['Ptensor']) == 4:
                         raise NotImplementedError
                 data['Energy'] = energy_entry
                 data['Pressure'] = pressure_entry

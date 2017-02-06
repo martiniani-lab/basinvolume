@@ -14,7 +14,7 @@ from _structural_analysis import StructuralAnalysis
 class Neighbors(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
-                 analysis_dir='analysis', analysis_fname='neighbors', force=False,
+                 analysis_dir='analysis', analysis_name='neighbors', force=False,
                  existing_only=True, prefix='explore_bv_', verbose=True,
                  restrict_neighbors=None, cutoff=1., use_cell_lists=True,
                  import_config_once=False, write_analysis=True):
@@ -25,7 +25,7 @@ class Neighbors(StructuralAnalysis):
                                                 import_config_once=import_config_once)
         self.cutoff = cutoff
         self.restrict_neighbors = restrict_neighbors
-        self.analysis_fname = analysis_fname
+        self.analysis_name = analysis_name
         self.write_analysis = write_analysis
 
     @staticmethod
@@ -39,68 +39,44 @@ class Neighbors(StructuralAnalysis):
             ast.literal_eval(configf.get('NEIGHBORS', 'neighbor_counts'))
         return neighbors_dict
 
-    def run(self):
-        for fname in os.listdir(self.jammed_packings_dir):
-            if 'xyzdr' in fname or 'xydr' in fname:
-                packing_name = os.path.splitext(fname)[0]
+    def _calculate(self, neighbors_fname, packing_name, input_fname):
+        if self.verbose:
+            if self.restrict_neighbors is None:
+                logging.info("Calculating neighbors: {}"
+                             .format(self.prefix + str(packing_name)))
+            else:
+                logging.info("Calculating restricted neighbors: {}"
+                             .format(self.prefix + str(packing_name)))
+        neighbors_dumpname = os.path.join(self.analysis_dir_path, self.analysis_name + '_dump.p')
 
-                # Get configuration
-                configpath = os.path.join(self.jammed_packings_dir, packing_name + '.config')
-                self._import_packing_config_file(configpath)
+        # Read coordinates and compute neighbors
+        self.coords, self.hs_radii, _, _ = \
+            self._import_packing_configuration(input_fname)
 
-                # Check if the work directory exists
-                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
-                if os.path.isdir(base_directory_path) or not self.existing_only:
-                    trymakedir(base_directory_path)
+        # Create potential
+        if not hasattr(self, 'potential') or not self.import_config_once:
+            self._initialise_potential()
 
-                    # Check if this packing has already been analysed
-                    analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
-                    neighbors_fname = os.path.join(analysis_dir_path, self.analysis_fname)
-                    neighbors_dumpname = os.path.join(analysis_dir_path, self.analysis_fname + '_dump.p')
-                    compute = False
-                    try:
-                        self.read(neighbors_fname)
-                    except Exception:
-                        compute = True
+        # Compute neighbors
+        neighbor_lists, _ = self.potential.getNeighbors(
+            self.coords, cutoff_factor=self.cutoff)
 
-                    if compute or self.force:
-                        if self.verbose:
-                            if self.restrict_neighbors is None:
-                                logging.info("Calculating neighbors: {}"
-                                             .format(self.prefix + str(packing_name)))
-                            else:
-                                logging.info("Calculating restricted neighbors: {}"
-                                             .format(self.prefix + str(packing_name)))
-                        trymakedir(analysis_dir_path)
-
-                        # Read coordinates and compute neighbors
-                        self.coords, self.hs_radii, _, _ = \
-                            self._import_packing_configuration(fname)
-
-                        # Create potential
-                        if not hasattr(self, 'potential') or not self.import_config_once:
-                            self._initialise_potential()
-
-                        # Compute neighbors
-                        neighbor_lists, _ = self.potential.getNeighbors(
-                            self.coords, cutoff_factor=self.cutoff)
-
-                        # Filter neighbors
-                        if self.restrict_neighbors is not None:
-                            self._filter_neighbors(neighbor_lists, packing_name)
+        # Filter neighbors
+        if self.restrict_neighbors is not None:
+            self._filter_neighbors(neighbor_lists, packing_name)
 
 
-                        # Output neighbor lists to file
-                        self._dump_neighbors(neighbors_dumpname, neighbor_lists)
-                        if self.write_analysis:
-                            self._write_output(neighbors_fname, neighbor_lists)
+        # Output neighbor lists to file
+        self._dump_neighbors(neighbors_dumpname, neighbor_lists)
+        if self.write_analysis:
+            self._write_output(neighbors_fname, neighbor_lists)
 
     def _filter_neighbors(self, neighbor_lists, packing_name):
         # Get conditional neighbor lists
         base_restrict_path = os.path.join(self.workspace,
                                           self.restrict_neighbors + str(packing_name))
         restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
-        restrict_path = os.path.join(restrict_dir, self.analysis_fname + '_dump.p')
+        restrict_path = os.path.join(restrict_dir, self.analysis_name + '_dump.p')
         if not os.path.isfile(restrict_path):
             raise IOError("The restrict neighbors file {} does "
                           "not exist.".format(restrict_path))
