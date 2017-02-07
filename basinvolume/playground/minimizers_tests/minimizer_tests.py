@@ -49,7 +49,7 @@ def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(2e5)):
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     sim = _kmin_mcrunner('jammed_packing1.xydr', k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5,
                          seeds=seeds, niter=5e3, adjustf_niter=5e3, single=True, use_cell_lists=False,
-                         use_cgd=True, verbose=False)
+                         minimizer='fire', verbose=False)
     try:
         print "loading data...",
         data = np.load(fname)
@@ -406,7 +406,7 @@ def _walk_eig_loop(fname, ndim=128, npackings=250):
             try:
                 sim = _kmin_mcrunner('jammed_packing{}.xydr'.format(j), k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5,
                                      seeds=seeds, niter=5e3, adjustf_niter=5e3, single=True, use_cell_lists=False,
-                                     use_cgd=True, verbose=False)
+                                     minimizer='fire', verbose=False)
                 _walk_eig_direction(sim, stepsize=0.01, index_evec=i, distance_array=distance_array,
                                     te_array=te_array, ev_array=ev_array)
             except:

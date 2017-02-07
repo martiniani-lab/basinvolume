@@ -24,7 +24,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
     def __init__(self, fname, niter=None, dtol=1e-4, eps=1., hmin=0, hmax=0.01, hbinsize=0.0005,
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, use_cgd=False, record_histogram=False,
+                 seeds=None, use_cell_lists=False, minimizer='fire', record_histogram=False,
                  packings_dir='jammed_packings', verbose=False, opt_pot_str='hs_wca',
                  **extra_pot_kwargs):
 
@@ -46,7 +46,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
                       opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                       perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
                       seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=record_histogram,
-                      use_cgd=use_cgd, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str,
+                      minimizer=minimizer, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str,
                       **extra_pot_kwargs)
 
         self.mc_params = dict(k=self.k, temperature=self.temperature, niter=self.niter, stepsize=self.stepsize)
@@ -157,8 +157,10 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
-    sim = _config_innersphere_mcrunner('jammed_packing1.xyzdr', niter=1e5, opt_tol=1e-4, seeds=seeds,
-                                use_cell_lists=False, verbose=False, use_cgd=True, opt_nsteps=1e5)
+    sim = _config_innersphere_mcrunner('jammed_packing1.xyzdr', niter=1e5,
+                                       opt_tol=1e-4, seeds=seeds,
+                                       use_cell_lists=False, verbose=False,
+                                       minimizer='fire', opt_nsteps=1e5)
     print 'simulation started'
     start=time.time()
     sim.run()

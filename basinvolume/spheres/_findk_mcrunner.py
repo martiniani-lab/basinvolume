@@ -20,7 +20,7 @@ class _findk_mcrunner(_configure_mcrunner):
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9,
                  knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5,
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings',
+                 seeds=None, use_cell_lists=False, minimizer='fire', packings_dir='jammed_packings',
                  verbose=False, opt_pot_str='hs_wca', **extra_pot_kwargs):
 
         self.temperature=1.0
@@ -50,7 +50,7 @@ class _findk_mcrunner(_configure_mcrunner):
                       opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol,
                       opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test,
                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                      use_cgd=use_cgd, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str,
+                      minimizer=minimizer, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str,
                       **extra_pot_kwargs)
 
         self.mc_params = dict(temperature=self.temperature,niter=niter, stepsize=stepsize)
@@ -138,8 +138,9 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=1158925890)
     extra_pot_kwargs = dict(pow=3, a=1)
     opt_pot_str= 'hs_wca' #'inverse_power_stillinger'
-    sim = _findk_mcrunner('jammed_packing0.xydr', avgcount=1e4, k=759, opt_tol=1e-5, ktarget=0.9, knavg=1e3,
-                          seeds=seeds, use_cell_lists=True, verbose=True, use_cgd=True,
+    sim = _findk_mcrunner('jammed_packing0.xydr', avgcount=1e4, k=759, opt_tol=1e-5,
+                          ktarget=0.9, knavg=1e3, seeds=seeds, use_cell_lists=True,
+                          verbose=True, minimizer='fire',
                           opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     print 'simulation started'
     start=time.time()

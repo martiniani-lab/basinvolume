@@ -32,7 +32,7 @@ class BVSubmitPBS(object):
                  kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing',
                  pt_config='explore_jammed_packing',
                  packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False,
-                 experimental=False, use_cgd=True, record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
+                 experimental=False, minimizer='fire', record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
                  maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5, pot_opt_str='hs_wca', nocell=False, delraw=False):
         if not workdir:
             workdir = os.getcwd()
@@ -51,7 +51,7 @@ class BVSubmitPBS(object):
         self.nojmax = nojmax
         self.nodays = nodays
         self.experimental = experimental
-        self.use_cgd = use_cgd
+        self.minimizer = minimizer
         self.record_steps_timeseries = record_steps_timeseries
         self.mintotniter = int(mintotniter)
         self.maxtotniter = int(maxtotniter)
@@ -185,11 +185,9 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
-        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings --opt-pot {2}'.format(findk_script,
-                                                                                              packing,
-                                                                                              self.pot_opt_str)
-        if self.use_cgd:
-            command += " --cgd"
+        command = ('python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings '
+                   '--opt-pot {2}').format(findk_script, packing, self.pot_opt_str)
+        command += " --minimizer {}".format(self.minimizer)
         if record_steps_timeseries:
             command += " --rsts"
         if script == 'bv_find_kmax.py':
@@ -207,11 +205,9 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         innersphere_dos_script = os.path.join(os.path.dirname(os.path.dirname(path_to_script)), 'mbar_spheres', script)
-        command = 'python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings --opt-pot {2}'.format(innersphere_dos_script,
-                                                                                              packing,
-                                                                                              self.pot_opt_str)
-        if self.use_cgd:
-            command += " --cgd"
+        command = ('python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings '
+                   '--opt-pot {2}').format(innersphere_dos_script, packing, self.pot_opt_str)
+        command += " --minimizer {}".format(self.minimizer)
         if self.nocell:
             command += " --nocell"
         return command
@@ -356,8 +352,7 @@ class BVSubmitPBS(object):
                                                self.maxtotniter, self.relstderr, self.pot_opt_str)
         if self.nocell:
             command += " --nocell"
-        if self.use_cgd:
-            command += " --cgd"
+        command += " --minimizer {}".format(self.minimizer)
         if self.numnegk > 0:
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         if self.delraw > 0:
@@ -536,7 +531,9 @@ if __name__ == "__main__":
     single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format", default=False)
     single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",
                                default=False)
-    single_parser.add_argument("--fire", action='store_true', help="use fire instead of cgd", default=False)
+    single_parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
+                               "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
+                               "Default: 'fire'", default='fire')
     single_parser.add_argument("--rsts", action='store_true',
                                help="record steps timeseries for diffusion studies, default: False", default=False)
     single_parser.add_argument("--kmax_start", type=float, help="starting value for kmax calculation", default=500)
@@ -552,6 +549,9 @@ if __name__ == "__main__":
     single_parser.add_argument("--force", action='store_true', help="force run", default=False)
     single_parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",
                                default=False)
+    single_parser.add_argument("--delraw", action='store_true',
+                               help="Delete raw timeseries textfiles after parallel "
+                               "tempering and only use the HDF5 format.", default=False)
 
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str,
@@ -573,7 +573,9 @@ if __name__ == "__main__":
                               help="number of maximum job ID to submit (to selectively submit a range of jobs)",
                               default=1e6)
     chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format", default=False)
-    chain_parser.add_argument("--fire", action='store_true', help="use fire instead of cgd", default=False)
+    chain_parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
+                              "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
+                              "Default: 'fire'", default='fire')
     chain_parser.add_argument("--rsts", action='store_true',
                               help="record steps timeseries for diffusion studies, default: False", default=False)
     chain_parser.add_argument("--kmax_start", type=float, help="starting value for kmax calculation", default=500)
@@ -590,13 +592,18 @@ if __name__ == "__main__":
                               default=False)
     chain_parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",
                               default=False)
-    parser.add_argument("--delraw", action='store_true', help="Delete raw timeseries textfiles after "
-                        "parallel tempering and only use the HDF5 format.", default=False)
+    chain_parser.add_argument("--delraw", action='store_true',
+                              help="Delete raw timeseries textfiles after parallel "
+                              "tempering and only use the HDF5 format.", default=False)
 
     args = parser.parse_args()
     print args
+
+    if args.minimizer.lower() not in ['cg', 'fire', 'lbfgs']:
+        raise NotImplementedError("Undefined minimizer: {}".format(args.minimizer))
+
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin,
-                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, use_cgd=not args.fire,
+                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, minimizer=args.minimizer,
                         record_steps_timeseries=args.rsts, kmax_start=args.kmax_start, mintotniter=args.mintotniter,
                         maxtotniter=args.maxtotniter,
                         relstderr=args.relstderr, numnegk=args.numnegk, lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw)

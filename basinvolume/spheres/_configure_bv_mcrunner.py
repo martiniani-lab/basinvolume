@@ -29,7 +29,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100,
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=None,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
-                 single=False, seeds=None, use_cell_lists=False, use_cgd=False, record_histogram = False,
+                 single=False, seeds=None, use_cell_lists=False, minimizer='fire', record_histogram = False,
                  packings_dir='jammed_packings', base_dir=None, verbose = False,
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
 
@@ -49,7 +49,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                       opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                       perform_convergence_test=perform_convergence_test, record_histogram=record_histogram,
                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                      single=single, use_periodic=True, use_frozen=False, use_cgd=use_cgd, record_trajectory=False,
+                      single=single, use_periodic=True, use_frozen=False, minimizer=minimizer, record_trajectory=False,
                       opt_pot_str=opt_pot_str, **extra_pot_kwargs)
 
         self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)

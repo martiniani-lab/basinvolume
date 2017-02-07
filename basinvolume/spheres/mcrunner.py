@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import warnings
 from pele.potentials import Harmonic, HS_WCA, InversePowerStillingerCut
-from pele.optimize import ModifiedFireCPP
+from pele.optimize import ModifiedFireCPP, LBFGS_CPP
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
@@ -83,9 +83,9 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=True, record_histogram=False,
                  use_periodic=True, use_frozen=False, frozen_atoms=None,
-                 rcontainer=None, use_cgd=False,
+                 rcontainer=None, minimizer='fire',
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
-        self.use_cgd = use_cgd
+        self.minimizer = minimizer
         # optimizer parameters
         self.opt_dtmax = opt_dtmax
         self.opt_maxstep = opt_maxstep
@@ -127,15 +127,22 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         return pot_optimizer
 
     def get_optimizer(self):
-        optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
-                                     dtmax=self.opt_dtmax, maxstep=self.opt_maxstep,
-                                     tol=self.opt_tol, nsteps=self.opt_nsteps)
+        if self.minimizer.lower() == 'lbfgs':
+            optimizer = LBFGS_CPP(self.start_coords, self.pot_optimizer,
+                                  tol=self.opt_tol, nsteps=self.opt_nsteps,
+                                  maxstep=self.opt_maxstep)
+        else:
+            optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
+                                        dtmax=self.opt_dtmax, maxstep=self.opt_maxstep,
+                                        tol=self.opt_tol, nsteps=self.opt_nsteps)
         return optimizer
 
     def _get_check_same_minimum(self):
+        use_cgd = self.minimizer.lower() == 'cg'
         csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
-                               opt=self.optimizer, opt_tol=self.opt_tol, opt_maxiter=self.opt_nsteps,
-                               bdim=self.bdim, eqsteps=self.equilibration_steps, use_cgd=self.use_cgd,
+                               opt=self.optimizer, opt_tol=self.opt_tol,
+                               opt_maxiter=self.opt_nsteps, bdim=self.bdim,
+                               eqsteps=self.equilibration_steps, use_cgd=use_cgd,
                                perform_convergence_test=self.perform_convergence_test,
                                collect_minima_list=self.collect_minima_list)
         return csm
@@ -314,7 +321,7 @@ class BV_MCrunner(SpheresMCRunner):
                  record_trajectory=False,
                  record_trajectory_npoints=1e4,
                  single=False, use_periodic=True, use_frozen=False,
-                 frozen_atoms=None, rcontainer=None, use_cgd=False,
+                 frozen_atoms=None, rcontainer=None, minimizer='fire',
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
         # actions parameters
         if ts_niter is None:
@@ -340,7 +347,7 @@ class BV_MCrunner(SpheresMCRunner):
                                           seeds=seeds, use_cell_lists=use_cell_lists,
                                           record_histogram=record_histogram, use_periodic=use_periodic,
                                           use_frozen=use_frozen, frozen_atoms=frozen_atoms,
-                                          rcontainer=rcontainer, use_cgd=use_cgd,
+                                          rcontainer=rcontainer, minimizer=minimizer,
                                           opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         # set control
         self.set_control(k)
@@ -498,7 +505,7 @@ class Findk_MCrunner(SpheresMCRunner):
                  binsize=0.005, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
-                 frozen_atoms=None, rcontainer=None, use_cgd=False,
+                 frozen_atoms=None, rcontainer=None, minimizer='fire',
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
         #findk parameters
         self.avgcount = avgcount
@@ -515,7 +522,7 @@ class Findk_MCrunner(SpheresMCRunner):
                                              seeds=seeds, use_cell_lists=use_cell_lists,
                                              record_histogram=False, use_periodic=use_periodic,
                                              use_frozen=use_frozen, frozen_atoms=frozen_atoms,
-                                             rcontainer=rcontainer, use_cgd=use_cgd,
+                                             rcontainer=rcontainer, minimizer=minimizer,
                                              opt_pot_str=opt_pot_str, **extra_pot_kwargs)
 
     def _set_takestep(self, stepsize):

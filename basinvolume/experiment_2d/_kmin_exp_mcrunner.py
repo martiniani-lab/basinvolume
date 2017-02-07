@@ -23,7 +23,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
                  hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3,
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False, single=False,
-                 seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', verbose=False):
+                 seeds=None, use_cell_lists=False, minimizer='fire', packings_dir='jammed_packings', verbose=False):
 
         self.fname = fname
         self.temperature=1.0
@@ -53,7 +53,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
                           'adjustf':adjustf,'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
                           'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
-                          'single':single, 'use_cell_lists':use_cell_lists, 'rcontainer':rcontainer, 'use_cgd':use_cgd}
+                          'single':single, 'use_cell_lists':use_cell_lists, 'rcontainer':rcontainer, 'minimizer':minimizer}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -74,7 +74,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
                                     use_periodic=False, use_frozen=True, frozen_atoms=self.frozen, rcontainer=rcontainer,
-                                    use_cgd=use_cgd)
+                                    minimizer=minimizer)
 
         self._initialise()
 
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
     sim = _kmin_exp_mcrunner('jammed_packing1.xydfr', k=289.508273354, niter=5e5, opt_tol=1e-7,
-                             seeds=seeds, single=True, use_cell_lists=True, verbose=True, use_cgd=True)
+                             seeds=seeds, single=True, use_cell_lists=True, verbose=True, minimizer='fire')
     print 'simulation started'
     start=time.time()
     sim.run()

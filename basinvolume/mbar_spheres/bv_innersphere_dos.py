@@ -22,7 +22,9 @@ if __name__ == "__main__":
     parser.add_argument("fname", type=str, help="packing file name")
     parser.add_argument("-p","--packingsdir", type=str, help="protocol to generate packings, assume in cwd", default="jammed_packings")
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
-    parser.add_argument("--cgd", action='store_true', help="use CG_DESCENT, default: False",default=False)
+    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
+                        "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
+                        "Default: 'fire'", default='fire')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
      # potential arguments
     parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
@@ -47,7 +49,7 @@ if __name__ == "__main__":
 
     #when niter=None, niter is set equal to exact number of PT niter
     innersphere_kwargs = dict(niter=1e5, dtol=1e-4, eps=1., opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5,
-                              packings_dir=packings_dir, use_cell_lists=not args.nocell, use_cgd=args.cgd, 
+                              packings_dir=packings_dir, use_cell_lists=not args.nocell, minimizer=args.minimizer,
                               verbose=args.verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
 
     i32max = np.iinfo(np.int32).max

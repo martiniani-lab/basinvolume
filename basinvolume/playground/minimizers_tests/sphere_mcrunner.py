@@ -2,7 +2,7 @@ from __future__ import print_function
 import numpy as np
 import sys
 from pele.potentials import Harmonic, HS_WCA
-from pele.optimize import ModifiedFireCPP
+from pele.optimize import ModifiedFireCPP, LBFGS_CPP
 from pele.storage import Database
 from pele.storage.database import Minimum
 from mcpele.monte_carlo import _BaseMCRunner
@@ -154,7 +154,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
-                 use_cgd=False):
+                 minimizer='fire'):
         #construct base class
         assert not (use_frozen and use_periodic)
         if use_frozen:
@@ -184,7 +184,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         self.nparticles = len(self.red_radii)
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
-        self.use_cgd = use_cgd
+        self.minimizer = minimizer
         self.frozen_atoms = frozen_atoms
         self.use_periodic = use_periodic
         self.rcontainer = rcontainer
@@ -221,9 +221,16 @@ class BVSphereMCrunner(_BaseMCRunner):
                              frozen_atoms=self.frozen_atoms)
 
         #construct gradient optimizer
-        self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
-                                         dtmax=opt_dtmax, maxstep=opt_maxstep,
-                                         tol=opt_tol, nsteps=opt_nsteps)
+        if self.minimizer.lower() == 'lbfgs':
+            self.optimizer = LBFGS_CPP(self.start_coords,
+                                       self.pot_optimizer,
+                                       tol=opt_tol,
+                                       nsteps=opt_nsteps,
+                                       maxstep=opt_maxstep)
+        else:
+            self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
+                                             dtmax=opt_dtmax, maxstep=opt_maxstep,
+                                             tol=opt_tol, nsteps=opt_nsteps)
 
         #compute seeds
         if not seeds:
@@ -263,11 +270,12 @@ class BVSphereMCrunner(_BaseMCRunner):
                                  self.bdim, use_frozen=self.use_frozen,
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
-
-        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
+        use_cgd = self.minimizer.lower() == 'cg'
+        self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin,
+                                          self.rattlers, self.dtol,
                                           opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,
                                           bdim=self.bdim, eqsteps=self.equilibration_steps,
-                                          use_cgd=self.use_cgd,
+                                          use_cgd=use_cgd,
                                           perform_convergence_test=perform_convergence_test,
                                           collect_minima_list=collect_minima_list)
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, ts_niter, ts_freq)

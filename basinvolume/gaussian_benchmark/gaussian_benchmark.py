@@ -32,7 +32,7 @@ try:
     from utils import *
 except:
     print("gaussian import failed")
-    
+
 class EvalCounter(object):
     def __init__(self):
         self.count = 0
@@ -67,8 +67,7 @@ class GaussianBenchmark(object):
                  harmonic_well=False,
                  kmax_niter=1e5,
                  simple_integrator=False,
-                 use_cgd=False,
-                 use_lbfgs=False):
+                 minimizer='fire'):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -79,7 +78,7 @@ class GaussianBenchmark(object):
         self.radius_container = radius_container
         self.avgcount = avgcount
         self.ktarget = ktarget
-        self.knavg = knavg 
+        self.knavg = knavg
         self.ktol = ktol
         self.hmin = hmin
         self.hmax = hmax
@@ -96,8 +95,7 @@ class GaussianBenchmark(object):
         self.harmonic_well = harmonic_well
         self.kmax_niter = kmax_niter
         self.simple_integrator = simple_integrator
-        self.use_cgd = use_cgd
-        self.use_lbfgs = use_lbfgs
+        self.minimizer = minimizer
         if self.means is None:
             raise Exception("GaussianBenchmark: illegal input: means")
         if self.cov is None:
@@ -119,12 +117,12 @@ class GaussianBenchmark(object):
             print("ENERGY", self.pot_optimizer.getEnergy(np.asarray([10.0, 10.0])))
         #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         #####
-        if self.use_cgd:
+        if self.minimizer.lower() == 'cg':
             self.optimizer = CGDescent(self.means[self.minimum_index][:],
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
                                        nsteps=self.opt_nsteps)
-        elif self.use_lbfgs:
+        elif self.minimizer.lower() == 'lbfgs':
             self.optimizer = LBFGS_CPP(self.means[self.minimum_index][:],
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
@@ -136,7 +134,7 @@ class GaussianBenchmark(object):
                                              self.pot_optimizer,
                                              dtmax=self.opt_dtmax,
                                              maxstep=self.opt_maxstep,
-                                             tol=self.opt_tol, 
+                                             tol=self.opt_tol,
                                              nsteps=opt_nsteps, verbosity=0)
         self.find_origin()
         print("self.origin.size", self.origin.size)
@@ -333,10 +331,7 @@ class GaussianBenchmark(object):
         cmd = cmd_base_str.format(self.nprocs, "config{}.gauss".format(self.minimum_index), base_pt_path, int(self.totniter), self.nparticles)
         if self.harmonic_well:
             cmd += " --harmonic_well"
-        if self.use_cgd:
-            cmd += " --use_cgd"
-        if self.use_lbfgs:
-            cmd += " --use_lbfgs"
+        cmd += " --minimizer " + self.minimizer
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
@@ -435,7 +430,7 @@ class GaussianBenchmark(object):
         """
         must run before import u2
         """
-        karray = [] 
+        karray = []
         path = os.path.join(self.explore_dir, 'temperatures')
         f = open(path, "r")
         while True:
@@ -449,7 +444,7 @@ class GaussianBenchmark(object):
     def _import_u2_reverse(self):
         n = len(self.karray)-1
         self.u2_array = [0 for _ in xrange(n)]
-        self.var_array = [0 for _ in xrange(n)] 
+        self.var_array = [0 for _ in xrange(n)]
         self.std_error_array = [0 for _ in xrange(n)]
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
@@ -480,7 +475,7 @@ class GaussianBenchmark(object):
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#{:>15}\t{:>15}\n'.format('<u2>', 'var(<u2>)'))
         for i in xrange(len(self.u2_array)):
-            f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i])) 
+            f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i]))
         f.close()
     def _compute_volume(self):
         """
@@ -517,15 +512,15 @@ class GaussianBenchmark(object):
             _to_file("sigF0unc", self.sigF0unc)
         f.close()
 
-def plot_potential(means, cov):    
+def plot_potential(means, cov):
     import matplotlib.pyplot as plt
-    
+
     N = 200
     xx = np.linspace(-10, 10, N)
     U = np.zeros((N, N))
     pot = SumGaussianPot(means, cov)
     R = 10
-    
+
     for i in xrange(0, N):
         for j in xrange(0, N):
             U[i, j] = pot.getEnergy(np.array([xx[j], xx[i]]))
@@ -551,7 +546,7 @@ def plot_potential(means, cov):
     plt.show()
     plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
 
-def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False, use_cgd=False, use_lbfgs=False):
+def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False, minimizer='fire'):
     if minimum_index >= means.shape[0] or minimum_index < 0:
         raise Exception("illegal input: index of minimum")
     if not means.shape == cov.shape:
@@ -559,7 +554,7 @@ def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False
     res = []
     config = 'config{}.gauss'.format(minimum_index)
     # Thermodynamic integration computation of volume of minimum i.
-    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False, harmonic_well=harmonic_well, use_cgd=use_cgd, use_lbfgs=use_lbfgs)
+    bm = GaussianBenchmark(means=means, cov=cov, minimum_index=minimum_index, simple_integrator=False, harmonic_well=harmonic_well, minimizer=minimizer)
     bm.find_kmax()
     bm.run_kmin()
     bm.run_PT()
@@ -605,7 +600,7 @@ if __name__ == "__main__":
     [ 1.26304236,  8.80647431],
     [ 7.82900305,  2.89542514],
     [ 5.35866288, -7.17580499],
-    [-5.16164399, -7.13075119]        
+    [-5.16164399, -7.13075119]
     ])
     cov = np.asarray([
     [ 2.89579414,  2.89579414],
@@ -621,8 +616,7 @@ if __name__ == "__main__":
     ])
     """
     harmonic_well = False
-    use_cgd = False
-    use_lbfgs = False
+    minimizer = 'fire'
     parser = argparse.ArgumentParser(description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method")
     parser.add_argument("--gauss_path", type=str, default=os.getcwd())
     parser.add_argument("--index", type=int, default=0)
@@ -630,5 +624,4 @@ if __name__ == "__main__":
     means, cov = get_means_cov(args.gauss_path)
     print("means", means)
     print("cov", cov)
-    compute_volume(minimum_index=args.index, means=means, cov=cov, harmonic_well=harmonic_well, use_cgd=use_cgd, use_lbfgs=use_lbfgs)
-    
+    compute_volume(minimum_index=args.index, means=means, cov=cov, harmonic_well=harmonic_well, minimizer=minimizer)

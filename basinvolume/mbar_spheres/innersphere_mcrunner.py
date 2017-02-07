@@ -11,18 +11,18 @@ from itertools import cycle
 try:
     import matplotlib.pyplot as plt
     #more stuff for plotting histogram and comparing to prediction
-    #######################SET LATEX OPTIONS###################                            
+    #######################SET LATEX OPTIONS###################
     plt.rc('text', usetex=True)
     plt.rc('font',**{'family':'serif','serif':['Computer Modern']})
-    #rc('text.latex',preamble=r'\usepackage{times}')                                       
+    #rc('text.latex',preamble=r'\usepackage{times}')
     plt.rcParams.update({'font.size': 20})
     plt.rcParams['xtick.major.pad'] = 8
     plt.rcParams['ytick.major.pad'] = 8
-    ##########################################################                             
-    ####SET COLOUR MAP######                                                               
+    ##########################################################
+    ####SET COLOUR MAP######
     cm = plt.get_cmap('Dark2')
-    ########################                                                               
-    #####################LINE STYLE CYCLER####################                             
+    ########################
+    #####################LINE STYLE CYCLER####################
     lines = ["-","--","-."]
     linecycler = cycle(lines)
     color_cycle=[cm(1. * i / 6) for i in xrange(6)]
@@ -38,7 +38,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 * construct _base_MCrunner
 * construct takestep, accept test, configuration test, action classes
 * add these to the pele::MC class
-* write a set_control function, for example you may want to set the temperature 
+* write a set_control function, for example you may want to set the temperature
   (this is done this way to be compatible with the MPI replica exchange/parallel tempering
   implementation)
 * add other functionalities that you may find desirable, e.g. dump histogram to file
@@ -47,7 +47,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 class BVInnerSphereMCrunner(SpheresMCRunner):
     """
     Basin volume Sphere MC runner
-    
+
     Parameters
     ----------
     potential : pele potential
@@ -124,7 +124,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
-                 use_cgd=False, opt_pot_str='hs_wca', **extra_pot_kwargs):
+                 minimizer='fire', opt_pot_str='hs_wca', **extra_pot_kwargs):
 
         self.k = 1.0 / (stepsize * stepsize)
         # actions parameters
@@ -143,7 +143,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
                                                     seeds=seeds, use_cell_lists=use_cell_lists,
                                                     record_histogram=record_histogram, use_periodic=use_periodic,
                                                     use_frozen=use_frozen, frozen_atoms=frozen_atoms,
-                                                    rcontainer=rcontainer, use_cgd=use_cgd,
+                                                    rcontainer=rcontainer, minimizer=minimizer,
                                                     opt_pot_str=opt_pot_str, **extra_pot_kwargs)
         assert self.equilibration_steps == 0
 
@@ -157,18 +157,18 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
 
     def _set_accept_tests(self):
         pass
-        
+
     def set_control(self, c):
         """set k"""
         print("WARNING: set control is not defined, spring constant is set through stepsize", file=sys.stderr)
-    
+
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
         k = 1.0 / (stepsize * stepsize)
         #k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
         return k
-    
+
     def dump_histogram(self, fname):
         """write histogram to fname"""
         Emin, Emax = self.histogram.get_bounds_val()
@@ -180,7 +180,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
-    
+
     def dump_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
@@ -188,22 +188,22 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         if clear:
             self.time_series.clear()
         return timeseries
-    
+
     def get_timeseries(self):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
         return timeseries
-    
+
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.time_series.check_convergence(nr_steps_to_check=nr_steps_to_check,
                                                    rel_std_threshold=rel_std_threshold)
-        
+
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
-    
+
     def show_histogram_analytical(self):
         """
         shows the histogram against the analytical curve when k=kmax

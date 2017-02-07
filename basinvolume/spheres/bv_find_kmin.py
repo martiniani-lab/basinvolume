@@ -30,7 +30,9 @@ if __name__ == "__main__":
     parser.add_argument("--adjustf-niter", type=float, help="number of steps to adjust stepsize, default: 1e5",default=1e4)
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
-    parser.add_argument("--cgd", action='store_true', help="use CG_DESCENT, default: False",default=False)
+    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
+                        "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
+                        "Default: 'fire'", default='fire')
     parser.add_argument("--rsts", action='store_true', help="record steps timeseries for diffusion studies, default: False",default=False)
     parser.add_argument("--rsts-only", action='store_true', help="record steps timeseries for diffusion studies ONLY, default: False",default=False)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
@@ -62,7 +64,7 @@ if __name__ == "__main__":
     kmin_kwargs = dict(k=0, stepsize=1e-1, niter=args.niter, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1,
                        acceptance=0.2, adjustf=0.9, adjustf_niter=args.adjustf_niter, adjustf_navg=100,
                        opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, packings_dir=packings_dir,
-                       use_cell_lists=not args.nocell, single=single, use_cgd=args.cgd, verbose=args.verbose,
+                       use_cell_lists=not args.nocell, single=single, minimizer=args.minimizer, verbose=args.verbose,
                        record_steps_timeseries=args.rsts, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
                        print_diffusion_only=args.rsts_only, record_trajectory_npoints=int(1e4),
                        opt_pot_str=opt_pot_str, **extra_pot_kwargs)

@@ -37,13 +37,13 @@ if __name__ == "__main__":
         print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
     else:
         raise NotImplementedError
-        
+
     ncores = int(args.ncores)
     niter = int(args.niter)
     mypool = mp.Pool(ncores)
-    
-    i32max = np.iinfo(np.int32).max 
-    
+
+    i32max = np.iinfo(np.int32).max
+
     try:
         workspace = os.getcwd()
         dir_signature='n*_phi*_phi*_*D*'
@@ -68,11 +68,11 @@ if __name__ == "__main__":
                         fname += ".xyzdr"
                     elif bdim == 2:
                         fname += ".xydr"
-                    kmin_kwargs = dict(k=0, stepsize=1e-1, niter=niter, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1, 
+                    kmin_kwargs = dict(k=0, stepsize=1e-1, niter=niter, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1,
                                        acceptance=0.2, adjustf=0.9, adjustf_niter=1e5, adjustf_navg=100,
                                        opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, packings_dir=packings_dir,
-                                       use_cell_lists=True, single=True, use_cgd=True, verbose=args.verbose,
-                                       record_steps_timeseries=True, 
+                                       use_cell_lists=True, single=True, minimizer='fire', verbose=args.verbose,
+                                       record_steps_timeseries=True,
                                        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(28)],
                                        print_diffusion_only=True, workspace=dir_path,
                                        record_trajectory_npoints=int(1e4),
@@ -86,6 +86,6 @@ if __name__ == "__main__":
         mypool.terminate()
         mypool.join()
         raise
-                
+
     mypool.close()
     mypool.join()

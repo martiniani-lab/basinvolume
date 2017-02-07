@@ -4,8 +4,9 @@ import os
 import abc
 from pele.potentials import HS_WCA, InversePowerStillinger
 from pele.optimize._quench import modifiedfire_cpp
-from basinvolume.utils import get_git_version, get_python_version, get_cython_version, full_coordinates
-from basinvolume.utils import read_xydfr, read_xyzdfr, reduce_coordinates, read_xydr, read_xyzdr
+from basinvolume.utils import (get_git_version, get_python_version, get_cython_version,
+                               full_coordinates, read_xydfr, read_xyzdfr,
+                               reduce_coordinates, read_xydr, read_xyzdr, import_packing)
 import warnings
 
 class _configure_mcrunner(object):
@@ -143,7 +144,7 @@ class _configure_mcrunner(object):
             self.red_radii = np.delete(self.hs_radii.copy(), self.frozen)
             self.red_rattlers = reduce_coordinates(self.rattlers, self.frozen, self.bdim)
         else:
-            imp_packing = import_packing(path, False, self.bdim)
+            imp_packing = import_packing(path, True, self.bdim)
             self.coords = imp_packing['coords']
             self.red_coords = self.coords
             self.rattlers = imp_packing['stable_atoms_float_bdim']

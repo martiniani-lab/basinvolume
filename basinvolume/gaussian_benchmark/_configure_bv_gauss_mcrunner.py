@@ -36,33 +36,32 @@ class configure_bv_gauss_mcrunner(object):
                  niter=10,
                  dtol=1,
                  eps=1.,
-                 hmin=0, 
+                 hmin=0,
                  hmax=100,
                  hbinsize=1,
                  acceptance=0.2,
                  adjustf=0.9,
                  adjustf_niter=1e3,
-                 adjustf_navg=100, 
+                 adjustf_navg=100,
                  pt_eq_niter=1000,
                  ts_niter=None,
                  ts_freq=1,
                  opt_dtmax=1,
-                 opt_maxstep=0.1, 
+                 opt_maxstep=0.1,
                  opt_tol=1e-8,
                  opt_nsteps=1e8,
                  perform_convergence_test=False,
-                 collect_minima_list=False, 
+                 collect_minima_list=False,
                  single=False,
                  seeds=None,
                  use_cell_lists=False,
-                 use_cgd=False,
+                 minimizer='fire',
                  record_histogram=False,
                  packings_dir='gaussian_sum',
                  base_dir=None,
                  verbose=False,
                  harmonic_com_flag=False,
-                 harmonic_well=False,
-                 use_lbfgs=False):
+                 harmonic_well=False):
         self.harmonic_well = harmonic_well
         self.adjustf_niter = adjustf_niter
         self.pt_eq_niter = pt_eq_niter
@@ -82,15 +81,14 @@ class configure_bv_gauss_mcrunner(object):
         self.opt_maxstep = opt_maxstep
         self.eps = eps
         self.harmonic_com_flag = harmonic_com_flag
-        self.use_cgd = use_cgd
-        self.use_lbfgs = use_lbfgs
+        self.minimizer = minimizer
         self.mc_params = {'k':k,'temperature':temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,'eps':self.eps,
                           'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,'acceptance':acceptance,'adjustf':adjustf,
                           'adjustf_niter':adjustf_niter,'adjustf_navg':adjustf_navg,'pt_eq_niter':pt_eq_niter,
                           'ts_niter':ts_niter, 'ts_freq':ts_freq,'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,
-                          'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,'perform_convergence_test':perform_convergence_test, 
+                          'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,'perform_convergence_test':perform_convergence_test,
                           'collect_minima_list':collect_minima_list, 'record_histogram':record_histogram,
-                          'single':single, 'use_cell_lists':use_cell_lists, 'use_cgd':use_cgd, "use_lbfgs":use_lbfgs}
+                          'single':single, 'use_cell_lists':use_cell_lists, 'minimizer':minimizer}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -126,16 +124,16 @@ class configure_bv_gauss_mcrunner(object):
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")
         self._initialise()
         print(self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps)
-        if self.use_cgd:
+        if self.minimizer.lower() == 'cg':
             self.optimizer = CGDescent(self.origin,
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
-                                       nsteps=self.opt_nsteps)
-        elif self.use_lbfgs:
+                                       nsteps=opt_nsteps)
+        elif self.minimizer.lower() == 'lbfgs':
             self.optimizer = LBFGS_CPP(self.origin,
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
-                                       nsteps=self.opt_nsteps,
+                                       nsteps=opt_nsteps,
                                        maxstep=self.opt_maxstep)
         else:
             from pele.optimize import ModifiedFireCPP
@@ -143,7 +141,7 @@ class configure_bv_gauss_mcrunner(object):
                                     self.pot_optimizer,
                                     dtmax=self.opt_dtmax,
                                     maxstep=self.opt_maxstep,
-                                    tol=self.opt_tol, 
+                                    tol=self.opt_tol,
                                     nsteps=opt_nsteps)
         self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag)
         self.conftest_outer_sphere = CheckSphericalContainerConfig(self.radius_container)
@@ -200,7 +198,7 @@ class configure_bv_gauss_mcrunner(object):
         self.means_configpath = os.path.join(packings_dir, "gaussian_sum_means.config")
         self.cov_configpath = os.path.join(packings_dir, "gaussian_sum_cov.config")
         self.packing_configpath = os.path.join(packings_dir, 'gaussian_sum.config')
-        self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')  
+        self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')
         self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
         self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
     def _import_packing_config_files(self):
@@ -247,10 +245,10 @@ class configure_bv_gauss_mcrunner(object):
     def _get_histogram_bin(self, k):
         """automatically estimate size of histogram"""
         """
-        This is copied from bv config. (Needs to be changed?) 
+        This is copied from bv config. (Needs to be changed?)
         """
         hmax = self.displ_k_min * k
-        hbinsize = hmax * 0.01 
+        hbinsize = hmax * 0.01
         return hbinsize
     def _initialise(self):
         """initialisation function"""
@@ -287,7 +285,7 @@ class configure_bv_gauss_mcrunner(object):
     def _write_sim_params(self, f):
         """
         write simulation parameters
-        """    
+        """
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Explore Gaussian sums potential basins wrapper class input parameters\n')
         f.write('[IMPORTED_GAUSSIAN_SUM_MINIMUM]\n')
@@ -318,4 +316,4 @@ class configure_bv_gauss_mcrunner(object):
             configf.read(str(self.configfile))
             for i in xrange(self.nprocs):
                 configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
-            configf.write(open(str(self.configfile),'w')) 
+            configf.write(open(str(self.configfile),'w'))

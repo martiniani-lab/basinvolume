@@ -26,7 +26,9 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--relstderr", type=float, help="relative standard error to test convergence, default 0.05", default=0.05)
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
-    parser.add_argument("--cgd", action='store_true', help="use CG_DESCENT, default: False",default=False)
+    parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
+                        "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
+                        "Default: 'fire'", default='fire')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
     # potential arguments
@@ -94,7 +96,7 @@ if __name__ == "__main__":
 
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5, opt_nsteps=1e5, hmin=0,
                    hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
-                   pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, use_cgd=args.cgd,
+                   pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, minimizer=args.minimizer,
                    perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
                    seeds=seeds, use_cell_lists=not args.nocell, single=single, record_histogram=record_histogram,
                    opt_pot_str=opt_pot_str, **extra_pot_kwargs)

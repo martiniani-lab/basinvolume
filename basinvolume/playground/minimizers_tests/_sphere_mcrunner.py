@@ -28,7 +28,7 @@ class _sphere_mcrunner(_configure_mcrunner):
     def __init__(self, fname, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0,
                  hmax=0.01, hbinsize=0.0005, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, use_cgd=False, packings_dir='jammed_packings', verbose=False):
+                 seeds=None, use_cell_lists=False, minimizer='fire', packings_dir='jammed_packings', verbose=False):
 
         self.fname = fname
         self.temperature=1.0
@@ -52,7 +52,7 @@ class _sphere_mcrunner(_configure_mcrunner):
                           'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,
                           'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
                           'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
-                          'use_cgd':use_cgd, 'use_cell_lists':use_cell_lists}
+                          'minimizer':minimizer, 'use_cell_lists':use_cell_lists}
         #add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
@@ -70,7 +70,7 @@ class _sphere_mcrunner(_configure_mcrunner):
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True,
-                                    use_cgd=use_cgd, use_periodic=True, use_frozen=False)
+                                    minimizer=minimizer, use_periodic=True, use_frozen=False)
 
         self._initialise()
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
     sim = _sphere_mcrunner('jammed_packing1.xyzdr', niter=5e5, opt_tol=1e-4, seeds=seeds,
-                         stepsize=1/np.sqrt(11), use_cell_lists=False, verbose=False, use_cgd=True,
+                         stepsize=1/np.sqrt(11), use_cell_lists=False, verbose=False, minimizer='fire',
                          hmax=0.1, hbinsize=0.001, opt_nsteps=1e6)
     print 'simulation started'
     start=time.time()

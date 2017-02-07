@@ -69,12 +69,12 @@ class BruteForce2D(object):
                                          self.pot_optimizer,
                                          dtmax=self.opt_dtmax,
                                          maxstep=self.opt_maxstep,
-                                         tol=self.opt_tol, 
+                                         tol=self.opt_tol,
                                          nsteps=opt_nsteps,
                                          verbosity=0)
         self.find_origin()
         self.rattlers = np.ones(self.origin.size)
-        self.use_cgd = False
+        self.minimizer = 'fire'
         self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer,
                                            self.origin,
                                            self.csm_dtol,
@@ -104,7 +104,7 @@ class BruteForce2D(object):
         #self.nr_evaluations.count += self.optimizer.get_result().nfev
         self.optimizer.reset(origin_result)
         print("reset: self.optimizer.get_result().nfev", self.optimizer.get_result().nfev)
-        return origin_result 
+        return origin_result
     def compute_volume(self):
         print("compute volume")
         self.mc.set_print_progress()

@@ -414,15 +414,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 logging.warning(self._log("Overlap found before quenching"))
                 return False
 
-        if self.minimizer == "fire":
+        if self.minimizer.lower() == 'fire':
             fire_maxstep = np.amin(self.hs_radii)*self.sca
             res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
                                    nsteps=1e6, tol=tol, iprint=iprint)
-        elif self.minimizer == "cg":
+        elif self.minimizer.lower() == 'cg':
             optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                   nsteps=1e6, print_level=iprint)
             res = optimizer.run()
-        elif self.minimizer == "lbfgs":
+        elif self.minimizer.lower() == 'lbfgs':
             res = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
                             iprint=iprint)
         else:
@@ -437,14 +437,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         #test that on re-minimisation the structure does not change
         if __debug__ and self.check_packing:
-            if self.minimizer == "fire":
+            if self.minimizer.lower() == 'fire':
                 res2 = modifiedfire_cpp(self.coords, self.potential,
                                         maxstep=fire_maxstep, nsteps=1e6, tol=tol)
-            elif self.minimizer == "cg":
+            elif self.minimizer.lower() == 'cg':
                 optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                       nsteps=1e6, print_level=iprint)
                 res2 = optimizer.run()
-            elif self.minimizer == "lbfgs":
+            elif self.minimizer.lower() == 'lbfgs':
                 res2 = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
                                 iprint=iprint)
             else:
