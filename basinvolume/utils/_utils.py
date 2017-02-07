@@ -127,6 +127,8 @@ def view_traceback():
 def read_xyd(fname):
     coords = []
     radii = []
+    if not os.path.isfile(fname):
+        raise IOError("The xyd file '{}' does not exist.".format(fname))
     f = open(fname, "r")
     while True:
         xyd = f.readline()
@@ -141,6 +143,8 @@ def read_xydf(fname):
     coords = []
     radii = []
     frozen = []
+    if not os.path.isfile(fname):
+        raise IOError("The xydf file '{}' does not exist.".format(fname))
     f = open(fname, "r")
     i = 0
     while True:
@@ -158,6 +162,8 @@ def read_xydf(fname):
 def read_xyzd(fname):
     coords = []
     radii = []
+    if not os.path.isfile(fname):
+        raise IOError("The xyzd file '{}' does not exist.".format(fname))
     f = open(fname, "r")
     while True:
         xyzd = f.readline()
@@ -172,6 +178,8 @@ def read_xyzdf(fname):
     coords = []
     radii = []
     frozen = []
+    if not os.path.isfile(fname):
+        raise IOError("The xyzdf file '{}' does not exist.".format(fname))
     f = open(fname, "r")
     i = 0
     while True:
@@ -190,6 +198,8 @@ def read_xydr(fname, etol=1.0, bdim=2):
     coords = []
     radii = []
     stable_atoms = []
+    if not os.path.isfile(fname):
+        raise IOError("The xydr file '{}' does not exist.".format(fname))
     f = open(fname, "r")
     while True:
         xydr = f.readline()
@@ -209,6 +219,8 @@ def read_xydfr(fname, etol=1.0, bdim=2):
     radii = []
     frozen = []
     stable_atoms = []
+    if not os.path.isfile(fname):
+        raise IOError("The xydfr file '{}' does not exist.".format(fname))
     f = open(fname, "r")
     i=0
     while True:
@@ -231,6 +243,8 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
     coords = []
     radii = []
     stable_atoms = []
+    if not os.path.isfile(fname):
+        raise IOError("The xyzdr file '{}' does not exist.".format(fname))
     f = open(fname, "r")
     while True:
         xyzdr = f.readline()
@@ -249,6 +263,8 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
     radii = []
     frozen = []
     stable_atoms = []
+    if not os.path.isfile(fname):
+        raise IOError("The xyzdfr file '{}' does not exist.".format(fname))
     f = open(fname, "r")
     i=0
     while True:
