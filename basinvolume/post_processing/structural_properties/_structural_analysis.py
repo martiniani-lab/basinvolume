@@ -88,13 +88,14 @@ class StructuralAnalysis(object):
                     # Check if this packing has already been analysed
                     self.analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
                     analysis_fname = os.path.join(self.analysis_dir_path, self.analysis_name)
-                    compute = False
-                    try:
-                        self.read(analysis_fname)
-                    except Exception:
-                        compute = True
+                    already_computed = True
+                    if not self.force:
+                        try:
+                            self.read(analysis_fname)
+                        except Exception:
+                            already_computed = False
 
-                    if compute or self.force:
+                    if self.force or not already_computed:
                         trymakedir(self.analysis_dir_path)
                         self._calculate(analysis_fname, packing_name, fname)
 
