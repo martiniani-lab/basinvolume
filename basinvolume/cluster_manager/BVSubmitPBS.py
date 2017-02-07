@@ -356,7 +356,7 @@ class BVSubmitPBS(object):
         if self.numnegk > 0:
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         if self.delraw > 0:
-            command += "--delraw"
+            command += " --delraw"
         return command
 
     def submit_pt_calculations(self, queue_type, nodes, cores, walltime, path_to_script, force):
