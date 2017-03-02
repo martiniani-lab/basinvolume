@@ -973,16 +973,16 @@ def sort_circle(vertices):
     """
     Sorts vertices by polar angle
     """
-    tans = [y / x for [x, y] in vertices]
+    tans = (y / x for [x, y] in vertices)
     rights = {}
     lefts = {}
     for i, coord in enumerate(vertices):
         if coord[0] >= 0:
-            rights[tans[i]] = i
+            rights[next(tans)] = i
         else:
-            lefts[tans[i]] = i
+            lefts[next(tans)] = i
     return [vertices[rights[tan]] for tan in sorted(rights.iterkeys())] \
-           + [vertices[lefts[tan]] for tan in sorted(lefts.iterkeys())]
+        + [vertices[lefts[tan]] for tan in sorted(lefts.iterkeys())]
 
 
 def origin_in_hull_2d(vertices):
