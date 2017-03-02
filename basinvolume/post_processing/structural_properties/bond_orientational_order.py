@@ -17,18 +17,18 @@ class BondOrientationalOrder(StructuralAnalysis):
                  analysis_dir='analysis', force=False, existing_only=True,
                  solid_angle_weighted=False, prefix='explore_bv_', verbose=True,
                  use_cell_lists=True, import_config_once=False, deg=6, pinit=True):
-        super(BondOrientationalOrder,self).__init__(workspace,
-                                                    jammed_packings_dir=jammed_packings_dir,
-                                                    analysis_dir=analysis_dir, force=force,
-                                                    existing_only=existing_only, prefix=prefix,
-                                                    verbose=verbose, use_cell_lists=use_cell_lists,
-                                                    import_config_once=import_config_once)
+        super(BondOrientationalOrder, self).__init__(
+            workspace, jammed_packings_dir=jammed_packings_dir,
+            analysis_dir=analysis_dir, force=force, existing_only=existing_only,
+            prefix=prefix, verbose=verbose, use_cell_lists=use_cell_lists,
+            import_config_once=import_config_once)
         self.solid_angle_weighted = solid_angle_weighted
         if self.verbose:
-            logging.debug("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
+            logging.debug("self.solid_angle_weighted: {}"
+                          .format(self.solid_angle_weighted))
         self.analysis_name = 'glob_boo'
         self.deg = deg
-        self.pinit = pinit # initialise printing
+        self.pinit = pinit  # initialise printing
 
     @staticmethod
     def read(boo_fname):
@@ -45,12 +45,14 @@ class BondOrientationalOrder(StructuralAnalysis):
         return boo_dict
 
     def _calculate(self, global_boo_fname, packing_name, input_fname):
-        """compute boo for packings. we exclude rattlers from the computation of the global structure factors
+        """compute boo for packings. We exclude rattlers
+        from the computation of the global structure factors
         """
         if self.verbose:
             logging.info("Calculating bond orientational order: {}"
                          .format(self.prefix + str(packing_name)))
-        boo_fname = os.path.join(self.analysis_dir_path, 'boo_deg{}'.format(self.deg))
+        boo_fname = os.path.join(self.analysis_dir_path,
+                                 'boo_deg{}'.format(self.deg))
 
         self.coords, self.hs_radii, ss_radii, stable_atoms = \
             self._import_packing_configuration(input_fname)
@@ -70,11 +72,13 @@ class BondOrientationalOrder(StructuralAnalysis):
         with open(global_boo_fname, opt) as f:
             if self.pinit:
                 f.write('[Z] \n')
-                f.write('Z: {:.16f} \n'.format(np.sum(z_list) / (z_list > 1e-12).sum()))
+                f.write('Z: {:.16f} \n'.format(np.sum(z_list)
+                                               / (z_list > 1e-12).sum()))
                 f.write('[BOO] \n')
-            f.write('Q{}: {:.16f} \n'.format(self.deg, np.sum(boo_list) / (boo_list > 1e-12).sum() ))
+            f.write('Q{}: {:.16f} \n'.format(self.deg, np.sum(boo_list)
+                                             / (boo_list > 1e-12).sum()))
 
-    def run_all(self, deg_list=[4,6,8,10,12]):
+    def run_all(self, deg_list=[4, 6, 8, 10, 12]):
         if any('xyzd' in fname for fname in os.listdir(self.jammed_packings_dir)):
             for i, deg in enumerate(deg_list):
                 self.deg = deg
@@ -90,8 +94,8 @@ class BondOrientationalOrder(StructuralAnalysis):
     def _cartesian_to_polar3d(self, vector):
         vector = np.array(vector)
         r = np.linalg.norm(vector)
-        theta = np.arctan2(vector[1], vector[0]) + np.pi    #[0, 2*pi]
-        phi = np.arccos(vector[2]/r)                        #[0, pi]
+        theta = np.arctan2(vector[1], vector[0]) + np.pi  # [0, 2*pi]
+        phi = np.arccos(vector[2] / r)  # [0, pi]
         return r, theta, phi
 
     def _cartesian_to_polar2d(self, vector):
@@ -120,17 +124,17 @@ class BondOrientationalOrder(StructuralAnalysis):
         n = len(nnatoms_vec)
         if weights is None:
             weights = np.ones(n)
-        qsum = np.complex(0.,0.)
+        qsum = np.complex(0., 0.)
         if ndim == 3:
             for i, vector in enumerate(nnatoms_vec):
                 r, theta, phi = self._cartesian_to_polar3d(vector)
-                Y = sph_harm(order, deg, theta, phi) #theta, phi
+                Y = sph_harm(order, deg, theta, phi)  # theta, phi
                 qsum += Y * weights[i]
         elif ndim == 2:
             assert deg == 6, "boo only meaningful for exhatic phase in 2d"
             for i, vector in enumerate(nnatoms_vec):
                 r, theta = self._cartesian_to_polar2d(vector)
-                Y = np.exp(np.complex(0.,deg*theta))
+                Y = np.exp(np.complex(0., deg * theta))
                 qsum += Y * weights[i]
         else:
             raise Exception('ndim not implemented')
@@ -138,10 +142,10 @@ class BondOrientationalOrder(StructuralAnalysis):
 
     def _bond_orientational_order3d(self, nnatoms_vec, deg=6, weights=None):
         q = 0.
-        for m in xrange(-deg,deg+1):
+        for m in xrange(-deg, deg + 1):
             c = self._qsum(nnatoms_vec, m, ndim=3, deg=deg, weights=weights)
             q += np.absolute(c)**2
-        return np.sqrt(q * 4 * np.pi / (2*deg+1))
+        return np.sqrt(q * 4 * np.pi / (2 * deg + 1))
 
     def _bond_orientational_order2d(self, nnatoms_vec, deg=6, weights=None):
         c = self._qsum(nnatoms_vec, 0, ndim=2, deg=deg, weights=weights)
@@ -171,8 +175,10 @@ class BondOrientationalOrder(StructuralAnalysis):
                 weights_all[i].append(sann.weight[j])
         return nnatoms_list, weights_all
 
-    def bond_orientation_order_single(self, coords, ss_radii, stable_atoms, atom_index, ndim=3, deg=6):
-        _, nnatoms_list = self.potential.getNeighbors(coords, include_atoms=stable_atoms)
+    def bond_orientation_order_single(self, coords, ss_radii, stable_atoms,
+                                      atom_index, ndim=3, deg=6):
+        _, nnatoms_list = self.potential.getNeighbors(coords,
+                                                      include_atoms=stable_atoms)
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
 
@@ -185,11 +191,13 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
-        _, contacts_list = self.potential.getNeighbors(coords, include_atoms=stable_atoms)
+        _, contacts_list = self.potential.getNeighbors(
+            coords, include_atoms=stable_atoms)
         if not self.solid_angle_weighted:
             nnatoms_list = contacts_list
         else:
-            nnatoms_list, weights_all = self.find_nearest_neighbors_solid_angle(coords, ss_radii)
+            nnatoms_list, weights_all = \
+                self.find_nearest_neighbors_solid_angle(coords, ss_radii)
 
         boo_list = []
         z_list = []
@@ -200,15 +208,16 @@ class BondOrientationalOrder(StructuralAnalysis):
             if weights_all is not None:
                 weights = weights_all[i]
             if len(nnatoms_vec) > 0 and stable_atoms[i]:
-                boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg, weights=weights)
+                boo = self._bond_orientational_order(nnatoms_vec, ndim=ndim,
+                                                     deg=deg, weights=weights)
                 boo_list.append(boo)
             else:
-                #rattlers
+                # rattlers
                 boo_list.append(0)
             if len(contacts_vec) > 0 and stable_atoms[i]:
                 z_list.append(len(contacts_vec))
             else:
-                #rattlers
+                # rattlers
                 z_list.append(0)
         return np.array(boo_list), np.array(z_list)
 
@@ -217,7 +226,7 @@ def worker_boo(workspace, kwargs):
     try:
         boo = BondOrientationalOrder(workspace, **kwargs)
         boo.run_all()
-    except:
+    except Exception:
         logging.error('worker_boo worker: %s' % (traceback.format_exc()))
 
 

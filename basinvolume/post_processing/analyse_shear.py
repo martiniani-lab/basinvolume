@@ -10,30 +10,37 @@ import multiprocessing as mp
 import logging
 from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 from pele.potentials import HS_WCA
-from basinvolume.post_processing.structural_properties \
-    import BondOrientationalOrder,  PressureTensor, Neighbors, InversionSymmetry, \
-           Displacement, worker_boo, worker_disp, worker_invsym, worker_neighbors, \
-           worker_pressure
+from basinvolume.post_processing.structural_properties import (BondOrientationalOrder,
+                                                               PressureTensor, Neighbors,
+                                                               InversionSymmetry,
+                                                               Displacement, worker_boo,
+                                                               worker_disp, worker_invsym,
+                                                               worker_neighbors,
+                                                               worker_pressure)
+
 
 def worker_lasting_neighbors(workspace_dir, kwargs):
     try:
         for subshear in np.arange(kwargs['shear'] - kwargs['step'],
                                   kwargs['shear'] - 0.5 * kwargs['substep'],
                                   kwargs['substep']):
-            restrict_prefix = os.path.join("shear_{}".format(subshear), "explore_bv_")
+            restrict_prefix = os.path.join("shear_{}".format(subshear),
+                                           "explore_bv_")
             subshear_dname = "shear_{}".format(subshear + kwargs['substep'])
             subshear_prefix = os.path.join(subshear_dname, "explore_bv_")
             last_substep = subshear == kwargs['shear'] - kwargs['substep']
             kwargs['neighbors_dyn_kwargs'].update(jammed_packings_dir=subshear_dname,
-                                                   prefix=subshear_prefix,
-                                                   restrict_neighbors=restrict_prefix,
-                                                   write_analysis=last_substep)
+                                                  prefix=subshear_prefix,
+                                                  restrict_neighbors=restrict_prefix,
+                                                  write_analysis=last_substep)
             worker_neighbors(workspace_dir, kwargs['neighbors_dyn_kwargs'])
-    except:
-        logging.error('worker_lasting_neighbors worker: %s' % (traceback.format_exc()))
+    except Exception:
+        logging.error('worker_lasting_neighbors worker: %s' %
+                      (traceback.format_exc()))
 
 
 class AnalyseShear:
+
     def __init__(self, input_dir=".", output_dir="shear_analysis", force=False,
                  start=0., step=0.01, substep=0.001, stop=1., njobs=1, use_cell_lists=True,
                  calc_neighbors=False, calc_neighbors_dyn=False, calc_boo=False,
@@ -85,13 +92,16 @@ class AnalyseShear:
                           "pressure_tensor", "displacement"]
         params = [self.calc_neighbors, self.calc_neighbors_dyn, self.calc_boo,
                   self.calc_invsym, self.calc_pressure, self.calc_displacement]
-        param_dirs = [all_param_dirs[i] for i in range(len(params)) if params[i]]
+        param_dirs = [all_param_dirs[i]
+                      for i in range(len(params)) if params[i]]
 
         # Get packings to create
-        input_files = os.listdir(os.path.join(self.input_dir, "shear_{}".format(self.start)))
+        input_files = os.listdir(os.path.join(self.input_dir, "shear_{}"
+                                              .format(self.start)))
         packing_files = filter(lambda pname: "jammed_packing" in pname
                                and ('xyzdr' in pname or 'xydr' in pname), input_files)
-        packings = [packing.split('_')[1].split('.')[0] for packing in packing_files]
+        packings = [packing.split('_')[1].split('.')[0]
+                    for packing in packing_files]
 
         # Create directory structure
         for packing in packings:
@@ -145,14 +155,16 @@ class AnalyseShear:
 
         # Lasting neighbors
         if self.calc_neighbors_dyn:
-            neighbors_dyn_kwargs = dict(kwargs, cutoff=1., analysis_name="neighbors_dyn")
+            neighbors_dyn_kwargs = dict(kwargs, cutoff=1.,
+                                        analysis_name="neighbors_dyn")
             if shear == self.start:
                 structural_props.append((worker_neighbors, neighbors_dyn_kwargs))
             else:
                 neighbors_dyn_worker_kwargs = dict(neighbors_dyn_kwargs=neighbors_dyn_kwargs,
-                                                    shear=shear, step=self.step,
-                                                    substep=self.substep)
-                structural_props.append((worker_lasting_neighbors, neighbors_dyn_worker_kwargs))
+                                                   shear=shear, step=self.step,
+                                                   substep=self.substep)
+                structural_props.append((worker_lasting_neighbors,
+                                         neighbors_dyn_worker_kwargs))
 
         # Pressure tensor
         if self.calc_pressure:
@@ -162,7 +174,8 @@ class AnalyseShear:
         # Start parallel calculations
         if self.njobs > 1:
             for prop in structural_props:
-                self.results.append(self.mypool.apply_async(prop[0], args=(workspace_dir, prop[1],)))
+                self.results.append(self.mypool.apply_async(
+                    prop[0], args=(workspace_dir, prop[1],)))
         else:
             for prop in structural_props:
                 prop[0](workspace_dir, prop[1])
@@ -173,7 +186,8 @@ class AnalyseShear:
         # Get the input directory paths
         input_files = os.listdir(os.path.join(self.input_dir, input_relpath))
         explore_dirs = filter(lambda expname: "explore_bv_jammed_packing" in expname
-                              and os.path.isdir(os.path.join(self.input_dir, input_relpath, expname)),
+                              and os.path.isdir(os.path.join(self.input_dir,
+                                                             input_relpath, expname)),
                               input_files)
         analysis_paths = [os.path.join(self.input_dir, input_relpath, expdir, "analysis")
                           for expdir in explore_dirs]
@@ -183,15 +197,20 @@ class AnalyseShear:
         output_packings = filter(lambda pname: "packing" in pname
                                  and os.path.isdir(os.path.join(self.output_dir, pname)),
                                  output_files)
-        output_paths = [os.path.join(self.output_dir, packing) for packing in output_packings]
+        output_paths = [os.path.join(self.output_dir, packing)
+                        for packing in output_packings]
 
         # Get parameter directory and file names
-        params_from_to_all = [("neighbors", "neighbors"), ("neighbors_dyn", "neighbors_dyn"),
-                              ("glob_boo", "boo"), ("inversion_symmetry", "inversion_symmetry"),
-                              ("pressure_data", "pressure_tensor"), ("displacement", "displacement")]
+        params_from_to_all = [("neighbors", "neighbors"),
+                              ("neighbors_dyn", "neighbors_dyn"),
+                              ("glob_boo", "boo"),
+                              ("inversion_symmetry", "inversion_symmetry"),
+                              ("pressure_data", "pressure_tensor"),
+                              ("displacement", "displacement")]
         params_choice = [self.calc_neighbors, self.calc_neighbors_dyn, self.calc_boo,
                          self.calc_invsym, self.calc_pressure, self.calc_displacement]
-        params_from_to = [params_from_to_all[i] for i in range(len(params_choice)) if params_choice[i]]
+        params_from_to = [params_from_to_all[i]
+                          for i in range(len(params_choice)) if params_choice[i]]
 
         # Iterate over packings and parameters
         for analysis_path, output_path in zip(analysis_paths, output_paths):
@@ -209,7 +228,8 @@ class AnalyseShear:
         output_packings = filter(lambda pname: "packing" in pname
                                  and os.path.isdir(os.path.join(self.output_dir, pname)),
                                  output_files)
-        output_paths = [os.path.join(self.output_dir, packing) for packing in output_packings]
+        output_paths = [os.path.join(self.output_dir, packing)
+                        for packing in output_packings]
 
         # Iterate over packings
         for path in output_paths:
@@ -240,8 +260,10 @@ class AnalyseShear:
                     displ_dict = Displacement.read(os.path.join(displacement_path,
                                                                 shear_file))
                     shear = float(shear_file.split('_')[1])
-                    avg_abs_displacement_norm[shear] = displ_dict['avg_abs_displacement_norm']
-                    avg_abs_nonaff_displacement_norm[shear] = displ_dict['avg_abs_nonaff_displacement_norm']
+                    avg_abs_displacement_norm[shear] = displ_dict[
+                        'avg_abs_displacement_norm']
+                    avg_abs_nonaff_displacement_norm[shear] = displ_dict[
+                        'avg_abs_nonaff_displacement_norm']
                     if len(dims) == 0:
                         dims = ['x', 'y', 'z']
                         dims = dims[:len(displ_dict['avg_displacement'])]
@@ -254,7 +276,8 @@ class AnalyseShear:
                         avg_abs_nonaff_displacement[i][shear] \
                             = displ_dict['avg_abs_nonaff_displacement'][i]
                 data['Average absolute displacement'] = avg_abs_displacement_norm
-                data['Average absolute non-affine displacement'] = avg_abs_nonaff_displacement_norm
+                data['Average absolute non-affine displacement'] \
+                    = avg_abs_nonaff_displacement_norm
                 for i in xrange(len(dims)):
                     data['Average absolute displacement {}'.format(dims[i])] \
                         = avg_abs_displacement[i]
@@ -278,7 +301,7 @@ class AnalyseShear:
                 neighbors_entry = pd.Series()
                 for shear_file in os.listdir(neighbors_path):
                     neighbors_dict = Neighbors.read(os.path.join(neighbors_path,
-                                                                   shear_file))
+                                                                 shear_file))
                     shear = float(shear_file.split('_')[1])
                     neighbors_entry[shear] = neighbors_dict['avg_neighbors']
                 data['Average neighbors'] = neighbors_entry
@@ -289,9 +312,10 @@ class AnalyseShear:
                 neighbors_dyn_entry = pd.Series()
                 for shear_file in os.listdir(neighbors_dyn_path):
                     neighbors_dyn_dict = Neighbors.read(os.path.join(neighbors_dyn_path,
-                                                                       shear_file))
+                                                                     shear_file))
                     shear = float(shear_file.split('_')[1])
-                    neighbors_dyn_entry[shear] = neighbors_dyn_dict['avg_neighbors']
+                    neighbors_dyn_entry[shear] \
+                        = neighbors_dyn_dict['avg_neighbors']
                 data['Average lasting neighbors'] = neighbors_dyn_entry
 
             # Pressure tensor
@@ -358,14 +382,17 @@ if __name__ == "__main__":
                         "lasting neighbors). Default: False",
                         default=False)
     parser.add_argument("-b", "--bond-orientation-order", action='store_true',
-                        help="Calculate the bond orientational order. Default: False", default=False)
+                        help="Calculate the bond orientational order. Default: False",
+                        default=False)
     parser.add_argument("-i", "--inversion-symmetry", action='store_true',
-                        help="Calculate the local inversion symmetry. Default: False", default=False)
+                        help="Calculate the local inversion symmetry. Default: False",
+                        default=False)
     parser.add_argument("-p", "--pressure-tensor", action='store_true',
                         help="Calculate the pressure tensor (shear stress). Default: False",
                         default=False)
     parser.add_argument("-d", "--displacement", action='store_true',
-                        help="Calculate the displacement of the particles. Default: False", default=False)
+                        help="Calculate the displacement of the particles. Default: False",
+                        default=False)
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',

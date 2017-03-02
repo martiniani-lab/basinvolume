@@ -11,15 +11,16 @@ from _structural_analysis import StructuralAnalysis
 
 
 class Displacement(StructuralAnalysis):
+
     def __init__(self, workspace, packings_old, jammed_packings_dir,
                  analysis_dir='analysis', force=False, existing_only=True,
                  prefix='explore_bv_', verbose=True, shear=None, sub_centre_mass=True,
                  use_cell_lists=True, import_config_once=False):
         super(Displacement, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
-                                                analysis_dir=analysis_dir, force=force,
-                                                existing_only=existing_only, prefix=prefix,
-                                                verbose=verbose, use_cell_lists=use_cell_lists,
-                                                import_config_once=import_config_once)
+                                           analysis_dir=analysis_dir, force=force,
+                                           existing_only=existing_only, prefix=prefix,
+                                           verbose=verbose, use_cell_lists=use_cell_lists,
+                                           import_config_once=import_config_once)
         if not os.path.isabs(packings_old):
             packings_old = os.path.join(self.workspace, packings_old)
         self.packings_old = packings_old
@@ -80,19 +81,21 @@ class Displacement(StructuralAnalysis):
         coords_old, _, _, _ = self._import_packing_configuration(path_old)
 
         # Calculate displacements
-        # The displacement is measured with the boundary conditions of the new packing
+        # The displacement is measured with the boundary conditions of the new
+        # packing
         displacements = []
         if self.shear is not None:
             nonaff_displacements = []
         for i in xrange(self.nparticles):
             displacement = calc_distance(
-                coords_new[i * self.bdim : (i + 1) * self.bdim],
-                coords_old[i * self.bdim : (i + 1) * self.bdim],
+                coords_new[i * self.bdim: (i + 1) * self.bdim],
+                coords_old[i * self.bdim: (i + 1) * self.bdim],
                 self.bdim, self.distance_method, self.boxv, self.pot_kwargs)
             displacements.append(displacement)
             if self.shear is not None:
                 nonaff_displacement = displacement.copy()
-                nonaff_displacement[0] -= coords_old[i * self.bdim + 1] * self.shear
+                nonaff_displacement[0] -= (coords_old[i * self.bdim + 1]
+                                           * self.shear)
                 nonaff_displacements.append(nonaff_displacement)
 
         # Subtract centre of mass displacement
@@ -105,7 +108,8 @@ class Displacement(StructuralAnalysis):
             if self.shear is not None:
                 nonaff_displacements -= centre_of_mass_displacement
                 # Centre of mass displacement by affine shear component
-                affine_com_displacement = np.mean(coords_old[1::self.bdim] * self.shear)
+                affine_com_displacement = np.mean(coords_old[1::self.bdim]
+                                                  * self.shear)
                 for i in xrange(self.nparticles):
                     nonaff_displacements[i][0] += affine_com_displacement
 
@@ -144,7 +148,7 @@ def worker_disp(workspace, kwargs):
     try:
         disp = Displacement(workspace, **kwargs)
         disp.run()
-    except:
+    except Exception:
         logging.error('worker_disp worker: %s' % (traceback.format_exc()))
 
 

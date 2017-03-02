@@ -14,13 +14,14 @@ from _structural_analysis import StructuralAnalysis
 class PressureTensor(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
-                 analysis_dir='analysis', force=False, existing_only=True, opt_pot_str='hs_wca',
-                 prefix='explore_bv_', verbose=True, use_cell_lists=True, import_config_once=False):
-        super(PressureTensor,self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
-                                            analysis_dir=analysis_dir, force=force,
-                                            existing_only=existing_only, prefix=prefix,
-                                            verbose=verbose, use_cell_lists=use_cell_lists,
-                                            import_config_once=import_config_once)
+                 analysis_dir='analysis', force=False, existing_only=True,
+                 opt_pot_str='hs_wca', prefix='explore_bv_', verbose=True,
+                 use_cell_lists=True, import_config_once=False):
+        super(PressureTensor, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
+                                             analysis_dir=analysis_dir, force=force,
+                                             existing_only=existing_only, prefix=prefix,
+                                             verbose=verbose, use_cell_lists=use_cell_lists,
+                                             import_config_once=import_config_once)
         self.opt_pot_str = opt_pot_str
         self.analysis_name = 'pressure_data'
 
@@ -29,14 +30,15 @@ class PressureTensor(StructuralAnalysis):
         configf = ConfigParser.ConfigParser()
         configf.read(pressure_fname)
         pressure_dict = {}
-        pressure_dict['P'] = \
-            configf.getfloat('PRESSURE', 'P')
-        pressure_dict['maxshear_xyplane'] = \
-            configf.getfloat('PRESSURE', 'maxshear_xyplane')
-        pressure_dict['Ptensor'] = \
-            np.array([float(x) for x in configf.get('PRESSURE', 'Ptensor').split()])
-        pressure_dict['E'] = \
-            configf.getfloat('ENERGY', 'E')
+        pressure_dict['P'] \
+            = configf.getfloat('PRESSURE', 'P')
+        pressure_dict['maxshear_xyplane'] \
+            = configf.getfloat('PRESSURE', 'maxshear_xyplane')
+        pressure_dict['Ptensor'] \
+            = np.array([float(x) for x
+                        in configf.get('PRESSURE', 'Ptensor').split()])
+        pressure_dict['E'] \
+            = configf.getfloat('ENERGY', 'E')
         return pressure_dict
 
     def _calculate(self, pressure_fname, packing_name, input_fname):
@@ -45,7 +47,8 @@ class PressureTensor(StructuralAnalysis):
         if self.verbose:
             logging.info("Calculating pressure: {}"
                          .format(self.prefix + str(packing_name)))
-        self.coords, self.hs_radii, self.ss_radii, _ = self._import_packing_configuration(input_fname)
+        self.coords, self.hs_radii, self.ss_radii, _ \
+            = self._import_packing_configuration(input_fname)
         if not hasattr(self, 'potential') or not self.import_config_once:
             self.init_pressure_potential()
         # refine structure (does not make a difference if tol was small enough to start with)
@@ -54,8 +57,10 @@ class PressureTensor(StructuralAnalysis):
         #     res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
         #                            nsteps=1e6, tol=1e-11, iprint=-1)
         #     self.coords = res.coords
-        p, ptensor = pressure_tensor(self.potential, self.coords, self.vcavity, self.bdim)
-        max_shear_xyplane = np.sqrt(((ptensor[0] - ptensor[3]) / 2.) ** 2 + ptensor[1] ** 2)
+        p, ptensor = pressure_tensor(self.potential, self.coords,
+                                     self.vcavity, self.bdim)
+        max_shear_xyplane = np.sqrt(((ptensor[0] - ptensor[3]) / 2.) ** 2
+                                    + ptensor[1] ** 2)
         energy = self.potential.getEnergy(self.coords)
         with open(pressure_fname, 'w') as f:
             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n')
@@ -77,8 +82,11 @@ class PressureTensor(StructuralAnalysis):
             pow = self.pot_kwargs['pow']
             rcut = self.pot_kwargs["rcut"]
             pot_optimizer = InversePowerStillingerCut(pow,
-                self.stillinger_a_radii, ndim=self.bdim,
-                boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
+                                                      self.stillinger_a_radii,
+                                                      ndim=self.bdim,
+                                                      boxvec=self.boxv,
+                                                      rcut=rcut,
+                                                      use_cell_lists=True)
         else:
             raise NotImplementedError
 
@@ -87,7 +95,7 @@ def worker_pressure(workspace, kwargs):
     try:
         pressure = PressureTensor(workspace, **kwargs)
         pressure.run()
-    except:
+    except Exception:
         logging.error('worker_pressure worker: %s' % (traceback.format_exc()))
 
 
@@ -105,8 +113,9 @@ if __name__ == "__main__":
                         "Default: 'explore_bv_'", default='explore_bv_')
     parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
-    parser.add_argument("--opt-pot", type=str, help="Optimizer's potential, 1) (default) hs_wca "
-                                                    "2) inverse_power_stillinger", default='hs_wca')
+    parser.add_argument("--opt-pot", type=str,
+                        help="Optimizer's potential, 1) (default) hs_wca "
+                             "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',

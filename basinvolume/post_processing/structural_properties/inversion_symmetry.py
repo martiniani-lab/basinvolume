@@ -31,49 +31,62 @@ class InversionSymmetry(StructuralAnalysis):
     def _affine_force_interaction(self, distance, atomi, atomj):
         # Get hessian in interaction direction
         dist_norm = np.linalg.norm(distance)
-        hess_radial = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
+        hess_radial = self.potential.getInteractionHessian(dist_norm,
+                                                           atomi, atomj)
 
         # Transform into coordinate system
         dist_dir = distance / dist_norm
         if self.bdim == 2:
             # Transformation defined by base vectors dist_dir and its normal
-            rot_matrix = np.array([[dist_dir[0], dist_dir[1]], [-dist_dir[1], dist_dir[0]]])
+            rot_matrix = np.array([[dist_dir[0], dist_dir[1]],
+                                   [-dist_dir[1], dist_dir[0]]])
         elif self.bdim == 3:
             # Transformation defined by base vectors dist_dir,
             # its normal in the xy-plane and their cross product
-            rot_matrix = np.array([[dist_dir[0], dist_dir[1], dist_dir[2]], [-dist_dir[1], dist_dir[0], 0], [-dist_dir[0]*dist_dir[2], dist_dir[1] * dist_dir[2], dist_dir[0]**2 + dist_dir[1]**2]])
+            rot_matrix = np.array([[dist_dir[0], dist_dir[1], dist_dir[2]],
+                                   [-dist_dir[1], dist_dir[0], 0],
+                                   [-dist_dir[0] * dist_dir[2],
+                                    dist_dir[1] * dist_dir[2],
+                                    dist_dir[0]**2 + dist_dir[1]**2]])
         else:
             raise NotImplementedError
         if self.bdim == 2:
-            hessian_particle_system = np.array([[hess_radial, 0], [0, 0]])
+            hessian_particle_system = np.array([[hess_radial, 0],
+                                                [0, 0]])
         elif self.bdim == 3:
-            hessian_particle_system = np.array([[hess_radial, 0, 0], [0, 0, 0], [0, 0, 0]])
-        hessian = np.dot(rot_matrix.T, np.dot(hessian_particle_system, rot_matrix))
+            hessian_particle_system = np.array([[hess_radial, 0, 0],
+                                                [0, 0, 0],
+                                                [0, 0, 0]])
+        hessian = np.dot(rot_matrix.T, np.dot(hessian_particle_system,
+                                              rot_matrix))
 
         result = np.empty((self.bdim, self.bdim, self.bdim))
         for i in xrange(self.bdim):
-            result[i,:,:] = distance[i] * hessian
+            result[i, :, :] = distance[i] * hessian
 
         return result
 
     def _affine_force_particle(self, index, distances, neighbors):
         affine_force_particle = np.zeros((self.bdim, self.bdim, self.bdim))
         for i in xrange(len(neighbors)):
-            affine_force = self._affine_force_interaction(distances[i], index, neighbors[i])
+            affine_force = self._affine_force_interaction(distances[i], index,
+                                                          neighbors[i])
             affine_force_particle += affine_force
         return affine_force_particle
 
     def _sum_affine_forces(self, neighbor_distancess, neighbor_lists):
         affine_forces = 0
         for i in xrange(self.nparticles):
-            affine_force = self._affine_force_particle(i, neighbor_distancess[i], neighbor_lists[i])
+            affine_force = self._affine_force_particle(i, neighbor_distancess[i],
+                                                       neighbor_lists[i])
             affine_forces += np.sum(affine_force ** 2)
         return affine_forces
 
     def _affine_force_interaction_sym_broken(self, distance, atomi, atomj):
         dist_norm = np.linalg.norm(distance)
         dist_dir = np.array(distance / dist_norm)
-        hess_radial = self.potential.getInteractionHessian(dist_norm, atomi, atomj)
+        hess_radial = self.potential.getInteractionHessian(dist_norm,
+                                                           atomi, atomj)
         return hess_radial * dist_norm * np.outer(dist_dir, dist_dir)
 
     def _sum_affine_forces_sym_broken(self, neighbor_distancess, neighbor_lists):
@@ -128,7 +141,7 @@ def worker_invsym(workspace, kwargs):
     try:
         invsym = InversionSymmetry(workspace, **kwargs)
         invsym.run()
-    except:
+    except Exception:
         logging.error('worker_invsym worker: %s' % (traceback.format_exc()))
 
 

@@ -1,12 +1,12 @@
 from __future__ import division
 import ConfigParser
 import os
-import ast
 import traceback
-import numpy as np
 import argparse
 import logging
 import cPickle
+import numpy as np
+import ast
 from basinvolume.utils import trymakedir
 from _structural_analysis import StructuralAnalysis
 
@@ -19,10 +19,10 @@ class Neighbors(StructuralAnalysis):
                  restrict_neighbors=None, cutoff=1., use_cell_lists=True,
                  import_config_once=False, write_analysis=True):
         super(Neighbors, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
-                                                analysis_dir=analysis_dir, force=force,
-                                                existing_only=existing_only, prefix=prefix,
-                                                verbose=verbose, use_cell_lists=use_cell_lists,
-                                                import_config_once=import_config_once)
+                                        analysis_dir=analysis_dir, force=force,
+                                        existing_only=existing_only, prefix=prefix,
+                                        verbose=verbose, use_cell_lists=use_cell_lists,
+                                        import_config_once=import_config_once)
         self.cutoff = cutoff
         self.restrict_neighbors = restrict_neighbors
         self.analysis_name = analysis_name
@@ -47,7 +47,8 @@ class Neighbors(StructuralAnalysis):
             else:
                 logging.info("Calculating restricted neighbors: {}"
                              .format(self.prefix + str(packing_name)))
-        neighbors_dumpname = os.path.join(self.analysis_dir_path, self.analysis_name + '_dump.p')
+        neighbors_dumpname = os.path.join(self.analysis_dir_path,
+                                          self.analysis_name + '_dump.p')
 
         # Read coordinates and compute neighbors
         self.coords, self.hs_radii, _, _ = \
@@ -63,8 +64,8 @@ class Neighbors(StructuralAnalysis):
 
         # Filter neighbors
         if self.restrict_neighbors is not None:
-            neighbor_lists = self._filter_neighbors(neighbor_lists, packing_name)
-
+            neighbor_lists = self._filter_neighbors(neighbor_lists,
+                                                    packing_name)
 
         # Output neighbor lists to file
         self._dump_neighbors(neighbors_dumpname, neighbor_lists)
@@ -76,7 +77,8 @@ class Neighbors(StructuralAnalysis):
         base_restrict_path = os.path.join(self.workspace,
                                           self.restrict_neighbors + str(packing_name))
         restrict_dir = os.path.join(base_restrict_path, self.analysis_dir)
-        restrict_path = os.path.join(restrict_dir, self.analysis_name + '_dump.p')
+        restrict_path = os.path.join(restrict_dir,
+                                     self.analysis_name + '_dump.p')
         if not os.path.isfile(restrict_path):
             raise IOError("The restrict neighbors file {} does "
                           "not exist.".format(restrict_path))
@@ -103,12 +105,13 @@ def worker_neighbors(workspace, kwargs):
     try:
         neighbors = Neighbors(workspace, **kwargs)
         neighbors.run()
-    except:
+    except Exception:
         logging.error('worker_neighbors worker: %s' % (traceback.format_exc()))
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute neighbor lists for jammed packings.")
+    parser = argparse.ArgumentParser(
+        description="Compute neighbor lists for jammed packings.")
     parser.add_argument("-d", "--workspace-dir", type=str, help="Top-level dir containing "
                         "the packings, e.g. 'n32_phi88_2D'.")
     parser.add_argument("--force", action='store_true', help="Force to run on all packings.",

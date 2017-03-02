@@ -21,7 +21,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--all", action='store_true', help="Run for all packing subdirectories.",
                         default=False)
-    parser.add_argument("-j","--ncores", type=int, help="Threads for prallel execution.", default=7)
+    parser.add_argument("-j", "--ncores", type=int,
+                        help="Threads for prallel execution.", default=7)
 
     parser.add_argument("-d", "--workspace-dir", type=str, help="Top-level dir containing "
                         "the packings, e.g. 'n32_phi88_2D'.")
@@ -39,7 +40,7 @@ if __name__ == "__main__":
 
     # bond-orientational order
     parser.add_argument("--solid", action="store_true", help="Use solid angle method "
-        "to find and weight neighbors.", default=False)
+                        "to find and weight neighbors.", default=False)
 
     # displacement
     parser.add_argument("--packings-old", type=str, help="Directory containing the "
@@ -61,8 +62,9 @@ if __name__ == "__main__":
                         "defining the maximum neighbor distance. Default: 1", default=1.)
 
     # pressure tensor
-    parser.add_argument("--opt-pot", type=str, help="Optimizer's potential, 1) (default) hs_wca "
-                                                    "2) inverse_power_stillinger", default='hs_wca')
+    parser.add_argument("--opt-pot", type=str,
+                        help="Optimizer's potential, 1) (default) hs_wca "
+                             "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -94,7 +96,7 @@ if __name__ == "__main__":
 
     # neighbors
     neighbors_kwargs = dict(kwargs, restrict_neighbors=args.restrict_neighbors,
-                             cutoff=args.cutoff)
+                            cutoff=args.cutoff)
     structural_props.append((worker_neighbors, neighbors_kwargs))
 
     # pressure tensor
@@ -119,8 +121,9 @@ if __name__ == "__main__":
             for folder in subdirs:
                 if folder[1].isdigit() and "phi" in folder and "D" in folder:
                     for prop in structural_props:
-                        mypool.apply_async(prop[0], args=(os.path.abspath(folder), prop[1],))
-        except:
+                        mypool.apply_async(prop[0],
+                                           args=(os.path.abspath(folder), prop[1],))
+        except Exception:
             mypool.terminate()
             mypool.join()
             raise
