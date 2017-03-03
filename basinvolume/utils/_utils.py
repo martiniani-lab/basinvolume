@@ -14,7 +14,7 @@ import pandas as pd
 import glob
 from itertools import chain
 from basinvolume.utils._utils_cpp import read_txt
-from pele.distance import get_distance, put_in_box
+from pele.distance import get_distance, put_in_box, Distance
 try:
     from joblib import Parallel, delayed
     import matplotlib.pyplot as plt
@@ -353,7 +353,7 @@ def plot_disks(coords, radii, boxv, colors=None, sca=0):
     def myscatter(ax, colormap, x, y, radii, colors):
         for x1,y1,r,c in zip(x, y, radii, colormap(colors)):
             ax.add_patch(Circle((x1,y1), r, fc=c))
-    coords = put_in_box(coords, 2, 'periodic', boxv)
+    coords = put_in_box(coords, 2, Distance.PERIODIC, boxv)
     coords = np.reshape(coords, (len(radii), 2))
     fig=pylab.figure()
     ax=fig.add_subplot(111, aspect='equal')
@@ -998,14 +998,14 @@ def origin_in_hull_2d(vertices):
 
 
 def calc_distance (coord1, coord2, bdim, distance_method, box, pot_kwargs={}):
-    if distance_method == "lees-edwards":
+    if distance_method is Distance.LEES_EDWARDS:
         return get_distance(coord1, coord2, bdim, distance_method, box=box,
                             shear=pot_kwargs['shear'])
     else:
         return get_distance(coord1, coord2, bdim, distance_method, box=box)
 
 
-def find_neighbors_slow(coords, radii, bdim, box, distance_method='periodic',
+def find_neighbors_slow(coords, radii, bdim, box, distance_method=Distance.PERIODIC,
                          pot_kwargs={'shear': 0.}, include=None, cutoff_factor=1.):
     nparticles = radii.size
     neighbor_distancess = [[] for _ in xrange(nparticles)]

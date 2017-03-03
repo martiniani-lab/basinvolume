@@ -3,6 +3,7 @@ import numpy as np
 import os
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
+from pele.distance import Distance
 from basinvolume.utils import import_packing
 from basinvolume.spheres.generate_jammed_packing import HS_Generate_Jammed_Packing
 import re
@@ -61,12 +62,12 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
                 if np.amin(self.boxv) // rcut <= 3:
                     self.use_cell_lists = False
             if self.use_cell_lists:
-                self.potential = HS_WCA(distance_method='periodic', use_cell_lists=True,
+                self.potential = HS_WCA(distance_method=Distance.PERIODIC, use_cell_lists=True,
                                         eps=self.eps, sca=self.sca, radii=self.hs_radii,
                                         boxvec=self.boxv, reference_coords=self.coords,
                                         ndim=self.bdim, ncellx_scale=1.0)
             else:
-                self.potential = HS_WCA(distance_method='periodic', eps=self.eps, sca=self.sca,
+                self.potential = HS_WCA(distance_method=Distance.PERIODIC, eps=self.eps, sca=self.sca,
                                         radii=self.hs_radii, boxvec=self.boxv, ndim=self.bdim)
 
             success = self._generate_packing_coords(i) #returns false if saddle

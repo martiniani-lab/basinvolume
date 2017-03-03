@@ -9,6 +9,7 @@ import multiprocessing as mp
 from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
 from basinvolume.utils import import_packing, trymakedir
+from pele.distance import Distance
 
 
 def worker_packing(kwargs, nparticles, start_iteration=0):
@@ -136,7 +137,7 @@ if __name__ == "__main__":
                               max_iter=args.npackings,
                               use_cell_lists=not args.nocell,
                               single=not args.packing_moveall,
-                              distance_method='lees-edwards',
+                              distance_method=Distance.LEES_EDWARDS,
                               pot_kwargs=pot_kwargs)
         if args.njobs > 1:
             packing_kwargs['max_iter'] = 1

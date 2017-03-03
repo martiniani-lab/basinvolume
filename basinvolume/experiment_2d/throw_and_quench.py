@@ -4,6 +4,7 @@ from pele.potentials import HS_WCA
 from pele.optimize import LBFGS_CPP
 from basinvolume.utils import volume_nball
 from basinvolume.utils import simple_overlap_check
+from pele.distance import Distance
 
 class ThrowAndQuench(object):
     """
@@ -27,7 +28,7 @@ class ThrowAndQuench(object):
     def find_legal_initial_condition(self):
         print("attampting to find legal initial condition")
         self.rcut = 2 * (1 + self.alpha) * np.amax(self.radii)
-        self.potential = HS_WCA(distance_method='periodic', use_cell_lists=True, ndim=self.boxdim, eps=self.epsilon, sca=self.alpha, radii=self.radii, boxvec=self.boxvec)
+        self.potential = HS_WCA(distance_method=Distance.PERIODIC, use_cell_lists=True, ndim=self.boxdim, eps=self.epsilon, sca=self.alpha, radii=self.radii, boxvec=self.boxvec)
         self.nr_dof = self.boxdim * self.nr_particles
         np.random.seed(self.seed)
         illegal = True

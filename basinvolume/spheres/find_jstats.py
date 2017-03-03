@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
-from pele.distance import get_distance
+from pele.distance import get_distance, Distance
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import cround, in_hull, import_packing, find_neighbors_slow
@@ -130,11 +130,11 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             if np.amin(self.boxv) // rcut <= 3:
                 self.use_cell_lists = False
         if self.opt_pot_str.lower() == "hs_wca":
-            self.potential_ss_p = HS_WCA(distance_method='periodic', eps=self.eps,
+            self.potential_ss_p = HS_WCA(distance_method=Distance.PERIODIC, eps=self.eps,
                                          sca=self.sca_ss, radii=self.hs_radii, boxvec=self.boxv,
                                          ndim=self.bdim)
             if self.use_cell_lists:
-                self.potential_ss = HS_WCA(distance_method='periodic', use_cell_lists=True,
+                self.potential_ss = HS_WCA(distance_method=Distance.PERIODIC, use_cell_lists=True,
                                            eps=self.eps, sca=self.sca_ss, radii=self.hs_radii,
                                            boxvec=self.boxv, reference_coords=self.coords,
                                            ndim=self.bdim, ncellx_scale=1.0)
@@ -166,7 +166,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             for j in xrange(self.nparticles):
                 dij = np.linalg.norm(get_distance(
                     self.coords[j * self.bdim : (j + 1) * self.bdim], x,
-                    self.bdim, 'periodic', box=self.boxv))
+                    self.bdim, Distance.PERIODIC, box=self.boxv))
                 if dij < dmin:
                     return j
 

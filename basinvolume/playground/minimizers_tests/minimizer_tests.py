@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from basinvolume.spheres._kmin_mcrunner import _kmin_mcrunner
-from pele.distance import get_distance
+from pele.distance import get_distance, Distance
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import read_txt, cround
@@ -35,7 +35,7 @@ def _check_no_overlaps(coords, hs_radii, boxv):
             for j in xrange(i, nparticles):
                 dij = np.linalg.norm(get_distance(self.coords[i * bdim : (i + 1) * bdim],
                                                   self.coords[j * bdim : (j + 1) * bdim],
-                                                  bdim, 'periodic', box=boxv))
+                                                  bdim, Distance.PERIODIC, box=boxv))
                 if i != j:
                     dmin = hs_radii[i]+hs_radii[j]
                     if dij - dmin <= 0:

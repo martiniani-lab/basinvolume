@@ -5,6 +5,7 @@ import warnings
 from pele.potentials import Harmonic, HS_WCA, InversePowerStillingerCut
 from pele.optimize import ModifiedFireCPP, LBFGS_CPP
 from pele.storage.database import Minimum
+from pele.distance import Distance
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
 from mcpele.monte_carlo import SampleGaussian
@@ -107,7 +108,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
     def get_pot_optimizer(self):
         # here put a flag and pick potential
         if self.opt_pot_str.lower() == 'hs_wca':
-            distance_method = 'periodic' if self.use_periodic else 'cartesian'
+            distance_method = Distance.PERIODIC if self.use_periodic else Distance.CARTESIAN
             pot_optimizer = HS_WCA(distance_method=distance_method,
                                    use_cell_lists=self.use_cell_lists,
                                    use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,

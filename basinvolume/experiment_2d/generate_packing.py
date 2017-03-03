@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
-from pele.distance import get_distance
+from pele.distance import get_distance, Distance
 from basinvolume.spheres import _Generate_Packing
 from basinvolume.utils import trymakedir, volume_nball, get_git_version, get_cython_version, get_python_version
 from basinvolume.experiment_2d import Experimental_Packing
@@ -193,7 +193,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
                     dij = np.linalg.norm(get_distance(
                             self.coords[i * self.bdim : (i + 1) * self.bdim],
                             self.coords[j * self.bdim : (j + 1) * self.bdim],
-                            self.bdim, 'periodic', box=self.boxv))
+                            self.bdim, Distance.PERIODIC, box=self.boxv))
                     if i != j:
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:

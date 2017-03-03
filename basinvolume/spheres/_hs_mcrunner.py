@@ -7,6 +7,7 @@ from basinvolume.monte_carlo import CheckOverlapPeriodic
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.monte_carlo import CheckOverlapLeesEdwards
 from basinvolume.monte_carlo import CheckOverlapLeesEdwardsCellLists
+from pele.distance import Distance
 
 class HS_MCrunner(_BaseMCRunner):
     """This class is derived from the _base_MCrunner abstract
@@ -33,7 +34,7 @@ class HS_MCrunner(_BaseMCRunner):
     def __init__(self, potential, coords, temperature, stepsize, niter,
                   hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter=1e4,
                   adjustf_navg=100, single=False, seeds=None, use_cell=None,
-                  distance_method='periodic', pot_kwargs={}):
+                  distance_method=Distance.PERIODIC, pot_kwargs={}):
         #construct base class
         super(HS_MCrunner,self).__init__(potential, coords, temperature, niter)
         self.hs_radii = hs_radii
@@ -70,12 +71,13 @@ class HS_MCrunner(_BaseMCRunner):
             else:
                 self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, use_frozen=False)
         else:
-            if distance_method == 'lees-edwards':
+            if distance_method is Distance.LEES_EDWARDS:
                 if use_cell:
-                    self.checkoverlap = CheckOverlapLeesEdwardsCellLists(hs_radii, boxvec, shear=pot_kwargs['shear'],
-                                                                         use_frozen=False)
+                    self.checkoverlap = CheckOverlapLeesEdwardsCellLists(
+                        hs_radii, boxvec, shear=pot_kwargs['shear'], use_frozen=False)
                 else:
-                    self.checkoverlap = CheckOverlapLeesEdwards(hs_radii, boxvec, shear=pot_kwargs['shear'])
+                    self.checkoverlap = CheckOverlapLeesEdwards(hs_radii, boxvec,
+                                                                shear=pot_kwargs['shear'])
             else:
                 if use_cell:
                     self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec,
@@ -111,7 +113,7 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
                   hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2,
                   adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100,
                   desired_mean_rsm_displ=None, single=False, seeds=None,
-                  use_cell=None, distance_method='periodic', pot_kwargs={}):
+                  use_cell=None, distance_method=Distance.PERIODIC, pot_kwargs={}):
         #construct base class
         super(HS_MCrunnerOptDiffusion,self).__init__(potential, coords, temperature,
                                          stepsize, niter, hs_radii, boxvec, acceptance=acceptance,

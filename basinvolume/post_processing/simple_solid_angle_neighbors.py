@@ -1,6 +1,6 @@
 from __future__ import division
 from basinvolume.utils import cround
-from pele.distance import get_distance
+from pele.distance import get_distance, Distance
 import numpy as np
 from numpy import linalg as la
 
@@ -49,7 +49,7 @@ class SimpleSolidAngleNeighbors(object):
         return np.linalg.norm(get_distance(
             self.coords[j * self.boxdim : (j + 1) * self.boxdim],
             self.coords[self.center * self.boxdim : (self.center + 1) * self.boxdim],
-            self.boxdim, 'periodic', box=self.boxv))
+            self.boxdim, Distance.PERIODIC, box=self.boxv))
 
     def get_distance(self, k):
         assert(k != self.center)

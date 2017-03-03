@@ -4,6 +4,7 @@ import os
 import abc
 from pele.potentials import HS_WCA, InversePowerStillinger
 from pele.optimize._quench import modifiedfire_cpp
+from pele.distance import Distance
 from basinvolume.utils import (get_git_version, get_python_version, get_cython_version,
                                full_coordinates, read_xydfr, read_xyzdfr,
                                reduce_coordinates, read_xydr, read_xyzdr, import_packing)
@@ -87,14 +88,14 @@ class _configure_mcrunner(object):
                                                                     tol=gtol)
         if opt_pot_str.lower() == 'hs_wca':
             if frozen:
-                pot_optimizer = HS_WCA(distance_method='periodic', reference_coords=self.coords,
+                pot_optimizer = HS_WCA(distance_method=Distance.PERIODIC, reference_coords=self.coords,
                                        eps=self.eps, sca=self.sca, radii=self.hs_radii,
                                        use_frozen=True, frozen_atoms=self.frozen, ndim=self.bdim)
                 res = quench(self.red_coords, pot_optimizer)
                 new_coords = full_coordinates(res.coords, self.coords, self.frozen, self.bdim)
                 self.red_coords = np.array(res.coords)
             else:
-                pot_optimizer = HS_WCA(distance_method='periodic', eps=self.eps, sca=self.sca,
+                pot_optimizer = HS_WCA(distance_method=Distance.PERIODIC, eps=self.eps, sca=self.sca,
                                        radii=self.hs_radii, ndim=self.bdim, boxvec=self.boxv)
                 res = quench(self.red_coords, pot_optimizer)
                 new_coords = res.coords

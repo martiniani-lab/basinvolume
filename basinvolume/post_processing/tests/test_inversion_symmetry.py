@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import shutil
+from pele.distance import Distance
 from basinvolume.post_processing.structural_properties import InversionSymmetry
 from basinvolume.spheres import HS_Generate_Packing
 from basinvolume.spheres import HS_Generate_Jammed_Packing
@@ -9,7 +10,7 @@ if __name__ == "__main__":
     fcc_dens = np.pi / (np.sqrt(2) * 3) - 0.1
     gen_packing = HS_Generate_Packing(32, method='fcc', bdim=3, packing_frac=fcc_dens,
                                       mu=1., sig=0., max_iter=1, start_iteration=0,
-                                      distance_method='periodic')
+                                      distance_method=Distance.PERIODIC)
     gen_packing.run()
 
     gen_jammed_packing = HS_Generate_Jammed_Packing(target_packing_frac=fcc_dens * 1.2,

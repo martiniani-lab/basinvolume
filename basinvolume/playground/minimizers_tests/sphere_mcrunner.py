@@ -5,6 +5,7 @@ from pele.potentials import Harmonic, HS_WCA
 from pele.optimize import ModifiedFireCPP, LBFGS_CPP
 from pele.storage import Database
 from pele.storage.database import Minimum
+from pele.distance import Distance
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import CheckSphericalContainer
 from basinvolume.monte_carlo import CheckSameMinimum, RecordDisp2Histogram
@@ -212,7 +213,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                 print ("setting use_cell_lists to False")
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
-        self.pot_optimizer = HS_WCA(distance_method='periodic',
+        self.pot_optimizer = HS_WCA(distance_method=Distance.PERIODIC,
                              use_cell_lists=self.use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,

@@ -8,6 +8,7 @@ import argparse
 import logging
 from basinvolume.utils import trymakedir, calc_distance
 from _structural_analysis import StructuralAnalysis
+from pele.distance import Distance
 
 
 class Displacement(StructuralAnalysis):
@@ -58,7 +59,7 @@ class Displacement(StructuralAnalysis):
         # This should be zero when the centre of mass is subtracted
         if self.sub_centre_mass:
             check_avg_displacement = list(avg_displacement)
-            if self.distance_method == 'lees-edwards':
+            if self.distance_method is Distance.LEES_EDWARDS:
                 del check_avg_displacement[1]
             assert np.linalg.norm(check_avg_displacement) < 10**(-12),\
                 "The mean displacement should be zero when accounting for "\
@@ -102,7 +103,7 @@ class Displacement(StructuralAnalysis):
         if self.sub_centre_mass:
             centre_of_mass_displacement = np.mean(displacements, 0)
             # No freedom in y-direction for Lees-Edwards
-            if self.distance_method == 'lees-edwards':
+            if self.distance_method is Distance.LEES_EDWARDS:
                 centre_of_mass_displacement[1] = 0
             displacements -= centre_of_mass_displacement
             if self.shear is not None:

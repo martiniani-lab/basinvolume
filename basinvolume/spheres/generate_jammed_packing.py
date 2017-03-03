@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import abc
 import os
-from pele.distance import put_in_box
+from pele.distance import put_in_box, Distance
 from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
@@ -61,8 +61,8 @@ def read_jammed_packing_config(configpath, frozen=False):
         parameters['vcavity'] = configf.getfloat('JAMMED_PACKING', 'vcavity')
     else:
         parameters['vcavity'] = np.prod(parameters['boxv'])
-    parameters['distance_method'] = configf.get('JAMMED_PACKING',
-                                                'distance_method')
+    parameters['distance_method'] = Distance(configf.get('JAMMED_PACKING',
+                                                          'distance_method'))
     parameters['pot_kwargs'] = ast.literal_eval(configf.get('JAMMED_PACKING',
                                                             'pot_kwargs'))
     parameters['sca'] = configf.getfloat('JAMMED_PACKING', 'sca')
@@ -185,7 +185,7 @@ class _Generate_Jammed_Packing(object):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        f.write('distance_method: {}\n'.format(self.distance_method))
+        f.write('distance_method: {}\n'.format(self.distance_method.value))
         f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))
@@ -519,7 +519,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _correct_coords(self):
         """this function returns the nearest images in the central box,
         useful for dumping the configurations"""
-        if self.distance_method == 'lees-edwards':
+        if self.distance_method is Distance.LEES_EDWARDS:
             return put_in_box(self.coords, self.bdim, self.distance_method,
                               self.boxv, self.pot_kwargs['shear'])
         else:

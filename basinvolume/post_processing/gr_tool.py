@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 from scipy.special import gamma
+from pele.distance import Distance
 
 def cround(r):
     if r > 0.0:
@@ -125,7 +126,7 @@ class ComputeGR():
         self.box_length = np.power(np.sum(np.asarray([volume_nball(r, self.boxdim) for r in self.hard_radii])) / self.hard_phi, 1 / self.boxdim)
         self.box_vector = np.ones(self.boxdim) * self.box_length
         # HS-WCA potential.
-        self.potential = HS_WCA(distance_method='periodic', use_cell_lists=True,
+        self.potential = HS_WCA(distance_method=Distance.PERIODIC, use_cell_lists=True,
                                 ndim=self.boxdim, eps=self.epsilon,
                                 sca=self.alpha, radii=self.hard_radii,
                                 boxvec=self.box_vector)

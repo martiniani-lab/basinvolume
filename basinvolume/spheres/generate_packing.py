@@ -3,7 +3,7 @@ import numpy as np
 import abc
 import os
 from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
-from pele.distance import put_in_box
+from pele.distance import put_in_box, Distance
 from pele.potentials import HS_WCA
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
@@ -43,7 +43,8 @@ def read_packing_config(configpath, frozen=False):
         parameters['vcavity'] = configf.getfloat('PACKING', 'vcavity')
     else:
         parameters['vcavity'] = np.prod(parameters['boxv'])
-    parameters['distance_method'] = configf.get('PACKING', 'distance_method')
+    parameters['distance_method'] = Distance(configf.get('PACKING',
+                                                         'distance_method'))
     parameters['pot_kwargs'] = ast.literal_eval(configf.get('PACKING',
                                                             'pot_kwargs'))
     if parameters['method'] == 'quench':
@@ -215,7 +216,7 @@ class HS_Generate_Packing(_Generate_Packing):
                  bdim=3, boxv=None, packing_frac=0.4, hs_radii=None, mu=1,
                  sig=0.1, new_poly=False, hsf_stepsize=1e-3, hsf_niter_dif=1e9,
                  max_iter=10, use_cell_lists=False, single=False, seeds=None,
-                 write_opengl=False, start_iteration=0, distance_method='periodic',
+                 write_opengl=False, start_iteration=0, distance_method=Distance.PERIODIC,
                  pot_kwargs={}, precalc_config_file=None):
         super(HS_Generate_Packing, self).__init__(
             nparticles, output_dir=output_dir, bdim=bdim, boxv=boxv,
@@ -695,7 +696,7 @@ class HS_Generate_Packing(_Generate_Packing):
     def _correct_coords(self):
         """this function returns the nearest images in the central box,
         useful for dumping the configurations"""
-        if self.distance_method == 'lees-edwards':
+        if self.distance_method is Distance.LEES_EDWARDS:
             return put_in_box(self.coords, self.bdim, self.distance_method,
                               self.boxv, self.pot_kwargs['shear'])
         else:
@@ -782,7 +783,7 @@ class HS_Generate_Packing(_Generate_Packing):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        f.write('distance_method: {}\n'.format(self.distance_method))
+        f.write('distance_method: {}\n'.format(self.distance_method.value))
         f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         if self.method == 'quench':
             f.write('hsf_niter: {}\n'.format(self.hsf_niter))
@@ -855,7 +856,9 @@ if __name__ == "__main__":
     logging.info(args)
     single = not args.moveall
 
-    if args.distance_method == 'lees-edwards':
+    dist_method = Distance(args.distance_method)
+
+    if dist_method is Distance.LEES_EDWARDS:
         pot_kwargs = {'shear': args.shear}
     else:
         pot_kwargs = {}
@@ -875,6 +878,6 @@ if __name__ == "__main__":
                               max_iter=args.npackings, use_cell_lists=not args.nocell,
                               single=single, write_opengl=args.write_opengl,
                               start_iteration=args.start_iter,
-                              distance_method=args.distance_method, pot_kwargs=pot_kwargs,
+                              distance_method=dist_method, pot_kwargs=pot_kwargs,
                               precalc_config_file=args.precalc_config)
     sim.run()

@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import os
 import pyvoro
-from pele.distance import get_distance
+from pele.distance import get_distance, Distance
 from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import trymakedir, volume_nball, get_git_version, get_cython_version
@@ -66,7 +66,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #use_cell_lists=True, boxvec=self.boxv
         self.potential = HS_WCA(reference_coords=self.coords, eps=self.eps, sca=self.sca,
                                 radii=self.hs_radii, use_frozen=True, frozen_atoms=self.frozen,
-                                ndim=self.bdim, use_cell_lists=False, distance_method='cartesian')
+                                ndim=self.bdim, use_cell_lists=False, distance_method=Distance.CARTESIAN)
 
         success = self._generate_packing_coords() #returns false if saddle
 
@@ -185,7 +185,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                         dij = np.linalg.norm(get_distance(
                             self.coords[i * self.bdim : (i + 1) * self.bdim],
                             self.coords[j * self.bdim : (j + 1) * self.bdim],
-                            self.bdim, 'periodic', box=self.boxv))
+                            self.bdim, Distance.PERIODIC, box=self.boxv))
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
                             print 'invalid configuration'
