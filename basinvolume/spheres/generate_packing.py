@@ -868,7 +868,7 @@ if __name__ == "__main__":
             dpath = os.path.abspath(dpath)
         hs_radii = import_packing(dpath, False, args.boxdim)['hs_radii']
 
-    sim = HS_Generate_Packing(args.nparticles, output_dir=outdir, method=args.method,
+    sim = HS_Generate_Packing(args.nparticles, output_dir=args.outdir, method=args.method,
                               bdim=args.boxdim, packing_frac=args.density, hs_radii=hs_radii,
                               mu=args.rmean, sig=args.rsigma, new_poly=args.newpoly,
                               hsf_niter_dif=args.hsf_niter_dif, hsf_stepsize=args.hsfstep,
