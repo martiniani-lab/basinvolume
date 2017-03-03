@@ -6,6 +6,7 @@ from basinvolume.gaussian_benchmark import configure_bv_gauss_mcrunner
 import time
 from mpi4py import MPI
 from basinvolume.utils import view_traceback
+from basinvolume.enums import Minimizer
 
 class GaussianBenchmarkPTRun(object):
     """
@@ -17,7 +18,7 @@ class GaussianBenchmarkPTRun(object):
                  totniter=5e5,
                  nocell=True,
                  nocollectminima=True,
-                 minimizer='fire',
+                 minimizer=Minimizer.FIRE,
                  verbose=False,
                  nparticles=None,
                  harmonic_well=False
@@ -152,8 +153,8 @@ if __name__ == "__main__":
     parser.add_argument("nparticles", type=int)
     parser.add_argument("--harmonic_well", action='store_true', help="use harmonic well potential for energy landscape", default=False)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
-                        "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
-                        "Default: 'fire'", default='fire')
+                        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+                        "Default: 'FIRE'", default='FIRE')
     #parser.add_argument("harmonic_well", type=bool)
     args = parser.parse_args()
     print("args", args)

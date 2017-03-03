@@ -6,6 +6,7 @@ from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import trymakedir
 from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 from basinvolume.playground.minimizers_tests import BVSphereMCrunner
+from basinvolume.enums import Minimizer
 import ConfigParser
 import time
 
@@ -28,7 +29,7 @@ class _sphere_mcrunner(_configure_mcrunner):
     def __init__(self, fname, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0,
                  hmax=0.01, hbinsize=0.0005, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, minimizer='fire', packings_dir='jammed_packings', verbose=False):
+                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, packings_dir='jammed_packings', verbose=False):
 
         self.fname = fname
         self.temperature=1.0
@@ -144,7 +145,7 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
     sim = _sphere_mcrunner('jammed_packing1.xyzdr', niter=5e5, opt_tol=1e-4, seeds=seeds,
-                         stepsize=1/np.sqrt(11), use_cell_lists=False, verbose=False, minimizer='fire',
+                         stepsize=1/np.sqrt(11), use_cell_lists=False, verbose=False, minimizer=Minimizer.FIRE,
                          hmax=0.1, hbinsize=0.001, opt_nsteps=1e6)
     print 'simulation started'
     start=time.time()

@@ -5,6 +5,7 @@ import traceback
 import copy
 from _findk_mcrunner import _findk_mcrunner
 from basinvolume.experiment_2d import _findk_exp_mcrunner
+from basinvolume.enums import Minimizer
 
 def worker_findk(fname, kwargs):
     try:
@@ -25,8 +26,8 @@ if __name__ == "__main__":
     parser.add_argument("-p","--packingsdir", type=str, help="protocol to generate packings, assume in cwd", default="jammed_packings")
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
-                        "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
-                        "Default: 'fire'", default='fire')
+                        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+                        "Default: 'FIRE'", default='FIRE')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     # potential arguments
     parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
@@ -37,6 +38,11 @@ if __name__ == "__main__":
     packings_dir = args.packingsdir
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(),packings_dir)
+
+    if args.minimizer.upper() in Minimizer.__members__:
+        minimizer = Minimizer[args.minimizer.upper()]
+    else:
+        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     # potential type
     opt_pot_str = args.opt_pot
@@ -51,7 +57,7 @@ if __name__ == "__main__":
 
     findk_kwargs = dict(k=args.kstart, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
                         knavg=1e4, ktol=0.025, opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5,
-                        packings_dir=packings_dir, use_cell_lists=not args.nocell, minimizer=args.minimizer,
+                        packings_dir=packings_dir, use_cell_lists=not args.nocell, minimizer=minimizer,
                         verbose=args.verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
 
     i32max = np.iinfo(np.int32).max

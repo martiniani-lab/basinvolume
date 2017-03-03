@@ -5,6 +5,7 @@ from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.enums import Minimizer
 import ConfigParser
 import time
 import warnings
@@ -20,7 +21,7 @@ class _findk_mcrunner(_configure_mcrunner):
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9,
                  knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5,
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, minimizer='fire', packings_dir='jammed_packings',
+                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, packings_dir='jammed_packings',
                  verbose=False, opt_pot_str='hs_wca', **extra_pot_kwargs):
 
         self.temperature=1.0
@@ -140,7 +141,7 @@ if __name__ == "__main__":
     opt_pot_str= 'hs_wca' #'inverse_power_stillinger'
     sim = _findk_mcrunner('jammed_packing0.xydr', avgcount=1e4, k=759, opt_tol=1e-5,
                           ktarget=0.9, knavg=1e3, seeds=seeds, use_cell_lists=True,
-                          verbose=True, minimizer='fire',
+                          verbose=True, minimizer=Minimizer.FIRE,
                           opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     print 'simulation started'
     start=time.time()

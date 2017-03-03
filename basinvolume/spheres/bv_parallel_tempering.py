@@ -6,6 +6,7 @@ from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 import time
 from mpi4py import MPI
 from basinvolume.utils import view_traceback, check_kmax_reasonable, import_pt_time_series
+from basinvolume.enums import Minimizer
 import sys
 
 if __name__ == "__main__":
@@ -27,8 +28,8 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
-                        "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
-                        "Default: 'fire'", default='fire')
+                        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+                        "Default: 'FIRE'", default='FIRE')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
     # potential arguments
@@ -81,7 +82,10 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
     print seeds
 
-
+    if args.minimizer.upper() in Minimizer.__members__:
+        minimizer = Minimizer[args.minimizer.upper()]
+    else:
+        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     #prepare MC runner
     comm = MPI.COMM_WORLD
@@ -96,7 +100,7 @@ if __name__ == "__main__":
 
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5, opt_nsteps=1e5, hmin=0,
                    hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
-                   pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, minimizer=args.minimizer,
+                   pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, minimizer=minimizer,
                    perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
                    seeds=seeds, use_cell_lists=not args.nocell, single=single, record_histogram=record_histogram,
                    opt_pot_str=opt_pot_str, **extra_pot_kwargs)

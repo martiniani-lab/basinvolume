@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 from basinvolume.cluster_manager import BuildPBSScript
 from basinvolume.utils import trymakedir, check_kmax_reasonable
+from basinvolume.enums import Minimizer
 import shutil
 import shlex
 import subprocess
@@ -32,7 +33,7 @@ class BVSubmitPBS(object):
                  kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing',
                  pt_config='explore_jammed_packing',
                  packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False,
-                 experimental=False, minimizer='fire', record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
+                 experimental=False, minimizer=Minimizer.FIRE, record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
                  maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5, pot_opt_str='hs_wca', nocell=False, delraw=False):
         if not workdir:
             workdir = os.getcwd()
@@ -532,8 +533,8 @@ if __name__ == "__main__":
     single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",
                                default=False)
     single_parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
-                               "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
-                               "Default: 'fire'", default='fire')
+                               "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+                               "Default: 'FIRE'", default='FIRE')
     single_parser.add_argument("--rsts", action='store_true',
                                help="record steps timeseries for diffusion studies, default: False", default=False)
     single_parser.add_argument("--kmax_start", type=float, help="starting value for kmax calculation", default=500)
@@ -574,8 +575,8 @@ if __name__ == "__main__":
                               default=1e6)
     chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format", default=False)
     chain_parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
-                              "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
-                              "Default: 'fire'", default='fire')
+                              "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+                              "Default: 'FIRE'", default='FIRE')
     chain_parser.add_argument("--rsts", action='store_true',
                               help="record steps timeseries for diffusion studies, default: False", default=False)
     chain_parser.add_argument("--kmax_start", type=float, help="starting value for kmax calculation", default=500)
@@ -599,11 +600,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print args
 
-    if args.minimizer.lower() not in ['cg', 'fire', 'lbfgs']:
-        raise NotImplementedError("Undefined minimizer: {}".format(args.minimizer))
+    if args.minimizer.upper() in Minimizer.__members__:
+        minimizer = Minimizer[args.minimizer.upper()]
+    else:
+        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin,
-                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, minimizer=args.minimizer,
+                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, minimizer=minimizer,
                         record_steps_timeseries=args.rsts, kmax_start=args.kmax_start, mintotniter=args.mintotniter,
                         maxtotniter=args.maxtotniter,
                         relstderr=args.relstderr, numnegk=args.numnegk, lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw)

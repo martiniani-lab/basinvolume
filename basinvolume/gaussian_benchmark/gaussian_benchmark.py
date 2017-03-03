@@ -25,6 +25,7 @@ from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import spring_constants_variable_transform
+from basinvolume.enums import Minimizer
 try:
     from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
     from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
@@ -67,7 +68,7 @@ class GaussianBenchmark(object):
                  harmonic_well=False,
                  kmax_niter=1e5,
                  simple_integrator=False,
-                 minimizer='fire'):
+                 minimizer=Minimizer.FIRE):
         self.means = means
         self.cov = cov
         self.minimum_index = minimum_index
@@ -117,12 +118,12 @@ class GaussianBenchmark(object):
             print("ENERGY", self.pot_optimizer.getEnergy(np.asarray([10.0, 10.0])))
         #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         #####
-        if self.minimizer.lower() == 'cg':
+        if self.minimizer is Minimizer.CG:
             self.optimizer = CGDescent(self.means[self.minimum_index][:],
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
                                        nsteps=self.opt_nsteps)
-        elif self.minimizer.lower() == 'lbfgs':
+        elif self.minimizer is Minimizer.LBFGS:
             self.optimizer = LBFGS_CPP(self.means[self.minimum_index][:],
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
@@ -546,7 +547,7 @@ def plot_potential(means, cov):
     plt.show()
     plt.savefig(str(means.shape[0]) + '-Gaussian_Potential.png', bbox_inches='tight')
 
-def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False, minimizer='fire'):
+def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False, minimizer=Minimizer.FIRE):
     if minimum_index >= means.shape[0] or minimum_index < 0:
         raise Exception("illegal input: index of minimum")
     if not means.shape == cov.shape:
@@ -616,7 +617,7 @@ if __name__ == "__main__":
     ])
     """
     harmonic_well = False
-    minimizer = 'fire'
+    minimizer = Minimizer.FIRE
     parser = argparse.ArgumentParser(description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method")
     parser.add_argument("--gauss_path", type=str, default=os.getcwd())
     parser.add_argument("--index", type=int, default=0)

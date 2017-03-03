@@ -10,6 +10,7 @@ from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
 from basinvolume.utils import import_packing, trymakedir
 from pele.distance import Distance
+from basinvolume.enums import Minimizer
 
 
 def worker_packing(kwargs, nparticles, start_iteration=0):
@@ -90,8 +91,8 @@ if __name__ == "__main__":
                         help="RMS tolerance of the minimizer. Default: 1e-9",
                         default=1e-9)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
-                        "used for quenching. Options: 'cg', 'fire'. Default: 'fire'",
-                        default='fire')
+                        "used for quenching. Options: 'CG', 'FIRE'. Default: 'FIRE'",
+                        default='FIRE')
 
     args = parser.parse_args()
 
@@ -116,6 +117,11 @@ if __name__ == "__main__":
         if not os.path.isabs(args.dpath):
             dpath = os.path.abspath(dpath)
         hs_radii = import_packing(dpath, False, args.boxdim)['hs_radii']
+
+    if args.minimizer.upper() in Minimizer.__members__:
+        minimizer = Minimizer[args.minimizer.upper()]
+    else:
+        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     # Generate packings at no shear
     pot_kwargs = {'shear': 0.0}
@@ -158,7 +164,7 @@ if __name__ == "__main__":
     jammed_kwargs = dict(target_packing_frac=args.density_ss,
                          tol=args.min_tol, use_cell_lists=not args.nocell,
                          show=False, opt_pot_str='hs_wca',
-                         minimizer=args.minimizer)
+                         minimizer=minimizer)
     if args.input_jammed is not None:
         if not os.path.isdir(args.input_jammed):
             raise IOError("The specified input packings-directory does not exist "

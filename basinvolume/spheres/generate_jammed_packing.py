@@ -11,6 +11,7 @@ from basinvolume.utils import trymakedir, get_git_version, get_python_version
 from basinvolume.utils import volume_nball, import_packing, calc_distance
 from basinvolume.utils import get_cython_version, cround, in_hull, origin_in_hull_2d
 from basinvolume.spheres.generate_packing import read_packing_config
+from basinvolume.enums import Minimizer
 import ConfigParser
 import re
 import argparse
@@ -85,7 +86,7 @@ class _Generate_Jammed_Packing(object):
 
     def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
                  import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
-                 minimizer='fire', logging_tag="", write_opengl=False):
+                 minimizer=Minimizer.FIRE, logging_tag="", write_opengl=False):
         self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
@@ -268,7 +269,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
                  use_cell_lists=False, show=False, opt_pot_str='hs_wca',
-                 override_pot_kwargs=None, minimizer="fire", logging_tag="",
+                 override_pot_kwargs=None, minimizer=Minimizer.FIRE, logging_tag="",
                  write_opengl=False, check_packing=True):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
@@ -438,15 +439,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 logging.warning(self._log("Overlap found before quenching"))
                 return False
 
-        if self.minimizer.lower() == 'fire':
+        if self.minimizer is Minimizer.FIRE:
             fire_maxstep = np.amin(self.hs_radii) * self.sca
             res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
                                    nsteps=1e6, tol=tol, iprint=iprint)
-        elif self.minimizer.lower() == 'cg':
+        elif self.minimizer is Minimizer.CG:
             optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                   nsteps=1e6, print_level=iprint)
             res = optimizer.run()
-        elif self.minimizer.lower() == 'lbfgs':
+        elif self.minimizer is Minimizer.LBFGS:
             res = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
                             iprint=iprint)
         else:
@@ -461,14 +462,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         # test that on re-minimisation the structure does not change
         if __debug__ and self.check_packing:
-            if self.minimizer.lower() == 'fire':
+            if self.minimizer is Minimizer.FIRE:
                 res2 = modifiedfire_cpp(self.coords, self.potential,
                                         maxstep=fire_maxstep, nsteps=1e6, tol=tol)
-            elif self.minimizer.lower() == 'cg':
+            elif self.minimizer is Minimizer.CG:
                 optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                       nsteps=1e6, print_level=iprint)
                 res2 = optimizer.run()
-            elif self.minimizer.lower() == 'lbfgs':
+            elif self.minimizer is Minimizer.LBFGS:
                 res2 = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
                                  iprint=iprint)
             else:
@@ -659,8 +660,8 @@ if __name__ == "__main__":
                         help="rms tolerance of the minimizer", default=1e-9)
     parser.add_argument("--minimizer", type=str,
                         help="Energy minimization algorithm "
-                        "used for quenching. Options: 'cg', 'fire', 'lbfgs'. "
-                        "Default: 'fire'", default='fire')
+                        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+                        "Default: 'FIRE'", default='FIRE')
     # potential arguments
     parser.add_argument("--opt_pot", type=str,
                         help="optmizer's potential, 1) (default) hs_wca "
@@ -671,6 +672,11 @@ if __name__ == "__main__":
                         datefmt='%d/%m/%Y %H:%M:%S',
                         level=logging.INFO)
     logging.info(args)
+
+    if args.minimizer.upper() in Minimizer.__members__:
+        minimizer = Minimizer[args.minimizer.upper()]
+    else:
+        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     # potential type
     opt_pot_str = args.opt_pot
@@ -690,7 +696,7 @@ if __name__ == "__main__":
                                      import_jammed=args.import_jammed,
                                      outdir=args.outdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
-                                     opt_pot_str=args.opt_pot, minimizer=args.minimizer,
+                                     opt_pot_str=args.opt_pot, minimizer=minimizer,
                                      override_pot_kwargs=override_pot_kwargs,
                                      write_opengl=args.write_opengl)
     sim.run()

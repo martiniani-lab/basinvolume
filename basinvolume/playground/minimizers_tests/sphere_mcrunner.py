@@ -16,6 +16,7 @@ from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
 from basinvolume.gui import HSWCASystem
 from basinvolume.utils import reduce_coordinates, full_coordinates
+from basinvolume.enums import Minimizer
 
 #for plotting histogram
 from itertools import cycle
@@ -155,7 +156,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
-                 minimizer='fire'):
+                 minimizer=Minimizer.FIRE):
         #construct base class
         assert not (use_frozen and use_periodic)
         if use_frozen:
@@ -222,7 +223,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                              frozen_atoms=self.frozen_atoms)
 
         #construct gradient optimizer
-        if self.minimizer.lower() == 'lbfgs':
+        if self.minimizer is Minimizer.LBFGS:
             self.optimizer = LBFGS_CPP(self.start_coords,
                                        self.pot_optimizer,
                                        tol=opt_tol,
@@ -271,7 +272,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                                  self.bdim, use_frozen=self.use_frozen,
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
-        use_cgd = self.minimizer.lower() == 'cg'
+        use_cgd = self.minimizer is Minimizer.CG
         self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin,
                                           self.rattlers, self.dtol,
                                           opt=self.optimizer, opt_tol=opt_tol, opt_maxiter=opt_nsteps,

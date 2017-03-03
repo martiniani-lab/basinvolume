@@ -8,6 +8,7 @@ from mcpele.monte_carlo import NullPotential
 from mcpele.monte_carlo import UniformSphericalSampling
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.utils import volume_nball
+from basinvolume.enums import Minimizer
 
 class EvalCounter(object):
     def __init__(self):
@@ -74,7 +75,7 @@ class BruteForce2D(object):
                                          verbosity=0)
         self.find_origin()
         self.rattlers = np.ones(self.origin.size)
-        self.minimizer = 'fire'
+        self.minimizer = Minimizer.FIRE
         self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer,
                                            self.origin,
                                            self.csm_dtol,

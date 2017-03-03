@@ -5,6 +5,7 @@ from pele.potentials import Harmonic
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
+from basinvolume.enums import Minimizer
 import ConfigParser
 import time
 import cPickle as pickle
@@ -29,7 +30,7 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3, adjustf_navg = 100,
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=None,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
-                 single=False, seeds=None, use_cell_lists=False, minimizer='fire', record_histogram = False,
+                 single=False, seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, record_histogram = False,
                  packings_dir='jammed_packings', base_dir=None, verbose = False):
 
         self.fname = fname

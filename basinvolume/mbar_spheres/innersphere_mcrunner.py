@@ -4,6 +4,7 @@ import sys
 from basinvolume.spheres import SpheresMCRunner
 from basinvolume.monte_carlo import RecordDisplacementTimeseries
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
+from basinvolume.enums import Minimizer
 
 #for plotting histogram
 from itertools import cycle
@@ -124,7 +125,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, use_periodic=True,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
-                 minimizer='fire', opt_pot_str='hs_wca', **extra_pot_kwargs):
+                 minimizer=Minimizer.FIRE, opt_pot_str='hs_wca', **extra_pot_kwargs):
 
         self.k = 1.0 / (stepsize * stepsize)
         # actions parameters

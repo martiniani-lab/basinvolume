@@ -5,6 +5,7 @@ from pele.potentials import Harmonic
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback, get_dist_com, get_dist_vec_com, trajectory_pca, asphericity_factor
 from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.enums import Minimizer
 import ConfigParser
 import warnings
 import time
@@ -29,7 +30,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                  record_steps_timeseries=False, record_steps_timeseries_every=[1], print_diffusion_only=False,
                  record_trajectory=True, record_trajectory_npoints=1e4,
                  perform_convergence_test=False, collect_minima_list=False, single=False,
-                 seeds=None, use_cell_lists=False, minimizer='fire', opt_pot_str='hs_wca',
+                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, opt_pot_str='hs_wca',
                  packings_dir='jammed_packings', verbose=False, workspace=None, **extra_pot_kwargs):
 
         self.fname = fname
@@ -222,7 +223,7 @@ if __name__ == "__main__":
     sim = _kmin_mcrunner('jammed_packing0.xydr', niter=1e4, k=0, opt_tol=1e-4, seeds=seeds,
                          record_steps_timeseries=True,
                          record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
-                         single=True, use_cell_lists=True, verbose=True, minimizer='fire',
+                         single=True, use_cell_lists=True, verbose=True, minimizer=Minimizer.FIRE,
                          hmax=20, hbinsize=0.05, opt_nsteps=1e6,
                          opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     print 'simulation started'

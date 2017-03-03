@@ -5,6 +5,7 @@ from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
+from basinvolume.enums import Minimizer
 import ConfigParser
 import time
 
@@ -23,7 +24,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
                  hmax=100, hbinsize=0.1, acceptance=0.2, adjustf=0.9, adjustf_niter = 5e3,
                  adjustf_navg = 100, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False, single=False,
-                 seeds=None, use_cell_lists=False, minimizer='fire', packings_dir='jammed_packings', verbose=False):
+                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, packings_dir='jammed_packings', verbose=False):
 
         self.fname = fname
         self.temperature=1.0
@@ -163,7 +164,7 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
     sim = _kmin_exp_mcrunner('jammed_packing1.xydfr', k=289.508273354, niter=5e5, opt_tol=1e-7,
-                             seeds=seeds, single=True, use_cell_lists=True, verbose=True, minimizer='fire')
+                             seeds=seeds, single=True, use_cell_lists=True, verbose=True, minimizer=Minimizer.FIRE)
     print 'simulation started'
     start=time.time()
     sim.run()

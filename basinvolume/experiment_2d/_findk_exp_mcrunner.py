@@ -7,6 +7,7 @@ from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
 from basinvolume.utils import get_git_version, get_python_version, get_cython_version
+from basinvolume.enums import Minimizer
 import ConfigParser
 import time
 import copy
@@ -22,7 +23,7 @@ class _findk_exp_mcrunner(_configure_mcrunner):
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9,
                  knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5,
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, minimizer='fire', packings_dir='jammed_packings', verbose=False):
+                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, packings_dir='jammed_packings', verbose=False):
 
         self.temperature=1.0
         self.eps = eps
@@ -159,7 +160,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[1])
 
-    sim = _findk_exp_mcrunner('jammed_packing1.xydfr', seeds=seeds, use_cell_lists=False, verbose=True, minimizer='fire')
+    sim = _findk_exp_mcrunner('jammed_packing1.xydfr', seeds=seeds, use_cell_lists=False, verbose=True, minimizer=Minimizer.FIRE)
     print 'simulation started'
     start=time.time()
     sim.run()

@@ -6,6 +6,7 @@ from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 from basinvolume.mbar_spheres import BVInnerSphereMCrunner
+from basinvolume.enums import Minimizer
 import ConfigParser
 import time
 import warnings
@@ -24,7 +25,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
     def __init__(self, fname, niter=None, dtol=1e-4, eps=1., hmin=0, hmax=0.01, hbinsize=0.0005,
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, minimizer='fire', record_histogram=False,
+                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, record_histogram=False,
                  packings_dir='jammed_packings', verbose=False, opt_pot_str='hs_wca',
                  **extra_pot_kwargs):
 
@@ -160,7 +161,7 @@ if __name__ == "__main__":
     sim = _config_innersphere_mcrunner('jammed_packing1.xyzdr', niter=1e5,
                                        opt_tol=1e-4, seeds=seeds,
                                        use_cell_lists=False, verbose=False,
-                                       minimizer='fire', opt_nsteps=1e5)
+                                       minimizer=Minimizer.FIRE, opt_nsteps=1e5)
     print 'simulation started'
     start=time.time()
     sim.run()

@@ -19,6 +19,7 @@ from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian
 from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
 from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from mcpele.monte_carlo import CheckSphericalContainer
+from basinvolume.enums import Minimizer
 
 try:
     from mcpele.monte_carlo import RecordCoordsTimeseries
@@ -84,7 +85,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=True, record_histogram=False,
                  use_periodic=True, use_frozen=False, frozen_atoms=None,
-                 rcontainer=None, minimizer='fire',
+                 rcontainer=None, minimizer=Minimizer.FIRE,
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
         self.minimizer = minimizer
         # optimizer parameters
@@ -128,7 +129,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         return pot_optimizer
 
     def get_optimizer(self):
-        if self.minimizer.lower() == 'lbfgs':
+        if self.minimizer is Minimizer.LBFGS:
             optimizer = LBFGS_CPP(self.start_coords, self.pot_optimizer,
                                   tol=self.opt_tol, nsteps=self.opt_nsteps,
                                   maxstep=self.opt_maxstep)
@@ -139,7 +140,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         return optimizer
 
     def _get_check_same_minimum(self):
-        use_cgd = self.minimizer.lower() == 'cg'
+        use_cgd = self.minimizer is Minimizer.CG
         csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
                                opt=self.optimizer, opt_tol=self.opt_tol,
                                opt_maxiter=self.opt_nsteps, bdim=self.bdim,
@@ -322,7 +323,7 @@ class BV_MCrunner(SpheresMCRunner):
                  record_trajectory=False,
                  record_trajectory_npoints=1e4,
                  single=False, use_periodic=True, use_frozen=False,
-                 frozen_atoms=None, rcontainer=None, minimizer='fire',
+                 frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
         # actions parameters
         if ts_niter is None:
@@ -506,7 +507,7 @@ class Findk_MCrunner(SpheresMCRunner):
                  binsize=0.005, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, use_periodic=True, use_frozen=False,
-                 frozen_atoms=None, rcontainer=None, minimizer='fire',
+                 frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
         #findk parameters
         self.avgcount = avgcount

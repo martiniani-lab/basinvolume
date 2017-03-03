@@ -20,6 +20,7 @@ from basinvolume.utils import get_git_version
 from basinvolume.utils import get_python_version
 from basinvolume.utils import get_cython_version
 from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
+from basinvolume.enums import Minimizer
 
 class configure_bv_gauss_mcrunner(object):
     """
@@ -55,7 +56,7 @@ class configure_bv_gauss_mcrunner(object):
                  single=False,
                  seeds=None,
                  use_cell_lists=False,
-                 minimizer='fire',
+                 minimizer=Minimizer.FIRE,
                  record_histogram=False,
                  packings_dir='gaussian_sum',
                  base_dir=None,
@@ -124,12 +125,12 @@ class configure_bv_gauss_mcrunner(object):
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")
         self._initialise()
         print(self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps)
-        if self.minimizer.lower() == 'cg':
+        if self.minimizer is Minimizer.CG:
             self.optimizer = CGDescent(self.origin,
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
                                        nsteps=opt_nsteps)
-        elif self.minimizer.lower() == 'lbfgs':
+        elif self.minimizer is Minimizer.LBFGS:
             self.optimizer = LBFGS_CPP(self.origin,
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
