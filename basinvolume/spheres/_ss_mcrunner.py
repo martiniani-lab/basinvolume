@@ -1,5 +1,6 @@
 from __future__ import print_function
 import numpy as np
+from pele.distance import Distance
 from mcpele.monte_carlo import _BaseMCRunner
 from basinvolume.monte_carlo import RecordDisp2Histogram
 from basinvolume.utils import reduce_coordinates
@@ -14,12 +15,11 @@ class BaseSpheresMCrunner(_BaseMCRunner):
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
                  hmin=0, hmax=1, hbinsize=0.001, report_steps=0,
                  pt_eq_niter=0, seeds=None, use_cell_lists=True,
-                 record_histogram=False, use_periodic=True, use_frozen=False,
+                 record_histogram=False, distance_method=Distance.PERIODIC, use_frozen=False,
                  frozen_atoms=None, rcontainer=None):
         # construct base class
-        assert not (use_frozen and use_periodic)
         if use_frozen:
-            assert not use_periodic and frozen_atoms is not None
+            assert distance_method is Distance.CARTESIAN and frozen_atoms is not None
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         else:
             red_coords = full_coords
@@ -44,7 +44,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         self.use_cell_lists = use_cell_lists
         self.use_frozen = use_frozen
         self.frozen_atoms = frozen_atoms
-        self.use_periodic = use_periodic
+        self.distance_method = distance_method
         self.rcontainer = rcontainer
         self.equilibration_steps = report_steps + pt_eq_niter
         self.hmin = hmin

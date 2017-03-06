@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
+from pele.distance import Distance
 from pele.potentials import Harmonic
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
@@ -50,8 +51,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
                       opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                       perform_convergence_test=perform_convergence_test, record_histogram=record_histogram,
                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                      single=single, use_periodic=True, use_frozen=False, minimizer=minimizer, record_trajectory=False,
-                      opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                      single=single, distance_method=self.distance_method, use_frozen=False, minimizer=minimizer, record_trajectory=False,
+                      opt_pot_str=opt_pot_str, pot_kwargs=self.pot_kwargs)
 
         self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
@@ -144,6 +145,11 @@ class configure_bv_mcrunner(_configure_mcrunner):
         self.boxv = imp_packing['boxv'].copy()
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
+        self.distance_method = imp_packing['distance_method']
+        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
+            self.pot_kwargs.update(imp_packing['pot_kwargs'])
+        else:
+            self.pot_kwargs = imp_packing['pot_kwargs'].copy()
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')

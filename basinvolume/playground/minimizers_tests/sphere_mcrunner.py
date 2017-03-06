@@ -137,8 +137,8 @@ class BVSphereMCrunner(_BaseMCRunner):
         Flag indicating if cell lists are used.
     record_histogram : bool
         Flag indicating if Displ2 histogram is recorded and stored.
-    use_periodic : bool
-        Flag indicating if periodic boundary conditions are used.
+    distance_method : Distance
+        Specifies which distance method is used.
     use_frozen : bool
         Flag indicating if there are frozen degrees of freedom.
     frozen_atoms : array
@@ -154,13 +154,12 @@ class BVSphereMCrunner(_BaseMCRunner):
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
-                 record_histogram=False, use_periodic=True,
+                 record_histogram=False, distance_method=Distance.PERIODIC,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
                  minimizer=Minimizer.FIRE):
         #construct base class
-        assert not (use_frozen and use_periodic)
         if use_frozen:
-            assert not use_periodic and frozen_atoms is not None
+            assert distance_method is Distance.CARTESIAN and frozen_atoms is not None
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         else:
             red_coords = full_coords
@@ -188,7 +187,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         self.use_frozen = use_frozen
         self.minimizer = minimizer
         self.frozen_atoms = frozen_atoms
-        self.use_periodic = use_periodic
+        self.distance_method = distance_method
         self.rcontainer = rcontainer
         self.equilibration_steps = 0
         if ts_niter is None:
@@ -214,7 +213,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                 print ("setting use_cell_lists to False")
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
-        self.pot_optimizer = HS_WCA(distance_method=Distance.PERIODIC,
+        self.pot_optimizer = HS_WCA(distance_method=self.distance_method,
                              use_cell_lists=self.use_cell_lists,
                              use_frozen=use_frozen, eps=self.eps, sca=self.sca,
                              radii=self.hs_radii, boxvec=self.boxv,
@@ -248,7 +247,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                                                   self.binsize, self.equilibration_steps)
             self.add_action(self.histogram)
 
-        if self.use_periodic:
+        if self.distance_method is Distance.PERIODIC:
             if self.use_cell_lists:
                 self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
                                  self.boxv, ncellx_scale=self.ncellx_scale,
@@ -260,7 +259,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                                  self.boxv, use_frozen=self.use_frozen,
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
-        else:
+        elif self.distance_method is Distance.CARTESIAN:
             if self.use_cell_lists:
                 self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
                                  self.boxv, ncellx_scale=self.ncellx_scale,
@@ -272,6 +271,25 @@ class BVSphereMCrunner(_BaseMCRunner):
                                  self.bdim, use_frozen=self.use_frozen,
                                  reference_coords=self.origin,
                                  frozen_atoms=self.frozen_atoms)
+        elif self.distance_method is Distance.LEES_EDWARDS:
+            if self.use_cell_lists:
+                self.conftest1 = CheckOverlapLeesEdwardsCellLists(
+                    self.hs_radii, self.boxv,
+                    shear=self.pot_kwargs['shear'],
+                    ncellx_scale=self.ncellx_scale,
+                    use_frozen=self.use_frozen,
+                    frozen_atoms=self.frozen_atoms,
+                    reference_coords=self.origin)
+            else:
+                self.conftest1 = CheckOverlapLeesEdwards(
+                    self.hs_radii, self.boxv,
+                    shear=self.pot_kwargs['shear'],
+                    use_frozen=self.use_frozen,
+                    reference_coords=self.origin,
+                    frozen_atoms=self.frozen_atoms)
+        else:
+            raise NotImplementedError("Specified distance method "
+                                      "not implemented.")
         use_cgd = self.minimizer is Minimizer.CG
         self.conftest2 = CheckSameMinimum(self.pot_optimizer, self.red_origin,
                                           self.rattlers, self.dtol,

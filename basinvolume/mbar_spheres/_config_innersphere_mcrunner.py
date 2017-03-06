@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
+from pele.distance import Distance
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback
@@ -43,12 +44,17 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
 
         #self.mc_params = dict(k=k, temperature=temperature, )
-        kwargs = dict(dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
-                      opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
-                      perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
-                      seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=record_histogram,
-                      minimizer=minimizer, use_periodic=True, use_frozen=False, opt_pot_str=opt_pot_str,
-                      **extra_pot_kwargs)
+        kwargs = dict(dtol=dtol, eps=eps, hmin=hmin, hmax=hmax,
+                      hbinsize=hbinsize, opt_dtmax=opt_dtmax,
+                      opt_maxstep=opt_maxstep, opt_tol=opt_tol,
+                      opt_nsteps=opt_nsteps,
+                      perform_convergence_test=perform_convergence_test,
+                      collect_minima_list=collect_minima_list,
+                      seeds=seeds, use_cell_lists=use_cell_lists,
+                      record_histogram=record_histogram,
+                      minimizer=minimizer, distance_method=self.distance_method,
+                      use_frozen=False, opt_pot_str=opt_pot_str,
+                      pot_kwargs=self.pot_kwargs)
 
         self.mc_params = dict(k=self.k, temperature=self.temperature, niter=self.niter, stepsize=self.stepsize)
         self.mc_params.update(kwargs)
@@ -93,6 +99,11 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         self.boxv = imp_packing['boxv'].copy()
         self.packing_frac = imp_packing['packing_frac']
         self.sca = imp_packing['sca']
+        self.distance_method = imp_packing['distance_method']
+        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
+            self.pot_kwargs.update(imp_packing['pot_kwargs'])
+        else:
+            self.pot_kwargs = imp_packing['pot_kwargs'].copy()
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')

@@ -6,19 +6,20 @@ from pele.potentials import Harmonic, HS_WCA, InversePowerStillingerCut
 from pele.optimize import ModifiedFireCPP, LBFGS_CPP
 from pele.storage.database import Minimum
 from pele.distance import Distance
-from mcpele.monte_carlo import RandomCoordsDisplacement
-from mcpele.monte_carlo import MetropolisTest
-from mcpele.monte_carlo import SampleGaussian
-from basinvolume.monte_carlo import CheckSameMinimum
-from basinvolume.monte_carlo import Findk
-from basinvolume.monte_carlo import RecordDisplacementTimeseries, RecordStepsTimeseries
+from mcpele.monte_carlo import (RandomCoordsDisplacement, MetropolisTest,
+                                SampleGaussian, CheckSphericalContainer)
 from basinvolume.gui import HSWCASystem
 from basinvolume.utils import full_coordinates, write_2d_array_to_hf5
 from basinvolume.spheres import BaseSpheresMCrunner
-from basinvolume.monte_carlo import CheckOverlapPeriodic, CheckOverlapCartesian
-from basinvolume.monte_carlo import CheckOverlapCartesianCellLists
-from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
-from mcpele.monte_carlo import CheckSphericalContainer
+from basinvolume.monte_carlo import (CheckSameMinimum, Findk,
+                                     RecordDisplacementTimeseries,
+                                     RecordStepsTimeseries,
+                                     CheckOverlapPeriodic,
+                                     CheckOverlapPeriodicCellLists,
+                                     CheckOverlapCartesian,
+                                     CheckOverlapCartesianCellLists,
+                                     CheckOverlapLeesEdwards,
+                                     CheckOverlapLeesEdwardsCellLists)
 from basinvolume.enums import Minimizer
 
 try:
@@ -84,7 +85,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=True, record_histogram=False,
-                 use_periodic=True, use_frozen=False, frozen_atoms=None,
+                 distance_method=Distance.PERIODIC, use_frozen=False, frozen_atoms=None,
                  rcontainer=None, minimizer=Minimizer.FIRE,
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
         self.minimizer = minimizer
@@ -103,13 +104,12 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                                               k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
                                               report_steps=report_steps, pt_eq_niter=pt_eq_niter, seeds=seeds,
                                               use_cell_lists=use_cell_lists, record_histogram=record_histogram,
-                                              use_periodic=use_periodic, use_frozen=use_frozen,
+                                              distance_method=distance_method, use_frozen=use_frozen,
                                               frozen_atoms=frozen_atoms, rcontainer=rcontainer)
 
     def get_pot_optimizer(self):
         # here put a flag and pick potential
         if self.opt_pot_str.lower() == 'hs_wca':
-            distance_method = Distance.PERIODIC if self.use_periodic else Distance.CARTESIAN
             pot_optimizer = HS_WCA(distance_method=distance_method,
                                    use_cell_lists=self.use_cell_lists,
                                    use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
@@ -141,8 +141,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
 
     def _get_check_same_minimum(self):
         use_cgd = self.minimizer is Minimizer.CG
-        csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers, self.dtol,
-                               opt=self.optimizer, opt_tol=self.opt_tol,
+        csm = CheckSameMinimum(self.pot_optimizer, self.red_origin, self.rattlers,
+                               self.dtol, opt=self.optimizer, opt_tol=self.opt_tol,
                                opt_maxiter=self.opt_nsteps, bdim=self.bdim,
                                eqsteps=self.equilibration_steps, use_cgd=use_cgd,
                                perform_convergence_test=self.perform_convergence_test,
@@ -154,32 +154,45 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
             self.add_conf_test(self.conftest0)
         if self.opt_pot_str == 'hs_wca':
-            if self.use_periodic:
+            if self.distance_method is Distance.PERIODIC:
                 if self.use_cell_lists:
-                    self.conftest1 = CheckOverlapPeriodicCellLists(self.hs_radii,
-                                                                   self.boxv, ncellx_scale=self.ncellx_scale,
-                                                                   use_frozen=self.use_frozen,
-                                                                   frozen_atoms=self.frozen_atoms,
-                                                                   reference_coords=self.origin)
-
+                    self.conftest1 = CheckOverlapPeriodicCellLists(
+                        self.hs_radii, self.boxv, ncellx_scale=self.ncellx_scale,
+                        use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
+                        reference_coords=self.origin)
                 else:
-                    self.conftest1 = CheckOverlapPeriodic(self.hs_radii,
-                                                          self.boxv, use_frozen=self.use_frozen,
-                                                          reference_coords=self.origin,
-                                                          frozen_atoms=self.frozen_atoms)
+                    self.conftest1 = CheckOverlapPeriodic(
+                        self.hs_radii, self.boxv, use_frozen=self.use_frozen,
+                        reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
+            elif self.distance_method is Distance.CARTESIAN:
+                if self.use_cell_lists:
+                    self.conftest1 = CheckOverlapCartesianCellLists(
+                        self.hs_radii, self.boxv, ncellx_scale=self.ncellx_scale,
+                        use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
+                        reference_coords=self.origin)
+                else:
+                    self.conftest1 = CheckOverlapCartesian(
+                        self.hs_radii, self.bdim, use_frozen=self.use_frozen,
+                        reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
+            elif self.distance_method is Distance.LEES_EDWARDS:
+                if self.use_cell_lists:
+                    self.conftest1 = CheckOverlapLeesEdwardsCellLists(
+                        self.hs_radii, self.boxv,
+                        shear=self.pot_kwargs['shear'],
+                        ncellx_scale=self.ncellx_scale,
+                        use_frozen=self.use_frozen,
+                        frozen_atoms=self.frozen_atoms,
+                        reference_coords=self.origin)
+                else:
+                    self.conftest1 = CheckOverlapLeesEdwards(
+                        self.hs_radii, self.boxv,
+                        shear=self.pot_kwargs['shear'],
+                        use_frozen=self.use_frozen,
+                        reference_coords=self.origin,
+                        frozen_atoms=self.frozen_atoms)
             else:
-                if self.use_cell_lists:
-                    self.conftest1 = CheckOverlapCartesianCellLists(self.hs_radii,
-                                                                    self.boxv, ncellx_scale=self.ncellx_scale,
-                                                                    use_frozen=self.use_frozen,
-                                                                    frozen_atoms=self.frozen_atoms,
-                                                                    reference_coords=self.origin)
-                else:
-                    self.conftest1 = CheckOverlapCartesian(self.hs_radii,
-                                                           self.bdim, use_frozen=self.use_frozen,
-                                                           reference_coords=self.origin,
-                                                           frozen_atoms=self.frozen_atoms)
-
+                raise NotImplementedError("Specified distance method "
+                                          "not implemented.")
             self.add_late_conf_test(self.conftest1)
         else:
             warnings.warn('not setting an excluded volume conf_test because using other potential than hs_wca')
@@ -293,8 +306,8 @@ class BV_MCrunner(SpheresMCRunner):
         Flag indicating if Displ2 histogram is recorded and stored.
     single : bool
         Flag indicating if single particle moves are performed rather than global moves.
-    use_periodic : bool
-        Flag indicating if periodic boundary conditions are used.
+    distance_method : Distance
+        Specifies which distance method is used.
     use_frozen : bool
         Flag indicating if there are frozen degrees of freedom.
     frozen_atoms : array
@@ -322,7 +335,7 @@ class BV_MCrunner(SpheresMCRunner):
                  record_steps_timeseries_every=[1],
                  record_trajectory=False,
                  record_trajectory_npoints=1e4,
-                 single=False, use_periodic=True, use_frozen=False,
+                 single=False, distance_method=Distance.PERIODIC, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
         # actions parameters
@@ -347,7 +360,7 @@ class BV_MCrunner(SpheresMCRunner):
                                           perform_convergence_test=perform_convergence_test,
                                           collect_minima_list=collect_minima_list,
                                           seeds=seeds, use_cell_lists=use_cell_lists,
-                                          record_histogram=record_histogram, use_periodic=use_periodic,
+                                          record_histogram=record_histogram, distance_method=distance_method,
                                           use_frozen=use_frozen, frozen_atoms=frozen_atoms,
                                           rcontainer=rcontainer, minimizer=minimizer,
                                           opt_pot_str=opt_pot_str, **extra_pot_kwargs)
@@ -506,7 +519,7 @@ class Findk_MCrunner(SpheresMCRunner):
                  opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=1,
                  binsize=0.005, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
-                 single=False, use_periodic=True, use_frozen=False,
+                 single=False, distance_method=Distance.PERIODIC, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
                  opt_pot_str='hs_wca', **extra_pot_kwargs):
         #findk parameters
@@ -522,7 +535,7 @@ class Findk_MCrunner(SpheresMCRunner):
                                              perform_convergence_test=perform_convergence_test,
                                              collect_minima_list=collect_minima_list,
                                              seeds=seeds, use_cell_lists=use_cell_lists,
-                                             record_histogram=False, use_periodic=use_periodic,
+                                             record_histogram=False, distance_method=distance_method,
                                              use_frozen=use_frozen, frozen_atoms=frozen_atoms,
                                              rcontainer=rcontainer, minimizer=minimizer,
                                              opt_pot_str=opt_pot_str, **extra_pot_kwargs)

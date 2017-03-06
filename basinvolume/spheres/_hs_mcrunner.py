@@ -1,13 +1,13 @@
 from __future__ import print_function
 import numpy as np
-from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement
-from mcpele.monte_carlo import ParticlePairSwap, TakeStepProbabilities
-from basinvolume.monte_carlo import FindNrDecorrelationSteps
-from basinvolume.monte_carlo import CheckOverlapPeriodic
-from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
-from basinvolume.monte_carlo import CheckOverlapLeesEdwards
-from basinvolume.monte_carlo import CheckOverlapLeesEdwardsCellLists
 from pele.distance import Distance
+from mcpele.monte_carlo import (_BaseMCRunner, RandomCoordsDisplacement,
+                                ParticlePairSwap, TakeStepProbabilities)
+from basinvolume.monte_carlo import (FindNrDecorrelationSteps,
+                                     CheckOverlapPeriodic,
+                                     CheckOverlapPeriodicCellLists,
+                                     CheckOverlapLeesEdwards,
+                                     CheckOverlapLeesEdwardsCellLists)
 
 class HS_MCrunner(_BaseMCRunner):
     """This class is derived from the _base_MCrunner abstract

@@ -3,6 +3,7 @@ import numpy as np
 import os
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
+from pele.distance import Distance
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
 from basinvolume.enums import Minimizer
@@ -74,7 +75,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
                                     opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                                     perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
                                     seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
-                                    use_periodic=False, use_frozen=True, frozen_atoms=self.frozen, rcontainer=rcontainer,
+                                    distance_method=Distance.CARTESIAN, use_frozen=True, frozen_atoms=self.frozen, rcontainer=rcontainer,
                                     minimizer=minimizer)
 
         self._initialise()

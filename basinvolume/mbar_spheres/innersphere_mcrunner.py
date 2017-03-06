@@ -1,6 +1,7 @@
 from __future__ import print_function
 import numpy as np
 import sys
+from pele.distance import Distance
 from basinvolume.spheres import SpheresMCRunner
 from basinvolume.monte_carlo import RecordDisplacementTimeseries
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
@@ -106,8 +107,8 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         Flag indicating if cell lists are used.
     record_histogram : bool
         Flag indicating if Displ2 histogram is recorded and stored.
-    use_periodic : bool
-        Flag indicating if periodic boundary conditions are used.
+    distance_method : Distance
+        Specifies which distance method is used.
     use_frozen : bool
         Flag indicating if there are frozen degrees of freedom.
     frozen_atoms : array
@@ -123,7 +124,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
-                 record_histogram=False, use_periodic=True,
+                 record_histogram=False, distance_method=Distance.PERIODIC,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
                  minimizer=Minimizer.FIRE, opt_pot_str='hs_wca', **extra_pot_kwargs):
 
@@ -142,7 +143,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
                                                     perform_convergence_test=perform_convergence_test,
                                                     collect_minima_list=collect_minima_list,
                                                     seeds=seeds, use_cell_lists=use_cell_lists,
-                                                    record_histogram=record_histogram, use_periodic=use_periodic,
+                                                    record_histogram=record_histogram, distance_method=distance_method,
                                                     use_frozen=use_frozen, frozen_atoms=frozen_atoms,
                                                     rcontainer=rcontainer, minimizer=minimizer,
                                                     opt_pot_str=opt_pot_str, **extra_pot_kwargs)
