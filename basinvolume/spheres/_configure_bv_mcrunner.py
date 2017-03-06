@@ -33,7 +33,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
                  single=False, seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, record_histogram = False,
                  packings_dir='jammed_packings', base_dir=None, verbose = False,
-                 opt_pot_str='hs_wca', **extra_pot_kwargs):
+                 opt_pot_str='hs_wca'):
 
         self.fname = fname
         self._set_paths(base_dir, packings_dir)
@@ -60,7 +60,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
             warnings.warn("seeds not passed")
 
         self._initialise()
-        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str)
 
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
@@ -179,10 +179,9 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
     sim = configure_bv_mcrunner(0, 1)
-    extra_pot_kwargs = dict(pow=3, a=1)
     opt_pot_str = 'hs_wca' #'inverse_power_stillinger'
     mcrunner = sim('jammed_packing0.xydr', seeds=seeds, use_cell_lists=True, verbose=True,
-                   opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                   opt_pot_str=opt_pot_str)
     print 'simulation started'
     start=time.time()
     mcrunner.run()

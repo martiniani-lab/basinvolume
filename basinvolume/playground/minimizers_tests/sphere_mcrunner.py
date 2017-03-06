@@ -156,7 +156,7 @@ class BVSphereMCrunner(_BaseMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, distance_method=Distance.PERIODIC,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
-                 minimizer=Minimizer.FIRE):
+                 minimizer=Minimizer.FIRE, pot_kwargs={}):
         #construct base class
         if use_frozen:
             assert distance_method is Distance.CARTESIAN and frozen_atoms is not None
@@ -190,6 +190,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         self.distance_method = distance_method
         self.rcontainer = rcontainer
         self.equilibration_steps = 0
+        self.pot_kwargs = pot_kwargs
         if ts_niter is None:
             ts_niter = niter
 

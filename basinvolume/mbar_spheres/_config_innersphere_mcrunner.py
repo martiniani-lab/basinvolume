@@ -27,8 +27,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, record_histogram=False,
-                 packings_dir='jammed_packings', verbose=False, opt_pot_str='hs_wca',
-                 **extra_pot_kwargs):
+                 packings_dir='jammed_packings', verbose=False, opt_pot_str='hs_wca'):
 
         self.fname = fname
         self.temperature=1.0
@@ -61,7 +60,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str)
 
         #construct mcrunner
         self.coords = _subtract_com(self.coords, ndim=self.bdim)

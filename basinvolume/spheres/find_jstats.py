@@ -142,8 +142,8 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                 self.potential_ss = self.potential_ss_p
         elif self.opt_pot_str.lower() == "inverse_power_stillinger":
             self.stillinger_a_radii = self.hs_radii * (1 + self.sca_ss)
-            pow = self.extra_pot_kwargs["pow"]
-            rcut = self.extra_pot_kwargs["rcut"]
+            pow = self.pot_kwargs["pow"]
+            rcut = self.pot_kwargs["rcut"]
             self.potential_ss = InversePowerStillingerCut(pow,
                                                        self.stillinger_a_radii, ndim=self.bdim,
                                                        boxvec=self.boxv, rcut=rcut, use_cell_lists=True)

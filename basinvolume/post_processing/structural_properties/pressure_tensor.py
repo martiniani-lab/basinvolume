@@ -80,7 +80,7 @@ class PressureTensor(StructuralAnalysis):
             self._initialise_potential()
         elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
             pow = self.pot_kwargs['pow']
-            rcut = self.pot_kwargs["rcut"]
+            rcut = self.pot_kwargs['rcut']
             pot_optimizer = InversePowerStillingerCut(pow,
                                                       self.stillinger_a_radii,
                                                       ndim=self.bdim,

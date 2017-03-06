@@ -58,14 +58,6 @@ if __name__ == "__main__":
 
     # potential type
     opt_pot_str = args.opt_pot
-    extra_pot_kwargs = dict()
-    if opt_pot_str == 'hs_wca':
-        pass
-    elif opt_pot_str == 'inverse_power_stillinger':
-        extra_pot_kwargs.update(dict(pow=3, a=1))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
-    else:
-        raise NotImplementedError
 
     kmin_kwargs = dict(k=0, stepsize=1e-1, niter=args.niter, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1,
                        acceptance=0.2, adjustf=0.9, adjustf_niter=args.adjustf_niter, adjustf_navg=100,
@@ -73,7 +65,7 @@ if __name__ == "__main__":
                        use_cell_lists=not args.nocell, single=single, minimizer=minimizer, verbose=args.verbose,
                        record_steps_timeseries=args.rsts, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
                        print_diffusion_only=args.rsts_only, record_trajectory_npoints=int(1e4),
-                       opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                       opt_pot_str=opt_pot_str)
 
     i32max = np.iinfo(np.int32).max
     seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))

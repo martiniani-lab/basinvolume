@@ -87,7 +87,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                  seeds=None, use_cell_lists=True, record_histogram=False,
                  distance_method=Distance.PERIODIC, use_frozen=False, frozen_atoms=None,
                  rcontainer=None, minimizer=Minimizer.FIRE,
-                 opt_pot_str='hs_wca', **extra_pot_kwargs):
+                 opt_pot_str='hs_wca', pot_kwargs={}):
         self.minimizer = minimizer
         # optimizer parameters
         self.opt_dtmax = opt_dtmax
@@ -95,7 +95,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
         self.opt_pot_str = opt_pot_str
-        self.extra_pot_kwargs = extra_pot_kwargs
+        self.pot_kwargs = pot_kwargs
         # check same minimum parameters
         self.perform_convergence_test = perform_convergence_test
         self.collect_minima_list = collect_minima_list
@@ -119,8 +119,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                                    frozen_atoms=self.frozen_atoms,
                                    )
         elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
-            pow = self.extra_pot_kwargs['pow']
-            rcut = self.extra_pot_kwargs["rcut"]
+            pow = self.pot_kwargs['pow']
+            rcut = self.pot_kwargs["rcut"]
             pot_optimizer = InversePowerStillingerCut(pow,
                 self.stillinger_a_radii, ndim=self.bdim,
                 boxvec=self.boxv, rcut=rcut, use_cell_lists=True)
@@ -337,7 +337,7 @@ class BV_MCrunner(SpheresMCRunner):
                  record_trajectory_npoints=1e4,
                  single=False, distance_method=Distance.PERIODIC, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
-                 opt_pot_str='hs_wca', **extra_pot_kwargs):
+                 opt_pot_str='hs_wca', pot_kwargs={}):
         # actions parameters
         if ts_niter is None:
             ts_niter = niter
@@ -363,7 +363,7 @@ class BV_MCrunner(SpheresMCRunner):
                                           record_histogram=record_histogram, distance_method=distance_method,
                                           use_frozen=use_frozen, frozen_atoms=frozen_atoms,
                                           rcontainer=rcontainer, minimizer=minimizer,
-                                          opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                                          opt_pot_str=opt_pot_str, pot_kwargs=pot_kwargs)
         # set control
         self.set_control(k)
 
@@ -521,7 +521,7 @@ class Findk_MCrunner(SpheresMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, distance_method=Distance.PERIODIC, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
-                 opt_pot_str='hs_wca', **extra_pot_kwargs):
+                 opt_pot_str='hs_wca', pot_kwargs={}):
         #findk parameters
         self.avgcount = avgcount
         self.ktarget = ktarget
@@ -538,7 +538,7 @@ class Findk_MCrunner(SpheresMCRunner):
                                              record_histogram=False, distance_method=distance_method,
                                              use_frozen=use_frozen, frozen_atoms=frozen_atoms,
                                              rcontainer=rcontainer, minimizer=minimizer,
-                                             opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                                             opt_pot_str=opt_pot_str, pot_kwargs=pot_kwargs)
 
     def _set_takestep(self, stepsize):
         self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)

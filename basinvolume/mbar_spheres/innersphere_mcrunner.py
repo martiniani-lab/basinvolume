@@ -126,7 +126,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, distance_method=Distance.PERIODIC,
                  use_frozen=False, frozen_atoms=None, rcontainer=None,
-                 minimizer=Minimizer.FIRE, opt_pot_str='hs_wca', **extra_pot_kwargs):
+                 minimizer=Minimizer.FIRE, opt_pot_str='hs_wca', pot_kwargs={}):
 
         self.k = 1.0 / (stepsize * stepsize)
         # actions parameters
@@ -146,7 +146,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
                                                     record_histogram=record_histogram, distance_method=distance_method,
                                                     use_frozen=use_frozen, frozen_atoms=frozen_atoms,
                                                     rcontainer=rcontainer, minimizer=minimizer,
-                                                    opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                                                    opt_pot_str=opt_pot_str, pot_kwargs=pot_kwargs)
         assert self.equilibration_steps == 0
 
     def _set_actions(self):

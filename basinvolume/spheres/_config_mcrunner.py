@@ -81,7 +81,7 @@ class _configure_mcrunner(object):
         f.write('cython_version: {}\n'.format(get_cython_version()))
 
     def _requench_coords(self, dtol, opt_maxstep, verbose, gtol=1e-7, frozen=False,
-                         opt_pot_str='hs_wca', **extra_pot_kwargs):
+                         opt_pot_str='hs_wca'):
         """re-quench origin to avoid rounding errors"""
         quench = lambda red_coords, pot_optmizer : modifiedfire_cpp(red_coords, pot_optimizer,
                                                                     maxstep=opt_maxstep, nsteps=1e6,
@@ -102,9 +102,8 @@ class _configure_mcrunner(object):
                 res = quench(self.red_coords, pot_optimizer)
                 new_coords = res.coords
         elif opt_pot_str.lower() == 'inverse_power_stillinger':
-            pow = extra_pot_kwargs['pow']
-            a = extra_pot_kwargs['a']
-            pot_optimizer = InversePowerStillinger(pow, a=a, ndim=self.bdim, boxvec=self.boxv)
+            pow = self.pot_kwargs['pow']
+            pot_optimizer = InversePowerStillinger(pow, ndim=self.bdim, boxvec=self.boxv)
             res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
         else:

@@ -30,14 +30,6 @@ if __name__ == "__main__":
 
     # potential type
     opt_pot_str = args.opt_pot
-    extra_pot_kwargs = dict()
-    if opt_pot_str == 'hs_wca':
-        pass
-    elif opt_pot_str == 'inverse_power_stillinger':
-        extra_pot_kwargs.update(dict(pow=3, a=1))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
-    else:
-        raise NotImplementedError
 
     ncores = int(args.ncores)
     niter = int(args.niter)
@@ -77,7 +69,7 @@ if __name__ == "__main__":
                                        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(28)],
                                        print_diffusion_only=True, workspace=dir_path,
                                        record_trajectory_npoints=int(1e4),
-                                       opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                                       opt_pot_str=opt_pot_str)
                     seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
                     seeds = dict(seeds=seeds_dict)
                     kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))

@@ -46,19 +46,11 @@ if __name__ == "__main__":
 
     # potential type
     opt_pot_str = args.opt_pot
-    extra_pot_kwargs = dict()
-    if opt_pot_str == 'hs_wca':
-        pass
-    elif opt_pot_str == 'inverse_power_stillinger':
-        extra_pot_kwargs.update(dict(pow=3, rcut=1.5))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
-    else:
-        raise NotImplementedError
 
     findk_kwargs = dict(k=args.kstart, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
                         knavg=1e4, ktol=0.025, opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5,
                         packings_dir=packings_dir, use_cell_lists=not args.nocell, minimizer=minimizer,
-                        verbose=args.verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                        verbose=args.verbose, opt_pot_str=opt_pot_str)
 
     i32max = np.iinfo(np.int32).max
     #construct mcrunners in place and append them to pool

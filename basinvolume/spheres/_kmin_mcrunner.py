@@ -32,7 +32,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                  record_trajectory=True, record_trajectory_npoints=1e4,
                  perform_convergence_test=False, collect_minima_list=False, single=False,
                  seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, opt_pot_str='hs_wca',
-                 packings_dir='jammed_packings', verbose=False, workspace=None, **extra_pot_kwargs):
+                 packings_dir='jammed_packings', verbose=False, workspace=None):
 
         self.fname = fname
         self.temperature=1.0
@@ -80,7 +80,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -224,14 +224,13 @@ if __name__ == "__main__":
 
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
-    extra_pot_kwargs = dict(pow=3, a=1)
     opt_pot_str = 'hs_wca' #'inverse_power_stillinger'
     sim = _kmin_mcrunner('jammed_packing0.xydr', niter=1e4, k=0, opt_tol=1e-4, seeds=seeds,
                          record_steps_timeseries=True,
                          record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
                          single=True, use_cell_lists=True, verbose=True, minimizer=Minimizer.FIRE,
                          hmax=20, hbinsize=0.05, opt_nsteps=1e6,
-                         opt_pot_str=opt_pot_str, **extra_pot_kwargs)
+                         opt_pot_str=opt_pot_str)
     print 'simulation started'
     start=time.time()
     sim.run()
