@@ -6,11 +6,11 @@ import shutil
 import logging
 import traceback
 import multiprocessing as mp
+from pele.distance import Distance
 from generate_packing import HS_Generate_Packing
 from generate_jammed_packing import HS_Generate_Jammed_Packing
 from basinvolume.utils import import_packing, trymakedir
-from pele.distance import Distance
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Minimizer, Interaction
 
 
 def worker_packing(kwargs, nparticles, start_iteration=0):
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     # Generate jammed packings at no shear
     jammed_kwargs = dict(target_packing_frac=args.density_ss,
                          tol=args.min_tol, use_cell_lists=not args.nocell,
-                         show=False, opt_pot_str='hs_wca',
+                         show=False, interaction=Interaction.HS_WCA,
                          minimizer=minimizer)
     if args.input_jammed is not None:
         if not os.path.isdir(args.input_jammed):

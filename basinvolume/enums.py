@@ -6,3 +6,9 @@ class Minimizer(Enum):
     FIRE = 1
     CG = 2
     LBFGS = 3
+
+
+@unique
+class Interaction(Enum):
+    HS_WCA = 1
+    INVERSE_POWER_STILLINGER = 2

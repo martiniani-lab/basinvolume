@@ -168,7 +168,7 @@ class AnalyseShear:
 
         # Pressure tensor
         if self.calc_pressure:
-            pressure_kwargs = dict(kwargs, opt_pot_str='hs_wca')
+            pressure_kwargs = dict(kwargs)
             structural_props.append((worker_pressure, pressure_kwargs))
 
         # Start parallel calculations

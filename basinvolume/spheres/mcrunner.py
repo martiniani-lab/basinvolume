@@ -20,7 +20,7 @@ from basinvolume.monte_carlo import (CheckSameMinimum, Findk,
                                      CheckOverlapCartesianCellLists,
                                      CheckOverlapLeesEdwards,
                                      CheckOverlapLeesEdwardsCellLists)
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Minimizer, Interaction
 
 try:
     from mcpele.monte_carlo import RecordCoordsTimeseries
@@ -87,14 +87,14 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                  seeds=None, use_cell_lists=True, record_histogram=False,
                  distance_method=Distance.PERIODIC, use_frozen=False, frozen_atoms=None,
                  rcontainer=None, minimizer=Minimizer.FIRE,
-                 opt_pot_str='hs_wca', pot_kwargs={}):
+                 interaction=Interaction.HS_WCA, pot_kwargs={}):
         self.minimizer = minimizer
         # optimizer parameters
         self.opt_dtmax = opt_dtmax
         self.opt_maxstep = opt_maxstep
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
-        self.opt_pot_str = opt_pot_str
+        self.interaction = interaction
         self.pot_kwargs = pot_kwargs
         # check same minimum parameters
         self.perform_convergence_test = perform_convergence_test
@@ -109,7 +109,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
 
     def get_pot_optimizer(self):
         # here put a flag and pick potential
-        if self.opt_pot_str.lower() == 'hs_wca':
+        if self.interaction is Interaction.HS_WCA:
             pot_optimizer = HS_WCA(distance_method=distance_method,
                                    use_cell_lists=self.use_cell_lists,
                                    use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
@@ -118,7 +118,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                                    ndim=self.bdim, ncellx_scale=self.ncellx_scale,
                                    frozen_atoms=self.frozen_atoms,
                                    )
-        elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
+        elif self.interaction is Interaction.INVERSE_POWER_STILLINGER:
             pow = self.pot_kwargs['pow']
             rcut = self.pot_kwargs["rcut"]
             pot_optimizer = InversePowerStillingerCut(pow,
@@ -153,7 +153,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         if self.use_frozen:
             self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
             self.add_conf_test(self.conftest0)
-        if self.opt_pot_str == 'hs_wca':
+        if self.interaction is Interaction.HS_WCA:
             if self.distance_method is Distance.PERIODIC:
                 if self.use_cell_lists:
                     self.conftest1 = CheckOverlapPeriodicCellLists(
@@ -201,7 +201,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
 
     def dump_minima_list(self, fname):
         """write minima list to pele database"""
-        if self.opt_pot_str == 'hs_wca':
+        if self.interaction is Interaction.HS_WCA:
             system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv,
                                  bdim=self.bdim, dtol=self.dtol, etol=1)
             db = system.create_database(fname)
@@ -337,7 +337,7 @@ class BV_MCrunner(SpheresMCRunner):
                  record_trajectory_npoints=1e4,
                  single=False, distance_method=Distance.PERIODIC, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
-                 opt_pot_str='hs_wca', pot_kwargs={}):
+                 interaction=Interaction.HS_WCA, pot_kwargs={}):
         # actions parameters
         if ts_niter is None:
             ts_niter = niter
@@ -363,7 +363,8 @@ class BV_MCrunner(SpheresMCRunner):
                                           record_histogram=record_histogram, distance_method=distance_method,
                                           use_frozen=use_frozen, frozen_atoms=frozen_atoms,
                                           rcontainer=rcontainer, minimizer=minimizer,
-                                          opt_pot_str=opt_pot_str, pot_kwargs=pot_kwargs)
+                                          interaction=interaction,
+                                          pot_kwargs=pot_kwargs)
         # set control
         self.set_control(k)
 
@@ -521,24 +522,25 @@ class Findk_MCrunner(SpheresMCRunner):
                  collect_minima_list=False, seeds=None, use_cell_lists=False,
                  single=False, distance_method=Distance.PERIODIC, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
-                 opt_pot_str='hs_wca', pot_kwargs={}):
+                 interaction=Interaction.HS_WCA, pot_kwargs={}):
         #findk parameters
         self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg=knavg
         self.ktol=ktol
-        super(Findk_MCrunner, self).__init__(potential, full_coords, temperature, stepsize, niter, origin,
-                                             hs_radii, boxv, sca, rattlers=rattlers, k=1, dtol=dtol, eps=eps,
-                                             hmin=hmin, hmax=hmax, hbinsize=binsize, report_steps=0,
-                                             pt_eq_niter=0, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep,
-                                             opt_tol=opt_tol, opt_nsteps=opt_nsteps,
-                                             perform_convergence_test=perform_convergence_test,
-                                             collect_minima_list=collect_minima_list,
-                                             seeds=seeds, use_cell_lists=use_cell_lists,
-                                             record_histogram=False, distance_method=distance_method,
-                                             use_frozen=use_frozen, frozen_atoms=frozen_atoms,
-                                             rcontainer=rcontainer, minimizer=minimizer,
-                                             opt_pot_str=opt_pot_str, pot_kwargs=pot_kwargs)
+        super(Findk_MCrunner, self).__init__(
+            potential, full_coords, temperature, stepsize, niter, origin,
+            hs_radii, boxv, sca, rattlers=rattlers, k=1, dtol=dtol, eps=eps,
+            hmin=hmin, hmax=hmax, hbinsize=binsize, report_steps=0,
+            pt_eq_niter=0, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep,
+            opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+            perform_convergence_test=perform_convergence_test,
+            collect_minima_list=collect_minima_list, seeds=seeds,
+            use_cell_lists=use_cell_lists, record_histogram=False,
+            distance_method=distance_method, use_frozen=use_frozen,
+            frozen_atoms=frozen_atoms, rcontainer=rcontainer,
+            minimizer=minimizer, interaction=interaction,
+            pot_kwargs=pot_kwargs)
 
     def _set_takestep(self, stepsize):
         self.takestep = SampleGaussian(self.seeds['seed_takestep'], stepsize, self.origin)

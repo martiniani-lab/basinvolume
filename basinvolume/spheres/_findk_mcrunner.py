@@ -22,8 +22,8 @@ class _findk_mcrunner(_configure_mcrunner):
     def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9,
                  knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5,
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, packings_dir='jammed_packings',
-                 verbose=False, opt_pot_str='hs_wca'):
+                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE,
+                 packings_dir='jammed_packings', verbose=False):
 
         self.temperature=1.0
         self.eps = eps
@@ -39,6 +39,7 @@ class _findk_mcrunner(_configure_mcrunner):
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
         self.distance_method = imp_packing['distance_method']
+        self.interaction = imp_packing['interaction']
         if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:
@@ -58,7 +59,7 @@ class _findk_mcrunner(_configure_mcrunner):
                       opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test,
                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
                       minimizer=minimizer, distance_method=self.distance_method,
-                      use_frozen=False, opt_pot_str=opt_pot_str, pot_kwargs=self.pot_kwargs)
+                      use_frozen=False, interaction=self.interaction, pot_kwargs=self.pot_kwargs)
 
         self.mc_params = dict(temperature=self.temperature,niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
@@ -66,7 +67,7 @@ class _findk_mcrunner(_configure_mcrunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str)
+        self._requench_coords(dtol, opt_maxstep, verbose)
 
 
         self.mcrunner = Findk_MCrunner(potential, self.coords, self.temperature, stepsize, niter, self.coords,
@@ -143,11 +144,9 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    opt_pot_str= 'hs_wca' #'inverse_power_stillinger'
     sim = _findk_mcrunner('jammed_packing0.xydr', avgcount=1e4, k=759, opt_tol=1e-5,
                           ktarget=0.9, knavg=1e3, seeds=seeds, use_cell_lists=True,
-                          verbose=True, minimizer=Minimizer.FIRE,
-                          opt_pot_str=opt_pot_str)
+                          verbose=True, minimizer=Minimizer.FIRE)
     print 'simulation started'
     start=time.time()
     sim.run()

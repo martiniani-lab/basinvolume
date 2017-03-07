@@ -45,6 +45,7 @@ class StructuralAnalysis(object):
             self.boxv = config['boxv'].copy()
             self.vcavity = config['vcavity']
             self.distance_method = config['distance_method']
+            self.interaction = config['interaction']
             if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
                 self.pot_kwargs.update(config['pot_kwargs'])
             else:

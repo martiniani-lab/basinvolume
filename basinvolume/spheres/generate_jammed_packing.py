@@ -11,7 +11,7 @@ from basinvolume.utils import trymakedir, get_git_version, get_python_version
 from basinvolume.utils import volume_nball, import_packing, calc_distance
 from basinvolume.utils import get_cython_version, cround, in_hull, origin_in_hull_2d
 from basinvolume.spheres.generate_packing import read_packing_config
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Minimizer, Interaction
 import ConfigParser
 import re
 import argparse
@@ -63,7 +63,9 @@ def read_jammed_packing_config(configpath, frozen=False):
     else:
         parameters['vcavity'] = np.prod(parameters['boxv'])
     parameters['distance_method'] = Distance[configf.get('JAMMED_PACKING',
-                                                          'distance_method')]
+                                                         'distance_method')]
+    parameters['interaction'] = Interaction[configf.get('JAMMED_PACKING',
+                                                        'interaction')]
     parameters['pot_kwargs'] = ast.literal_eval(configf.get('JAMMED_PACKING',
                                                             'pot_kwargs'))
     parameters['sca'] = configf.getfloat('JAMMED_PACKING', 'sca')
@@ -187,6 +189,7 @@ class _Generate_Jammed_Packing(object):
             f.write('{:.16f} '.format(val))
         f.write('\n')
         f.write('distance_method: {}\n'.format(self.distance_method.name))
+        f.write('interaction: {}\n'.format(self.interaction.name))
         f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))
@@ -268,7 +271,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
-                 use_cell_lists=False, show=False, opt_pot_str='hs_wca',
+                 use_cell_lists=False, show=False, interaction=Interaction.HS_WCA,
                  override_pot_kwargs=None, minimizer=Minimizer.FIRE, logging_tag="",
                  write_opengl=False, check_packing=True):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
@@ -279,7 +282,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                                                          override_pot_kwargs=override_pot_kwargs,
                                                          logging_tag=logging_tag,
                                                          write_opengl=write_opengl)
-        self.opt_pot_str = opt_pot_str
+        self.interaction = interaction
         self.use_cell_lists = use_cell_lists
         self.tol = tol
         self.check_packing = check_packing
@@ -310,7 +313,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if self.use_cell_lists:
             if np.amin(self.boxv) // rcut <= 3:
                 self.use_cell_lists = False
-        if self.opt_pot_str.lower() == "hs_wca":
+        if self.interaction is Interaction.HS_WCA:
             if self.use_cell_lists:
                 self.potential = HS_WCA(use_cell_lists=True, eps=self.eps, sca=self.sca,
                                         radii=self.hs_radii, boxvec=self.boxv,
@@ -322,10 +325,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                                         boxvec=self.boxv, ndim=self.bdim,
                                         distance_method=self.distance_method,
                                         pot_kwargs=self.pot_kwargs)
-        elif self.opt_pot_str.lower() == "inverse_power_stillinger":
+        elif self.interaction is Interaction.INVERSE_POWER_STILLINGER:
             self.stillinger_a_radii = self.hs_radii * (1 + self.sca)
-            pow = self.pot_kwargs["pow"]
-            rcut = self.pot_kwargs["rcut"]
+            pow = self.pot_kwargs['pow']
+            rcut = self.pot_kwargs['rcut']
             self.potential = InversePowerStillingerCut(
                 pow, self.stillinger_a_radii, ndim=self.bdim, boxvec=self.boxv,
                 rcut=rcut, use_cell_lists=True)
@@ -663,9 +666,11 @@ if __name__ == "__main__":
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                         "Default: 'FIRE'", default='FIRE')
     # potential arguments
-    parser.add_argument("--opt_pot", type=str,
-                        help="optmizer's potential, 1) (default) hs_wca "
-                             "2) inverse_power_stillinger", default='hs_wca')
+    parser.add_argument("--interaction", type=str,
+                        help="Particle interaction potential. "
+                             "Options: 'HS_WCA', 'INVERSE_POWER_STILLINGER'. "
+                             "Default: 'HS_WCA'",
+                        default='HS_WCA')
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -679,11 +684,9 @@ if __name__ == "__main__":
         raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     # potential type
-    opt_pot_str = args.opt_pot
+    interaction = Interaction[args.interaction.upper()]
     override_pot_kwargs = dict()
-    if opt_pot_str.lower() == 'hs_wca':
-        pass
-    elif opt_pot_str.lower() == 'inverse_power_stillinger':
+    if interaction is Interaction.INVERSE_POWER_STILLINGER:
         override_pot_kwargs.update(pow=8, rcut=4.5)
         logging.info("Setting inverse_power_stillinger parameters: {}"
                      .format(override_pot_kwargs))
@@ -696,7 +699,8 @@ if __name__ == "__main__":
                                      import_jammed=args.import_jammed,
                                      outdir=args.outdir, tol=args.tol,
                                      use_cell_lists=not args.nocell, show=args.show,
-                                     opt_pot_str=args.opt_pot, minimizer=minimizer,
+                                     interaction=interaction,
+                                     minimizer=minimizer,
                                      override_pot_kwargs=override_pot_kwargs,
                                      write_opengl=args.write_opengl)
     sim.run()

@@ -32,8 +32,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=None,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
                  single=False, seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, record_histogram = False,
-                 packings_dir='jammed_packings', base_dir=None, verbose = False,
-                 opt_pot_str='hs_wca'):
+                 packings_dir='jammed_packings', base_dir=None, verbose = False):
 
         self.fname = fname
         self._set_paths(base_dir, packings_dir)
@@ -52,7 +51,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                       perform_convergence_test=perform_convergence_test, record_histogram=record_histogram,
                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
                       single=single, distance_method=self.distance_method, use_frozen=False, minimizer=minimizer, record_trajectory=False,
-                      opt_pot_str=opt_pot_str, pot_kwargs=self.pot_kwargs)
+                      interaction=self.interaction, pot_kwargs=self.pot_kwargs)
 
         self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
@@ -60,7 +59,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
             warnings.warn("seeds not passed")
 
         self._initialise()
-        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str)
+        self._requench_coords(dtol, opt_maxstep, verbose)
 
         #construct mcrunner
         #self.coords is origin, set initial configuration and origin to be the same
@@ -146,6 +145,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
         self.distance_method = imp_packing['distance_method']
+        self.interaction = imp_packing['interaction']
         if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:
@@ -179,9 +179,7 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
     sim = configure_bv_mcrunner(0, 1)
-    opt_pot_str = 'hs_wca' #'inverse_power_stillinger'
-    mcrunner = sim('jammed_packing0.xydr', seeds=seeds, use_cell_lists=True, verbose=True,
-                   opt_pot_str=opt_pot_str)
+    mcrunner = sim('jammed_packing0.xydr', seeds=seeds, use_cell_lists=True, verbose=True)
     print 'simulation started'
     start=time.time()
     mcrunner.run()

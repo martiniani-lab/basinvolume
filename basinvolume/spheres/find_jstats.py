@@ -4,10 +4,11 @@ import os
 from pele.distance import get_distance, Distance
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
+from pele.utils._pressure_tensor import pressure_tensor
 from basinvolume.utils import cround, in_hull, import_packing, find_neighbors_slow
 import argparse
 from basinvolume.spheres import HS_Generate_Packing
-from pele.utils._pressure_tensor import pressure_tensor
+from basinvolume.enums import Interaction
 from joblib import Parallel, delayed
 from numpy.random import RandomState
 import cPickle as pickle
@@ -50,7 +51,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                  ss_packing_frac=0.86, sca=0.1212238211627763,
                  hs_radii=None, mu=1, sig=0.05, new_poly=False, hsf_stepsize=1e-3,
                  max_iter=10, tol=1e-9, use_cell_lists=True, single=True, seeds=None,
-                 opt_pot_str='hs_wca', start_iteration=0):
+                 interaction=Interaction.HS_WCA, start_iteration=0):
         if workspace is None:
             workspace = os.getcwd()
         if not os.path.isabs(workspace):
@@ -59,7 +60,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         self.sca_ss = sca
         self.eps = 1.
         self.tol = tol
-        self.opt_pot_str = opt_pot_str
+        self.interaction = interaction
         self.hs_packing_frac = ss_packing_frac / np.power(1.+sca, bdim)
         self.ss_packing_frac = ss_packing_frac
         print self.hs_packing_frac, self.ss_packing_frac
@@ -129,7 +130,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         if self.use_cell_lists:
             if np.amin(self.boxv) // rcut <= 3:
                 self.use_cell_lists = False
-        if self.opt_pot_str.lower() == "hs_wca":
+        if self.interaction is Interaction.HS_WCA:
             self.potential_ss_p = HS_WCA(distance_method=Distance.PERIODIC, eps=self.eps,
                                          sca=self.sca_ss, radii=self.hs_radii, boxvec=self.boxv,
                                          ndim=self.bdim)
@@ -140,7 +141,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                                            ndim=self.bdim, ncellx_scale=1.0)
             else:
                 self.potential_ss = self.potential_ss_p
-        elif self.opt_pot_str.lower() == "inverse_power_stillinger":
+        elif self.interaction is Interaction.INVERSE_POWER_STILLINGER:
             self.stillinger_a_radii = self.hs_radii * (1 + self.sca_ss)
             pow = self.pot_kwargs["pow"]
             rcut = self.pot_kwargs["rcut"]
@@ -260,7 +261,8 @@ class FindJ(object):
     def __init__(self, nparticles, workspace=None, method='quench', bdim=3, boxv=None,
                  ss_packing_frac=[0.84], sca=0.1212238211627763, hs_radii=None, mu=1, sig=0.05,
                  new_poly=False, hsf_stepsize=1e-3, max_iter=10, tol=1e-9,
-                 use_cell_lists=True, single=True, seeds=None, opt_pot_str='hs_wca',
+                 use_cell_lists=True, single=True, seeds=None,
+                 interaction=Interaction.HS_WCA,
                  start_iteration=0, ncores=2):
 
         self.rng = RandomState()
@@ -275,7 +277,8 @@ class FindJ(object):
                                          sig=sig, new_poly=new_poly,
                                          hsf_stepsize=hsf_stepsize, max_iter=max_iter, tol=tol,
                                          use_cell_lists=use_cell_lists, single=single,
-                                         seeds=seeds, opt_pot_str=opt_pot_str, start_iteration=start_iteration)
+                                         seeds=seeds, interaction=interaction,
+                                         start_iteration=start_iteration)
             hs_radii = hsgp_.hs_radii
             self.hsgp.append(hsgp_)
 

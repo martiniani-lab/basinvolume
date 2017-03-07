@@ -4,10 +4,11 @@ import os
 import traceback
 import ConfigParser
 import logging
-from basinvolume.utils import trymakedir
 from pele.utils._pressure_tensor import pressure_tensor
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
+from basinvolume.utils import trymakedir
+from basinvolume.enums import Interaction
 from _structural_analysis import StructuralAnalysis
 
 
@@ -15,14 +16,13 @@ class PressureTensor(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 opt_pot_str='hs_wca', prefix='explore_bv_', verbose=True,
+                 prefix='explore_bv_', verbose=True,
                  use_cell_lists=True, import_config_once=False):
         super(PressureTensor, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                              analysis_dir=analysis_dir, force=force,
                                              existing_only=existing_only, prefix=prefix,
                                              verbose=verbose, use_cell_lists=use_cell_lists,
                                              import_config_once=import_config_once)
-        self.opt_pot_str = opt_pot_str
         self.analysis_name = 'pressure_data'
 
     @staticmethod
@@ -76,9 +76,9 @@ class PressureTensor(StructuralAnalysis):
 
     def init_pressure_potential(self):
         # here put a flag and pick potential
-        if self.opt_pot_str.lower() == 'hs_wca':
+        if self.interaction is Interaction.HS_WCA:
             self._initialise_potential()
-        elif self.opt_pot_str.lower() == 'inverse_power_stillinger':
+        elif self.interaction is Interaction.INVERSE_POWER_STILLINGER:
             pow = self.pot_kwargs['pow']
             rcut = self.pot_kwargs['rcut']
             pot_optimizer = InversePowerStillingerCut(pow,
@@ -113,9 +113,6 @@ if __name__ == "__main__":
                         "Default: 'explore_bv_'", default='explore_bv_')
     parser.add_argument("--input-dir", type=str, help="Directory containing the "
                         "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
-    parser.add_argument("--opt-pot", type=str,
-                        help="Optimizer's potential, 1) (default) hs_wca "
-                             "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -123,8 +120,7 @@ if __name__ == "__main__":
                         level=logging.INFO)
 
     kwargs = dict(force=args.force, existing_only=args.nonex,
-                  jammed_packings_dir=args.input_dir, prefix=args.prefix,
-                  opt_pot_str=args.opt_pot)
+                  jammed_packings_dir=args.input_dir, prefix=args.prefix)
 
     if not args.workspace_dir:
         workspace_dir = os.getcwd()

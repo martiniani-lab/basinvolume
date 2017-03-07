@@ -32,9 +32,6 @@ if __name__ == "__main__":
                         "Default: 'FIRE'", default='FIRE')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
-    # potential arguments
-    parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
-                                                    "2) inverse_power_stillinger", default='hs_wca')
     parser.add_argument("--delraw", action='store_true', help="Delete raw timeseries textfiles "
                         "and only use the HDF5 format.", default=False)
     args = parser.parse_args()
@@ -42,9 +39,6 @@ if __name__ == "__main__":
     path = args.base_directory
     fname = args.jammed_packing_fname
     single = not args.moveall
-
-    # potential type
-    opt_pot_str = args.opt_pot
 
     #Parallel Tempering
     min_tot_niter = int(args.mintotniter)
@@ -94,8 +88,7 @@ if __name__ == "__main__":
                    hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
                    pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, minimizer=minimizer,
                    perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
-                   seeds=seeds, use_cell_lists=not args.nocell, single=single, record_histogram=record_histogram,
-                   opt_pot_str=opt_pot_str)
+                   seeds=seeds, use_cell_lists=not args.nocell, single=single, record_histogram=record_histogram)
 
     if not check_kmax_reasonable(sim.findk_configpath):
         print('bv_parallel_tempering: kmax is unreasonable, exiting')

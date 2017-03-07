@@ -60,11 +60,6 @@ if __name__ == "__main__":
                         default=None)
     parser.add_argument("--cutoff", type=float, help="Multiple of particle radii "
                         "defining the maximum neighbor distance. Default: 1", default=1.)
-
-    # pressure tensor
-    parser.add_argument("--opt-pot", type=str,
-                        help="Optimizer's potential, 1) (default) hs_wca "
-                             "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -100,7 +95,7 @@ if __name__ == "__main__":
     structural_props.append((worker_neighbors, neighbors_kwargs))
 
     # pressure tensor
-    pressure_kwargs = dict(kwargs, opt_pot_str=args.opt_pot)
+    pressure_kwargs = dict(kwargs)
     structural_props.append((worker_pressure, pressure_kwargs))
 
     if not args.all:

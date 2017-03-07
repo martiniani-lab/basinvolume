@@ -27,7 +27,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, record_histogram=False,
-                 packings_dir='jammed_packings', verbose=False, opt_pot_str='hs_wca'):
+                 packings_dir='jammed_packings', verbose=False):
 
         self.fname = fname
         self.temperature=1.0
@@ -52,7 +52,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
                       seeds=seeds, use_cell_lists=use_cell_lists,
                       record_histogram=record_histogram,
                       minimizer=minimizer, distance_method=self.distance_method,
-                      use_frozen=False, opt_pot_str=opt_pot_str,
+                      use_frozen=False, interaction=self.interaction,
                       pot_kwargs=self.pot_kwargs)
 
         self.mc_params = dict(k=self.k, temperature=self.temperature, niter=self.niter, stepsize=self.stepsize)
@@ -60,7 +60,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str)
+        self._requench_coords(dtol, opt_maxstep, verbose)
 
         #construct mcrunner
         self.coords = _subtract_com(self.coords, ndim=self.bdim)
@@ -99,6 +99,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         self.packing_frac = imp_packing['packing_frac']
         self.sca = imp_packing['sca']
         self.distance_method = imp_packing['distance_method']
+        self.interaction = imp_packing['interaction']
         if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:

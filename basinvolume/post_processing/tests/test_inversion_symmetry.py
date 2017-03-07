@@ -5,6 +5,7 @@ from pele.distance import Distance
 from basinvolume.post_processing.structural_properties import InversionSymmetry
 from basinvolume.spheres import HS_Generate_Packing
 from basinvolume.spheres import HS_Generate_Jammed_Packing
+from basinvolume.enums import Interaction
 
 if __name__ == "__main__":
     fcc_dens = np.pi / (np.sqrt(2) * 3) - 0.1
@@ -16,7 +17,8 @@ if __name__ == "__main__":
     gen_jammed_packing = HS_Generate_Jammed_Packing(target_packing_frac=fcc_dens * 1.2,
                                                     packings_dir="packings",
                                                     use_cell_lists=False,
-                                                    show=False, opt_pot_str='hs_wca')
+                                                    show=False,
+                                                    interaction=Interaction.HS_WCA)
     gen_jammed_packing.run()
 
     invsym = InversionSymmetry(".", verbose=False, force=True, existing_only=False,

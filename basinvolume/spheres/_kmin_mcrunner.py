@@ -31,7 +31,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                  record_steps_timeseries=False, record_steps_timeseries_every=[1], print_diffusion_only=False,
                  record_trajectory=True, record_trajectory_npoints=1e4,
                  perform_convergence_test=False, collect_minima_list=False, single=False,
-                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, opt_pot_str='hs_wca',
+                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE,
                  packings_dir='jammed_packings', verbose=False, workspace=None):
 
         self.fname = fname
@@ -54,6 +54,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
         self.distance_method = imp_packing['distance_method']
+        self.interaction = imp_packing['interaction']
         if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:
@@ -72,7 +73,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                       perform_convergence_test=perform_convergence_test, collect_minima_list=collect_minima_list,
                       seeds=seeds, use_cell_lists=use_cell_lists, record_histogram=True, single=single,
                       minimizer=minimizer, distance_method=self.distance_method, use_frozen=False,
-                      opt_pot_str=opt_pot_str, pot_kwargs=self.pot_kwargs)
+                      interaction=self.interaction, pot_kwargs=self.pot_kwargs)
 
         self.mc_params = dict(temperature=self.temperature,niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
@@ -80,7 +81,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose, opt_pot_str=opt_pot_str)
+        self._requench_coords(dtol, opt_maxstep, verbose)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -224,13 +225,11 @@ if __name__ == "__main__":
 
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
-    opt_pot_str = 'hs_wca' #'inverse_power_stillinger'
     sim = _kmin_mcrunner('jammed_packing0.xydr', niter=1e4, k=0, opt_tol=1e-4, seeds=seeds,
                          record_steps_timeseries=True,
                          record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
                          single=True, use_cell_lists=True, verbose=True, minimizer=Minimizer.FIRE,
-                         hmax=20, hbinsize=0.05, opt_nsteps=1e6,
-                         opt_pot_str=opt_pot_str)
+                         hmax=20, hbinsize=0.05, opt_nsteps=1e6)
     print 'simulation started'
     start=time.time()
     sim.run()

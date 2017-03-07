@@ -47,6 +47,7 @@ class _sphere_mcrunner(_configure_mcrunner):
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
         self.distance_method = imp_packing['distance_method']
+        self.interaction = imp_packing['interaction']
         if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:

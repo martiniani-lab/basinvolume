@@ -27,9 +27,6 @@ if __name__ == "__main__":
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                         "Default: 'FIRE'", default='FIRE')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
-     # potential arguments
-    parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
-                                                    "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
 
     fname = args.fname
@@ -42,13 +39,12 @@ if __name__ == "__main__":
     else:
         raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
-    # potential type
-    opt_pot_str = args.opt_pot
-
     #when niter=None, niter is set equal to exact number of PT niter
-    innersphere_kwargs = dict(niter=1e5, dtol=1e-4, eps=1., opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5,
-                              packings_dir=packings_dir, use_cell_lists=not args.nocell, minimizer=minimizer,
-                              verbose=args.verbose, opt_pot_str=opt_pot_str)
+    innersphere_kwargs = dict(niter=1e5, dtol=1e-4, eps=1., opt_dtmax=1,
+                              opt_tol=1e-5, opt_nsteps=1e5,
+                              packings_dir=packings_dir,
+                              use_cell_lists=not args.nocell,
+                              minimizer=minimizer, verbose=args.verbose)
 
     i32max = np.iinfo(np.int32).max
     seeds_dict = dict(seed_takestep=np.random.randint(i32max))

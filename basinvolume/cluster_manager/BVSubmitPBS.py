@@ -34,7 +34,7 @@ class BVSubmitPBS(object):
                  pt_config='explore_jammed_packing',
                  packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False,
                  experimental=False, minimizer=Minimizer.FIRE, record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
-                 maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5, pot_opt_str='hs_wca', nocell=False, delraw=False):
+                 maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5, nocell=False, delraw=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -60,7 +60,6 @@ class BVSubmitPBS(object):
         self.lownegk = lownegk
         self.numnegk = numnegk
         self.kmax_start = kmax_start
-        self.pot_opt_str = pot_opt_str
         self.nocell = nocell
         self.delraw = delraw
         self.pt_output_files = ["exchanges", "rem_permutations", "temperatures"]
@@ -187,7 +186,7 @@ class BVSubmitPBS(object):
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
         command = ('python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings '
-                   '--opt-pot {2}').format(findk_script, packing, self.pot_opt_str)
+                   .format(findk_script, packing))
         command += " --minimizer {}".format(self.minimizer)
         if record_steps_timeseries:
             command += " --rsts"
@@ -207,7 +206,7 @@ class BVSubmitPBS(object):
         packing = self.packing_naming + noj + self.ext
         innersphere_dos_script = os.path.join(os.path.dirname(os.path.dirname(path_to_script)), 'mbar_spheres', script)
         command = ('python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings '
-                   '--opt-pot {2}').format(innersphere_dos_script, packing, self.pot_opt_str)
+                   .format(innersphere_dos_script, packing))
         command += " --minimizer {}".format(self.minimizer)
         if self.nocell:
             command += " --nocell"
@@ -344,13 +343,15 @@ class BVSubmitPBS(object):
         if ncores % 2 == 0:
             command = ('-n {0} python {1} {2} ${{PBS_O_WORKDIR}}/{3} '
                        '--mintotniter {4} --maxtotniter {5} --relstderr {6} '
-                       '--opt-pot {7}').format(ncores - 1, pt_script, packing, explore_dir, self.mintotniter,
-                                               self.maxtotniter, self.relstderr, self.pot_opt_str)
+                       .format(ncores - 1, pt_script, packing, explore_dir,
+                               self.mintotniter, self.maxtotniter,
+                               self.relstderr))
         else:
             command = ('python {0} {1} ${{PBS_O_WORKDIR}}/{2} '
                        '--mintotniter {3} --maxtotniter {4} --relstderr {5} '
-                       '--opt-pot {6}').format(pt_script, packing, explore_dir, self.mintotniter,
-                                               self.maxtotniter, self.relstderr, self.pot_opt_str)
+                       .format(pt_script, packing, explore_dir,
+                               self.mintotniter, self.maxtotniter,
+                               self.relstderr))
         if self.nocell:
             command += " --nocell"
         command += " --minimizer {}".format(self.minimizer)
