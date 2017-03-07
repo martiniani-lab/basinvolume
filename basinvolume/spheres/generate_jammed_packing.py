@@ -104,7 +104,7 @@ class _Generate_Jammed_Packing(object):
         self.logging_tag = logging_tag
         self.write_opengl = write_opengl
 
-    def _import_single_packing_config_file(self, fname):
+    def _import_single_config_file(self, fname):
         dname = os.path.splitext(fname)[0]
         self.configpath = os.path.join(self.packings_dir, dname + '.config')
         if self.import_jammed:
@@ -293,7 +293,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def one_iteration(self, fname):
         """perform one iteration
         """
-        self._import_single_packing_config_file(fname)
+        self._import_single_config_file(fname)
         self.rattlers = np.empty(self.nparticles, dtype='d')
         self.rattlers_draw = np.empty(self.nparticles, dtype='d')
 
