@@ -334,7 +334,8 @@ class mbar_compute_dos(object):
             print 'unit_box_F0 {} unit_box_F0unc {} +/- {}'.format(self.unit_box_F0, self.unit_box_F0unc, self.sigF0)
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
-        volume_sanity_check = VolumeSanityCheck(self.packing_configpath, numerical_moments=numerical_moments)
+        volume_sanity_check = VolumeSanityCheck(self.packing_configpath,
+                                                numerical_moments=numerical_moments)
         self.F0_acc = volume_sanity_check.F0_acc
         self.ideal_gas_F_acc = - self.nparticles*np.log(self.vcavity)
 
