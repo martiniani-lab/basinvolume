@@ -62,8 +62,8 @@ def read_jammed_packing_config(configpath, frozen=False):
         parameters['vcavity'] = configf.getfloat('JAMMED_PACKING', 'vcavity')
     else:
         parameters['vcavity'] = np.prod(parameters['boxv'])
-    parameters['distance_method'] = Distance(configf.get('JAMMED_PACKING',
-                                                          'distance_method'))
+    parameters['distance_method'] = Distance[configf.get('JAMMED_PACKING',
+                                                          'distance_method')]
     parameters['pot_kwargs'] = ast.literal_eval(configf.get('JAMMED_PACKING',
                                                             'pot_kwargs'))
     parameters['sca'] = configf.getfloat('JAMMED_PACKING', 'sca')
@@ -186,7 +186,7 @@ class _Generate_Jammed_Packing(object):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        f.write('distance_method: {}\n'.format(self.distance_method.value))
+        f.write('distance_method: {}\n'.format(self.distance_method.name))
         f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))

@@ -43,8 +43,8 @@ def read_packing_config(configpath, frozen=False):
         parameters['vcavity'] = configf.getfloat('PACKING', 'vcavity')
     else:
         parameters['vcavity'] = np.prod(parameters['boxv'])
-    parameters['distance_method'] = Distance(configf.get('PACKING',
-                                                         'distance_method'))
+    parameters['distance_method'] = Distance[configf.get('PACKING',
+                                                         'distance_method')]
     parameters['pot_kwargs'] = ast.literal_eval(configf.get('PACKING',
                                                             'pot_kwargs'))
     if parameters['method'] == 'quench':
@@ -783,7 +783,7 @@ class HS_Generate_Packing(_Generate_Packing):
         for val in self.boxv:
             f.write('{:.16f} '.format(val))
         f.write('\n')
-        f.write('distance_method: {}\n'.format(self.distance_method.value))
+        f.write('distance_method: {}\n'.format(self.distance_method.name))
         f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         if self.method == 'quench':
             f.write('hsf_niter: {}\n'.format(self.hsf_niter))
