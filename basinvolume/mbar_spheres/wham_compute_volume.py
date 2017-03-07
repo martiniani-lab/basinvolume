@@ -26,24 +26,20 @@ class wham_compute_dos(object):
     """
 
     def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
-                 explore_dir='explore_bv_', packings_dir='packings', jammed_packings_dir='jammed_packings',
+                 explore_dir='explore_bv_', jammed_packings_dir='jammed_packings',
                  plot_data=True, frozen=False, show=False, verbose=True):
 
         self.fname = fname
         self.nbins = nbins
         if not os.path.isabs(jammed_packings_dir):
             jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
-            packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.jammed_packings_dir = jammed_packings_dir
-        self.packings_dir = packings_dir
         if not os.path.isabs(explore_dir):
             explore_dir = os.path.join(os.getcwd(),explore_dir+fname)
         self.explore_dir = explore_dir
         self.base_directory = self.explore_dir + '/' + base_dir
         self.frozen = frozen
         n = int(re.findall(r'\d+', self.fname)[0])
-        self.packing_configpath = os.path.join(packings_dir, 'packing{}.config'.format(n))
-        assert os.path.isfile(self.packing_configpath)
         self.jammed_packing_configpath = os.path.join(jammed_packings_dir, '{}.config'.format(self.fname))
         assert os.path.isfile(self.jammed_packing_configpath)
         self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + fname + '.config')
@@ -92,7 +88,8 @@ class wham_compute_dos(object):
         self._print_volumes()
 
     def _import_config_files(self):
-        imp_packing = read_jammed_packing_config(str(self.packing_configpath), self.frozen)
+        imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath),
+                                                 self.frozen)
         self.nparticles = imp_packing['nparticles']
         self.packing_frac = imp_packing['packing_frac']
         self.bdim = imp_packing['bdim']

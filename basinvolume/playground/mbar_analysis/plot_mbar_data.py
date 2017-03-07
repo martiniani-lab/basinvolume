@@ -101,8 +101,8 @@ class MBARHypercubeData(object):
             self.dos = np.transpose(np.array([x, xerr, y, yerr, fit]))
 
 class MBARPackingData(PackingData):
-    def __init__(self, name, configpath, configpath_packing, packing_path=None):
-        super(MBARPackingData, self).__init__(name, configpath, configpath_packing, packing_path=packing_path)
+    def __init__(self, name, configpath, packing_path=None):
+        super(MBARPackingData, self).__init__(name, configpath, packing_path=packing_path)
         self.log_gr = None
         self.log_gr_ratio = None
         self.gr_ratio = None
@@ -217,10 +217,10 @@ class PolyPackingDataSet(PackingDataSet):
             print "cannot recognise structural label (fcc or disordered), set to None"
 
 class TINTBasinAnalysis(BasinAnalysis):
-    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings',
+    def __init__(self, workspace=None, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data",
                  zboo_file="glob_boo", volume_title = "VOLUME_FULL_PT"):
-        super(TINTBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir,
+        super(TINTBasinAnalysis, self).__init__(workspace=workspace,
                                                 jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir,
                                                 volume_file=volume_file, pressure_file=pressure_file,
                                                 zboo_file=zboo_file, volume_title=volume_title)
@@ -235,8 +235,7 @@ class TINTBasinAnalysis(BasinAnalysis):
                 base_directory_path = os.path.join(set_path, 'explore_bv_' + str(dname))
                 if os.path.isdir(base_directory_path):
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
-                    configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
-                    pd = PackingData(str(dname), configpath, configpath_packing)
+                    pd = PackingData(str(dname), configpath)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
                     pd.import_volume_data(path, title=self.volume_title)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
@@ -379,11 +378,11 @@ class MBARPackingDataSet(PolyPackingDataSet):
             self._compute_dos_moments()
 
 class MBARBasinAnalysis(BasinAnalysis):
-    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings',
+    def __init__(self, workspace=None, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', volume_file="mbar_volume_data", pressure_file="pressure_data",
                  zboo_file="glob_boo", volume_title = "VOLUME_MBAR", diffusion_dir="diffusion",
                  import_diffusion=False, import_diffusion_config=False):
-        super(MBARBasinAnalysis, self).__init__(workspace=workspace, packings_dir=packings_dir,
+        super(MBARBasinAnalysis, self).__init__(workspace=workspace,
                                                 jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir,
                                                 volume_file=volume_file, pressure_file=pressure_file,
                                                 zboo_file=zboo_file, volume_title=volume_title)
@@ -403,8 +402,7 @@ class MBARBasinAnalysis(BasinAnalysis):
                 if os.path.isdir(base_directory_path):
                     try:
                         configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
-                        configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
-                        pd = MBARPackingData(str(dname), configpath, configpath_packing)
+                        pd = MBARPackingData(str(dname), configpath)
                         path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
                         pd.import_volume_data(path, title=self.volume_title)
                         path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
@@ -580,7 +578,7 @@ class plot_mbar_data(object):
                             log_core_vol.append(log_volume_nball(x[j], (packing.nparticles-1)*packing.bdim))
                             log_tot_vol.append(packing.F)
                         else:
-                            print packing.configpath_packing
+                            print packing.configpath
                     ax4.scatter(-np.array(log_core_vol), np.array(log_tot_vol), color=color_cycle.next(),
                                 marker=marker_cycle.next(), s=70,
                                 label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),

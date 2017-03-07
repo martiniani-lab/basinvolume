@@ -15,7 +15,7 @@ class BasinAnalysis(object):
     volume_file = "mbar_volume"
     volume_title = "MBAR_VOLUME"
     """
-    def __init__(self, workspace=None, packings_dir='packings', jammed_packings_dir='jammed_packings',
+    def __init__(self, workspace=None, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data",
                  zboo_file="glob_boo", zboolist_file="boo_deg6", volume_title = "VOLUME_FULL_PT"):
         if workspace is None:
@@ -23,7 +23,6 @@ class BasinAnalysis(object):
         if not os.path.isabs(workspace):
             workspace = os.path.abspath(workspace)
         self.workspace = workspace
-        self.packings_dir = packings_dir
         self.jammed_packings_dir = jammed_packings_dir
         self.volume_file = volume_file
         self.pressure_file = pressure_file
@@ -73,8 +72,7 @@ class BasinAnalysis(object):
                 if os.path.isdir(base_directory_path):
                     packing_path = os.path.join(set_path, self.jammed_packings_dir, fname)
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
-                    configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
-                    pd = PackingData(str(dname), configpath, configpath_packing, packing_path=packing_path)
+                    pd = PackingData(str(dname), configpath, packing_path=packing_path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
                     pd.import_volume_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
@@ -123,8 +121,7 @@ class BasinAnalysis(object):
                 if os.path.isdir(base_directory_path):
                     packing_path = os.path.join(set_path, self.jammed_packings_dir, fname)
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
-                    configpath_packing = os.path.join(set_path, self.packings_dir, dname_packing + ".config")
-                    pd = PackingData(str(dname), configpath, configpath_packing, packing_path=packing_path)
+                    pd = PackingData(str(dname), configpath, packing_path=packing_path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)

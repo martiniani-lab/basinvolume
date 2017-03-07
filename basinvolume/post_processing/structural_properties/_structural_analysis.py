@@ -10,19 +10,16 @@ from pele.potentials import HS_WCA
 class StructuralAnalysis(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, workspace, packings_dir='packings',
-                 jammed_packings_dir='jammed_packings', analysis_dir='analysis',
-                 force=False, existing_only=True, prefix='explore_bv_', verbose=True,
-                 use_cell_lists=True, import_config_once=False):
+    def __init__(self, workspace, jammed_packings_dir='jammed_packings',
+                 analysis_dir='analysis', force=False, existing_only=True,
+                 prefix='explore_bv_', verbose=True, use_cell_lists=True,
+                 import_config_once=False):
         if not os.path.isabs(workspace):
             workspace = os.path.abspath(workspace)
         self.workspace = workspace
-        if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(self.workspace, packings_dir)
         if not os.path.isabs(jammed_packings_dir):
             jammed_packings_dir = os.path.join(self.workspace,
                                                jammed_packings_dir)
-        self.packings_dir = packings_dir
         self.jammed_packings_dir = jammed_packings_dir
         self.analysis_dir = analysis_dir
         self.iteration = 0

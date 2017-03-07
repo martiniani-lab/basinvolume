@@ -78,12 +78,11 @@ class PackingDataSet(object):
         self.extras.extend(np.array(extra).tolist())
 
 class PackingData(object):
-    def __init__(self, name, configpath, configpath_packing, packing_path=None):
+    def __init__(self, name, configpath, packing_path=None):
         self.eps = 1.
         self.frozen = False
         self.name = name
         self.configpath = configpath
-        self.configpath_packing = configpath_packing
         imp_jammed_packing = read_jammed_packing_config(self.configpath)
         self.nparticles = imp_jammed_packing['nparticles']
         self.packing_frac = imp_jammed_packing['packing_frac']
@@ -92,9 +91,6 @@ class PackingData(object):
         self.boxv = imp_jammed_packing['boxv'].copy()
         self.vcavity = imp_jammed_packing['vcavity']
         self.sca = imp_jammed_packing['sca']
-        imp_packing = read_packing_config(self.configpath_packing)
-        self.hs_mean = imp_packing['radii_mean']
-        self.hs_stddev = imp_packing['radii_stddev']
         if packing_path is not None:
             self._import_packing_configuration(packing_path)
         self.jammed_packing_name = os.path.split(os.path.splitext(self.configpath)[0])[1]
@@ -108,6 +104,7 @@ class PackingData(object):
         self.boo = None
         self.boolist = None
 
+
     def _import_packing_configuration(self, path):
         #path = os.path.join(self.packings_dir, fname)
         packing = import_packing(path, True, self.bdim, self.sca)
@@ -115,6 +112,11 @@ class PackingData(object):
         self.hs_radii = packing['hs_radii']
         self.ss_radii = packing['ss_radii']
         self.rattlers = packing['stable_atoms_float_bdim']
+
+    def import_packing_config(self, configpath_packing):
+        imp_packing = read_packing_config(configpath_packing)
+        self.hs_mean = imp_packing['radii_mean']
+        self.hs_stddev = imp_packing['radii_stddev']
 
     def import_volume_data(self, path, title="VOLUME_FULL_PT", vfluid_title="VOLUME_HS_FLUID"):
         if os.path.isfile(path):

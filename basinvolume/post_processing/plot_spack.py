@@ -9,9 +9,8 @@ class GenerateSpackPlot(StructuralAnalysis):
     fname jammed_packing1.xydr
     workspace n32_phi...
     """
-    def __init__(self, workspace, packings_dir='packings',
-                 jammed_packings_dir='jammed_packings'):
-        super(GenerateSpackPlot, self).__init__(workspace, packings_dir=packings_dir,
+    def __init__(self, workspace, jammed_packings_dir='jammed_packings'):
+        super(GenerateSpackPlot, self).__init__(workspace,
                                                 jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=None)
 
