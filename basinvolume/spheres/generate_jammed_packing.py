@@ -684,7 +684,11 @@ if __name__ == "__main__":
         raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     # potential type
-    interaction = Interaction[args.interaction.upper()]
+    if args.interaction.upper() in Interaction.__members__:
+        interaction = Interaction[args.interaction.upper()]
+    else:
+        raise ValueError("Undefined interaction: {}".format(args.interaction))
+
     override_pot_kwargs = dict()
     if interaction is Interaction.INVERSE_POWER_STILLINGER:
         override_pot_kwargs.update(pow=8, rcut=4.5)
