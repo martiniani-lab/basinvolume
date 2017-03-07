@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 import os
-from pele.distance import Distance
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback

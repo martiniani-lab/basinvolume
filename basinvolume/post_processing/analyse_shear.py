@@ -9,7 +9,6 @@ import pandas as pd
 import multiprocessing as mp
 import logging
 from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
-from pele.potentials import HS_WCA
 from basinvolume.post_processing.structural_properties import (BondOrientationalOrder,
                                                                PressureTensor, Neighbors,
                                                                InversionSymmetry,

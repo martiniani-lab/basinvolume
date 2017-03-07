@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 import os
-from pele.distance import Distance
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback

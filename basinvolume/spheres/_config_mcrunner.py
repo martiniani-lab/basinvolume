@@ -4,7 +4,6 @@ import os
 import abc
 from pele.potentials import HS_WCA, InversePowerStillinger
 from pele.optimize._quench import modifiedfire_cpp
-from pele.distance import Distance
 from basinvolume.utils import (get_git_version, get_python_version, get_cython_version,
                                full_coordinates, read_xydfr, read_xyzdfr,
                                reduce_coordinates, read_xydr, read_xyzdr, import_packing)
