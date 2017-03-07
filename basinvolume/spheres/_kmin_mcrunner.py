@@ -31,7 +31,8 @@ class _kmin_mcrunner(_configure_mcrunner):
                  record_trajectory=True, record_trajectory_npoints=1e4,
                  perform_convergence_test=False, collect_minima_list=False, single=False,
                  seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE,
-                 packings_dir='jammed_packings', verbose=False, workspace=None):
+                 packings_dir='jammed_packings', explore_dir='explore_bv_jammed_packing',
+                 verbose=False, workspace=None):
 
         self.fname = fname
         self.temperature=1.0
@@ -43,7 +44,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         else:
             self.workspace = os.path.abspath(workspace)
 
-        self._set_paths(packings_dir)
+        self._set_paths(packings_dir, explore_dir)
         imp_packing = read_jammed_packing_config(str(self.configpath))
         self.nparticles = imp_packing['nparticles']
         self.packing_frac = imp_packing['packing_frac']
@@ -112,9 +113,10 @@ class _kmin_mcrunner(_configure_mcrunner):
         self.traj_eval, self.traj_evec = trajectory_pca(self.trajectory)
         self.pca_asphericity = asphericity_factor(self.traj_eval)
 
-    def _set_paths(self, packings_dir):
+    def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
-        self.base_directory = os.path.join(self.workspace,'explore_bv_'+str(dname))
+        packing_nr = dname[len('jammed_packing'):]
+        self.base_directory = os.path.join(os.getcwd(), explore_dir, packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(self.workspace,packings_dir)
         self.packings_dir = packings_dir

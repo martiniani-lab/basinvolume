@@ -28,13 +28,18 @@ class BVSubmitPBS(object):
     *nodays if true use walltime HH:MM:SS format (necessary for some clusters)
     *numnegk is the number of negative ks to use during PT
     """
-    def __init__(self, ndim, workdir=None, job_label='32_70_88_2D', explore_dir='explore_bv_jammed_packing',
+    def __init__(self, ndim, workdir=None, job_label='32_70_88_2D',
+                 explore_dir='explore_bv_jammed_packing',
                  kmax_config='findk_jammed_packing',
-                 kmin_config='kmin_jammed_packing', innersphere_dos_config='innersphere_jammed_packing',
+                 kmin_config='kmin_jammed_packing',
+                 innersphere_dos_config='innersphere_jammed_packing',
                  pt_config='explore_jammed_packing',
-                 packing_naming='jammed_packing', structures_dir='jammed_packings', nojmin=0, nojmax=1e6, nodays=False,
-                 experimental=False, minimizer=Minimizer.FIRE, record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
-                 maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5, nocell=False, delraw=False):
+                 packing_naming='jammed_packing',
+                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6,
+                 nodays=False, experimental=False, minimizer=Minimizer.FIRE,
+                 record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
+                 maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5,
+                 nocell=False, delraw=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -185,8 +190,10 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
-        command = ('python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings '
-                   .format(findk_script, packing))
+        command = 'python {0} {1}'.format(findk_script, packing)
+        command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
+                    .format(structures_dir=self.structures_dir))
+        command += " --explore-dir {}".format(self.explore_dir)
         command += " --minimizer {}".format(self.minimizer)
         if record_steps_timeseries:
             command += " --rsts"
@@ -205,8 +212,10 @@ class BVSubmitPBS(object):
         """
         packing = self.packing_naming + noj + self.ext
         innersphere_dos_script = os.path.join(os.path.dirname(os.path.dirname(path_to_script)), 'mbar_spheres', script)
-        command = ('python {0} {1} -p ${{PBS_O_WORKDIR}}/jammed_packings '
-                   .format(innersphere_dos_script, packing))
+        command = 'python {0} {1}'.format(innersphere_dos_script, packing)
+        command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
+                    .format(structures_dir=self.structures_dir))
+        command += " --explore-dir {}".format(self.explore_dir)
         command += " --minimizer {}".format(self.minimizer)
         if self.nocell:
             command += " --nocell"
@@ -352,6 +361,8 @@ class BVSubmitPBS(object):
                        .format(pt_script, packing, explore_dir,
                                self.mintotniter, self.maxtotniter,
                                self.relstderr))
+        command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
+                    .format(structures_dir=self.structures_dir))
         if self.nocell:
             command += " --nocell"
         command += " --minimizer {}".format(self.minimizer)
@@ -505,15 +516,18 @@ class BVSubmitPBS(object):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
-    subparsers = parser.add_subparsers(help="Choose a subparser: single to submit jobs individually, "
+    parser = argparse.ArgumentParser(
+        description="perform parallel tempering for basin volume method")
+    subparsers = parser.add_subparsers(help="Choose a subparser: single to "
+                                            "submit jobs individually, "
                                             "chain to submit a bv jobs chain", dest='mode')
     single_parser = subparsers.add_parser('single', help='submit individual jobs')
     chain_parser = subparsers.add_parser('chain', help='submit a bv chain')
 
     single_parser.add_argument("ndim", type=int, help="dimensionality")
     single_parser.add_argument("workdir", type=str,
-                               help="working directory (folder containing the packings and jammed_packings subfolders)")
+                               help="working directory (folder containing the "
+                                    "packings and jammed_packings subfolders)")
     single_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
     single_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
     single_parser.add_argument("queue_type", type=str, help="queue type")
@@ -522,42 +536,66 @@ if __name__ == "__main__":
     single_parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
     single_parser.add_argument("--kmin", action='store_true', help="compute kmin", default=False)
     single_parser.add_argument("--kmax", action='store_true', help="compute kmax", default=False)
-    single_parser.add_argument("--mbar", action='store_true', help="compute innersphere dos", default=False)
-    single_parser.add_argument("--pt", action='store_true', help="perform parallel tempering", default=False)
+    single_parser.add_argument("--mbar", action='store_true',
+                               help="compute innersphere dos", default=False)
+    single_parser.add_argument("--pt", action='store_true',
+                               help="perform parallel tempering", default=False)
     single_parser.add_argument("--nojmin", type=int,
-                               help="number of minimum job ID to submit (to selectively submit a range of jobs)",
+                               help="number of minimum job ID to submit (to "
+                                    "selectively submit a range of jobs)",
                                default=0)
     single_parser.add_argument("--nojmax", type=int,
-                               help="number of maximum job ID to submit (to selectively submit a range of jobs)",
+                               help="number of maximum job ID to submit (to "
+                                    "selectively submit a range of jobs)",
                                default=1e6)
-    single_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format", default=False)
-    single_parser.add_argument("--experimental", action='store_true', help="read experimental data format",
+    single_parser.add_argument("--nodays", action='store_true',
+                               help="don't use days in walltime format", default=False)
+    single_parser.add_argument("--experimental", action='store_true',
+                               help="read experimental data format",
                                default=False)
     single_parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                                "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                                "Default: 'FIRE'", default='FIRE')
     single_parser.add_argument("--rsts", action='store_true',
-                               help="record steps timeseries for diffusion studies, default: False", default=False)
-    single_parser.add_argument("--kmax_start", type=float, help="starting value for kmax calculation", default=500)
-    single_parser.add_argument("--mintotniter", type=float, help="minimum number of energy evaluation per replica, "
-                               "before checking for convergence default: 5e5. This sets a lower bound", default=5e5)
-    single_parser.add_argument("--maxtotniter", type=float, help="maximum number of energy evaluation per replica, "
+                               help="record steps timeseries for diffusion studies, default: False",
+                               default=False)
+    single_parser.add_argument("--kmax_start", type=float,
+                               help="starting value for kmax calculation", default=500)
+    single_parser.add_argument("--mintotniter", type=float,
+                               help="minimum number of energy evaluation per replica, "
+                               "before checking for convergence default: 5e5. "
+                               "This sets a lower bound", default=5e5)
+    single_parser.add_argument("--maxtotniter", type=float,
+                               help="maximum number of energy evaluation per replica, "
                                "This sets an upper bound default: 2e6", default=2e6)
-    single_parser.add_argument("--relstderr", type=float, help="relative standard error to test convergence, "
+    single_parser.add_argument("--relstderr", type=float,
+                               help="relative standard error to test convergence, "
                                "default 0.05", default=0.05)
-    single_parser.add_argument("--numnegk", type=int, help="number of negative ks to use", default=0)
-    single_parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",
+    single_parser.add_argument("--numnegk", type=int,
+                               help="number of negative ks to use", default=0)
+    single_parser.add_argument("--lownegk", type=float,
+                               help="lowest value of negative k's to use, default -2.5",
                                default=-2.5)
     single_parser.add_argument("--force", action='store_true', help="force run", default=False)
-    single_parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",
+    single_parser.add_argument("--nocell", action='store_true',
+                               help="don't use cell lists, default: False",
                                default=False)
     single_parser.add_argument("--delraw", action='store_true',
                                help="Delete raw timeseries textfiles after parallel "
                                "tempering and only use the HDF5 format.", default=False)
+    single_parser.add_argument("--explore-dir", type=str,
+                               help="Start of the directory name for the basinvolume data. "
+                                    "Default: 'explore_bv_jammed_packing'",
+                               default='explore_bv_jammed_packing')
+    single_parser.add_argument('-p', "--packings-dir", type=str,
+                               help="Directory containing the jammed packings. "
+                                    "Default: 'jammed_packings'",
+                               default='jammed_packings')
 
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str,
-                              help="working directory (folder containing the packings and jammed_packings subfolders)")
+                              help="working directory (folder containing the "
+                                   "packings and jammed_packings subfolders)")
     chain_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
     chain_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
     chain_parser.add_argument("k_queue_type", type=str, help="queue type")
@@ -569,34 +607,54 @@ if __name__ == "__main__":
     chain_parser.add_argument("pt_cores", type=int, help="number of processors per node to use")
     chain_parser.add_argument("pt_walltime_hours", type=float, help="wall-time in hours")
     chain_parser.add_argument("--nojmin", type=int,
-                              help="number of minimum job ID to submit (to selectively submit a range of jobs)",
+                              help="number of minimum job ID to submit (to "
+                                   "selectively submit a range of jobs)",
                               default=0)
     chain_parser.add_argument("--nojmax", type=int,
-                              help="number of maximum job ID to submit (to selectively submit a range of jobs)",
+                              help="number of maximum job ID to submit (to "
+                                   "selectively submit a range of jobs)",
                               default=1e6)
-    chain_parser.add_argument("--nodays", action='store_true', help="don't use days in walltime format", default=False)
+    chain_parser.add_argument("--nodays", action='store_true',
+                              help="don't use days in walltime format", default=False)
     chain_parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                               "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                               "Default: 'FIRE'", default='FIRE')
     chain_parser.add_argument("--rsts", action='store_true',
-                              help="record steps timeseries for diffusion studies, default: False", default=False)
-    chain_parser.add_argument("--kmax_start", type=float, help="starting value for kmax calculation", default=500)
-    chain_parser.add_argument("--mintotniter", type=float, help="minimum number of energy evaluation per replica, "
-                              "before checking for convergence default: 5e5. This sets a lower bound", default=5e5)
-    chain_parser.add_argument("--maxtotniter", type=float, help="maximum number of energy evaluation per replica, "
+                              help="record steps timeseries for diffusion studies, default: False",
+                              default=False)
+    chain_parser.add_argument("--kmax_start", type=float,
+                              help="starting value for kmax calculation", default=500)
+    chain_parser.add_argument("--mintotniter", type=float,
+                              help="minimum number of energy evaluation per replica, "
+                              "before checking for convergence default: 5e5. "
+                              "This sets a lower bound", default=5e5)
+    chain_parser.add_argument("--maxtotniter", type=float,
+                              help="maximum number of energy evaluation per replica, "
                               "This sets an upper bound default: 2e6", default=2e6)
     chain_parser.add_argument("--relstderr", type=float,
-                              help="relative standard error to test convergence, default 0.05", default=0.05)
+                              help="relative standard error to test convergence, default 0.05",
+                              default=0.05)
     chain_parser.add_argument("--numnegk", type=int, help="number of negative ks to use", default=0)
-    chain_parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",
+    chain_parser.add_argument("--lownegk", type=float,
+                              help="lowest value of negative k's to use, default -2.5",
                               default=-2.5)
-    chain_parser.add_argument("--experimental", action='store_true', help="read experimental data format",
+    chain_parser.add_argument("--experimental", action='store_true',
+                              help="read experimental data format",
                               default=False)
-    chain_parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",
+    chain_parser.add_argument("--nocell", action='store_true',
+                              help="don't use cell lists, default: False",
                               default=False)
     chain_parser.add_argument("--delraw", action='store_true',
                               help="Delete raw timeseries textfiles after parallel "
                               "tempering and only use the HDF5 format.", default=False)
+    chain_parser.add_argument("--explore-dir", type=str,
+                              help="Start of the directory name for the basinvolume data. "
+                                   "Default: 'explore_bv_jammed_packing'",
+                              default='explore_bv_jammed_packing')
+    chain_parser.add_argument('-p', "--packings-dir", type=str,
+                              help="Directory containing the jammed packings. "
+                                   "Default: 'jammed_packings'",
+                              default='jammed_packings')
 
     args = parser.parse_args()
     print args
@@ -606,11 +664,17 @@ if __name__ == "__main__":
     else:
         raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
-    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin,
-                        nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, minimizer=minimizer,
-                        record_steps_timeseries=args.rsts, kmax_start=args.kmax_start, mintotniter=args.mintotniter,
+    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir,
+                        job_label=args.job_label, nojmin=args.nojmin,
+                        nojmax=args.nojmax, nodays=args.nodays,
+                        experimental=args.experimental, minimizer=minimizer,
+                        record_steps_timeseries=args.rsts,
+                        kmax_start=args.kmax_start, mintotniter=args.mintotniter,
                         maxtotniter=args.maxtotniter,
-                        relstderr=args.relstderr, numnegk=args.numnegk, lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw)
+                        relstderr=args.relstderr, numnegk=args.numnegk,
+                        lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw,
+                        explore_dir=args.explore_dir,
+                        structures_dir=args.packings_dir)
 
     if args.mode == 'chain':
         bvpbs.submit_chain_calculations(args.k_queue_type, args.k_nodes, args.k_cores,
@@ -619,14 +683,18 @@ if __name__ == "__main__":
     else:
         assert (not ((args.kmin is True or args.kmax is True) and args.pt is True))
         if args.kmin:
-            bvpbs.submit_kmin_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours,
+            bvpbs.submit_kmin_calculations(args.queue_type, args.nodes,
+                                           args.cores, args.walltime_hours,
                                            args.path_to_script, args.force)
         if args.kmax:
-            bvpbs.submit_kmax_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours,
+            bvpbs.submit_kmax_calculations(args.queue_type, args.nodes,
+                                           args.cores, args.walltime_hours,
                                            args.path_to_script, args.force)
         if args.pt:
-            bvpbs.submit_pt_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours,
+            bvpbs.submit_pt_calculations(args.queue_type, args.nodes,
+                                         args.cores, args.walltime_hours,
                                          args.path_to_script, args.force)
         if args.mbar:
-            bvpbs.submit_innersphere_dos_calculations(args.queue_type, args.nodes, args.cores, args.walltime_hours,
+            bvpbs.submit_innersphere_dos_calculations(args.queue_type, args.nodes,
+                                                      args.cores, args.walltime_hours,
                                                       args.path_to_script, args.force)

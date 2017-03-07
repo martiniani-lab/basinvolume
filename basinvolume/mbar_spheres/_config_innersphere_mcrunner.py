@@ -26,13 +26,14 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
                  opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, record_histogram=False,
-                 packings_dir='jammed_packings', verbose=False):
+                 packings_dir='jammed_packings', explore_dir='explore_bv_jammed_packing',
+                 verbose=False):
 
         self.fname = fname
         self.temperature=1.0
         self.eps = eps
 
-        self._set_paths(packings_dir)
+        self._set_paths(packings_dir, explore_dir)
         self._import_packing_config_files()
         self._import_packing_configuration()
         self.k = 1.0 / self.u2_k0
@@ -64,8 +65,10 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         #construct mcrunner
         self.coords = _subtract_com(self.coords, ndim=self.bdim)
         potential = NullPotential()
-        self.mcrunner = BVInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, self.niter, self.coords,
-                                              self.hs_radii, self.boxv, self.sca, rattlers=self.rattlers, **kwargs)
+        self.mcrunner = BVInnerSphereMCrunner(potential, self.coords, self.temperature,
+                                              self.stepsize, self.niter, self.coords,
+                                              self.hs_radii, self.boxv, self.sca,
+                                              rattlers=self.rattlers, **kwargs)
 
         self._initialise()
 
@@ -78,11 +81,12 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
             view_traceback()
             self._print_success(False)
 
-    def _set_paths(self, packings_dir):
+    def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
-        self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+        packing_nr = dname[len('jammed_packing'):]
+        self.base_directory = os.path.join(os.getcwd(), explore_dir, packing_nr)
         if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.packing_configpath = os.path.join(packings_dir,'{}.config'.format(dname))
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')

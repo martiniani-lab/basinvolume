@@ -209,11 +209,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="analyse hard disks/spheres packings")
     parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
     parser.add_argument("--show", action='store_true', help="show histograms",default=False)
-    parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="jammed_packings")
+    parser.add_argument("--packings-dir", type=str, help="name of directory with packings, must be in cwd", default="jammed_packings")
     args = parser.parse_args()
     print args
 
-    analyse = analyse_jammed_packings(etol=args.etol, packings_dir=args.packingsdir, hist_show=args.show)
+    analyse = analyse_jammed_packings(etol=args.etol, packings_dir=args.packings_dir, hist_show=args.show)
     start=time.time()
     analyse.run()
     end=time.time()

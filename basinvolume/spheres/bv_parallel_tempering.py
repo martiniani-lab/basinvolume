@@ -32,6 +32,9 @@ if __name__ == "__main__":
                         "Default: 'FIRE'", default='FIRE')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
+    parser.add_argument("-p","--packings-dir", type=str,
+                        help="protocol to generate packings, assume in cwd",
+                        default="jammed_packings")
     parser.add_argument("--delraw", action='store_true', help="Delete raw timeseries textfiles "
                         "and only use the HDF5 format.", default=False)
     args = parser.parse_args()
@@ -88,7 +91,9 @@ if __name__ == "__main__":
                    hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
                    pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, minimizer=minimizer,
                    perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
-                   seeds=seeds, use_cell_lists=not args.nocell, single=single, record_histogram=record_histogram)
+                   seeds=seeds, use_cell_lists=not args.nocell, single=single, record_histogram=record_histogram,
+                   packings_dir=args.packings_dir,
+                   base_dir=path)
 
     if not check_kmax_reasonable(sim.findk_configpath):
         print('bv_parallel_tempering: kmax is unreasonable, exiting')
@@ -121,9 +126,9 @@ if __name__ == "__main__":
             view_traceback()
 
     end=time.time()
-    print 'core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
-                                                                                       ptrunner.ptiter, adjustf_niter,
-                                                                                       ptrunner.skip, ptrunner.pfreq)
+    print ('core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
+           .format(rank, mcrunner.niter, ptrunner.ptiter, adjustf_niter,
+                   ptrunner.skip, ptrunner.pfreq))
     print 'convert timeseries to hdf5...'
     if rank == 0:
         #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to

@@ -23,7 +23,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute kmax and average displacement for kmax for all jammed packings")
     parser.add_argument("fname", type=str, help="packing file name")
     parser.add_argument("-k","--kstart", type=float, help="initial guess for kmax, default: 500", default=500)
-    parser.add_argument("-p","--packingsdir", type=str, help="protocol to generate packings, assume in cwd", default="jammed_packings")
+    parser.add_argument("-p","--packings-dir", type=str, help="protocol to generate packings, assume in cwd", default="jammed_packings")
+    parser.add_argument("--explore-dir", type=str,
+                        help="Start of the directory name for the output data. "
+                             "Default: 'explore_bv_jammed_packing'",
+                        default='explore_bv_jammed_packing')
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
@@ -32,7 +36,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print args
     fname = args.fname
-    packings_dir = args.packingsdir
+    packings_dir = args.packings_dir
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(),packings_dir)
 
@@ -43,7 +47,8 @@ if __name__ == "__main__":
 
     findk_kwargs = dict(k=args.kstart, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
                         knavg=1e4, ktol=0.025, opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5,
-                        packings_dir=packings_dir, use_cell_lists=not args.nocell, minimizer=minimizer,
+                        packings_dir=packings_dir, explore_dir=args.explore_dir,
+                        use_cell_lists=not args.nocell, minimizer=minimizer,
                         verbose=args.verbose)
 
     i32max = np.iinfo(np.int32).max

@@ -25,12 +25,12 @@ def worker_kmin(fname, kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute kmax and minimum average displacement for kmin for all jammed packings")
     parser.add_argument("-n","--ncores", type=int, help="number of packings to produce",default=4)
-    parser.add_argument("-p","--packingsdir", type=str, help="protocol to generate packings", default="jammed_packings")
+    parser.add_argument("-p","--packings-dir", type=str, help="protocol to generate packings", default="jammed_packings")
     parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
     args = parser.parse_args()
     print args
 
-    packings_dir = args.packingsdir
+    packings_dir = args.packings_dir
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(),packings_dir)
 

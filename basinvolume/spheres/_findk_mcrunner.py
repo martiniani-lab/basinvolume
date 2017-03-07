@@ -22,13 +22,13 @@ class _findk_mcrunner(_configure_mcrunner):
                  knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5,
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE,
-                 packings_dir='jammed_packings', verbose=False):
+                 packings_dir='jammed_packings', explore_dir='explore_bv_jammed_packing', verbose=False):
 
         self.temperature=1.0
         self.eps = eps
         self.fname = fname
 
-        self._set_paths(packings_dir)
+        self._set_paths(packings_dir, explore_dir)
         imp_packing = read_jammed_packing_config(str(self.configpath))
         self.nparticles = imp_packing['nparticles']
         self.packing_frac = imp_packing['packing_frac']
@@ -85,9 +85,10 @@ class _findk_mcrunner(_configure_mcrunner):
             view_traceback()
             self._print_success(False)
 
-    def _set_paths(self, packings_dir):
+    def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
-        self.base_directory = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
+        packing_nr = dname[len('jammed_packing'):]
+        self.base_directory = os.path.join(os.getcwd(), explore_dir, packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
