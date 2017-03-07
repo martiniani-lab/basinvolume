@@ -856,7 +856,11 @@ if __name__ == "__main__":
     logging.info(args)
     single = not args.moveall
 
-    dist_method = Distance(args.distance_method)
+    if args.distance_method.upper() in Distance.__members__:
+        dist_method = Distance[args.distance_method.upper()]
+    else:
+        raise ValueError("Undefined distance method: {}".format(args.distance_method))
+
 
     if dist_method is Distance.LEES_EDWARDS:
         pot_kwargs = {'shear': args.shear}
