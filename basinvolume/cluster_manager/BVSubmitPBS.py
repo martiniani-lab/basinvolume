@@ -194,7 +194,7 @@ class BVSubmitPBS(object):
         command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
                     .format(structures_dir=self.structures_dir))
         command += " --explore-dir {}".format(self.explore_dir)
-        command += " --minimizer {}".format(self.minimizer)
+        command += " --minimizer {}".format(self.minimizer.name)
         if record_steps_timeseries:
             command += " --rsts"
         if script == 'bv_find_kmax.py':
@@ -216,7 +216,7 @@ class BVSubmitPBS(object):
         command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
                     .format(structures_dir=self.structures_dir))
         command += " --explore-dir {}".format(self.explore_dir)
-        command += " --minimizer {}".format(self.minimizer)
+        command += " --minimizer {}".format(self.minimizer.name)
         if self.nocell:
             command += " --nocell"
         return command
@@ -365,7 +365,7 @@ class BVSubmitPBS(object):
                     .format(structures_dir=self.structures_dir))
         if self.nocell:
             command += " --nocell"
-        command += " --minimizer {}".format(self.minimizer)
+        command += " --minimizer {}".format(self.minimizer.name)
         if self.numnegk > 0:
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         if self.delraw > 0:

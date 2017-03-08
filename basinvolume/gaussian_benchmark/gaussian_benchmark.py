@@ -332,7 +332,7 @@ class GaussianBenchmark(object):
         cmd = cmd_base_str.format(self.nprocs, "config{}.gauss".format(self.minimum_index), base_pt_path, int(self.totniter), self.nparticles)
         if self.harmonic_well:
             cmd += " --harmonic_well"
-        cmd += " --minimizer " + self.minimizer
+        cmd += " --minimizer " + self.minimizer.name
         p = subprocess.call(shlex.split(cmd))
         if p != 0:
             raise Exception("gauss pt run failed")
