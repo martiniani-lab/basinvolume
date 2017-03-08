@@ -112,13 +112,13 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         # here put a flag and pick potential
         if self.interaction is Interaction.HS_WCA:
             pot_optimizer = HS_WCA(distance_method=self.distance_method,
+                                   pot_kwargs=self.pot_kwargs,
                                    use_cell_lists=self.use_cell_lists,
                                    use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
                                    radii=self.hs_radii, boxvec=self.boxv,
                                    reference_coords=self.origin,
                                    ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                                   frozen_atoms=self.frozen_atoms,
-                                   )
+                                   frozen_atoms=self.frozen_atoms)
         elif self.interaction is Interaction.INVERSE_POWER_STILLINGER:
             pow = self.pot_kwargs['pow']
             rcut = self.pot_kwargs["rcut"]

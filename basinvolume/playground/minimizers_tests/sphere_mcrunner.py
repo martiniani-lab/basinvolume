@@ -215,12 +215,13 @@ class BVSphereMCrunner(_BaseMCRunner):
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
         self.pot_optimizer = HS_WCA(distance_method=self.distance_method,
-                             use_cell_lists=self.use_cell_lists,
-                             use_frozen=use_frozen, eps=self.eps, sca=self.sca,
-                             radii=self.hs_radii, boxvec=self.boxv,
-                             reference_coords=self.origin,
-                             ndim=self.bdim, ncellx_scale=self.ncellx_scale,
-                             frozen_atoms=self.frozen_atoms)
+                                    pot_kwargs=self.pot_kwargs,
+                                    use_cell_lists=self.use_cell_lists,
+                                    use_frozen=use_frozen, eps=self.eps, sca=self.sca,
+                                    radii=self.hs_radii, boxvec=self.boxv,
+                                    reference_coords=self.origin,
+                                    ndim=self.bdim, ncellx_scale=self.ncellx_scale,
+                                    frozen_atoms=self.frozen_atoms)
 
         #construct gradient optimizer
         if self.minimizer is Minimizer.LBFGS:
