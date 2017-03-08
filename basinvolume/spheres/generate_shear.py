@@ -195,11 +195,11 @@ if __name__ == "__main__":
                          show=False, interaction=Interaction.HS_WCA,
                          minimizer=minimizer)
     if args.input_jammed is not None:
-        copy_dir(args.input_jammed, 'shear_0.0')
+        copy_dir(args.input_jammed, 'shear_0.0/jammed_packings')
     else:
         logging.info("Generating jammed packings")
         unsheared_kwargs = dict(jammed_kwargs, packings_dir="packings",
-                                outdir="shear_0.0")
+                                outdir="shear_0.0/jammed_packings")
         gen_jammed_packings(unsheared_kwargs, args.npackings, args.njobs)
 
     # Generate sheared packings
@@ -207,8 +207,8 @@ if __name__ == "__main__":
     for shear in np.arange(0., args.final_shear - 0.5 * args.step, args.step) + args.step:
         pot_kwargs['shear'] = shear
         sheared_kwargs = dict(jammed_kwargs,
-                              packings_dir="shear_{}".format(shear - args.step),
-                              outdir="shear_{}".format(shear),
+                              packings_dir="shear_{}/jammed_packings".format(shear - args.step),
+                              outdir="shear_{}/jammed_packings".format(shear),
                               import_jammed=True,
                               override_pot_kwargs=pot_kwargs,
                               check_packing=False)

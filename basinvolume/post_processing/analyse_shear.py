@@ -27,10 +27,10 @@ def worker_lasting_neighbors(workspace_dir, kwargs):
             subshear_dname = "shear_{}".format(subshear + kwargs['substep'])
             subshear_prefix = os.path.join(subshear_dname, "explore_bv_")
             last_substep = subshear == kwargs['shear'] - kwargs['substep']
-            kwargs['neighbors_dyn_kwargs'].update(jammed_packings_dir=subshear_dname,
-                                                  prefix=subshear_prefix,
-                                                  restrict_neighbors=restrict_prefix,
-                                                  write_analysis=last_substep)
+            kwargs['neighbors_dyn_kwargs'].update(
+                jammed_packings_dir=os.path.join(subshear_dname, 'jammed_packings'),
+                prefix=subshear_prefix, restrict_neighbors=restrict_prefix,
+                write_analysis=last_substep)
             worker_neighbors(workspace_dir, kwargs['neighbors_dyn_kwargs'])
     except Exception:
         logging.error('worker_lasting_neighbors worker: %s' %
@@ -95,7 +95,7 @@ class AnalyseShear:
 
         # Get packings to create
         input_files = os.listdir(os.path.join(self.input_dir, "shear_{}"
-                                              .format(self.start)))
+                                              .format(self.start), 'jammed_packings'))
         packing_files = filter(lambda pname: "jammed_packing" in pname
                                and ('xyzdr' in pname or 'xydr' in pname), input_files)
         packings = [packing.split('_')[1].split('.')[0]
@@ -119,7 +119,8 @@ class AnalyseShear:
         else:
             workspace_dir = os.path.abspath(self.input_dir)
         kwargs = dict(verbose=False, force=self.force, existing_only=False,
-                      jammed_packings_dir=input_relpath,
+                      jammed_packings_dir=os.path.join(input_relpath,
+                                                       'jammed_packings'),
                       prefix=os.path.join(input_relpath, "explore_bv_"),
                       use_cell_lists=self.use_cell_lists,
                       import_config_once=True)
@@ -135,10 +136,12 @@ class AnalyseShear:
             disp_kwargs = dict(kwargs)
             if shear == self.start:
                 disp_kwargs['shear'] = 0.
-                disp_kwargs['packings_old'] = input_relpath
+                disp_kwargs['packings_old'] = os.path.join(input_relpath,
+                                                           'jammed_packings')
             else:
                 disp_kwargs['shear'] = self.step
-                disp_kwargs['packings_old'] = "shear_{}".format(shear - self.step)
+                disp_kwargs['packings_old'] = os.path.join(
+                    "shear_{}".format(shear - self.step), 'jammed_packings')
             structural_props.append((worker_disp, disp_kwargs))
 
         # Local inversion symmetry
