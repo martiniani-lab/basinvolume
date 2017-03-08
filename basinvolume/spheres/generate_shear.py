@@ -34,6 +34,73 @@ def worker_jammed_packing(kwargs, logging_tag, packing_nrs=None):
                       (traceback.format_exc()))
 
 
+def copy_dir(source_dir, target_dir):
+    if not os.path.isdir(source_dir):
+        raise IOError("The specified input packings-directory does not exist "
+                      "({})!".format(source_dir))
+    if os.path.isdir(target_dir):
+        if source_dir != target_dir:
+            logging.warning("The target directory '{}' already exists."
+                            .format(target_dir))
+    else:
+        shutil.copytree(source_dir, target_dir)
+
+
+def gen_jammed_packings(kwargs, npackings, njobs):
+    trymakedir(kwargs['outdir'])
+    if njobs > 1:
+        results = []
+        for packing_nr in xrange(npackings):
+            results.append(mypool.apply_async(
+                worker_jammed_packing,
+                args=(kwargs,
+                      "{}, {}".format(kwargs['outdir'], packing_nr),
+                      [packing_nr])))
+        successes = []
+        for result in results:
+            successes += result.get()
+        return successes
+    else:
+        return worker_jammed_packing(kwargs, kwargs['outdir'])
+
+
+def gen_packings(kwargs, npackings, nparticles, njobs):
+    if njobs > 1:
+        kwargs['max_iter'] = 1
+        worker_packing(kwargs, nparticles)
+        kwargs['precalc_config_file'] = os.path.join('packings', 'packing0.config')
+        results = []
+        for packing_nr in xrange(1, npackings):
+            results.append(mypool.apply_async(
+                worker_packing,
+                args=(kwargs, nparticles, packing_nr)))
+        for result in results:
+            result.get()
+    else:
+        worker_packing(kwargs, nparticles)
+
+
+def import_radii(dpath, boxdim):
+    if dpath:
+        if not os.path.isabs(dpath):
+            dpath = os.path.abspath(dpath)
+        return import_packing(dpath, False, boxdim)['hs_radii']
+
+
+def check_minimizer_exists(minimizer):
+    if minimizer.upper() in Minimizer.__members__:
+        return Minimizer[minimizer.upper()]
+    else:
+        raise ValueError("Undefined minimizer: {}".format(minimizer))
+
+
+def get_density_hs(density_hs, density_ss):
+    if density_hs is None:
+        return density_ss * 0.7 / 0.88
+    else:
+        return density_hs
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a sequence of packings "
                                      "with increasing shear.")
@@ -100,40 +167,15 @@ if __name__ == "__main__":
                         datefmt='%d/%m/%Y %H:%M:%S',
                         level=logging.INFO)
 
-    # Set up thread pool
-    if args.njobs > 1:
-        mypool = mp.Pool(args.njobs)
-
-    # Calculate hard sphere density
-    if args.density_hs is None:
-        density_hs = args.density_ss * 0.7 / 0.88
-    else:
-        density_hs = args.density_hs
-
-    # Import radii from other configuration file
-    dpath = args.dpath
-    hs_radii = None
-    if dpath:
-        if not os.path.isabs(args.dpath):
-            dpath = os.path.abspath(dpath)
-        hs_radii = import_packing(dpath, False, args.boxdim)['hs_radii']
-
-    if args.minimizer.upper() in Minimizer.__members__:
-        minimizer = Minimizer[args.minimizer.upper()]
-    else:
-        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
+    mypool = mp.Pool(args.njobs)
+    density_hs = get_density_hs(args.density_hs, args.density_ss)
+    hs_radii = import_radii(args.dpath, args.boxdim)
+    minimizer = check_minimizer_exists(args.minimizer)
 
     # Generate packings at no shear
     pot_kwargs = {'shear': 0.0}
     if args.input_packings is not None:
-        if not os.path.isdir(args.input_packings):
-            raise IOError("The specified input packings-directory does not exist "
-                          "({})!".format(args.input_packings))
-        if os.path.isdir("packings"):
-            if args.input_packings != "packings":
-                logging.warning("The packings directory already exists.")
-        else:
-            shutil.copytree(args.input_packings, "packings")
+        copy_dir(args.input_packings, "packings")
     elif args.input_jammed is None:
         logging.info("Generating loose packings:")
         packing_kwargs = dict(method=args.packing_method,
@@ -145,20 +187,7 @@ if __name__ == "__main__":
                               single=not args.packing_moveall,
                               distance_method=Distance.LEES_EDWARDS,
                               pot_kwargs=pot_kwargs)
-        if args.njobs > 1:
-            packing_kwargs['max_iter'] = 1
-            worker_packing(packing_kwargs, args.nparticles)
-            packing_kwargs['precalc_config_file'] = os.path.join('packings',
-                                                                 'packing0.config')
-            results = []
-            for packing_nr in xrange(1, args.npackings):
-                results.append(mypool.apply_async(
-                    worker_packing,
-                    args=(packing_kwargs, args.nparticles, packing_nr)))
-            for result in results:
-                result.get()
-        else:
-            worker_packing(packing_kwargs, args.nparticles)
+        gen_packings(packing_kwargs, args.npackings, args.nparticles, args.njobs)
 
     # Generate jammed packings at no shear
     jammed_kwargs = dict(target_packing_frac=args.density_ss,
@@ -166,31 +195,12 @@ if __name__ == "__main__":
                          show=False, interaction=Interaction.HS_WCA,
                          minimizer=minimizer)
     if args.input_jammed is not None:
-        if not os.path.isdir(args.input_jammed):
-            raise IOError("The specified input packings-directory does not exist "
-                          "({})!".format(args.input_jammed))
-        if os.path.isdir("shear_0.0"):
-            if args.input_jammed != "shear_0.0":
-                logging.warning("The shear_0.0 directory already exists.")
-        else:
-            shutil.copytree(args.input_jammed, "shear_0.0")
+        copy_dir(args.input_jammed, 'shear_0.0')
     else:
         logging.info("Generating jammed packings")
         unsheared_kwargs = dict(jammed_kwargs, packings_dir="packings",
                                 outdir="shear_0.0")
-        trymakedir(unsheared_kwargs['outdir'])
-        if args.njobs > 1:
-            results = []
-            for packing_nr in xrange(args.npackings):
-                results.append(mypool.apply_async(
-                    worker_jammed_packing,
-                    args=(unsheared_kwargs,
-                          "Shear 0.0, {}".format(packing_nr),
-                          [packing_nr])))
-            for result in results:
-                result.get()
-        else:
-            worker_jammed_packing(unsheared_kwargs, "Shear 0.0")
+        gen_jammed_packings(unsheared_kwargs, args.npackings, args.njobs)
 
     # Generate sheared packings
     unjammed_packings = []
@@ -202,21 +212,7 @@ if __name__ == "__main__":
                               import_jammed=True,
                               override_pot_kwargs=pot_kwargs,
                               check_packing=False)
-        trymakedir(sheared_kwargs['outdir'])
-        if args.njobs > 1:
-            results = []
-            for packing_nr in xrange(args.npackings):
-                results.append(mypool.apply_async(
-                    worker_jammed_packing,
-                    args=(sheared_kwargs,
-                          "Shear {}, {}".format(shear, packing_nr),
-                          [packing_nr])))
-            successes = []
-            for result in results:
-                successes += result.get()
-        else:
-            successes = worker_jammed_packing(sheared_kwargs,
-                                              "Shear {}".format(shear))
+        successes = gen_jammed_packings(sheared_kwargs, args.npackings, args.njobs)
 
         # Check for failed (unjammed) packings and save them with packing
         # number and current shear
