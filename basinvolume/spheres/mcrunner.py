@@ -96,6 +96,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         self.opt_nsteps = opt_nsteps
         self.interaction = interaction
         self.pot_kwargs = pot_kwargs
+        self.distance_method = distance_method
         # check same minimum parameters
         self.perform_convergence_test = perform_convergence_test
         self.collect_minima_list = collect_minima_list
@@ -110,7 +111,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
     def get_pot_optimizer(self):
         # here put a flag and pick potential
         if self.interaction is Interaction.HS_WCA:
-            pot_optimizer = HS_WCA(distance_method=distance_method,
+            pot_optimizer = HS_WCA(distance_method=self.distance_method,
                                    use_cell_lists=self.use_cell_lists,
                                    use_frozen=self.use_frozen, eps=self.eps, sca=self.sca,
                                    radii=self.hs_radii, boxvec=self.boxv,
