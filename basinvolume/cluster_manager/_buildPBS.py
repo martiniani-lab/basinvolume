@@ -6,8 +6,8 @@ def sec_to_pbs_time(seconds, nodays=False):
     """
     clean solution from
     https://stackoverflow.com/questions/21323692/convert-seconds-to-weeks-days-hours-minutes-seconds-in-python
-    "The idea behind this is that the number of seconds in your answer is the remainder after dividing 
-    them in minutes; minutes are the remainder of dividing all minutes into hours etc... This version 
+    "The idea behind this is that the number of seconds in your answer is the remainder after dividing
+    them in minutes; minutes are the remainder of dividing all minutes into hours etc... This version
     is better because you can easily adjust it to months, years, etc..."
     """
     minutes, seconds = divmod(seconds, 60)
@@ -22,7 +22,7 @@ class BuildPBSScript(object):
     """
     This is a completely general class, it does not and should not know anything about the naming conventions
     and structures of any particular library. If any such knowledge is necessary please make a derived class
-    and overload the member functions 
+    and overload the member functions
     *queue_type [string]
     *nodes [int]
     *core [int] processors per node
@@ -41,7 +41,7 @@ class BuildPBSScript(object):
         if outdir and not os.path.isabs(outdir):
             outdir = os.path.abspath(outdir)
         self.outdir = outdir
-            
+
     def writePBSscript(self, fname, job_name):
         """
         *fname [string]: name of the pbs bash script where to write
@@ -55,7 +55,7 @@ class BuildPBSScript(object):
         f.write('#PBS -q {0} \n'.format(self.qtype))
         f.write('#PBS -l nodes={0}:ppn={1} \n'.format(self.nodes,self.cores))
         f.write('#PBS -l walltime={0} \n'.format(self.dhms_wtime))
-        f.write('#PBS -j oe \n') # this directive merges output and error in the same file 
+        f.write('#PBS -j oe \n') # this directive merges output and error in the same file
         if self.outdir:
             f.write('#PBS -o {0} \n'.format(self.outdir))
         f.write('\n')
@@ -77,31 +77,32 @@ class BuildPBSScript(object):
         f.write('echo Finished at \`date\` \n')
         f.close()
         self.pbs_ready = True
-    
+
     def get_PBS_O_WORKDIR(self):
         (stdout, stderr) = Popen(["echo $PBS_O_WORKDIR"], shell=True, stdout=PIPE).communicate()
         stdout=stdout.rstrip()
         return stdout
-    
+
     def get_PBS_JOBID(self):
         (stdout, stderr) = Popen(["echo $PBS_JOBID"], shell=True, stdout=PIPE).communicate()
         stdout=stdout.rstrip()
         return stdout
-    
+
     def goto_PBS_O_WORKDIR(self):
         print "going to PBS_O_WORKDIR"
         pbs_wdir = self.get_PBS_O_WORKDIR()
         if not os.path.isabs(pbs_wdir):
-            #this probably unnecessary, more of a safety check
+            # This makes the BVSubmitPBS still work when there is no PBS_O_WORKDIR,
+            # i.e. when calling the script locally
             print "PBS_O_WORKDIR is not absolute, making absolute: {}".format(str(pbs_wdir))
             pbs_wdir = os.path.abspath(pbs_wdir)
         os.chdir(pbs_wdir)
-    
+
     def checkin_PBS_O_WORKDIR(self):
         pbs_wdir = self.get_PBS_O_WORKDIR()
         cwd = os.getcwd()
         return (pbs_wdir == cwd)
-    
+
     def submit_PBS(self, fname, job_name):
         """
         submit pbs file, returns the std output
@@ -116,7 +117,7 @@ class BuildPBSScript(object):
             self.writePBSscript(fname, job_name)
         (stdout, stderr) = Popen(["qsub {}".format(fname)], shell=True, stdout=PIPE).communicate()
         return stdout
-   
+
 if __name__ == "__main__":
     pbs = BuildPBSScript('test', 1, 1, 0.5, 'python run_test.py args')
     #pbs.writePBSscript('test_job', 'test_job')
@@ -127,4 +128,3 @@ if __name__ == "__main__":
     print pbs.dhms_wtime
     stdout = pbs.submit_PBS('test_job','test_job')
     print stdout
-    

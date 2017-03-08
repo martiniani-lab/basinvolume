@@ -153,8 +153,8 @@ class BVSubmitPBS(object):
 
     def _remove_pbs_output(self, explore_dir_path, output_signature):
         p = subprocess.call(
-            shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -vf '{{}}' \;".format(explore_dir_path,
-                                                                                                 output_signature)))
+            shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -vf '{{}}' \;"
+                        .format(explore_dir_path, output_signature)))
         if p != 0:
             raise Exception("removing pbs output file failed")
 
