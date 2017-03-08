@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("--all", action='store_true', help="Run for all packing subdirectories.",
                         default=False)
     parser.add_argument("-j", "--ncores", type=int,
-                        help="Threads for prallel execution.", default=7)
+                        help="Threads for parallel execution.", default=7)
 
     parser.add_argument("-d", "--workspace-dir", type=str, help="Top-level dir containing "
                         "the packings, e.g. 'n32_phi88_2D'.")

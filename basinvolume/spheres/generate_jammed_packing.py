@@ -371,8 +371,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if self.bdim != 2:
             origin = np.zeros(self.bdim)
         while len(check_again) > 0:
-            check_inds = list(check_again)
-            check_again = []
+            check_inds = check_again
+            check_again = set()
             if nrattlers > self.max_nrattlers:
                 logging.warning(self._log("Too many rattlers. Discarding packing."))
                 return False
@@ -401,7 +401,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     if atomi in check_again:
                         check_again.remove(atomi)
                     for atomj in neighbor_indicess[atomi]:
-                        check_again.append(atomj)
+                        check_again.add(atomj)
                         i_in_j = neighbor_indicess[atomj].index(atomi)
                         del neighbor_indicess[atomj][i_in_j]
                         del neighbor_distancess[atomj][i_in_j]

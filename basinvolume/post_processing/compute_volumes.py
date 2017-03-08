@@ -337,7 +337,7 @@ if __name__ == "__main__":
                         help="force to recompute volumes for already computed ones",
                         default=False)
     parser.add_argument("-j", "--ncores", type=int,
-                        help="threads for prallel execution", default=4)
+                        help="threads for parallel execution", default=4)
     parser.add_argument("-m", "--method", type=str,
                         help="volume computation method", default="tint")
     parser.add_argument("--explore_dirs", type=str,
