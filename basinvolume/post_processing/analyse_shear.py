@@ -8,7 +8,6 @@ import shutil
 import pandas as pd
 import multiprocessing as mp
 import logging
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
 from basinvolume.post_processing.structural_properties import (BondOrientationalOrder,
                                                                PressureTensor, Neighbors,
                                                                InversionSymmetry,
@@ -179,25 +178,24 @@ class AnalyseShear:
             for prop in structural_props:
                 prop[0](workspace_dir, prop[1])
 
+
+    def get_subdir_paths(self, directory, filter_str):
+        files = os.listdir(directory)
+        packings = filter(lambda pname: filter_str in pname
+                                 and os.path.isdir(os.path.join(directory,
+                                                                pname)),
+                                 files)
+        return [os.path.join(directory, packing) for packing in packings]
+
+
     def collect_files(self, shear, input_relpath):
         logging.info("Collecting files for shear={}".format(shear))
 
-        # Get the input directory paths
-        input_files = os.listdir(os.path.join(self.input_dir, input_relpath))
-        explore_dirs = filter(lambda expname: "explore_bv_jammed_packing" in expname
-                              and os.path.isdir(os.path.join(self.input_dir,
-                                                             input_relpath, expname)),
-                              input_files)
-        analysis_paths = [os.path.join(self.input_dir, input_relpath, expdir, "analysis")
-                          for expdir in explore_dirs]
-
-        # Get the output directory paths
-        output_files = os.listdir(self.output_dir)
-        output_packings = filter(lambda pname: "packing" in pname
-                                 and os.path.isdir(os.path.join(self.output_dir, pname)),
-                                 output_files)
-        output_paths = [os.path.join(self.output_dir, packing)
-                        for packing in output_packings]
+        analysis_paths = self.get_subdir_paths(
+            os.path.join(self.input_dir, input_relpath),
+            'explore_bv_jammed_packing')
+        analysis_paths = [os.path.join(path, 'analysis') for path in analysis_paths]
+        output_paths = self.get_subdir_paths(self.output_dir, 'packing')
 
         # Get parameter directory and file names
         params_from_to_all = [("neighbors", "neighbors"),
@@ -219,137 +217,131 @@ class AnalyseShear:
                                     os.path.join(output_path, param_from_to[1],
                                                  "shear_{}".format(shear)))
 
+
+    def collect_boo_data(self, path, data):
+        boo_path = os.path.join(path, "boo")
+        boo_entry = pd.Series()
+        for shear_file in os.listdir(boo_path):
+            boo_dict = BondOrientationalOrder.read(os.path.join(boo_path,
+                                                                shear_file))
+            shear = float(shear_file.split('_')[1])
+            boo_entry[shear] = boo_dict['BOO'][1]
+        data['Bond-orientational order {}'
+             .format(boo_dict['BOO'][0])] = boo_entry
+
+
+    def collect_displacement_data(self, path, data):
+        displacement_path = os.path.join(path, "displacement")
+        avg_abs_displacement_norm = pd.Series()
+        avg_abs_nonaff_displacement_norm = pd.Series()
+        dims = []
+        avg_abs_displacement = []
+        avg_abs_nonaff_displacement = []
+        for shear_file in os.listdir(displacement_path):
+            displ_dict = Displacement.read(os.path.join(displacement_path,
+                                                        shear_file))
+            shear = float(shear_file.split('_')[1])
+            avg_abs_displacement_norm[shear] = displ_dict[
+                'avg_abs_displacement_norm']
+            avg_abs_nonaff_displacement_norm[shear] = displ_dict[
+                'avg_abs_nonaff_displacement_norm']
+            if len(dims) == 0:
+                dims = ['x', 'y', 'z']
+                dims = dims[:len(displ_dict['avg_displacement'])]
+                for i in xrange(len(dims)):
+                    avg_abs_displacement.append(pd.Series())
+                    avg_abs_nonaff_displacement.append(pd.Series())
+            for i in xrange(len(dims)):
+                avg_abs_displacement[i][shear] \
+                    = displ_dict['avg_abs_displacement'][i]
+                avg_abs_nonaff_displacement[i][shear] \
+                    = displ_dict['avg_abs_nonaff_displacement'][i]
+        data['Average absolute displacement'] = avg_abs_displacement_norm
+        data['Average absolute non-affine displacement'] \
+            = avg_abs_nonaff_displacement_norm
+        for i in xrange(len(dims)):
+            data['Average absolute displacement {}'.format(dims[i])] \
+                = avg_abs_displacement[i]
+            data['Average absolute non-affine displacement {}'.format(dims[i])] \
+                = avg_abs_nonaff_displacement[i]
+
+
+    def collect_invsym_data(self, path, data):
+        invsym_path = os.path.join(path, "inversion_symmetry")
+        invsym_entry = pd.Series()
+        for shear_file in os.listdir(invsym_path):
+            invsym_dict = InversionSymmetry.read(os.path.join(invsym_path,
+                                                              shear_file))
+            shear = float(shear_file.split('_')[1])
+            invsym_entry[shear] = invsym_dict['inversion_symmetry']
+        data['Local inversion symmetry'] = invsym_entry
+
+
+    def collect_neighbors_data(self, neighbors_path, data, label):
+        neighbors_entry = pd.Series()
+        for shear_file in os.listdir(neighbors_path):
+            neighbors_dict = Neighbors.read(os.path.join(neighbors_path,
+                                                         shear_file))
+            shear = float(shear_file.split('_')[1])
+            neighbors_entry[shear] = neighbors_dict['avg_neighbors']
+        data[label] = neighbors_entry
+
+
+    def collect_pressure_data(self, path, data):
+        pressure_path = os.path.join(path, "pressure_tensor")
+        energy_entry = pd.Series()
+        pressure_entry = pd.Series()
+        shear_entry = pd.Series()
+        shears = ['xy']
+        shear_tensor = [pd.Series()]
+        for shear_file in os.listdir(pressure_path):
+            pressure_dict = PressureTensor.read(os.path.join(pressure_path,
+                                                             shear_file))
+            shear = float(shear_file.split('_')[1])
+            energy_entry[shear] = pressure_dict['E']
+            pressure_entry[shear] = pressure_dict['P']
+            shear_entry[shear] = pressure_dict['maxshear_xyplane']
+            shear_tensor[0][shear] = pressure_dict['Ptensor'][1]
+            if len(pressure_dict['Ptensor']) == 9:
+                if len(shears) == 1:
+                    shears += ['xz', 'yz']
+                    shear_tensor.append(pd.Series())
+                    shear_tensor.append(pd.Series())
+                shear_tensor[1][shear] = pressure_dict['Ptensor'][2]
+                shear_tensor[2][shear] = pressure_dict['Ptensor'][5]
+            elif not len(pressure_dict['Ptensor']) == 4:
+                raise NotImplementedError
+        data['Energy'] = energy_entry
+        data['Pressure'] = pressure_entry
+        data['Shear stress'] = shear_entry
+        for i in xrange(len(shears)):
+            data['Shear stress {}'.format(shears[i])] = shear_tensor[i]
+
+
     def collect_parameters(self):
         logging.info("Collecting parameters")
-
-        # Get the output directory paths
-        output_files = os.listdir(self.output_dir)
-        output_packings = filter(lambda pname: "packing" in pname
-                                 and os.path.isdir(os.path.join(self.output_dir, pname)),
-                                 output_files)
-        output_paths = [os.path.join(self.output_dir, packing)
-                        for packing in output_packings]
+        output_paths = self.get_subdir_paths(self.output_dir, 'packing')
 
         # Iterate over packings
         for path in output_paths:
             data = pd.DataFrame()
-            data.index.name = "Shear"
-
-            # Bond orientational order
-            if self.calc_boo:
-                boo_path = os.path.join(path, "boo")
-                boo_entry = pd.Series()
-                for shear_file in os.listdir(boo_path):
-                    boo_dict = BondOrientationalOrder.read(os.path.join(boo_path,
-                                                                        shear_file))
-                    shear = float(shear_file.split('_')[1])
-                    boo_entry[shear] = boo_dict['BOO'][1]
-                data['Bond-orientational order {}'
-                     .format(boo_dict['BOO'][0])] = boo_entry
-
-            # Displacement from previous packing
-            if self.calc_displacement:
-                displacement_path = os.path.join(path, "displacement")
-                avg_abs_displacement_norm = pd.Series()
-                avg_abs_nonaff_displacement_norm = pd.Series()
-                dims = []
-                avg_abs_displacement = []
-                avg_abs_nonaff_displacement = []
-                for shear_file in os.listdir(displacement_path):
-                    displ_dict = Displacement.read(os.path.join(displacement_path,
-                                                                shear_file))
-                    shear = float(shear_file.split('_')[1])
-                    avg_abs_displacement_norm[shear] = displ_dict[
-                        'avg_abs_displacement_norm']
-                    avg_abs_nonaff_displacement_norm[shear] = displ_dict[
-                        'avg_abs_nonaff_displacement_norm']
-                    if len(dims) == 0:
-                        dims = ['x', 'y', 'z']
-                        dims = dims[:len(displ_dict['avg_displacement'])]
-                        for i in xrange(len(dims)):
-                            avg_abs_displacement.append(pd.Series())
-                            avg_abs_nonaff_displacement.append(pd.Series())
-                    for i in xrange(len(dims)):
-                        avg_abs_displacement[i][shear] \
-                            = displ_dict['avg_abs_displacement'][i]
-                        avg_abs_nonaff_displacement[i][shear] \
-                            = displ_dict['avg_abs_nonaff_displacement'][i]
-                data['Average absolute displacement'] = avg_abs_displacement_norm
-                data['Average absolute non-affine displacement'] \
-                    = avg_abs_nonaff_displacement_norm
-                for i in xrange(len(dims)):
-                    data['Average absolute displacement {}'.format(dims[i])] \
-                        = avg_abs_displacement[i]
-                    data['Average absolute non-affine displacement {}'.format(dims[i])] \
-                        = avg_abs_nonaff_displacement[i]
-
-            # Local inversion symmetry
-            if self.calc_invsym:
-                invsym_path = os.path.join(path, "inversion_symmetry")
-                invsym_entry = pd.Series()
-                for shear_file in os.listdir(invsym_path):
-                    invsym_dict = InversionSymmetry.read(os.path.join(invsym_path,
-                                                                      shear_file))
-                    shear = float(shear_file.split('_')[1])
-                    invsym_entry[shear] = invsym_dict['inversion_symmetry']
-                data['Local inversion symmetry'] = invsym_entry
-
-            # Neighbors (coordination number)
-            if self.calc_neighbors:
-                neighbors_path = os.path.join(path, "neighbors")
-                neighbors_entry = pd.Series()
-                for shear_file in os.listdir(neighbors_path):
-                    neighbors_dict = Neighbors.read(os.path.join(neighbors_path,
-                                                                 shear_file))
-                    shear = float(shear_file.split('_')[1])
-                    neighbors_entry[shear] = neighbors_dict['avg_neighbors']
-                data['Average neighbors'] = neighbors_entry
-
-            # Lasting neighbors
-            if self.calc_neighbors_dyn:
-                neighbors_dyn_path = os.path.join(path, "neighbors_dyn")
-                neighbors_dyn_entry = pd.Series()
-                for shear_file in os.listdir(neighbors_dyn_path):
-                    neighbors_dyn_dict = Neighbors.read(os.path.join(neighbors_dyn_path,
-                                                                     shear_file))
-                    shear = float(shear_file.split('_')[1])
-                    neighbors_dyn_entry[shear] \
-                        = neighbors_dyn_dict['avg_neighbors']
-                data['Average lasting neighbors'] = neighbors_dyn_entry
-
-            # Pressure tensor
-            if self.calc_pressure:
-                pressure_path = os.path.join(path, "pressure_tensor")
-                energy_entry = pd.Series()
-                pressure_entry = pd.Series()
-                shear_entry = pd.Series()
-                shears = ['xy']
-                shear_tensor = [pd.Series()]
-                for shear_file in os.listdir(pressure_path):
-                    pressure_dict = PressureTensor.read(os.path.join(pressure_path,
-                                                                     shear_file))
-                    shear = float(shear_file.split('_')[1])
-                    energy_entry[shear] = pressure_dict['E']
-                    pressure_entry[shear] = pressure_dict['P']
-                    shear_entry[shear] = pressure_dict['maxshear_xyplane']
-                    shear_tensor[0][shear] = pressure_dict['Ptensor'][1]
-                    if len(pressure_dict['Ptensor']) == 9:
-                        if len(shears) == 1:
-                            shears += ['xz', 'yz']
-                            shear_tensor.append(pd.Series())
-                            shear_tensor.append(pd.Series())
-                        shear_tensor[1][shear] = pressure_dict['Ptensor'][2]
-                        shear_tensor[2][shear] = pressure_dict['Ptensor'][5]
-                    elif not len(pressure_dict['Ptensor']) == 4:
-                        raise NotImplementedError
-                data['Energy'] = energy_entry
-                data['Pressure'] = pressure_entry
-                data['Shear stress'] = shear_entry
-                for i in xrange(len(shears)):
-                    data['Shear stress {}'.format(shears[i])] = shear_tensor[i]
-
-            # Save data to csv
             data.index.name = 'Shear'
+
+            if self.calc_boo:
+                self.collect_boo_data(path, data)
+            if self.calc_displacement:
+                self.collect_displacement_data(path, data)
+            if self.calc_invsym:
+                self.collect_invsym_data(path, data)
+            if self.calc_neighbors:
+                self.collect_neighbors_data(os.path.join(path, 'neighbors'),
+                                            data, 'Average neighbors')
+            if self.calc_neighbors_dyn:
+                self.collect_neighbors_data(os.path.join(path, 'neighbors_dyn'),
+                                            data, 'Average lasting neighbors')
+            if self.calc_pressure:
+                self.collect_pressure_data(path, data)
+
             data.to_csv(os.path.join(path, "data.csv"))
 
 
