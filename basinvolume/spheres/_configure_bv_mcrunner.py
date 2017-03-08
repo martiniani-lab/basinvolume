@@ -71,26 +71,26 @@ class configure_bv_mcrunner(_configure_mcrunner):
 
     def _set_paths(self, base_dir, packings_dir):
         """
-        set base_directory, packings_directory and configpaths, configfile
+        set base_dir, packings_dir and configpaths, configfile
         """
         dname = os.path.splitext(self.fname)[0]
 
         if base_dir is None:
-            base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
-            assert(os.path.exists(base_directory))
+            base_dir = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+            assert(os.path.exists(base_dir))
         else:
             if not os.path.isabs(base_dir):
-                base_directory = os.path.join(os.getcwd(),packings_dir)
-        self.base_directory = base_directory
+                base_dir = os.path.join(os.getcwd(), base_dir)
+        self.base_dir = base_dir
 
         if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
 
         self.packing_configpath = os.path.join(packings_dir,'{}.config'.format(dname))
-        self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')
-        self.kmin_configpath = os.path.join(self.base_directory,'kmin_'+dname+'.config')
-        self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
+        self.findk_configpath = os.path.join(self.base_dir,'findk_'+dname+'.config')
+        self.kmin_configpath = os.path.join(self.base_dir,'kmin_'+dname+'.config')
+        self.configfile = '{}/explore_{}.config'.format(self.base_dir, dname)
 
     def _get_histogram_bin(self, k):
         """automatically estimate size of histogram"""
@@ -102,11 +102,10 @@ class configure_bv_mcrunner(_configure_mcrunner):
         """initialisation function"""
         #change directory only at the end of initialise
         self._print_initialise()
-        os.chdir(self.base_directory)
+        os.chdir(self.base_dir)
 
     def _print_initialise(self):
-        base_directory = self.base_directory
-        trymakedir(base_directory)
+        trymakedir(self.base_dir)
         if self.rank == 0:
             self._print_parameters()
 
