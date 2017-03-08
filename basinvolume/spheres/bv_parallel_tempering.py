@@ -133,7 +133,7 @@ if __name__ == "__main__":
     if rank == 0:
         #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
         #reduce the amount of occupied memory and i/o speed without loosing any information
-        timeseries = import_pt_time_series(sim.base_directory, int(sim.mc_params['adjustf_niter']),
+        timeseries = import_pt_time_series(sim.base_dir, int(sim.mc_params['adjustf_niter']),
                                            max_series_size=0, ncores=1, del_raw=args.delraw)
     print 'done'
     print 'elapsed time',end-start
