@@ -88,7 +88,7 @@ class _findk_mcrunner(_configure_mcrunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len('jammed_packing'):]
-        self.base_directory = os.path.join(os.getcwd(), explore_dir, packing_nr)
+        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
