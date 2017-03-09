@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import multiprocessing as mp
 import pele.utils.fix_multiprocessing
 import os
@@ -64,7 +65,8 @@ if __name__ == "__main__":
                                        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(28)],
                                        print_diffusion_only=True, workspace=dir_path,
                                        record_trajectory_npoints=int(1e4))
-                    seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
+                    seeds_dict = dict(seed_takestep=random.randint(0, i32max),
+                                      seed_metropolis=random.randint(0, i32max))
                     seeds = dict(seeds=seeds_dict)
                     kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))
                     mypool.apply_async(worker_kmin, args=(fname,kmin_kwargs_s,))

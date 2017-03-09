@@ -1,5 +1,6 @@
 from __future__ import print_function
 import numpy as np
+import random
 from pele.distance import Distance
 from mcpele.monte_carlo import (_BaseMCRunner, RandomCoordsDisplacement,
                                 ParticlePairSwap, TakeStepProbabilities)
@@ -45,9 +46,9 @@ class HS_MCrunner(_BaseMCRunner):
         #compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max),
-                    seed_swap=np.random.randint(i32max),
-                    seed_probability_step_pattern=np.random.randint(i32max))
+            seeds = dict(seed_takestep=random.randint(0, i32max),
+                    seed_swap=random.randint(0, i32max),
+                    seed_probability_step_pattern=random.randint(0, i32max))
         self.seeds=seeds
 
         #construct test/action classes

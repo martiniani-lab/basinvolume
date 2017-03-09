@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import os
 import argparse
 import traceback
@@ -52,7 +53,7 @@ if __name__ == "__main__":
                               minimizer=minimizer, verbose=args.verbose)
 
     i32max = np.iinfo(np.int32).max
-    seeds_dict = dict(seed_takestep=np.random.randint(i32max))
+    seeds_dict = dict(seed_takestep=random.randint(0, i32max))
     seeds = dict(seeds=seeds_dict)
     innersphere_kwargs_s = copy.deepcopy(dict(innersphere_kwargs,**seeds))
     worker_innersphere(fname,innersphere_kwargs_s,)

@@ -10,6 +10,7 @@ from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
                                get_cython_version, cround, calc_distance,
                                volume_nball, import_packing)
 from numpy.random import RandomState
+import random
 from mcpele.monte_carlo import NullPotential
 import argparse
 import ConfigParser
@@ -235,11 +236,11 @@ class HS_Generate_Packing(_Generate_Packing):
                    and 'seed_probability_step_pattern' in seeds)
             self.seeds = seeds
         else:
-            inf32 = np.iinfo(np.int32).max * 2
-            self.seeds = dict(seed_takestep=np.random.randint(0, inf32),
-                              seed_swap=np.random.randint(0, inf32),
-                              seed_generate_packing=np.random.randint(0, inf32),
-                              seed_probability_step_pattern=np.random.randint(0, inf32))
+            inf32 = np.iinfo(np.int32).max * 2 - 1
+            self.seeds = dict(seed_takestep=random.randint(0, inf32),
+                              seed_swap=random.randint(0, inf32),
+                              seed_generate_packing=random.randint(0, inf32),
+                              seed_probability_step_pattern=random.randint(0, inf32))
         self.rng.seed(int(self.seeds['seed_generate_packing']))
         self.single = single
         self.sca = 0.  # this must be 0 for hard spheres

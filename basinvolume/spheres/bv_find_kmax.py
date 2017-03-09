@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import os
 import argparse
 import traceback
@@ -53,7 +54,7 @@ if __name__ == "__main__":
 
     i32max = np.iinfo(np.int32).max
     #construct mcrunners in place and append them to pool
-    seeds_dict = dict(seed_takestep=np.random.randint(i32max))
+    seeds_dict = dict(seed_takestep=random.randint(0, i32max))
     seeds = dict(seeds=seeds_dict)
     findk_kwargs_s = copy.deepcopy(dict(findk_kwargs,**seeds))
     worker_findk(fname, findk_kwargs_s)

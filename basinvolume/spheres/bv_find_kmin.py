@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import os
 import argparse
 import traceback
@@ -72,7 +73,7 @@ if __name__ == "__main__":
                        record_trajectory_npoints=int(1e4))
 
     i32max = np.iinfo(np.int32).max
-    seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
+    seeds_dict = dict(seed_takestep=random.randint(0, i32max),seed_metropolis=random.randint(0, i32max))
     seeds = dict(seeds=seeds_dict)
     kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))
     worker_kmin(fname,kmin_kwargs_s,)
