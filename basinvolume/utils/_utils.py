@@ -824,20 +824,30 @@ def import_pt_time_series(explore_dir, adjustf_niter,
         """
         assert (max_series_size > 0 and crop_adjustf_niter is True) or (max_series_size == 0 and crop_adjustf_niter is False)
         tsframe = os.path.join(explore_dir, 'timeseries.h5')
-        try:
-            timeseries = read_hf5_to_2d_array(tsframe, 'ts')
-            if crop_adjustf_niter:
-                print 'cropping adjustf_niter'
-                timeseries = timeseries[:,adjustf_niter:]
-            print 'timeseries shape ', np.shape(timeseries)
-            if max_series_size > 0 and  np.shape(timeseries)[1] > max_series_size:
-                #need subsample and probably crop
-                tsl = np.shape(timeseries)[1]
-                print 'subsampling timeseries because np.shape(timeseries)[1] > max_series_size'
-                print 'subsampling every {} steps'.format(int(tsl/max_series_size))
-                timeseries = timeseries[:, ::max(int(tsl/max_series_size),1)]
-        except Exception:
-            traceback.print_exc(file=sys.stdout)
+        if os.path.isfile(tsframe):
+            try:
+                timeseries = read_hf5_to_2d_array(tsframe, 'ts')
+                if crop_adjustf_niter:
+                    print 'cropping adjustf_niter'
+                    timeseries = timeseries[:,adjustf_niter:]
+                print 'timeseries shape ', np.shape(timeseries)
+                if max_series_size > 0 and  np.shape(timeseries)[1] > max_series_size:
+                    #need subsample and probably crop
+                    tsl = np.shape(timeseries)[1]
+                    print 'subsampling timeseries because np.shape(timeseries)[1] > max_series_size'
+                    print 'subsampling every {} steps'.format(int(tsl/max_series_size))
+                    timeseries = timeseries[:, ::max(int(tsl/max_series_size),1)]
+            except Exception:
+                traceback.print_exc(file=sys.stdout)
+                try:
+                    timeseries = import_pt_time_series_raw(explore_dir, adjustf_niter,
+                                                           max_series_size=max_series_size,
+                                                           ncores=ncores)
+                    write_2d_array_to_hf5(timeseries, 'ts', tsframe)
+                except Exception:
+                    traceback.print_exc(file=sys.stdout)
+                    sys.exit(0)
+        else:
             try:
                 timeseries = import_pt_time_series_raw(explore_dir, adjustf_niter,
                                                        max_series_size=max_series_size,
