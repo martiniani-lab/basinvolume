@@ -63,8 +63,8 @@ class AnalyseShear:
         self.make_output_dirs()
         if self.njobs > 1:
             self.mypool = mp.Pool(self.njobs)
-        self.results = []
         for shear in np.arange(self.start, self.stop + 0.5 * self.step, self.step):
+            self.results = []
             shear_dir = "shear_{}".format(shear)
             if not os.path.isdir(os.path.join(self.input_dir, shear_dir)):
                 logging.error("The shear directory {} does not exist. Stopping analysis."
@@ -328,7 +328,6 @@ class AnalyseShear:
         # Iterate over packings
         for path in output_paths:
             data = pd.DataFrame()
-            data.index.name = 'Shear'
 
             if self.calc_boo:
                 self.collect_boo_data(path, data)
@@ -345,6 +344,7 @@ class AnalyseShear:
             if self.calc_pressure:
                 self.collect_pressure_data(path, data)
 
+            data.index.name = 'Shear'
             data.to_csv(os.path.join(path, "data.csv"))
 
 
