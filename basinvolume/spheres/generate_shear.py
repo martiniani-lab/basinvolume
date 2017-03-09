@@ -68,6 +68,8 @@ def gen_packings(kwargs, npackings, nparticles, njobs):
     if njobs > 1:
         kwargs['max_iter'] = 1
         worker_packing(kwargs, nparticles)
+        fname_p0 = os.path.join('packings', 'packing0.xyd')
+        kwargs['hs_radii'] = import_radii(fname_p0, kwargs['bdim'])
         kwargs['precalc_config_file'] = os.path.join('packings', 'packing0.config')
         results = []
         for packing_nr in xrange(1, npackings):
