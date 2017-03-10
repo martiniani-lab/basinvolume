@@ -188,7 +188,7 @@ class AnalyseShear:
                                  and os.path.isdir(os.path.join(directory,
                                                                 pname)),
                                  files)
-        return [os.path.join(directory, packing) for packing in packings]
+        return sorted([os.path.join(directory, packing) for packing in packings])
 
 
     def collect_files(self, shear, input_relpath):
