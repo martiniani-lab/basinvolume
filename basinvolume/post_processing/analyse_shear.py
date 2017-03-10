@@ -81,8 +81,15 @@ class AnalyseShear:
         self.collect_parameters()
 
     def make_output_dirs(self):
-        # Create output dir
-        if not os.path.exists(self.output_dir):
+        if os.path.exists(self.output_dir):
+            logging.info("Old output directory '{}' found."
+                             .format(self.output_dir))
+            if self.force:
+                logging.info("Removing old output directory '{}'."
+                             .format(self.output_dir))
+                shutil.rmtree(self.output_dir)
+                os.mkdir(self.output_dir)
+        else:
             os.mkdir(self.output_dir)
 
         # Get parameter directories to create
