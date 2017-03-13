@@ -234,7 +234,7 @@ class AnalyseShear:
     def collect_boo_data(self, path, data):
         boo_path = os.path.join(path, "boo")
         boo_entry = pd.Series()
-        for shear_file in os.listdir(boo_path):
+        for shear_file in sorted(os.listdir(boo_path)):
             boo_dict = BondOrientationalOrder.read(os.path.join(boo_path,
                                                                 shear_file))
             shear = float(shear_file.split('_')[1])
@@ -250,7 +250,7 @@ class AnalyseShear:
         dims = []
         avg_abs_displacement = []
         avg_abs_nonaff_displacement = []
-        for shear_file in os.listdir(displacement_path):
+        for shear_file in sorted(os.listdir(displacement_path)):
             displ_dict = Displacement.read(os.path.join(displacement_path,
                                                         shear_file))
             shear = float(shear_file.split('_')[1])
@@ -282,7 +282,7 @@ class AnalyseShear:
     def collect_invsym_data(self, path, data):
         invsym_path = os.path.join(path, "inversion_symmetry")
         invsym_entry = pd.Series()
-        for shear_file in os.listdir(invsym_path):
+        for shear_file in sorted(os.listdir(invsym_path)):
             invsym_dict = InversionSymmetry.read(os.path.join(invsym_path,
                                                               shear_file))
             shear = float(shear_file.split('_')[1])
@@ -292,7 +292,7 @@ class AnalyseShear:
 
     def collect_neighbors_data(self, neighbors_path, data, label):
         neighbors_entry = pd.Series()
-        for shear_file in os.listdir(neighbors_path):
+        for shear_file in sorted(os.listdir(neighbors_path)):
             neighbors_dict = Neighbors.read(os.path.join(neighbors_path,
                                                          shear_file))
             shear = float(shear_file.split('_')[1])
@@ -307,7 +307,7 @@ class AnalyseShear:
         shear_entry = pd.Series()
         shears = ['xy']
         shear_tensor = [pd.Series()]
-        for shear_file in os.listdir(pressure_path):
+        for shear_file in sorted(os.listdir(pressure_path)):
             pressure_dict = PressureTensor.read(os.path.join(pressure_path,
                                                              shear_file))
             shear = float(shear_file.split('_')[1])
@@ -332,11 +332,11 @@ class AnalyseShear:
 
 
     def collect_parameters(self):
-        logging.info("Collecting parameters")
         output_paths = self.get_subdir_paths(self.output_dir, 'packing')
 
         # Iterate over packings
         for path in output_paths:
+            logging.info("Collecting parameters for {}".format(path))
             data = pd.DataFrame()
 
             if self.calc_boo:
