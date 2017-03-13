@@ -28,8 +28,8 @@ class DensityOfStates(StructuralAnalysis):
         configf = ConfigParser.ConfigParser()
         configf.read(dos_fname)
         dos_dict = {}
-        dos_dict['eigenvalues'] \
-            = ast.literal_eval(configf.get('DENSITY_OF_STATES', 'eigenvalues'))
+        dos_dict['eigenmodes'] \
+            = ast.literal_eval(configf.get('DENSITY_OF_STATES', 'eigenmodes'))
         return dos_dict
 
     def _calculate(self, dos_fname, packing_name, input_fname):
@@ -46,13 +46,15 @@ class DensityOfStates(StructuralAnalysis):
             self._initialise_potential()
 
         hessian = self.potential.getHessian(self.coords)
-        eigenvalues = np.linalg.eigvalsh(hessian)
+        eigenmodes = np.linalg.eigvalsh(hessian)
+        eigenmodes[eigenmodes < 0] = 0
+        eigenmodes = np.sqrt(eigenmodes)
 
         # Output density of states to file
         with open(dos_fname, 'w') as f:
             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
             f.write('[DENSITY_OF_STATES]\n')
-            f.write('eigenvalues: {}\n'.format(eigenvalues))
+            f.write('eigenmodes: {}\n'.format(eigenmodes))
 
 
 def worker_dos(workspace, kwargs):
