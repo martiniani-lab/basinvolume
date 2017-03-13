@@ -40,37 +40,38 @@ class Neighbors(StructuralAnalysis):
         return neighbors_dict
 
     def _calculate(self, neighbors_fname, packing_name, input_fname):
-        if self.verbose:
-            if self.restrict_neighbors is None:
-                logging.info("Calculating neighbors: {}"
-                             .format(self.prefix + str(packing_name)))
-            else:
-                logging.info("Calculating restricted neighbors: {}"
-                             .format(self.prefix + str(packing_name)))
         neighbors_dumpname = os.path.join(self.analysis_dir_path,
-                                          self.analysis_name + '_dump.p')
+                         self.analysis_name + '_dump.p')
+        if self.force or self.write_analysis or not os.path.isfile(neighbors_dumpname):
+            if self.verbose:
+                if self.restrict_neighbors is None:
+                    logging.info("Calculating neighbors: {}"
+                                 .format(self.prefix + str(packing_name)))
+                else:
+                    logging.info("Calculating restricted neighbors: {}"
+                                 .format(self.prefix + str(packing_name)))
 
-        # Read coordinates and compute neighbors
-        self.coords, self.hs_radii, _, _ = \
-            self._import_packing_configuration(input_fname)
+            # Read coordinates and compute neighbors
+            self.coords, self.hs_radii, _, _ = \
+                self._import_packing_configuration(input_fname)
 
-        # Create potential
-        if not hasattr(self, 'potential') or not self.import_config_once:
-            self._initialise_potential()
+            # Create potential
+            if not hasattr(self, 'potential') or not self.import_config_once:
+                self._initialise_potential()
 
-        # Compute neighbors
-        neighbor_lists, _ = self.potential.getNeighbors(
-            self.coords, cutoff_factor=self.cutoff)
+            # Compute neighbors
+            neighbor_lists, _ = self.potential.getNeighbors(
+                self.coords, cutoff_factor=self.cutoff)
 
-        # Filter neighbors
-        if self.restrict_neighbors is not None:
-            neighbor_lists = self._filter_neighbors(neighbor_lists,
-                                                    packing_name)
+            # Filter neighbors
+            if self.restrict_neighbors is not None:
+                neighbor_lists = self._filter_neighbors(neighbor_lists,
+                                                        packing_name)
 
-        # Output neighbor lists to file
-        self._dump_neighbors(neighbors_dumpname, neighbor_lists)
-        if self.write_analysis:
-            self._write_output(neighbors_fname, neighbor_lists)
+            # Output neighbor lists to file
+            self._dump_neighbors(neighbors_dumpname, neighbor_lists)
+            if self.write_analysis:
+                self._write_output(neighbors_fname, neighbor_lists)
 
     def _filter_neighbors(self, neighbor_lists, packing_name):
         # Get conditional neighbor lists
