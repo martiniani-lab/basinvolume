@@ -29,7 +29,7 @@ class DensityOfStates(StructuralAnalysis):
         configf.read(dos_fname)
         dos_dict = {}
         dos_dict['eigenvalues'] \
-            = configf.getfloat('DENSITY_OF_STATES', 'eigenvalues')
+            = ast.literal_eval(configf.get('DENSITY_OF_STATES', 'eigenvalues'))
         return dos_dict
 
     def _calculate(self, dos_fname, packing_name, input_fname):
@@ -52,7 +52,7 @@ class DensityOfStates(StructuralAnalysis):
         with open(dos_fname, 'w') as f:
             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
             f.write('[DENSITY_OF_STATES]\n')
-            f.write('eigenvalues: {:.16f}\n'.format(eigenvalues))
+            f.write('eigenvalues: {}\n'.format(eigenvalues))
 
 
 def worker_dos(workspace, kwargs):
