@@ -40,12 +40,14 @@ def worker_lasting_neighbors(workspace_dir, kwargs):
 class AnalyseShear:
 
     def __init__(self, input_dir=".", output_dir="shear_analysis", force=False,
-                 start=0., step=0.01, substep=0.001, stop=1., njobs=1, use_cell_lists=True,
+                 force_rel=False, start=0., step=0.01, substep=0.001, stop=1.,
+                 njobs=1, use_cell_lists=True,
                  calc_neighbors=False, calc_neighbors_dyn=False, calc_boo=False,
                  calc_invsym=False, calc_pressure=False, calc_displacement=False):
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.force = force
+        self.force_rel = force_rel
         self.start = start
         self.step = step
         self.substep = substep
@@ -141,6 +143,7 @@ class AnalyseShear:
         # Displacement from previous packing
         if self.calc_displacement:
             disp_kwargs = dict(kwargs)
+            disp_kwargs['force'] = disp_kwargs['force'] or self.force_rel
             if shear == self.start:
                 disp_kwargs['shear'] = 0.
                 disp_kwargs['packings_old'] = os.path.join(input_relpath,
@@ -363,6 +366,10 @@ if __name__ == "__main__":
                         "Default: 'shear_analysis'", default='shear_analysis')
     parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
                         default=False)
+    parser.add_argument("--force-rel", action='store_true',
+                        help="Force to recalculate relative measures (e.g. displacement) "
+                             "for all packings. This does not include lasting neighbors.",
+                        default=False)
     parser.add_argument("--start", type=float, help="Lowest shear to analyse. Default: 0.0",
                         default=0.)
     parser.add_argument("--step", type=float, help="Shear step size for structural properties. "
@@ -406,7 +413,8 @@ if __name__ == "__main__":
         substep = args.substep
 
     analyse_shear = AnalyseShear(input_dir=args.input_dir, output_dir=args.output_dir,
-                                 force=args.force, start=args.start, step=args.step,
+                                 force=args.force, force_rel=args.force_rel,
+                                 start=args.start, step=args.step,
                                  substep=substep, stop=args.stop, njobs=args.njobs,
                                  use_cell_lists=not args.nocell,
                                  calc_neighbors=args.neighbors,
