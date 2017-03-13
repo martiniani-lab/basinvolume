@@ -5,6 +5,7 @@ import argparse
 import multiprocessing as mp
 import logging
 from bond_orientational_order import worker_boo
+from density_of_states import worker_dos
 from displacement import worker_disp
 from inversion_symmetry import worker_invsym
 from neighbors import worker_neighbors
@@ -78,6 +79,10 @@ if __name__ == "__main__":
     if args.solid:
         boo_kwargs.update(solid_angle_weighted=args.solid)
     structural_props.append((worker_boo, boo_kwargs))
+
+    # density of states
+    dos_kwargs = dict(kwargs)
+    structural_props.append((worker_dos, dos_kwargs))
 
     # displacement
     if args.packings_old is not None:

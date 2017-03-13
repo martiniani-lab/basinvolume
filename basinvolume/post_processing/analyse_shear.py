@@ -191,7 +191,6 @@ class AnalyseShear:
             for prop in structural_props:
                 prop[0](workspace_dir, prop[1])
 
-
     def get_subdir_paths(self, directory, filter_str):
         files = os.listdir(directory)
         packings = filter(lambda pname: filter_str in pname
@@ -199,7 +198,6 @@ class AnalyseShear:
                                                                 pname)),
                                  files)
         return sorted([os.path.join(directory, packing) for packing in packings])
-
 
     def collect_files(self, shear, input_relpath):
         logging.info("Collecting files for shear={}".format(shear))
@@ -230,7 +228,6 @@ class AnalyseShear:
                                     os.path.join(output_path, param_from_to[1],
                                                  "shear_{}".format(shear)))
 
-
     def collect_boo_data(self, path, data):
         boo_path = os.path.join(path, "boo")
         boo_entry = pd.Series()
@@ -241,7 +238,6 @@ class AnalyseShear:
             boo_entry[shear] = boo_dict['BOO'][1]
         data['Bond-orientational order {}'
              .format(boo_dict['BOO'][0])] = boo_entry
-
 
     def collect_displacement_data(self, path, data):
         displacement_path = os.path.join(path, "displacement")
@@ -278,7 +274,6 @@ class AnalyseShear:
             data['Average absolute non-affine displacement {}'.format(dims[i])] \
                 = avg_abs_nonaff_displacement[i]
 
-
     def collect_invsym_data(self, path, data):
         invsym_path = os.path.join(path, "inversion_symmetry")
         invsym_entry = pd.Series()
@@ -289,7 +284,6 @@ class AnalyseShear:
             invsym_entry[shear] = invsym_dict['inversion_symmetry']
         data['Local inversion symmetry'] = invsym_entry
 
-
     def collect_neighbors_data(self, neighbors_path, data, label):
         neighbors_entry = pd.Series()
         for shear_file in sorted(os.listdir(neighbors_path)):
@@ -298,7 +292,6 @@ class AnalyseShear:
             shear = float(shear_file.split('_')[1])
             neighbors_entry[shear] = neighbors_dict['avg_neighbors']
         data[label] = neighbors_entry
-
 
     def collect_pressure_data(self, path, data):
         pressure_path = os.path.join(path, "pressure_tensor")
@@ -329,7 +322,6 @@ class AnalyseShear:
         data['Shear stress'] = shear_entry
         for i in xrange(len(shears)):
             data['Shear stress {}'.format(shears[i])] = shear_tensor[i]
-
 
     def collect_parameters(self):
         output_paths = self.get_subdir_paths(self.output_dir, 'packing')
