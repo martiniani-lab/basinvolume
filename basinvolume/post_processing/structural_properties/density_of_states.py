@@ -54,7 +54,7 @@ class DensityOfStates(StructuralAnalysis):
         with open(dos_fname, 'w') as f:
             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
             f.write('[DENSITY_OF_STATES]\n')
-            f.write('eigenmodes: {}\n'.format(eigenmodes))
+            f.write('eigenmodes: {}\n'.format(list(eigenmodes)))
 
 
 def worker_dos(workspace, kwargs):
