@@ -28,9 +28,19 @@ class DensityOfStates(StructuralAnalysis):
         configf = ConfigParser.ConfigParser()
         configf.read(dos_fname)
         dos_dict = {}
+        dos_dict['neg_eigenvalues'] \
+            = ast.literal_eval(configf.get('DENSITY_OF_STATES', 'neg_eigenvalues'))
         dos_dict['eigenmodes'] \
             = ast.literal_eval(configf.get('DENSITY_OF_STATES', 'eigenmodes'))
         return dos_dict
+
+    def filter_eigenmodes(self, eigenvalues):
+        eigvalues = np.array([0. if np.isclose(eigmode, 0.) else eigmode
+                              for eigmode in eigenvalues])
+        neg_eigvalues = eigvalues[eigvalues < 0]
+        if len(neg_eigvalues) > 0:
+            logging.warning("There are negative eigenvalues!")
+        return np.sqrt(eigvalues[eigvalues >= 0]), neg_eigvalues
 
     def _calculate(self, dos_fname, packing_name, input_fname):
         if self.verbose:
@@ -46,15 +56,15 @@ class DensityOfStates(StructuralAnalysis):
             self._initialise_potential()
 
         hessian = self.potential.getHessian(self.coords)
-        eigenmodes = np.linalg.eigvalsh(hessian)
-        eigenmodes[eigenmodes < 0] = 0
-        eigenmodes = np.sqrt(eigenmodes)
+        eigs = np.linalg.eigh(hessian)
+        eigmodes, neg_eigvalues = self.filter_eigenmodes(eigs[0])
 
         # Output density of states to file
         with open(dos_fname, 'w') as f:
             f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
             f.write('[DENSITY_OF_STATES]\n')
-            f.write('eigenmodes: {}\n'.format(list(eigenmodes)))
+            f.write('neg_eigenvalues: {}\n'.format(list(neg_eigvalues)))
+            f.write('eigenmodes: {}\n'.format(list(eigmodes)))
 
 
 def worker_dos(workspace, kwargs):
