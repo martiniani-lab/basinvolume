@@ -1,5 +1,6 @@
 from __future__ import division
 import numpy as np
+import random
 import argparse
 from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
 from basinvolume.experiment_2d import configure_bv_exp_mcrunner
