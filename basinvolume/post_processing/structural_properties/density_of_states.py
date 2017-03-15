@@ -32,7 +32,19 @@ class DensityOfStates(StructuralAnalysis):
             = ast.literal_eval(configf.get('DENSITY_OF_STATES', 'neg_eigenvalues'))
         dos_dict['eigenmodes'] \
             = ast.literal_eval(configf.get('DENSITY_OF_STATES', 'eigenmodes'))
+        dos_dict['participation_ratio'] \
+            = ast.literal_eval(configf.get('DENSITY_OF_STATES', 'participation_ratio'))
         return dos_dict
+
+    def calc_participation(self, eigenvectors):
+        eigvec_norm = np.empty(self.nparticles)
+        participation = np.empty((eigenvectors.shape[1]))
+        for i in xrange(eigenvectors.shape[1]):
+            eigvec_norm = np.sqrt(sum((eigenvectors[dim::self.bdim, i] ** 2
+                                       for dim in xrange(self.bdim))))
+            participation[i] = (sum(eigvec_norm ** 2) ** 2
+                                / (self.nparticles * sum(eigvec_norm ** 4)))
+        return participation
 
     def filter_eigenmodes(self, eigenvalues):
         eigvalues = np.array([0. if np.isclose(eigmode, 0.) else eigmode
@@ -58,6 +70,7 @@ class DensityOfStates(StructuralAnalysis):
         hessian = self.potential.getHessian(self.coords)
         eigs = np.linalg.eigh(hessian)
         eigmodes, neg_eigvalues = self.filter_eigenmodes(eigs[0])
+        participation_ratio = self.calc_participation(eigs[1])
 
         # Output density of states to file
         with open(dos_fname, 'w') as f:
@@ -65,6 +78,7 @@ class DensityOfStates(StructuralAnalysis):
             f.write('[DENSITY_OF_STATES]\n')
             f.write('neg_eigenvalues: {}\n'.format(list(neg_eigvalues)))
             f.write('eigenmodes: {}\n'.format(list(eigmodes)))
+            f.write('participation_ratio: {}\n'.format(list(participation_ratio)))
 
 
 def worker_dos(workspace, kwargs):
