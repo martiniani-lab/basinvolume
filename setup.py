@@ -11,9 +11,9 @@ import pele
 import mcpele
 import PyCG_DESCENT
 
-## Numpy header files 
-numpy_lib = os.path.split(np.__file__)[0] 
-numpy_include = os.path.join(numpy_lib, 'core/include') 
+## Numpy header files
+numpy_lib = os.path.split(np.__file__)[0]
+numpy_include = os.path.join(numpy_lib, 'core/include')
 
 ##find mcpele path
 pypath = os.environ['PYTHONPATH'].split(os.pathsep)
@@ -42,7 +42,7 @@ except:
 # print git version to version.py file, copied from pele
 #
 # Make the git revision visible.  Most of this is copied from scipy
-# 
+#
 # Return the git revision as a string
 def git_version():
     def _minimal_ext_cmd(cmd):
@@ -109,8 +109,8 @@ class ModuleList:
         modname, ext = os.path.splitext(modname)
         self.module_list.append(Extension(modname, [filename], **self.kwargs))
 
-setup(name='basinvolume', 
-      version='0.1', 
+setup(name='basinvolume',
+      version='0.1',
       description="Python implementation of the basin volume method",
       url='https://bitbucket.org/smcantab/basinvolume',
       packages=["basinvolume",
@@ -128,13 +128,13 @@ setup(name='basinvolume',
 # build the c++ files
 #
 
-include_sources_bv = ["source/basinvolume/" + f for f in os.listdir("source/basinvolume") 
+include_sources_bv = ["source/basinvolume/" + f for f in os.listdir("source/basinvolume")
                    if f.endswith(".cpp")]
 
-include_sources_mcpele = [mcpelepath+"/source/" + f for f in os.listdir(mcpelepath+"/source") 
+include_sources_mcpele = [mcpelepath+"/source/" + f for f in os.listdir(mcpelepath+"/source")
                    if f.endswith(".cpp")]
 
-include_sources_pele = [pelepath+"/source/" + f for f in os.listdir(pelepath+"/source") 
+include_sources_pele = [pelepath+"/source/" + f for f in os.listdir(pelepath+"/source")
                    if f.endswith(".cpp")]
 
 include_sources_py_cgdescent = [py_cgdescentpath+"/source/" + f for f in os.listdir(py_cgdescentpath+"/source")
@@ -145,13 +145,13 @@ include_sources_py_cgdescent += [py_cgdescentpath+"/source/CG_DESCENT/" + f for 
 
 include_dirs = [numpy_include, "source"]
 
-depends_bv = [os.path.join("source/basinvolume", f) for f in os.listdir("source/basinvolume/") 
+depends_bv = [os.path.join("source/basinvolume", f) for f in os.listdir("source/basinvolume/")
               if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
 
-depends_mcpele = [os.path.join(mcpelepath+"/source/mcpele", f) for f in os.listdir(mcpelepath+"/source/mcpele") 
+depends_mcpele = [os.path.join(mcpelepath+"/source/mcpele", f) for f in os.listdir(mcpelepath+"/source/mcpele")
                   if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
 
-depends_pele = [os.path.join(pelepath+"/source/pele", f) for f in os.listdir(pelepath+"/source/pele") 
+depends_pele = [os.path.join(pelepath+"/source/pele", f) for f in os.listdir(pelepath+"/source/pele")
                 if f.endswith(".cpp") or f.endswith(".h") or f.endswith(".hpp")]
 
 depends_py_cgdescent = [os.path.join(py_cgdescentpath+"/source/CG_DESCENT", f) for f in os.listdir(py_cgdescentpath+"/source/CG_DESCENT/")
@@ -164,14 +164,14 @@ depends_py_cgdescent += [os.path.join(py_cgdescentpath+"/source/PyCG_DESCENT", f
 # I run it through valgrind, valgrind complains about an unrecognized
 # instruction.  I don't have a clue what is causing this, but it's probably
 # better to be on the safe side and not use -march=native
-#extra_compile_args = ['-I/home/sm958/Work/pele/source','-std=c++0x',"-Wall", "-Wextra", "-O3", '-funroll-loops']
+#extra_compile_args = ['-I/home/sm958/Work/pele/source','-std=c++0x',"-Wall", "-Wextra", "-O3", '-funroll-loops', "-fopenmp"]
 # uncomment the next line to add extra optimization options
 
 include_pele_source = '-I'+ pelepath + '/source'
 include_mcpele_source = '-I'+ mcpelepath + '/source'
 include_py_cgdescent_source = '-I'+ py_cgdescentpath + '/source'
 
-extra_compile_args = [include_pele_source,include_mcpele_source,include_py_cgdescent_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3']
+extra_compile_args = [include_pele_source,include_mcpele_source,include_py_cgdescent_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3', "-fopenmp"]
 
 # note: to compile with debug on and to override extra_compile_args use, e.g.
 # OPT="-g -O2 -march=native" python setup.py ...
@@ -181,13 +181,13 @@ include_sources_all = include_sources_bv + include_sources_py_cgdescent + includ
 depends_all = depends_bv + depends_py_cgdescent + depends_mcpele + depends_pele
 
 cxx_modules = [
-    Extension("basinvolume.monte_carlo._conf_test_cpp", 
+    Extension("basinvolume.monte_carlo._conf_test_cpp",
               ["basinvolume/monte_carlo/_conf_test_cpp.cxx"] + include_sources_all,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
               language="c++", depends=depends_all,
               ),
-    Extension("basinvolume.monte_carlo._action_cpp", 
+    Extension("basinvolume.monte_carlo._action_cpp",
               ["basinvolume/monte_carlo/_action_cpp.cxx"] + include_sources_all,
               include_dirs=include_dirs,
               extra_compile_args=extra_compile_args,
