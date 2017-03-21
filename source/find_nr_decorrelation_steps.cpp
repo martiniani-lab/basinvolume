@@ -1,5 +1,7 @@
 #include "basinvolume/find_nr_decorrelation_steps.h"
 
+#include <sstream>
+
 namespace bv{
 
 FindNrDecorrelationSteps::FindNrDecorrelationSteps(const double desired_mean_rsm_displ_,
@@ -13,8 +15,10 @@ FindNrDecorrelationSteps::FindNrDecorrelationSteps(const double desired_mean_rsm
 size_t FindNrDecorrelationSteps::get_nr_decorrelation_steps() const
 {
     if (!done()) {
-        std::cout << "only done " << nr_decorrelation_steps.count() << " out of " <<  nr_samples_avergage << " measurements\n";
-        throw std::runtime_error("FindNrDecorrelationSteps::get_nr_decorrelation_steps: illegal read attempt");
+        std::stringstream message;
+        message << "Only done " << nr_decorrelation_steps.count() << " out of " <<  nr_samples_avergage << " measurements.";
+        std::cout << message << std::endl << std::flush;
+        throw std::runtime_error("FindNrDecorrelationSteps::get_nr_decorrelation_steps: Illegal read attempt. " + message.str());
     }
     return nr_decorrelation_steps.mean();
 }
