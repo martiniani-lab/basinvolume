@@ -14,14 +14,18 @@ public:
 private:
     std::shared_ptr<distance_policy> m_dist;
     pele::Array<double> m_h;
-    bool legal;
+    bool m_legal;
 public:
     OverlapAccumulator(std::shared_ptr<distance_policy> dist, pele::Array<double> hs_radii)
         : m_dist(dist),
           m_h(hs_radii),
-          legal(true)
+          m_legal(true)
     {}
-    bool configuration_is_legal() const { return legal; }
+
+    bool configuration_is_legal() const {
+        return m_legal;
+    }
+
     double get_squared_atom_distance(
         pele::Array<double> const & coords, const size_t atom_i, const size_t atom_j) const
     {
@@ -29,12 +33,15 @@ public:
         m_dist->get_rij(dr, coords.data() + m_ndim * atom_i, coords.data() + m_ndim * atom_j);
         return std::inner_product(dr, dr + m_ndim, dr, double(0));
     }
+
     bool insert_atom_pair(pele::Array<double> const & coords, const size_t atom_i, const size_t atom_j)
     {
         const double dij2 = get_squared_atom_distance(coords, atom_i, atom_j);
         const double tmp = (m_h[atom_i] + m_h[atom_j]);
-        legal = (dij2 >= tmp * tmp);
-        return !legal;
+        if(dij2 < tmp * tmp) {
+            m_legal = false;
+        }
+        return !m_legal;
     }
 };
 

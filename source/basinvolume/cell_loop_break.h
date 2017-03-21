@@ -13,15 +13,19 @@ namespace pele {
  */
 template <class visitor_t, size_t ndim>
 class CellListsLoopBreak : public CellListsLoop<visitor_t, ndim> {
+protected:
+    bool m_break = false;
 public:
     virtual ~CellListsLoopBreak() {}
     CellListsLoopBreak(visitor_t& visitor, CellListsContainer<ndim> const& container)
         : CellListsLoop<visitor_t, ndim>(visitor, container)
     {}
 
-    void loop_through_atom_pairs(pele::Array<double> const & coords)
+    void loop_cell_pairs(
+        std::vector< std::pair<const std::vector<size_t>*, const std::vector<size_t>*> > const & neighbor_pairs,
+        Array<double> const & coords)
     {
-        for (auto const & ijpair : CellListsLoop<visitor_t, ndim>::m_container.m_cell_neighbor_pairs) {
+        for (auto const & ijpair : neighbor_pairs) {
             const std::vector<size_t>* icell = ijpair.first;
             const std::vector<size_t>* jcell = ijpair.second;
             // do double loop through atoms, avoiding duplicate pairs
@@ -30,6 +34,9 @@ public:
                 auto jend = (icell == jcell) ? iatom : jcell->end();
                 for (auto jatom = jcell->begin(); jatom != jend; ++jatom) {
                     if (CellListsLoop<visitor_t, ndim>::m_visitor.insert_atom_pair(coords, *iatom, *jatom)) {
+                        m_break = true;
+                    }
+                    if (m_break) {
                         return;
                     }
                 }
