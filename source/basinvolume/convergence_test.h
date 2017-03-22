@@ -28,7 +28,7 @@ public:
           _ev_finder(landscape_potential, boxdimension, _ranvec_, _lbfgsniter_)
     {}
 
-    void check_convergence(pele::Array<double> quenched_coords,
+    void check_convergence(pele::Array<double> const & quenched_coords,
             std::shared_ptr<OPT_T> _optimizer);
 };
 
@@ -36,7 +36,7 @@ public:
  * compute the lowest eigenvalue to ensure that it is positive
  */
 template<class OPT_T>
-void convergence_test<OPT_T>::check_convergence(pele::Array<double> quenched_coords,
+void convergence_test<OPT_T>::check_convergence(pele::Array<double> const & quenched_coords,
         std::shared_ptr<OPT_T> _optimizer)
 {
     bool minimum = false;
