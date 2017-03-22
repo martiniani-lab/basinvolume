@@ -6,6 +6,8 @@
 namespace bv {
 
 class CheckSameMinimumConfig : public mcpele::ConfTest {
+protected:
+    pele::Array<double> m_delta_orig;
 public:
     CheckSameMinimumConfig(std::shared_ptr<pele::GradientOptimizer> optimizer,
                            std::shared_ptr<pele::BasePotential> potential,
@@ -17,7 +19,8 @@ public:
           m_dtol(dtol),
           m_nfev(0),
           m_nr_failed_quenches(0),
-          m_nr_total_quenches(0)
+          m_nr_total_quenches(0),
+          m_delta_orig(origin.size())
     {}
     bool conf_test(pele::Array<double>& trial_coords, mcpele::MC* mc)
     {
@@ -38,9 +41,9 @@ public:
         m_optimizer->reset(trial_coords);
         m_optimizer->run();
         m_nfev += m_optimizer->get_nfev();
-        pele::Array<double> delta_orig = m_optimizer->get_x();
-        delta_orig -= m_origin;
-        dist_orig_2 = pele::dot(delta_orig, delta_orig);
+        m_delta_orig.assign(m_optimizer->get_x());
+        m_delta_orig -= m_origin;
+        dist_orig_2 = pele::dot(m_delta_orig, m_delta_orig);
         return m_optimizer->success();
     }
     size_t get_nfev() const
@@ -55,7 +58,7 @@ public:
     {
         return m_origin;
     }
-private:    
+private:
     std::shared_ptr<pele::GradientOptimizer> m_optimizer;
     std::shared_ptr<pele::BasePotential> m_potential;
     pele::Array<double> m_origin;

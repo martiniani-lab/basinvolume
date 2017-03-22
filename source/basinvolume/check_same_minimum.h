@@ -53,9 +53,9 @@ public:
 template <class OPT_T=pele::GradientOptimizer>
 class CheckSameMinimum : public CheckSameMinimumInterface {
 protected:
-    inline pele::Array<double> _align_coords(pele::Array<double> coords);
-    inline double _get_d2(pele::Array<double> coords);
-    inline void _check_convergence(pele::Array<double> quenched_coords);
+    inline void _align_coords(pele::Array<double> & coords);
+    inline double _get_d2(pele::Array<double> const & coords);
+    inline void _check_convergence(pele::Array<double> const & quenched_coords);
     bool _quench(pele::Array<double> &trial_coords);
     size_t _ndim;
     std::shared_ptr<OPT_T> _optimizer;
@@ -64,6 +64,7 @@ protected:
     pele::Array<double> _rattlers;
     pele::Array<double> _distance;
     pele::Array<double> _new_minimum;
+    pele::Array<double> _aligned_coords; //!< Coordinates after alignment, used in _get_d2
     double _dtol;
     double _d;
     double _rms;
@@ -84,7 +85,7 @@ public:
             std::shared_ptr<pele::BasePotential> potential,
             pele::Array<double> origin, pele::Array<double> rattlers, double dtol,
             size_t ndim, const size_t eqsteps=0, std::shared_ptr<pele::DistanceInterface> dist=NULL,
-            const bool perform_convergence_test=false, 
+            const bool perform_convergence_test=false,
             const bool collect_minima_list=false);
     virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckSameMinimum() {}
@@ -117,6 +118,7 @@ CheckSameMinimum<OPT_T>::CheckSameMinimum(std::shared_ptr<OPT_T> optimizer,
       _rattlers(rattlers.copy()),
       _distance(origin.size(), 0),
       _new_minimum(origin.size()),
+      _aligned_coords(origin.size()),
       _dtol(dtol),
       _d(0),
       _rms(0),
@@ -161,7 +163,7 @@ pele::Array<Minimum*> CheckSameMinimum<OPT_T>::get_array_of_minima()
 }
 
 template <class OPT_T>
-void CheckSameMinimum<OPT_T>::_check_convergence(pele::Array<double> quenched_coords)
+void CheckSameMinimum<OPT_T>::_check_convergence(pele::Array<double> const & quenched_coords)
 {
     _conv_test.check_convergence(quenched_coords, _optimizer);
 }
@@ -170,7 +172,7 @@ void CheckSameMinimum<OPT_T>::_check_convergence(pele::Array<double> quenched_co
  * aligns structures
  */
 template <class OPT_T>
-pele::Array<double> CheckSameMinimum<OPT_T>::_align_coords(pele::Array<double> coords)
+void CheckSameMinimum<OPT_T>::_align_coords(pele::Array<double> & coords)
 {
     /*assert(coords.size() == _origin.size());
     assert(coords.size() == _ndim * _nparticles);*/
@@ -186,29 +188,28 @@ pele::Array<double> CheckSameMinimum<OPT_T>::_align_coords(pele::Array<double> c
             coords[i1+j] -= dr[j];
         }
     }
-
-    return coords;
 }
 
 /*compute distance from origin after aligning two particles
 this ignores the rattlers completely and returns rmsd squared*/
 template <class OPT_T>
-double CheckSameMinimum<OPT_T>::_get_d2(pele::Array<double> coords)
+double CheckSameMinimum<OPT_T>::_get_d2(pele::Array<double> const & coords)
 {
     pele::Array<double> dr(_ndim);
-    pele::Array<double> aligned_coords = this->_align_coords(coords);
+    _aligned_coords.assign(coords);
+    this->_align_coords(_aligned_coords);
 
     //compute distance between aligned structures
     for (size_t i = 0; i < _nparticles; ++i) {
         const size_t i1 = i * _ndim;
-        _dist_policy->get_rij(dr.data(), &aligned_coords[i1], &_origin[i1]);
+        _dist_policy->get_rij(dr.data(), &_aligned_coords[i1], &_origin[i1]);
         for (size_t j = 0; j < _ndim; ++j) {
             _distance[i1 + j] = dr[j] * _rattlers[i1 + j];
         }
     }
 
     //avoid taking square roots by return squared quantities
-    return dot(_distance,_distance);
+    return dot(_distance, _distance);
 }
 
 /*quench configuration and add minimum to new minimum list*/
@@ -287,7 +288,8 @@ bool CheckSameMinimum<OPT_T>::conf_test(pele::Array<double> &trial_coords, mcpel
         //save the new minimum
         //std::cout<<"failed quench rms "<<_rms<<"dtol"<<_dtol<<std::endl;
         if (_collect_minima_list && mc->get_iterations_count() > m_eqsteps) {
-            _new_minimum.assign(this->_align_coords(_optimizer->get_x()));
+            _new_minimum.assign(_optimizer->get_x());
+            this->_align_coords(_new_minimum);
             _minima_list.insert_minimum(_d, _optimizer->get_f(), _new_minimum, _rattlers);
         }
         return false;
