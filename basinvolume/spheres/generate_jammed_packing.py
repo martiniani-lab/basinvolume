@@ -690,7 +690,9 @@ if __name__ == "__main__":
         raise ValueError("Undefined interaction: {}".format(args.interaction))
 
     override_pot_kwargs = dict()
-    if interaction is Interaction.INVERSE_POWER_STILLINGER:
+    if interaction is Interaction.HS_WCA:
+        pass
+    elif interaction is Interaction.INVERSE_POWER_STILLINGER:
         override_pot_kwargs.update(pow=8, rcut=4.5)
         logging.info("Setting inverse_power_stillinger parameters: {}"
                      .format(override_pot_kwargs))
