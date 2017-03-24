@@ -30,7 +30,6 @@ namespace bv {
  *             this convention removes if statements in the for loop and replaces them with
  *             arithmetic operation (distance[i] *= rattlers[i]), distance is set artificially to
  *             zero if the particle is a rattler. note _rattlers.size() = coords.size()
- * _distance: array containing the Euclidean distance between trial_coords and origin
  * _d: norm of distance
  * _rms: root mean square displacement from origin
  * _E = energy of the quenched state
@@ -62,7 +61,6 @@ protected:
     std::shared_ptr<pele::BasePotential> _potential;
     pele::Array<double> _origin;
     pele::Array<double> _rattlers;
-    pele::Array<double> _distance;
     pele::Array<double> _new_minimum;
     pele::Array<double> _aligned_coords; //!< Coordinates after alignment, used in _get_d2
     double _dtol;
@@ -90,7 +88,6 @@ public:
     virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckSameMinimum() {}
     double get_distance() const { return _d; }
-    pele::Array<double> get_distance_array() const { return _distance.copy(); }
     bool perform_convergence_test() const { return _perform_convergence_test; }
     bool collect_minima_list() const { return _collect_minima_list; }
     //forwarding minima database information to the outside
@@ -116,7 +113,6 @@ CheckSameMinimum<OPT_T>::CheckSameMinimum(std::shared_ptr<OPT_T> optimizer,
       _potential(potential),
       _origin(origin.copy()),
       _rattlers(rattlers.copy()),
-      _distance(origin.size(), 0),
       _new_minimum(origin.size()),
       _aligned_coords(origin.size()),
       _dtol(dtol),
@@ -196,6 +192,8 @@ template <class OPT_T>
 double CheckSameMinimum<OPT_T>::_get_d2(pele::Array<double> const & coords)
 {
     pele::Array<double> dr(_ndim);
+    double current_distance;
+    double distance = 0;
     _aligned_coords.assign(coords);
     this->_align_coords(_aligned_coords);
 
@@ -204,12 +202,13 @@ double CheckSameMinimum<OPT_T>::_get_d2(pele::Array<double> const & coords)
         const size_t i1 = i * _ndim;
         _dist_policy->get_rij(dr.data(), &_aligned_coords[i1], &_origin[i1]);
         for (size_t j = 0; j < _ndim; ++j) {
-            _distance[i1 + j] = dr[j] * _rattlers[i1 + j];
+            current_distance = dr[j] * _rattlers[i1 + j];
+            distance += current_distance * current_distance;
         }
     }
 
     //avoid taking square roots by return squared quantities
-    return dot(_distance, _distance);
+    return distance;
 }
 
 /*quench configuration and add minimum to new minimum list*/
