@@ -44,6 +44,8 @@ if __name__ == "__main__":
     parser.add_argument("--rsts", action='store_true', help="record steps timeseries for diffusion studies, default: False",default=False)
     parser.add_argument("--rsts-only", action='store_true', help="record steps timeseries for diffusion studies ONLY, default: False",default=False)
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
+    parser.add_argument("--seed-takestep", type=int, help="Seed for the takestep method", default=None)
+    parser.add_argument("--seed-metropolis", type=int, help="Seed for the metropolis algorithm", default=None)
     args = parser.parse_args()
 
     fname = args.fname
@@ -73,7 +75,16 @@ if __name__ == "__main__":
                        record_trajectory_npoints=int(1e4))
 
     i32max = np.iinfo(np.int32).max
-    seeds_dict = dict(seed_takestep=random.randint(0, i32max),seed_metropolis=random.randint(0, i32max))
+    if args.seed_takestep is None:
+        seed_takestep = random.randint(0, i32max)
+    else:
+        seed_takestep = args.seed_takestep
+    if args.seed_metropolis is None:
+        seed_metropolis = random.randint(0, i32max)
+    else:
+        seed_metropolis = args.seed_metropolis
+    seeds_dict = dict(seed_takestep=seed_takestep, seed_metropolis=seed_metropolis)
     seeds = dict(seeds=seeds_dict)
-    kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))
+    kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs, **seeds))
+
     worker_kmin(fname,kmin_kwargs_s,)
