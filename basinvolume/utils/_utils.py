@@ -1046,3 +1046,31 @@ def find_neighbors_slow(coords, radii, bdim, box, distance_method=Distance.PERIO
                 neighbor_indicess[atomj].append(atomi)
 
     return neighbor_indicess, neighbor_distancess
+
+
+def conf_get_default(configf, region, option, default):
+    if configf.has_option(region, option):
+        return configf.get(region, option)
+    else:
+        return default
+
+
+def conf_getint_default(configf, region, option, default):
+    if configf.has_option(region, option):
+        return configf.getint(region, option)
+    else:
+        return default
+
+
+def conf_getfloat_default(configf, region, option, default):
+    if configf.has_option(region, option):
+        return configf.getfloat(region, option)
+    else:
+        return default
+
+
+def conf_getboolean_default(configf, region, option, default):
+    if configf.has_option(region, option):
+        return configf.getboolean(region, option)
+    else:
+        return default

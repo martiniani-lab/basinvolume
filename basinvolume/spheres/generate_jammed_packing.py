@@ -3,13 +3,13 @@ import numpy as np
 import abc
 import os
 from pele.distance import put_in_box, Distance
-from pele.potentials import HS_WCA
-from pele.potentials import InversePowerStillingerCut
+from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
 from PyCG_DESCENT import CGDescent
-from basinvolume.utils import trymakedir, get_git_version, get_python_version
-from basinvolume.utils import volume_nball, import_packing, calc_distance
-from basinvolume.utils import get_cython_version, cround, in_hull, origin_in_hull_2d
+from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
+                               volume_nball, import_packing, calc_distance,
+                               get_cython_version, cround, in_hull, origin_in_hull_2d,
+                               conf_get_default)
 from basinvolume.spheres.generate_packing import read_packing_config
 from basinvolume.enums import Minimizer, Interaction
 import ConfigParser
@@ -62,12 +62,12 @@ def read_jammed_packing_config(configpath, frozen=False):
         parameters['vcavity'] = configf.getfloat('JAMMED_PACKING', 'vcavity')
     else:
         parameters['vcavity'] = np.prod(parameters['boxv'])
-    parameters['distance_method'] = Distance[configf.get('JAMMED_PACKING',
-                                                         'distance_method')]
-    parameters['interaction'] = Interaction[configf.get('JAMMED_PACKING',
-                                                        'interaction')]
-    parameters['pot_kwargs'] = ast.literal_eval(configf.get('JAMMED_PACKING',
-                                                            'pot_kwargs'))
+    parameters['distance_method'] = Distance[conf_get_default(configf, 'JAMMED_PACKING',
+                                                              'distance_method', 'PERIODIC')]
+    parameters['interaction'] = Interaction[conf_get_default(configf, 'JAMMED_PACKING',
+                                                             'interaction', 'HS_WCA')]
+    parameters['pot_kwargs'] = ast.literal_eval(conf_get_default(configf, 'JAMMED_PACKING',
+                                                                 'pot_kwargs', '{}'))
     parameters['sca'] = configf.getfloat('JAMMED_PACKING', 'sca')
     return parameters
 

@@ -8,7 +8,7 @@ from pele.potentials import HS_WCA
 from pele.optimize._quench import lbfgs_cpp
 from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
                                get_cython_version, cround, calc_distance,
-                               volume_nball, import_packing)
+                               volume_nball, import_packing, conf_get_default)
 from numpy.random import RandomState
 import random
 from mcpele.monte_carlo import NullPotential
@@ -44,10 +44,10 @@ def read_packing_config(configpath, frozen=False):
         parameters['vcavity'] = configf.getfloat('PACKING', 'vcavity')
     else:
         parameters['vcavity'] = np.prod(parameters['boxv'])
-    parameters['distance_method'] = Distance[configf.get('PACKING',
-                                                         'distance_method')]
-    parameters['pot_kwargs'] = ast.literal_eval(configf.get('PACKING',
-                                                            'pot_kwargs'))
+    parameters['distance_method'] = Distance[conf_get_default(configf, 'PACKING',
+                                                              'distance_method', 'HS_WCA')]
+    parameters['pot_kwargs'] = ast.literal_eval(conf_get_default(configf, 'PACKING',
+                                                                 'pot_kwargs', '{}'))
     if parameters['method'] == 'quench':
         parameters['hsf_niter'] = configf.getint('PACKING', 'hsf_niter')
         parameters['hsf_stepsize'] = configf.getfloat('PACKING', 'hsf_stepsize')
