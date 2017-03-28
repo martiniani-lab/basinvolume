@@ -88,7 +88,8 @@ class _Generate_Jammed_Packing(object):
 
     def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
                  import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
-                 minimizer=Minimizer.FIRE, logging_tag="", write_opengl=False):
+                 minimizer=Minimizer.FIRE, logging_tag="", write_opengl=False,
+                 sort_atoms=False):
         self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
         if not os.path.isabs(packings_dir):
@@ -103,6 +104,7 @@ class _Generate_Jammed_Packing(object):
         self.minimizer = minimizer
         self.logging_tag = logging_tag
         self.write_opengl = write_opengl
+        self.sort_atoms = sort_atoms
 
     def _import_single_config_file(self, fname):
         dname = os.path.splitext(fname)[0]
@@ -163,6 +165,10 @@ class _Generate_Jammed_Packing(object):
         """function that generates the packing"""
 
     @abc.abstractmethod
+    def _sort_atoms(self):
+        """sorts the atoms according to the potential"""
+
+    @abc.abstractmethod
     def _write_opengl_input(self, n):
         """writes a opengl input file, n is the unique identifier of the structure"""
 
@@ -209,6 +215,8 @@ class _Generate_Jammed_Packing(object):
             n is the unique identifier of the structure
         """
         self._print_parameters(n)
+        if self.sort_atoms:
+            self._sort_atoms()
         self._dump_configuration(n)
         if self.write_opengl:
             self._write_opengl_input(n)
@@ -273,7 +281,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                  packing_nrs=None, import_jammed=False, outdir='jammed_packings',
                  use_cell_lists=False, show=False, interaction=Interaction.HS_WCA,
                  override_pot_kwargs=None, minimizer=Minimizer.FIRE, logging_tag="",
-                 write_opengl=False, check_packing=True):
+                 write_opengl=False, check_packing=True, sort_atoms=False):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          packing_nrs=packing_nrs,
@@ -281,7 +289,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                                                          outdir=outdir, minimizer=minimizer,
                                                          override_pot_kwargs=override_pot_kwargs,
                                                          logging_tag=logging_tag,
-                                                         write_opengl=write_opengl)
+                                                         write_opengl=write_opengl,
+                                                         sort_atoms=sort_atoms)
         self.interaction = interaction
         self.use_cell_lists = use_cell_lists
         self.tol = tol
@@ -530,6 +539,21 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             return put_in_box(self.coords, self.bdim,
                               self.distance_method, self.boxv)
 
+    def _sort_atoms(self):
+        """sorts the atoms according to the potential"""
+        new_order = self.potential.sortAtoms(self.coords)
+        new_radii = np.empty(len(self.hs_radii))
+        new_rattlers = np.empty(len(self.rattlers))
+        new_coords = np.empty(len(self.coords))
+        for i in xrange(len(self.hs_radii)):
+            new_radii[i] = self.hs_radii[new_order[i]]
+            new_rattlers[i] = self.rattlers[new_order[i]]
+            for j in xrange(self.bdim):
+                new_coords[i * self.bdim + j] = self.coords[new_order[i] * self.bdim + j]
+        self.hs_radii = new_radii
+        self.rattlers = new_rattlers
+        self.coords = new_coords
+
     def _dump_configuration(self, n):
         """write coordinates to file .xyzdr"""
         directory = self.base_directory
@@ -671,6 +695,9 @@ if __name__ == "__main__":
                              "Options: 'HS_WCA', 'INVERSE_POWER_STILLINGER'. "
                              "Default: 'HS_WCA'",
                         default='HS_WCA')
+    parser.add_argument("--sort", action='store_true',
+                        help="Use the potential to sort the atoms before saving. "
+                             "Default: False", default=False)
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -708,5 +735,6 @@ if __name__ == "__main__":
                                      interaction=interaction,
                                      minimizer=minimizer,
                                      override_pot_kwargs=override_pot_kwargs,
-                                     write_opengl=args.write_opengl)
+                                     write_opengl=args.write_opengl,
+                                     sort_atoms=args.sort)
     sim.run()

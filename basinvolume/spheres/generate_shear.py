@@ -201,7 +201,8 @@ if __name__ == "__main__":
     else:
         logging.info("Generating jammed packings")
         unsheared_kwargs = dict(jammed_kwargs, packings_dir="packings",
-                                outdir="shear_0.0/jammed_packings")
+                                outdir="shear_0.0/jammed_packings",
+                                sort_atoms=True)
         gen_jammed_packings(unsheared_kwargs, args.npackings, args.njobs)
 
     # Generate sheared packings
