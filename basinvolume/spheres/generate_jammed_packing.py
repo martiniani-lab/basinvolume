@@ -69,6 +69,7 @@ def read_jammed_packing_config(configpath, frozen=False):
     parameters['pot_kwargs'] = ast.literal_eval(conf_get_default(configf, 'JAMMED_PACKING',
                                                                  'pot_kwargs', '{}'))
     parameters['sca'] = configf.getfloat('JAMMED_PACKING', 'sca')
+    parameters['sorted'] = conf_getboolean_default(configf, 'JAMMED_PACKING', 'sorted', False)
     return parameters
 
 
@@ -199,6 +200,7 @@ class _Generate_Jammed_Packing(object):
         f.write('pot_kwargs: {}\n'.format(self.pot_kwargs))
         assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))
+        f.write('sorted: {}\n'.format(self.sort_atoms))
         f.write('\n')
         # print software version
         f.write('[CODEVERSION]\n')
@@ -216,7 +218,7 @@ class _Generate_Jammed_Packing(object):
         """
         self._print_parameters(n)
         if self.sort_atoms:
-            self._sort_atoms()
+            self._sort_atoms(n)
         self._dump_configuration(n)
         if self.write_opengl:
             self._write_opengl_input(n)
@@ -539,20 +541,33 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             return put_in_box(self.coords, self.bdim,
                               self.distance_method, self.boxv)
 
-    def _sort_atoms(self):
+    def _sort_atoms(self, n):
         """sorts the atoms according to the potential"""
-        new_order = self.potential.sortAtoms(self.coords)
-        new_radii = np.empty(len(self.hs_radii))
-        new_rattlers = np.empty(len(self.rattlers))
-        new_coords = np.empty(len(self.coords))
-        for i in xrange(len(self.hs_radii)):
-            new_radii[i] = self.hs_radii[new_order[i]]
-            new_rattlers[i] = self.rattlers[new_order[i]]
-            for j in xrange(self.bdim):
-                new_coords[i * self.bdim + j] = self.coords[new_order[i] * self.bdim + j]
-        self.hs_radii = new_radii
-        self.rattlers = new_rattlers
-        self.coords = new_coords
+        new_order = self.potential.getAtomOrder(self.coords)
+        if new_order is not None:
+            new_radii = np.empty(len(self.hs_radii))
+            new_rattlers = np.empty(len(self.rattlers))
+            new_coords = np.empty(len(self.coords))
+            for i in xrange(len(self.hs_radii)):
+                new_radii[i] = self.hs_radii[new_order[i]]
+                new_rattlers[i] = self.rattlers[new_order[i]]
+                for j in xrange(self.bdim):
+                    new_coords[i * self.bdim + j] = self.coords[new_order[i] * self.bdim + j]
+            self.hs_radii = new_radii
+            self.rattlers = new_rattlers
+            self.coords = new_coords
+            self._dump_permutations(new_order, n)
+
+    def _dump_permutations(self, old_ind, n):
+        fname = "{0}/jammed_packing{1}.perm".format(self.base_directory, n)
+        perms = []
+        for new_ind in xrange(len(old_ind)):
+            perms.append((old_ind[new_ind], new_ind))
+        perms = sorted(perms, key=lambda perm: perm[0])
+        with open(fname, 'w') as forder:
+            forder.write("old index, new index\n")
+            for perm in perms:
+                forder.write("{}, {}\n".format(perm[0], perm[1]))
 
     def _dump_configuration(self, n):
         """write coordinates to file .xyzdr"""
