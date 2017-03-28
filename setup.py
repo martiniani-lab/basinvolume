@@ -164,14 +164,14 @@ depends_py_cgdescent += [os.path.join(py_cgdescentpath+"/source/PyCG_DESCENT", f
 # I run it through valgrind, valgrind complains about an unrecognized
 # instruction.  I don't have a clue what is causing this, but it's probably
 # better to be on the safe side and not use -march=native
-#extra_compile_args = ['-I/home/sm958/Work/pele/source','-std=c++0x',"-Wall", "-Wextra", "-O3", '-funroll-loops', "-fopenmp"]
+#extra_compile_args = ['-I/home/sm958/Work/pele/source','-std=c++0x',"-Wall", "-Wextra", "-O3", '-funroll-loops', "-fopenmp", "-mavx"]
 # uncomment the next line to add extra optimization options
 
 include_pele_source = '-I'+ pelepath + '/source'
 include_mcpele_source = '-I'+ mcpelepath + '/source'
 include_py_cgdescent_source = '-I'+ py_cgdescentpath + '/source'
 
-extra_compile_args = [include_pele_source,include_mcpele_source,include_py_cgdescent_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3', "-fopenmp"]
+extra_compile_args = [include_pele_source,include_mcpele_source,include_py_cgdescent_source,'-std=c++0x',"-Wall", '-Wextra','-pedantic','-O3', "-fopenmp", "-mavx"]
 
 # note: to compile with debug on and to override extra_compile_args use, e.g.
 # OPT="-g -O2 -march=native" python setup.py ...
