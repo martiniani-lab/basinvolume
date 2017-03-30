@@ -22,19 +22,19 @@ public:
     {}
 
     void loop_cell_pairs(
-        std::vector< std::pair<const std::vector<pele::Atom<ndim>>*,
-                               const std::vector<pele::Atom<ndim>>*> >
-        const & neighbor_pairs)
+        std::vector< std::pair<const std::vector<size_t>*,
+                               const std::vector<size_t>*> >
+        const & neighbor_pairs, const size_t isubdom)
     {
         for (auto const & ijpair : neighbor_pairs) {
-            const std::vector<pele::Atom<ndim>>* icell = ijpair.first;
-            const std::vector<pele::Atom<ndim>>* jcell = ijpair.second;
+            const std::vector<size_t>* icell = ijpair.first;
+            const std::vector<size_t>* jcell = ijpair.second;
             // do double loop through atoms, avoiding duplicate pairs
             for (auto iatom = icell->begin(); iatom != icell->end(); ++iatom) {
                 // if icell==jcell we need to avoid duplicate atom pairs
                 auto jend = (icell == jcell) ? iatom : jcell->end();
                 for (auto jatom = jcell->begin(); jatom != jend; ++jatom) {
-                    if (CellListsLoop<visitor_t, ndim>::m_visitor.insert_atom_pair(*iatom, *jatom)) {
+                    if (CellListsLoop<visitor_t, ndim>::m_visitor.insert_atom_pair(*iatom, *jatom, isubdom)) {
                         m_break = true;
                     }
                     if (m_break) {
