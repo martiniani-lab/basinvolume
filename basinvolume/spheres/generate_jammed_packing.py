@@ -46,6 +46,8 @@ def sum_neighbor_angles2d(neigh_vec):
 
 
 def read_jammed_packing_config(configpath, frozen=False):
+    if not os.path.isfile(str(configpath)):
+        raise IOError("Config file does not exist: {}".format(str(configpath)))
     configf = ConfigParser.ConfigParser()
     configf.read(str(configpath))
     parameters = {}
