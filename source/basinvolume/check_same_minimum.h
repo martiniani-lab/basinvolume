@@ -10,6 +10,7 @@
 
 #include "pele/distance.h"
 #include "pele/optimizer.h"
+#include "pele/vecn.h"
 
 #include "mcpele/mc.h"
 #include "mcpele/histogram.h"
@@ -171,16 +172,18 @@ void CheckSameMinimum<distance_policy, OPT_T>::_align_coords(pele::Array<double>
 {
     /*assert(coords.size() == _origin.size());
     assert(coords.size() == _ndim * _nparticles);*/
-    pele::Array<double> dr(_ndim);
+    pele::VecN<_ndim, double> dr;
 
     //measure distance between two non rattlers
     _dist_policy->get_rij(dr.data(), &coords[_inoratt], &_origin[_inoratt]);
 
     //align structures
+    #pragma simd
     for (size_t i = 0; i < _nparticles; ++i) {
         const size_t i1 = i * _ndim;
+        #pragma unroll
         for (size_t j = 0; j < _ndim; ++j) {
-            coords[i1+j] -= dr[j];
+            coords[i1 + j] -= dr[j];
         }
     }
 }
@@ -190,24 +193,25 @@ this ignores the rattlers completely and returns rmsd squared*/
 template <typename distance_policy, class OPT_T>
 double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> const & coords)
 {
-    pele::Array<double> dr(_ndim);
-    double current_distance;
-    double distance = 0;
+    double distance2 = 0;
     _aligned_coords.assign(coords);
     this->_align_coords(_aligned_coords);
 
     //compute distance between aligned structures
+    #pragma simd reduction( + : distance2)
     for (size_t i = 0; i < _nparticles; ++i) {
         const size_t i1 = i * _ndim;
-        _dist_policy->get_rij(dr.data(), &_aligned_coords[i1], &_origin[i1]);
+        pele::VecN<_ndim, double> dr;
+        _dist_policy->get_rij(dr.data(), _aligned_coords.data() + i1, _origin.data() + i1);
+        #pragma unroll
         for (size_t j = 0; j < _ndim; ++j) {
-            current_distance = dr[j] * _rattlers[i1 + j];
-            distance += current_distance * current_distance;
+            const double current_distance = dr[j] * _rattlers[i1 + j];
+            distance2 += current_distance * current_distance;
         }
     }
 
-    //avoid taking square roots by return squared quantities
-    return distance;
+    //avoid taking square roots by returning squared quantities
+    return distance2;
 }
 
 /*quench configuration and add minimum to new minimum list*/
