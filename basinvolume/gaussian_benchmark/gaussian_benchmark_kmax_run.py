@@ -5,7 +5,6 @@ from mcpele.monte_carlo import CheckSphericalContainer
 from mcpele.monte_carlo import MetropolisTest
 from mcpele.monte_carlo import NullPotential
 from mcpele.monte_carlo import SampleGaussian
-from basinvolume.monte_carlo import CheckSameMinimum
 
 class GaussianBenchmarkKmaxRun(_BaseMCRunner):
     def __init__(self, a, b, c, d):
@@ -62,7 +61,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         print("p", self.action_findk.get_prob())
         return self.action_findk.get_prob()
     def get_k(self):
-        """ The MC potential is just a placeholder. 
+        """ The MC potential is just a placeholder.
         k is determined by takestep.
         """
         stepsize = self.get_stepsize()

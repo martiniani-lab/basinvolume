@@ -11,7 +11,7 @@ class SimpleSolidAngleNeighbors {
 public:
     typedef T distance_t;
 private:
-    const pele::Array<double>& m_coords;
+    const pele::Array<double> m_coords;
     const size_t m_nparticles;
     const distance_t& m_distance;
 public:
@@ -64,8 +64,8 @@ public:
         m_distance.get_rij(rij.data(), m_coords.data() + center * distance_t::_ndim, m_coords.data() + k * distance_t::_ndim);
         return pele::norm(rij);
     }
-};    
-    
+};
+
 } // namespace bv
 
 #endif // #ifndef SIMPLE_SOLID_ANGLE_NEIGHBORS_H

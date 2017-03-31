@@ -452,28 +452,42 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
 
         if use_cgd:
             if (bdim == 2):
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT2](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), opt_tol, dtol, opt_maxiter, 0, eqsteps,
-                                                                     perform_convergence_test, collect_minima_list)
-                                                       )
+                self.thisptr = shared_ptr[cppConfTest](
+                    <cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT2](
+                        self.potential.thisptr,
+                        _pele.Array[double](<double*> orginc.data, orginc.size),
+                        _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
+                        opt_tol, dtol, opt_maxiter, 0, eqsteps, perform_convergence_test,
+                        collect_minima_list)
+                    )
             else:
                 assert(bdim == 3)
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT3](self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), opt_tol, dtol, opt_maxiter, 0, eqsteps,
-                                                                     perform_convergence_test, collect_minima_list)
-                                                   )
+                self.thisptr = shared_ptr[cppConfTest](
+                    <cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT3](
+                        self.potential.thisptr,
+                        _pele.Array[double](<double*> orginc.data, orginc.size),
+                        _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
+                        opt_tol, dtol, opt_maxiter, 0, eqsteps, perform_convergence_test,
+                        collect_minima_list)
+                    )
         else:
             if (bdim == 2):
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT2](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
-                                                                     perform_convergence_test, collect_minima_list)
-                                                       )
+                self.thisptr = shared_ptr[cppConfTest](
+                    <cppConfTest*>new cppCheckSameMinimumCartesian[INT2](
+                        self.optimizer.thisptr, self.potential.thisptr,
+                        _pele.Array[double](<double*> orginc.data, orginc.size),
+                        _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
+                        dtol, eqsteps, perform_convergence_test, collect_minima_list)
+                    )
             else:
                 assert(bdim == 3)
-                self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckSameMinimumCartesian[INT3](self.optimizer.thisptr, self.potential.thisptr, _pele.Array[double](<double*> orginc.data, orginc.size),
-                                                                     _pele.Array[double](<double*> rattlersc.data, rattlersc.size), dtol, eqsteps,
-                                                                     perform_convergence_test, collect_minima_list)
-                                                       )
+                self.thisptr = shared_ptr[cppConfTest](
+                    <cppConfTest*>new cppCheckSameMinimumCartesian[INT3](
+                        self.optimizer.thisptr, self.potential.thisptr,
+                        _pele.Array[double](<double*> orginc.data, orginc.size),
+                        _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
+                        dtol, eqsteps, perform_convergence_test, collect_minima_list)
+                    )
         self.newptr = <cppCheckSameMinimumInterface*> self.thisptr.get()
 
     @cython.boundscheck(False)

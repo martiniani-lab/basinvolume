@@ -6,7 +6,7 @@
 #include "cell_loop_break.h"
 
 namespace pele {
-    
+
 template<typename distance_policy=periodic_distance<3> >
 class CellListsWithBreak : public CellLists<distance_policy> {
 public:
