@@ -19,6 +19,9 @@ public:
     pele::Array<double> boxvec;
     virtual void SetUp()
     {
+        #ifdef _OPENMP
+        omp_set_num_threads(1);
+        #endif
         nr_particles = 12;
         nr_dof = nr_particles * nr_dim;
         x = pele::Array<double>(nr_dof, 0);

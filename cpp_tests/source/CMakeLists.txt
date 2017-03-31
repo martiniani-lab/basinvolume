@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 2.6.4)
 
 enable_language(CXX)
-SET(CMAKE_CXX_FLAGS "-Wall -ansi -pedantic -std=c++0x")
+SET(CMAKE_CXX_FLAGS "-Wall -std=c++0x -O1")
+
+#set OpenMP
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
 
 #cmake_policy(SET CMP0015 NEW)
 
