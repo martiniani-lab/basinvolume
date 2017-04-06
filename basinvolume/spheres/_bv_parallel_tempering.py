@@ -223,14 +223,14 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
 #        or when steps involve minimisation, as the low temperatures are closer to the minimum)
 #        """
 #        if (self.rank == 0):
-#            Tarray = spring_constants_variable_transform(self.nproc+1, self.Tmax, self.u2meank0, 
+#            Tarray = spring_constants_variable_transform(self.nprocs+1, self.Tmax, self.u2meank0,
 #                                                         self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
 #            Tarray = Tarray[::-1]
 #            Tarray = np.array(Tarray[1:],dtype='d') #exclude kmax entry, no need to be simulated, mean is already available
 #            self.Tarray = Tarray
 #        else:
 #            self.Tarray = None
-    
+
     #THIS _get_temps CAN DEAL WITH NEGATIVE Ks
     def _get_temps(self):
         """
@@ -239,8 +239,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         or when steps involve minimisation, as the low temperatures are closer to the minimum)
         """
         if (self.rank == 0):
-            nposk = self.nproc - self.numnegk #number of positive k
-            Tarray = spring_constants_variable_transform(nposk+1, self.Tmax, self.u2meank0, 
+            nposk = self.nprocs - self.numnegk #number of positive k
+            Tarray = spring_constants_variable_transform(nposk+1, self.Tmax, self.u2meank0,
                                                          self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
             Tarray = Tarray[:-1] #exclude kmax entry, no need to be simulated, mean is already available
             if self.numnegk > 0:

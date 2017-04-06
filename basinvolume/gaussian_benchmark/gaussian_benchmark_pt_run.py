@@ -120,8 +120,8 @@ class GaussianBenchmarkPTRun(object):
                                          verbose=verbose,
                                          bs_nodes=100)
         ptrunner.suppress_histogram = True
-        assert ptrunner.rank == rank, "rank id do not match"
-        assert ptrunner.nproc == nprocs, "number of cores do not match"
+        assert ptrunner.rank == rank, "rank id does not match"
+        assert ptrunner.nprocs == nprocs, "number of processes does not match"
         # run PT
         print("run gaussian pt")
         start = time.time()

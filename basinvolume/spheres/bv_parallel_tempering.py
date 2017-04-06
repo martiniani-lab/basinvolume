@@ -109,8 +109,8 @@ if __name__ == "__main__":
                                      test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
                                      min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
                                      numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path, verbose=args.verbose)
-    assert ptrunner.rank == rank, "rank id do not match"
-    assert ptrunner.nproc == nprocs, "number of cores do not match"
+    assert ptrunner.rank == rank, "rank id does not match"
+    assert ptrunner.nprocs == nprocs, "number of processes does not match"
 
     #run simulation
     start=time.time()
