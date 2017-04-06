@@ -34,6 +34,7 @@ if __name__ == "__main__":
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                         "Default: 'FIRE'", default='FIRE')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
+    parser.add_argument("--seed-takestep", type=int, help="Seed for the takestep method", default=None)
     args = parser.parse_args()
     print args
     fname = args.fname
@@ -53,8 +54,11 @@ if __name__ == "__main__":
                         verbose=args.verbose)
 
     i32max = np.iinfo(np.int32).max
-    #construct mcrunners in place and append them to pool
-    seeds_dict = dict(seed_takestep=random.randint(0, i32max))
+    if args.seed_takestep is None:
+        seed_takestep = random.randint(0, i32max)
+    else:
+        seed_takestep = args.seed_takestep
+    seeds_dict = dict(seed_takestep=seed_takestep)
     seeds = dict(seeds=seeds_dict)
     findk_kwargs_s = copy.deepcopy(dict(findk_kwargs,**seeds))
     worker_findk(fname, findk_kwargs_s)
