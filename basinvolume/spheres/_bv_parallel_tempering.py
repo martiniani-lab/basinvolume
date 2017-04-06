@@ -7,20 +7,21 @@ from basinvolume.spheres import BV_MCrunner
 from basinvolume.hypercube import HypercubeMCrunner
 from pymbar.timeseries import detectEquilibration_binary_search
 import time
+import logging
 try:
     from basinvolume.gaussian_benchmark import GaussianBenchmarkKminRun
 except:
-    print("gaussian import failed")
+    logging.warning("gaussian import failed")
 
 class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     """
     Note that ptiter is a single REM step, for each ptiter there are self.mcrunner.niter Monte Carlo steps
-    
-    u2meank0 : float 
+
+    u2meank0 : float
         mean of histogram from simulation done at k=0
     Tmax, Tmin : float
         here correspond to kmin and kmax, they should be computed by bv_find_params
-    fast_ct: bool 
+    fast_ct: bool
         if false perform full convergence test computing the segment of the recorded time series that maximises the number of uncorrelated samples
         else return the maximum equilibration time
     numnegk : int
@@ -28,7 +29,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     lownegk : float
         lowest negative k
     skip: int
-        number of pt iteration where swaps should be skipped. For instance while the stepsize is adjusted, pt swaps shuold be avoided 
+        number of pt iteration where swaps should be skipped. For instance while the stepsize is adjusted, pt swaps shuold be avoided
     max_ptiter: int
         inherited max_ptiter, in this class it plays as the minimum number of pt_iter. In other words it's eq_min_ptiter
     eq_min_ptiter: int
@@ -43,11 +44,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     bs_nodes : int
         number of binary search nodes to use when computing the equilibration point
     """
-    def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, fast_ct=False, 
-                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False, 
-                 base_directory=None, verbose=False, bs_nodes=100, eq_min_ptiter=None, eq_max_ptiter=None, fix_com=True):
-        super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip, 
-                                                   print_status=print_status, base_directory=base_directory, verbose=verbose)
+    def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, fast_ct=False,
+                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False,
+                 base_directory=None, bs_nodes=100, eq_min_ptiter=None, eq_max_ptiter=None, fix_com=True):
+        super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip,
+                                                   print_status=print_status, base_directory=base_directory)
         self.u2meank0 = u2meank0
         self.mcrunner_eqsteps = mcrunner.equilibration_steps
         self.test_convergence = test_convergence
@@ -59,7 +60,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.rel_std_err_arr = [] #array of measured relative standard errors
         if eq_min_ptiter is None:
             eq_min_ptiter = int(self.max_ptiter*0.95) #initial maxptiter is passed from command line #int(1e5/self.mcrunner.niter)#
-        self.eq_min_ptiter = int(eq_min_ptiter)  
+        self.eq_min_ptiter = int(eq_min_ptiter)
         if eq_max_ptiter is None:
             eq_max_ptiter = int(2e6/self.mcrunner.niter)
         self.eq_max_ptiter = int(eq_max_ptiter)
@@ -74,11 +75,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
         assert((self.eq_max_ptiter-self.eq_min_ptiter)*self.mcrunner.niter > self.min_window) #condition on the minimal window size
         if not (self.min_window > self.mcrunner_eqsteps):
-            print("self.min_window", self.min_window)
-            print("self.mcrunner_eqsteps", self.mcrunner_eqsteps)
+            logging.info("self.min_window: {}".format(self.min_window))
+            logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
         assert(self.min_window > self.mcrunner_eqsteps)
         assert(self.max_eq_time > self.mcrunner_eqsteps)
-        
+
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
@@ -91,32 +92,32 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.histogram_mean_stream.write('{:<15}\t{:<15}\t{:<15}\t{:<15}\n'.format('iteration','<(x-x0)**2>','variance','std_err'))
         if self.rank == 0:
             self.permutations_stream = open(r'{0}/rem_permutations'.format(base_directory),'w')
-    
+
     def _print_data(self):
         self._all_dump_timeseries() #convergence is tested in this function
         #the histogram depends on self.timeseries that is not empty only once the ts test is passed
-        print("_print_data -- BEGIN")
-        print("self.ptiter", self.ptiter)
-        print("self.eq_min_ptiter", self.eq_min_ptiter)
-        print("self.timeseries2.size", self.timeseries2.size)
-        print("self.mcrunner_eqsteps", self.mcrunner_eqsteps)
+        logging.info("_print_data -- BEGIN")
+        logging.info("self.ptiter: {}".format(self.ptiter))
+        logging.info("self.eq_min_ptiter: {}".format(self.eq_min_ptiter))
+        logging.info("self.timeseries2.size: {}".format(self.timeseries2.size))
+        logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
         if self.ptiter >= self.eq_min_ptiter and self.timeseries2.size > self.mcrunner_eqsteps:
             self._all_dump_histogram()
-        print("_print_data -- END")
-    
+        logging.info("_print_data -- END")
+
     def _test_convergence(self):
         tail_timeseries = self.mcrunner.get_timeseries()
         tail_timeseries2 = np.power(tail_timeseries,2)
         self.timeseries2 = np.append(self.timeseries2, tail_timeseries2)
         if self.test_convergence and self.ptiter > self.eq_min_ptiter:
             if self.timeseries2.size < self.mcrunner_eqsteps:
-                print "core {} attempted to test convergence before the mcrunner equilibration steps had terminated".format(self.rank)
+                logging.info("core {} attempted to test convergence before the mcrunner equilibration steps had terminated".format(self.rank))
                 return self.max_ptiter
             else:
                 return self._test_ts_convergence()
         else:
             return self.max_ptiter
-        
+
     def _test_ts_convergence(self):
         """
         in_timeseries is the last segment of the time series
@@ -127,8 +128,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             if self.fast_ct:
                 self.eq_time = np.amin([self.max_eq_time, self.timeseries2.size])
             else:
-                print "detecting equilibration point"
-                print "timeseries size", self.timeseries2.size
+                logging.info("detecting equilibration point")
+                logging.info("timeseries size: {}".format(self.timeseries2.size))
                 eq_time = detectEquilibration_binary_search(self.timeseries2, bs_nodes=self.bs_nodes)[0]
                 eq_time = np.amin([self.max_eq_time, eq_time]) #this should avoid detecting artifacts near the end of the series
                 new_eq_time = np.amax([eq_time, self.mcrunner_eqsteps]) #guarantees that eq_time is larger than the mcrunner adapted number of steps
@@ -141,28 +142,30 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 self.eq_time = self._broadcast_data([new_eq_time], 1)[0]
                 self.eq_time = int(self.eq_time)
             end=time.time()
-            print "core {} set_eq_time: {} comp_eq_time: {} \
-            mcrunner_eqsteps: {} len(timeseseries2): {} \
-            time detect equilibration: {}".format(self.rank, self.eq_time, eq_time, 
-                                                  self.mcrunner_eqsteps, self.timeseries2.size, end-start)
+            logging.info("core {} set_eq_time: {} comp_eq_time: {} "
+                         "mcrunner_eqsteps: {} len(timeseseries2): {} "
+                         "time detect equilibration: {}".format(
+                             self.rank, self.eq_time, eq_time,
+                             self.mcrunner_eqsteps, self.timeseries2.size,
+                             end-start)
+                         )
         #only keep time series from after the equilibration point, this references original data
         timeseries2 = self.timeseries2[self.eq_time:]
         new_max_ptiter = self._find_new_max_ptiter(timeseries2)
-        #if self.verbose:
-        print "new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter)
-        print "core {} autocorrelation time {}".format(self.rank, self.autocorr)
+        logging.debug("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
+        logging.debug("core {} autocorrelation time {}".format(self.rank, self.autocorr))
         return new_max_ptiter
-    
+
     def _find_new_max_ptiter(self, timeseries2):
         """
-        resets max_ptiter based on desired relative standard error that one wants to achieve. The longest estimate 
+        resets max_ptiter based on desired relative standard error that one wants to achieve. The longest estimate
         is chosen for the full pt. In order to estimate the number of extra steps to perform uses the correlated
         estimate for the standard error (see Troyer Am. J. Phys. 78 (2)) from which one can easily find that
         M = sig^2*(1+2t)/(mu rel_std_err)^2
         it returns an estimate of the new maxptiter only once the timeseries is longer than min_window
         """
         #to reduce nskip (use more points) make the factor by which timeseries.size is divided by larger
-        nskip = max(int(np.round(timeseries2.size/1e6)),1) 
+        nskip = max(int(np.round(timeseries2.size/1e6)),1)
         tau = integratedAutocorrelationTime_fft(timeseries2[::nskip]) * nskip
         self.autocorr.extend([tau])
         var = np.var(timeseries2)
@@ -170,8 +173,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         sample_size = timeseries2.size
         rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
         self.rel_std_err_arr.extend([rel_err])
-        print "core {} relative standard error {}".format(self.rank, rel_err)
-        
+        logging.info("core {} relative standard error {}".format(self.rank, rel_err))
+
         #compute by how much to extend the time series, if has at least 1e5
         if sample_size < self.min_window: #self.autocorr[-1]*100
             new_max_ptiter = self.eq_max_ptiter
@@ -181,16 +184,16 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         else:
             m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
             new_max_ptiter = self.ptiter + int((m-sample_size)/self.mcrunner.niter)
-            
+
         new_max_ptiter_array = self._gather_data([new_max_ptiter])
         if self.rank == 0:
             max_ptiter = np.amax(new_max_ptiter_array)
         else:
             max_ptiter = None
-        
+
         max_ptiter = self._broadcast_data([max_ptiter], 1)[0]
         return min(int(max_ptiter),self.eq_max_ptiter)
-    
+
     def _all_dump_timeseries(self):
         """for this to work the directory must have been initialised in _print_initialise"""
         base_directory = self.base_directory
@@ -198,7 +201,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         iteration = self.mcrunner.get_iterations_count()
         fname = "{0}/TimeSeries.{1}".format(directory,int(iteration))
         self.mcrunner.dump_timeseries(fname, clear=True)
-    
+
     def _all_dump_histogram(self):
         """for this to work the directory must have been initialised in _print_initialise"""
         base_directory = self.base_directory
@@ -214,7 +217,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             std_err = self.rel_std_err_arr[-1]*mean
             self.histogram_mean_stream.write('{:<15}\t{:>15.15e}\t{:>15.15e}\t{:>15.15e}\n'.format(iteration,mean,variance,std_err))
         self.histogram_mean_stream.flush() #print every time not to lose data
-    
+
 #    def _get_temps(self):
 #        """
 #        NOTE: BECAUSE K0 IS INCLUDED IN THE CALCULATION TARRAY CANNOT BE REVERSED AS [::-1]
@@ -249,18 +252,18 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 assert grid.size == self.numnegk
                 for x in grid[::-1]:
                     Tarray.insert(0, x)
-            print "len Tarray", len(Tarray)
-            print "Tarray:", Tarray
+            logging.info("len Tarray: {}".format(len(Tarray)))
+            logging.info("Tarray: {}".format(Tarray))
             self.Tarray = np.array(Tarray[::-1],dtype='d')
         else:
             self.Tarray = None
-    
+
     def _attempt_exchange(self):
         """
         this function brings together all the functions necessary to attempt a configuration swap, it is structures as
         following:
         *root gathers the energies from the slaves
-        *red_origin is just the origin for systems with pbc and is the reduced set of coordinates for systems with frozen coordinates 
+        *red_origin is just the origin for systems with pbc and is the reduced set of coordinates for systems with frozen coordinates
         """
         #compute dx with com correction for each replica
         assert (isinstance(self.mcrunner, BV_MCrunner) or isinstance(self.mcrunner, HypercubeMCrunner))
@@ -270,9 +273,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             dx = np.linalg.norm(np.array(self.config,dtype='d') - np.array(self.mcrunner.red_origin,dtype='d'))
         #gather dx, only root will do so
         dx_array = self._gather_energies(dx)
-        if self.verbose:
-            if dx_array is not None:
-                print "dx_array", dx_array
+        if dx_array is not None:
+            logging.debug("dx_array {}".format(dx_array))
         #find exchange pattern (list of exchange buddies)
         exchange_pattern = self._find_exchange_buddy(dx_array)
         #now scatter the exchange pattern so that everybody knows who their buddy is
@@ -284,45 +286,44 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if (exchange_buddy != self.no_exchange_int):
             #recompute energy (this assumes that mcrunner has member origin)
             self.energy = self.mcrunner.potential.getEnergy(np.array(self.config,dtype='d'))
-        
+
     def _find_exchange_buddy(self, dx_array):
         """
         This function determines the exchange pattern alternating swaps with right and left neighbours.
         An exchange pattern array is constructed, filled with self.no_exchange_int which
         signifies that no exchange should be attempted. This value is replaced with the
-        rank of the processor with which to perform the swap if the swap attempt is successful.
-        The exchange partner is then scattered to the other processors.
-        """        
+        rank of the process with which to perform the swap if the swap attempt is successful.
+        The exchange partner is then scattered to the other processes.
+        """
         if (self.rank == 0):
             assert(len(dx_array)==len(self.Tarray))
             exchange_pattern = np.empty(len(dx_array),dtype='int32')
             exchange_pattern.fill(self.no_exchange_int) #reset exchange pattern to no exchange
             self.anyswap = False
-            
+
             for i in self.nodelist[1::2]:
-                if self.verbose:
-                    print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
-                
+                logging.debug("exchange choice: {}".format(self.exchange_dic[self.exchange_choice])) #this is a print statement that has to be removed after initial implementation
+
                 dx1 = dx_array[i]
                 T1 = self.Tarray[i]
-                dx2 = dx_array[i+self.exchange_choice]
-                T2 = self.Tarray[i+self.exchange_choice]
+                dx2 = dx_array[i + self.exchange_choice]
+                T2 = self.Tarray[i + self.exchange_choice]
 
                 #Hamiltonia replica exchange
                 deltaE = 0.5*dx2*dx2 - 0.5*dx1*dx1
                 deltabeta = T2 - T1
                 w = np.exp(deltaE * deltabeta)
                 rand = np.random.rand()
-                
-                #print 'w {} rand {}'.format(w,rand)
-                #print 'deltaE {} deltaT {}'.format(deltaE, deltabeta)
-                #print "E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w) 
+
+                #logging.debug('w {} rand {}'.format(w,rand))
+                #logging.debug('deltaE {} deltaT {}'.format(deltaE, deltabeta))
+                #logging.debug("E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w))
                 if w > rand:
                     #accept exchange
-                    if self.verbose:
+                    if logging.getLogger().isEnabledFor(logging.DEBUG):
                         self.ex_outstream.write("accepting exchange %d %d %g %g %g %g %d\n" % (self.nodelist[i], self.nodelist[i+self.exchange_choice], dx1, dx2, T1, T2, self.ptiter))
-                    assert(exchange_pattern[i] == self.no_exchange_int)                      #verify that is not using the same processor twice for swaps
-                    assert(exchange_pattern[i+self.exchange_choice] == self.no_exchange_int) #verify that is not using the same processor twice for swaps
+                    assert(exchange_pattern[i] == self.no_exchange_int)                      #verify that is not using the same process twice for swaps
+                    assert(exchange_pattern[i+self.exchange_choice] == self.no_exchange_int) #verify that is not using the same process twice for swaps
                     exchange_pattern[i] = self.nodelist[i+self.exchange_choice]
                     exchange_pattern[i+self.exchange_choice] = self.nodelist[i]
                     self.anyswap = True
@@ -337,8 +338,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 self._master_print_permutations()
         else:
             exchange_pattern = None
-        
+
         self.exchange_choice *= -1 #swap direction of exchange choice
-        #print "exchange_pattern",exchange_pattern
+        #logging.debug("exchange_pattern: {}".format(exchange_pattern))
         return exchange_pattern
-    

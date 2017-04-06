@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 import random
 import argparse
+import logging
 from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
 from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 import time
@@ -40,6 +41,14 @@ if __name__ == "__main__":
                         "and only use the HDF5 format.", default=False)
     args = parser.parse_args()
 
+    if args.verbose:
+        loglevel = logging.DEBUG
+    else:
+        loglevel = logging.INFO
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=loglevel)
+
     path = args.base_directory
     fname = args.jammed_packing_fname
     single = not args.moveall
@@ -70,7 +79,7 @@ if __name__ == "__main__":
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=random.randint(0, i32max),seed_metropolis=random.randint(0, i32max))
-    print seeds
+    logging.info(seeds)
 
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
@@ -82,10 +91,10 @@ if __name__ == "__main__":
     nprocs = comm.Get_size()
     rank = comm.Get_rank()
     if ".xydfr" in fname or ".xyzdfr" in fname:
-        print "found experimental packing"
+        logging.info("found experimental packing")
         sim = configure_bv_exp_mcrunner(rank, nprocs)
     else:
-        print "found numerical packing"
+        logging.info("found numerical packing")
         sim = configure_bv_mcrunner(rank, nprocs)
 
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5, opt_nsteps=1e5, hmin=0,
@@ -97,7 +106,7 @@ if __name__ == "__main__":
                    base_dir=path)
 
     if not check_kmax_reasonable(sim.findk_configpath):
-        print('bv_parallel_tempering: kmax is unreasonable, exiting')
+        logging.info('bv_parallel_tempering: kmax is unreasonable, exiting')
         sys.exit()
 
     #prepare PT runner
@@ -108,7 +117,7 @@ if __name__ == "__main__":
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1, pfreq=pfreq, skip=nskip,
                                      test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
                                      min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                                     numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path, verbose=args.verbose)
+                                     numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path)
     assert ptrunner.rank == rank, "rank id does not match"
     assert ptrunner.nprocs == nprocs, "number of processes does not match"
 
@@ -127,14 +136,14 @@ if __name__ == "__main__":
             view_traceback()
 
     end=time.time()
-    print ('core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
-           .format(rank, mcrunner.niter, ptrunner.ptiter, adjustf_niter,
-                   ptrunner.skip, ptrunner.pfreq))
-    print 'convert timeseries to hdf5...'
+    logging.info('core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
+                 .format(rank, mcrunner.niter, ptrunner.ptiter, adjustf_niter,
+                         ptrunner.skip, ptrunner.pfreq))
+    logging.info('convert timeseries to hdf5...')
     if rank == 0:
         #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
         #reduce the amount of occupied memory and i/o speed without loosing any information
         timeseries = import_pt_time_series(sim.base_dir, int(sim.mc_params['adjustf_niter']),
                                            max_series_size=0, ncores=1, del_raw=args.delraw)
-    print 'done'
-    print 'elapsed time',end-start
+    logging.info("Done")
+    logging.info("Elapsed time: {}".format(end - start))
