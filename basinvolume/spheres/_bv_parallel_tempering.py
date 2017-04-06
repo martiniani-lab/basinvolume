@@ -301,7 +301,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             exchange_pattern.fill(self.no_exchange_int) #reset exchange pattern to no exchange
             self.anyswap = False
 
-            for i in self.nodelist[1::2]:
+            for i in self.nodelist[1:self.nprocs - self.exchange_choice:2]:
                 logging.debug("exchange choice: {}".format(self.exchange_dic[self.exchange_choice])) #this is a print statement that has to be removed after initial implementation
 
                 dx1 = dx_array[i]
