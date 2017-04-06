@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
     end=time.time()
     logging.info('core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
-                 .format(rank, mcrunner.niter, ptrunner.ptiter, adjustf_niter,
+                 .format(rank, ptrunner.ptiter, mcrunner.niter, adjustf_niter,
                          ptrunner.skip, ptrunner.pfreq))
     logging.info('convert timeseries to hdf5...')
     if rank == 0:

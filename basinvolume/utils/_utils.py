@@ -903,7 +903,7 @@ def del_pt_time_series_raw(explore_dir):
     for subdir, dirs, files in os.walk(explore_dir):
         for dir in dirs:
             if dir.isdigit():
-                print "del replica raw replica timeseries ", dir
+                logging.info("del replica raw replica timeseries ", dir)
                 path = os.path.join(explore_dir, dir)
                 filelist = glob.glob(os.path.join(path, "TimeSeries.*"))
                 for f in filelist:
