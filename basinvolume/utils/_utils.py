@@ -12,6 +12,7 @@ import sys, traceback
 import ConfigParser
 import pandas as pd
 import glob
+import logging
 from itertools import chain
 from basinvolume.utils._utils_cpp import read_txt
 from pele.distance import get_distance, put_in_box, Distance
@@ -903,7 +904,7 @@ def del_pt_time_series_raw(explore_dir):
     for subdir, dirs, files in os.walk(explore_dir):
         for dir in dirs:
             if dir.isdigit():
-                logging.info("del replica raw replica timeseries ", dir)
+                logging.info("del replica raw replica timeseries %s" % dir)
                 path = os.path.join(explore_dir, dir)
                 filelist = glob.glob(os.path.join(path, "TimeSeries.*"))
                 for f in filelist:
