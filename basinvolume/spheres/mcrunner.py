@@ -392,17 +392,17 @@ class BV_MCrunner(SpheresMCRunner):
             self.add_action(self.record_trajectory)
         if self.record_steps_timeseries:
             self.steps_timeseries_list = []
-            self.record_steps_timeseries_every = self.record_steps_timeseries_every
             for freq in self.record_steps_timeseries_every:
                 self.steps_timeseries_list.append(RecordStepsTimeseries(self.red_origin, self.rattlers, self.bdim, self.ts_niter, freq))
             for action in self.steps_timeseries_list:
                 self.add_action(action)
 
-    def set_control(self, c):
+    def set_control(self, c, reset=True):
         """set temperature, canonical control parameter"""
         self.k = c
         self.potential.set_k(c)
-        self.reset_energy()
+        if reset:
+            self.reset_energy()
 
     def dump_histogram(self, fname):
         """write histogram to fname"""
@@ -426,15 +426,17 @@ class BV_MCrunner(SpheresMCRunner):
 
     def dump_steps_timeseries(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
-        for i,action in enumerate(self.steps_timeseries_list):
+        for i, action in enumerate(self.steps_timeseries_list):
             timeseries = np.array(action.get_time_series())
             np.savetxt(fname+".every{}".format(self.record_steps_timeseries_every[i]), timeseries)
             if clear:
                 action.clear()
 
-    def get_timeseries(self):
+    def get_timeseries(self, clear=False):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
+        if clear:
+            self.time_series.clear()
         return timeseries
 
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):

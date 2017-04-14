@@ -1,0 +1,500 @@
+from __future__ import division
+import logging
+import time
+import copy
+import os
+import random
+import numpy as np
+from mpi4py import MPI
+from pymbar.timeseries import detectEquilibration_binary_search
+from basinvolume.utils import trymakedir, integratedAutocorrelationTime_fft
+from basinvolume.post_processing import spring_constants_variable_transform
+
+
+class RunnerConfig:
+    """
+    This class saves the configuration of a parallel tempering runner in a NumPy array
+    """
+    def __init__(self, id, k, energy, coords):
+        self.data = np.empty(4 + len(coords), dtype='d')
+        self.data[0] = id
+        self.data[1] = k
+        self.data[2] = energy
+        self.data[4:] = coords
+
+    def get_id(self):
+        return int(self.data[0])
+
+    def set_id(self, id):
+        self.data[0] = id
+
+    def get_k(self):
+        return self.data[1]
+
+    def set_k(self, k):
+        self.data[1] = k
+
+    def get_energy(self):
+        return self.data[2]
+
+    def set_energy(self, energy):
+        self.data[2] = energy
+
+    def get_dx(self):
+        return self.data[3]
+
+    def set_dx(self, dx):
+        self.data[3] = dx
+
+    def get_coords(self):
+        return self.data[4:]
+
+    def set_coords(self, coords):
+        self.data[4:] = coords
+
+
+class PT_Master:
+    """
+    This class manages a job queue that sends jobs to Parallel Tempering runners.
+    It is run in a parallel process on rank 0.
+    """
+
+    def __init__(self, nrunners, example_mcrunner, kmax, kmin, u2meank0,
+                 max_ptiter=10, pfreq=1, skip=0, test_convergence=True,
+                 fast_ct=False, rel_std_err=0.03, min_window=2.5e5,
+                 max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False,
+                 base_directory=None, bs_nodes=100, eq_min_ptiter=None,
+                 eq_max_ptiter=None, sleep_seconds=0.0001):
+        self.nrunners = nrunners
+        self.sleep_seconds = sleep_seconds
+        self.comm = MPI.COMM_WORLD
+        self.nworkers = self.comm.Get_size() - 1 # total number of workers
+        self.rank = self.comm.Get_rank() # this is the unique identifier for the process
+        self.nparticles = example_mcrunner.nparticles
+        self.bdim = example_mcrunner.bdim
+        self.kmax = kmax
+        self.kmin = kmin
+        self.max_ptiter = max_ptiter
+        self.ex_outstream = open("exchanges", "w")
+        self.ptiter = 0
+        self.print_status = print_status
+        self.skip = skip  # might want to skip the first few swaps to allow for equilibration
+        self.pfreq = pfreq
+        self.NO_EXCHANGE = -12345  # this NEGATIVE number in exchange pattern means that no exchange should be attempted
+        self.swap_accepted_count = 0
+        self.swap_rejected_count = 0
+        if base_directory is None:
+            self.base_directory = os.path.join(os.getcwd(), 'ptmc_results')
+        else:
+            self.base_directory = base_directory
+        self.exchange_choice = random.randint(0, 1)
+        self.anyswap = False  # set to true if any swap happened
+        self.permutation_pattern = np.zeros(self.nrunners, dtype='int32')  # useful for printing exchange permutations
+        self.u2meank0 = u2meank0
+        self.mcrunner_niter = example_mcrunner.niter
+        self.mcrunner_eqsteps = example_mcrunner.equilibration_steps
+        self.mcrunner_eqsteps = int(self.mcrunner_eqsteps)
+        self.test_convergence = test_convergence
+        self.eq_time = 0  # time at which equilibration was reached
+        self.fast_ct = fast_ct
+        self.rel_std_err = rel_std_err  # relative standard error
+        self.last_rel_std_errs = np.zeros(self.nrunners)  # last measured relative standard errors for each runner
+        if eq_min_ptiter is None:
+            eq_min_ptiter = int(self.max_ptiter*0.95)
+        self.eq_min_ptiter = int(eq_min_ptiter)
+        if eq_max_ptiter is None:
+            eq_max_ptiter = int(2e6/example_)
+        self.eq_max_ptiter = int(eq_max_ptiter)
+        self.min_window = int(min_window)
+        self.max_eq_time = int(max_eq_time)
+        self.bs_nodes = int(bs_nodes)
+        self.numnegk = int(numnegk)
+        self.lownegk = int(lownegk)
+        self.__init_runners(example_mcrunner)
+        self.__init_timeseries()
+        self.__init_print()
+        self.recv_buffer = np.empty(self.runner_configs[0].data.size + self.mcrunner_niter, dtype='d')
+        assert(self.nrunners > self.nworkers)
+        assert(self.eq_min_ptiter > self.skip)
+        assert(self.max_ptiter > self.eq_min_ptiter)
+        assert(self.eq_max_ptiter > self.eq_min_ptiter)
+        assert((self.eq_max_ptiter-self.eq_min_ptiter) * self.mcrunner_niter > self.min_window)  # condition on the minimal window size
+        if not (self.min_window > self.mcrunner_eqsteps):
+            logging.info("self.min_window: {}".format(self.min_window))
+            logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
+        assert(self.min_window > self.mcrunner_eqsteps)
+        assert(self.max_eq_time > self.mcrunner_eqsteps)
+
+    def __init_runners(self, example_mcrunner):
+        ks = self.__get_ks()
+        origin_coords, origin_energy = example_mcrunner.get_config()
+        self.runner_configs = []
+        for i in xrange(self.nrunners):
+            self.runner_configs.append(RunnerConfig(i, ks[i], origin_energy, origin_coords))
+
+    def __init_timeseries(self):
+        self.runner_timeseries = [[] for _ in xrange(self.nrunners)]
+        self.runner_timeseries2 = [[] for _ in xrange(self.nrunners)]
+
+    def __init_print(self):
+        trymakedir(self.base_directory)
+        self.__print_ks()
+        self.permutations_stream = open(os.path.join(self.base_directory, 'rem_permutations'),'w')
+        self.status_streams = []
+        self.histogram_mean_streams = []
+        for irunner in xrange(self.nrunners):
+            directory = os.path.join(self.base_directory, str(irunner))
+            trymakedir(directory)
+            self.__print_parameters(irunner)
+            self.status_streams.append(open(os.path.join(directory, 'status'),'w'))
+            self.histogram_mean_streams.append(open(os.path.join(directory, 'hist_mean'),'w'))
+            self.histogram_mean_streams[irunner].write('{:<15}\t{:<15}\t{:<15}\t{:<15}\n'.format('iteration','<(x-x0)**2>','variance','std_err'))
+
+    def __get_ks(self):
+        """
+        set up the spring constants (temperatures) by distributing them exponentially.
+        We order the spring constants from highest to lowest, to calculate the
+        more costly runners first.
+        """
+        nposk = self.nrunners - self.numnegk  # number of positive k
+        Karray = spring_constants_variable_transform(nposk+1, self.kmax, self.u2meank0,
+                                                     self.nparticles, self.bdim, self.kmin)
+        Karray = Karray[:-1]  # exclude kmax entry, no need to be simulated, mean is already available
+        if self.numnegk > 0:
+            assert np.abs(self.lownegk) > 0
+            grid = -(np.abs(self.lownegk) + 1 -
+                     np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1),
+                                        self.numnegk+1))
+                     )[:-1]
+            assert grid == self.numnegk
+            for x in grid[::-1]:
+                Karray.insert(0, x)
+        return Karray
+
+    def run(self):
+        while (self.ptiter < self.max_ptiter):
+            logging.debug("Iteration {}".format(self.ptiter))
+            self.__one_iteration()
+            # TODO Test
+            # if self.ptiter == self.max_ptiter:
+            #     self.max_ptiter = self.__test_convergence()
+        # Stop workers
+        for iworker in xrange(self.nworkers):
+            self.comm.Send(np.array([-1], dtype='d'), dest=iworker+1)
+        # make sure that data is not thrown away in last print
+        self.__print_data()
+        if self.print_status:
+            self.__print_status()
+        self.__close_flush()
+        logging.info("Master finished")
+
+    def __one_iteration(self):
+        """Perform one parallel tempering iteration
+
+        Each PT iteration consists of the following steps:
+
+        * distribute work, i.e. run the MCrunners for a predefined number of steps
+        * collect the results
+        * attempt an exchange
+        """
+        current_runner = 0
+
+        # Send the first job to every worker
+        while current_runner < self.nworkers:
+            self.comm.Send(self.runner_configs[current_runner].data, dest=current_runner+1)
+            current_runner += 1
+
+        # Send the remaining jobs to finished workers
+        while current_runner < self.nrunners:
+            if self.sleep_seconds > 0:
+                while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
+                    time.sleep(self.sleep_seconds)
+            finished_worker = self.__receive_result()
+            self.comm.Send(self.runner_configs[current_runner].data, dest=finished_worker)
+            current_runner += 1
+
+        # Wait for all workers to finish
+        for _ in xrange(self.nworkers):
+            if self.sleep_seconds > 0:
+                while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
+                    time.sleep(self.sleep_seconds)
+            self.__receive_result()
+
+        if self.ptiter >= self.skip:
+            self.__exchange_coords()
+            # print and increase parallel tempering count and test convergence
+            if (self.ptiter % self.pfreq == 0):
+                self.max_ptiter = self.__test_convergence()
+                self.__print_data()
+            if self.print_status:
+                self.__print_status()
+        self.ptiter += 1
+
+    def __receive_result(self):
+        status = MPI.Status()
+        self.comm.Recv(self.recv_buffer, source=MPI.ANY_SOURCE, status=status)
+        src = status.Get_source()
+        runner_id = int(self.recv_buffer[0])
+        config_length = self.runner_configs[0].data.size
+        self.runner_configs[runner_id].data = self.recv_buffer[:config_length].copy()
+        recv_timeseries = self.recv_buffer[config_length:]
+        self.runner_timeseries[runner_id].extend(recv_timeseries)
+        recv_timeseries2 = np.power(recv_timeseries, 2)
+        self.runner_timeseries2[runner_id].extend(recv_timeseries2)
+        return src
+
+    def __exchange_coords(self):
+        """
+        Exchange the configurations according to __find_exchange_buddies
+        """
+        # dx_string = "dx: "
+        # for i in xrange(self.nrunners):
+        #     dx_string += str(self.runner_configs[i].get_dx()) + ", "
+        # logging.debug(dx_string)
+
+        # find exchange pattern (list of exchange buddies)
+        exchange_pattern = self.__find_exchange_buddies()
+        # logging.debug("exchange_pattern: %s" % exchange_pattern)
+
+        # swap runner configurations (everything except id & k)
+        for iconfig, ibuddy in enumerate(exchange_pattern):
+            if ibuddy != self.NO_EXCHANGE:
+                # Swap configurations
+                (self.runner_configs[iconfig],
+                 self.runner_configs[ibuddy]) = (self.runner_configs[ibuddy],
+                                                self.runner_configs[iconfig])
+
+                # Restore id and k
+                self.runner_configs[iconfig].set_id(iconfig)
+                self.runner_configs[ibuddy].set_id(ibuddy)
+                tmp_k = self.runner_configs[iconfig].get_k()
+                self.runner_configs[iconfig].set_k(self.runner_configs[ibuddy].get_k())
+                self.runner_configs[ibuddy].set_k(tmp_k)
+
+    def __find_exchange_buddies(self):
+        """
+        This function determines the exchange pattern using alternating swaps
+        with the right and left neighbours.
+        An exchange pattern array is constructed, filled with self.NO_EXCHANGE
+        which signifies that no exchange should be attempted. If the swap attempt
+        is successful this value is replaced with the number of the runner with
+        which to perform the swap.
+        """
+        exchange_pattern = np.empty(self.nrunners, dtype='int32')
+        exchange_pattern.fill(self.NO_EXCHANGE) # reset exchange pattern to no exchange
+        self.anyswap = False
+
+        for i in xrange(self.exchange_choice, self.nrunners-1, 2):
+            dx1 = self.runner_configs[i].get_dx()
+            k1 = self.runner_configs[i].get_k()
+            dx2 = self.runner_configs[i + 1].get_dx()
+            k2 = self.runner_configs[i + 1].get_k()
+
+            # Hamiltonian replica exchange
+            deltaE = 0.5*dx2*dx2 - 0.5*dx1*dx1
+            deltabeta = k2 - k1
+            w = np.exp(deltaE * deltabeta)
+            rand = np.random.rand()
+
+            if w > rand:
+                # accept exchange
+                if logging.getLogger().isEnabledFor(logging.DEBUG):
+                    self.ex_outstream.write(
+                        "accepting exchange %d %d %g %g %g %g %d\n" % (
+                            i, i + 1,
+                            dx1, dx2, k1, k2, self.ptiter))
+
+                # verify that is not using the same rank twice for swaps
+                assert(exchange_pattern[i] == self.NO_EXCHANGE)
+                assert(exchange_pattern[i + 1] == self.NO_EXCHANGE)
+
+                exchange_pattern[i] = i + 1
+                exchange_pattern[i + 1] = i
+                self.anyswap = True
+
+        # record self.permutation_pattern to print permutations in print function
+        if self.anyswap:
+            for i, buddy in enumerate(exchange_pattern):
+                if (buddy != self.NO_EXCHANGE):
+                    self.permutation_pattern[i] = buddy + 1  # to conform to fortran notation
+                else:
+                    self.permutation_pattern[i] = i + 1  # to conform to fortran notation
+            self.__print_permutations()
+
+        if self.exchange_choice == 0:
+            self.exchange_choice = 1
+        else:
+            self.exchange_choice = 0
+        return exchange_pattern
+
+    def __test_convergence(self):
+        if self.test_convergence and self.ptiter > self.eq_min_ptiter:
+            iteration = self.mcrunner_niter * (self.ptiter+1)
+            if iteration < self.mcrunner_eqsteps:
+                logging.warning("Attempted to test convergence before the "
+                                "mcrunner equilibration steps had terminated.")
+                return self.max_ptiter
+            else:
+                return self.__test_ts_convergence()
+        else:
+            return self.max_ptiter
+
+    def __test_ts_convergence(self):
+        """
+        in_timeseries is the last segment of the time series
+        self.timeseries is the whole recorded timeseries
+        """
+        if self.eq_time == 0:
+            if self.fast_ct:
+                iteration = self.mcrunner_niter * (self.ptiter+1)
+                self.eq_time = min([self.max_eq_time, iteration])
+            else:
+                self.eq_time = self.__find_new_eq_time()
+        # only keep time series from after the equilibration point, this references original data
+        new_max_ptiter = self.__find_new_max_ptiter()
+        logging.debug("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
+        return new_max_ptiter
+
+    def __find_new_eq_time(self):
+        iteration = self.mcrunner_niter * (self.ptiter+1)
+        logging.info("__find_new_eq_time, iteration: %i" % iteration)
+        new_eq_times = []
+        for irunner in xrange(self.nrunners):
+            eq_time = detectEquilibration_binary_search(
+                np.array(self.runner_timeseries2[irunner], dtype='d'), bs_nodes=self.bs_nodes)[0]
+
+            # this should avoid detecting artifacts near the end of the series
+            eq_time = min([self.max_eq_time, eq_time])
+
+            # guarantees that eq_time is larger than the mcrunner adapted number of steps
+            new_eq_times.append(max([eq_time, self.mcrunner_eqsteps]))
+
+        return max(new_eq_times)
+
+    def __find_new_max_ptiter(self):
+        """
+        resets max_ptiter based on desired relative standard error that one wants to achieve. The longest estimate
+        is chosen for the full pt. In order to estimate the number of extra steps to perform uses the correlated
+        estimate for the standard error (see Troyer Am. J. Phys. 78 (2)) from which one can easily find that
+        M = sig^2*(1+2t)/(mu rel_std_err)^2
+        it returns an estimate of the new maxptiter only once the timeseries is longer than min_window
+        """
+        new_max_ptiters = []
+        for irunner in xrange(self.nrunners):
+            # to reduce nskip (use more points) make the factor by which len(timeseries) is divided by larger
+            current_timeseries2 = self.runner_timeseries2[irunner][self.eq_time:]
+            nskip = max(int(np.round(len(current_timeseries2)/1e6)),1)
+            tau = (integratedAutocorrelationTime_fft(np.array(current_timeseries2[::nskip],
+                                                             dtype='d'))
+                   * nskip)
+            var = np.var(current_timeseries2)
+            mean = np.mean(current_timeseries2)
+            sample_size = len(current_timeseries2)
+            rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
+            self.last_rel_std_errs[irunner] = rel_err
+            logging.debug("Runner {} relative standard error: {}".format(irunner, rel_err))
+            logging.debug("Runner {} autocorrelation time: {}".format(irunner, tau))
+
+            #compute by how much to extend the time series, if has at least 1e5
+            if sample_size < self.min_window:
+                new_max_ptiters.append(self.eq_max_ptiter)
+            elif rel_err < self.rel_std_err:
+                m = 0
+                new_max_ptiters.append(self.ptiter)
+            else:
+                m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
+                new_max_ptiters.append(self.ptiter + int((m-sample_size)/self.mcrunner_niter))
+
+        max_ptiter = max(new_max_ptiters)
+        return min(max_ptiter, self.eq_max_ptiter)
+
+    def __print_data(self):
+        logging.debug("__print_data -- BEGIN")
+        logging.debug("self.ptiter %s" % self.ptiter)
+        logging.debug("self.eq_min_ptiter %s" % self.eq_min_ptiter)
+        logging.debug("self.mcrunner_eqsteps %s" % self.mcrunner_eqsteps)
+        iteration = self.mcrunner_niter * (self.ptiter+1)
+        for irunner in xrange(self.nrunners):
+            self.__dump_timeseries(irunner)
+            if self.ptiter >= self.eq_min_ptiter and iteration > self.mcrunner_eqsteps:
+                self.__dump_histogram(irunner)
+        logging.debug("__print_data -- END")
+
+    def __dump_timeseries(self, irunner):
+        directory = os.path.join(self.base_directory, str(irunner))
+        iteration = self.mcrunner_niter * (self.ptiter+1)
+        fname = os.path.join(directory, 'TimeSeries.{}'.format(iteration))
+        np.savetxt(fname, self.runner_timeseries[irunner])
+        self.runner_timeseries[irunner] = []  # Clear timeseries
+
+    def __dump_histogram(self, irunner):
+        directory = os.path.join(self.base_directory, str(irunner))
+        iteration = self.mcrunner_niter * (self.ptiter+1)
+        fname = os.path.join(directory, 'Visits.his.{}'.format(iteration))
+        mean = np.mean(self.runner_timeseries2[irunner][self.eq_time:])
+        variance = np.var(self.runner_timeseries2[irunner][self.eq_time:])
+        std_err = self.last_rel_std_errs[irunner] * mean
+        self.histogram_mean_streams[irunner].write(
+            '{:<15}\t{:>15.15e}\t{:>15.15e}\t{:>15.15e}\n'.format(
+                iteration, mean, variance, std_err))
+        self.histogram_mean_streams[irunner].flush()  # flush every time, so we don't loose data
+
+    def dump_minima_list(self, fname):
+        raise NotImplementedError("collect_minima_list is not supported by the "
+                                  "job queue (yet)! For this we need to communicate "
+                                  "minima information from all workers "
+                                  "(mcrunners) at the end of the simulation "
+                                  "and collect it in the master. ")
+
+    def __print_status(self, irunner):
+        raise NotImplementedError("print_status is not supported by the job "
+                                  "queue (yet)! For this we need to communicate "
+                                  "status information from all workers "
+                                  "(mcrunners) at each step and collect it in "
+                                  "the master. ")
+        # status = self.mcrunner.get_status()
+
+        status.frac_acc_swaps = (self.swap_accepted_count /
+                                 (self.swap_accepted_count+self.swap_rejected_count))
+        if self.ptiter == self.skip:
+            self.status_streams[irunner].write('#')
+            for key, value in status.iteritems():
+                self.status_streams[irunner].write('{:<12}\t'.format(key))
+            self.status_streams[irunner].write('\n')
+        for key, value in status.iteritems():
+            self.status_streams[irunner].write('{:>12.3f}\t'.format(value))
+        self.status_streams[irunner].write('\n')
+
+    def __print_ks(self):
+        fname = os.path.join(self.base_directory, 'temperatures')
+        with open(fname, 'w') as kfile:
+            for irunner in xrange(self.nrunners):
+                kfile.write('{:1.16f}\n'.format(self.runner_configs[irunner].get_k()))
+
+    def __print_parameters(self, irunner):
+        directory = os.path.join(self.base_directory, str(irunner))
+        fname = os.path.join(directory, 'parameters')
+        with open(fname, 'w') as paramfile:
+            paramfile.write('node:\t{0}\n'.format(irunner))
+            paramfile.write('temperature:\t{0}\n'.format(self.runner_configs[irunner].get_k()))
+            paramfile.write('PT iterations:\t{0}\n'.format(self.max_ptiter))
+            paramfile.write('total MC iterations:\t{0}\n'.format(self.mcrunner_niter))
+
+    def __print_permutations(self):
+        if self.anyswap:
+            iteration = self.mcrunner_niter * (self.ptiter+1)
+            f = self.permutations_stream
+            f.write('{0}\t'.format(iteration))
+            for p in self.permutation_pattern:
+                f.write('{0}\t'.format(p))
+            f.write('\n')
+            f.flush()
+
+    def __close_flush(self):
+        self.permutations_stream.flush()
+        self.permutations_stream.close()
+        for irunner in xrange(self.nrunners):
+            self.histogram_mean_streams[irunner].flush()
+            self.histogram_mean_streams[irunner].close()
+            self.status_streams[irunner].flush()
+            self.status_streams[irunner].close()

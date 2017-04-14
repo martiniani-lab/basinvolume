@@ -3,13 +3,14 @@ import numpy as np
 import random
 import argparse
 import logging
-from basinvolume.spheres import configure_bv_mcrunner, MPI_BV_PT_RLhandshake
-from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 import time
+import sys
 from mpi4py import MPI
+from basinvolume.spheres import (configure_bv_mcrunner, MPI_BV_PT_RLhandshake,
+                                 PT_Worker, PT_Master)
+from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 from basinvolume.utils import view_traceback, check_kmax_reasonable, import_pt_time_series
 from basinvolume.enums import Minimizer
-import sys
 
 if __name__ == "__main__":
     """
@@ -33,19 +34,34 @@ if __name__ == "__main__":
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                         "Default: 'FIRE'", default='FIRE')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
-    parser.add_argument("--nocollectminima", action='store_false', help="don't collect database of minima",default=True)
+    parser.add_argument("--nocollectminima", action='store_true', help="don't collect database of minima", default=False)
     parser.add_argument("-p","--packings-dir", type=str,
                         help="protocol to generate packings, assume in cwd",
                         default="jammed_packings")
     parser.add_argument("--delraw", action='store_true', help="Delete raw timeseries textfiles "
                         "and only use the HDF5 format.", default=False)
+    parser.add_argument("--nrunners", type=int,
+                        help="Number of MC runners. Default: Number of MPI ranks",
+                        default=None)
+    parser.add_argument("--sleep-seconds", type=float,
+                        help="Waiting time between MPI probes by the job queue master. "
+                             "Default: 0.0001 (100us)",
+                        default=0.0001)
     args = parser.parse_args()
+
+    comm = MPI.COMM_WORLD
+    nprocs = comm.Get_size()
+    rank = comm.Get_rank()
+    if args.nrunners is None:
+        nrunners = nprocs
+    else:
+        nrunners = args.nrunners
 
     if args.verbose:
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+    logging.basicConfig(format='%(asctime)s %(levelname)s: Rank {}: %(message)s'.format(rank),
                         datefmt='%d/%m/%Y %H:%M:%S',
                         level=loglevel)
 
@@ -53,30 +69,30 @@ if __name__ == "__main__":
     fname = args.jammed_packing_fname
     single = not args.moveall
 
-    #Parallel Tempering
+    # Parallel Tempering
     min_tot_niter = int(args.mintotniter)
     max_tot_niter = int(args.maxtotniter)
 
-    min_ptiter = int(min_tot_niter*0.1) #10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
-    niter = int((min_tot_niter-min_ptiter)/min_ptiter) #90% MCMC walk
-    adjustf_niter = int(min_tot_niter*0.1) #equilibrate for the first 1/10th of total steps
-    nskip = int(adjustf_niter/niter) #don't swap while adjusting the step-size
+    min_ptiter = int(min_tot_niter*0.1)  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
+    niter = int((min_tot_niter-min_ptiter)/min_ptiter)  # 90% MCMC walk
+    adjustf_niter = int(min_tot_niter*0.1)  # equilibrate for the first 1/10th of total steps
+    nskip = int(adjustf_niter/niter)  # don't swap while adjusting the step-size
     # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
     # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
-    pt_eq_niter = 0 #set to 0
-    #the histogram starts recording the mean after adjustf_niter+pt_eq_niter steps
-    pfreq = int((min_ptiter-1)*0.1) #print every 1/10th of min_ptiter (this will give 5 snapshots) #this is also frequency of tests
+    pt_eq_niter = 0
+    # the histogram starts recording the mean after adjustf_niter + pt_eq_niter steps
+    pfreq = int((min_ptiter-1)*0.1)  # print every 1/10th of min_ptiter (this will give 5 snapshots) # this is also frequency of tests
     ts_freq = 1
     ts_niter = int(niter*pfreq/ts_freq)
     perform_minimisation_convergence_test=False
     test_convergence_ts=True
     record_histogram=False
-    assert(record_histogram == False and pt_eq_niter == 0 and ts_freq == 1) #ts_freq must be 1 with current output implementation (all based on timeseries)
-    rel_std_err= args.relstderr #relative standard error in the mean used by convergence test
-    min_window=2.5e5 #minimum amount of data before trying to check convergence
-    max_eq_time=2.5e5# #maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
-    fast_ct=False #if false skip euristic search for equilibration point
-    collect_minima_list=args.nocollectminima
+    assert(record_histogram == False and pt_eq_niter == 0 and ts_freq == 1)  # ts_freq must be 1 with current output implementation (all based on timeseries)
+    rel_std_err= args.relstderr  # relative standard error in the mean used by convergence test
+    min_window=2.5e5  # minimum amount of data before trying to check convergence
+    max_eq_time=2.5e5  # maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
+    fast_ct=False  # if false skip euristic search for equilibration point
+    collect_minima_list = not args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=random.randint(0, i32max),seed_metropolis=random.randint(0, i32max))
     logging.info(seeds)
@@ -86,10 +102,7 @@ if __name__ == "__main__":
     else:
         raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
-    #prepare MC runner
-    comm = MPI.COMM_WORLD
-    nprocs = comm.Get_size()
-    rank = comm.Get_rank()
+    # prepare MC runner
     if ".xydfr" in fname or ".xyzdfr" in fname:
         logging.info("found experimental packing")
         sim = configure_bv_exp_mcrunner(rank, nprocs)
@@ -109,41 +122,81 @@ if __name__ == "__main__":
         logging.info('bv_parallel_tempering: kmax is unreasonable, exiting')
         sys.exit()
 
-    #prepare PT runner
+    # prepare PT runner
     kmin = 0
     displ_k_min = sim.displ_k_min
     var_displ_k_min = sim.displ_k_min
     kmax = sim.kmax
-    ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1, pfreq=pfreq, skip=nskip,
-                                     test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
-                                     min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                                     numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path)
-    assert ptrunner.rank == rank, "rank id does not match"
-    assert ptrunner.nprocs == nprocs, "number of processes does not match"
 
-    #run simulation
-    start=time.time()
-    try:
-        ptrunner.run()
-        if collect_minima_list:
-            mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(rank))
-        sim.print_success_all(True)
-    except:
-        view_traceback()
+    start = time.time()
+    if nprocs < nrunners:
+        if rank == 0:
+            logging.info("Using job queue with {} workers.".format(nprocs - 1))
+            master = PT_Master(
+                nrunners, mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
+                pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
+                fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
+                max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
+                numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path,
+                sleep_seconds=args.sleep_seconds)
+
+            try:
+                master.run()
+                if collect_minima_list:
+                    logging.warning("Ignoring collect_minima_list, since this is "
+                                    "currently not supported by the job queue system.")
+                    # master.dump_minima_list('{}/minima_list.sqlite'.format(rank))
+                sim.print_success_all(True)
+            except Exception:
+                view_traceback()
+                comm = MPI.COMM_WORLD
+                for iworker in xrange(1, nprocs):
+                    comm.Isend(np.array([-1], dtype='d'), dest=iworker)
+                sim.print_success_all(False)
+
+            logging.info('ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
+                         .format(master.ptiter, mcrunner.niter, adjustf_niter,
+                                 master.skip, master.pfreq))
+        else:
+            worker = PT_Worker(mcrunner)
+            worker.run()
+
+    else:
+        if rank == 0:
+            logging.info("Using handshake with {} runners.".format(nprocs - 1))
+        ptrunner = MPI_BV_PT_RLhandshake(
+            mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
+            pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
+            fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
+            max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
+            numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path)
+        assert ptrunner.rank == rank, "rank id does not match"
+        assert ptrunner.nprocs == nprocs, "number of processes does not match"
+
+        # run simulation
         try:
-            sim.print_success_all(False)
+            ptrunner.run()
+            if collect_minima_list:
+                mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(rank))
+            sim.print_success_all(True)
         except:
             view_traceback()
+            try:
+                sim.print_success_all(False)
+            except:
+                view_traceback()
 
-    end=time.time()
-    logging.info('core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
-                 .format(rank, ptrunner.ptiter, mcrunner.niter, adjustf_niter,
-                         ptrunner.skip, ptrunner.pfreq))
-    logging.info('convert timeseries to hdf5...')
+        logging.info('core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
+                     .format(rank, ptrunner.ptiter, mcrunner.niter, adjustf_niter,
+                             ptrunner.skip, ptrunner.pfreq))
+
     if rank == 0:
-        #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
-        #reduce the amount of occupied memory and i/o speed without loosing any information
+        end = time.time()
+        logging.info('convert timeseries to hdf5...')
+        # it is imperative that max_series_size=0 to avoid loss of raw data,
+        # the objective of this step is to reduce the amount of occupied memory
+        # and i/o speed without loosing any information
         timeseries = import_pt_time_series(sim.base_dir, int(sim.mc_params['adjustf_niter']),
                                            max_series_size=0, ncores=1, del_raw=args.delraw)
-    logging.info("Done")
-    logging.info("Elapsed time: {}".format(end - start))
+        logging.info("Done")
+        logging.info("Elapsed time: {}".format(end - start))
