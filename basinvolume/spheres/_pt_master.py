@@ -114,6 +114,7 @@ class PT_Master:
         self.__init_timeseries()
         self.__init_print()
         self.recv_buffer = np.empty(self.runner_configs[0].data.size + self.mcrunner_niter, dtype='d')
+        self.exchange_cnts = np.zeros(self.nrunners - 1, dtype='int32')
         assert(self.nrunners > self.nworkers)
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
@@ -185,6 +186,7 @@ class PT_Master:
         if self.print_status:
             self.__print_status()
         self.__close_flush()
+        self.__print_exchanges()
         logging.info("Master finished")
 
     def __one_iteration(self):
@@ -297,6 +299,7 @@ class PT_Master:
 
             if w > rand:
                 # accept exchange
+                self.exchange_cnts[i] += 1
                 if logging.getLogger().isEnabledFor(logging.DEBUG):
                     self.ex_outstream.write(
                         "accepting exchange %d %d %g %g %g %g %d\n" % (
@@ -488,6 +491,11 @@ class PT_Master:
                 f.write('{0}\t'.format(p))
             f.write('\n')
             f.flush()
+
+    def __print_exchanges(self):
+        logging.debug("Number of exchanges:")
+        for i in xrange(self.nrunners - 1):
+            logging.debug("{0} <-> {1}: {2}".format(i, i+1, self.exchange_cnts[i]))
 
     def __close_flush(self):
         self.permutations_stream.flush()
