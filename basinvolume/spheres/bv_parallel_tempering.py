@@ -142,10 +142,6 @@ if __name__ == "__main__":
 
             try:
                 master.run()
-                if collect_minima_list:
-                    logging.warning("Ignoring collect_minima_list, since this is "
-                                    "currently not supported by the job queue system.")
-                    # master.dump_minima_list('{}/minima_list.sqlite'.format(rank))
                 sim.print_success_all(True)
             except Exception:
                 view_traceback()
@@ -159,6 +155,8 @@ if __name__ == "__main__":
         else:
             worker = PT_Worker(mcrunner)
             worker.run()
+            if collect_minima_list:
+                mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(rank))
 
     else:
         if rank == 0:

@@ -441,13 +441,6 @@ class PT_Master:
                 iteration, mean, variance, std_err))
         self.histogram_mean_streams[irunner].flush()  # flush every time, so we don't loose data
 
-    def dump_minima_list(self, fname):
-        raise NotImplementedError("collect_minima_list is not supported by the "
-                                  "job queue (yet)! For this we need to communicate "
-                                  "minima information from all workers "
-                                  "(mcrunners) at the end of the simulation "
-                                  "and collect it in the master. ")
-
     def __print_status(self, irunner):
         raise NotImplementedError("print_status is not supported by the job "
                                   "queue (yet)! For this we need to communicate "
