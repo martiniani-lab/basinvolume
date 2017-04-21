@@ -149,7 +149,6 @@ if __name__ == "__main__":
                 sim.print_success_all(True)
             except Exception:
                 view_traceback()
-                comm = MPI.COMM_WORLD
                 for iworker in xrange(1, nprocs):
                     comm.Isend(np.array([-1], dtype='d'), dest=iworker)
                 sim.print_success_all(False)

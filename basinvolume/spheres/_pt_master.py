@@ -175,9 +175,8 @@ class PT_Master:
         while (self.ptiter < self.max_ptiter):
             logging.debug("Iteration {}".format(self.ptiter))
             self.__one_iteration()
-            # TODO Test
-            # if self.ptiter == self.max_ptiter:
-            #     self.max_ptiter = self.__test_convergence()
+            if self.ptiter == self.max_ptiter:
+                self.max_ptiter = self.__test_convergence()
         # Stop workers
         for iworker in xrange(self.nworkers):
             self.comm.Send(np.array([-1], dtype='d'), dest=iworker+1)
@@ -247,10 +246,10 @@ class PT_Master:
         """
         Exchange the configurations according to __find_exchange_buddies
         """
-        # dx_string = "dx: "
-        # for i in xrange(self.nrunners):
-        #     dx_string += str(self.runner_configs[i].get_dx()) + ", "
-        # logging.debug(dx_string)
+        dx_string = "dx: "
+        for i in xrange(self.nrunners):
+            dx_string += str(self.runner_configs[i].dx) + ", "
+        logging.debug(dx_string)
 
         # find exchange pattern (list of exchange buddies)
         exchange_pattern = self.__find_exchange_buddies()
