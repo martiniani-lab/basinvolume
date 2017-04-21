@@ -213,7 +213,7 @@ class mbar_compute_dos(object):
         self.ndim = imp_packing['ndim']
         self.boxv = imp_packing['boxv'].copy()
         self.packing_frac = imp_packing['packing_frac']
-        self.vcavity = parameters['vcavity']
+        self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.pt_configpath))
