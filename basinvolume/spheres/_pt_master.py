@@ -11,7 +11,7 @@ from basinvolume.utils import trymakedir, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
 
 
-class RunnerConfig:
+class RunnerConfig(object):
     """
     This class saves the configuration of a parallel tempering runner in a NumPy array
     """
@@ -22,38 +22,48 @@ class RunnerConfig:
         self.data[2] = energy
         self.data[4:] = coords
 
-    def get_id(self):
+    @property
+    def id(self):
         return int(self.data[0])
 
-    def set_id(self, id):
-        self.data[0] = id
+    @id.setter
+    def id(self, value):
+        self.data[0] = value
 
-    def get_k(self):
+    @property
+    def k(self):
         return self.data[1]
 
-    def set_k(self, k):
-        self.data[1] = k
+    @k.setter
+    def k(self, value):
+        self.data[1] = value
 
-    def get_energy(self):
+    @property
+    def energy(self):
         return self.data[2]
 
-    def set_energy(self, energy):
-        self.data[2] = energy
+    @energy.setter
+    def energy(self, value):
+        self.data[2] = value
 
-    def get_dx(self):
+    @property
+    def dx(self):
         return self.data[3]
 
-    def set_dx(self, dx):
-        self.data[3] = dx
+    @dx.setter
+    def dx(self, value):
+        self.data[3] = value
 
-    def get_coords(self):
+    @property
+    def coords(self):
         return self.data[4:]
 
-    def set_coords(self, coords):
-        self.data[4:] = coords
+    @coords.setter
+    def coords(self, value):
+        self.data[4:] = value
 
 
-class PT_Master:
+class PT_Master(object):
     """
     This class manages a job queue that sends jobs to Parallel Tempering runners.
     It is run in a parallel process on rank 0.
@@ -266,11 +276,11 @@ class PT_Master:
                                                 self.runner_configs[iconfig])
 
                 # Restore id and k
-                self.runner_configs[iconfig].set_id(iconfig)
-                self.runner_configs[ibuddy].set_id(ibuddy)
-                tmp_k = self.runner_configs[iconfig].get_k()
-                self.runner_configs[iconfig].set_k(self.runner_configs[ibuddy].get_k())
-                self.runner_configs[ibuddy].set_k(tmp_k)
+                self.runner_configs[iconfig].id = iconfig
+                self.runner_configs[ibuddy].id = ibuddy
+                tmp_k = self.runner_configs[iconfig].k
+                self.runner_configs[iconfig].k = self.runner_configs[ibuddy].k
+                self.runner_configs[ibuddy].k = tmp_k
 
     def __find_exchange_buddies(self):
         """
@@ -286,10 +296,10 @@ class PT_Master:
         self.anyswap = False
 
         for i in xrange(self.exchange_choice, self.nrunners-1, 2):
-            dx1 = self.runner_configs[i].get_dx()
-            k1 = self.runner_configs[i].get_k()
-            dx2 = self.runner_configs[i + 1].get_dx()
-            k2 = self.runner_configs[i + 1].get_k()
+            dx1 = self.runner_configs[i].dx
+            k1 = self.runner_configs[i].k
+            dx2 = self.runner_configs[i + 1].dx
+            k2 = self.runner_configs[i + 1].k
 
             # Hamiltonian replica exchange
             deltaE = 0.5*dx2*dx2 - 0.5*dx1*dx1
@@ -464,14 +474,14 @@ class PT_Master:
         fname = os.path.join(self.base_directory, 'temperatures')
         with open(fname, 'w') as kfile:
             for irunner in xrange(self.nrunners):
-                kfile.write('{:1.16f}\n'.format(self.runner_configs[irunner].get_k()))
+                kfile.write('{:1.16f}\n'.format(self.runner_configs[irunner].k))
 
     def __print_parameters(self, irunner):
         directory = os.path.join(self.base_directory, str(irunner))
         fname = os.path.join(directory, 'parameters')
         with open(fname, 'w') as paramfile:
             paramfile.write('node:\t{0}\n'.format(irunner))
-            paramfile.write('temperature:\t{0}\n'.format(self.runner_configs[irunner].get_k()))
+            paramfile.write('temperature:\t{0}\n'.format(self.runner_configs[irunner].k))
             paramfile.write('PT iterations:\t{0}\n'.format(self.max_ptiter))
             paramfile.write('total MC iterations:\t{0}\n'.format(self.mcrunner_niter))
 
