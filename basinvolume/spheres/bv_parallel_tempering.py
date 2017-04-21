@@ -104,10 +104,12 @@ if __name__ == "__main__":
 
     # prepare MC runner
     if ".xydfr" in fname or ".xyzdfr" in fname:
-        logging.info("found experimental packing")
+        if rank == 0:
+            logging.info("found experimental packing")
         sim = configure_bv_exp_mcrunner(rank, nprocs)
     else:
-        logging.info("found numerical packing")
+        if rank == 0:
+            logging.info("found numerical packing")
         sim = configure_bv_mcrunner(rank, nprocs)
 
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5, opt_nsteps=1e5, hmin=0,
@@ -119,7 +121,7 @@ if __name__ == "__main__":
                    base_dir=path)
 
     if not check_kmax_reasonable(sim.findk_configpath):
-        logging.info('bv_parallel_tempering: kmax is unreasonable, exiting')
+        logging.warning('bv_parallel_tempering: kmax is unreasonable, exiting')
         sys.exit()
 
     # prepare PT runner
@@ -160,7 +162,7 @@ if __name__ == "__main__":
 
     else:
         if rank == 0:
-            logging.info("Using handshake with {} runners.".format(nprocs - 1))
+            logging.info("Using handshake with {} runners.".format(nprocs))
         ptrunner = MPI_BV_PT_RLhandshake(
             mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
             pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
