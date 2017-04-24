@@ -191,12 +191,12 @@ class PT_Master(object):
         # Stop workers
         for iworker in xrange(self.nworkers):
             self.comm.Send(np.array([-1], dtype='d'), dest=iworker+1)
-        # make sure that data is not thrown away in last print
+        
         self.__print_data()
         if self.print_status:
             self.__print_status()
-        self.__close_flush()
         self.__print_exchanges()
+        self.__close_flush()
         logging.info("Master finished")
 
     def __one_iteration(self):
@@ -258,10 +258,10 @@ class PT_Master(object):
         """
         Exchange the configurations according to __find_exchange_buddies
         """
-        dx_string = "dx: "
-        for i in xrange(self.nrunners):
-            dx_string += str(self.runner_configs[i].dx) + ", "
-        logging.debug(dx_string)
+        # dx_string = "dx: "
+        # for i in xrange(self.nrunners):
+        #     dx_string += str(self.runner_configs[i].dx) + ", "
+        # logging.debug(dx_string)
 
         # find exchange pattern (list of exchange buddies)
         exchange_pattern = self.__find_exchange_buddies()
@@ -404,7 +404,7 @@ class PT_Master(object):
             sample_size = len(current_timeseries2)
             rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
             self.last_rel_std_errs[irunner] = rel_err
-            logging.debug("Runner {} relative standard error: {}".format(irunner, rel_err))
+            logging.info("Runner {} relative standard error: {}".format(irunner, rel_err))
             logging.debug("Runner {} autocorrelation time: {}".format(irunner, tau))
 
             #compute by how much to extend the time series, if has at least 1e5
@@ -417,6 +417,9 @@ class PT_Master(object):
                 m = var * (1+2*tau) / np.power(mean * self.rel_std_err, 2)
                 new_max_ptiters.append(self.ptiter + int((m-sample_size)/self.mcrunner_niter))
 
+        logging.debug("self.rel_std_err: %s" % self.rel_std_err)
+        logging.debug("self.eq_max_ptiter: %s" % self.eq_max_ptiter)
+        logging.debug("new_max_ptiters: %s" % new_max_ptiters)
         max_ptiter = max(new_max_ptiters)
         return min(max_ptiter, self.eq_max_ptiter)
 
