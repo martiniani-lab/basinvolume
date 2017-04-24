@@ -105,6 +105,7 @@ class _collect_u2_vs_k(object):
                 self._plot_data()
         except Exception as err:
             print("Exception: ", err)
+            print(traceback.format_exc())
         """
         Print basin volumes for further processing
         """
