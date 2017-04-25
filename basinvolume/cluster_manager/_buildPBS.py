@@ -80,7 +80,7 @@ class BuildPBSScript(object):
         f.write('echo \n')
         f.write('qstat -f ${PBS_JOBID} \n')
         f.write('echo \n')
-        f.write('echo Finished at \`date\` \n')
+        f.write('echo Finished at `date` \n')
         f.close()
         self.pbs_ready = True
 
