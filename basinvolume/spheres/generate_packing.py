@@ -851,6 +851,10 @@ if __name__ == "__main__":
     parser.add_argument("--precalc-config", type=str,
                         help="Take a precalculated hsf_niter and "
                         "hsf_stepsize from this config-file.", default=None)
+    parser.add_argument("--no-balance-omp", action='store_true',
+                        help="Don't balance subdomains when using multi-threaded "
+                             "cell lists. Default: False",
+                        default=False)
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -869,6 +873,7 @@ if __name__ == "__main__":
         pot_kwargs = {'shear': args.shear}
     else:
         pot_kwargs = {}
+    pot_kwargs['balance_omp'] = not args.no_balance_omp
 
     # import radii from other configuration file
     dpath = args.dpath

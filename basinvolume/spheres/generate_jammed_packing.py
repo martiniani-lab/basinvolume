@@ -115,7 +115,6 @@ class _Generate_Jammed_Packing(object):
         if self.import_jammed:
             imp_packing = read_jammed_packing_config(str(self.configpath))
             self.nparticles = imp_packing['nparticles']
-            self.packing_frac = imp_packing['packing_frac']
             self.bdim = imp_packing['bdim']
             self.ndim = imp_packing['ndim']
             self.boxv = imp_packing['boxv'].copy()
@@ -715,6 +714,10 @@ if __name__ == "__main__":
     parser.add_argument("--sort", action='store_true',
                         help="Use the potential to sort the atoms before saving. "
                              "Default: False", default=False)
+    parser.add_argument("--balance-omp", type=bool,
+                        help="Balance subdomains when using multi-threaded "
+                             "cell lists. Default: Use setting from packing config",
+                        default=None)
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -742,6 +745,8 @@ if __name__ == "__main__":
                      .format(override_pot_kwargs))
     else:
         raise NotImplementedError
+    if args.balance_omp is not None:
+        override_pot_kwargs['balance_omp'] = args.balance_omp
 
     sim = HS_Generate_Jammed_Packing(target_packing_frac=args.density,
                                      packings_dir=args.packingsdir,
