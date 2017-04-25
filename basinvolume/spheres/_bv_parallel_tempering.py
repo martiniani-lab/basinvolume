@@ -325,6 +325,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 #logging.debug('deltaE {} deltaT {}'.format(deltaE, deltabeta))
                 #logging.debug("E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w))
                 if w > rand:
+                    self.exchange_cnts[i + min(0, self.exchange_choice)] += 1
                     #accept exchange
                     if logging.getLogger().isEnabledFor(logging.DEBUG):
                         self.ex_outstream.write("accepting exchange %d %d %g %g %g %g %d\n" % (self.nodelist[i], self.nodelist[i+self.exchange_choice], dx1, dx2, T1, T2, self.ptiter))

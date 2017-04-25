@@ -499,9 +499,10 @@ class PT_Master(object):
             f.flush()
 
     def __print_exchanges(self):
-        logging.debug("Number of exchanges:")
+        logging.info("Number of exchanges:")
         for i in xrange(self.nrunners - 1):
-            logging.debug("{0} <-> {1}: {2}".format(i, i+1, self.exchange_cnts[i]))
+            logging.info("{0:>2} <-> {1:>2}:{2:>6}"
+                         .format(i, i+1, self.exchange_cnts[i]))
 
     def __close_flush(self):
         self.permutations_stream.flush()
