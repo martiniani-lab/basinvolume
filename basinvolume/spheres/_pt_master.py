@@ -191,7 +191,7 @@ class PT_Master(object):
         # Stop workers
         for iworker in xrange(self.nworkers):
             self.comm.Send(np.array([-1], dtype='d'), dest=iworker+1)
-        
+
         self.__print_data()
         if self.print_status:
             self.__print_status()
@@ -397,7 +397,7 @@ class PT_Master(object):
             current_timeseries2 = self.runner_timeseries2[irunner][self.eq_time:]
             nskip = max(int(np.round(len(current_timeseries2)/1e6)),1)
             tau = (integratedAutocorrelationTime_fft(np.array(current_timeseries2[::nskip],
-                                                             dtype='d'))
+                                                              dtype='d'))
                    * nskip)
             var = np.var(current_timeseries2)
             mean = np.mean(current_timeseries2)
@@ -405,7 +405,7 @@ class PT_Master(object):
             rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
             self.last_rel_std_errs[irunner] = rel_err
             logging.info("Runner {} relative standard error: {}".format(irunner, rel_err))
-            logging.debug("Runner {} autocorrelation time: {}".format(irunner, tau))
+            logging.debug("Runner {} sample_size: {}".format(irunner, sample_size))
 
             #compute by how much to extend the time series, if has at least 1e5
             if sample_size < self.min_window:

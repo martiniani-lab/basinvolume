@@ -174,7 +174,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
         self.rel_std_err_arr.extend([rel_err])
         logging.info("Rank {} relative standard error {}".format(self.rank, rel_err))
-        logging.debug("Rank {} autocorrelation time: {}".format(self.rank, tau))
+        logging.debug("Rank {} sample_size: {}".format(self.rank, sample_size))
 
         #compute by how much to extend the time series, if has at least 1e5
         if sample_size < self.min_window: #self.autocorr[-1]*100
