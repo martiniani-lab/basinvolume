@@ -17,10 +17,11 @@ class RunnerConfig(object):
     """
     def __init__(self, id, k, energy, coords):
         self.data = np.empty(4 + len(coords), dtype='d')
-        self.data[0] = id
-        self.data[1] = k
-        self.data[2] = energy
-        self.data[4:] = coords
+        self.id = id
+        self.k = k
+        self.energy = energy
+        self.dx = 0
+        self.coords = coords
 
     @property
     def id(self):
