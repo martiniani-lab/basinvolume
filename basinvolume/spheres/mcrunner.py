@@ -2,6 +2,7 @@ from __future__ import print_function
 import numpy as np
 import sys
 import warnings
+import logging
 from pele.potentials import Harmonic, HS_WCA, InversePowerStillingerCut
 from pele.optimize import ModifiedFireCPP, LBFGS_CPP
 from pele.storage.database import Minimum
@@ -223,7 +224,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     m['coords'] = full_coordinates(redcoords, self.origin,
                                   self.frozen_atoms, self.bdim)
             assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
-            print(len(minima_dicts))
+            logging.info("Number of minima: %i" % len(minima_dicts))
             db.engine.execute(Minimum.__table__.insert(), minima_dicts)
             db.session.commit()
         else:

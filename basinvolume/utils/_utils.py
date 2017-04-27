@@ -876,7 +876,7 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
     for subdir, dirs, files in os.walk(explore_dir):
         for dir in dirs:
             if dir.isdigit():
-                print "importing replica ", dir
+                logging.debug("importing replica %s" % dir)
                 series_order.append(int(dir))
                 path = os.path.join(explore_dir, dir)
                 file_list = glob.glob(path + '/TimeSeries*')

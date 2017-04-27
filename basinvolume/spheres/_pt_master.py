@@ -407,6 +407,7 @@ class PT_Master(object):
             self.last_rel_std_errs[irunner] = rel_err
             logging.info("Runner {} relative standard error: {}".format(irunner, rel_err))
             logging.debug("Runner {} sample_size: {}".format(irunner, sample_size))
+            logging.debug("Runner {} autocorrelation time: {}".format(irunner, tau))
 
             #compute by how much to extend the time series, if has at least 1e5
             if sample_size < self.min_window:
@@ -502,7 +503,7 @@ class PT_Master(object):
     def __print_exchanges(self):
         logging.info("Number of exchanges:")
         for i in xrange(self.nrunners - 1):
-            logging.info("{0:>2} <-> {1:>2}:{2:>6}"
+            logging.info("{0:>2} <-> {1:<2}:{2:>6}"
                          .format(i, i+1, self.exchange_cnts[i]))
 
     def __close_flush(self):

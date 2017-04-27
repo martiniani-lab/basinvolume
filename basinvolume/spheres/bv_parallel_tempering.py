@@ -44,7 +44,7 @@ if __name__ == "__main__":
                         help="Number of MC runners. Default: Number of MPI ranks",
                         default=None)
     parser.add_argument("--sleep-seconds", type=float,
-                        help="Waiting time between MPI probes by the job queue master. "
+                        help="Waiting time between MPI probes for the job queue master. "
                              "Default: 0.0001 (100us)",
                         default=0.0001)
     args = parser.parse_args()
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
-    logging.basicConfig(format='%(asctime)s %(levelname)s: Rank {}: %(message)s'.format(rank),
+    logging.basicConfig(format='%(asctime)s %(levelname)s: Rank {:>2}: %(message)s'.format(rank),
                         datefmt='%d/%m/%Y %H:%M:%S',
                         level=loglevel)
 
@@ -185,8 +185,8 @@ if __name__ == "__main__":
             except:
                 view_traceback()
 
-        logging.info('core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
-                     .format(rank, ptrunner.ptiter, mcrunner.niter, adjustf_niter,
+        logging.info('ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
+                     .format(ptrunner.ptiter, mcrunner.niter, adjustf_niter,
                              ptrunner.skip, ptrunner.pfreq))
 
     if rank == 0:

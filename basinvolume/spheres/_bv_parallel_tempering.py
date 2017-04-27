@@ -111,7 +111,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.timeseries2 = np.append(self.timeseries2, tail_timeseries2)
         if self.test_convergence and self.ptiter > self.eq_min_ptiter:
             if self.timeseries2.size < self.mcrunner_eqsteps:
-                logging.info("Rank {} attempted to test convergence before the mcrunner equilibration steps had terminated".format(self.rank))
+                logging.info("Attempted to test convergence before the mcrunner equilibration steps had terminated")
                 return self.max_ptiter
             else:
                 return self._test_ts_convergence()
@@ -142,10 +142,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 self.eq_time = self._broadcast_data([new_eq_time], 1)[0]
                 self.eq_time = int(self.eq_time)
             end=time.time()
-            logging.info("Rank {} set_eq_time: {} comp_eq_time: {} "
+            logging.info("set_eq_time: {} comp_eq_time: {} "
                          "mcrunner_eqsteps: {} len(timeseseries2): {} "
                          "time detect equilibration: {}".format(
-                             self.rank, self.eq_time, eq_time,
+                             self.eq_time, eq_time,
                              self.mcrunner_eqsteps, self.timeseries2.size,
                              end-start)
                          )
@@ -153,7 +153,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         timeseries2 = self.timeseries2[self.eq_time:]
         new_max_ptiter = self._find_new_max_ptiter(timeseries2)
         logging.debug("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
-        logging.debug("Rank {} autocorrelation time {}".format(self.rank, self.autocorr))
+        logging.debug("Autocorrelation time {}".format(self.autocorr))
         return new_max_ptiter
 
     def _find_new_max_ptiter(self, timeseries2):
@@ -173,8 +173,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         sample_size = timeseries2.size
         rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
         self.rel_std_err_arr.extend([rel_err])
-        logging.info("Rank {} relative standard error {}".format(self.rank, rel_err))
-        logging.debug("Rank {} sample_size: {}".format(self.rank, sample_size))
+        logging.info("relative standard error {}".format(rel_err))
+        logging.debug("sample_size: {}".format(sample_size))
 
         #compute by how much to extend the time series, if has at least 1e5
         if sample_size < self.min_window: #self.autocorr[-1]*100
