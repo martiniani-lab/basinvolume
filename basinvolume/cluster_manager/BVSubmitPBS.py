@@ -176,7 +176,7 @@ class BVSubmitPBS(object):
                                          rmdata="inner_sphere.timeseries"):
         try:
             os.remove(os.path.join(explore_dir_path, rmdata))
-            print "removed {}".format(os.path.join(explore_dir_path, rmdata))
+            logging.info("Removed {}".format(os.path.join(explore_dir_path, rmdata)))
         except OSError:
             pass  # nothing to remove
         # remove config file and pbs output
@@ -187,11 +187,11 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(explore_dir_path):
             for dir in dirs:
                 if dir.isdigit():
-                    print "removing ", os.path.join(root, dir)
+                    logging.info("Removing %s" % os.path.join(root, dir))
                     shutil.rmtree(os.path.join(root, dir))
             for file in files:
                 if file in self.pt_output_files:
-                    print "removing ", os.path.join(root, file)
+                    logging.info("Removing %s" % os.path.join(root, file))
                     os.remove(os.path.join(root, file))
         # remove config file and pbs output
         self._remove_pbs_output(explore_dir_path, output_signature)
@@ -725,7 +725,11 @@ if __name__ == "__main__":
                               default=False)
 
     args = parser.parse_args()
-    print args
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
+    logging.info(args)
 
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
@@ -733,6 +737,8 @@ if __name__ == "__main__":
         raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     if args.sort:
+        if args.nocell:
+            logging.warning("Sorting without cell lists does not do anything.")
         packings_dir = os.path.join(args.workdir, args.packings_dir)
         unsorted_dir = os.path.join(os.path.dirname(packings_dir), 'jammed_unsorted')
         shutil.move(packings_dir, unsorted_dir)

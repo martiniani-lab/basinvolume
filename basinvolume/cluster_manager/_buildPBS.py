@@ -1,6 +1,7 @@
 from __future__ import division
 from subprocess import Popen, PIPE
 import os
+import logging
 
 def sec_to_pbs_time(seconds, nodays=False):
     """
@@ -50,7 +51,7 @@ class BuildPBSScript(object):
         *fname [string]: name of the pbs bash script where to write
         *job_name [string]: name of the pbs job
         """
-        print "writing PBS file"
+        logging.info("Writing PBS file")
         if ".sh" not in fname:
             fname += ".sh"
         f = open(fname,'w')
@@ -95,13 +96,14 @@ class BuildPBSScript(object):
         return stdout
 
     def goto_PBS_O_WORKDIR(self):
-        print "going to PBS_O_WORKDIR"
+        logging.info("Going to PBS_O_WORKDIR")
         pbs_wdir = self.get_PBS_O_WORKDIR()
         if not os.path.isabs(pbs_wdir):
             # This makes the BVSubmitPBS still work when there is no PBS_O_WORKDIR,
             # i.e. when calling the script locally
-            print "PBS_O_WORKDIR is not absolute, making absolute: {}".format(str(pbs_wdir))
             pbs_wdir = os.path.abspath(pbs_wdir)
+            logging.info("PBS_O_WORKDIR is not absolute, making absolute: {}"
+                         .format(pbs_wdir))
         os.chdir(pbs_wdir)
 
     def checkin_PBS_O_WORKDIR(self):
