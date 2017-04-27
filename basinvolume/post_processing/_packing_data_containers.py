@@ -4,8 +4,7 @@ import os
 import numpy as np
 import ConfigParser
 from basinvolume.utils import import_packing, Bunch
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
-from basinvolume.spheres.generate_packing import read_packing_config
+from basinvolume.spheres import read_jammed_packing_config, read_packing_config
 try:
     import matplotlib.pyplot as plt
 except ImportError as err:

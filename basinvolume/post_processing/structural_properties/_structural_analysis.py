@@ -3,7 +3,7 @@ import numpy as np
 import os
 import abc
 from basinvolume.utils import import_packing, trymakedir
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres import read_jammed_packing_config
 from pele.potentials import HS_WCA
 
 

@@ -10,7 +10,7 @@ from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
                                volume_nball, import_packing, calc_distance,
                                get_cython_version, cround, in_hull, origin_in_hull_2d,
                                conf_get_default, conf_getboolean_default)
-from basinvolume.spheres.generate_packing import read_packing_config
+from basinvolume.spheres import read_packing_config
 from basinvolume.enums import Minimizer, Interaction
 import ConfigParser
 import re

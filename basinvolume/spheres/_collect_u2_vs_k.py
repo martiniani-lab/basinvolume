@@ -15,7 +15,7 @@ from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import VolumeSanityCheck
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres import read_jammed_packing_config
 import traceback
 import argparse
 from itertools import cycle

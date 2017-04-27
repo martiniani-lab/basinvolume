@@ -2,7 +2,7 @@ import numpy as np
 import os
 from spack import Packing
 from basinvolume.post_processing.structural_properties import StructuralAnalysis
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres import read_jammed_packing_config
 
 class GenerateSpackPlot(StructuralAnalysis):
     """

@@ -6,7 +6,7 @@ from pele.potentials import HS_WCA
 from pele.storage import Minimum
 from pele.distance import put_in_box, Distance
 from basinvolume.utils import trymakedir, import_packing, get_git_version, get_cython_version, get_python_version
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.gui import HSWCASystem
 import ConfigParser
 import time

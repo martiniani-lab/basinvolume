@@ -4,7 +4,7 @@ import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.mbar_spheres import BVInnerSphereMCrunner
 from basinvolume.enums import Minimizer
 import ConfigParser

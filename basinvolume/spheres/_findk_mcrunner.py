@@ -4,7 +4,7 @@ import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.enums import Minimizer
 import ConfigParser
 import time

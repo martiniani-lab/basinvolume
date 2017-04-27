@@ -7,7 +7,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, volume_nball
 import ConfigParser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres import read_jammed_packing_config
 import argparse
 from itertools import cycle
 try:

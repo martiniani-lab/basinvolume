@@ -5,7 +5,7 @@ from pele.potentials import HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from pele.distance import Distance
 from basinvolume.utils import import_packing
-from basinvolume.spheres.generate_jammed_packing import HS_Generate_Jammed_Packing
+from basinvolume.spheres import HS_Generate_Jammed_Packing
 import re
 import argparse
 try:

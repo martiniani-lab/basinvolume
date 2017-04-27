@@ -6,7 +6,7 @@ from pele.potentials import HS_WCA
 from pele.storage import Minimum
 from basinvolume.utils import import_packing
 from basinvolume.gui import HSWCASystem
-from basinvolume.spheres.generate_jammed_packing import read_jammed_packing_config
+from basinvolume.spheres import read_jammed_packing_config
 import ConfigParser
 import time
 import re
