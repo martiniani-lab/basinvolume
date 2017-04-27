@@ -187,7 +187,7 @@ class PT_Master(object):
         while (self.ptiter < self.max_ptiter):
             logging.debug("Iteration {}".format(self.ptiter))
             self.__one_iteration()
-            if self.ptiter == self.max_ptiter:
+            if self.ptiter >= self.max_ptiter:
                 self.max_ptiter = self.__test_convergence()
         # Stop workers
         for iworker in xrange(self.nworkers):
