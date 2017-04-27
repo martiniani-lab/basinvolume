@@ -7,6 +7,8 @@ import argparse
 import shutil
 import shlex
 import subprocess
+import logging
+from basinvolume.enums import Interaction
 from basinvolume.cluster_manager import BuildPBSScript
 from basinvolume.utils import trymakedir, check_kmax_reasonable
 from basinvolume.enums import Minimizer
@@ -78,7 +80,7 @@ class BVSubmitPBS(object):
         self.pt_nodes = 1
         while self.nthreads*self.pt_workers - self.pt_nodes*cores_per_node > 0:
             self.pt_nodes += 1
-        self.pt_procs_per_node = min(cores_per_node, self.nthreads*self.pt_workers)
+        self.pt_cores_per_node = min(cores_per_node, self.nthreads*self.pt_workers)
         if ndim == 2:
             if not self.experimental:
                 self.ext = '.xydr'
@@ -731,14 +733,11 @@ if __name__ == "__main__":
         raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
     if args.sort:
-        pbs_dir = os.environ.get('PBS_O_WORKDIR')
-        if pbs_dir is None:
-            packings_dir = args.packings_dir
-        else:
-            packings_dir = os.path.join(pbs_dir, args.packings_dir)
+        packings_dir = os.path.join(args.workdir, args.packings_dir)
         unsorted_dir = os.path.join(os.path.dirname(packings_dir), 'jammed_unsorted')
         shutil.move(packings_dir, unsorted_dir)
         packing_config = read_jammed_packing_config(os.path.join(unsorted_dir, 'jammed_packing0.config'))
+        os.environ['OMP_NUM_THREADS'] = str(args.threads)
         sorter = HS_Generate_Jammed_Packing(target_packing_frac=packing_config['packing_frac'],
                                             tol=1e30, use_cell_lists=not args.nocell,
                                             show=False, interaction=Interaction.HS_WCA,
