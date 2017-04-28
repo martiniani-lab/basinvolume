@@ -790,7 +790,7 @@ def trajectory_pca(traj):
     eig_vec_cov = eig_vec_cov[:,idx]
     return eig_val_cov, eig_vec_cov
 
-def write_2d_array_to_hf5(array, key, path):
+def write_2d_array_to_hdf5(array, key, path):
     assert array.ndim == 2
     nind , ncol = array.shape
     ind = [i for i in xrange(nind)]
@@ -798,7 +798,7 @@ def write_2d_array_to_hf5(array, key, path):
     df = pd.DataFrame(array, index=ind, columns=col)
     df.to_hdf(path, key)
 
-def read_hf5_to_2d_array(path, key):
+def read_hdf5_to_2d_array(path, key):
     df = pd.read_hdf(path, key)
     array = np.array(df.values)
     return array
@@ -809,8 +809,8 @@ def import_pt_time_series(explore_dir, adjustf_niter,
         """
         to import without loss of data set max_series_size=0 and crop_adjustf_niter=False
         if max_series_size=0 and raw timeseries are imported then the timeseries will not be cropped
-        therefore max_series_size=0 indicates that there is no loss from raw to hf5.
-        If want to remove the equilibration region when importing the full dataset in hf5 format set
+        therefore max_series_size=0 indicates that there is no loss from raw to hdf5.
+        If want to remove the equilibration region when importing the full dataset in hdf5 format set
         crop_adjustf_niter=True
 
         explore_dir string
@@ -827,7 +827,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
         tsframe = os.path.join(explore_dir, 'timeseries.h5')
         if os.path.isfile(tsframe):
             try:
-                timeseries = read_hf5_to_2d_array(tsframe, 'ts')
+                timeseries = read_hdf5_to_2d_array(tsframe, 'ts')
                 if crop_adjustf_niter:
                     print 'cropping adjustf_niter'
                     timeseries = timeseries[:,adjustf_niter:]
@@ -844,7 +844,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
                     timeseries = import_pt_time_series_raw(explore_dir, adjustf_niter,
                                                            max_series_size=max_series_size,
                                                            ncores=ncores)
-                    write_2d_array_to_hf5(timeseries, 'ts', tsframe)
+                    write_2d_array_to_hdf5(timeseries, 'ts', tsframe)
                 except Exception:
                     traceback.print_exc(file=sys.stdout)
                     sys.exit(0)
@@ -853,7 +853,7 @@ def import_pt_time_series(explore_dir, adjustf_niter,
                 timeseries = import_pt_time_series_raw(explore_dir, adjustf_niter,
                                                        max_series_size=max_series_size,
                                                        ncores=ncores)
-                write_2d_array_to_hf5(timeseries, 'ts', tsframe)
+                write_2d_array_to_hdf5(timeseries, 'ts', tsframe)
             except Exception:
                 traceback.print_exc(file=sys.stdout)
                 sys.exit(0)
@@ -869,7 +869,7 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
     """
     max_series_size int
         when set to 0 the whole time series is imported and there is a lossless conversion from
-        raw to hf5, otherwise the equilibration region needs to be necessarily removed
+        raw to hdf5, otherwise the equilibration region needs to be necessarily removed
     """
     timeseries = []
     series_order = []

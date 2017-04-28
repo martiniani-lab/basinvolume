@@ -191,7 +191,7 @@ if __name__ == "__main__":
 
     if rank == 0:
         end = time.time()
-        logging.info('convert timeseries to hdf5...')
+        logging.info('Convert timeseries to hdf5...')
         # it is imperative that max_series_size=0 to avoid loss of raw data,
         # the objective of this step is to reduce the amount of occupied memory
         # and i/o speed without loosing any information

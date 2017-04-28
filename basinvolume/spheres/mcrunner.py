@@ -10,7 +10,7 @@ from pele.distance import Distance
 from mcpele.monte_carlo import (RandomCoordsDisplacement, MetropolisTest,
                                 SampleGaussian, CheckSphericalContainer)
 from basinvolume.gui import HSWCASystem
-from basinvolume.utils import full_coordinates, write_2d_array_to_hf5
+from basinvolume.utils import full_coordinates, write_2d_array_to_hdf5
 from basinvolume.spheres import BaseSpheresMCrunner
 from basinvolume.monte_carlo import (CheckSameMinimum, Findk,
                                      RecordDisplacementTimeseries,
@@ -480,7 +480,7 @@ class BV_MCrunner(SpheresMCRunner):
     def dump_trajectory(self, fname, clear=True):
         """write time series to fname, returns the timeseries"""
         trajectory = self.get_trajectory()
-        write_2d_array_to_hf5(trajectory, 'trajectory', fname)
+        write_2d_array_to_hdf5(trajectory, 'trajectory', fname)
         if clear:
             self.clear_trajectory()
         return trajectory

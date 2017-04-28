@@ -98,7 +98,7 @@ if __name__ == "__main__":
     print 'core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
                                                                                        ptrunner.ptiter, adjustf_niter,
                                                                                        ptrunner.skip, ptrunner.pfreq)
-    print 'convert timeseries to hf5...'
+    print 'convert timeseries to hdf5...'
     if rank == 0:
         #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
         #reduce the amount of occupied memory and i/o speed without loosing any information
