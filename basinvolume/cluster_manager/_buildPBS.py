@@ -66,7 +66,6 @@ class BuildPBSScript(object):
         f.write('cd ${PBS_O_WORKDIR} \n')
         f.write('\n')
         f.write('export OMP_NUM_THREADS={}\n'.format(self.omp_threads))
-        f.write('export KMP_AFFINITY=compact\n')
         f.write('\n')
         f.write('echo Starting job $PBS_JOBID \n')
         f.write('echo\n')
