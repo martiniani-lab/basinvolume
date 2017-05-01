@@ -130,7 +130,7 @@ class PT_Master(object):
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
-        assert((self.eq_max_ptiter-self.eq_min_ptiter) * self.mcrunner_niter > self.min_window)  # condition on the minimal window size
+        assert((self.eq_max_ptiter-self.eq_min_ptiter) * self.mcrunner_niter > self.min_window)  # Condition on the minimal window size
         if not (self.min_window > self.mcrunner_eqsteps):
             logging.info("self.min_window: {}".format(self.min_window))
             logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
@@ -181,6 +181,8 @@ class PT_Master(object):
             assert grid == self.numnegk
             for x in grid[::-1]:
                 Karray.insert(0, x)
+        # Reverse Karray for backwards compatibility
+        Karray = Karray[::-1]
         return Karray
 
     def run(self):
@@ -209,21 +211,22 @@ class PT_Master(object):
         * collect the results
         * attempt an exchange
         """
-        current_runner = 0
+        # Start with slowest runner (lowest k)
+        current_runner = self.nrunners - 1
 
         # Send the first job to every worker
-        while current_runner < self.nworkers:
-            self.comm.Send(self.runner_configs[current_runner].data, dest=current_runner+1)
-            current_runner += 1
+        for i in xrange(self.nworkers):
+            self.comm.Send(self.runner_configs[current_runner].data, dest=i+1)
+            current_runner -= 1
 
         # Send the remaining jobs to finished workers
-        while current_runner < self.nrunners:
+        while current_runner >= 0:
             if self.sleep_seconds > 0:
                 while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
                     time.sleep(self.sleep_seconds)
             finished_worker = self.__receive_result()
             self.comm.Send(self.runner_configs[current_runner].data, dest=finished_worker)
-            current_runner += 1
+            current_runner -= 1
 
         # Wait for all workers to finish
         for _ in xrange(self.nworkers):

@@ -35,7 +35,7 @@ if __name__ == "__main__":
                              "Default: 'explore_bv_jammed_packing'",
                         default='explore_bv_jammed_packing')
     parser.add_argument("-n","--niter", type=float, help="number of energy evaluation, default: 1e5",default=1e5)
-    parser.add_argument("--adjustf-niter", type=float, help="number of steps to adjust stepsize, default: 1e5",default=1e4)
+    parser.add_argument("--adjustf-niter", type=float, help="number of steps to adjust stepsize, default: 1e4",default=1e4)
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
