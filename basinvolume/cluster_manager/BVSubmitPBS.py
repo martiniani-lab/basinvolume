@@ -740,17 +740,22 @@ if __name__ == "__main__":
         if args.nocell:
             logging.warning("Sorting without cell lists does not do anything.")
         packings_dir = os.path.join(args.workdir, args.packings_dir)
-        unsorted_dir = os.path.join(os.path.dirname(packings_dir), 'jammed_unsorted')
-        shutil.move(packings_dir, unsorted_dir)
-        packing_config = read_jammed_packing_config(os.path.join(unsorted_dir, 'jammed_packing0.config'))
-        os.environ['OMP_NUM_THREADS'] = str(args.threads)
-        sorter = HS_Generate_Jammed_Packing(target_packing_frac=packing_config['packing_frac'],
-                                            tol=1e30, use_cell_lists=not args.nocell,
-                                            show=False, interaction=Interaction.HS_WCA,
-                                            minimizer=minimizer, packings_dir=unsorted_dir,
-                                            outdir=packings_dir, sort_atoms=True,
-                                            import_jammed=True, check_packing=False)
-        sorter.run()
+        packing_config = read_jammed_packing_config(os.path.join(packings_dir, 'jammed_packing0.config'))
+        if (not packing_config['sorted']
+            or (packing_config['sorted_nsubdoms'] != args.threads
+                and packing_config['pot_kwargs']['balance_omp'])):
+            # Only sort when packings have not yet been sorted
+            logging.info("Sorting jammed packings")
+            unsorted_dir = os.path.join(os.path.dirname(packings_dir), 'jammed_unsorted')
+            shutil.move(packings_dir, unsorted_dir)
+            os.environ['OMP_NUM_THREADS'] = str(args.threads)
+            sorter = HS_Generate_Jammed_Packing(target_packing_frac=packing_config['packing_frac'],
+                                                tol=1e30, use_cell_lists=not args.nocell,
+                                                show=False, interaction=Interaction.HS_WCA,
+                                                minimizer=minimizer, packings_dir=unsorted_dir,
+                                                outdir=packings_dir, sort_atoms=True,
+                                                import_jammed=True, check_packing=False)
+            sorter.run()
 
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir,
                         job_label=args.job_label, nojmin=args.nojmin,
