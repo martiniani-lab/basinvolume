@@ -43,6 +43,15 @@ class _findk_mcrunner(_configure_mcrunner):
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:
             self.pot_kwargs = imp_packing['pot_kwargs'].copy()
+        if not imp_packing['sorted']:
+            print("WARNING: The jammed packing has not been sorted, "
+                  "which can negatively impact performance.")
+        else:
+            if (imp_packing['pot_kwargs']['balance_omp']
+                and imp_packing['sorted_nsubdoms'] != int(os.environ['OMP_NUM_THREADS'])):
+                print("WARNING: The jammed packing has been sorted with a different number "
+                      "of subdomains (OpenMP threads), which changes the number of cells "
+                      "and can negatively impact performance.")
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         #self.coords is origin, set initial configuration and origin to be the same

@@ -9,7 +9,8 @@ from PyCG_DESCENT import CGDescent
 from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
                                volume_nball, import_packing, calc_distance,
                                get_cython_version, cround, in_hull, origin_in_hull_2d,
-                               conf_get_default, conf_getboolean_default)
+                               conf_get_default, conf_getboolean_default,
+                               conf_getint_default)
 from basinvolume.spheres import read_packing_config
 from basinvolume.enums import Minimizer, Interaction
 import ConfigParser
@@ -71,7 +72,10 @@ def read_jammed_packing_config(configpath, frozen=False):
     parameters['pot_kwargs'] = ast.literal_eval(conf_get_default(configf, 'JAMMED_PACKING',
                                                                  'pot_kwargs', '{}'))
     parameters['sca'] = configf.getfloat('JAMMED_PACKING', 'sca')
-    parameters['sorted'] = conf_getboolean_default(configf, 'JAMMED_PACKING', 'sorted', False)
+    parameters['sorted'] = conf_getboolean_default(configf, 'JAMMED_PACKING',
+                                                   'sorted', False)
+    parameters['sorted_nsubdoms'] = conf_getint_default(configf, 'JAMMED_PACKING',
+                                                        'sorted_nsubdoms', 1)
     return parameters
 
 
@@ -202,6 +206,7 @@ class _Generate_Jammed_Packing(object):
         assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('sorted: {}\n'.format(self.sort_atoms))
+        f.write('sorted_nsubdoms: {}\n'.format(os.environ['OMP_NUM_THREADS']))
         f.write('\n')
         # print software version
         f.write('[CODEVERSION]\n')

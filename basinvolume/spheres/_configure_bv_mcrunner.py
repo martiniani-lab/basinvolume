@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import os
+import logging
 from pele.potentials import Harmonic
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
@@ -148,6 +149,16 @@ class configure_bv_mcrunner(_configure_mcrunner):
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:
             self.pot_kwargs = imp_packing['pot_kwargs'].copy()
+        if not imp_packing['sorted']:
+            logging.warning("The jammed packing has not been sorted, "
+                            "which can negatively impact performance.")
+        else:
+            if (imp_packing['pot_kwargs']['balance_omp']
+                and imp_packing['sorted_nsubdoms'] != int(os.environ['OMP_NUM_THREADS'])):
+                logging.warning("The jammed packing has been sorted with a "
+                                "different number of subdomains (OpenMP threads), "
+                                "which changes the number of cells and can "
+                                "negatively impact performance.")
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')
