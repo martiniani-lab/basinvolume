@@ -94,7 +94,9 @@ if __name__ == "__main__":
     fast_ct=False  # if false skip euristic search for equilibration point
     collect_minima_list = not args.nocollectminima
     i32max = np.iinfo(np.int32).max
-    seeds = dict(seed_takestep=random.randint(0, i32max),seed_metropolis=random.randint(0, i32max))
+
+    seeds = dict(seed_takestep=random.randint(0, i32max),
+                 seed_metropolis=random.randint(0, i32max))
     logging.info(seeds)
 
     if args.minimizer.upper() in Minimizer.__members__:

@@ -27,18 +27,22 @@ public:
         const & neighbor_pairs, const size_t isubdom)
     {
         for (auto const & ijpair : neighbor_pairs) {
-            const std::vector<size_t>* icell = ijpair.first;
-            const std::vector<size_t>* jcell = ijpair.second;
-            // do double loop through atoms, avoiding duplicate pairs
-            for (auto iatom = icell->begin(); iatom != icell->end(); ++iatom) {
-                // if icell==jcell we need to avoid duplicate atom pairs
-                auto jend = (icell == jcell) ? iatom : jcell->end();
-                for (auto jatom = jcell->begin(); jatom != jend; ++jatom) {
-                    if (CellListsLoop<visitor_t, ndim>::m_visitor.insert_atom_pair(*iatom, *jatom, isubdom)) {
-                        m_break = true;
-                    }
-                    if (m_break) {
-                        return;
+            for (auto const & ijpair : neighbor_pairs) {
+                // do double loop through atoms, avoiding duplicate pairs
+                for (auto icell_iter = m_container.getIterator(ijpair[0]);
+                     *icell_iter != CELL_END;
+                     ++icell_iter) {
+                    // if icell==jcell we need to avoid duplicate atom pairs
+                    auto jend = (ijpair[0] == ijpair[1]) ? *icell_iter : CELL_END;
+                    for (auto jcell_iter = m_container.getIterator(ijpair[1]);
+                         *jcell_iter != jend;
+                         ++jcell_iter) {
+                        if (CellListsLoop<visitor_t, ndim>::m_visitor.insert_atom_pair(*icell_iter, *jcell_iter, isubdom)) {
+                            m_break = true;
+                        }
+                        if (m_break) {
+                            return;
+                        }
                     }
                 }
             }
