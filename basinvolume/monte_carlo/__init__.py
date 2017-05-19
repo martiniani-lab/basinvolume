@@ -16,3 +16,4 @@ from _conf_test_cpp import (CheckHyperSphericalContainer,
                             CheckMinimumIsHCP,
                             CheckExponentiallyDecayingProfile)
 from _takestep_cpp import SampleUniformSphereGaussian
+from _neighbor_exchanges import random_neighbor_exchanges

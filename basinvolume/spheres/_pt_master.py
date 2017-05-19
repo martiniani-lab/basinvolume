@@ -10,13 +10,13 @@ from enum import Enum, unique  # Package enum34
 from pymbar.timeseries import detectEquilibration_binary_search
 from basinvolume.utils import trymakedir, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
+from basinvolume.monte_carlo import random_neighbor_exchanges
 
 
 @unique
 class ExchangeScheme(Enum):
     NEIGHBOR_EXCHANGE = 1
     INDEPENDENCE_SAMPLING = 2
-    METROPOLIZED_INDEPENDENCE_SAMPLING = 3
 
 
 class RunnerConfig(object):
@@ -137,6 +137,10 @@ class PT_Master(object):
         self.exchange_scheme = exchange_scheme
         if self.exchange_scheme is ExchangeScheme.NEIGHBOR_EXCHANGE:
             self.__calculate_exchange = self.__neighbor_exchange
+        elif self.exchange_scheme is ExchangeScheme.INDEPENDENCE_SAMPLING:
+            self.__calculate_exchange = self.__independence_sampling
+        else:
+            raise ValueError("Unknown exchange scheme (%s)" % self.exchange_scheme.name)
         assert(self.nrunners > self.nworkers)
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
@@ -312,6 +316,10 @@ class PT_Master(object):
 
         self.__calculate_exchange(exchange_pattern)
 
+        for i in xrange(self.nrunners):
+            if exchange_pattern[i] == i:
+                exchange_pattern[i] = self.NO_EXCHANGE
+
         # record self.permutation_pattern to print permutations in print function
         if self.anyswap:
             for i, buddy in enumerate(exchange_pattern):
@@ -324,6 +332,26 @@ class PT_Master(object):
 
         return exchange_pattern
 
+    def __independence_sampling(self, exchange_pattern):
+        energies = np.array([0.5 * self.runner_configs[i].dx * self.runner_configs[i].dx
+                    for i in xrange(self.nrunners)])
+        betas = np.array([self.runner_configs[i].k for i in xrange(self.nrunners)])
+
+        nexchanges = self.nrunners ** 3
+        naccept = random_neighbor_exchanges(exchange_pattern, energies, betas, nexchanges)
+
+        if naccept > 0:
+            self.anyswap = True
+
+        logging.debug("Acceptance ratio: %f" % (naccept / nexchanges))
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            for i in xrange(self.nrunners):
+                j = exchange_pattern[i]
+                if j > i:
+                    self.ex_outstream.write(
+                        "accepting exchange %d %d %g %g %g %g %d\n" % (
+                            i, j, self.runner_configs[i].dx, self.runner_configs[j].dx, self.runner_configs[i].k, self.runner_configs[j].k, self.ptiter))
+
     def __neighbor_exchange(self, exchange_pattern):
         for i in xrange(self.exchange_choice, self.nrunners-1, 2):
             dx1 = self.runner_configs[i].dx
@@ -335,8 +363,8 @@ class PT_Master(object):
             deltaE = 0.5*dx2*dx2 - 0.5*dx1*dx1
             deltabeta = k2 - k1
             w = np.exp(deltaE * deltabeta)
-            rand = np.random.rand()
 
+            rand = np.random.rand()
             if w > rand:
                 # accept exchange
 

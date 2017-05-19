@@ -7,7 +7,7 @@ import time
 import sys
 from mpi4py import MPI
 from basinvolume.spheres import (configure_bv_mcrunner, MPI_BV_PT_RLhandshake,
-                                 PT_Worker, PT_Master)
+                                 PT_Worker, PT_Master, ExchangeScheme)
 from basinvolume.experiment_2d import configure_bv_exp_mcrunner
 from basinvolume.utils import view_traceback, check_kmax_reasonable, import_pt_time_series
 from basinvolume.enums import Minimizer
@@ -47,6 +47,11 @@ if __name__ == "__main__":
                         help="Waiting time between MPI probes for the job queue master. "
                              "Default: 0.0001 (100us)",
                         default=0.0001)
+    parser.add_argument("--exchange-scheme", type=str,
+                        help="Exchange scheme used in parallel tempering. "
+                             "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
+                             "Default: 'NEIGHBOR_EXCHANGE'",
+                        default='NEIGHBOR_EXCHANGE')
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
@@ -64,6 +69,8 @@ if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s %(levelname)s: Rank {:>2}: %(message)s'.format(rank),
                         datefmt='%d/%m/%Y %H:%M:%S',
                         level=loglevel)
+    if rank == 0:
+        logging.info(args)
 
     path = args.base_directory
     fname = args.jammed_packing_fname
@@ -104,6 +111,11 @@ if __name__ == "__main__":
     else:
         raise ValueError("Undefined minimizer: {}".format(args.minimizer))
 
+    if args.exchange_scheme.upper() in ExchangeScheme.__members__:
+        exchange_scheme = ExchangeScheme[args.exchange_scheme.upper()]
+    else:
+        raise ValueError("Undefined exchange scheme: {}".format(args.exchange_scheme))
+
     # prepare MC runner
     if ".xydfr" in fname or ".xyzdfr" in fname:
         if rank == 0:
@@ -114,13 +126,16 @@ if __name__ == "__main__":
             logging.info("found numerical packing")
         sim = configure_bv_mcrunner(rank, nprocs)
 
-    mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5, opt_nsteps=1e5, hmin=0,
-                   hmax=1000, hbinsize=1e-1, acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100,
-                   pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq, minimizer=minimizer,
-                   perform_convergence_test=perform_minimisation_convergence_test, collect_minima_list=collect_minima_list,
-                   seeds=seeds, use_cell_lists=not args.nocell, single=single, record_histogram=record_histogram,
-                   packings_dir=args.packings_dir,
-                   base_dir=path)
+    mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5,
+                   opt_nsteps=1e5, hmin=0, hmax=1000, hbinsize=1e-1,
+                   acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter,
+                   adjustf_navg=100, pt_eq_niter=pt_eq_niter, ts_niter=ts_niter,
+                   ts_freq=ts_freq, minimizer=minimizer,
+                   perform_convergence_test=perform_minimisation_convergence_test,
+                   collect_minima_list=collect_minima_list, seeds=seeds,
+                   use_cell_lists=not args.nocell, single=single,
+                   record_histogram=record_histogram,
+                   packings_dir=args.packings_dir, base_dir=path)
 
     if not check_kmax_reasonable(sim.findk_configpath):
         logging.warning('bv_parallel_tempering: kmax is unreasonable, exiting')
@@ -142,7 +157,8 @@ if __name__ == "__main__":
                 fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
                 max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
                 numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path,
-                sleep_seconds=args.sleep_seconds)
+                sleep_seconds=args.sleep_seconds,
+                exchange_scheme=exchange_scheme)
 
             try:
                 master.run()
@@ -165,6 +181,9 @@ if __name__ == "__main__":
     else:
         if rank == 0:
             logging.info("Using handshake with {} runners.".format(nprocs))
+        if exchange_scheme != ExchangeScheme.NEIGHBOR_EXCHANGE:
+            raise ValueError("Only the exchange scheme NEIGHBOR_EXCHANGE works with PT handshake.")
+
         ptrunner = MPI_BV_PT_RLhandshake(
             mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
             pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
