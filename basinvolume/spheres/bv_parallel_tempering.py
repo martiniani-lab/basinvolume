@@ -215,7 +215,7 @@ if __name__ == "__main__":
         logging.info('Convert timeseries to hdf5...')
         # it is imperative that max_series_size=0 to avoid loss of raw data,
         # the objective of this step is to reduce the amount of occupied memory
-        # and i/o speed without loosing any information
+        # and i/o speed without losing any information
         timeseries = import_pt_time_series(sim.base_dir, int(sim.mc_params['adjustf_niter']),
                                            max_series_size=0, ncores=1, del_raw=args.delraw)
         logging.info("Done")

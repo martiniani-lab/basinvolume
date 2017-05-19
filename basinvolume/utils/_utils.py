@@ -829,14 +829,14 @@ def import_pt_time_series(explore_dir, adjustf_niter,
             try:
                 timeseries = read_hdf5_to_2d_array(tsframe, 'ts')
                 if crop_adjustf_niter:
-                    print 'cropping adjustf_niter'
+                    logging.info('cropping adjustf_niter')
                     timeseries = timeseries[:,adjustf_niter:]
-                print 'timeseries shape ', np.shape(timeseries)
+                logging.info('Old timeseries shape: {}'.format(np.shape(timeseries)))
                 if max_series_size > 0 and  np.shape(timeseries)[1] > max_series_size:
                     #need subsample and probably crop
                     tsl = np.shape(timeseries)[1]
-                    print 'subsampling timeseries because np.shape(timeseries)[1] > max_series_size'
-                    print 'subsampling every {} steps'.format(int(tsl/max_series_size))
+                    logging.info('subsampling timeseries because np.shape(timeseries)[1] > max_series_size')
+                    logging.info('subsampling every {} steps'.format(int(tsl/max_series_size)))
                     timeseries = timeseries[:, ::max(int(tsl/max_series_size),1)]
             except Exception:
                 traceback.print_exc(file=sys.stdout)
