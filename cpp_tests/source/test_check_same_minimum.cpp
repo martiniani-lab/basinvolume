@@ -32,7 +32,6 @@ public:
     typedef pele::Harmonic pot_t;
     typedef pele::LBFGS opt_t;
     typedef pele::MODIFIED_FIRE fire_t;
-    typedef bv::BvCGDescent cgd_t;
 
     size_t nr_particles;
     size_t nr_dim;
