@@ -45,7 +45,7 @@ if __name__ == "__main__":
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
     else:
-        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
+        raise ValueError("Unknown minimizer: {}".format(args.minimizer))
 
     findk_kwargs = dict(k=args.kstart, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
                         knavg=1e4, ktol=0.025, opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5,

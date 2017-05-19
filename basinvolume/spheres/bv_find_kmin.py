@@ -56,7 +56,7 @@ if __name__ == "__main__":
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
     else:
-        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
+        raise ValueError("Unknown minimizer: {}".format(args.minimizer))
 
     single = not args.moveall
     if args.rsts_only:

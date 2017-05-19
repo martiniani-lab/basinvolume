@@ -733,13 +733,13 @@ if __name__ == "__main__":
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
     else:
-        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
+        raise ValueError("Unknown minimizer: {}".format(args.minimizer))
 
     # potential type
     if args.interaction.upper() in Interaction.__members__:
         interaction = Interaction[args.interaction.upper()]
     else:
-        raise ValueError("Undefined interaction: {}".format(args.interaction))
+        raise ValueError("Unknown interaction: {}".format(args.interaction))
 
     override_pot_kwargs = dict()
     if interaction is Interaction.HS_WCA:

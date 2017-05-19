@@ -93,7 +93,7 @@ def check_minimizer_exists(minimizer):
     if minimizer.upper() in Minimizer.__members__:
         return Minimizer[minimizer.upper()]
     else:
-        raise ValueError("Undefined minimizer: {}".format(minimizer))
+        raise ValueError("Unknown minimizer: {}".format(minimizer))
 
 
 def get_density_hs(density_hs, density_ss):

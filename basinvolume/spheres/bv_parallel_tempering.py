@@ -109,12 +109,12 @@ if __name__ == "__main__":
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
     else:
-        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
+        raise ValueError("Unknown minimizer: {}".format(args.minimizer))
 
     if args.exchange_scheme.upper() in ExchangeScheme.__members__:
         exchange_scheme = ExchangeScheme[args.exchange_scheme.upper()]
     else:
-        raise ValueError("Undefined exchange scheme: {}".format(args.exchange_scheme))
+        raise ValueError("Unknown exchange scheme: {}".format(args.exchange_scheme))
 
     # prepare MC runner
     if ".xydfr" in fname or ".xyzdfr" in fname:

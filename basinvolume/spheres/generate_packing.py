@@ -866,7 +866,7 @@ if __name__ == "__main__":
     if args.distance_method.upper() in Distance.__members__:
         dist_method = Distance[args.distance_method.upper()]
     else:
-        raise ValueError("Undefined distance method: {}".format(args.distance_method))
+        raise ValueError("Unknown distance method: {}".format(args.distance_method))
 
 
     if dist_method is Distance.LEES_EDWARDS:

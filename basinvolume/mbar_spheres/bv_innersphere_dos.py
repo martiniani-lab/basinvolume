@@ -42,7 +42,7 @@ if __name__ == "__main__":
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
     else:
-        raise ValueError("Undefined minimizer: {}".format(args.minimizer))
+        raise ValueError("Unknown minimizer: {}".format(args.minimizer))
 
     #when niter=None, niter is set equal to exact number of PT niter
     innersphere_kwargs = dict(niter=1e5, dtol=1e-4, eps=1., opt_dtmax=1,
