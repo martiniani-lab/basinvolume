@@ -12,7 +12,8 @@ from basinvolume.enums import Interaction
 from basinvolume.cluster_manager import BuildPBSScript
 from basinvolume.utils import trymakedir, check_kmax_reasonable
 from basinvolume.enums import Minimizer
-from basinvolume.spheres import HS_Generate_Jammed_Packing, read_jammed_packing_config
+from basinvolume.spheres import (HS_Generate_Jammed_Packing,
+                                 read_jammed_packing_config, ExchangeScheme)
 
 
 def get_immediate_subdirectories(dir):
@@ -44,6 +45,7 @@ class BVSubmitPBS(object):
                  maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5,
                  nocell=False, delraw=False,
                  cores_per_node=16, pt_workers=4, pt_runners=16,
+                 pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
                  pt_sleep_seconds=0.0001, nthreads=1):
         if not workdir:
             workdir = os.getcwd()
@@ -75,6 +77,7 @@ class BVSubmitPBS(object):
         self.pt_output_files = ["exchanges", "rem_permutations", "temperatures"]
         self.pt_workers = pt_workers
         self.pt_runners = pt_runners
+        self.pt_exchange_scheme = pt_exchange_scheme
         self.pt_sleep_seconds = pt_sleep_seconds
         self.nthreads = nthreads
         self.pt_nodes = 1
@@ -366,15 +369,17 @@ class BVSubmitPBS(object):
         pt_script = os.path.join(path_to_script, script)
         command = ("python {0} {1} ${{PBS_O_WORKDIR}}/{2} "
                    "--mintotniter {3} --maxtotniter {4} --relstderr {5} "
-                   "--nrunners {6} --sleep-seconds {7}"
+                   "--nrunners {6}"
                    .format(pt_script, packing, explore_dir,
                            self.mintotniter, self.maxtotniter,
-                           self.relstderr, self.pt_runners, self.pt_sleep_seconds))
+                           self.relstderr, self.pt_runners))
         command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
                     .format(structures_dir=self.structures_dir))
         if self.nocell:
             command += " --nocell"
         command += " --minimizer {}".format(self.minimizer.name)
+        command += " --exchange-scheme {}".format(self.pt_exchange_scheme.name)
+        command += " --sleep-seconds {}".format(self.pt_sleep_seconds)
         if self.numnegk > 0:
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         if self.delraw > 0:
@@ -633,6 +638,11 @@ if __name__ == "__main__":
                                     "parallel tempering job queue master. "
                                     "Default: 0.0001 (100us)",
                                default=0.0001)
+    single_parser.add_argument("--pt-exchange-scheme", type=str,
+                               help="Exchange scheme used in parallel tempering. "
+                                    "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
+                                    "Default: 'NEIGHBOR_EXCHANGE'",
+                               default='NEIGHBOR_EXCHANGE')
     single_parser.add_argument("--sort", action='store_true',
                                help="Sort the atoms before running PT. This "
                                     "improves performance, especially in combination "
@@ -718,6 +728,11 @@ if __name__ == "__main__":
                                    "parallel tempering job queue master. "
                                    "Default: 0.0001 (100us)",
                               default=0.0001)
+    chain_parser.add_argument("--pt-exchange-scheme", type=str,
+                              help="Exchange scheme used in parallel tempering. "
+                                   "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
+                                   "Default: 'NEIGHBOR_EXCHANGE'",
+                              default='NEIGHBOR_EXCHANGE')
     chain_parser.add_argument("--sort", action='store_true',
                               help="Sort the atoms before running PT. This "
                                    "improves performance, especially in combination "
@@ -735,6 +750,11 @@ if __name__ == "__main__":
         minimizer = Minimizer[args.minimizer.upper()]
     else:
         raise ValueError("Unknown minimizer: {}".format(args.minimizer))
+
+    if args.pt_exchange_scheme.upper() in ExchangeScheme.__members__:
+        pt_exchange_scheme = ExchangeScheme[args.pt_exchange_scheme.upper()]
+    else:
+        raise ValueError("Unknown exchange scheme: {}".format(args.pt_exchange_scheme))
 
     if args.sort:
         if args.nocell:
@@ -770,6 +790,7 @@ if __name__ == "__main__":
                         structures_dir=args.packings_dir,
                         cores_per_node=args.cores_per_node, nthreads=args.threads,
                         pt_workers=args.pt_workers, pt_runners=args.pt_runners,
+                        pt_exchange_scheme=pt_exchange_scheme,
                         pt_sleep_seconds=args.pt_sleep_seconds)
 
     if args.mode == 'chain':
