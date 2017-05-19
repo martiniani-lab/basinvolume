@@ -133,6 +133,10 @@ class PT_Master(object):
         self.__init_timeseries()
         self.__init_print()
         self.recv_buffer = np.empty(self.runner_configs[0].data.size + self.mcrunner_niter, dtype='d')
+        i32max = np.iinfo(np.int32).max
+        self.seed_exchanges = random.randint(0, i32max)
+        np.random.seed(self.seed_exchanges)
+        logging.info("seed_exchanges: %i" % self.seed_exchanges)
         self.exchange_cnts = np.zeros((self.nrunners, self.nrunners), dtype='int32')
         self.exchange_scheme = exchange_scheme
         if self.exchange_scheme is ExchangeScheme.NEIGHBOR_EXCHANGE:
