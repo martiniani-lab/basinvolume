@@ -60,7 +60,7 @@ public:
     virtual ~CellListCheckOverlap() {};
     CellListCheckOverlap(pele::Array<double> & hs_radii, std::shared_ptr<DIST_POL> dist, std::shared_ptr<pele::CellListsWithBreak<DIST_POL> > cell_lists)
         :   m_dist(dist),
-            m_radii(hs_radii),
+            m_radii(hs_radii.copy()),
             m_cell_lists(cell_lists)
     {
         if (m_dist == NULL || m_cell_lists == NULL) {
