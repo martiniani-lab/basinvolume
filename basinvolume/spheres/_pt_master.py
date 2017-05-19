@@ -6,9 +6,17 @@ import os
 import random
 import numpy as np
 from mpi4py import MPI
+from enum import Enum, unique  # Package enum34
 from pymbar.timeseries import detectEquilibration_binary_search
 from basinvolume.utils import trymakedir, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
+
+
+@unique
+class ExchangeScheme(Enum):
+    NEIGHBOR_EXCHANGE = 1
+    INDEPENDENCE_SAMPLING = 2
+    METROPOLIZED_INDEPENDENCE_SAMPLING = 3
 
 
 class RunnerConfig(object):
@@ -75,7 +83,7 @@ class PT_Master(object):
                  fast_ct=False, rel_std_err=0.03, min_window=2.5e5,
                  max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False,
                  base_directory=None, bs_nodes=100, eq_min_ptiter=None,
-                 eq_max_ptiter=None, sleep_seconds=0.0001):
+                 eq_max_ptiter=None, sleep_seconds=0.0001, exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE):
         self.nrunners = nrunners
         self.sleep_seconds = sleep_seconds
         self.comm = MPI.COMM_WORLD
@@ -125,7 +133,10 @@ class PT_Master(object):
         self.__init_timeseries()
         self.__init_print()
         self.recv_buffer = np.empty(self.runner_configs[0].data.size + self.mcrunner_niter, dtype='d')
-        self.exchange_cnts = np.zeros(self.nrunners - 1, dtype='int32')
+        self.exchange_cnts = np.zeros((self.nrunners, self.nrunners), dtype='int32')
+        self.exchange_scheme = exchange_scheme
+        if self.exchange_scheme is ExchangeScheme.NEIGHBOR_EXCHANGE:
+            self.__calculate_exchange = self.__neighbor_exchange
         assert(self.nrunners > self.nworkers)
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
@@ -299,6 +310,21 @@ class PT_Master(object):
         exchange_pattern.fill(self.NO_EXCHANGE) # reset exchange pattern to no exchange
         self.anyswap = False
 
+        self.__calculate_exchange(exchange_pattern)
+
+        # record self.permutation_pattern to print permutations in print function
+        if self.anyswap:
+            for i, buddy in enumerate(exchange_pattern):
+                if (buddy != self.NO_EXCHANGE):
+                    self.exchange_cnts[i, buddy] += 1
+                    self.permutation_pattern[i] = buddy + 1  # to conform to fortran notation
+                else:
+                    self.permutation_pattern[i] = i + 1  # to conform to fortran notation
+            self.__print_permutations()
+
+        return exchange_pattern
+
+    def __neighbor_exchange(self, exchange_pattern):
         for i in xrange(self.exchange_choice, self.nrunners-1, 2):
             dx1 = self.runner_configs[i].dx
             k1 = self.runner_configs[i].k
@@ -313,14 +339,8 @@ class PT_Master(object):
 
             if w > rand:
                 # accept exchange
-                self.exchange_cnts[i] += 1
-                if logging.getLogger().isEnabledFor(logging.DEBUG):
-                    self.ex_outstream.write(
-                        "accepting exchange %d %d %g %g %g %g %d\n" % (
-                            i, i + 1,
-                            dx1, dx2, k1, k2, self.ptiter))
 
-                # verify that is not using the same rank twice for swaps
+                # verify that we are not using the same rank twice for swaps
                 assert(exchange_pattern[i] == self.NO_EXCHANGE)
                 assert(exchange_pattern[i + 1] == self.NO_EXCHANGE)
 
@@ -328,20 +348,14 @@ class PT_Master(object):
                 exchange_pattern[i + 1] = i
                 self.anyswap = True
 
-        # record self.permutation_pattern to print permutations in print function
-        if self.anyswap:
-            for i, buddy in enumerate(exchange_pattern):
-                if (buddy != self.NO_EXCHANGE):
-                    self.permutation_pattern[i] = buddy + 1  # to conform to fortran notation
-                else:
-                    self.permutation_pattern[i] = i + 1  # to conform to fortran notation
-            self.__print_permutations()
-
+                if logging.getLogger().isEnabledFor(logging.DEBUG):
+                    self.ex_outstream.write(
+                        "accepting exchange %d %d %g %g %g %g %d\n" % (
+                            i, i + 1, dx1, dx2, k1, k2, self.ptiter))
         if self.exchange_choice == 0:
             self.exchange_choice = 1
         else:
             self.exchange_choice = 0
-        return exchange_pattern
 
     def __test_convergence(self):
         if self.test_convergence and self.ptiter > self.eq_min_ptiter:
@@ -505,9 +519,15 @@ class PT_Master(object):
 
     def __print_exchanges(self):
         logging.info("Number of exchanges:")
-        for i in xrange(self.nrunners - 1):
-            logging.info("{0:>2} <-> {1:<2}:{2:>6}"
-                         .format(i, i+1, self.exchange_cnts[i]))
+        exchange_header = "        "
+        for i in xrange(self.nrunners):
+            exchange_header += "{:>6}".format(i)
+        logging.info(exchange_header)
+        for i in range(self.nrunners):
+            line = "{:>2} <-> _".format(i)
+            for j in range(self.nrunners):
+                line += "{:>6}".format(self.exchange_cnts[i, j])
+            logging.info(line)
 
     def __close_flush(self):
         self.permutations_stream.flush()
