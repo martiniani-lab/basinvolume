@@ -194,15 +194,21 @@ template <typename distance_policy, class OPT_T>
 double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> const & coords)
 {
     double distance2 = 0;
-    _aligned_coords.assign(coords);
-    this->_align_coords(_aligned_coords);
+    pele::VecN<_ndim, double> dr_align;
+
+    //measure distance between two non rattlers
+    _dist_policy->get_rij(dr_align.data(), &coords[_inoratt], &_origin[_inoratt]);
 
     //compute distance between aligned structures
     #pragma simd reduction( + : distance2)
     for (size_t i = 0; i < _nparticles; ++i) {
         const size_t i1 = i * _ndim;
-        pele::VecN<_ndim, double> dr;
-        _dist_policy->get_rij(dr.data(), _aligned_coords.data() + i1, _origin.data() + i1);
+        pele::VecN<_ndim, double> dr, x_aligned;
+        #pragma unroll
+        for (size_t j = 0; j < _ndim; ++j) {
+            x_aligned[j] = coords[i1 + j] - dr_align[j];
+        }
+        _dist_policy->get_rij(dr.data(), x_aligned.data(), &_origin[i1]);
         #pragma unroll
         for (size_t j = 0; j < _ndim; ++j) {
             const double current_distance = dr[j] * _rattlers[i1 + j];

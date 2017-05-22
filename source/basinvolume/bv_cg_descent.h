@@ -18,11 +18,9 @@ protected:
     pele::Array<double> m_origin;
     pele::Array<double> m_rattlers;
     pele::Array<double> m_distance;
-    pele::Array<double> m_aligned_coords; //!< Coordinates after alignment, used in m_get_d2
     double m_dtol2, m_d2, m_rmsd2, m_rmsgtol;
     size_t m_nparticles, m_maxiter, m_inoratt, m_Nnoratt;
     const std::shared_ptr<distance_policy> m_dist_policy;
-    void m_align_coords(pele::Array<double> & coords);
     double m_get_d2(pele::Array<double> const & coords);
 public:
     BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const pele::Array<double> & x0,
@@ -46,7 +44,6 @@ BvCGDescent<distance_policy>::BvCGDescent(std::shared_ptr<pele::BasePotential> p
       m_origin(origin.copy()),
       m_rattlers(rattlers.copy()),
       m_distance(origin.size()),
-      m_aligned_coords(origin.size()),
       m_dtol2(dtol*dtol),
       m_d2(0),
       m_rmsd2(0),
@@ -57,13 +54,13 @@ BvCGDescent<distance_policy>::BvCGDescent(std::shared_ptr<pele::BasePotential> p
       m_dist_policy(dist)
 {
             if (m_dist_policy == NULL) {
-                throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: distance policy uninitialised");
+                throw std::runtime_error("BvCGDescent::BvCGDescent: distance policy uninitialised");
             }
             if (m_origin.size() != m_rattlers.size()) {
-                throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: illegal input: origin vs rattlers");
+                throw std::runtime_error("BvCGDescent::BvCGDescent: illegal input: origin vs rattlers");
             }
             if (m_origin.size() % m_ndim) {
-                throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: illegal input: origin vs boxdimension");
+                throw std::runtime_error("BvCGDescent::BvCGDescent: illegal input: origin vs boxdimension");
             }
             for (size_t i = 0; i < m_origin.size(); i += m_ndim) {
                 if (m_rattlers[i] != 0) {
@@ -79,39 +76,24 @@ BvCGDescent<distance_policy>::BvCGDescent(std::shared_ptr<pele::BasePotential> p
 }
 
 template <typename distance_policy>
-void BvCGDescent<distance_policy>::m_align_coords(pele::Array<double> & coords)
-{
-    /*assert(coords.size() == _origin.size());
-    assert(coords.size() == _ndim * _nparticles);*/
-    pele::VecN<m_ndim, double> dr;
-
-    //measure distance between two non rattlers
-    m_dist_policy->get_rij(dr.data(), &coords[m_inoratt], &m_origin[m_inoratt]);
-
-    //align structures
-    #pragma simd
-    for (size_t i = 0; i < m_nparticles; ++i) {
-        const size_t i1 = i * m_ndim;
-        #pragma unroll
-        for (size_t j = 0; j < m_ndim; ++j) {
-            coords[i1 + j] -= dr[j];
-        }
-    }
-}
-
-template <typename distance_policy>
 double BvCGDescent<distance_policy>::m_get_d2(pele::Array<double> const & coords)
 {
     double distance2 = 0;
-    m_aligned_coords.assign(coords);
-    this->m_align_coords(m_aligned_coords);
+    pele::VecN<m_ndim, double> dr_align;
+
+    //measure distance between two non rattlers
+    m_dist_policy->get_rij(dr_align.data(), &coords[m_inoratt], &m_origin[m_inoratt]);
 
     //compute distance between aligned structures
     #pragma simd reduction( + : distance2)
     for (size_t i = 0; i < m_nparticles; ++i) {
         const size_t i1 = i * m_ndim;
-        pele::VecN<m_ndim, double> dr;
-        m_dist_policy->get_rij(dr.data(), &m_aligned_coords[i1], &m_origin[i1]);
+        pele::VecN<m_ndim, double> dr, x_aligned;
+        #pragma unroll
+        for (size_t j = 0; j < m_ndim; ++j) {
+            x_aligned[j] = coords[i1 + j] - dr_align[j];
+        }
+        m_dist_policy->get_rij(dr.data(), x_aligned.data(), &m_origin[i1]);
         #pragma unroll
         for (size_t j = 0; j < m_ndim; ++j) {
             const double current_distance = dr[j] * m_rattlers[i1 + j];
