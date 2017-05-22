@@ -70,7 +70,7 @@ class _kmin_mcrunner(_configure_mcrunner):
                       "and can negatively impact performance.")
 
         self._import_packing_configuration()
-        opt_maxstep = self._get_opt_maxstep(opt_maxstep)
+        opt_maxstep = self._get_opt_maxstep(opt_maxstep, minimizer)
 
         #self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,

@@ -52,7 +52,7 @@ class _sphere_mcrunner(_configure_mcrunner):
         else:
             self.pot_kwargs = imp_packing['pot_kwargs'].copy()
         self._import_packing_configuration()
-        opt_maxstep = self._get_opt_maxstep(opt_maxstep)
+        opt_maxstep = self._get_opt_maxstep(opt_maxstep, minimizer)
 
         #self.mc_params = dict(k=k, temperature=temperature, )
         self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,

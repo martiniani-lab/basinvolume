@@ -40,7 +40,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         self.stepsize = 1./np.sqrt(self.k)
         if niter is not None:
             self.niter = niter
-        opt_maxstep = self._get_opt_maxstep(opt_maxstep)
+        opt_maxstep = self._get_opt_maxstep(opt_maxstep, minimizer)
 
         #self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(dtol=dtol, eps=eps, hmin=hmin, hmax=hmax,

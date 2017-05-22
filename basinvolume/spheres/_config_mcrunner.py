@@ -7,7 +7,7 @@ from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import (get_git_version, get_python_version, get_cython_version,
                                full_coordinates, read_xydfr, read_xyzdfr,
                                reduce_coordinates, read_xydr, read_xyzdr, import_packing)
-from basinvolume.enums import Interaction
+from basinvolume.enums import Interaction, Minimizer
 import warnings
 
 class _configure_mcrunner(object):
@@ -23,11 +23,14 @@ class _configure_mcrunner(object):
         set base_directory, packings_directory and configpaths
         """
 
-    def _get_opt_maxstep(self, opt_maxstep):
+    def _get_opt_maxstep(self, opt_maxstep, minimizer):
         """returns opt max step"""
         if opt_maxstep is None:
             #opt_maxstep = self.boxv[0] * 0.01
-            opt_maxstep = self.sca * np.amin(self.red_radii)
+            if minimizer is Minimizer.LBFGS:
+                opt_maxstep = self.sca * np.amin(self.red_radii) * 0.5
+            else:
+                opt_maxstep = self.sca * np.amin(self.red_radii)
         return opt_maxstep
 
     @abc.abstractmethod
