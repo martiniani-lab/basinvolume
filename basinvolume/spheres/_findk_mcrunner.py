@@ -53,7 +53,7 @@ class _findk_mcrunner(_configure_mcrunner):
                       "of subdomains (OpenMP threads), which changes the number of cells "
                       "and can negatively impact performance.")
         self._import_packing_configuration()
-        opt_maxstep = self._get_opt_maxstep(opt_maxstep, minimizer)
+        opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         #self.coords is origin, set initial configuration and origin to be the same
         potential = Harmonic(self.coords, 0, bdim=self.bdim, com=False) #set the potential to 0, the potential is completely fictitious here (there's no energy test),
         #k is entirely controlled by the stepsize

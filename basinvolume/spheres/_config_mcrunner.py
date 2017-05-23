@@ -23,14 +23,11 @@ class _configure_mcrunner(object):
         set base_directory, packings_directory and configpaths
         """
 
-    def _get_opt_maxstep(self, opt_maxstep, minimizer):
+    def _get_opt_maxstep(self, opt_maxstep):
         """returns opt max step"""
         if opt_maxstep is None:
             #opt_maxstep = self.boxv[0] * 0.01
-            if minimizer is Minimizer.LBFGS:
-                opt_maxstep = self.sca * np.amin(self.red_radii) * 0.5
-            else:
-                opt_maxstep = self.sca * np.amin(self.red_radii)
+            opt_maxstep = self.sca * np.amin(self.red_radii) * 0.5
         return opt_maxstep
 
     @abc.abstractmethod

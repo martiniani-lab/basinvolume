@@ -39,7 +39,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
         self._import_packing_config_files()
         self._import_packing_configuration()
         hbinsize = self._get_histogram_bin(k)
-        opt_maxstep = self._get_opt_maxstep(opt_maxstep, minimizer)
+        opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         self.eps = eps
 
         #set parameters
