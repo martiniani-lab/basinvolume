@@ -349,10 +349,11 @@ class PT_Master(object):
         if logging.getLogger().isEnabledFor(logging.DEBUG):
             for i in xrange(self.nrunners):
                 j = exchange_pattern[i]
-                if j > i:
-                    self.ex_outstream.write(
-                        "accepting exchange %d %d %g %g %g %g %d\n" % (
-                            i, j, self.runner_configs[i].dx, self.runner_configs[j].dx, self.runner_configs[i].k, self.runner_configs[j].k, self.ptiter))
+                self.ex_outstream.write(
+                    "%d: accepting exchange %d -> %d, %g -> %g, %g -> %g\n" % (
+                        self.ptiter, i, j,
+                        self.runner_configs[i].dx, self.runner_configs[j].dx,
+                        self.runner_configs[i].k, self.runner_configs[j].k))
 
     def __neighbor_exchange(self, exchange_pattern):
         for i in xrange(self.exchange_choice, self.nrunners-1, 2):
@@ -380,8 +381,8 @@ class PT_Master(object):
 
                 if logging.getLogger().isEnabledFor(logging.DEBUG):
                     self.ex_outstream.write(
-                        "accepting exchange %d %d %g %g %g %g %d\n" % (
-                            i, i + 1, dx1, dx2, k1, k2, self.ptiter))
+                        "%d: accepting exchange %d <-> %d, %g <-> %g, %g <-> %g\n" % (
+                            self.ptiter, i, i + 1, dx1, dx2, k1, k2))
         if self.exchange_choice == 0:
             self.exchange_choice = 1
         else:
