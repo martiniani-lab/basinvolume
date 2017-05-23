@@ -288,22 +288,17 @@ class PT_Master(object):
 
         # find exchange pattern (list of exchange buddies)
         exchange_pattern = self.__find_exchange_buddies()
-        # logging.debug("exchange_pattern: %s" % exchange_pattern)
 
         # swap runner configurations (everything except id & k)
+        old_configs = [runner for runner in self.runner_configs]
         for iconfig, ibuddy in enumerate(exchange_pattern):
             if ibuddy != self.NO_EXCHANGE:
                 # Swap configurations
-                (self.runner_configs[iconfig],
-                 self.runner_configs[ibuddy]) = (self.runner_configs[ibuddy],
-                                                self.runner_configs[iconfig])
+                self.runner_configs[iconfig] = old_configs[ibuddy]
 
                 # Restore id and k
                 self.runner_configs[iconfig].id = iconfig
-                self.runner_configs[ibuddy].id = ibuddy
-                tmp_k = self.runner_configs[iconfig].k
-                self.runner_configs[iconfig].k = self.runner_configs[ibuddy].k
-                self.runner_configs[ibuddy].k = tmp_k
+                self.runner_configs[iconfig].k = old_configs[iconfig].k
 
     def __find_exchange_buddies(self):
         """
@@ -337,11 +332,14 @@ class PT_Master(object):
         return exchange_pattern
 
     def __independence_sampling(self, exchange_pattern):
-        energies = np.array([0.5 * self.runner_configs[i].dx * self.runner_configs[i].dx
-                    for i in xrange(self.nrunners)])
-        betas = np.array([self.runner_configs[i].k for i in xrange(self.nrunners)])
+        energies = np.array([0.5 * runner.dx * runner.dx
+                             for runner in self.runner_configs])
+        betas = np.array([runner.k for runner in self.runner_configs])
 
+        # According to Chodera & Shirts 2011 nrunners**3 to nrunners**5 exchanges
+        # should be sufficient
         nexchanges = self.nrunners ** 3
+
         naccept = random_neighbor_exchanges(exchange_pattern, energies, betas, nexchanges)
 
         if naccept > 0:

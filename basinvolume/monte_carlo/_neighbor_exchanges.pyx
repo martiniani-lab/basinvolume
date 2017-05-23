@@ -8,7 +8,7 @@ def random_neighbor_exchanges(np.ndarray[int] exchange_pattern, np.ndarray[doubl
                               np.ndarray[double] betas, int nexchanges):
     cdef int nrunners = len(exchange_pattern)
     cdef int naccept = 0
-    cdef int i, j, tmp_ind
+    cdef int i, j, inow, jnow
     cdef double w, rand
 
     for i in range(nrunners):
@@ -21,14 +21,15 @@ def random_neighbor_exchanges(np.ndarray[int] exchange_pattern, np.ndarray[doubl
             i = np.random.randint(0, nrunners)
             j = np.random.randint(0, nrunners)
 
-        w = np.exp((energies[exchange_pattern[i]]-energies[exchange_pattern[j]])
+        inow = exchange_pattern[i]
+        jnow = exchange_pattern[j]
+        w = np.exp((energies[inow]-energies[jnow])
                    * (betas[i]-betas[j]))
 
         rand = np.random.rand()
         if w > rand:
-            tmp_ind = exchange_pattern[i]
-            exchange_pattern[i] = exchange_pattern[j]
-            exchange_pattern[j] = tmp_ind
+            exchange_pattern[i] = jnow
+            exchange_pattern[j] = inow
             naccept += 1
 
     return naccept
