@@ -351,9 +351,9 @@ class PT_Master(object):
             for i in xrange(self.nrunners):
                 j = exchange_pattern[i]
                 self.ex_outstream.write(
-                    "{}: Accepting exchange {:>2} -> {:<2} ({:.4g} > {:.4g}): "
+                    "{}: Accepting exchange {:>2} -> {:<2}: "
                     "{:.4g} -> {:.4g}, {:.4g} -> {:.4g}\n".format(
-                        self.ptiter, i, j, w, rand,
+                        self.ptiter, i, j,
                         self.runner_configs[i].dx, self.runner_configs[j].dx,
                         self.runner_configs[i].k, self.runner_configs[j].k))
 
