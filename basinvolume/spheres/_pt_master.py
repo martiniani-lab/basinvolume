@@ -122,7 +122,7 @@ class PT_Master(object):
             eq_min_ptiter = int(self.max_ptiter*0.95)
         self.eq_min_ptiter = int(eq_min_ptiter)
         if eq_max_ptiter is None:
-            eq_max_ptiter = int(2e6/example_)
+            eq_max_ptiter = int(2e6/example_mcrunner.niter)
         self.eq_max_ptiter = int(eq_max_ptiter)
         self.min_window = int(min_window)
         self.max_eq_time = int(max_eq_time)
