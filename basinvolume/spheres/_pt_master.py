@@ -291,6 +291,7 @@ class PT_Master(object):
 
         # swap runner configurations (everything except id & k)
         old_configs = [runner for runner in self.runner_configs]
+        old_ks = [runner.k for runner in self.runner_configs]
         for iconfig, ibuddy in enumerate(exchange_pattern):
             if ibuddy != self.NO_EXCHANGE:
                 # Swap configurations
@@ -298,7 +299,7 @@ class PT_Master(object):
 
                 # Restore id and k
                 self.runner_configs[iconfig].id = iconfig
-                self.runner_configs[iconfig].k = old_configs[iconfig].k
+                self.runner_configs[iconfig].k = old_ks[iconfig]
 
     def __find_exchange_buddies(self):
         """
@@ -350,8 +351,9 @@ class PT_Master(object):
             for i in xrange(self.nrunners):
                 j = exchange_pattern[i]
                 self.ex_outstream.write(
-                    "%d: accepting exchange %d -> %d, %g -> %g, %g -> %g\n" % (
-                        self.ptiter, i, j,
+                    "{}: Accepting exchange {:>2} -> {:<2} ({:.4g} > {:.4g}): "
+                    "{:.4g} -> {:.4g}, {:.4g} -> {:.4g}\n".format(
+                        self.ptiter, i, j, w, rand,
                         self.runner_configs[i].dx, self.runner_configs[j].dx,
                         self.runner_configs[i].k, self.runner_configs[j].k))
 
@@ -381,8 +383,9 @@ class PT_Master(object):
 
                 if logging.getLogger().isEnabledFor(logging.DEBUG):
                     self.ex_outstream.write(
-                        "%d: accepting exchange %d <-> %d, %g <-> %g, %g <-> %g\n" % (
-                            self.ptiter, i, i + 1, dx1, dx2, k1, k2))
+                        "{}: Accepting exchange {:>2} <-> {:<2} ({:.4g} > {:.4g}): "
+                        "{:.4g} <-> {:.4g}, {:.4g} <-> {:.4g}\n".format(
+                            self.ptiter, i, i + 1, w, rand, dx1, dx2, k1, k2))
         if self.exchange_choice == 0:
             self.exchange_choice = 1
         else:
