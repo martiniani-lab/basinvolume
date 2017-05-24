@@ -74,7 +74,7 @@ class BuildPBSScript(object):
         f.write('echo \n')
         f.write('echo \"Running ${job_name}\" \n')
         f.write('echo \n')
-        f.write('mpirun -n {0} {1}\n'.format(self.mpi_procs, self.command))
+        f.write('mpirun -n {0} --bynode {1}\n'.format(self.mpi_procs, self.command))
         f.write('echo \n')
         f.write('echo \"Job finished. PBS details are:\" \n')
         f.write('echo \n')
