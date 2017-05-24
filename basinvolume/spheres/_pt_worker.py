@@ -15,8 +15,8 @@ class PT_Worker(object):
     def run(self):
         config = RunnerConfig(0, 0, 0, self.mcrunner.red_origin)
         self.comm.Recv(config.data, source=0)
-        # Sending an id (first element of the data array) of -1 is the signal to stop working
         while config.id >= 0:
+            # Sending an id (first element of the data array) of -1 is the signal to stop working
             timeseries = self.__one_iteration(config)
             self.comm.Send(np.append(config.data, timeseries), dest=0)
             self.comm.Recv(config.data, source=0)
@@ -24,8 +24,12 @@ class PT_Worker(object):
 
     def __one_iteration(self, config):
         self.mcrunner.set_control(config.k, reset=False)
+        if np.isnan(config.energy):
+            # Setting config.energy to NaN is the signal for necessary energy recalculation
+            config.energy = self.mcrunner.potential.getEnergy(config.coords)
         self.mcrunner.set_config(config.coords, config.energy)
         self.mcrunner.run()
+
         #collect the results
         result = self.mcrunner.get_results()
         config.energy = result.energy

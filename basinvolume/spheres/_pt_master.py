@@ -301,6 +301,9 @@ class PT_Master(object):
                 self.runner_configs[iconfig].id = iconfig
                 self.runner_configs[iconfig].k = old_ks[iconfig]
 
+                # Set energy to NaN, since it needs to be recalculated
+                self.runner_configs[iconfig].energy = np.nan
+
     def __find_exchange_buddies(self):
         """
         This function determines the exchange pattern using alternating swaps
