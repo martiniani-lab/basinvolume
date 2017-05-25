@@ -427,6 +427,21 @@ class HS_Generate_Packing(_Generate_Packing):
                                     distance_method=self.distance_method,
                                     pot_kwargs=self.pot_kwargs)
 
+    def create_potential(self, pot_sca, packing_fraction):
+        radius_sca = np.power(packing_fraction / self.packing_frac, 1. / self.bdim)
+        if self.use_cell_lists:
+            return HS_WCA(use_cell_lists=True, eps=self.eps,
+                          sca=pot_sca, radii=self.hs_radii * radius_sca,
+                          boxvec=self.boxv, ndim=self.bdim,
+                          ncellx_scale=1.0,
+                          distance_method=self.distance_method,
+                          pot_kwargs=self.pot_kwargs)
+        else:
+            return HS_WCA(eps=self.eps, sca=pot_sca,
+                          radii=self.hs_radii * radius_sca, boxvec=self.boxv,
+                          ndim=self.bdim, distance_method=self.distance_method,
+                          pot_kwargs=self.pot_kwargs)
+
     def _initialise_coords_quench(self):
         """
         it generates an initial set of coordinates from a LJ quench,
@@ -438,22 +453,18 @@ class HS_Generate_Packing(_Generate_Packing):
         # sigma =  min(self.boxv) / np.power(2,1./6)
         # self.potential = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of
         # sigma might have to be different
-        if self.use_cell_lists:
-            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps,
-                                    sca=0.05, radii=self.hs_radii,
-                                    boxvec=self.boxv, ndim=self.bdim,
-                                    ncellx_scale=1.0,
-                                    distance_method=self.distance_method,
-                                    pot_kwargs=self.pot_kwargs)
-        else:
-            self.potential = HS_WCA(eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
-                                    ndim=self.bdim, distance_method=self.distance_method,
-                                    pot_kwargs=self.pot_kwargs)
 
         overlap = True
         while overlap:
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords, self.potential, nsteps=1e5, tol=1e-8)
+            current_frac = 0.5
+            while current_frac < self.packing_frac:
+                self.potential = self.create_potential(0.05, current_frac)
+                res = lbfgs_cpp(coords, self.potential, nsteps=1e4, tol=1e-5)
+                coords = res.coords
+                current_frac += 0.02
+            self.potential = self.create_potential(0.05, self.packing_frac)
+            res = lbfgs_cpp(coords, self.potential, nsteps=1e5, tol=1e-5)
             # res = lbfgs_cpp(coords, self.potential, nsteps=10000)
             # assert(res.success is True) #checks that a minimum configuration
             # has been found
@@ -472,17 +483,7 @@ class HS_Generate_Packing(_Generate_Packing):
         it generates an initial set of coordinates from a HSWCA quench,
         the HSWCA particles are then substitued by HS
         """
-        if self.use_cell_lists:
-            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps,
-                                    sca=0.05, radii=self.hs_radii,
-                                    boxvec=self.boxv, ndim=self.bdim,
-                                    ncellx_scale=1.0,
-                                    distance_method=self.distance_method,
-                                    pot_kwargs=self.pot_kwargs)
-        else:
-            self.potential = HS_WCA(eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
-                                    ndim=self.bdim, distance_method=self.distance_method,
-                                    pot_kwargs=self.pot_kwargs)
+        self.potential = create_potential(self, 0.05, self.packing_frac)
         overlap = True
         while overlap:
             coords = self._sample_random_coords()
