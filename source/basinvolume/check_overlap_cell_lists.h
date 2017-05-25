@@ -83,6 +83,11 @@ public:
         if (trial_coords.size() / m_ndim != m_radii.size()) {
             throw std::runtime_error("CellListCheckOverlap::conf_test: illegal input");
         }
+
+        if (!std::isfinite(trial_coords[0]) || !std::isfinite(*(trial_coords.end() - 1))) {
+            return false;
+        }
+
         m_cell_lists->update(trial_coords);
         OverlapAccumulator<DIST_POL> acc(m_dist, trial_coords, m_radii);
         pele::CellListsLoopBreak<OverlapAccumulator<DIST_POL>, m_ndim> joe_the_looper = m_cell_lists->get_atom_pair_looper_break(acc);
