@@ -352,7 +352,13 @@ class HS_Generate_Packing(_Generate_Packing):
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         if hasattr(self, 'potential'):
-            return len(self.potential.getOverlaps(self.coords)) == 0
+            overlaps = self.potential.getOverlaps(self.coords)
+            if len(overlaps) == 0:
+                return True
+            else:
+                logging.warning("Invalid configuration")
+                logging.warning("Atoms are overlapping: {}".format(overlaps))
+                return False
         else:
             return self._check_no_overlaps_slow()
 
