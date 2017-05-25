@@ -843,7 +843,7 @@ if __name__ == "__main__":
                         help="protocol to generate packings", default="quench")
     parser.add_argument("--distance-method", type=str,
                         help="Define distance measurement method, "
-                             "e.g. 'periodic' or 'lees-edwards'. Default: 'periodic'",
+                             "e.g. 'periodic' or 'lees_edwards'. Default: 'periodic'",
                         default='periodic')
     parser.add_argument("--shear", type=float,
                         help="Amount of shear for Lees-Edwards boundary conditions.",
