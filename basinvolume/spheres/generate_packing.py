@@ -283,26 +283,6 @@ class HS_Generate_Packing(_Generate_Packing):
                 # this is necessary to initialise the radii if using the quench
                 # routine
                 self._initialise_coords_quench()
-                # rcut set to largest particle diameter
-                rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
-                if self.use_cell_lists:
-                    if np.amin(self.boxv) // rcut <= 3:
-                        self.use_cell_lists = False
-                if self.use_cell_lists:
-                    self.potential = HS_WCA(use_cell_lists=True, eps=self.eps,
-                                            sca=self.sca, radii=self.hs_radii,
-                                            boxvec=self.boxv,
-                                            reference_coords=self.coords,
-                                            ndim=self.bdim, ncellx_scale=1.0,
-                                            distance_method=self.distance_method,
-                                            pot_kwargs=self.pot_kwargs)
-                else:
-                    self.potential = HS_WCA(eps=self.eps,
-                                            sca=self.sca, radii=self.hs_radii,
-                                            boxvec=self.boxv, ndim=self.bdim,
-                                            use_cell_lists=False,
-                                            distance_method=self.distance_method,
-                                            pot_kwargs=self.pot_kwargs)
             else:
                 self._initialise_coords_crystal()
             self._print_initialise()
