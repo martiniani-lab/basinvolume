@@ -452,21 +452,29 @@ class HS_Generate_Packing(_Generate_Packing):
         it generates an initial set of coordinates from a LJ quench,
         the LJ particles are then substitued by HS based on the size of
         the gap
-        coordinates are generated until a valid configuration is foun
+        coordinates are generated until a valid configuration is found
         """
         # set sigma such that the wca radius is the same as the box smallest side length
         # sigma =  min(self.boxv) / np.power(2,1./6)
-        # pot = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of
+        # self.potential = WCA(sig=sigma,boxvec=self.boxv,ndim=self.bdim) # choice of
         # sigma might have to be different
-        pot = HS_WCA(eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
-                     ndim=self.bdim, distance_method=self.distance_method,
-                     pot_kwargs=self.pot_kwargs)
+        if self.use_cell_lists:
+            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps,
+                                    sca=0.05, radii=self.hs_radii,
+                                    boxvec=self.boxv, ndim=self.bdim,
+                                    ncellx_scale=1.0,
+                                    distance_method=self.distance_method,
+                                    pot_kwargs=self.pot_kwargs)
+        else:
+            self.potential = HS_WCA(eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
+                                    ndim=self.bdim, distance_method=self.distance_method,
+                                    pot_kwargs=self.pot_kwargs)
 
         overlap = True
         while overlap:
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords, pot, nsteps=1e5, tol=1e-8)
-            # res = lbfgs_cpp(coords,pot,nsteps=10000)
+            res = lbfgs_cpp(coords, self.potential, nsteps=1e5, tol=1e-8)
+            # res = lbfgs_cpp(coords, self.potential, nsteps=10000)
             # assert(res.success is True) #checks that a minimum configuration
             # has been found
             self.coords = np.array(res.coords)
@@ -484,13 +492,21 @@ class HS_Generate_Packing(_Generate_Packing):
         it generates an initial set of coordinates from a HSWCA quench,
         the HSWCA particles are then substitued by HS
         """
-        pot = HS_WCA(eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
-                     ndim=self.bdim, use_cell_lists=True,
-                     distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
+        if self.use_cell_lists:
+            self.potential = HS_WCA(use_cell_lists=True, eps=self.eps,
+                                    sca=0.05, radii=self.hs_radii,
+                                    boxvec=self.boxv, ndim=self.bdim,
+                                    ncellx_scale=1.0,
+                                    distance_method=self.distance_method,
+                                    pot_kwargs=self.pot_kwargs)
+        else:
+            self.potential = HS_WCA(eps=self.eps, sca=0.05, radii=self.hs_radii, boxvec=self.boxv,
+                                    ndim=self.bdim, distance_method=self.distance_method,
+                                    pot_kwargs=self.pot_kwargs)
         overlap = True
         while overlap:
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords, pot, nsteps=1e4, tol=1e-5, iprint=0)
+            res = lbfgs_cpp(coords, self.potential, nsteps=1e4, tol=1e-5, iprint=0)
             self.coords = np.array(res.coords)
             # check that no two particles are overlapping (using nearest image
             # convention)
