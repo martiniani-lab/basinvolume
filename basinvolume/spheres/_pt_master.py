@@ -10,7 +10,7 @@ from enum import Enum, unique  # Package enum34
 from pymbar.timeseries import detectEquilibration_binary_search
 from basinvolume.utils import trymakedir, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
-from basinvolume.monte_carlo import random_neighbor_exchanges
+from basinvolume.monte_carlo import IndependenceSampling
 
 
 @unique
@@ -135,14 +135,15 @@ class PT_Master(object):
         self.recv_buffer = np.empty(self.runner_configs[0].data.size + self.mcrunner_niter, dtype='d')
         i32max = np.iinfo(np.int32).max
         self.seed_exchanges = random.randint(0, i32max)
-        np.random.seed(self.seed_exchanges)
         logging.info("seed_exchanges: %i" % self.seed_exchanges)
         self.exchange_cnts = np.zeros((self.nrunners, self.nrunners), dtype='int32')
         self.exchange_scheme = exchange_scheme
         if self.exchange_scheme is ExchangeScheme.NEIGHBOR_EXCHANGE:
             self.__calculate_exchange = self.__neighbor_exchange
+            np.random.seed(self.seed_exchanges)
         elif self.exchange_scheme is ExchangeScheme.INDEPENDENCE_SAMPLING:
             self.__calculate_exchange = self.__independence_sampling
+            self.indep_sampling = IndependenceSampling(self.seed_exchanges)
         else:
             raise ValueError("Unknown exchange scheme (%s)" % self.exchange_scheme.name)
         assert(self.nrunners > self.nworkers)
@@ -336,15 +337,14 @@ class PT_Master(object):
         return exchange_pattern
 
     def __independence_sampling(self, exchange_pattern):
-        energies = np.array([0.5 * runner.dx * runner.dx
-                             for runner in self.runner_configs])
+        dxs = np.array([runner.dx for runner in self.runner_configs])
         betas = np.array([runner.k for runner in self.runner_configs])
 
         # According to Chodera & Shirts 2011 nrunners**3 to nrunners**5 exchanges
         # should be sufficient
         nexchanges = self.nrunners ** 3
 
-        naccept = random_neighbor_exchanges(exchange_pattern, energies, betas, nexchanges)
+        naccept = self.indep_sampling.exchange(exchange_pattern, dxs, betas, nexchanges)
 
         if naccept > 0:
             self.anyswap = True
