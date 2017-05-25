@@ -1,3 +1,6 @@
+#ifndef _BV_INDEPENDENCE_SAMPLING_H
+#define _BV_INDEPENDENCE_SAMPLING_H
+
 #include <math.h>
 #include <random>
 
@@ -57,4 +60,6 @@ public:
     }
 };
 
-}
+} // namespace bv
+
+#endif // #ifndef _BV_INDEPENDENCE_SAMPLING_H
