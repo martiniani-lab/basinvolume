@@ -661,7 +661,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     #parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument("-f","--fname", type=str, help="specify packing to analyze",default=None)
-    parser.add_argument("-d","--fdir", type=str, help="directory containing file, if not absolute path by default: fdir+fname", default='explore_bv_')
+    parser.add_argument("-d","--fdir", type=str, help="Beginning of explore directory containing the results. If not absolute path: fdir+fname", default='explore_bv_')
     parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir", default=os.getcwd())
     parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
     parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
@@ -675,16 +675,15 @@ if __name__ == "__main__":
     wdir = args.workdir
     assert(os.path.isabs(wdir))
 
-    if not os.path.isabs(fdir):
-        fdir = os.path.join(wdir,fdir + fname)
-
     sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
 
     if (fname != None):
+        if not os.path.isabs(fdir):
+            fdir = os.path.join(wdir,fdir + fname)
         sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show)
     else :
-        for subdir, dirs, files in os.walk(wdir):
+        for dirpath, dirs, files in os.walk(wdir):
             for dir in dirs:
-                if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
-                    path = os.path.join(wdir, dir)
-                    sim(explore_dir=path, frozen=args.frozen)
+                if dir.startswith(fdir):
+                    path = os.path.join(dirpath, dir)
+                    sim(fname=dir[len(fdir):], explore_dir=path, frozen=args.frozen)
