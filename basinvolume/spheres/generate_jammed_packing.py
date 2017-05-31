@@ -716,6 +716,10 @@ if __name__ == "__main__":
                              "Options: 'HS_WCA', 'INVERSE_POWER_STILLINGER'. "
                              "Default: 'HS_WCA'",
                         default='HS_WCA')
+    parser.add_argument("--wca-exp", type=int,
+                        help="Exponent of the WCA potential (if applicable). "
+                             "Options: 1, 2, 6. Default: 6 (Lennard-Jones-like)",
+                        default=6)
     parser.add_argument("--sort", action='store_true',
                         help="Use the potential to sort the atoms before saving. "
                              "Default: False", default=False)
@@ -743,7 +747,7 @@ if __name__ == "__main__":
 
     override_pot_kwargs = dict()
     if interaction is Interaction.HS_WCA:
-        pass
+        override_pot_kwargs['exp'] = args.wca_exp
     elif interaction is Interaction.INVERSE_POWER_STILLINGER:
         override_pot_kwargs.update(pow=8, rcut=4.5)
         logging.info("Setting inverse_power_stillinger parameters: {}"
