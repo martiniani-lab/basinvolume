@@ -2,17 +2,9 @@ from __future__ import division
 import numpy as np
 import os
 import re
-from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
-from basinvolume.post_processing import VolumeSanityCheck
-import ConfigParser
-from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
-from pymbar.mbar import MBAR
-from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
-from basinvolume.spheres import read_jammed_packing_config
 import argparse
+import time
 from itertools import cycle
-from scipy.integrate import simps
 try:
     import matplotlib
     matplotlib.use('Agg')
@@ -21,7 +13,15 @@ try:
     from joblib import Parallel, delayed
 except ImportError as err:
     print err
-import time
+from scipy.integrate import simps
+from basinvolume.utils import trymakedir
+from basinvolume.utils import to_string, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
+from basinvolume.post_processing import VolumeSanityCheck
+import ConfigParser
+from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
+from pymbar.mbar import MBAR
+from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
+from basinvolume.spheres import read_jammed_packing_config
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
