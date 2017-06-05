@@ -10,13 +10,13 @@ def get_immediate_subdirectories(dir):
 
 class BVRemoveToxicData(object):
     """
-    This class is specific to the basin volume repository and is responsible of 
+    This class is specific to the basin volume repository and is responsible of
     looping through a particular directory containing the explore_bv_jammed_packingsubdirectories
     and removing all the data that have been produced with a specific git version of the code
     *workdir is the directory containing all the explore_bv_* subdirectories
     *job_label should help distinguish between different densities and packing numbers
     """
-    def __init__(self, git_toxic_version, workdir=None, explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing', 
+    def __init__(self, git_toxic_version, workdir=None, explore_dir='explore_bv_jammed_packing', kmax_config='findk_jammed_packing',
                  kmin_config='kmin_jammed_packing', pt_config='explore_jammed_packing', packing_naming='jammed_packing'):
         if not workdir:
             workdir = os.getcwd()
@@ -24,7 +24,7 @@ class BVRemoveToxicData(object):
             workdir = os.path.abspath(workdir)
         self.workdir = workdir
         self.explore_dir = explore_dir
-        self.kmax_config = kmax_config 
+        self.kmax_config = kmax_config
         self.kmin_config = kmin_config
         self.pt_config = pt_config
         self.packing_naming = packing_naming
@@ -33,22 +33,22 @@ class BVRemoveToxicData(object):
         self.kmax_toxic_list = []
         self.pt_toxic_list = []
         self.pt_output_files = ["exchanges","rem_permutations","temperatures"]
-    
+
     def remove_kmax_toxic_data(self, where='at', gitrepo_path=None):
         self._find_kmax_toxic_data(where=where, gitrepo_path=gitrepo_path)
         print "kmax toxic list", self.kmax_toxic_list
         self._remove_toxic_data(self.kmax_toxic_list, self.kmax_config, output_signature="bv*kmax*.o*", pt=False)
-    
+
     def remove_kmin_toxic_data(self, where='at', gitrepo_path=None):
         self._find_kmin_toxic_data(where=where, gitrepo_path=gitrepo_path)
         print "kmin toxic list", self.kmin_toxic_list
         self._remove_toxic_data(self.kmin_toxic_list, self.kmin_config, output_signature="bv*kmin*.o*", pt=False)
-    
+
     def remove_pt_toxic_data(self, where='at', gitrepo_path=None):
         self._find_pt_toxic_data(where=where, gitrepo_path=gitrepo_path)
         print "pt toxic list", self.pt_toxic_list
         self._remove_toxic_data(self.pt_toxic_list, self.pt_config, output_signature="bv*pt*.o*", pt=True)
-    
+
     def _find_kmax_toxic_data(self, where='at', gitrepo_path=None):
         """
         where: {'at', 'older', later'}
@@ -70,7 +70,7 @@ class BVRemoveToxicData(object):
             self.kmax_toxic_list = []
             for item in hash_list:
                 self.kmax_toxic_list.extend(self._find_toxic_data(self.kmax_config, git_hash=item))
-            
+
     def _find_kmin_toxic_data(self, where='at', gitrepo_path=None):
         """
         where: {'at', 'older', later'}
@@ -92,7 +92,7 @@ class BVRemoveToxicData(object):
             self.kmin_toxic_list = []
             for item in hash_list:
                 self.kmin_toxic_list.extend(self._find_toxic_data(self.kmin_config, git_hash=item))
-    
+
     def _find_pt_toxic_data(self, where='at', gitrepo_path=None):
         """
         where: {'at', 'older', later'}
@@ -116,7 +116,7 @@ class BVRemoveToxicData(object):
             self.pt_toxic_list = []
             for item in hash_list:
                 self.pt_toxic_list.extend(self._find_toxic_data(self.pt_config, git_hash=item))
-    
+
     def _find_toxic_data(self, config_file, git_hash=None):
         if git_hash is None:
             git_hash = self.git_toxic_version
@@ -130,7 +130,7 @@ class BVRemoveToxicData(object):
         except Exception:
             list = []
         return list
-    
+
     def _get_hash_history(self, gitrepo_path):
         print "retrieving hash history...",
         command = shlex.split("git --git-dir {}/.git log --pretty=oneline".format(gitrepo_path))
@@ -142,7 +142,7 @@ class BVRemoveToxicData(object):
             raise RuntimeError("\n could not build hash history \n")
         print "DONE"
         return hash_table
-    
+
     def _remove_toxic_data(self, toxic_list, config_fname, output_signature="bv\*kmax\*.o\*", pt=False):
         subdirs = get_immediate_subdirectories(self.workdir)
         for toxic_folder in toxic_list:
@@ -156,17 +156,17 @@ class BVRemoveToxicData(object):
                         for file in files:
                             if file in self.pt_output_files:
                                 os.remove(os.path.join(root, file))
-                #remove config file and pbs output
+                #remove config file and BV output
                 p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(toxic_dir_path, output_signature)))
                 if p != 0:
-                    raise Exception("removing pbs output file failed")
+                    raise Exception("removing BV output file failed")
                 p = subprocess.call(shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -f '{{}}' \;".format(toxic_dir_path, config_fname+"*.config")))
                 if p != 0:
-                    raise Exception("removing pbs output file failed")
-        
+                    raise Exception("removing BV output file failed")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
-        
+
     parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")
     parser.add_argument("toxic_git_version", type=str, help="toxic git version")
     parser.add_argument("--repopath", type=str, help="path to git repository", default=None)
@@ -174,17 +174,16 @@ if __name__ == "__main__":
     parser.add_argument("--kmin", action='store_true', help="compute kmin",default=False)
     parser.add_argument("--kmax", action='store_true', help="compute kmax",default=False)
     parser.add_argument("--pt", action='store_true', help="perform parallel tempering",default=False)
-    parser.add_argument("--all", action='store_true', help="perform parallel tempering",default=False)        
-    
+    parser.add_argument("--all", action='store_true', help="perform parallel tempering",default=False)
+
     args = parser.parse_args()
     print args
-        
+
     bvrm = BVRemoveToxicData(args.toxic_git_version, workdir=args.workdir)
-       
+
     if args.kmin or args.all:
         bvrm.remove_kmin_toxic_data(where=args.where, gitrepo_path=args.repopath)
     if args.kmax or args.all:
         bvrm.remove_kmax_toxic_data(where=args.where, gitrepo_path=args.repopath)
     if args.pt or args.all:
         bvrm.remove_pt_toxic_data(where=args.where, gitrepo_path=args.repopath)
-        

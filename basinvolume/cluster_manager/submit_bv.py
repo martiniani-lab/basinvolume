@@ -9,7 +9,7 @@ import shlex
 import subprocess
 import logging
 from basinvolume.enums import Interaction
-from basinvolume.cluster_manager import BuildPBSScript
+from basinvolume.cluster_manager import BatchScript, BatchSystem
 from basinvolume.utils import trymakedir, check_kmax_reasonable
 from basinvolume.enums import Minimizer
 from basinvolume.spheres import (HS_Generate_Jammed_Packing,
@@ -20,7 +20,7 @@ def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
 
-class BVSubmitPBS(object):
+class SubmitBV(object):
     """
     This class is specific to the basin volume repository and is responsible of
     looping through a particular directory containing the jammed_packings
@@ -32,7 +32,8 @@ class BVSubmitPBS(object):
     *nodays if true use walltime HH:MM:SS format (necessary for some clusters)
     *numnegk is the number of negative ks to use during PT
     """
-    def __init__(self, ndim, workdir=None, job_label='32_70_88_2D',
+    def __init__(self, ndim, batch_system=BatchSystem.PBS, workdir=None,
+                 job_label='32_70_88_2D',
                  explore_dir='explore_bv_jammed_packing',
                  kmax_config='findk_jammed_packing',
                  kmin_config='kmin_jammed_packing',
@@ -51,6 +52,7 @@ class BVSubmitPBS(object):
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
             workdir = os.path.abspath(workdir)
+        self.batch_system = batch_system
         self.workdir = workdir
         self.explore_dir = explore_dir
         self.kmax_config = kmax_config
@@ -74,16 +76,13 @@ class BVSubmitPBS(object):
         self.kmax_start = kmax_start
         self.nocell = nocell
         self.delraw = delraw
+        self.cores_per_node = cores_per_node
         self.pt_output_files = ["exchanges", "rem_permutations", "temperatures"]
         self.pt_workers = pt_workers
         self.pt_runners = pt_runners
         self.pt_exchange_scheme = pt_exchange_scheme
         self.pt_sleep_seconds = pt_sleep_seconds
         self.nthreads = nthreads
-        self.pt_nodes = 1
-        while self.nthreads*self.pt_workers - self.pt_nodes*cores_per_node > 0:
-            self.pt_nodes += 1
-        self.pt_cores_per_node = min(cores_per_node, self.nthreads*self.pt_workers)
         if ndim == 2:
             if not self.experimental:
                 self.ext = '.xydr'
@@ -94,6 +93,14 @@ class BVSubmitPBS(object):
                 self.ext = '.xyzdr'
             else:
                 self.ext = '.xyzdfr'
+        if self.batch_system == BatchSystem.PBS:
+            self.submit_cmd = 'qsub'
+            self.workdir_var = 'PBS_O_WORKDIR'
+        elif self.batch_system == BatchSystem.SLURM:
+            self.submit_cmd = 'sbatch'
+            self.workdir_var = 'SLURM_SUBMIT_DIR'
+        else:
+            raise ValueError("Batch system not implemented: {}".format(self.batch_system))
 
     def _check_kmax_config_file_ready(self, kmax_configpath):
         """
@@ -167,12 +174,12 @@ class BVSubmitPBS(object):
     def _check_config_file_exist(self, configpath):
         return os.path.isfile(configpath)
 
-    def _remove_pbs_output(self, explore_dir_path, output_signature):
+    def _remove_bv_output(self, explore_dir_path, output_signature):
         p = subprocess.call(
             shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -vf '{{}}' \;"
                         .format(explore_dir_path, output_signature)))
         if p != 0:
-            raise Exception("removing pbs output file failed")
+            raise Exception("removing BV output file failed")
 
     def _remove_innersphere_dos_old_data(self, explore_dir_path, config_fname,
                                          output_signature="bv*innersphere_dos*.o*",
@@ -182,9 +189,9 @@ class BVSubmitPBS(object):
             logging.info("Removed {}".format(os.path.join(explore_dir_path, rmdata)))
         except OSError:
             pass  # nothing to remove
-        # remove config file and pbs output
-        self._remove_pbs_output(explore_dir_path, output_signature)
-        self._remove_pbs_output(explore_dir_path, config_fname + "*.config")
+        # remove config file and bv output
+        self._remove_bv_output(explore_dir_path, output_signature)
+        self._remove_bv_output(explore_dir_path, config_fname + "*.config")
 
     def _remove_pt_old_data(self, explore_dir_path, config_fname, output_signature="bv*pt*.o*", pt=False):
         for root, dirs, files in os.walk(explore_dir_path):
@@ -196,9 +203,9 @@ class BVSubmitPBS(object):
                 if file in self.pt_output_files:
                     logging.info("Removing %s" % os.path.join(root, file))
                     os.remove(os.path.join(root, file))
-        # remove config file and pbs output
-        self._remove_pbs_output(explore_dir_path, output_signature)
-        self._remove_pbs_output(explore_dir_path, config_fname + "*.config")
+        # remove config file and bv output
+        self._remove_bv_output(explore_dir_path, output_signature)
+        self._remove_bv_output(explore_dir_path, config_fname + "*.config")
 
     def _get_findk_command(self, noj, path_to_script, script='bv_find_kmin.py', record_steps_timeseries=False):
         """
@@ -207,8 +214,8 @@ class BVSubmitPBS(object):
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
         command = 'python {0} {1}'.format(findk_script, packing)
-        command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
-                    .format(structures_dir=self.structures_dir))
+        command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir))
+
         command += " --explore-dir {}".format(self.explore_dir)
         command += " --minimizer {}".format(self.minimizer.name)
         if record_steps_timeseries:
@@ -229,8 +236,7 @@ class BVSubmitPBS(object):
         packing = self.packing_naming + noj + self.ext
         innersphere_dos_script = os.path.join(os.path.dirname(os.path.dirname(path_to_script)), 'mbar_spheres', script)
         command = 'python {0} {1}'.format(innersphere_dos_script, packing)
-        command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
-                    .format(structures_dir=self.structures_dir))
+        command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir))
         command += " --explore-dir {}".format(self.explore_dir)
         command += " --minimizer {}".format(self.minimizer.name)
         if self.nocell:
@@ -243,7 +249,7 @@ class BVSubmitPBS(object):
         (this method only checks that the config file is not ready or present,
         hence this method should only be used when there are no calculations running,
         as the calculation might have already been launched and it is in the queue)
-        *pbs object of type BuildPBSScript
+        *batch_script object of type BatchScript
         *path_to_script, excluding the filename with .py extension
         """
         subdirs = get_immediate_subdirectories(self.workdir)
@@ -262,16 +268,20 @@ class BVSubmitPBS(object):
                                 trymakedir(path)
                             kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
                             if not self._check_kmin_config_file_ready(kmin_path) or force:
-                                #########remove old pbs output#######
-                                self._remove_pbs_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
+                                #########remove old BV output#######
+                                self._remove_bv_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
                                 #####################################
                                 if not os.path.isabs(path_to_script):
                                     path_to_script = os.path.abspath(path_to_script)
                                 command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py',
                                                                   record_steps_timeseries=self.record_steps_timeseries)
-                                pbs = BuildPBSScript(queue_type, 1, self.nthreads, walltime,
-                                                     command, omp_threads=self.nthreads, outdir=path, nodays=self.nodays)
-                                pbs.submit_PBS('bv_kmin' + noj + '.sh', 'bv_' + self.label + '_kmin' + noj)
+                                batch_script = BatchScript(
+                                    self.batch_system, queue_type, walltime, command,
+                                    mpi_procs=1, omp_threads=self.nthreads,
+                                    cores_per_node=self.cores_per_node,
+                                    outdir=path, nodays=self.nodays)
+                                batch_script.submit('bv_kmin' + noj + '.sh',
+                                                    'bv_' + self.label + '_kmin' + noj)
                             else:
                                 pass
 
@@ -281,7 +291,7 @@ class BVSubmitPBS(object):
         (this method only checks that the config file is not ready or present,
         hence this method should only be used when there are no calculations running,
         as the calculation might have already been launched and it is in the queue)
-        *pbs object of type BuildPBSScript
+        *batch_script object of type BatchScript
         *path_to_script, excluding the filename with .py extension
         """
         subdirs = get_immediate_subdirectories(self.workdir)
@@ -300,16 +310,19 @@ class BVSubmitPBS(object):
                                 trymakedir(path)
                             kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
                             if not self._check_kmax_config_file_ready(kmax_path) or force:
-                                #########remove old pbs output#######
-                                self._remove_pbs_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                #########remove old BV output#######
+                                self._remove_bv_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
                                 #####################################
                                 if not os.path.isabs(path_to_script):
                                     path_to_script = os.path.abspath(path_to_script)
                                 command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
-                                pbs = BuildPBSScript(queue_type, 1, self.nthreads, walltime,
-                                                     command, omp_threads=self.nthreads,
-                                                     outdir=path, nodays=self.nodays)
-                                pbs.submit_PBS('bv_kmax' + noj + '.sh', 'bv_' + self.label + '_kmax' + noj)
+                                batch_script = BatchScript(
+                                    self.batch_system, queue_type, walltime, command,
+                                    mpi_procs=1, omp_threads=self.nthreads,
+                                    cores_per_node=self.cores_per_node,
+                                    outdir=path, nodays=self.nodays)
+                                batch_script.submit('bv_kmax' + noj + '.sh',
+                                                    'bv_' + self.label + '_kmax' + noj)
                             else:
                                 pass
 
@@ -319,7 +332,7 @@ class BVSubmitPBS(object):
         (this method only checks that the config file is not ready or present,
         hence this method should only be used when there are no calculations running,
         as the calculation might have already been launched and it is in the queue)
-        *pbs object of type BuildPBSScript
+        *batch_script object of type BatchScript
         *path_to_script, excluding the filename with .py extension
         """
         subdirs = get_immediate_subdirectories(self.workdir)
@@ -352,11 +365,13 @@ class BVSubmitPBS(object):
                                     path_to_script = os.path.abspath(path_to_script)
                                 command = self._get_innersphere_dos_command(noj, path_to_script,
                                                                             script='bv_innersphere_dos.py')
-                                pbs = BuildPBSScript(queue_type, 1, self.nthreads, walltime,
-                                                     command, outdir=path, omp_threads=self.nthreads,
-                                                     nodays=self.nodays)
-                                pbs.submit_PBS('bv_innersphere_dos' + noj + '.sh',
-                                               'bv_' + self.label + '_innersphere_dos' + noj)
+                                batch_script = BatchScript(
+                                    self.batch_system, queue_type, walltime, command,
+                                    mpi_procs=1, omp_threads=self.nthreads,
+                                    cores_per_node=self.cores_per_node,
+                                    outdir=path, nodays=self.nodays)
+                                batch_script.submit('bv_innersphere_dos' + noj + '.sh',
+                                                    'bv_' + self.label + '_innersphere_dos' + noj)
                             else:
                                 pass
 
@@ -367,14 +382,13 @@ class BVSubmitPBS(object):
         packing = self.packing_naming + noj + self.ext
         explore_dir = self.explore_dir + noj
         pt_script = os.path.join(path_to_script, script)
-        command = ("python {0} {1} ${{PBS_O_WORKDIR}}/{2} "
-                   "--mintotniter {3} --maxtotniter {4} --relstderr {5} "
-                   "--nrunners {6}"
-                   .format(pt_script, packing, explore_dir,
+        command = ("python {0} {1} ${{{2}}}/{3} "
+                   "--mintotniter {4} --maxtotniter {5} --relstderr {6} "
+                   "--nrunners {7}"
+                   .format(pt_script, packing, self.workdir_var, explore_dir,
                            self.mintotniter, self.maxtotniter,
                            self.relstderr, self.pt_runners))
-        command += (" -p ${{PBS_O_WORKDIR}}/{structures_dir}"
-                    .format(structures_dir=self.structures_dir))
+        command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir))
         if self.nocell:
             command += " --nocell"
         command += " --minimizer {}".format(self.minimizer.name)
@@ -392,7 +406,7 @@ class BVSubmitPBS(object):
         (this method only checks that the config files are not ready or present,
         hence this method should only be used when there are no calculations running,
         as the calculation might have already been launched and it is in the queue)
-        *pbs object of type BuildPBSScript
+        *batch_script object of type BatchScript
         *path_to_script, excluding the filename with .py extension
         """
         for root, dirs, files in os.walk(self.workdir):
@@ -419,11 +433,13 @@ class BVSubmitPBS(object):
                                         path_to_script = os.path.abspath(path_to_script)
                                     mpi_procs = min(self.pt_workers+1, self.pt_runners)
                                     command = self._get_pt_command(noj, path_to_script)
-                                    pbs = BuildPBSScript(queue_type, self.pt_nodes,
-                                                         self.pt_cores_per_node, walltime, command,
-                                                         mpi_procs=mpi_procs, omp_threads=self.nthreads,
-                                                         outdir=path, nodays=self.nodays)
-                                    pbs.submit_PBS('bv_pt' + noj + '.sh', 'bv_' + self.label + '_pt' + noj)
+                                    batch_script = BatchScript(
+                                        self.batch_system, queue_type, walltime, command,
+                                        mpi_procs=mpi_procs, omp_threads=self.nthreads,
+                                        cores_per_node=self.cores_per_node,
+                                        outdir=path, nodays=self.nodays)
+                                    batch_script.submit('bv_pt' + noj + '.sh',
+                                                        'bv_' + self.label + '_pt' + noj)
                             else:
                                 pass
 
@@ -431,9 +447,9 @@ class BVSubmitPBS(object):
                                   pt_walltime, path_to_script):
         """
         launch a chain of calculations. The strategy is to create all 3 bash files at the start and
-        then qsub them in the following order: kmin -> kmax -> pt.
+        then submit them in the following order: kmin -> kmax -> pt.
         This function assumes that the path_to_script is the same for all 3 executables
-        *pbs object of type BuildPBSScript
+        *batch_script object of type BatchScript
         *path_to_script, excluding the filename with .py extension
         """
         subdirs = get_immediate_subdirectories(self.workdir)
@@ -471,14 +487,16 @@ class BVSubmitPBS(object):
                         innersphere_dos_fname = 'bv_innersphere_dos' + noj + '.sh'
                         innersphere_dos_command = self._get_innersphere_dos_command(
                             noj, path_to_script, script='bv_innersphere_dos.py')
-                        pbs = BuildPBSScript(k_queue_type, 1, self.nthreads, k_walltime,
-                                             innersphere_dos_command, omp_threads=self.nthreads,
-                                             outdir=path, nodays=self.nodays)
+                        batch_script = BatchScript(
+                            self.batch_system, k_queue_type, k_walltime,
+                            innersphere_dos_command, mpi_procs=1,
+                            omp_threads=self.nthreads, cores_per_node=self.cores_per_node,
+                            outdir=path, nodays=self.nodays)
                         if self._check_pt_config_file_ready(pt_path):
-                            pbs.submit_PBS('bv_innersphere_dos' + noj + '.sh',
-                                           'bv_' + self.label + '_innersphere_dos' + noj)
+                            batch_script.submit('bv_innersphere_dos' + noj + '.sh',
+                                                'bv_' + self.label + '_innersphere_dos' + noj)
                         else:
-                            pbs.writePBSscript(innersphere_dos_fname,
+                            batch_script.write(innersphere_dos_fname,
                                                'bv_' + self.label + '_innersphere_dos' + noj)
                             #########remove old pt data#######
                             self._remove_pt_old_data(explore_dir, self.pt_config + noj,
@@ -490,59 +508,76 @@ class BVSubmitPBS(object):
                             # prepare PT command
                             pt_mpi_procs = min(self.pt_workers+1, self.pt_runners)
                             pt_command = self._get_pt_command(noj, path_to_script)
-                            pt_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(innersphere_dos_fname)
-                            pbs = BuildPBSScript(pt_queue_type, self.pt_nodes,
-                                                 self.pt_cores_per_node, pt_walltime, pt_command,
-                                                 mpi_procs=pt_mpi_procs, omp_threads=self.nthreads,
-                                                 outdir=path, nodays=self.nodays)
+                            pt_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
+                                                                     self.workdir_var,
+                                                                     innersphere_dos_fname)
+                            batch_script = BatchScript(
+                                self.batch_system, pt_queue_type, pt_walltime, pt_command,
+                                mpi_procs=pt_mpi_procs, omp_threads=self.nthreads,
+                                cores_per_node=self.cores_per_node,
+                                outdir=path, nodays=self.nodays)
                             # if kmax is either not terminated or is reasonable then continue
                             if check_kmax_reasonable(kmax_path):
                                 # if kmin and kmax terminated
                                 if kmax_ready and kmin_ready:
-                                    pbs.submit_PBS('bv_pt' + noj + '.sh', 'bv_' + self.label + '_pt' + noj)
+                                    batch_script.submit('bv_pt' + noj + '.sh',
+                                                        'bv_' + self.label + '_pt' + noj)
                                 else:
-                                    pbs.writePBSscript(pt_fname, 'bv_' + self.label + '_pt' + noj)
+                                    batch_script.write(pt_fname, 'bv_' + self.label + '_pt' + noj)
                                     if not kmin_ready:
-                                        #########remove old pbs output#######
-                                        self._remove_pbs_output(explore_dir,
-                                                                "bv_{}_kmin{}.o*".format(self.label, noj))
+                                        #########remove old BV output#######
+                                        self._remove_bv_output(explore_dir,
+                                                               "bv_{}_kmin{}.o*".format(self.label, noj))
                                         #####################################
                                         kmin_command = self._get_findk_command(
                                             noj, path_to_script, script='bv_find_kmin.py',
                                             record_steps_timeseries=self.record_steps_timeseries)
-                                        kmin_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                                        pbs = BuildPBSScript(k_queue_type, 1, self.nthreads, k_walltime,
-                                                             kmin_command, omp_threads=self.nthreads,
-                                                             outdir=path, nodays=self.nodays)
+                                        kmin_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
+                                                                                   self.workdir_var,
+                                                                                   pt_fname)
+                                        batch_script = BatchScript(
+                                            self.batch_system, k_queue_type, k_walltime,
+                                            kmin_command, mpi_procs=1,
+                                            omp_threads=self.nthreads,
+                                            cores_per_node=self.cores_per_node,
+                                            outdir=path, nodays=self.nodays)
                                         if kmax_ready:
-                                            pbs.submit_PBS('bv_kmin' + noj + '.sh',
-                                                           'bv_' + self.label + '_kmin' + noj)
+                                            batch_script.submit('bv_kmin' + noj + '.sh',
+                                                                'bv_' + self.label + '_kmin' + noj)
                                         else:
-                                            #########remove old pbs output#######
-                                            self._remove_pbs_output(
+                                            #########remove old BV output#######
+                                            self._remove_bv_output(
                                                 explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
                                             #####################################
-                                            pbs.writePBSscript(kmin_fname,
+                                            batch_script.write(kmin_fname,
                                                                'bv_' + self.label + '_kmin' + noj)
                                             kmax_command = self._get_findk_command(
                                                 noj, path_to_script, script='bv_find_kmax.py')
-                                            kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(kmin_fname)
-                                            pbs = BuildPBSScript(k_queue_type, 1, self.nthreads,
-                                                                 k_walltime, kmax_command,
-                                                                 omp_threads=self.nthreads,
-                                                                 outdir=path, nodays=self.nodays)
-                                            pbs.submit_PBS('bv_kmax' + noj + '.sh',
-                                                           'bv_' + self.label + '_kmax' + noj)
+                                            kmax_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
+                                                                                       self.workdir_var,
+                                                                                       kmin_fname)
+                                            batch_script = BatchScript(
+                                                self.batch_system, k_queue_type, k_walltime,
+                                                kmax_command, mpi_procs=1,
+                                                omp_threads=self.nthreads,
+                                                cores_per_node=self.cores_per_node,
+                                                outdir=path, nodays=self.nodays)
+                                            batch_script.submit('bv_kmax' + noj + '.sh',
+                                                                'bv_' + self.label + '_kmax' + noj)
                                     else:
                                         kmax_command = self._get_findk_command(
                                             noj, path_to_script, script='bv_find_kmax.py')
-                                        kmax_command += ' && qsub ${{PBS_O_WORKDIR}}/{}'.format(pt_fname)
-                                        pbs = BuildPBSScript(k_queue_type, 1, self.nthreads,
-                                                             k_walltime, kmax_command,
-                                                             omp_threads=self.nthreads,
-                                                             outdir=path, nodays=self.nodays)
-                                        pbs.submit_PBS('bv_kmax' + noj + '.sh',
-                                                       'bv_' + self.label + '_kmax' + noj)
+                                        kmax_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
+                                                                                   self.workdir_var,
+                                                                                   pt_fname)
+                                        batch_script = BatchScript(
+                                            self.batch_system, k_queue_type, k_walltime,
+                                            kmax_command, mpi_procs=1,
+                                            omp_threads=self.nthreads,
+                                            cores_per_node=self.cores_per_node,
+                                            outdir=path, nodays=self.nodays)
+                                        batch_script.submit('bv_kmax' + noj + '.sh',
+                                                            'bv_' + self.label + '_kmax' + noj)
 
 
 if __name__ == "__main__":
@@ -562,6 +597,9 @@ if __name__ == "__main__":
     single_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
     single_parser.add_argument("queue_type", type=str, help="queue type")
     single_parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
+    single_parser.add_argument("--batch-system", type=str,
+                               help="Batch system. Supported: PBS, SLURM. "
+                                    "Default: 'PBS'", default='PBS')
     single_parser.add_argument("--kmin", action='store_true', help="compute kmin", default=False)
     single_parser.add_argument("--kmax", action='store_true', help="compute kmax", default=False)
     single_parser.add_argument("--mbar", action='store_true',
@@ -648,7 +686,6 @@ if __name__ == "__main__":
                                     "improves performance, especially in combination "
                                     "with multithreading. Default: False",
                                default=False)
-
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str,
                               help="working directory (folder containing the "
@@ -659,6 +696,9 @@ if __name__ == "__main__":
     chain_parser.add_argument("k_walltime_hours", type=float, help="wall-time in hours")
     chain_parser.add_argument("pt_queue_type", type=str, help="queue type")
     chain_parser.add_argument("pt_walltime_hours", type=float, help="wall-time in hours")
+    chain_parser.add_argument("--batch-system", type=str,
+                              help="Batch system. Supported: PBS, SLURM. "
+                                   "Default: 'PBS'", default='PBS')
     chain_parser.add_argument("--cores-per-node", type=int,
                               help="Number of cores per node. Default: 16",
                               default=16)
@@ -746,6 +786,11 @@ if __name__ == "__main__":
                         level=logging.INFO)
     logging.info(args)
 
+    if args.batch_system.upper() in BatchSystem.__members__:
+        batch_system = BatchSystem[args.batch_system.upper()]
+    else:
+        raise ValueError("Unknown batch system: {}".format(args.batch_system))
+
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
     else:
@@ -777,37 +822,37 @@ if __name__ == "__main__":
                                                 import_jammed=True, check_packing=False)
             sorter.run()
 
-    bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir,
-                        job_label=args.job_label, nojmin=args.nojmin,
-                        nojmax=args.nojmax, nodays=args.nodays,
-                        experimental=args.experimental, minimizer=minimizer,
-                        record_steps_timeseries=args.rsts,
-                        kmax_start=args.kmax_start, mintotniter=args.mintotniter,
-                        maxtotniter=args.maxtotniter,
-                        relstderr=args.relstderr, numnegk=args.numnegk,
-                        lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw,
-                        explore_dir=args.explore_dir,
-                        structures_dir=args.packings_dir,
-                        cores_per_node=args.cores_per_node, nthreads=args.threads,
-                        pt_workers=args.pt_workers, pt_runners=args.pt_runners,
-                        pt_exchange_scheme=pt_exchange_scheme,
-                        pt_sleep_seconds=args.pt_sleep_seconds)
+    submit_bv = SubmitBV(args.ndim, batch_system=batch_system,
+                         workdir=args.workdir, job_label=args.job_label,
+                         nojmin=args.nojmin, nojmax=args.nojmax, nodays=args.nodays,
+                         experimental=args.experimental, minimizer=minimizer,
+                         record_steps_timeseries=args.rsts,
+                         kmax_start=args.kmax_start, mintotniter=args.mintotniter,
+                         maxtotniter=args.maxtotniter,
+                         relstderr=args.relstderr, numnegk=args.numnegk,
+                         lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw,
+                         explore_dir=args.explore_dir,
+                         structures_dir=args.packings_dir,
+                         cores_per_node=args.cores_per_node, nthreads=args.threads,
+                         pt_workers=args.pt_workers, pt_runners=args.pt_runners,
+                         pt_exchange_scheme=pt_exchange_scheme,
+                         pt_sleep_seconds=args.pt_sleep_seconds)
 
     if args.mode == 'chain':
-        bvpbs.submit_chain_calculations(args.k_queue_type, args.k_walltime_hours,
-                                        args.pt_queue_type, args.pt_walltime_hours,
-                                        args.path_to_script)
+        submit_bv.submit_chain_calculations(args.k_queue_type, args.k_walltime_hours,
+                                            args.pt_queue_type, args.pt_walltime_hours,
+                                            args.path_to_script)
     else:
         assert (not ((args.kmin is True or args.kmax is True) and args.pt is True))
         if args.kmin:
-            bvpbs.submit_kmin_calculations(args.queue_type, args.walltime_hours,
-                                           args.path_to_script, args.force)
+            submit_bv.submit_kmin_calculations(args.queue_type, args.walltime_hours,
+                                               args.path_to_script, args.force)
         if args.kmax:
-            bvpbs.submit_kmax_calculations(args.queue_type, args.walltime_hours,
-                                           args.path_to_script, args.force)
+            submit_bv.submit_kmax_calculations(args.queue_type, args.walltime_hours,
+                                               args.path_to_script, args.force)
         if args.pt:
-            bvpbs.submit_pt_calculations(args.queue_type, args.walltime_hours,
-                                         args.path_to_script, args.force)
+            submit_bv.submit_pt_calculations(args.queue_type, args.walltime_hours,
+                                             args.path_to_script, args.force)
         if args.mbar:
-            bvpbs.submit_innersphere_dos_calculations(args.queue_type, args.walltime_hours,
-                                                      args.path_to_script, args.force)
+            submit_bv.submit_innersphere_dos_calculations(args.queue_type, args.walltime_hours,
+                                                          args.path_to_script, args.force)
