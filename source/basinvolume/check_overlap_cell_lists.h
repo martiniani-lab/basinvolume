@@ -12,18 +12,21 @@ class OverlapAccumulator {
 private:
     const static size_t m_ndim = distance_policy::_ndim;
     std::shared_ptr<distance_policy> m_dist;
-    pele::Array<double> const & m_coords;
-    pele::Array<double> const & m_radii;
+    const pele::Array<double> * m_coords;
+    const pele::Array<double> m_radii;
     bool m_legal;
 public:
-    OverlapAccumulator(std::shared_ptr<distance_policy> dist,
-            pele::Array<double> const & coords,
-            pele::Array<double> const & radii)
+    OverlapAccumulator(std::shared_ptr<distance_policy> & dist,
+                       pele::Array<double> const & radii)
         : m_dist(dist),
-          m_coords(coords),
           m_radii(radii),
           m_legal(true)
     {}
+
+    void reset_data(const pele::Array<double> * coords) {
+        m_coords = coords;
+        m_legal = true;
+    }
 
     bool configuration_is_legal() const {
         return m_legal;
@@ -40,7 +43,7 @@ public:
     {
         const size_t xi_off = m_ndim * atom_i;
         const size_t xj_off = m_ndim * atom_j;
-        const double dij2 = get_squared_atom_distance(m_coords.data() + xi_off, m_coords.data() + xj_off);
+        const double dij2 = get_squared_atom_distance(m_coords->data() + xi_off, m_coords->data() + xj_off);
         const double radius_sum = m_radii[atom_i] + m_radii[atom_j];
         if(dij2 < radius_sum * radius_sum) {
             m_legal = false;
@@ -56,12 +59,14 @@ protected:
     std::shared_ptr<DIST_POL> m_dist;
     std::shared_ptr<pele::CellListsWithBreak<DIST_POL> > m_cell_lists;
     const pele::Array<double> m_radii;
+    OverlapAccumulator<DIST_POL> m_overlap_acc;
 public:
     virtual ~CellListCheckOverlap() {};
     CellListCheckOverlap(pele::Array<double> & hs_radii, std::shared_ptr<DIST_POL> dist, std::shared_ptr<pele::CellListsWithBreak<DIST_POL> > cell_lists)
         :   m_dist(dist),
             m_radii(hs_radii.copy()),
-            m_cell_lists(cell_lists)
+            m_cell_lists(cell_lists),
+            m_overlap_acc(m_dist, m_radii)
     {
         if (m_dist == NULL || m_cell_lists == NULL) {
             throw std::runtime_error("CellListCheckOverlap: distance or celliter uninitialised");
@@ -89,10 +94,10 @@ public:
         }
 
         m_cell_lists->update(trial_coords);
-        OverlapAccumulator<DIST_POL> acc(m_dist, trial_coords, m_radii);
-        pele::CellListsLoopBreak<OverlapAccumulator<DIST_POL>, m_ndim> joe_the_looper = m_cell_lists->get_atom_pair_looper_break(acc);
+        m_overlap_acc.reset_data(&trial_coords);
+        pele::CellListsLoopBreak<OverlapAccumulator<DIST_POL>, m_ndim> joe_the_looper = m_cell_lists->get_atom_pair_looper_break(m_overlap_acc);
         joe_the_looper.loop_through_atom_pairs();
-        return acc.configuration_is_legal();
+        return m_overlap_acc.configuration_is_legal();
     }
 };
 
