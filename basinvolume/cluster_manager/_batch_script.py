@@ -38,15 +38,20 @@ class BatchScript(object):
     This is a completely general class, it does not and should not know anything about the naming conventions
     and structures of any particular library. If any such knowledge is necessary please make a derived class
     and overload the member functions
+    *batch_system [BatchSystem]: PBS or SLURM
     *queue_type [string]
-    *nodes [int]
-    *core [int] processors per node
     *walltime [hours]
     *command [string]: command line to execute e.g. python parallel_tempering.py args
-    *outdir is the directory where to redirect the standard output
+    *mpi_procs [int]: Number of MPI processes
+    *mpi_oversubscribe [int]: Number of MPI processes than don't require a core
+    *omp_threads [int]: OpenMP threads per MPI process
+    *cores_per_node [int]: Cores each cluster node has
+    *noday [bool]: Don't use a separate day counter, use hours instead
+    *outdir [string]: the directory where to redirect the standard output
     """
     def __init__(self, batch_system, queue_type, walltime, command, mpi_procs=1,
-                 omp_threads=1, cores_per_node=16, nodays=False, outdir=None):
+                 mpi_oversubscribe=0, omp_threads=1, cores_per_node=16,
+                 nodays=False, outdir=None):
         self.batch_system = batch_system
         self.qtype = queue_type
         self.s_wtime = walltime*60*60 #convert hours to seconds
@@ -60,9 +65,9 @@ class BatchScript(object):
         self.omp_threads = omp_threads
         self.outdir = outdir
         self.nodes = 1
-        while self.omp_threads*self.mpi_procs - self.nodes*cores_per_node > 0:
+        while self.omp_threads*(self.mpi_procs-mpi_oversubscribe) - self.nodes*cores_per_node > 0:
            self.nodes += 1
-        self.ncores = min(cores_per_node, self.omp_threads*self.mpi_procs)
+        self.ncores = min(cores_per_node, self.omp_threads*(self.mpi_procs-mpi_oversubscribe))
 
     def write(self, fname, job_name):
         """

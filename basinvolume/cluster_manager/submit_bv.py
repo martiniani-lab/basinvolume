@@ -277,7 +277,8 @@ class SubmitBV(object):
                                                                   record_steps_timeseries=self.record_steps_timeseries)
                                 batch_script = BatchScript(
                                     self.batch_system, queue_type, walltime, command,
-                                    mpi_procs=1, omp_threads=self.nthreads,
+                                    mpi_procs=1, mpi_oversubscribe=0,
+                                    omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
                                     outdir=path, nodays=self.nodays)
                                 batch_script.submit('bv_kmin' + noj + '.sh',
@@ -318,7 +319,8 @@ class SubmitBV(object):
                                 command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
                                 batch_script = BatchScript(
                                     self.batch_system, queue_type, walltime, command,
-                                    mpi_procs=1, omp_threads=self.nthreads,
+                                    mpi_procs=1, mpi_oversubscribe=0,
+                                    omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
                                     outdir=path, nodays=self.nodays)
                                 batch_script.submit('bv_kmax' + noj + '.sh',
@@ -367,7 +369,8 @@ class SubmitBV(object):
                                                                             script='bv_innersphere_dos.py')
                                 batch_script = BatchScript(
                                     self.batch_system, queue_type, walltime, command,
-                                    mpi_procs=1, omp_threads=self.nthreads,
+                                    mpi_procs=1, mpi_oversubscribe=0,
+                                    omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
                                     outdir=path, nodays=self.nodays)
                                 batch_script.submit('bv_innersphere_dos' + noj + '.sh',
@@ -432,10 +435,16 @@ class SubmitBV(object):
                                     if not os.path.isabs(path_to_script):
                                         path_to_script = os.path.abspath(path_to_script)
                                     mpi_procs = min(self.pt_workers+1, self.pt_runners)
+                                    if mpi_procs == self.pt_runners:
+                                        mpi_oversubscribe = 0
+                                    else:
+                                        mpi_oversubscribe = 1
                                     command = self._get_pt_command(noj, path_to_script)
                                     batch_script = BatchScript(
                                         self.batch_system, queue_type, walltime, command,
-                                        mpi_procs=mpi_procs, omp_threads=self.nthreads,
+                                        mpi_procs=mpi_procs,
+                                        mpi_oversubscribe=mpi_oversubscribe,
+                                        omp_threads=self.nthreads,
                                         cores_per_node=self.cores_per_node,
                                         outdir=path, nodays=self.nodays)
                                     batch_script.submit('bv_pt' + noj + '.sh',
@@ -489,7 +498,7 @@ class SubmitBV(object):
                             noj, path_to_script, script='bv_innersphere_dos.py')
                         batch_script = BatchScript(
                             self.batch_system, k_queue_type, k_walltime,
-                            innersphere_dos_command, mpi_procs=1,
+                            innersphere_dos_command, mpi_procs=1, mpi_oversubscribe=0,
                             omp_threads=self.nthreads, cores_per_node=self.cores_per_node,
                             outdir=path, nodays=self.nodays)
                         if self._check_pt_config_file_ready(pt_path):
@@ -507,13 +516,19 @@ class SubmitBV(object):
                             kmin_ready = self._check_kmin_config_file_ready(kmin_path)
                             # prepare PT command
                             pt_mpi_procs = min(self.pt_workers+1, self.pt_runners)
+                            if pt_mpi_procs == self.pt_runners:
+                                pt_mpi_oversubscribe = 0
+                            else:
+                                pt_mpi_oversubscribe = 1
                             pt_command = self._get_pt_command(noj, path_to_script)
                             pt_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
                                                                      self.workdir_var,
                                                                      innersphere_dos_fname)
                             batch_script = BatchScript(
                                 self.batch_system, pt_queue_type, pt_walltime, pt_command,
-                                mpi_procs=pt_mpi_procs, omp_threads=self.nthreads,
+                                mpi_procs=pt_mpi_procs,
+                                mpi_oversubscribe=pt_mpi_oversubscribe,
+                                omp_threads=self.nthreads,
                                 cores_per_node=self.cores_per_node,
                                 outdir=path, nodays=self.nodays)
                             # if kmax is either not terminated or is reasonable then continue
@@ -538,6 +553,7 @@ class SubmitBV(object):
                                         batch_script = BatchScript(
                                             self.batch_system, k_queue_type, k_walltime,
                                             kmin_command, mpi_procs=1,
+                                            mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
                                             cores_per_node=self.cores_per_node,
                                             outdir=path, nodays=self.nodays)
@@ -559,6 +575,7 @@ class SubmitBV(object):
                                             batch_script = BatchScript(
                                                 self.batch_system, k_queue_type, k_walltime,
                                                 kmax_command, mpi_procs=1,
+                                                mpi_oversubscribe=0,
                                                 omp_threads=self.nthreads,
                                                 cores_per_node=self.cores_per_node,
                                                 outdir=path, nodays=self.nodays)
@@ -573,6 +590,7 @@ class SubmitBV(object):
                                         batch_script = BatchScript(
                                             self.batch_system, k_queue_type, k_walltime,
                                             kmax_command, mpi_procs=1,
+                                            mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
                                             cores_per_node=self.cores_per_node,
                                             outdir=path, nodays=self.nodays)
