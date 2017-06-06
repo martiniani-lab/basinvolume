@@ -30,7 +30,7 @@ echo
 echo PBS assigned me this node:
 cat $PBS_NODEFILE
 echo
-echo "Running ${job_name}"
+echo "Running ${PBS_JOBNAME}"
 echo
 python ~/Work/basinvolume/basinvolume/cluster_manager/submit_bv.py chain \
 $ndim $workdir $path_to_script $job_label $k_queue_type $k_walltime \
