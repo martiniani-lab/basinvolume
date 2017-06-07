@@ -149,6 +149,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:
             self.pot_kwargs = imp_packing['pot_kwargs'].copy()
+        self.opt_maxstep_factor = imp_packing['maxstep_factor']
         if not imp_packing['sorted']:
             logging.warning("The jammed packing has not been sorted, "
                             "which can negatively impact performance.")

@@ -10,7 +10,7 @@ from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
                                volume_nball, import_packing, calc_distance,
                                get_cython_version, cround, in_hull, origin_in_hull_2d,
                                conf_get_default, conf_getboolean_default,
-                               conf_getint_default)
+                               conf_getint_default, conf_getfloat_default)
 from basinvolume.spheres import read_packing_config
 from basinvolume.enums import Minimizer, Interaction
 import ConfigParser
@@ -76,6 +76,8 @@ def read_jammed_packing_config(configpath, frozen=False):
                                                    'sorted', False)
     parameters['sorted_nsubdoms'] = conf_getint_default(configf, 'JAMMED_PACKING',
                                                         'sorted_nsubdoms', 1)
+    parameters['maxstep_factor'] = conf_getfloat_default(configf, 'JAMMED_PACKING',
+                                                         'maxstep_factor', 1.0)
     return parameters
 
 
@@ -95,7 +97,7 @@ class _Generate_Jammed_Packing(object):
 
     def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
                  import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
-                 minimizer=Minimizer.FIRE, logging_tag="", write_opengl=False,
+                 minimizer=Minimizer.FIRE, maxstep_factor=1.0, logging_tag="", write_opengl=False,
                  sort_atoms=False):
         self.target_packing_frac = target_packing_frac
         self.base_directory = os.path.join(os.getcwd(), outdir)
@@ -109,6 +111,7 @@ class _Generate_Jammed_Packing(object):
         self.sca = -1
         self.eps = 1.
         self.minimizer = minimizer
+        self.maxstep_factor = maxstep_factor
         self.logging_tag = logging_tag
         self.write_opengl = write_opengl
         self.sort_atoms = sort_atoms
@@ -207,6 +210,7 @@ class _Generate_Jammed_Packing(object):
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('sorted: {}\n'.format(self.sort_atoms))
         f.write('sorted_nsubdoms: {}\n'.format(os.environ['OMP_NUM_THREADS']))
+        f.write('maxstep_factor: {}\n'.format(self.maxstep_factor))
         f.write('\n')
         # print software version
         f.write('[CODEVERSION]\n')
@@ -285,16 +289,18 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     tol: rms tolerance for the minimizer
     """
 
-    def __init__(self, target_packing_frac=0.7, tol=1e-9, packings_dir='packings',
-                 packing_nrs=None, import_jammed=False, outdir='jammed_packings',
-                 use_cell_lists=False, show=False, interaction=Interaction.HS_WCA,
-                 override_pot_kwargs=None, minimizer=Minimizer.FIRE, logging_tag="",
-                 write_opengl=False, check_packing=True, sort_atoms=False):
+    def __init__(self, target_packing_frac=0.7, tol=1e-9, maxstep_factor=1.0,
+                 packings_dir='packings', packing_nrs=None, import_jammed=False,
+                 outdir='jammed_packings', use_cell_lists=False, show=False,
+                 interaction=Interaction.HS_WCA, override_pot_kwargs=None,
+                 minimizer=Minimizer.FIRE, logging_tag="", write_opengl=False,
+                 check_packing=True, sort_atoms=False):
         super(HS_Generate_Jammed_Packing, self).__init__(target_packing_frac=target_packing_frac,
                                                          packings_dir=packings_dir,
                                                          packing_nrs=packing_nrs,
                                                          import_jammed=import_jammed,
                                                          outdir=outdir, minimizer=minimizer,
+                                                         maxstep_factor=maxstep_factor,
                                                          override_pot_kwargs=override_pot_kwargs,
                                                          logging_tag=logging_tag,
                                                          write_opengl=write_opengl,
@@ -459,17 +465,17 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 logging.warning(self._log("Overlap found before quenching"))
                 return False
 
+        opt_maxstep = self.sca * np.amin(self.hs_radii) * 0.5 * self.maxstep_factor
         if self.minimizer is Minimizer.FIRE:
-            fire_maxstep = np.amin(self.hs_radii) * self.sca
-            res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
+            res = modifiedfire_cpp(self.coords, self.potential, maxstep=opt_maxstep,
                                    nsteps=1e6, tol=tol, iprint=iprint)
         elif self.minimizer is Minimizer.CG:
             optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                   nsteps=1e6, print_level=iprint)
             res = optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
-            res = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
-                            iprint=iprint)
+            res = lbfgs_cpp(self.coords, self.potential, maxstep=opt_maxstep,
+                            tol=tol, nsteps=1e6, iprint=iprint)
         else:
             raise NotImplementedError
 
@@ -706,6 +712,9 @@ if __name__ == "__main__":
                         help="Write input for OpenGL.", default=False)
     parser.add_argument("-t", "--tol", type=float,
                         help="rms tolerance of the minimizer", default=1e-9)
+    parser.add_argument("--maxstep", type=float,
+                        help="Factor by which the maximum step size of the "
+                             "minimizer is corrected.", default=1.0)
     parser.add_argument("--minimizer", type=str,
                         help="Energy minimization algorithm "
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
@@ -761,7 +770,7 @@ if __name__ == "__main__":
                                      packings_dir=args.packingsdir,
                                      packing_nrs=args.packing_nrs,
                                      import_jammed=args.import_jammed,
-                                     outdir=args.outdir, tol=args.tol,
+                                     outdir=args.outdir, tol=args.tol, maxstep_factor=args.maxstep,
                                      use_cell_lists=not args.nocell, show=args.show,
                                      interaction=interaction,
                                      minimizer=minimizer,

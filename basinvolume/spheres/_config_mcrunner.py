@@ -27,7 +27,7 @@ class _configure_mcrunner(object):
         """returns opt max step"""
         if opt_maxstep is None:
             #opt_maxstep = self.boxv[0] * 0.01
-            opt_maxstep = self.sca * np.amin(self.red_radii) * 0.5
+            opt_maxstep = self.sca * np.amin(self.red_radii) * 0.5 * self.opt_maxstep_factor
         return opt_maxstep
 
     @abc.abstractmethod

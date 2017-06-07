@@ -51,6 +51,7 @@ class _sphere_mcrunner(_configure_mcrunner):
             self.pot_kwargs.update(imp_packing['pot_kwargs'])
         else:
             self.pot_kwargs = imp_packing['pot_kwargs'].copy()
+        self.opt_maxstep_factor = imp_packing['maxstep_factor']
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
 

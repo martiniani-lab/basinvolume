@@ -833,7 +833,8 @@ if __name__ == "__main__":
             shutil.move(packings_dir, unsorted_dir)
             os.environ['OMP_NUM_THREADS'] = str(args.threads)
             sorter = HS_Generate_Jammed_Packing(target_packing_frac=packing_config['packing_frac'],
-                                                tol=1e30, use_cell_lists=not args.nocell,
+                                                tol=1e30, maxstep_factor=packing_config['maxstep_factor'],
+                                                use_cell_lists=not args.nocell,
                                                 show=False, interaction=Interaction.HS_WCA,
                                                 minimizer=minimizer, packings_dir=unsorted_dir,
                                                 outdir=packings_dir, sort_atoms=True,
