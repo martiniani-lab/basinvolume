@@ -113,6 +113,10 @@ if __name__ == "__main__":
                         help="Final shear. Default: 1.0", default=1.)
     parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
                         "Default: False", default=False)
+    parser.add_argument("--no-balance-omp", action='store_true',
+                        help="Don't balance subdomains when using multi-threaded "
+                             "cell lists. Default: False",
+                        default=False)
     parser.add_argument("--npackings", type=int, help="Number of packings to produce. "
                         "Default: 1", default=1)
     parser.add_argument("-n", "--nparticles", type=int, help="Number of particles. "
@@ -156,12 +160,19 @@ if __name__ == "__main__":
     parser.add_argument("-pss", "--density_ss", type=float,
                         help="Target soft sphere packing fraction. "
                              "Default: 0.85", default=0.85)
-    parser.add_argument("--min-tol", type=float,
-                        help="RMS tolerance of the minimizer. Default: 1e-9",
-                        default=1e-9)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                         "used for quenching. Options: 'CG', 'FIRE'. Default: 'FIRE'",
                         default='FIRE')
+    parser.add_argument("--min-tol", type=float,
+                        help="RMS tolerance of the minimizer. Default: 1e-9",
+                        default=1e-9)
+    parser.add_argument("--maxstep", type=float,
+                        help="Factor by which the maximum step size of the "
+                             "minimizer is corrected.", default=1.0)
+    parser.add_argument("--wca-exp", type=int,
+                        help="Exponent of the WCA potential (if applicable). "
+                             "Options: 1, 2, 6. Default: 6 (Lennard-Jones-like)",
+                        default=6)
 
     args = parser.parse_args()
 
@@ -176,6 +187,8 @@ if __name__ == "__main__":
 
     # Generate packings at no shear
     pot_kwargs = {'shear': 0.0}
+    pot_kwargs['balance_omp'] = not args.no_balance_omp
+    pot_kwargs['exp'] = args.wca_exp
     if args.input_packings is not None:
         copy_dir(args.input_packings, "packings")
     elif args.input_jammed is None:
@@ -193,7 +206,8 @@ if __name__ == "__main__":
 
     # Generate jammed packings at no shear
     jammed_kwargs = dict(target_packing_frac=args.density_ss,
-                         tol=args.min_tol, use_cell_lists=not args.nocell,
+                         tol=args.min_tol, maxstep_factor=args.maxstep,
+                         use_cell_lists=not args.nocell,
                          show=False, interaction=Interaction.HS_WCA,
                          minimizer=minimizer)
     if args.input_jammed is not None:
