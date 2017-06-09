@@ -22,6 +22,7 @@ pt_workers=4
 pt_runners=16
 pt_sleep_seconds=0.0001
 pt_exchange=INDEPENDENCE_SAMPLING
+pt_relstderr=0.05
 
 cd ${PBS_O_WORKDIR}
 
@@ -37,7 +38,8 @@ $ndim $workdir $path_to_script $job_label $k_queue_type $k_walltime \
 $pt_queue_type $pt_walltime --cores-per-node $cores_per_node \
 --threads $threads --nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
 --pt-workers $pt_workers --pt-runners $pt_runners \
---pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange --sort --delraw
+--pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
+--relstderr $pt_relstderr --sort --delraw
 echo
 echo "Job finished. PBS details are:"
 echo
