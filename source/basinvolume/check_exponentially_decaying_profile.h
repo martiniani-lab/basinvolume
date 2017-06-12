@@ -2,6 +2,7 @@
 #define _BV_CHECK_EXPONENTIALLY_DECAYING_PROFILE_H_
 
 #include "mcpele/mc.h"
+#include <random>
 
 namespace bv {
 class CheckExponentiallyDecayingProfile : public mcpele::ConfTest {
