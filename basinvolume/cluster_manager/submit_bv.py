@@ -47,7 +47,8 @@ class SubmitBV(object):
                  nocell=False, delraw=False,
                  cores_per_node=16, pt_workers=4, pt_runners=16,
                  pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
-                 pt_sleep_seconds=0.0001, pt_collect_minima=False, nthreads=1):
+                 pt_sleep_seconds=0.0001, pt_collect_minima=False, nthreads=1,
+                 verbose=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -84,6 +85,7 @@ class SubmitBV(object):
         self.pt_sleep_seconds = pt_sleep_seconds
         self.pt_collect_minima = pt_collect_minima
         self.nthreads = nthreads
+        self.verbose = verbose
         if ndim == 2:
             if not self.experimental:
                 self.ext = '.xydr'
@@ -225,6 +227,8 @@ class SubmitBV(object):
             command += " --kstart {}".format(self.kmax_start)
         if self.nocell:
             command += " --nocell"
+        if self.verbose:
+            command += " --verbose"
         return command
 
     def _get_innersphere_dos_command(self, noj, path_to_script, script='bv_innersphere_dos.py'):
@@ -242,6 +246,8 @@ class SubmitBV(object):
         command += " --minimizer {}".format(self.minimizer.name)
         if self.nocell:
             command += " --nocell"
+        if self.verbose:
+            command += " --verbose"
         return command
 
     def submit_kmin_calculations(self, queue_type, walltime, path_to_script, force):
@@ -404,6 +410,8 @@ class SubmitBV(object):
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         if self.delraw > 0:
             command += " --delraw"
+        if self.verbose:
+            command += " --verbose"
         return command
 
     def submit_pt_calculations(self, queue_type, walltime, path_to_script, force):
@@ -710,6 +718,8 @@ if __name__ == "__main__":
                                     "improves performance, especially in combination "
                                     "with multithreading. Default: False",
                                default=False)
+    single_parser.add_argument("-v","--verbose", action='store_true',
+                               help="More verbose logging (debug level).", default=False)
 
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
     chain_parser.add_argument("workdir", type=str,
@@ -806,12 +816,18 @@ if __name__ == "__main__":
                                    "improves performance, especially in combination "
                                    "with multithreading. Default: False",
                               default=False)
+    chain_parser.add_argument("-v","--verbose", action='store_true',
+                              help="More verbose logging (debug level).", default=False)
 
     args = parser.parse_args()
 
+    if args.verbose:
+        loglevel = logging.DEBUG
+    else:
+        loglevel = logging.INFO
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                         datefmt='%d/%m/%Y %H:%M:%S',
-                        level=logging.INFO)
+                        level=loglevel)
     logging.info(args)
 
     if args.batch_system.upper() in BatchSystem.__members__:
@@ -866,7 +882,8 @@ if __name__ == "__main__":
                          pt_workers=args.pt_workers, pt_runners=args.pt_runners,
                          pt_exchange_scheme=pt_exchange_scheme,
                          pt_sleep_seconds=args.pt_sleep_seconds,
-                         pt_collect_minima=args.pt_collect_minima)
+                         pt_collect_minima=args.pt_collect_minima,
+                         verbose=args.verbose)
 
     if args.mode == 'chain':
         submit_bv.submit_chain_calculations(args.k_queue_type, args.k_walltime_hours,
