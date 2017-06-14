@@ -47,7 +47,7 @@ class SubmitBV(object):
                  nocell=False, delraw=False,
                  cores_per_node=16, pt_workers=4, pt_runners=16,
                  pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
-                 pt_sleep_seconds=0.0001, pt_nocollectminima=False, nthreads=1):
+                 pt_sleep_seconds=0.0001, pt_collect_minima=False, nthreads=1):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -82,7 +82,7 @@ class SubmitBV(object):
         self.pt_runners = pt_runners
         self.pt_exchange_scheme = pt_exchange_scheme
         self.pt_sleep_seconds = pt_sleep_seconds
-        self.pt_nocollectminima = pt_nocollectminima
+        self.pt_collect_minima = pt_collect_minima
         self.nthreads = nthreads
         if ndim == 2:
             if not self.experimental:
@@ -398,8 +398,8 @@ class SubmitBV(object):
         command += " --minimizer {}".format(self.minimizer.name)
         command += " --exchange-scheme {}".format(self.pt_exchange_scheme.name)
         command += " --sleep-seconds {}".format(self.pt_sleep_seconds)
-        if self.pt_nocollectminima:
-            command += " --nocollectminima"
+        if self.pt_collect_minima:
+            command += " --collect-minima"
         if self.numnegk > 0:
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         if self.delraw > 0:
@@ -702,8 +702,8 @@ if __name__ == "__main__":
                                     "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
                                     "Default: 'NEIGHBOR_EXCHANGE'",
                                default='NEIGHBOR_EXCHANGE')
-    single_parser.add_argument("--pt-nocollectminima", action='store_true',
-                               help="Don't collect a database of minima.",
+    single_parser.add_argument("--pt-collect-minima", action='store_true',
+                               help="Collect a database of minima.",
                                default=False)
     single_parser.add_argument("--sort", action='store_true',
                                help="Sort the atoms before running PT. This "
@@ -798,8 +798,8 @@ if __name__ == "__main__":
                                    "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
                                    "Default: 'NEIGHBOR_EXCHANGE'",
                               default='NEIGHBOR_EXCHANGE')
-    chain_parser.add_argument("--pt-nocollectminima", action='store_true',
-                              help="Don't collect a database of minima.",
+    chain_parser.add_argument("--pt-collect-minima", action='store_true',
+                              help="Collect a database of minima.",
                               default=False)
     chain_parser.add_argument("--sort", action='store_true',
                               help="Sort the atoms before running PT. This "
@@ -866,7 +866,7 @@ if __name__ == "__main__":
                          pt_workers=args.pt_workers, pt_runners=args.pt_runners,
                          pt_exchange_scheme=pt_exchange_scheme,
                          pt_sleep_seconds=args.pt_sleep_seconds,
-                         pt_nocollectminima=args.pt_nocollectminima)
+                         pt_collect_minima=args.pt_collect_minima)
 
     if args.mode == 'chain':
         submit_bv.submit_chain_calculations(args.k_queue_type, args.k_walltime_hours,
