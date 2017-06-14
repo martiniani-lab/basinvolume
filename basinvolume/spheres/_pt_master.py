@@ -419,12 +419,12 @@ class PT_Master(object):
                 self.eq_time = self.__find_new_eq_time()
         # only keep time series from after the equilibration point, this references original data
         new_max_ptiter = self.__find_new_max_ptiter()
-        logging.debug("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
+        logging.info("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
         return new_max_ptiter
 
     def __find_new_eq_time(self):
         iteration = self.mcrunner_niter * (self.ptiter+1)
-        logging.info("__find_new_eq_time, iteration: %i" % iteration)
+        logging.info("__find_new_eq_time, iteration: {}".format(iteration))
         new_eq_times = []
         for irunner in xrange(self.nrunners):
             eq_time = detectEquilibration_binary_search(
@@ -446,6 +446,8 @@ class PT_Master(object):
         M = sig^2*(1+2t)/(mu rel_std_err)^2
         it returns an estimate of the new maxptiter only once the timeseries is longer than min_window
         """
+        iteration = self.mcrunner_niter * (self.ptiter+1)
+        logging.info("__find_new_max_ptiter, iteration: {}".format(iteration))
         new_max_ptiters = []
         for irunner in xrange(self.nrunners):
             # to reduce nskip (use more points) make the factor by which len(timeseries) is divided by larger
