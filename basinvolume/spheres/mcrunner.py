@@ -225,6 +225,14 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                                   self.frozen_atoms, self.bdim)
             assert(len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1)
             logging.info("Number of minima: %i" % len(minima_dicts))
+            size_estimate = len(minima_dicts) * len(self.origin)
+            if size_estimate > 1e8:
+                logging.warning("The size of the minima dictionary is extremely "
+                                "long. This can cause the program to run out of "
+                                "memory and crash (indicated by MPI noticing that "
+                                "a process has exited on signal 9 (Killed)). You "
+                                "should probably deactivate minima collection "
+                                "(--nocollectminima).")
             db.engine.execute(Minimum.__table__.insert(), minima_dicts)
             db.session.commit()
         else:
