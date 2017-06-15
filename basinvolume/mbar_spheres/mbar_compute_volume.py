@@ -217,7 +217,7 @@ class mbar_compute_dos(object):
         self.sca = imp_packing['sca']
         configf = ConfigParser.ConfigParser()
         configf.read(str(self.pt_configpath))
-        self.adjustf_niter = configf.getfloat('MCRUNNER', 'adjustf_niter')
+        self.adjustf_niter = configf.getint('MCRUNNER', 'adjustf_niter')
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')

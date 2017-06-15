@@ -133,7 +133,7 @@ class _collect_u2_vs_k(object):
         self.displ_k_min = configf.getfloat('KMIN', 'displ_k_min')
         self.var_displ_k_min = configf.getfloat('KMIN', 'var_displ_k_min')
         configf.read(str(self.pt_configpath))
-        self.adjustf_niter = configf.getfloat('MCRUNNER', 'adjustf_niter')
+        self.adjustf_niter = configf.getint('MCRUNNER', 'adjustf_niter')
 
     def _import_ks(self):
         """
