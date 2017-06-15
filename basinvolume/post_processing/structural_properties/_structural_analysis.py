@@ -12,8 +12,7 @@ class StructuralAnalysis(object):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_', verbose=True, use_cell_lists=True,
-                 import_config_once=False):
+                 prefix='explore_bv_', verbose=True, use_cell_lists=True):
         if not os.path.isabs(workspace):
             workspace = os.path.abspath(workspace)
         self.workspace = workspace
@@ -30,25 +29,21 @@ class StructuralAnalysis(object):
         self.prefix = prefix
         self.verbose = verbose
         self.use_cell_lists = use_cell_lists
-        self.import_config_once = import_config_once
-        self.cancel_import_config = False
 
     def _import_packing_config_file(self, configpath):
-        if not self.cancel_import_config:
-            config = read_jammed_packing_config(configpath, self.frozen)
-            self.nparticles = config['nparticles']
-            self.packing_frac = config['packing_frac']
-            self.bdim = config['bdim']
-            self.boxv = config['boxv'].copy()
-            self.vcavity = config['vcavity']
-            self.distance_method = config['distance_method']
-            self.interaction = config['interaction']
-            if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
-                self.pot_kwargs.update(config['pot_kwargs'])
-            else:
-                self.pot_kwargs = config['pot_kwargs'].copy()
-            self.sca = config['sca']
-            self.cancel_import_config = self.import_config_once
+        config = read_jammed_packing_config(configpath, self.frozen)
+        self.nparticles = config['nparticles']
+        self.packing_frac = config['packing_frac']
+        self.bdim = config['bdim']
+        self.boxv = config['boxv'].copy()
+        self.vcavity = config['vcavity']
+        self.distance_method = config['distance_method']
+        self.interaction = config['interaction']
+        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
+            self.pot_kwargs.update(config['pot_kwargs'])
+        else:
+            self.pot_kwargs = config['pot_kwargs'].copy()
+        self.sca = config['sca']
 
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.jammed_packings_dir, fname)

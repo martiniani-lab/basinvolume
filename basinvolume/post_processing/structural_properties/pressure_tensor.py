@@ -17,12 +17,11 @@ class PressureTensor(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
                  prefix='explore_bv_', verbose=True,
-                 use_cell_lists=True, import_config_once=False):
+                 use_cell_lists=True):
         super(PressureTensor, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                              analysis_dir=analysis_dir, force=force,
                                              existing_only=existing_only, prefix=prefix,
-                                             verbose=verbose, use_cell_lists=use_cell_lists,
-                                             import_config_once=import_config_once)
+                                             verbose=verbose, use_cell_lists=use_cell_lists)
         self.analysis_name = 'pressure_data'
 
     @staticmethod
@@ -49,8 +48,7 @@ class PressureTensor(StructuralAnalysis):
                          .format(self.prefix + str(packing_name)))
         self.coords, self.hs_radii, self.ss_radii, _ \
             = self._import_packing_configuration(input_fname)
-        if not hasattr(self, 'potential') or not self.import_config_once:
-            self.init_pressure_potential()
+        self.init_pressure_potential()
         # refine structure (does not make a difference if tol was small enough to start with)
         # if self.packing_frac < 0.835:
         #     fire_maxstep = np.amin(self.hs_radii) * self.sca

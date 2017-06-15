@@ -14,13 +14,11 @@ class InversionSymmetry(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
-                 prefix='explore_bv_', verbose=True, use_cell_lists=True,
-                 import_config_once=False):
+                 prefix='explore_bv_', verbose=True, use_cell_lists=True):
         super(InversionSymmetry, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                                 analysis_dir=analysis_dir, force=force,
                                                 existing_only=existing_only, prefix=prefix,
-                                                verbose=verbose, use_cell_lists=use_cell_lists,
-                                                import_config_once=import_config_once)
+                                                verbose=verbose, use_cell_lists=use_cell_lists)
         self.analysis_name = 'inversion_symmetry'
 
     # Returns the affine force of a pair of particles
@@ -116,8 +114,7 @@ class InversionSymmetry(StructuralAnalysis):
             = self._import_packing_configuration(input_fname)
 
         # Create potential
-        if not hasattr(self, 'potential') or not self.import_config_once:
-            self._initialise_potential()
+        self._initialise_potential()
 
         # Compute distances to neighbors
         neighbor_lists, neighbor_distancess \

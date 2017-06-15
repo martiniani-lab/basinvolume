@@ -16,12 +16,11 @@ class BondOrientationalOrder(StructuralAnalysis):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
                  solid_angle_weighted=False, prefix='explore_bv_', verbose=True,
-                 use_cell_lists=True, import_config_once=False, deg=6, pinit=True):
+                 use_cell_lists=True, deg=6, pinit=True):
         super(BondOrientationalOrder, self).__init__(
             workspace, jammed_packings_dir=jammed_packings_dir,
             analysis_dir=analysis_dir, force=force, existing_only=existing_only,
-            prefix=prefix, verbose=verbose, use_cell_lists=use_cell_lists,
-            import_config_once=import_config_once)
+            prefix=prefix, verbose=verbose, use_cell_lists=use_cell_lists)
         self.solid_angle_weighted = solid_angle_weighted
         if self.verbose:
             logging.debug("self.solid_angle_weighted: {}"
@@ -58,8 +57,7 @@ class BondOrientationalOrder(StructuralAnalysis):
             self._import_packing_configuration(input_fname)
 
         # Create potential
-        if not hasattr(self, 'potential') or not self.import_config_once:
-            self._initialise_potential()
+        self._initialise_potential()
 
         boo_list, z_list = self.bond_orientation_order_all(
             self.coords, ss_radii, stable_atoms, ndim=self.bdim, deg=self.deg)

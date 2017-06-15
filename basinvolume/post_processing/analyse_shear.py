@@ -131,8 +131,7 @@ class AnalyseShear:
                       jammed_packings_dir=os.path.join(input_relpath,
                                                        'jammed_packings'),
                       prefix=os.path.join(input_relpath, "explore_bv_"),
-                      use_cell_lists=self.use_cell_lists,
-                      import_config_once=True)
+                      use_cell_lists=self.use_cell_lists)
         structural_props = []
 
         # Bond orientational order

@@ -17,12 +17,11 @@ class Neighbors(StructuralAnalysis):
                  analysis_dir='analysis', analysis_name='neighbors', force=False,
                  existing_only=True, prefix='explore_bv_', verbose=True,
                  restrict_neighbors=None, cutoff=1., use_cell_lists=True,
-                 import_config_once=False, write_analysis=True):
+                 write_analysis=True):
         super(Neighbors, self).__init__(workspace, jammed_packings_dir=jammed_packings_dir,
                                         analysis_dir=analysis_dir, force=force,
                                         existing_only=existing_only, prefix=prefix,
-                                        verbose=verbose, use_cell_lists=use_cell_lists,
-                                        import_config_once=import_config_once)
+                                        verbose=verbose, use_cell_lists=use_cell_lists)
         self.cutoff = cutoff
         self.restrict_neighbors = restrict_neighbors
         self.analysis_name = analysis_name
@@ -56,8 +55,7 @@ class Neighbors(StructuralAnalysis):
                 self._import_packing_configuration(input_fname)
 
             # Create potential
-            if not hasattr(self, 'potential') or not self.import_config_once:
-                self._initialise_potential()
+            self._initialise_potential()
 
             # Compute neighbors
             neighbor_lists, _ = self.potential.getNeighbors(
