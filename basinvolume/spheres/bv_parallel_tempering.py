@@ -33,7 +33,8 @@ if __name__ == "__main__":
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                         "Default: 'FIRE'", default='FIRE')
-    parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
+    parser.add_argument("-v","--verbose", action='store_true',
+                        help="More verbose logging (debug level).", default=False)
     parser.add_argument("--collect-minima", action='store_true',
                         help="Collect a database of minima.", default=False)
     parser.add_argument("-p","--packings-dir", type=str,

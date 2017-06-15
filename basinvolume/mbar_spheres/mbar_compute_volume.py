@@ -679,7 +679,7 @@ if __name__ == "__main__":
 
     if (fname != None):
         if not os.path.isabs(fdir):
-            fdir = os.path.join(wdir,fdir + fname)
+            fdir = os.path.join(wdir, fdir + fname)
         sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show)
     else :
         for dirpath, dirs, files in os.walk(wdir):

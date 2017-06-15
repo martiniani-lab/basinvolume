@@ -901,14 +901,16 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
     return timeseries
 
 def del_pt_time_series_raw(explore_dir):
+    del_dirs = ""
     for subdir, dirs, files in os.walk(explore_dir):
         for dir in dirs:
             if dir.isdigit():
-                logging.info("del replica raw replica timeseries %s" % dir)
+                del_dirs += dir + ", "
                 path = os.path.join(explore_dir, dir)
                 filelist = glob.glob(os.path.join(path, "TimeSeries.*"))
                 for f in filelist:
                     os.remove(f)
+    logging.info("Delete raw timeseries: {}".format(del_dirs[:-2]))
 
 def get_uniform_in_sphere(radius, dim):
     x = np.random.normal(0, 1, dim)
