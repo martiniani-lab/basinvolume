@@ -11,6 +11,7 @@ from pymbar.timeseries import detectEquilibration_binary_search
 from basinvolume.utils import trymakedir, integratedAutocorrelationTime_fft
 from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.monte_carlo import IndependenceSampling
+from basinvolume.spheres import BV_MCRunner_State
 
 
 @unique
@@ -19,57 +20,46 @@ class ExchangeScheme(Enum):
     INDEPENDENCE_SAMPLING = 2
 
 
-class RunnerConfig(object):
+class RunnerState(BV_MCRunner_State):
     """
     This class saves the configuration of a parallel tempering runner in a NumPy array
     """
-    def __init__(self, id, k, energy, coords):
-        self.data = np.empty(4 + len(coords), dtype='d')
+    def __init__(self, id, mcrunner_state):
+        super(RunnerState, self).__init__(state=mcrunner_state)
         self.id = id
-        self.k = k
-        self.energy = energy
         self.dx = 0
-        self.coords = coords
 
-    @property
-    def id(self):
-        return int(self.data[0])
+    def set_mc_state(self, mcrunner_state):
+        self._set_state(mcrunner_state)
 
-    @id.setter
-    def id(self, value):
-        self.data[0] = value
+    def serialize(self):
+        data = np.empty(self.size(), dtype='d')
+        data[0] = self.id
+        data[1] = self.dx
+        data[2] = self.energy
+        data[3] = self.k
+        data[4] = self.stepsize
+        data[5] = self.takestep_count
+        data[6 : 6+len(self.coords)] = self.coords
+        data[6+len(self.coords) : 6+len(self.coords)+len(self.counters)] = self.counters
+        data[6+len(self.coords)+len(self.counters) : ] = self.step_adaptation_counters
+        return data
 
-    @property
-    def k(self):
-        return self.data[1]
+    def deserialize(self, value):
+        self.id = int(value[0])
+        self.dx = value[1]
+        self.energy = value[2]
+        self.k = value[3]
+        self.stepsize = value[4]
+        self.takestep_count = int(value[5])
+        self.coords = value[6 : 6+len(self.coords)]
+        self.counters = np.array(value[6+len(self.coords) : 6+len(self.coords)+len(self.counters)],
+                                 dtype='uintp')
+        self.step_adaptation_counters = np.array(value[6+len(self.coords)+len(self.counters) : ],
+                                                 dtype='uintp')
 
-    @k.setter
-    def k(self, value):
-        self.data[1] = value
-
-    @property
-    def energy(self):
-        return self.data[2]
-
-    @energy.setter
-    def energy(self, value):
-        self.data[2] = value
-
-    @property
-    def dx(self):
-        return self.data[3]
-
-    @dx.setter
-    def dx(self, value):
-        self.data[3] = value
-
-    @property
-    def coords(self):
-        return self.data[4:]
-
-    @coords.setter
-    def coords(self, value):
-        self.data[4:] = value
+    def size(self):
+        return 6 + len(self.coords) + len(self.counters) + len(self.step_adaptation_counters)
 
 
 class PT_Master(object):
@@ -132,7 +122,7 @@ class PT_Master(object):
         self.__init_runners(example_mcrunner)
         self.__init_timeseries()
         self.__init_print()
-        self.recv_buffer = np.empty(self.runner_configs[0].data.size + self.mcrunner_niter, dtype='d')
+        self.recv_buffer = np.empty(self.runner_states[0].size() + self.mcrunner_niter, dtype='d')
         i32max = np.iinfo(np.int32).max
         self.seed_exchanges = random.randint(0, i32max)
         logging.info("seed_exchanges: %i" % self.seed_exchanges)
@@ -159,10 +149,11 @@ class PT_Master(object):
 
     def __init_runners(self, example_mcrunner):
         ks = self.__get_ks()
-        origin_coords, origin_energy = example_mcrunner.get_config()
-        self.runner_configs = []
+        start_state = example_mcrunner.get_state()
+        self.runner_states = []
         for i in xrange(self.nrunners):
-            self.runner_configs.append(RunnerConfig(i, ks[i], origin_energy, origin_coords))
+            self.runner_states.append(RunnerState(i, start_state))
+            self.runner_states[-1].k = ks[i]
 
     def __init_timeseries(self):
         self.runner_timeseries = [[] for _ in xrange(self.nrunners)]
@@ -236,7 +227,7 @@ class PT_Master(object):
 
         # Send the first job to every worker
         for i in xrange(self.nworkers):
-            self.comm.Send(self.runner_configs[current_runner].data, dest=i+1)
+            self.comm.Send(self.runner_states[current_runner].serialize(), dest=i+1)
             current_runner -= 1
 
         # Send the remaining jobs to finished workers
@@ -245,7 +236,7 @@ class PT_Master(object):
                 while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
                     time.sleep(self.sleep_seconds)
             finished_worker = self.__receive_result()
-            self.comm.Send(self.runner_configs[current_runner].data, dest=finished_worker)
+            self.comm.Send(self.runner_states[current_runner].serialize(), dest=finished_worker)
             current_runner -= 1
 
         # Wait for all workers to finish
@@ -270,9 +261,9 @@ class PT_Master(object):
         self.comm.Recv(self.recv_buffer, source=MPI.ANY_SOURCE, status=status)
         src = status.Get_source()
         runner_id = int(self.recv_buffer[0])
-        config_length = self.runner_configs[0].data.size
-        self.runner_configs[runner_id].data = self.recv_buffer[:config_length].copy()
-        recv_timeseries = self.recv_buffer[config_length:]
+        state_size = self.runner_states[0].size()
+        self.runner_states[runner_id].deserialize(self.recv_buffer[:state_size].copy())
+        recv_timeseries = self.recv_buffer[state_size:]
         self.runner_timeseries[runner_id].extend(recv_timeseries)
         recv_timeseries2 = np.power(recv_timeseries, 2)
         self.runner_timeseries2[runner_id].extend(recv_timeseries2)
@@ -284,26 +275,26 @@ class PT_Master(object):
         """
         # dx_string = "dx: "
         # for i in xrange(self.nrunners):
-        #     dx_string += str(self.runner_configs[i].dx) + ", "
+        #     dx_string += str(self.runner_states[i].dx) + ", "
         # logging.debug(dx_string)
 
         # find exchange pattern (list of exchange buddies)
         exchange_pattern = self.__find_exchange_buddies()
 
         # swap runner configurations (everything except id & k)
-        old_configs = [runner for runner in self.runner_configs]
-        old_ks = [runner.k for runner in self.runner_configs]
+        old_configs = [runner for runner in self.runner_states]
+        old_ks = [runner.k for runner in self.runner_states]
         for iconfig, ibuddy in enumerate(exchange_pattern):
             if ibuddy != self.NO_EXCHANGE:
                 # Swap configurations
-                self.runner_configs[iconfig] = old_configs[ibuddy]
+                self.runner_states[iconfig] = old_configs[ibuddy]
 
                 # Restore id and k
-                self.runner_configs[iconfig].id = iconfig
-                self.runner_configs[iconfig].k = old_ks[iconfig]
+                self.runner_states[iconfig].id = iconfig
+                self.runner_states[iconfig].k = old_ks[iconfig]
 
                 # Set energy to NaN, since it needs to be recalculated
-                self.runner_configs[iconfig].energy = np.nan
+                self.runner_states[iconfig].energy = np.nan
 
     def __find_exchange_buddies(self):
         """
@@ -337,8 +328,8 @@ class PT_Master(object):
         return exchange_pattern
 
     def __independence_sampling(self, exchange_pattern):
-        dxs = np.array([runner.dx for runner in self.runner_configs])
-        betas = np.array([runner.k for runner in self.runner_configs])
+        dxs = np.array([runner.dx for runner in self.runner_states])
+        betas = np.array([runner.k for runner in self.runner_states])
 
         # According to Chodera & Shirts 2011 nrunners**3 to nrunners**5 exchanges
         # should be sufficient
@@ -357,15 +348,15 @@ class PT_Master(object):
                     "{}: Accepting exchange {:>2} -> {:<2}: "
                     "{:.4g} -> {:.4g}, {:.4g} -> {:.4g}\n".format(
                         self.ptiter, i, j,
-                        self.runner_configs[i].dx, self.runner_configs[j].dx,
-                        self.runner_configs[i].k, self.runner_configs[j].k))
+                        self.runner_states[i].dx, self.runner_states[j].dx,
+                        self.runner_states[i].k, self.runner_states[j].k))
 
     def __neighbor_exchange(self, exchange_pattern):
         for i in xrange(self.exchange_choice, self.nrunners-1, 2):
-            dx1 = self.runner_configs[i].dx
-            k1 = self.runner_configs[i].k
-            dx2 = self.runner_configs[i + 1].dx
-            k2 = self.runner_configs[i + 1].k
+            dx1 = self.runner_states[i].dx
+            k1 = self.runner_states[i].k
+            dx2 = self.runner_states[i + 1].dx
+            k2 = self.runner_states[i + 1].k
 
             # Hamiltonian replica exchange
             deltaE = 0.5*dx2*dx2 - 0.5*dx1*dx1
@@ -540,14 +531,14 @@ class PT_Master(object):
         fname = os.path.join(self.base_directory, 'temperatures')
         with open(fname, 'w') as kfile:
             for irunner in xrange(self.nrunners):
-                kfile.write('{:1.16f}\n'.format(self.runner_configs[irunner].k))
+                kfile.write('{:1.16f}\n'.format(self.runner_states[irunner].k))
 
     def __print_parameters(self, irunner):
         directory = os.path.join(self.base_directory, str(irunner))
         fname = os.path.join(directory, 'parameters')
         with open(fname, 'w') as paramfile:
             paramfile.write('node:\t{0}\n'.format(irunner))
-            paramfile.write('temperature:\t{0}\n'.format(self.runner_configs[irunner].k))
+            paramfile.write('temperature:\t{0}\n'.format(self.runner_states[irunner].k))
             paramfile.write('PT iterations:\t{0}\n'.format(self.max_ptiter))
             paramfile.write('total MC iterations:\t{0}\n'.format(self.mcrunner_niter))
 

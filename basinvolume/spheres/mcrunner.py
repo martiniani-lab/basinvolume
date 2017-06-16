@@ -79,6 +79,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 
 # add potential extra keyword arguments, like **potkwargs
 
+
 class SpheresMCRunner(BaseSpheresMCrunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
@@ -237,6 +238,35 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             db.session.commit()
         else:
             warnings.warn('dump_minima_list is not implemented for potentials other than hs_wca')
+
+
+class BV_MCRunner_State(object):
+    """
+    This class saves the state of an BV_MCrunner in a NumPy array
+    """
+    def __init__(self, state=None, coords=None, energy=0., k=0.,
+                 stepsize=0., counters=None, takestep_count=0,
+                 step_adaptation_counters=None):
+        if state is None:
+            self.coords = coords
+            self.energy = energy
+            self.k = k
+            self.stepsize = stepsize
+            self.counters = counters
+            self.takestep_count = takestep_count
+            self.step_adaptation_counters = step_adaptation_counters
+        else:
+            self._set_state(state)
+
+    def _set_state(self, state):
+        self.coords = state.coords
+        self.energy = state.energy
+        self.k = state.k
+        self.stepsize = state.stepsize
+        self.counters = state.counters
+        self.takestep_count = state.takestep_count
+        self.step_adaptation_counters = state.step_adaptation_counters
+
 
 class BV_MCrunner(SpheresMCRunner):
     """
@@ -499,6 +529,22 @@ class BV_MCrunner(SpheresMCRunner):
 
     def clear_trajectory(self):
         self.record_trajectory.clear()
+
+    def get_state(self):
+        return BV_MCRunner_State(
+            coords=self.get_coords(), energy=self.get_energy(), k=self.k,
+            stepsize=self.takestep.get_stepsize(), counters=self.get_counters(),
+            takestep_count=self.takestep.get_count(),
+            step_adaptation_counters=self.takestep.get_adaptation_counters())
+
+    def set_state(self, mcrunner_state):
+        self.set_config(mcrunner_state.coords, mcrunner_state.energy)
+        self.set_control(mcrunner_state.k, reset=False)
+        self.set_counters(mcrunner_state.counters)
+        self.takestep.set_stepsize(mcrunner_state.stepsize)
+        self.takestep.set_count(mcrunner_state.takestep_count)
+        self.takestep.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
+
 
 class Findk_MCrunner(SpheresMCRunner):
     """Findk MCrunner

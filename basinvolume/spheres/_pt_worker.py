@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from mpi4py import MPI
 from basinvolume.utils import get_dist_com
-from basinvolume.spheres import RunnerConfig
+from basinvolume.spheres import RunnerState
 
 class PT_Worker(object):
 
@@ -13,30 +13,30 @@ class PT_Worker(object):
         self.fix_com = fix_com
 
     def run(self):
-        config = RunnerConfig(0, 0, 0, self.mcrunner.red_origin)
-        self.comm.Recv(config.data, source=0)
-        while config.id >= 0:
+        state = RunnerState(0, self.mcrunner.get_state())
+        data_buffer = np.empty(state.size())
+        self.comm.Recv(data_buffer, source=0)
+        state.deserialize(data_buffer)
+        while state.id >= 0:
             # Sending an id (first element of the data array) of -1 is the signal to stop working
-            timeseries = self.__one_iteration(config)
-            self.comm.Send(np.append(config.data, timeseries), dest=0)
-            self.comm.Recv(config.data, source=0)
+            timeseries = self.__one_iteration(state)
+            self.comm.Send(np.append(state.serialize(), timeseries), dest=0)
+            self.comm.Recv(data_buffer, source=0)
+            state.deserialize(data_buffer)
         logging.info("Worker finished")
 
-    def __one_iteration(self, config):
-        self.mcrunner.set_control(config.k, reset=False)
-        if np.isnan(config.energy):
-            # Setting config.energy to NaN is the signal for necessary energy recalculation
-            config.energy = self.mcrunner.potential.getEnergy(config.coords)
-        self.mcrunner.set_config(config.coords, config.energy)
+    def __one_iteration(self, state):
+        if np.isnan(state.energy):
+            # Setting state.energy to NaN is the signal for necessary energy recalculation
+            state.energy = self.mcrunner.potential.getEnergy(state.coords)
+        self.mcrunner.set_state(state)
         self.mcrunner.run()
 
         #collect the results
-        result = self.mcrunner.get_results()
-        config.energy = result.energy
-        config.coords = result.coords
+        state.set_mc_state(self.mcrunner.get_state())
         if self.fix_com:
-            config.dx = get_dist_com(config.coords, self.mcrunner.red_origin,
+            state.dx = get_dist_com(state.coords, self.mcrunner.red_origin,
                                        self.mcrunner.bdim)
         else:
-            config.dx = np.linalg.norm(config.coords - self.mcrunner.red_origin)
+            state.dx = np.linalg.norm(state.coords - self.mcrunner.red_origin)
         return self.mcrunner.get_timeseries(clear=True)
