@@ -22,7 +22,7 @@ class ExchangeScheme(Enum):
 
 class RunnerState(BV_MCRunner_State):
     """
-    This class saves the configuration of a parallel tempering runner in a NumPy array
+    This class represents the state of a parallel tempering runner
     """
     def __init__(self, id, mcrunner_state):
         super(RunnerState, self).__init__(state=mcrunner_state)
@@ -271,7 +271,7 @@ class PT_Master(object):
 
     def __exchange_coords(self):
         """
-        Exchange the configurations according to __find_exchange_buddies
+        Exchange the runner states according to __find_exchange_buddies
         """
         # dx_string = "dx: "
         # for i in xrange(self.nrunners):
@@ -281,20 +281,17 @@ class PT_Master(object):
         # find exchange pattern (list of exchange buddies)
         exchange_pattern = self.__find_exchange_buddies()
 
-        # swap runner configurations (everything except id & k)
-        old_configs = [runner for runner in self.runner_states]
-        old_ks = [runner.k for runner in self.runner_states]
-        for iconfig, ibuddy in enumerate(exchange_pattern):
+        # swap runner coordinates and dx
+        old_coords = [runner.coords for runner in self.runner_states]
+        old_dxs = [runner.dx for runner in self.runner_states]
+        for istate, ibuddy in enumerate(exchange_pattern):
             if ibuddy != self.NO_EXCHANGE:
-                # Swap configurations
-                self.runner_states[iconfig] = old_configs[ibuddy]
-
-                # Restore id and k
-                self.runner_states[iconfig].id = iconfig
-                self.runner_states[iconfig].k = old_ks[iconfig]
+                # Swap coordinates and dx
+                self.runner_states[istate].coords = old_coords[ibuddy]
+                self.runner_states[istate].dx = old_dxs[ibuddy]
 
                 # Set energy to NaN, since it needs to be recalculated
-                self.runner_states[iconfig].energy = np.nan
+                self.runner_states[istate].energy = np.nan
 
     def __find_exchange_buddies(self):
         """
