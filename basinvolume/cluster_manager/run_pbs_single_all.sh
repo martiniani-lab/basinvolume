@@ -21,6 +21,7 @@ pt_runners=16
 pt_sleep_seconds=0.0001
 pt_exchange=INDEPENDENCE_SAMPLING
 pt_relstderr=0.05
+pt_checkpoint_time=690
 #options are --kmin and --kmax or --pt
 option="--pt"
 
@@ -39,7 +40,7 @@ $walltime $option --cores-per-node $cores_per_node \
 --threads $threads --nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
 --pt-workers $pt_workers --pt-runners $pt_runners \
 --pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
---relstderr $pt_relstderr --sort --delraw
+--relstderr $pt_relstderr --pt-checkpoint-time $pt_checkpoint_time --sort --delraw
 echo
 echo "Job finished. PBS details are:"
 echo

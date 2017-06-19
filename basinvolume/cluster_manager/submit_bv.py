@@ -47,8 +47,8 @@ class SubmitBV(object):
                  nocell=False, delraw=False,
                  cores_per_node=16, pt_workers=4, pt_runners=16,
                  pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
-                 pt_sleep_seconds=0.0001, pt_collect_minima=False, nthreads=1,
-                 verbose=False):
+                 pt_sleep_seconds=0.0001, pt_collect_minima=False,
+                 pt_checkpoint_time=None, nthreads=1, verbose=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -84,6 +84,8 @@ class SubmitBV(object):
         self.pt_exchange_scheme = pt_exchange_scheme
         self.pt_sleep_seconds = pt_sleep_seconds
         self.pt_collect_minima = pt_collect_minima
+        self.pt_checkpoint_time = pt_checkpoint_time
+        self.checkpoint_file = 'checkpoint.dmp'
         self.nthreads = nthreads
         self.verbose = verbose
         if ndim == 2:
@@ -385,7 +387,8 @@ class SubmitBV(object):
                             else:
                                 pass
 
-    def _get_pt_command(self, noj, path_to_script, script='bv_parallel_tempering.py'):
+    def _get_pt_command(self, noj, path_to_script, script='bv_parallel_tempering.py',
+                        load_checkpoint=False):
         """
         this function returns the correct command line for the parallel tempering calculation
         """
@@ -408,6 +411,10 @@ class SubmitBV(object):
             command += " --collect-minima"
         if self.numnegk > 0:
             command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
+        if self.pt_checkpoint_time is not None:
+            command += " --checkpoint-time {}".format(self.pt_checkpoint_time)
+        if load_checkpoint:
+            command += " --load-checkpoint {}".format(self.checkpoint_file)
         if self.delraw > 0:
             command += " --delraw"
         if self.verbose:
@@ -450,16 +457,37 @@ class SubmitBV(object):
                                         mpi_oversubscribe = 0
                                     else:
                                         mpi_oversubscribe = 1
+                                    pt_fname = 'bv_pt' + noj + '.sh'
+                                    pt_load_fname = 'bv_pt_load' + noj + '.sh'
                                     command = self._get_pt_command(noj, path_to_script)
-                                    batch_script = BatchScript(
+                                    if self.pt_checkpoint_time is not None:
+                                        command += (' && if [ -f ${{{0}}}/{1}/{4} ]; '
+                                                       'then {2} ${{{0}}}/{3}; fi'.format(
+                                            self.workdir_var, explore_dir, self.submit_cmd,
+                                            pt_load_fname, self.checkpoint_file))
+                                        load_command = self._get_pt_command(noj, path_to_script,
+                                                                            load_checkpoint=True)
+                                        load_command += (' && if [ -f ${{{0}}}/{1}/{4} ]; '
+                                                         'then {2} ${{{0}}}/{3}; fi'.format(
+                                            self.workdir_var, explore_dir, self.submit_cmd,
+                                            pt_load_fname, self.checkpoint_file))
+                                    pt_script = BatchScript(
                                         self.batch_system, queue_type, walltime, command,
                                         mpi_procs=mpi_procs,
                                         mpi_oversubscribe=mpi_oversubscribe,
                                         omp_threads=self.nthreads,
                                         cores_per_node=self.cores_per_node,
                                         outdir=path, nodays=self.nodays)
-                                    batch_script.submit('bv_pt' + noj + '.sh',
-                                                        'bv_' + self.label + '_pt' + noj)
+                                    if self.pt_checkpoint_time is not None:
+                                        pt_load_script = BatchScript(
+                                            self.batch_system, queue_type, walltime, load_command,
+                                            mpi_procs=mpi_procs,
+                                            mpi_oversubscribe=mpi_oversubscribe,
+                                            omp_threads=self.nthreads,
+                                            cores_per_node=self.cores_per_node,
+                                            outdir=path, nodays=self.nodays)
+                                        pt_load_script.write(pt_load_fname, 'bv_' + self.label + '_pt' + noj)
+                                    pt_script.submit(pt_fname, 'bv_' + self.label + '_pt' + noj)
                             else:
                                 pass
 
@@ -504,24 +532,25 @@ class SubmitBV(object):
                         # kmax_fname = 'bv_kmax'+noj+'.sh' #unused
                         kmin_fname = 'bv_kmin' + noj + '.sh'
                         pt_fname = 'bv_pt' + noj + '.sh'
+                        pt_load_fname = 'bv_pt_load' + noj + '.sh'
                         innersphere_dos_fname = 'bv_innersphere_dos' + noj + '.sh'
                         innersphere_dos_command = self._get_innersphere_dos_command(
                             noj, path_to_script, script='bv_innersphere_dos.py')
-                        batch_script = BatchScript(
+                        innersphere_script = BatchScript(
                             self.batch_system, k_queue_type, k_walltime,
                             innersphere_dos_command, mpi_procs=1, mpi_oversubscribe=0,
                             omp_threads=self.nthreads, cores_per_node=self.cores_per_node,
                             outdir=path, nodays=self.nodays)
                         if self._check_pt_config_file_ready(pt_path):
-                            batch_script.submit('bv_innersphere_dos' + noj + '.sh',
-                                                'bv_' + self.label + '_innersphere_dos' + noj)
+                            innersphere_script.submit('bv_innersphere_dos' + noj + '.sh',
+                                                      'bv_' + self.label + '_innersphere_dos' + noj)
                         else:
-                            batch_script.write(innersphere_dos_fname,
-                                               'bv_' + self.label + '_innersphere_dos' + noj)
+                            innersphere_script.write(innersphere_dos_fname,
+                                                     'bv_' + self.label + '_innersphere_dos' + noj)
                             #########remove old pt data#######
                             self._remove_pt_old_data(explore_dir, self.pt_config + noj,
-                                                     output_signature="bv_{}_pt{}.o*".format(self.label,
-                                                                                             noj))
+                                                     output_signature="bv_{}_pt{}.o*"
+                                                                      .format(self.label, noj))
                             ##################################
                             kmax_ready = self._check_kmax_config_file_ready(kmax_path)
                             kmin_ready = self._check_kmin_config_file_ready(kmin_path)
@@ -532,24 +561,51 @@ class SubmitBV(object):
                             else:
                                 pt_mpi_oversubscribe = 1
                             pt_command = self._get_pt_command(noj, path_to_script)
-                            pt_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
-                                                                     self.workdir_var,
-                                                                     innersphere_dos_fname)
-                            batch_script = BatchScript(
+                            if self.pt_checkpoint_time is None:
+                                pt_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
+                                                                         self.workdir_var,
+                                                                         innersphere_dos_fname)
+                            else:
+                                pt_command += (' && if [ -f ${{{0}}}/{1}/{5} ]; '
+                                               'then {2} ${{{0}}}/{3}; '
+                                               'else {2} ${{{0}}}/{4}; fi'.format(
+                                    self.workdir_var, explore_dir, self.submit_cmd,
+                                    pt_load_fname, innersphere_dos_fname,
+                                    self.checkpoint_file))
+                                pt_load_command = self._get_pt_command(noj, path_to_script,
+                                                                       load_checkpoint=True)
+                                pt_load_command += (' && if [ -f ${{{0}}}/{1}/{5} ]; '
+                                                    'then {2} ${{{0}}}/{3}; '
+                                                    'else {2} ${{{0}}}/{4}; fi'.format(
+                                    self.workdir_var, explore_dir, self.submit_cmd,
+                                    pt_load_fname, innersphere_dos_fname,
+                                    self.checkpoint_file))
+                            pt_script = BatchScript(
                                 self.batch_system, pt_queue_type, pt_walltime, pt_command,
                                 mpi_procs=pt_mpi_procs,
                                 mpi_oversubscribe=pt_mpi_oversubscribe,
                                 omp_threads=self.nthreads,
                                 cores_per_node=self.cores_per_node,
                                 outdir=path, nodays=self.nodays)
+                            if self.pt_checkpoint_time is not None:
+                                pt_load_script = BatchScript(
+                                    self.batch_system, pt_queue_type, pt_walltime, pt_load_command,
+                                    mpi_procs=pt_mpi_procs,
+                                    mpi_oversubscribe=pt_mpi_oversubscribe,
+                                    omp_threads=self.nthreads,
+                                    cores_per_node=self.cores_per_node,
+                                    outdir=path, nodays=self.nodays)
                             # if kmax is either not terminated or is reasonable then continue
                             if check_kmax_reasonable(kmax_path):
                                 # if kmin and kmax terminated
+                                if self.pt_checkpoint_time is not None:
+                                    pt_load_script.write(pt_load_fname,
+                                                         'bv_' + self.label + '_pt' + noj)
                                 if kmax_ready and kmin_ready:
-                                    batch_script.submit('bv_pt' + noj + '.sh',
-                                                        'bv_' + self.label + '_pt' + noj)
+                                    pt_script.submit(pt_fname,
+                                                     'bv_' + self.label + '_pt' + noj)
                                 else:
-                                    batch_script.write(pt_fname, 'bv_' + self.label + '_pt' + noj)
+                                    pt_script.write(pt_fname, 'bv_' + self.label + '_pt' + noj)
                                     if not kmin_ready:
                                         #########remove old BV output#######
                                         self._remove_bv_output(explore_dir,
@@ -561,7 +617,7 @@ class SubmitBV(object):
                                         kmin_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
                                                                                    self.workdir_var,
                                                                                    pt_fname)
-                                        batch_script = BatchScript(
+                                        kmin_script = BatchScript(
                                             self.batch_system, k_queue_type, k_walltime,
                                             kmin_command, mpi_procs=1,
                                             mpi_oversubscribe=0,
@@ -569,44 +625,45 @@ class SubmitBV(object):
                                             cores_per_node=self.cores_per_node,
                                             outdir=path, nodays=self.nodays)
                                         if kmax_ready:
-                                            batch_script.submit('bv_kmin' + noj + '.sh',
-                                                                'bv_' + self.label + '_kmin' + noj)
+                                            kmin_script.submit('bv_kmin' + noj + '.sh',
+                                                               'bv_' + self.label + '_kmin' + noj)
                                         else:
                                             #########remove old BV output#######
                                             self._remove_bv_output(
                                                 explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
                                             #####################################
-                                            batch_script.write(kmin_fname,
-                                                               'bv_' + self.label + '_kmin' + noj)
+                                            kmin_script.write(kmin_fname,
+                                                              'bv_' + self.label + '_kmin' + noj)
                                             kmax_command = self._get_findk_command(
                                                 noj, path_to_script, script='bv_find_kmax.py')
-                                            kmax_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
-                                                                                       self.workdir_var,
-                                                                                       kmin_fname)
-                                            batch_script = BatchScript(
+                                            kmax_command += (' && {} ${{{}}}/{}'
+                                                             .format(self.submit_cmd,
+                                                                     self.workdir_var,
+                                                                     kmin_fname))
+                                            kmax_script = BatchScript(
                                                 self.batch_system, k_queue_type, k_walltime,
                                                 kmax_command, mpi_procs=1,
                                                 mpi_oversubscribe=0,
                                                 omp_threads=self.nthreads,
                                                 cores_per_node=self.cores_per_node,
                                                 outdir=path, nodays=self.nodays)
-                                            batch_script.submit('bv_kmax' + noj + '.sh',
-                                                                'bv_' + self.label + '_kmax' + noj)
+                                            kmax_script.submit('bv_kmax' + noj + '.sh',
+                                                               'bv_' + self.label + '_kmax' + noj)
                                     else:
                                         kmax_command = self._get_findk_command(
                                             noj, path_to_script, script='bv_find_kmax.py')
                                         kmax_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
                                                                                    self.workdir_var,
                                                                                    pt_fname)
-                                        batch_script = BatchScript(
+                                        kmax_script = BatchScript(
                                             self.batch_system, k_queue_type, k_walltime,
                                             kmax_command, mpi_procs=1,
                                             mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
                                             cores_per_node=self.cores_per_node,
                                             outdir=path, nodays=self.nodays)
-                                        batch_script.submit('bv_kmax' + noj + '.sh',
-                                                            'bv_' + self.label + '_kmax' + noj)
+                                        kmax_script.submit('bv_kmax' + noj + '.sh',
+                                                           'bv_' + self.label + '_kmax' + noj)
 
 
 if __name__ == "__main__":
@@ -713,6 +770,10 @@ if __name__ == "__main__":
     single_parser.add_argument("--pt-collect-minima", action='store_true',
                                help="Collect a database of minima.",
                                default=False)
+    single_parser.add_argument("--pt-checkpoint-time", type=int,
+                               help="Minutes after which PT creates a checkpoint "
+                                    "and submits a new job.",
+                               default=None)
     single_parser.add_argument("--sort", action='store_true',
                                help="Sort the atoms before running PT. This "
                                     "improves performance, especially in combination "
@@ -811,6 +872,10 @@ if __name__ == "__main__":
     chain_parser.add_argument("--pt-collect-minima", action='store_true',
                               help="Collect a database of minima.",
                               default=False)
+    chain_parser.add_argument("--pt-checkpoint-time", type=int,
+                              help="Minutes after which PT creates a checkpoint "
+                                   "and submits a new job.",
+                              default=None)
     chain_parser.add_argument("--sort", action='store_true',
                               help="Sort the atoms before running PT. This "
                                    "improves performance, especially in combination "
@@ -883,6 +948,7 @@ if __name__ == "__main__":
                          pt_exchange_scheme=pt_exchange_scheme,
                          pt_sleep_seconds=args.pt_sleep_seconds,
                          pt_collect_minima=args.pt_collect_minima,
+                         pt_checkpoint_time=args.pt_checkpoint_time,
                          verbose=args.verbose)
 
     if args.mode == 'chain':
