@@ -4,6 +4,8 @@ import time
 import copy
 import os
 import random
+import time
+import cPickle
 import numpy as np
 from mpi4py import MPI
 from enum import Enum, unique  # Package enum34
@@ -75,7 +77,8 @@ class PT_Master(object):
                  fast_ct=False, rel_std_err=0.03, min_window=2.5e5,
                  max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False,
                  base_directory=None, bs_nodes=100, eq_min_ptiter=None,
-                 eq_max_ptiter=None, sleep_seconds=0.0001, exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE):
+                 eq_max_ptiter=None, sleep_seconds=0.0001, exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
+                 checkpoint_time=None, checkpoint_file='checkpoint.dmp'):
         self.nrunners = nrunners
         self.sleep_seconds = sleep_seconds
         self.comm = MPI.COMM_WORLD
@@ -86,7 +89,6 @@ class PT_Master(object):
         self.kmax = kmax
         self.kmin = kmin
         self.max_ptiter = max_ptiter
-        self.ex_outstream = open("exchanges", "w")
         self.ptiter = 0
         self.print_status = print_status
         self.skip = skip  # might want to skip the first few swaps to allow for equilibration
@@ -127,14 +129,9 @@ class PT_Master(object):
         logging.info("seed_exchanges: %i" % self.seed_exchanges)
         self.exchange_cnts = np.zeros((self.nrunners, self.nrunners), dtype='int32')
         self.exchange_scheme = exchange_scheme
-        if self.exchange_scheme is ExchangeScheme.NEIGHBOR_EXCHANGE:
-            self.__calculate_exchange = self.__neighbor_exchange
-            np.random.seed(self.seed_exchanges)
-        elif self.exchange_scheme is ExchangeScheme.INDEPENDENCE_SAMPLING:
-            self.__calculate_exchange = self.__independence_sampling
-            self.indep_sampling = IndependenceSampling(self.seed_exchanges)
-        else:
-            raise ValueError("Unknown exchange scheme (%s)" % self.exchange_scheme.name)
+        self.__init_sampling()
+        self.checkpoint_time = checkpoint_time
+        self.checkpoint_file = checkpoint_file
         assert(self.nrunners > self.nworkers)
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
@@ -145,6 +142,21 @@ class PT_Master(object):
             logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
         assert(self.min_window > self.mcrunner_eqsteps)
         assert(self.max_eq_time > self.mcrunner_eqsteps)
+
+    def init_state(self):
+        self.comm = MPI.COMM_WORLD
+        self.__init_sampling()
+        self.__init_print(append=True)
+
+    def __init_sampling(self):
+        if self.exchange_scheme is ExchangeScheme.NEIGHBOR_EXCHANGE:
+            self.__calculate_exchange = self.__neighbor_exchange
+            np.random.seed(self.seed_exchanges)
+        elif self.exchange_scheme is ExchangeScheme.INDEPENDENCE_SAMPLING:
+            self.__calculate_exchange = self.__independence_sampling
+            self.indep_sampling = IndependenceSampling(self.seed_exchanges)
+        else:
+            raise ValueError("Unknown exchange scheme (%s)" % self.exchange_scheme.name)
 
     def __init_runners(self, example_mcrunner):
         ks = self.__get_ks()
@@ -158,19 +170,28 @@ class PT_Master(object):
         self.runner_timeseries = [[] for _ in xrange(self.nrunners)]
         self.runner_timeseries2 = [[] for _ in xrange(self.nrunners)]
 
-    def __init_print(self):
-        trymakedir(self.base_directory)
-        self.__print_ks()
-        self.permutations_stream = open(os.path.join(self.base_directory, 'rem_permutations'),'w')
+    def __init_print(self, append=False):
+        if append:
+            mode = 'a'
+        else:
+            mode = 'w'
+            trymakedir(self.base_directory)
+            self.__print_ks()
+        self.ex_outstream = open(os.path.join(self.base_directory, 'exchanges'), mode)
+        self.permutations_stream = open(os.path.join(self.base_directory, 'rem_permutations'), mode)
         self.status_streams = []
         self.histogram_mean_streams = []
         for irunner in xrange(self.nrunners):
             directory = os.path.join(self.base_directory, str(irunner))
-            trymakedir(directory)
-            self.__print_parameters(irunner)
-            self.status_streams.append(open(os.path.join(directory, 'status'),'w'))
-            self.histogram_mean_streams.append(open(os.path.join(directory, 'hist_mean'),'w'))
-            self.histogram_mean_streams[irunner].write('{:<15}\t{:<15}\t{:<15}\t{:<15}\n'.format('iteration','<(x-x0)**2>','variance','std_err'))
+            if not append:
+                trymakedir(directory)
+                self.__print_parameters(irunner)
+            self.status_streams.append(open(os.path.join(directory, 'status'), mode))
+            self.histogram_mean_streams.append(open(os.path.join(directory, 'hist_mean'), mode))
+            if not append:
+                self.histogram_mean_streams[irunner].write(
+                    '{:<15}\t{:<15}\t{:<15}\t{:<15}\n'
+                    .format('iteration','<(x-x0)**2>','variance','std_err'))
 
     def __get_ks(self):
         """
@@ -196,21 +217,46 @@ class PT_Master(object):
         return Karray
 
     def run(self):
-        while (self.ptiter < self.max_ptiter):
+        if self.checkpoint_time is not None:
+            start_time = time.time()
+        self.created_checkpoint = False
+        while (self.ptiter < self.max_ptiter
+               and not self.created_checkpoint):
             logging.debug("Iteration {}".format(self.ptiter))
             self.__one_iteration()
             if self.ptiter >= self.max_ptiter:
                 self.max_ptiter = self.__test_convergence()
+            if (self.checkpoint_time is not None
+                and time.time() - start_time > self.checkpoint_time):
+                self.created_checkpoint = True
+
         # Stop workers
         for iworker in xrange(self.nworkers):
             self.comm.Send(np.array([-1], dtype='d'), dest=iworker+1)
 
-        self.__print_data()
-        if self.print_status:
-            self.__print_status()
-        self.__print_exchanges()
-        self.__close_flush()
-        logging.info("Master finished")
+        if self.created_checkpoint:
+            self.__create_checkpoint()
+            logging.info("Created checkpoint")
+        else:
+            self.__print_data()
+            if self.print_status:
+                self.__print_status()
+            self.__print_exchanges()
+            self.__flush_close_streams()
+            logging.info("Master finished")
+
+    def __create_checkpoint(self):
+        del self.comm
+        del self.__calculate_exchange
+        del self.indep_sampling
+        self.__flush_close_streams()
+        del self.ex_outstream
+        del self.permutations_stream
+        del self.histogram_mean_streams
+        del self.status_streams
+        checkpoint_path = os.path.join(self.base_directory, self.checkpoint_file)
+        with open(checkpoint_path, 'wb') as outfile:
+            cPickle.dump(self, outfile)
 
     def __one_iteration(self):
         """Perform one parallel tempering iteration
@@ -571,7 +617,9 @@ class PT_Master(object):
                 line += "{:>6}".format(self.exchange_cnts[i, j])
             logging.info(line)
 
-    def __close_flush(self):
+    def __flush_close_streams(self):
+        self.ex_outstream.flush()
+        self.ex_outstream.close()
         self.permutations_stream.flush()
         self.permutations_stream.close()
         for irunner in xrange(self.nrunners):

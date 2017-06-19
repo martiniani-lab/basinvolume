@@ -5,6 +5,8 @@ import argparse
 import logging
 import time
 import sys
+import os
+import cPickle
 from mpi4py import MPI
 from basinvolume.spheres import (configure_bv_mcrunner, MPI_BV_PT_RLhandshake,
                                  PT_Worker, PT_Master, ExchangeScheme)
@@ -29,7 +31,8 @@ if __name__ == "__main__":
     parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
     parser.add_argument("-s", "--relstderr", type=float, help="relative standard error to test convergence, default 0.05", default=0.05)
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
-    parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
+    parser.add_argument("--moveall", action='store_true',
+                        help="Use global particle movements in the MC runner.", default=False)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                         "Default: 'FIRE'", default='FIRE')
@@ -54,6 +57,12 @@ if __name__ == "__main__":
                              "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
                              "Default: 'NEIGHBOR_EXCHANGE'",
                         default='NEIGHBOR_EXCHANGE')
+    parser.add_argument("--checkpoint-time", type=int,
+                        help="Minutes after which to create a checkpoint and stop.",
+                        default=None)
+    parser.add_argument("--load-checkpoint", type=str,
+                        help="File from which to load a saved checkpoint.",
+                        default=None)
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
@@ -150,21 +159,32 @@ if __name__ == "__main__":
     kmax = sim.kmax
 
     start = time.time()
+    exit_on_checkpoint = False
     if nprocs < nrunners:
         if rank == 0:
             logging.info("Using job queue with {} workers.".format(nprocs - 1))
 
             try:
-                master = PT_Master(
-                    nrunners, mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
-                    pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
-                    fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
-                    max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                    numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path,
-                    sleep_seconds=args.sleep_seconds,
-                    exchange_scheme=exchange_scheme)
+                if args.load_checkpoint is None:
+                    master = PT_Master(
+                        nrunners, mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
+                        pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
+                        fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
+                        max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
+                        numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path,
+                        sleep_seconds=args.sleep_seconds, exchange_scheme=exchange_scheme,
+                        checkpoint_time=60*args.checkpoint_time)
+                else:
+                    checkpoint_path = os.path.join(path, args.load_checkpoint)
+                    with open(checkpoint_path, 'rb') as infile:
+                        master = cPickle.load(infile)
+                    master.init_state()
                 master.run()
-                sim.print_success_all(True)
+                exit_on_checkpoint = master.created_checkpoint
+                if args.load_checkpoint is not None and not exit_on_checkpoint:
+                    os.remove(args.load_checkpoint)
+                if not exit_on_checkpoint:
+                    sim.print_success_all(True)
             except Exception:
                 view_traceback()
                 for iworker in xrange(1, nprocs):
@@ -185,6 +205,8 @@ if __name__ == "__main__":
             logging.info("Using handshake with {} runners.".format(nprocs))
         if exchange_scheme != ExchangeScheme.NEIGHBOR_EXCHANGE:
             raise ValueError("Only the exchange scheme NEIGHBOR_EXCHANGE works with PT handshake.")
+        if args.checkpoint_time is not None or args.load_checkpoint is not None:
+            raise ValueError("Checkpointing does not work with PT handshake.")
 
         ptrunner = MPI_BV_PT_RLhandshake(
             mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
@@ -214,11 +236,12 @@ if __name__ == "__main__":
 
     if rank == 0:
         end = time.time()
-        logging.info('Convert timeseries to hdf5...')
-        # it is imperative that max_series_size=0 to avoid loss of raw data,
-        # the objective of this step is to reduce the amount of occupied memory
-        # and i/o speed without losing any information
-        timeseries = import_pt_time_series(sim.base_dir, int(sim.mc_params['adjustf_niter']),
-                                           max_series_size=0, ncores=1, del_raw=args.delraw)
+        if not exit_on_checkpoint:
+            logging.info('Convert timeseries to hdf5...')
+            # it is imperative that max_series_size=0 to avoid loss of raw data,
+            # the objective of this step is to reduce the amount of occupied memory
+            # and i/o speed without losing any information
+            timeseries = import_pt_time_series(sim.base_dir, int(sim.mc_params['adjustf_niter']),
+                                               max_series_size=0, ncores=1, del_raw=args.delraw)
         logging.info("Done")
         logging.info("Elapsed time: {}".format(end - start))
