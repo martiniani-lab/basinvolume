@@ -28,6 +28,8 @@ class RunnerState(BV_MCRunner_State):
         super(RunnerState, self).__init__(state=mcrunner_state)
         self.id = id
         self.dx = 0
+        self.swap_accepted_count = 0
+        self.swap_rejected_count = 0
 
     def set_mc_state(self, mcrunner_state):
         self._set_state(mcrunner_state)
@@ -90,8 +92,6 @@ class PT_Master(object):
         self.skip = skip  # might want to skip the first few swaps to allow for equilibration
         self.pfreq = pfreq
         self.NO_EXCHANGE = -12345  # this NEGATIVE number in exchange pattern means that no exchange should be attempted
-        self.swap_accepted_count = 0
-        self.swap_rejected_count = 0
         if base_directory is None:
             self.base_directory = os.path.join(os.getcwd(), 'ptmc_results')
         else:
@@ -101,8 +101,7 @@ class PT_Master(object):
         self.permutation_pattern = np.zeros(self.nrunners, dtype='int32')  # useful for printing exchange permutations
         self.u2meank0 = u2meank0
         self.mcrunner_niter = example_mcrunner.niter
-        self.mcrunner_eqsteps = example_mcrunner.equilibration_steps
-        self.mcrunner_eqsteps = int(self.mcrunner_eqsteps)
+        self.mcrunner_eqsteps = int(example_mcrunner.equilibration_steps)
         self.test_convergence = test_convergence
         self.eq_time = 0  # time at which equilibration was reached
         self.fast_ct = fast_ct
@@ -316,9 +315,11 @@ class PT_Master(object):
         if self.anyswap:
             for i, buddy in enumerate(exchange_pattern):
                 if (buddy != self.NO_EXCHANGE):
+                    self.runner_states[i].swap_accepted_count += 1
                     self.exchange_cnts[i, buddy] += 1
                     self.permutation_pattern[i] = buddy + 1  # to conform to fortran notation
                 else:
+                    self.runner_states[i].swap_rejected_count += 1
                     self.permutation_pattern[i] = i + 1  # to conform to fortran notation
             self.__print_permutations()
 
@@ -505,24 +506,33 @@ class PT_Master(object):
                 iteration, mean, variance, std_err))
         self.histogram_mean_streams[irunner].flush()  # flush every time, so we don't loose data
 
-    def __print_status(self, irunner):
-        raise NotImplementedError("print_status is not supported by the job "
-                                  "queue (yet)! For this we need to communicate "
-                                  "status information from all workers "
-                                  "(mcrunners) at each step and collect it in "
-                                  "the master. ")
-        # status = self.mcrunner.get_status()
+    def __print_status(self):
+        for irunner in xrange(self.nrunners):
+            # Counters: 0: m_nitercount, 1: m_accept_count, 2: m_E_reject_count,
+            #           3: m_conf_reject_count, 4: m_neval
+            counters = self.runner_states[irunner].counters
 
-        status.frac_acc_swaps = (self.swap_accepted_count /
-                                 (self.swap_accepted_count+self.swap_rejected_count))
-        if self.ptiter == self.skip:
-            self.status_streams[irunner].write('#')
-            for key, value in status.iteritems():
-                self.status_streams[irunner].write('{:<12}\t'.format(key))
+            status = {}
+            status['iteration'] = counters[0]
+            status['acc_frac'] = counters[1] / counters[0]
+            status['E_reject_frac'] = counters[2] / counters[0]
+            status['conf_reject_frac'] = counters[3] / counters[0]
+            # Energy will be NaN at this point if the runner has been swapped,
+            # since only the workers recalculate it.
+            status['energy'] = self.runner_states[irunner].energy
+            status['neval'] = counters[4]
+
+            status['frac_acc_swaps'] = (self.runner_states[irunner].swap_accepted_count /
+                                        (self.runner_states[irunner].swap_accepted_count
+                                         + self.runner_states[irunner].swap_rejected_count))
+            if self.ptiter == self.skip:
+                self.status_streams[irunner].write('#')
+                for key, _ in status.iteritems():
+                    self.status_streams[irunner].write('{:<12}\t'.format(key))
+                self.status_streams[irunner].write('\n')
+            for _, value in status.iteritems():
+                self.status_streams[irunner].write('{:>12.3f}\t'.format(value))
             self.status_streams[irunner].write('\n')
-        for key, value in status.iteritems():
-            self.status_streams[irunner].write('{:>12.3f}\t'.format(value))
-        self.status_streams[irunner].write('\n')
 
     def __print_ks(self):
         fname = os.path.join(self.base_directory, 'temperatures')
