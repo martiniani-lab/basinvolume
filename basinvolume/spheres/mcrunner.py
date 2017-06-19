@@ -530,14 +530,14 @@ class BV_MCrunner(SpheresMCRunner):
     def clear_trajectory(self):
         self.record_trajectory.clear()
 
-    def get_state(self):
+    def get_complete_state(self):
         return BV_MCRunner_State(
             coords=self.get_coords(), energy=self.get_energy(), k=self.k,
             stepsize=self.takestep.get_stepsize(), counters=self.get_counters(),
             takestep_count=self.takestep.get_count(),
             step_adaptation_counters=self.takestep.get_adaptation_counters())
 
-    def set_state(self, mcrunner_state):
+    def set_complete_state(self, mcrunner_state):
         self.set_config(mcrunner_state.coords, mcrunner_state.energy)
         self.set_control(mcrunner_state.k, reset=False)
         self.set_counters(mcrunner_state.counters)

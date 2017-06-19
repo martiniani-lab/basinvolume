@@ -149,7 +149,7 @@ class PT_Master(object):
 
     def __init_runners(self, example_mcrunner):
         ks = self.__get_ks()
-        start_state = example_mcrunner.get_state()
+        start_state = example_mcrunner.get_complete_state()
         self.runner_states = []
         for i in xrange(self.nrunners):
             self.runner_states.append(RunnerState(i, start_state))

@@ -13,7 +13,7 @@ class PT_Worker(object):
         self.fix_com = fix_com
 
     def run(self):
-        state = RunnerState(0, self.mcrunner.get_state())
+        state = RunnerState(0, self.mcrunner.get_complete_state())
         data_buffer = np.empty(state.size())
         self.comm.Recv(data_buffer, source=0)
         state.deserialize(data_buffer)
@@ -29,11 +29,11 @@ class PT_Worker(object):
         if np.isnan(state.energy):
             # Setting state.energy to NaN is the signal for necessary energy recalculation
             state.energy = self.mcrunner.potential.getEnergy(state.coords)
-        self.mcrunner.set_state(state)
+        self.mcrunner.set_complete_state(state)
         self.mcrunner.run()
 
         #collect the results
-        state.set_mc_state(self.mcrunner.get_state())
+        state.set_mc_state(self.mcrunner.get_complete_state())
         if self.fix_com:
             state.dx = get_dist_com(state.coords, self.mcrunner.red_origin,
                                        self.mcrunner.bdim)
