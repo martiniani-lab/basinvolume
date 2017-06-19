@@ -124,9 +124,6 @@ class PT_Master(object):
         self.__init_timeseries()
         self.__init_print()
         self.recv_buffer = np.empty(self.runner_states[0].size() + self.mcrunner_niter, dtype='d')
-        i32max = np.iinfo(np.int32).max
-        self.seed_exchanges = random.randint(0, i32max)
-        logging.info("seed_exchanges: %i" % self.seed_exchanges)
         self.exchange_cnts = np.zeros((self.nrunners, self.nrunners), dtype='int32')
         self.exchange_scheme = exchange_scheme
         self.__init_sampling()
@@ -149,6 +146,9 @@ class PT_Master(object):
         self.__init_print(append=True)
 
     def __init_sampling(self):
+        i32max = np.iinfo(np.int32).max
+        self.seed_exchanges = random.randint(0, i32max)
+        logging.info("seed_exchanges: %i" % self.seed_exchanges)
         if self.exchange_scheme is ExchangeScheme.NEIGHBOR_EXCHANGE:
             self.__calculate_exchange = self.__neighbor_exchange
             np.random.seed(self.seed_exchanges)
