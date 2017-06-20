@@ -474,7 +474,7 @@ class PT_Master(object):
         new_eq_time = max(new_eq_times)
         logging.debug("New eq_times: {}, mcrunner_eqsteps: {}, len(timeseseries2): {}"
                       .format(new_eq_times, self.mcrunner_eqsteps,
-                              self.runner_timeseries2[0].size))
+                              len(self.runner_timeseries2[0])))
         logging.info("New eq_time: {}".format(new_eq_time))
         return new_eq_time
 
