@@ -224,6 +224,8 @@ class PT_Master(object):
                and not self.created_checkpoint):
             logging.debug("Iteration {}".format(self.ptiter))
             self._one_iteration()
+            if self.ptiter == self.skip:
+                self._print_stepsizes()
             if self.ptiter >= self.max_ptiter:
                 self.max_ptiter = self._test_convergence()
             if (self.checkpoint_time is not None
@@ -585,6 +587,12 @@ class PT_Master(object):
         with open(fname, 'w') as kfile:
             for irunner in xrange(self.nrunners):
                 kfile.write('{:1.16f}\n'.format(self.runner_states[irunner].k))
+
+    def _print_stepsizes(self):
+        fname = os.path.join(self.base_directory, 'stepsizes')
+        with open(fname, 'w') as stepfile:
+            for irunner in xrange(self.nrunners):
+                stepfile.write('{:1.16f}\n'.format(self.runner_states[irunner].stepsize))
 
     def _print_parameters(self, irunner):
         directory = os.path.join(self.base_directory, str(irunner))
