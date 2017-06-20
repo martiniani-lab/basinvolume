@@ -120,13 +120,13 @@ class PT_Master(object):
         self.bs_nodes = int(bs_nodes)
         self.numnegk = int(numnegk)
         self.lownegk = int(lownegk)
-        self.__init_runners(example_mcrunner)
-        self.__init_timeseries()
-        self.__init_print()
+        self._init_runners(example_mcrunner)
+        self._init_timeseries()
+        self._init_print()
         self.recv_buffer = np.empty(self.runner_states[0].size() + self.mcrunner_niter, dtype='d')
         self.exchange_cnts = np.zeros((self.nrunners, self.nrunners), dtype='int32')
         self.exchange_scheme = exchange_scheme
-        self.__init_sampling()
+        self._init_sampling()
         self.checkpoint_time = checkpoint_time
         self.checkpoint_file = checkpoint_file
         assert(self.nrunners > self.nworkers)
@@ -142,41 +142,41 @@ class PT_Master(object):
 
     def init_state(self):
         self.comm = MPI.COMM_WORLD
-        self.__init_sampling()
-        self.__init_print(append=True)
+        self._init_sampling()
+        self._init_print(append=True)
 
-    def __init_sampling(self):
+    def _init_sampling(self):
         i32max = np.iinfo(np.int32).max
         self.seed_exchanges = random.randint(0, i32max)
         logging.info("seed_exchanges: %i" % self.seed_exchanges)
         if self.exchange_scheme is ExchangeScheme.NEIGHBOR_EXCHANGE:
-            self.__calculate_exchange = self.__neighbor_exchange
+            self._calculate_exchange = self._neighbor_exchange
             np.random.seed(self.seed_exchanges)
         elif self.exchange_scheme is ExchangeScheme.INDEPENDENCE_SAMPLING:
-            self.__calculate_exchange = self.__independence_sampling
+            self._calculate_exchange = self._independence_sampling
             self.indep_sampling = IndependenceSampling(self.seed_exchanges)
         else:
             raise ValueError("Unknown exchange scheme (%s)" % self.exchange_scheme.name)
 
-    def __init_runners(self, example_mcrunner):
-        ks = self.__get_ks()
+    def _init_runners(self, example_mcrunner):
+        ks = self._get_ks()
         start_state = example_mcrunner.get_complete_state()
         self.runner_states = []
         for i in xrange(self.nrunners):
             self.runner_states.append(RunnerState(i, start_state))
             self.runner_states[-1].k = ks[i]
 
-    def __init_timeseries(self):
+    def _init_timeseries(self):
         self.runner_timeseries = [[] for _ in xrange(self.nrunners)]
         self.runner_timeseries2 = [[] for _ in xrange(self.nrunners)]
 
-    def __init_print(self, append=False):
+    def _init_print(self, append=False):
         if append:
             mode = 'a'
         else:
             mode = 'w'
             trymakedir(self.base_directory)
-            self.__print_ks()
+            self._print_ks()
         self.ex_outstream = open(os.path.join(self.base_directory, 'exchanges'), mode)
         self.permutations_stream = open(os.path.join(self.base_directory, 'rem_permutations'), mode)
         self.status_streams = []
@@ -185,7 +185,7 @@ class PT_Master(object):
             directory = os.path.join(self.base_directory, str(irunner))
             if not append:
                 trymakedir(directory)
-                self.__print_parameters(irunner)
+                self._print_parameters(irunner)
             self.status_streams.append(open(os.path.join(directory, 'status'), mode))
             self.histogram_mean_streams.append(open(os.path.join(directory, 'hist_mean'), mode))
             if not append:
@@ -193,7 +193,7 @@ class PT_Master(object):
                     '{:<15}\t{:<15}\t{:<15}\t{:<15}\n'
                     .format('iteration','<(x-x0)**2>','variance','std_err'))
 
-    def __get_ks(self):
+    def _get_ks(self):
         """
         set up the spring constants (temperatures) by distributing them exponentially.
         We order the spring constants from highest to lowest, to calculate the
@@ -223,9 +223,9 @@ class PT_Master(object):
         while (self.ptiter < self.max_ptiter
                and not self.created_checkpoint):
             logging.debug("Iteration {}".format(self.ptiter))
-            self.__one_iteration()
+            self._one_iteration()
             if self.ptiter >= self.max_ptiter:
-                self.max_ptiter = self.__test_convergence()
+                self.max_ptiter = self._test_convergence()
             if (self.checkpoint_time is not None
                 and time.time() - start_time > self.checkpoint_time):
                 self.created_checkpoint = True
@@ -235,21 +235,21 @@ class PT_Master(object):
             self.comm.Send(np.array([-1], dtype='d'), dest=iworker+1)
 
         if self.created_checkpoint:
-            self.__create_checkpoint()
+            self._create_checkpoint()
             logging.info("Created checkpoint")
         else:
-            self.__print_data()
+            self._print_data()
             if self.print_status:
-                self.__print_status()
-            self.__print_exchanges()
-            self.__flush_close_streams()
+                self._print_status()
+            self._print_exchanges()
+            self._flush_close_streams()
             logging.info("Master finished")
 
-    def __create_checkpoint(self):
+    def _create_checkpoint(self):
         del self.comm
-        del self.__calculate_exchange
+        del self._calculate_exchange
         del self.indep_sampling
-        self.__flush_close_streams()
+        self._flush_close_streams()
         del self.ex_outstream
         del self.permutations_stream
         del self.histogram_mean_streams
@@ -258,7 +258,7 @@ class PT_Master(object):
         with open(checkpoint_path, 'wb') as outfile:
             cPickle.dump(self, outfile)
 
-    def __one_iteration(self):
+    def _one_iteration(self):
         """Perform one parallel tempering iteration
 
         Each PT iteration consists of the following steps:
@@ -280,7 +280,7 @@ class PT_Master(object):
             if self.sleep_seconds > 0:
                 while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
                     time.sleep(self.sleep_seconds)
-            finished_worker = self.__receive_result()
+            finished_worker = self._receive_result()
             self.comm.Send(self.runner_states[current_runner].serialize(), dest=finished_worker)
             current_runner -= 1
 
@@ -289,19 +289,19 @@ class PT_Master(object):
             if self.sleep_seconds > 0:
                 while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
                     time.sleep(self.sleep_seconds)
-            self.__receive_result()
+            self._receive_result()
 
         if self.ptiter >= self.skip:
-            self.__exchange_coords()
+            self._exchange_coords()
             # print and increase parallel tempering count and test convergence
             if (self.ptiter % self.pfreq == 0):
-                self.max_ptiter = self.__test_convergence()
-                self.__print_data()
+                self.max_ptiter = self._test_convergence()
+                self._print_data()
             if self.print_status:
-                self.__print_status()
+                self._print_status()
         self.ptiter += 1
 
-    def __receive_result(self):
+    def _receive_result(self):
         status = MPI.Status()
         self.comm.Recv(self.recv_buffer, source=MPI.ANY_SOURCE, status=status)
         src = status.Get_source()
@@ -314,9 +314,9 @@ class PT_Master(object):
         self.runner_timeseries2[runner_id].extend(recv_timeseries2)
         return src
 
-    def __exchange_coords(self):
+    def _exchange_coords(self):
         """
-        Exchange the runner states according to __find_exchange_buddies
+        Exchange the runner states according to _find_exchange_buddies
         """
         # dx_string = "dx: "
         # for i in xrange(self.nrunners):
@@ -324,7 +324,7 @@ class PT_Master(object):
         # logging.debug(dx_string)
 
         # find exchange pattern (list of exchange buddies)
-        exchange_pattern = self.__find_exchange_buddies()
+        exchange_pattern = self._find_exchange_buddies()
 
         # swap runner coordinates and dx
         old_coords = [runner.coords for runner in self.runner_states]
@@ -338,7 +338,7 @@ class PT_Master(object):
                 # Set energy to NaN, since it needs to be recalculated
                 self.runner_states[istate].energy = np.nan
 
-    def __find_exchange_buddies(self):
+    def _find_exchange_buddies(self):
         """
         This function determines the exchange pattern using alternating swaps
         with the right and left neighbours.
@@ -351,7 +351,7 @@ class PT_Master(object):
         exchange_pattern.fill(self.NO_EXCHANGE) # reset exchange pattern to no exchange
         self.anyswap = False
 
-        self.__calculate_exchange(exchange_pattern)
+        self._calculate_exchange(exchange_pattern)
 
         for i in xrange(self.nrunners):
             if exchange_pattern[i] == i:
@@ -367,11 +367,11 @@ class PT_Master(object):
                 else:
                     self.runner_states[i].swap_rejected_count += 1
                     self.permutation_pattern[i] = i + 1  # to conform to fortran notation
-            self.__print_permutations()
+            self._print_permutations()
 
         return exchange_pattern
 
-    def __independence_sampling(self, exchange_pattern):
+    def _independence_sampling(self, exchange_pattern):
         dxs = np.array([runner.dx for runner in self.runner_states])
         betas = np.array([runner.k for runner in self.runner_states])
 
@@ -395,7 +395,7 @@ class PT_Master(object):
                         self.runner_states[i].dx, self.runner_states[j].dx,
                         self.runner_states[i].k, self.runner_states[j].k))
 
-    def __neighbor_exchange(self, exchange_pattern):
+    def _neighbor_exchange(self, exchange_pattern):
         for i in xrange(self.exchange_choice, self.nrunners-1, 2):
             dx1 = self.runner_states[i].dx
             k1 = self.runner_states[i].k
@@ -429,7 +429,7 @@ class PT_Master(object):
         else:
             self.exchange_choice = 0
 
-    def __test_convergence(self):
+    def _test_convergence(self):
         if self.test_convergence and self.ptiter > self.eq_min_ptiter:
             iteration = self.mcrunner_niter * (self.ptiter+1)
             if iteration < self.mcrunner_eqsteps:
@@ -437,11 +437,11 @@ class PT_Master(object):
                                 "mcrunner equilibration steps had terminated.")
                 return self.max_ptiter
             else:
-                return self.__test_ts_convergence()
+                return self._test_ts_convergence()
         else:
             return self.max_ptiter
 
-    def __test_ts_convergence(self):
+    def _test_ts_convergence(self):
         """
         in_timeseries is the last segment of the time series
         self.timeseries is the whole recorded timeseries
@@ -451,15 +451,15 @@ class PT_Master(object):
                 iteration = self.mcrunner_niter * (self.ptiter+1)
                 self.eq_time = min([self.max_eq_time, iteration])
             else:
-                self.eq_time = self.__find_new_eq_time()
+                self.eq_time = self._find_new_eq_time()
         # only keep time series from after the equilibration point, this references original data
-        new_max_ptiter = self.__find_new_max_ptiter()
+        new_max_ptiter = self._find_new_max_ptiter()
         logging.info("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
         return new_max_ptiter
 
-    def __find_new_eq_time(self):
+    def _find_new_eq_time(self):
         iteration = self.mcrunner_niter * (self.ptiter+1)
-        logging.info("__find_new_eq_time, iteration: {}".format(iteration))
+        logging.info("_find_new_eq_time, iteration: {}".format(iteration))
         new_eq_times = []
         for irunner in xrange(self.nrunners):
             eq_time = detectEquilibration_binary_search(
@@ -478,7 +478,7 @@ class PT_Master(object):
         logging.info("New eq_time: {}".format(new_eq_time))
         return new_eq_time
 
-    def __find_new_max_ptiter(self):
+    def _find_new_max_ptiter(self):
         """
         resets max_ptiter based on desired relative standard error that one wants to achieve. The longest estimate
         is chosen for the full pt. In order to estimate the number of extra steps to perform uses the correlated
@@ -487,7 +487,7 @@ class PT_Master(object):
         it returns an estimate of the new maxptiter only once the timeseries is longer than min_window
         """
         iteration = self.mcrunner_niter * (self.ptiter+1)
-        logging.info("__find_new_max_ptiter, iteration: {}".format(iteration))
+        logging.info("_find_new_max_ptiter, iteration: {}".format(iteration))
         new_max_ptiters = []
         for irunner in xrange(self.nrunners):
             # to reduce nskip (use more points) make the factor by which len(timeseries) is divided by larger
@@ -521,26 +521,26 @@ class PT_Master(object):
         max_ptiter = max(new_max_ptiters)
         return min(max_ptiter, self.eq_max_ptiter)
 
-    def __print_data(self):
-        logging.debug("__print_data -- BEGIN")
+    def _print_data(self):
+        logging.debug("_print_data -- BEGIN")
         logging.debug("self.ptiter %s" % self.ptiter)
         logging.debug("self.eq_min_ptiter %s" % self.eq_min_ptiter)
         logging.debug("self.mcrunner_eqsteps %s" % self.mcrunner_eqsteps)
         iteration = self.mcrunner_niter * (self.ptiter+1)
         for irunner in xrange(self.nrunners):
-            self.__dump_timeseries(irunner)
+            self._dump_timeseries(irunner)
             if self.ptiter >= self.eq_min_ptiter and iteration > self.mcrunner_eqsteps:
-                self.__dump_histogram(irunner)
-        logging.debug("__print_data -- END")
+                self._dump_histogram(irunner)
+        logging.debug("_print_data -- END")
 
-    def __dump_timeseries(self, irunner):
+    def _dump_timeseries(self, irunner):
         directory = os.path.join(self.base_directory, str(irunner))
         iteration = self.mcrunner_niter * (self.ptiter+1)
         fname = os.path.join(directory, 'TimeSeries.{}'.format(iteration))
         np.savetxt(fname, self.runner_timeseries[irunner])
         self.runner_timeseries[irunner] = []  # Clear timeseries
 
-    def __dump_histogram(self, irunner):
+    def _dump_histogram(self, irunner):
         directory = os.path.join(self.base_directory, str(irunner))
         iteration = self.mcrunner_niter * (self.ptiter+1)
         fname = os.path.join(directory, 'Visits.his.{}'.format(iteration))
@@ -552,7 +552,7 @@ class PT_Master(object):
                 iteration, mean, variance, std_err))
         self.histogram_mean_streams[irunner].flush()  # flush every time, so we don't loose data
 
-    def __print_status(self):
+    def _print_status(self):
         for irunner in xrange(self.nrunners):
             # Counters: 0: m_nitercount, 1: m_accept_count, 2: m_E_reject_count,
             #           3: m_conf_reject_count, 4: m_neval
@@ -580,13 +580,13 @@ class PT_Master(object):
                 self.status_streams[irunner].write('{:>12.3f}\t'.format(value))
             self.status_streams[irunner].write('\n')
 
-    def __print_ks(self):
+    def _print_ks(self):
         fname = os.path.join(self.base_directory, 'temperatures')
         with open(fname, 'w') as kfile:
             for irunner in xrange(self.nrunners):
                 kfile.write('{:1.16f}\n'.format(self.runner_states[irunner].k))
 
-    def __print_parameters(self, irunner):
+    def _print_parameters(self, irunner):
         directory = os.path.join(self.base_directory, str(irunner))
         fname = os.path.join(directory, 'parameters')
         with open(fname, 'w') as paramfile:
@@ -595,7 +595,7 @@ class PT_Master(object):
             paramfile.write('PT iterations:\t{0}\n'.format(self.max_ptiter))
             paramfile.write('total MC iterations:\t{0}\n'.format(self.mcrunner_niter))
 
-    def __print_permutations(self):
+    def _print_permutations(self):
         if self.anyswap:
             iteration = self.mcrunner_niter * (self.ptiter+1)
             f = self.permutations_stream
@@ -605,7 +605,7 @@ class PT_Master(object):
             f.write('\n')
             f.flush()
 
-    def __print_exchanges(self):
+    def _print_exchanges(self):
         logging.info("Number of exchanges:")
         exchange_header = "        "
         for i in xrange(self.nrunners):
@@ -617,7 +617,7 @@ class PT_Master(object):
                 line += "{:>6}".format(self.exchange_cnts[i, j])
             logging.info(line)
 
-    def __flush_close_streams(self):
+    def _flush_close_streams(self):
         self.ex_outstream.flush()
         self.ex_outstream.close()
         self.permutations_stream.flush()

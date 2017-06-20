@@ -19,13 +19,13 @@ class PT_Worker(object):
         state.deserialize(data_buffer)
         while state.id >= 0:
             # Sending an id (first element of the data array) of -1 is the signal to stop working
-            timeseries = self.__one_iteration(state)
+            timeseries = self._one_iteration(state)
             self.comm.Send(np.append(state.serialize(), timeseries), dest=0)
             self.comm.Recv(data_buffer, source=0)
             state.deserialize(data_buffer)
         logging.info("Worker finished")
 
-    def __one_iteration(self, state):
+    def _one_iteration(self, state):
         if np.isnan(state.energy):
             # Setting state.energy to NaN is the signal for necessary energy recalculation
             state.energy = self.mcrunner.potential.getEnergy(state.coords)
