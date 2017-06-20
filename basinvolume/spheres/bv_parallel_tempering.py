@@ -166,6 +166,10 @@ if __name__ == "__main__":
 
             try:
                 if args.load_checkpoint is None:
+                    if args.checkpoint_time is None:
+                        checkpoint_time = None
+                    else:
+                        checkpoint_time = 60 * args.checkpoint_time
                     master = PT_Master(
                         nrunners, mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
                         pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
@@ -173,7 +177,7 @@ if __name__ == "__main__":
                         max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
                         numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path,
                         sleep_seconds=args.sleep_seconds, exchange_scheme=exchange_scheme,
-                        checkpoint_time=60*args.checkpoint_time)
+                        checkpoint_time=checkpoint_time)
                 else:
                     checkpoint_path = os.path.join(path, args.load_checkpoint)
                     with open(checkpoint_path, 'rb') as infile:
