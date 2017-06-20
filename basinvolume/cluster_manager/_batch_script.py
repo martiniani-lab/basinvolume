@@ -120,8 +120,8 @@ class BatchScript(object):
         if ".sh" not in fname:
             fname += ".sh"
         f = open(fname,'w')
+        f.write('#!/bin/bash')
         f.write('#SBATCH --job-name={}\n'.format(job_name))
-        f.write('#SBATCH --partition={}\n'.format(self.qtype)) # This may not be necessary
         f.write('#SBATCH --nodes={}\n'.format(self.nodes))
         f.write('#SBATCH --cpus-per-task={}\n'.format(self.omp_threads))
         f.write('#SBATCH --time={}\n'.format(self.dhms_wtime))
@@ -134,8 +134,8 @@ class BatchScript(object):
         f.write('\n')
         f.write('echo Starting job ${SLURM_JOBID}\n')
         f.write('echo\n')
-        f.write('echo SLURM assigned me this node:\n')
-        f.write('cat ${SLURM_JOB_NODELIST}\n')
+        f.write('echo SLURM assigned me these nodes:\n')
+        f.write('squeue -j ${SLURM_JOBID} -O nodelist\n')
         f.write('echo\n')
         f.write('echo \"Running ${SLURM_JOB_NAME}\"\n')
         f.write('echo\n')
@@ -143,7 +143,7 @@ class BatchScript(object):
         f.write('echo\n')
         f.write('echo \"Job finished. SLURM details are:\"\n')
         f.write('echo\n')
-        f.write('jobinfo ${SLURM_JOBID}\n')
+        f.write('scontrol show job ${SLURM_JOBID}\n')
         f.write('echo\n')
         f.write('echo Finished at `date`\n')
         f.close()
