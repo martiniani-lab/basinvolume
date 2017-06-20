@@ -175,8 +175,9 @@ if __name__ == "__main__":
                         pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
                         fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
                         max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                        numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path,
-                        sleep_seconds=args.sleep_seconds, exchange_scheme=exchange_scheme,
+                        numnegk=args.numnegk, lownegk=args.lownegk, print_status=args.verbose,
+                        base_directory=path, sleep_seconds=args.sleep_seconds,
+                        exchange_scheme=exchange_scheme,
                         checkpoint_time=checkpoint_time)
                 else:
                     checkpoint_path = os.path.join(path, args.load_checkpoint)
