@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from mpi4py import MPI
 from basinvolume.utils import get_dist_com
-from basinvolume.spheres import RunnerState
+from basinvolume.spheres import ReplicaState
 
 class PT_Worker(object):
 
@@ -13,7 +13,7 @@ class PT_Worker(object):
         self.fix_com = fix_com
 
     def run(self):
-        state = RunnerState(0, self.mcrunner.get_complete_state())
+        state = ReplicaState(0, self.mcrunner.get_complete_state())
         data_buffer = np.empty(state.size())
         self.comm.Recv(data_buffer, source=0)
         state.deserialize(data_buffer)

@@ -13,5 +13,5 @@ from _configure_bv_mcrunner import configure_bv_mcrunner
 from _bv_parallel_tempering import MPI_BV_PT_RLhandshake
 from _collect_u2_vs_k import _collect_u2_vs_k
 from find_jstats import SoftPackingData, SoftPackingDataset
-from _pt_master import ExchangeScheme, RunnerState, PT_Master
+from _pt_master import ExchangeScheme, ReplicaState, PT_Master
 from _pt_worker import PT_Worker

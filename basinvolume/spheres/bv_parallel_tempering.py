@@ -23,10 +23,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="perform parallel tempering for basin volume method")
     parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
     parser.add_argument("base_directory", type=str, help="directory in which to save results")
-    parser.add_argument("-n","--mintotniter", type=float, help="minimum number of energy evaluation per replica, \
-                        before checking for convergence default: 5e5. This sets a lower bound",default=5e5)
-    parser.add_argument("-m","--maxtotniter", type=float, help="maximum number of energy evaluation per replica, \
-                        This sets an upper bound default: 2e6",default=2e6)
+    parser.add_argument("-n","--mintotniter", type=float,
+                        help="minimum number of energy evaluations per replica "
+                             "before checking for convergence default: 5e5. "
+                             "This sets a lower bound", default=5e5)
+    parser.add_argument("-m","--maxtotniter", type=float,
+                        help="maximum number of energy evaluations per replica. "
+                        "This sets an upper bound default: 2e6", default=2e6)
     parser.add_argument("--numnegk", type=int, help="number of negative k's to use, default 0",default=0)
     parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
     parser.add_argument("-s", "--relstderr", type=float, help="relative standard error to test convergence, default 0.05", default=0.05)
@@ -45,8 +48,8 @@ if __name__ == "__main__":
                         default="jammed_packings")
     parser.add_argument("--delraw", action='store_true', help="Delete raw timeseries textfiles "
                         "and only use the HDF5 format.", default=False)
-    parser.add_argument("--nrunners", type=int,
-                        help="Number of MC runners. Default: Number of MPI ranks",
+    parser.add_argument("--nreplicas", type=int,
+                        help="Number of PT replicas. Default: Number of MPI ranks",
                         default=None)
     parser.add_argument("--sleep-seconds", type=float,
                         help="Waiting time between MPI probes for the job queue master. "
@@ -68,10 +71,10 @@ if __name__ == "__main__":
     comm = MPI.COMM_WORLD
     nprocs = comm.Get_size()
     rank = comm.Get_rank()
-    if args.nrunners is None:
-        nrunners = nprocs
+    if args.nreplicas is None:
+        nreplicas = nprocs
     else:
-        nrunners = args.nrunners
+        nreplicas = args.nreplicas
 
     if args.verbose:
         loglevel = logging.DEBUG
@@ -93,7 +96,7 @@ if __name__ == "__main__":
 
     min_ptiter = int(min_tot_niter*0.1)  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
     niter = int((min_tot_niter-min_ptiter)/min_ptiter)  # 90% MCMC walk
-    adjustf_niter = int(min_tot_niter*0.1)  # equilibrate for the first 1/10th of total steps
+    adjustf_niter = int(min_tot_niter*0.2)  # equilibrate for the first 1/10th of total steps
     nskip = int(adjustf_niter/niter)  # don't swap while adjusting the step-size
     # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
     # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
@@ -160,7 +163,7 @@ if __name__ == "__main__":
 
     start = time.time()
     exit_on_checkpoint = False
-    if nprocs < nrunners:
+    if nprocs < nreplicas:
         if rank == 0:
             logging.info("Using job queue with {} workers.".format(nprocs - 1))
 
@@ -171,7 +174,7 @@ if __name__ == "__main__":
                     else:
                         checkpoint_time = 60 * args.checkpoint_time
                     master = PT_Master(
-                        nrunners, mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
+                        nreplicas, mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
                         pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
                         fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
                         max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
@@ -207,24 +210,24 @@ if __name__ == "__main__":
 
     else:
         if rank == 0:
-            logging.info("Using handshake with {} runners.".format(nprocs))
+            logging.info("Using handshake with {} replicas.".format(nprocs))
         if exchange_scheme != ExchangeScheme.NEIGHBOR_EXCHANGE:
             raise ValueError("Only the exchange scheme NEIGHBOR_EXCHANGE works with PT handshake.")
         if args.checkpoint_time is not None or args.load_checkpoint is not None:
             raise ValueError("Checkpointing does not work with PT handshake.")
 
-        ptrunner = MPI_BV_PT_RLhandshake(
+        ptreplica = MPI_BV_PT_RLhandshake(
             mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
             pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
             fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
             max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
             numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path)
-        assert ptrunner.rank == rank, "rank id does not match"
-        assert ptrunner.nprocs == nprocs, "number of processes does not match"
+        assert ptreplica.rank == rank, "rank id does not match"
+        assert ptreplica.nprocs == nprocs, "number of processes does not match"
 
         # run simulation
         try:
-            ptrunner.run()
+            ptreplica.run()
             if collect_minima_list:
                 mcrunner.dump_minima_list('{}/minima_list.sqlite'.format(rank))
             sim.print_success_all(True)
@@ -236,8 +239,8 @@ if __name__ == "__main__":
                 view_traceback()
 
         logging.info('ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
-                     .format(ptrunner.ptiter, mcrunner.niter, adjustf_niter,
-                             ptrunner.skip, ptrunner.pfreq))
+                     .format(ptreplica.ptiter, mcrunner.niter, adjustf_niter,
+                             ptreplica.skip, ptreplica.pfreq))
 
     if rank == 0:
         end = time.time()

@@ -18,7 +18,7 @@ nojmax=500
 minimizer=LBFGS
 kmax_start=500
 pt_workers=4
-pt_runners=16
+pt_replicas=16
 pt_sleep_seconds=0.0001
 pt_exchange=INDEPENDENCE_SAMPLING
 pt_relstderr=0.1
@@ -37,7 +37,7 @@ python ~/basinvol/basinvolume/basinvolume/cluster_manager/submit_bv.py chain \
 $ndim $workdir $path_to_script $job_label $k_walltime $pt_walltime \
 --batch-system $batch_system --cores-per-node $cores_per_node \
 --threads $threads --nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
---kmax-start $kmax_start --pt-workers $pt_workers --pt-runners $pt_runners \
+--kmax-start $kmax_start --pt-workers $pt_workers --pt-replicas $pt_replicas \
 --pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
 --relstderr $pt_relstderr --pt-checkpoint-time $pt_checkpoint_time --sort --delraw
 echo

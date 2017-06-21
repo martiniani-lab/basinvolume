@@ -45,7 +45,7 @@ class SubmitBV(object):
                  record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
                  maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5,
                  nocell=False, delraw=False,
-                 cores_per_node=16, pt_workers=4, pt_runners=16,
+                 cores_per_node=16, pt_workers=4, pt_replicas=16,
                  pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
                  pt_sleep_seconds=0.0001, pt_collect_minima=False,
                  pt_checkpoint_time=None, nthreads=1, verbose=False):
@@ -80,7 +80,7 @@ class SubmitBV(object):
         self.cores_per_node = cores_per_node
         self.pt_output_files = ["exchanges", "rem_permutations", "temperatures"]
         self.pt_workers = pt_workers
-        self.pt_runners = pt_runners
+        self.pt_replicas = pt_replicas
         self.pt_exchange_scheme = pt_exchange_scheme
         self.pt_sleep_seconds = pt_sleep_seconds
         self.pt_collect_minima = pt_collect_minima
@@ -397,10 +397,10 @@ class SubmitBV(object):
         pt_script = os.path.join(path_to_script, script)
         command = ("python {0} {1} ${{{2}}}/{3} "
                    "--mintotniter {4} --maxtotniter {5} --relstderr {6} "
-                   "--nrunners {7}"
+                   "--nreplicas {7}"
                    .format(pt_script, packing, self.workdir_var, explore_dir,
                            self.mintotniter, self.maxtotniter,
-                           self.relstderr, self.pt_runners))
+                           self.relstderr, self.pt_replicas))
         command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir))
         if self.nocell:
             command += " --nocell"
@@ -452,8 +452,8 @@ class SubmitBV(object):
                                 if check_kmax_reasonable(kmax_path):
                                     if not os.path.isabs(path_to_script):
                                         path_to_script = os.path.abspath(path_to_script)
-                                    mpi_procs = min(self.pt_workers+1, self.pt_runners)
-                                    if mpi_procs == self.pt_runners:
+                                    mpi_procs = min(self.pt_workers+1, self.pt_replicas)
+                                    if mpi_procs == self.pt_replicas:
                                         mpi_oversubscribe = 0
                                     else:
                                         mpi_oversubscribe = 1
@@ -555,8 +555,8 @@ class SubmitBV(object):
                             kmax_ready = self._check_kmax_config_file_ready(kmax_path)
                             kmin_ready = self._check_kmin_config_file_ready(kmin_path)
                             # prepare PT command
-                            pt_mpi_procs = min(self.pt_workers+1, self.pt_runners)
-                            if pt_mpi_procs == self.pt_runners:
+                            pt_mpi_procs = min(self.pt_workers+1, self.pt_replicas)
+                            if pt_mpi_procs == self.pt_replicas:
                                 pt_mpi_oversubscribe = 0
                             else:
                                 pt_mpi_oversubscribe = 1
@@ -755,8 +755,8 @@ if __name__ == "__main__":
                                help="Number of workers to use for parallel tempering. "
                                     "Default: 4",
                                default=4)
-    single_parser.add_argument("--pt-runners", type=int,
-                               help="Number of runners (replica) to use for "
+    single_parser.add_argument("--pt-replicas", type=int,
+                               help="Number of replicas to use for "
                                     "parallel tempering. Default: 16",
                                default=16)
     single_parser.add_argument("--pt-sleep-seconds", type=float,
@@ -859,10 +859,10 @@ if __name__ == "__main__":
     chain_parser.add_argument("--pt-workers", type=int,
                               help="Number of workers to use for parallel tempering. "
                                    "PT handshake is used instead of the job queue if "
-                                   "PT_WORKERS = PT_RUNNERS. Default: 4",
+                                   "PT_WORKERS = PT_REPLICAS. Default: 4",
                               default=4)
-    chain_parser.add_argument("--pt-runners", type=int,
-                              help="Number of runners (replica) to use for "
+    chain_parser.add_argument("--pt-replicas", type=int,
+                              help="Number of replicas to use for "
                                    "parallel tempering. Default: 16",
                               default=16)
     chain_parser.add_argument("--pt-sleep-seconds", type=float,
@@ -950,7 +950,7 @@ if __name__ == "__main__":
                          explore_dir=args.explore_dir,
                          structures_dir=args.packings_dir,
                          cores_per_node=args.cores_per_node, nthreads=args.threads,
-                         pt_workers=args.pt_workers, pt_runners=args.pt_runners,
+                         pt_workers=args.pt_workers, pt_replicas=args.pt_replicas,
                          pt_exchange_scheme=pt_exchange_scheme,
                          pt_sleep_seconds=args.pt_sleep_seconds,
                          pt_collect_minima=args.pt_collect_minima,
