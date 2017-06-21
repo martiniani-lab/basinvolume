@@ -252,7 +252,7 @@ class SubmitBV(object):
             command += " --verbose"
         return command
 
-    def submit_kmin_calculations(self, queue_type, walltime, path_to_script, force):
+    def submit_kmin_calculations(self, queue, walltime, path_to_script, force):
         """
         launch kmin calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present,
@@ -285,7 +285,7 @@ class SubmitBV(object):
                                 command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py',
                                                                   record_steps_timeseries=self.record_steps_timeseries)
                                 batch_script = BatchScript(
-                                    self.batch_system, queue_type, walltime, command,
+                                    self.batch_system, queue, walltime, command,
                                     mpi_procs=1, mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
@@ -295,7 +295,7 @@ class SubmitBV(object):
                             else:
                                 pass
 
-    def submit_kmax_calculations(self, queue_type, walltime, path_to_script, force):
+    def submit_kmax_calculations(self, queue, walltime, path_to_script, force):
         """
         launch kmax calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present,
@@ -327,7 +327,7 @@ class SubmitBV(object):
                                     path_to_script = os.path.abspath(path_to_script)
                                 command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
                                 batch_script = BatchScript(
-                                    self.batch_system, queue_type, walltime, command,
+                                    self.batch_system, queue, walltime, command,
                                     mpi_procs=1, mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
@@ -337,7 +337,7 @@ class SubmitBV(object):
                             else:
                                 pass
 
-    def submit_innersphere_dos_calculations(self, queue_type, walltime, path_to_script, force):
+    def submit_innersphere_dos_calculations(self, queue, walltime, path_to_script, force):
         """
         launch innersphere_dos bv_innersphere_dos calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present,
@@ -377,7 +377,7 @@ class SubmitBV(object):
                                 command = self._get_innersphere_dos_command(noj, path_to_script,
                                                                             script='bv_innersphere_dos.py')
                                 batch_script = BatchScript(
-                                    self.batch_system, queue_type, walltime, command,
+                                    self.batch_system, queue, walltime, command,
                                     mpi_procs=1, mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
@@ -421,7 +421,7 @@ class SubmitBV(object):
             command += " --verbose"
         return command
 
-    def submit_pt_calculations(self, queue_type, walltime, path_to_script, force):
+    def submit_pt_calculations(self, queue, walltime, path_to_script, force):
         """
         launch pt calculations manually if they have not been launched yet
         (this method only checks that the config files are not ready or present,
@@ -472,7 +472,7 @@ class SubmitBV(object):
                                             self.workdir_var, explore_dir, self.submit_cmd,
                                             pt_load_fname, self.checkpoint_file))
                                     pt_script = BatchScript(
-                                        self.batch_system, queue_type, walltime, command,
+                                        self.batch_system, queue, walltime, command,
                                         mpi_procs=mpi_procs,
                                         mpi_oversubscribe=mpi_oversubscribe,
                                         omp_threads=self.nthreads,
@@ -480,7 +480,7 @@ class SubmitBV(object):
                                         outdir=path, nodays=self.nodays)
                                     if self.pt_checkpoint_time is not None:
                                         pt_load_script = BatchScript(
-                                            self.batch_system, queue_type, walltime, load_command,
+                                            self.batch_system, queue, walltime, load_command,
                                             mpi_procs=mpi_procs,
                                             mpi_oversubscribe=mpi_oversubscribe,
                                             omp_threads=self.nthreads,
@@ -491,7 +491,7 @@ class SubmitBV(object):
                             else:
                                 pass
 
-    def submit_chain_calculations(self, k_queue_type, k_walltime, pt_queue_type,
+    def submit_chain_calculations(self, k_queue, k_walltime, pt_queue,
                                   pt_walltime, path_to_script):
         """
         launch a chain of calculations. The strategy is to create all 3 bash files at the start and
@@ -537,7 +537,7 @@ class SubmitBV(object):
                         innersphere_dos_command = self._get_innersphere_dos_command(
                             noj, path_to_script, script='bv_innersphere_dos.py')
                         innersphere_script = BatchScript(
-                            self.batch_system, k_queue_type, k_walltime,
+                            self.batch_system, k_queue, k_walltime,
                             innersphere_dos_command, mpi_procs=1, mpi_oversubscribe=0,
                             omp_threads=self.nthreads, cores_per_node=self.cores_per_node,
                             outdir=path, nodays=self.nodays)
@@ -581,7 +581,7 @@ class SubmitBV(object):
                                     pt_load_fname, innersphere_dos_fname,
                                     self.checkpoint_file))
                             pt_script = BatchScript(
-                                self.batch_system, pt_queue_type, pt_walltime, pt_command,
+                                self.batch_system, pt_queue, pt_walltime, pt_command,
                                 mpi_procs=pt_mpi_procs,
                                 mpi_oversubscribe=pt_mpi_oversubscribe,
                                 omp_threads=self.nthreads,
@@ -589,7 +589,7 @@ class SubmitBV(object):
                                 outdir=path, nodays=self.nodays)
                             if self.pt_checkpoint_time is not None:
                                 pt_load_script = BatchScript(
-                                    self.batch_system, pt_queue_type, pt_walltime, pt_load_command,
+                                    self.batch_system, pt_queue, pt_walltime, pt_load_command,
                                     mpi_procs=pt_mpi_procs,
                                     mpi_oversubscribe=pt_mpi_oversubscribe,
                                     omp_threads=self.nthreads,
@@ -618,7 +618,7 @@ class SubmitBV(object):
                                                                                    self.workdir_var,
                                                                                    pt_fname)
                                         kmin_script = BatchScript(
-                                            self.batch_system, k_queue_type, k_walltime,
+                                            self.batch_system, k_queue, k_walltime,
                                             kmin_command, mpi_procs=1,
                                             mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
@@ -641,7 +641,7 @@ class SubmitBV(object):
                                                                      self.workdir_var,
                                                                      kmin_fname))
                                             kmax_script = BatchScript(
-                                                self.batch_system, k_queue_type, k_walltime,
+                                                self.batch_system, k_queue, k_walltime,
                                                 kmax_command, mpi_procs=1,
                                                 mpi_oversubscribe=0,
                                                 omp_threads=self.nthreads,
@@ -656,7 +656,7 @@ class SubmitBV(object):
                                                                                    self.workdir_var,
                                                                                    pt_fname)
                                         kmax_script = BatchScript(
-                                            self.batch_system, k_queue_type, k_walltime,
+                                            self.batch_system, k_queue, k_walltime,
                                             kmax_command, mpi_procs=1,
                                             mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
@@ -681,11 +681,13 @@ if __name__ == "__main__":
                                     "packings and jammed_packings subfolders)")
     single_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
     single_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
-    single_parser.add_argument("queue_type", type=str, help="queue type")
     single_parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
     single_parser.add_argument("--batch-system", type=str,
                                help="Batch system. Supported: PBS, SLURM. "
                                     "Default: 'PBS'", default='PBS')
+    single_parser.add_argument("--queue", type=str,
+                               help="Queue type for PBS. Default: Derive from walltime "
+                                    "(works on Dexter)", default=None)
     single_parser.add_argument("--kmin", action='store_true', help="compute kmin", default=False)
     single_parser.add_argument("--kmax", action='store_true', help="compute kmax", default=False)
     single_parser.add_argument("--mbar", action='store_true',
@@ -788,13 +790,17 @@ if __name__ == "__main__":
                                    "packings and jammed_packings subfolders)")
     chain_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
     chain_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
-    chain_parser.add_argument("k_queue_type", type=str, help="queue type")
     chain_parser.add_argument("k_walltime_hours", type=float, help="wall-time in hours")
-    chain_parser.add_argument("pt_queue_type", type=str, help="queue type")
     chain_parser.add_argument("pt_walltime_hours", type=float, help="wall-time in hours")
     chain_parser.add_argument("--batch-system", type=str,
                               help="Batch system. Supported: PBS, SLURM. "
                                    "Default: 'PBS'", default='PBS')
+    single_parser.add_argument("--k-queue", type=str,
+                               help="Queue type for k on PBS. Default: Derive from k-walltime "
+                                    "(works on Dexter)", default=None)
+    single_parser.add_argument("--pt-queue", type=str,
+                               help="Queue type for PT on PBS. Default: Derive from PT-walltime "
+                                    "(works on Dexter)", default=None)
     chain_parser.add_argument("--cores-per-node", type=int,
                               help="Number of cores per node. Default: 16",
                               default=16)
@@ -952,20 +958,20 @@ if __name__ == "__main__":
                          verbose=args.verbose)
 
     if args.mode == 'chain':
-        submit_bv.submit_chain_calculations(args.k_queue_type, args.k_walltime_hours,
-                                            args.pt_queue_type, args.pt_walltime_hours,
+        submit_bv.submit_chain_calculations(args.k_queue, args.k_walltime_hours,
+                                            args.pt_queue, args.pt_walltime_hours,
                                             args.path_to_script)
     else:
         assert (not ((args.kmin is True or args.kmax is True) and args.pt is True))
         if args.kmin:
-            submit_bv.submit_kmin_calculations(args.queue_type, args.walltime_hours,
+            submit_bv.submit_kmin_calculations(args.queue, args.walltime_hours,
                                                args.path_to_script, args.force)
         if args.kmax:
-            submit_bv.submit_kmax_calculations(args.queue_type, args.walltime_hours,
+            submit_bv.submit_kmax_calculations(args.queue, args.walltime_hours,
                                                args.path_to_script, args.force)
         if args.pt:
-            submit_bv.submit_pt_calculations(args.queue_type, args.walltime_hours,
+            submit_bv.submit_pt_calculations(args.queue, args.walltime_hours,
                                              args.path_to_script, args.force)
         if args.mbar:
-            submit_bv.submit_innersphere_dos_calculations(args.queue_type, args.walltime_hours,
+            submit_bv.submit_innersphere_dos_calculations(args.queue, args.walltime_hours,
                                                           args.path_to_script, args.force)

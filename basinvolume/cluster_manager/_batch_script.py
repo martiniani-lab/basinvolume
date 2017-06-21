@@ -49,14 +49,17 @@ class BatchScript(object):
     *noday [bool]: Don't use a separate day counter, use hours instead
     *outdir [string]: the directory where to redirect the standard output
     """
-    def __init__(self, batch_system, queue_type, walltime, command, mpi_procs=1,
+    def __init__(self, batch_system, queue, walltime, command, mpi_procs=1,
                  mpi_oversubscribe=0, omp_threads=1, cores_per_node=16,
                  nodays=False, outdir=None):
         self.batch_system = batch_system
-        self.qtype = queue_type
-        self.s_wtime = walltime*60*60 #convert hours to seconds
+        if queue is None:
+            self.qtype = self._get_queue(walltime)
+        else:
+            self.qtype = queue
+        self.s_wtime = walltime*60*60  # convert hours to seconds
         self.dhms_wtime = sec_to_time(self.s_wtime, nodays=nodays,
-                                      batch_system=self.batch_system) #DD:HH:MM:SS time
+                                      batch_system=self.batch_system)  # DD-/:HH:MM:SS time
         self.command = command
         self.ready = False
         if outdir and not os.path.isabs(outdir):
@@ -69,19 +72,31 @@ class BatchScript(object):
            self.nodes += 1
         self.ncores = min(cores_per_node, self.omp_threads*(self.mpi_procs-mpi_oversubscribe))
 
+    def _get_queue(self, walltime):
+        if walltime <= 1:
+            return 'test'
+        elif walltime <= 24:
+            return 'short'
+        elif walltime <= 168:
+            return 'long'
+        elif walltime <= 672:
+            return 'huge'
+        else:
+            raise ValueError("Walltime is too long for any queue.")
+
     def write(self, fname, job_name):
         """
         *fname [string]: name of the batch script to write
         *job_name [string]: name of the job
         """
         if self.batch_system == BatchSystem.PBS:
-            self.write_pbs(fname, job_name)
+            self._write_pbs(fname, job_name)
         elif self.batch_system == BatchSystem.SLURM:
-            self.write_slurm(fname, job_name)
+            self._write_slurm(fname, job_name)
         else:
             raise ValueError("Batch system not implemented: {}".format(self.batch_system))
 
-    def write_pbs(self, fname, job_name):
+    def _write_pbs(self, fname, job_name):
         logging.info("Writing PBS batch script")
         if ".sh" not in fname:
             fname += ".sh"
@@ -115,7 +130,7 @@ class BatchScript(object):
         f.close()
         self.ready = True
 
-    def write_slurm(self, fname, job_name):
+    def _write_slurm(self, fname, job_name):
         logging.info("Writing SLURM batch script")
         if ".sh" not in fname:
             fname += ".sh"

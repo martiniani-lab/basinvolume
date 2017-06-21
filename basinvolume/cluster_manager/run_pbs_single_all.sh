@@ -5,17 +5,19 @@
 #PBS -l walltime=00:01:00:00
 #PBS -j oe
 
+batch_system=PBS
 ndim=2
 workdir=${PBS_O_WORKDIR}
 path_to_script="/home/sm958/Work/basinvolume/basinvolume/spheres/"
 job_label="32_70_88_2D"
-queue_type="s16"
+queue="short"
 walltime=12
 cores_per_node=16
 threads=1
 nojmin=0
 nojmax=500
 minimizer=LBFGS
+kmax_start=500
 pt_workers=4
 pt_runners=16
 pt_sleep_seconds=0.0001
@@ -35,10 +37,10 @@ echo
 echo "Running ${PBS_JOBNAME}"
 echo
 python ~/Work/basinvolume/basinvolume/cluster_manager/submit_bv.py single \
-$ndim $workdir $path_to_script $job_label $queue_type \
-$walltime $option --cores-per-node $cores_per_node \
+$ndim $workdir $path_to_script $job_label $walltime $option \
+--batch-system $batch_system --queue $queue --cores-per-node $cores_per_node \
 --threads $threads --nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
---pt-workers $pt_workers --pt-runners $pt_runners \
+--kmax-start $kmax_start --pt-workers $pt_workers --pt-runners $pt_runners \
 --pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
 --relstderr $pt_relstderr --pt-checkpoint-time $pt_checkpoint_time --sort --delraw
 echo
