@@ -166,11 +166,16 @@ class BatchScript(object):
 
     def get_workdir(self):
         if self.batch_system == BatchSystem.PBS:
-            return os.environ['PBS_O_WORKDIR']
+            workdir = os.getenv('PBS_O_WORKDIR')
         elif self.batch_system == BatchSystem.SLURM:
-            return os.environ['SLURM_SUBMIT_DIR']
+            workdir = os.getenv('SLURM_SUBMIT_DIR')
         else:
             raise ValueError("Batch system not implemented: {}".format(self.batch_system))
+        if not workdir:
+            logging.info("Environment variable for working directory not found, "
+                         "getting current directory.")
+            workdir = os.getcwd()
+        return workdir
 
     def get_jobid(self):
         if self.batch_system == BatchSystem.PBS:
@@ -184,8 +189,6 @@ class BatchScript(object):
         logging.info("Going to workdir")
         workdir = self.get_workdir()
         if not os.path.isabs(workdir):
-            # This makes SubmitBV still work when there is no workdir,
-            # i.e. when calling the script locally
             workdir = os.path.abspath(workdir)
             logging.info("workdir is not absolute, making absolute: {}"
                          .format(workdir))
