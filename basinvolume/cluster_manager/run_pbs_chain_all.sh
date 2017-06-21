@@ -31,7 +31,7 @@ cd ${PBS_O_WORKDIR}
 
 echo Starting job $PBS_JOBID
 echo
-echo PBS assigned me this node:
+echo PBS assigned me these nodes:
 cat $PBS_NODEFILE
 echo
 echo "Running ${PBS_JOBNAME}"

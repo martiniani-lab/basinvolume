@@ -47,7 +47,7 @@ class BatchScript(object):
     *omp_threads [int]: OpenMP threads per MPI process
     *cores_per_node [int]: Cores each cluster node has
     *noday [bool]: Don't use a separate day counter, use hours instead
-    *outdir [string]: the directory where to redirect the standard output
+    *outdir [string]: Directory for redirecting the standard output
     """
     def __init__(self, batch_system, queue, walltime, command, mpi_procs=1,
                  mpi_oversubscribe=0, omp_threads=1, cores_per_node=16,
@@ -115,7 +115,7 @@ class BatchScript(object):
         f.write('\n')
         f.write('echo Starting job ${PBS_JOBID}\n')
         f.write('echo\n')
-        f.write('echo PBS assigned me this node:\n')
+        f.write('echo PBS assigned me these nodes:\n')
         f.write('cat ${PBS_NODEFILE}\n')
         f.write('echo\n')
         f.write('echo \"Running ${PBS_JOBNAME}\"\n')
@@ -150,7 +150,7 @@ class BatchScript(object):
         f.write('echo Starting job ${SLURM_JOBID}\n')
         f.write('echo\n')
         f.write('echo SLURM assigned me these nodes:\n')
-        f.write('squeue -j ${SLURM_JOBID} -O nodelist\n')
+        f.write('squeue -j ${SLURM_JOBID} -O nodelist | tail -n +2\n')
         f.write('echo\n')
         f.write('echo \"Running ${SLURM_JOB_NAME}\"\n')
         f.write('echo\n')

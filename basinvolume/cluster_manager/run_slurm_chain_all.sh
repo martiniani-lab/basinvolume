@@ -8,9 +8,9 @@ batch_system=SLURM
 ndim=2
 workdir=${SLURM_SUBMIT_DIR}
 path_to_script="/home/jk695/basinvol/basinvolume/basinvolume/spheres/"
-job_label="2500_16"
-k_walltime=24
-pt_walltime=24
+job_label="100_16"
+k_walltime=12
+pt_walltime=12
 cores_per_node=16
 threads=1
 nojmin=0
@@ -22,14 +22,14 @@ pt_runners=16
 pt_sleep_seconds=0.0001
 pt_exchange=INDEPENDENCE_SAMPLING
 pt_relstderr=0.1
-pt_checkpoint_time=1410
+pt_checkpoint_time=700
 
 cd ${SLURM_SUBMIT_DIR}
 
 echo Starting job $SLURM_JOBID
 echo
-echo PBS assigned me this node:
-squeue -j ${SLURM_JOBID} -O nodelist
+echo SLURM assigned me these nodes:
+squeue -j ${SLURM_JOBID} -O nodelist | tail -n +2
 echo
 echo "Running ${SLURM_JOB_NAME}"
 echo
@@ -41,7 +41,7 @@ $ndim $workdir $path_to_script $job_label $k_walltime $pt_walltime \
 --pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
 --relstderr $pt_relstderr --pt-checkpoint-time $pt_checkpoint_time --sort --delraw
 echo
-echo "Job finished. PBS details are:"
+echo "Job finished. SLURM details are:"
 echo
 scontrol show job ${SLURM_JOBID}
 echo
