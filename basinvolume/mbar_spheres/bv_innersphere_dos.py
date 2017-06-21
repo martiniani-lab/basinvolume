@@ -2,6 +2,7 @@ import numpy as np
 import random
 import os
 import argparse
+import logging
 import traceback
 import copy
 from _config_innersphere_mcrunner import _config_innersphere_mcrunner
@@ -10,14 +11,14 @@ from basinvolume.enums import Minimizer
 def worker_innersphere(fname, kwargs):
     try:
         if ".xydfr" in fname or ".xyzdfr" in fname:
-            print "found experimental packing"
+            logging.info("Found experimental packing")
             raise NotImplementedError("innersphere_mcrunner not implemented!")
         else:
-            print "found numerical packing"
+            logging.info("Found numerical packing")
             mcrunner = _config_innersphere_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:
-        print('innersphere worker: %s' % (traceback.format_exc()))
+        logging.error('innersphere worker: %s' % (traceback.format_exc()))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute dos for inner sphere of basin")
@@ -33,6 +34,14 @@ if __name__ == "__main__":
                         "Default: 'FIRE'", default='FIRE')
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
+
+    if args.verbose:
+        loglevel = logging.DEBUG
+    else:
+        loglevel = logging.INFO
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=loglevel)
 
     fname = args.fname
     packings_dir = args.packings_dir

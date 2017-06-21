@@ -2,6 +2,7 @@ import numpy as np
 import random
 import os
 import argparse
+import logging
 import traceback
 import copy
 from _findk_mcrunner import _findk_mcrunner
@@ -11,14 +12,14 @@ from basinvolume.enums import Minimizer
 def worker_findk(fname, kwargs):
     try:
         if ".xydfr" in fname or ".xyzdfr" in fname:
-            print "found experimental packing"
+            logging.info("Found experimental packing")
             mcrunner = _findk_exp_mcrunner(fname, **kwargs)
         else:
-            print "found numerical packing"
+            logging.info("Found numerical packing")
             mcrunner = _findk_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:
-        print('find_k worker: %s' % (traceback.format_exc()))
+        logging.error('find_k worker: %s' % (traceback.format_exc()))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute kmax and average displacement for kmax for all jammed packings")
@@ -36,7 +37,17 @@ if __name__ == "__main__":
     parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     parser.add_argument("--seed-takestep", type=int, help="Seed for the takestep method", default=None)
     args = parser.parse_args()
-    print args
+
+    if args.verbose:
+        loglevel = logging.DEBUG
+    else:
+        loglevel = logging.INFO
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=loglevel)
+
+    logging.info(args)
+    
     fname = args.fname
     packings_dir = args.packings_dir
     if not os.path.isabs(packings_dir):
