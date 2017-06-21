@@ -38,21 +38,21 @@ public:
         int naccept = 0;
         for (int i = 0; i < nexchanges; i++) {
 
-            int i = m_index_dist(m_generator);
-            int j = m_index_dist(m_generator);
-            while(i == j) {
-                j = m_index_dist(m_generator);
+            int irep = m_index_dist(m_generator);
+            int jrep = m_index_dist(m_generator);
+            while(irep == jrep) {
+                jrep = m_index_dist(m_generator);
             }
 
-            int inow = exchange_pattern[i];
-            int jnow = exchange_pattern[j];
+            int inow = exchange_pattern[irep];
+            int jnow = exchange_pattern[jrep];
             double w = exp((energies[inow]-energies[jnow])
-                           * (betas[i]-betas[j]));
+                           * (betas[irep]-betas[jrep]));
 
             double rnd = m_real_dist(m_generator);
             if (w > rnd) {
-                exchange_pattern[i] = jnow;
-                exchange_pattern[j] = inow;
+                exchange_pattern[irep] = jnow;
+                exchange_pattern[jrep] = inow;
                 naccept += 1;
             }
         }
