@@ -11,6 +11,12 @@ class BatchSystem(Enum):
     SLURM = 2
 
 
+@unique
+class MPI_Implementation(Enum):
+    INTEL = 1
+    OPENMPI = 2
+
+
 def sec_to_time(seconds, nodays=False, batch_system=BatchSystem.PBS):
     """
     clean solution from
@@ -51,7 +57,7 @@ class BatchScript(object):
     """
     def __init__(self, batch_system, queue, walltime, command, mpi_procs=1,
                  mpi_oversubscribe=0, omp_threads=1, cores_per_node=16,
-                 nodays=False, outdir=None):
+                 nodays=False, outdir=None, mpi_impl=MPI_Implementation.OPENMPI):
         self.batch_system = batch_system
         if queue is None:
             self.qtype = self._get_queue(walltime)
@@ -71,6 +77,7 @@ class BatchScript(object):
         while self.omp_threads*(self.mpi_procs-mpi_oversubscribe) - self.nodes*cores_per_node > 0:
            self.nodes += 1
         self.ncores = min(cores_per_node, self.omp_threads*(self.mpi_procs-mpi_oversubscribe))
+        self.mpi_impl = mpi_impl
 
     def _get_queue(self, walltime):
         if walltime <= 1:
@@ -83,6 +90,14 @@ class BatchScript(object):
             return 'huge'
         else:
             raise ValueError("Walltime is too long for any queue.")
+
+    def _get_mpi_flags(self):
+        if self.mpi_impl is MPI_Implementation.OPENMPI:
+            return '-n {} --bynode'.format(self.mpi_procs)
+        elif self.mpi_impl is MPI_Implementation.INTEL:
+            return '-n {} -rr'.format(self.mpi_procs)
+        else:
+            raise ValueError("MPI implementation not implemented: {}".format(self.mpi_impl))
 
     def write(self, fname, job_name):
         """
@@ -120,7 +135,7 @@ class BatchScript(object):
         f.write('echo\n')
         f.write('echo \"Running ${PBS_JOBNAME}\"\n')
         f.write('echo\n')
-        f.write('mpirun -n {0} --bynode {1}\n'.format(self.mpi_procs, self.command))
+        f.write('mpirun {} {}\n'.format(self._get_mpi_flags(), self.command))
         f.write('echo\n')
         f.write('echo \"Job finished. PBS details are:\"\n')
         f.write('echo\n')
@@ -154,7 +169,7 @@ class BatchScript(object):
         f.write('echo\n')
         f.write('echo \"Running ${SLURM_JOB_NAME}\"\n')
         f.write('echo\n')
-        f.write('mpirun -n {0} --bynode {1}\n'.format(self.mpi_procs, self.command))
+        f.write('mpirun {} {}\n'.format(self._get_mpi_flags(), self.command))
         f.write('echo\n')
         f.write('echo \"Job finished. SLURM details are:\"\n')
         f.write('echo\n')

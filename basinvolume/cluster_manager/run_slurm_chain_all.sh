@@ -5,6 +5,7 @@
 #SBATCH --time=00-01:00:00
 
 batch_system=SLURM
+mpi_implementation=Intel
 ndim=2
 workdir=${SLURM_SUBMIT_DIR}
 path_to_script="/home/jk695/basinvol/basinvolume/basinvolume/spheres/"
@@ -35,9 +36,10 @@ echo "Running ${SLURM_JOB_NAME}"
 echo
 python ~/basinvol/basinvolume/basinvolume/cluster_manager/submit_bv.py chain \
 $ndim $workdir $path_to_script $job_label $k_walltime $pt_walltime \
---batch-system $batch_system --cores-per-node $cores_per_node \
---threads $threads --nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
---kmax-start $kmax_start --pt-workers $pt_workers --pt-replicas $pt_replicas \
+--batch-system $batch_system --mpi-implementation $mpi_implementation \
+--cores-per-node $cores_per_node --threads $threads --nojmin $nojmin \
+--nojmax $nojmax --minimizer $minimizer --kmax-start $kmax_start \
+--pt-workers $pt_workers --pt-replicas $pt_replicas \
 --pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
 --relstderr $pt_relstderr --pt-checkpoint-time $pt_checkpoint_time --sort --delraw
 echo

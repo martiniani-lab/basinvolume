@@ -9,7 +9,7 @@ import shlex
 import subprocess
 import logging
 from basinvolume.enums import Interaction
-from basinvolume.cluster_manager import BatchScript, BatchSystem
+from basinvolume.cluster_manager import BatchScript, BatchSystem, MPI_Implementation
 from basinvolume.utils import trymakedir, check_kmax_reasonable
 from basinvolume.enums import Minimizer
 from basinvolume.spheres import (HS_Generate_Jammed_Packing,
@@ -48,7 +48,8 @@ class SubmitBV(object):
                  cores_per_node=16, pt_workers=4, pt_replicas=16,
                  pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
                  pt_sleep_seconds=0.0001, pt_collect_minima=False,
-                 pt_checkpoint_time=None, nthreads=1, verbose=False):
+                 pt_checkpoint_time=None, nthreads=1,
+                 mpi_impl=MPI_Implementation.OPENMPI, verbose=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -87,6 +88,7 @@ class SubmitBV(object):
         self.pt_checkpoint_time = pt_checkpoint_time
         self.checkpoint_file = 'checkpoint.dmp'
         self.nthreads = nthreads
+        self.mpi_impl = mpi_impl
         self.verbose = verbose
         if ndim == 2:
             if not self.experimental:
@@ -289,7 +291,8 @@ class SubmitBV(object):
                                     mpi_procs=1, mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
-                                    outdir=path, nodays=self.nodays)
+                                    outdir=path, nodays=self.nodays,
+                                    mpi_impl=self.mpi_impl)
                                 batch_script.submit('bv_kmin' + noj + '.sh',
                                                     'bv_' + self.label + '_kmin' + noj)
                             else:
@@ -331,7 +334,8 @@ class SubmitBV(object):
                                     mpi_procs=1, mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
-                                    outdir=path, nodays=self.nodays)
+                                    outdir=path, nodays=self.nodays,
+                                    mpi_impl=self.mpi_impl)
                                 batch_script.submit('bv_kmax' + noj + '.sh',
                                                     'bv_' + self.label + '_kmax' + noj)
                             else:
@@ -381,7 +385,8 @@ class SubmitBV(object):
                                     mpi_procs=1, mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
-                                    outdir=path, nodays=self.nodays)
+                                    outdir=path, nodays=self.nodays,
+                                    mpi_impl=self.mpi_impl)
                                 batch_script.submit('bv_innersphere_dos' + noj + '.sh',
                                                     'bv_' + self.label + '_innersphere_dos' + noj)
                             else:
@@ -477,7 +482,8 @@ class SubmitBV(object):
                                         mpi_oversubscribe=mpi_oversubscribe,
                                         omp_threads=self.nthreads,
                                         cores_per_node=self.cores_per_node,
-                                        outdir=path, nodays=self.nodays)
+                                        outdir=path, nodays=self.nodays,
+                                        mpi_impl=self.mpi_impl)
                                     if self.pt_checkpoint_time is not None:
                                         pt_load_script = BatchScript(
                                             self.batch_system, queue, walltime, load_command,
@@ -485,7 +491,8 @@ class SubmitBV(object):
                                             mpi_oversubscribe=mpi_oversubscribe,
                                             omp_threads=self.nthreads,
                                             cores_per_node=self.cores_per_node,
-                                            outdir=path, nodays=self.nodays)
+                                            outdir=path, nodays=self.nodays,
+                                            mpi_impl=self.mpi_impl)
                                         pt_load_script.write(pt_load_fname, 'bv_' + self.label + '_pt' + noj)
                                     pt_script.submit(pt_fname, 'bv_' + self.label + '_pt' + noj)
                             else:
@@ -540,7 +547,7 @@ class SubmitBV(object):
                             self.batch_system, k_queue, k_walltime,
                             innersphere_dos_command, mpi_procs=1, mpi_oversubscribe=0,
                             omp_threads=self.nthreads, cores_per_node=self.cores_per_node,
-                            outdir=path, nodays=self.nodays)
+                            outdir=path, nodays=self.nodays, mpi_impl=self.mpi_impl)
                         if self._check_pt_config_file_ready(pt_path):
                             innersphere_script.submit('bv_innersphere_dos' + noj + '.sh',
                                                       'bv_' + self.label + '_innersphere_dos' + noj)
@@ -586,7 +593,8 @@ class SubmitBV(object):
                                 mpi_oversubscribe=pt_mpi_oversubscribe,
                                 omp_threads=self.nthreads,
                                 cores_per_node=self.cores_per_node,
-                                outdir=path, nodays=self.nodays)
+                                outdir=path, nodays=self.nodays,
+                                mpi_impl=self.mpi_impl)
                             if self.pt_checkpoint_time is not None:
                                 pt_load_script = BatchScript(
                                     self.batch_system, pt_queue, pt_walltime, pt_load_command,
@@ -594,7 +602,8 @@ class SubmitBV(object):
                                     mpi_oversubscribe=pt_mpi_oversubscribe,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
-                                    outdir=path, nodays=self.nodays)
+                                    outdir=path, nodays=self.nodays,
+                                    mpi_impl=self.mpi_impl)
                             # if kmax is either not terminated or is reasonable then continue
                             if check_kmax_reasonable(kmax_path):
                                 # if kmin and kmax terminated
@@ -623,7 +632,8 @@ class SubmitBV(object):
                                             mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
                                             cores_per_node=self.cores_per_node,
-                                            outdir=path, nodays=self.nodays)
+                                            outdir=path, nodays=self.nodays,
+                                            mpi_impl=self.mpi_impl)
                                         if kmax_ready:
                                             kmin_script.submit('bv_kmin' + noj + '.sh',
                                                                'bv_' + self.label + '_kmin' + noj)
@@ -646,7 +656,8 @@ class SubmitBV(object):
                                                 mpi_oversubscribe=0,
                                                 omp_threads=self.nthreads,
                                                 cores_per_node=self.cores_per_node,
-                                                outdir=path, nodays=self.nodays)
+                                                outdir=path, nodays=self.nodays,
+                                                mpi_impl=self.mpi_impl)
                                             kmax_script.submit('bv_kmax' + noj + '.sh',
                                                                'bv_' + self.label + '_kmax' + noj)
                                     else:
@@ -661,7 +672,8 @@ class SubmitBV(object):
                                             mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
                                             cores_per_node=self.cores_per_node,
-                                            outdir=path, nodays=self.nodays)
+                                            outdir=path, nodays=self.nodays,
+                                            mpi_impl=self.mpi_impl)
                                         kmax_script.submit('bv_kmax' + noj + '.sh',
                                                            'bv_' + self.label + '_kmax' + noj)
 
@@ -685,6 +697,9 @@ if __name__ == "__main__":
     single_parser.add_argument("--batch-system", type=str,
                                help="Batch system. Supported: PBS, SLURM. "
                                     "Default: 'PBS'", default='PBS')
+    single_parser.add_argument("--mpi-implementation", type=str,
+                               help="MPI implementation. Supported: OpenMPI, Intel. "
+                                    "Default: 'OpenMPI'", default='OPENMPI')
     single_parser.add_argument("--queue", type=str,
                                help="Queue type for PBS. Default: Derive from walltime "
                                     "(works on Dexter)", default=None)
@@ -795,6 +810,9 @@ if __name__ == "__main__":
     chain_parser.add_argument("--batch-system", type=str,
                               help="Batch system. Supported: PBS, SLURM. "
                                    "Default: 'PBS'", default='PBS')
+    chain_parser.add_argument("--mpi-implementation", type=str,
+                              help="MPI implementation. Supported: OpenMPI, Intel. "
+                                   "Default: 'OpenMPI'", default='OPENMPI')
     chain_parser.add_argument("--k-queue", type=str,
                               help="Queue type for k on PBS. Default: Derive from k-walltime "
                                    "(works on Dexter)", default=None)
@@ -906,6 +924,11 @@ if __name__ == "__main__":
     else:
         raise ValueError("Unknown batch system: {}".format(args.batch_system))
 
+    if args.mpi_implementation.upper() in MPI_Implementation.__members__:
+        mpi_impl = MPI_Implementation[args.mpi_implementation.upper()]
+    else:
+        raise ValueError("Unknown MPI implementation: {}".format(args.mpi_implementation))
+
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
     else:
@@ -955,7 +978,7 @@ if __name__ == "__main__":
                          pt_sleep_seconds=args.pt_sleep_seconds,
                          pt_collect_minima=args.pt_collect_minima,
                          pt_checkpoint_time=args.pt_checkpoint_time,
-                         verbose=args.verbose)
+                         mpi_impl=mpi_impl, verbose=args.verbose)
 
     if args.mode == 'chain':
         submit_bv.submit_chain_calculations(args.k_queue, args.k_walltime_hours,

@@ -6,6 +6,7 @@
 #PBS -j oe
 
 batch_system=PBS
+mpi_implementation=OpenMPI
 ndim=2
 workdir=${PBS_O_WORKDIR}
 path_to_script="/home/sm958/Work/basinvolume/basinvolume/spheres/"
@@ -38,8 +39,9 @@ echo "Running ${PBS_JOBNAME}"
 echo
 python ~/Work/basinvolume/basinvolume/cluster_manager/submit_bv.py single \
 $ndim $workdir $path_to_script $job_label $walltime $option \
---batch-system $batch_system --queue $queue --cores-per-node $cores_per_node \
---threads $threads --nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
+--batch-system $batch_system --mpi-implementation $mpi_implementation \
+--queue $queue --cores-per-node $cores_per_node --threads $threads \
+--nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
 --kmax-start $kmax_start --pt-workers $pt_workers --pt-replicas $pt_replicas \
 --pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
 --relstderr $pt_relstderr --pt-checkpoint-time $pt_checkpoint_time --sort --delraw
