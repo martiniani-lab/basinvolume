@@ -150,13 +150,15 @@ class BatchScript(object):
         if ".sh" not in fname:
             fname += ".sh"
         f = open(fname,'w')
-        f.write('#!/bin/bash')
+        f.write('#!/bin/bash\n')
         f.write('#SBATCH --job-name={}\n'.format(job_name))
         f.write('#SBATCH --nodes={}\n'.format(self.nodes))
         f.write('#SBATCH --cpus-per-task={}\n'.format(self.omp_threads))
         f.write('#SBATCH --time={}\n'.format(self.dhms_wtime))
         if self.outdir:
-            f.write('#SBATCH --output={}\n'.format(self.outdir))
+            f.write('#SBATCH --output={}_%j.out\n'.format(os.path.join(self.outdir, job_name)))
+        else:
+            f.write('#SBATCH --output={}_%j.out\n'.format(job_name))
         f.write('\n')
         f.write('cd ${SLURM_SUBMIT_DIR}\n')
         f.write('\n')
@@ -186,7 +188,7 @@ class BatchScript(object):
             workdir = os.getenv('SLURM_SUBMIT_DIR')
         else:
             raise ValueError("Batch system not implemented: {}".format(self.batch_system))
-        if not workdir:
+        if workdir is None:
             logging.info("Environment variable for working directory not found, "
                          "getting current directory.")
             workdir = os.getcwd()

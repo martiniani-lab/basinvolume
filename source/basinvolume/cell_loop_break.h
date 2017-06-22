@@ -22,9 +22,8 @@ public:
         : CellListsLoop<visitor_t, ndim>(visitor, container)
     {}
 
-    void loop_cell_pairs(
-        std::vector< std::array<long*, 2> >
-        const & neighbor_pairs, const size_t isubdom)
+    void loop_cell_pairs(std::vector< std::array<long*, 2> > const & neighbor_pairs,
+                         const size_t isubdom)
     {
         for (auto const & ijpair : neighbor_pairs) {
             // do double loop through atoms, avoiding duplicate pairs
