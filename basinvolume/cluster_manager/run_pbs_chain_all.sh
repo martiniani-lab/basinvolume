@@ -17,6 +17,7 @@ pt_queue="short"
 pt_walltime=24
 cores_per_node=16
 threads=1
+pt_threads=1
 nojmin=0
 nojmax=500
 minimizer=LBFGS
@@ -38,13 +39,14 @@ echo
 echo "Running ${PBS_JOBNAME}"
 echo
 python ~/Work/basinvolume/basinvolume/cluster_manager/submit_bv.py chain \
-$ndim $workdir $path_to_script $job_label $k_queue $k_walltime $pt_walltime \
+$ndim $workdir $path_to_script $job_label $k_walltime $pt_walltime \
 --batch-system $batch_system --mpi-implementation $mpi_implementation \
---k-queue $k_queue --pt-queue $pt_queue --cores-per-node $cores_per_node \
---threads $threads --nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
---kmax-start $kmax_start --pt-workers $pt_workers --pt-replicas $pt_replicas \
---pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
---relstderr $pt_relstderr --pt-checkpoint-time $pt_checkpoint_time --sort --delraw
+--cores-per-node $cores_per_node --threads $threads --pt-threads $pt_threads \
+--k-queue $k_queue --pt-queue $pt_queue --nojmin $nojmin --nojmax $nojmax \
+--minimizer $minimizer --kmax-start $kmax_start --pt-workers $pt_workers \
+--pt-replicas $pt_replicas --pt-sleep-seconds $pt_sleep_seconds \
+--pt-exchange-scheme $pt_exchange --relstderr $pt_relstderr \
+--pt-checkpoint-time $pt_checkpoint_time --sort --delraw
 echo
 echo "Job finished. PBS details are:"
 echo

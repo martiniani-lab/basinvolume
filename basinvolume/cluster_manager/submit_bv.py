@@ -40,16 +40,16 @@ class SubmitBV(object):
                  innersphere_dos_config='innersphere_jammed_packing',
                  pt_config='explore_jammed_packing',
                  packing_naming='jammed_packing',
-                 structures_dir='jammed_packings', nojmin=0, nojmax=1e6,
-                 nodays=False, experimental=False, minimizer=Minimizer.FIRE,
-                 record_steps_timeseries=False, kmax_start=500, mintotniter=5e5,
-                 maxtotniter=2e6, relstderr=0.05, numnegk=0, lownegk=-2.5,
-                 nocell=False, delraw=False,
-                 cores_per_node=16, pt_workers=4, pt_replicas=16,
-                 pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
+                 structures_dir='jammed_packings', pt_structures_dir='jammed_packings',
+                 nojmin=0, nojmax=1e6, nodays=False, experimental=False,
+                 minimizer=Minimizer.FIRE, record_steps_timeseries=False,
+                 kmax_start=500, mintotniter=5e5, maxtotniter=2e6, relstderr=0.05,
+                 numnegk=0, lownegk=-2.5, nocell=False, delraw=False,
+                 cores_per_node=16, nthreads=1, pt_nthreads=1, pt_workers=4,
+                 pt_replicas=16, pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
                  pt_sleep_seconds=0.0001, pt_collect_minima=False,
-                 pt_checkpoint_time=None, nthreads=1,
-                 mpi_impl=MPI_Implementation.OPENMPI, verbose=False):
+                 pt_checkpoint_time=None, mpi_impl=MPI_Implementation.OPENMPI,
+                 verbose=False):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -64,6 +64,7 @@ class SubmitBV(object):
         self.packing_naming = packing_naming
         self.label = job_label
         self.structures_dir = structures_dir
+        self.pt_structures_dir = pt_structures_dir
         self.nojmin = nojmin
         self.nojmax = nojmax
         self.nodays = nodays
@@ -86,6 +87,7 @@ class SubmitBV(object):
         self.pt_sleep_seconds = pt_sleep_seconds
         self.pt_collect_minima = pt_collect_minima
         self.pt_checkpoint_time = pt_checkpoint_time
+        self.pt_nthreads = pt_nthreads
         self.checkpoint_file = 'checkpoint.dmp'
         self.nthreads = nthreads
         self.mpi_impl = mpi_impl
@@ -406,7 +408,7 @@ class SubmitBV(object):
                    .format(pt_script, packing, self.workdir_var, explore_dir,
                            self.mintotniter, self.maxtotniter,
                            self.relstderr, self.pt_replicas))
-        command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir))
+        command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.pt_structures_dir))
         if self.nocell:
             command += " --nocell"
         command += " --minimizer {}".format(self.minimizer.name)
@@ -480,7 +482,7 @@ class SubmitBV(object):
                                         self.batch_system, queue, walltime, command,
                                         mpi_procs=mpi_procs,
                                         mpi_oversubscribe=mpi_oversubscribe,
-                                        omp_threads=self.nthreads,
+                                        omp_threads=self.pt_nthreads,
                                         cores_per_node=self.cores_per_node,
                                         outdir=path, nodays=self.nodays,
                                         mpi_impl=self.mpi_impl)
@@ -489,7 +491,7 @@ class SubmitBV(object):
                                             self.batch_system, queue, walltime, load_command,
                                             mpi_procs=mpi_procs,
                                             mpi_oversubscribe=mpi_oversubscribe,
-                                            omp_threads=self.nthreads,
+                                            omp_threads=self.pt_nthreads,
                                             cores_per_node=self.cores_per_node,
                                             outdir=path, nodays=self.nodays,
                                             mpi_impl=self.mpi_impl)
@@ -509,6 +511,7 @@ class SubmitBV(object):
         """
         subdirs = get_immediate_subdirectories(self.workdir)
         assert (self.structures_dir in subdirs)
+        assert (self.pt_structures_dir in subdirs)
         structures_dir_path = os.path.join(self.workdir, self.structures_dir)
         for _, _, files in os.walk(structures_dir_path):
             for file in files:
@@ -591,7 +594,7 @@ class SubmitBV(object):
                                 self.batch_system, pt_queue, pt_walltime, pt_command,
                                 mpi_procs=pt_mpi_procs,
                                 mpi_oversubscribe=pt_mpi_oversubscribe,
-                                omp_threads=self.nthreads,
+                                omp_threads=self.pt_nthreads,
                                 cores_per_node=self.cores_per_node,
                                 outdir=path, nodays=self.nodays,
                                 mpi_impl=self.mpi_impl)
@@ -600,7 +603,7 @@ class SubmitBV(object):
                                     self.batch_system, pt_queue, pt_walltime, pt_load_command,
                                     mpi_procs=pt_mpi_procs,
                                     mpi_oversubscribe=pt_mpi_oversubscribe,
-                                    omp_threads=self.nthreads,
+                                    omp_threads=self.pt_nthreads,
                                     cores_per_node=self.cores_per_node,
                                     outdir=path, nodays=self.nodays,
                                     mpi_impl=self.mpi_impl)
@@ -766,6 +769,10 @@ if __name__ == "__main__":
     single_parser.add_argument("--threads", type=int,
                                help="Number of OpenMP threads to use. Default: 1",
                                default=1)
+    single_parser.add_argument("--pt-threads", type=int,
+                               help="Number of OpenMP threads to use for parallel "
+                                    "tempering. Default: Set by THREADS",
+                               default=None)
     single_parser.add_argument("--pt-workers", type=int,
                                help="Number of workers to use for parallel tempering. "
                                     "Default: 4",
@@ -874,6 +881,10 @@ if __name__ == "__main__":
     chain_parser.add_argument("--threads", type=int,
                               help="Number of OpenMP threads to use. Default: 1",
                               default=1)
+    chain_parser.add_argument("--pt-threads", type=int,
+                              help="Number of OpenMP threads to use for parallel "
+                                   "tempering. Default: Set by THREADS",
+                              default=None)
     chain_parser.add_argument("--pt-workers", type=int,
                               help="Number of workers to use for parallel tempering. "
                                    "PT handshake is used instead of the job queue if "
@@ -939,27 +950,43 @@ if __name__ == "__main__":
     else:
         raise ValueError("Unknown exchange scheme: {}".format(args.pt_exchange_scheme))
 
+    if args.pt_threads is None:
+        args.pt_threads = args.threads
+
+    pt_packings_dir = args.packings_dir
+
     if args.sort:
         if args.nocell:
             logging.warning("Sorting without cell lists does not do anything.")
-        packings_dir = os.path.join(args.workdir, args.packings_dir)
-        packing_config = read_jammed_packing_config(os.path.join(packings_dir, 'jammed_packing0.config'))
-        if (not packing_config['sorted']
-            or (packing_config['sorted_nsubdoms'] != args.threads
-                and packing_config['pot_kwargs']['balance_omp'])):
-            # Only sort when packings have not yet been sorted
-            logging.info("Sorting jammed packings")
-            unsorted_dir = os.path.join(os.path.dirname(packings_dir), 'jammed_unsorted')
-            shutil.move(packings_dir, unsorted_dir)
-            os.environ['OMP_NUM_THREADS'] = str(args.threads)
-            sorter = HS_Generate_Jammed_Packing(target_packing_frac=packing_config['packing_frac'],
-                                                tol=1e30, maxstep_factor=packing_config['maxstep_factor'],
-                                                use_cell_lists=not args.nocell,
-                                                show=False, interaction=Interaction.HS_WCA,
-                                                minimizer=minimizer, packings_dir=unsorted_dir,
-                                                outdir=packings_dir, sort_atoms=True,
-                                                import_jammed=True, check_packing=False)
-            sorter.run()
+        def sort_packings(target_dir, config, nthreads, remove_old=False):
+            target_path = os.path.join(args.workdir, target_dir)
+            if (not config['sorted']
+                or (config['sorted_nsubdoms'] != nthreads
+                    and config['pot_kwargs']['balance_omp'])):
+                # Only sort when packings have not yet been sorted
+                logging.info("Sorting jammed packings")
+                unsorted_path = os.path.join(os.path.dirname(target_path), 'jammed_unsorted')
+                if os.path.isdir(target_path):
+                    if remove_old:
+                        shutil.rmtree(target_path)
+                    else:
+                        shutil.move(target_path, unsorted_path)
+                os.environ['OMP_NUM_THREADS'] = str(nthreads)
+                sorter = HS_Generate_Jammed_Packing(target_packing_frac=config['packing_frac'],
+                                                    tol=1e30, maxstep_factor=config['maxstep_factor'],
+                                                    use_cell_lists=not args.nocell,
+                                                    show=False, interaction=Interaction.HS_WCA,
+                                                    minimizer=minimizer, packings_dir=unsorted_path,
+                                                    outdir=target_path, sort_atoms=True,
+                                                    import_jammed=True, check_packing=False)
+                sorter.run()
+        packing_config = read_jammed_packing_config(os.path.join(args.workdir,
+                                                                 args.packings_dir,
+                                                                 'jammed_packing0.config'))
+        sort_packings(args.packings_dir, packing_config, args.threads)
+        if args.pt_threads != args.threads:
+            pt_packings_dir = 'jammed_packings_pt'
+            sort_packings(pt_packings_dir, packing_config, args.pt_threads, remove_old=True)
 
     submit_bv = SubmitBV(args.ndim, batch_system=batch_system,
                          workdir=args.workdir, job_label=args.job_label,
@@ -972,7 +999,9 @@ if __name__ == "__main__":
                          lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw,
                          explore_dir=args.explore_dir,
                          structures_dir=args.packings_dir,
+                         pt_structures_dir=pt_packings_dir,
                          cores_per_node=args.cores_per_node, nthreads=args.threads,
+                         pt_nthreads=args.pt_threads,
                          pt_workers=args.pt_workers, pt_replicas=args.pt_replicas,
                          pt_exchange_scheme=pt_exchange_scheme,
                          pt_sleep_seconds=args.pt_sleep_seconds,
