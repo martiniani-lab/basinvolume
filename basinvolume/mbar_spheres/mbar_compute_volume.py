@@ -246,7 +246,7 @@ class mbar_compute_dos(object):
 
     def _import_pt_time_series(self):
         self.timeseries = import_pt_time_series(self.explore_dir, self.adjustf_niter,
-                                                max_series_size=int(1e5), ncores=self.ncores,
+                                                max_series_size=int(1e6), ncores=self.ncores,
                                                 crop_adjustf_niter=True, del_raw=False)
 
     def _subtract_eqtime(self):
