@@ -36,6 +36,10 @@ if __name__ == "__main__":
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true',
                         help="Use global particle movements in the MC runner.", default=False)
+    parser.add_argument("--adjustf-navg", type=int,
+                        help="Number of steps to average over when adjusting the stepsize. "
+                             "Default: 100",
+                        default=100)
     parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
                         "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
                         "Default: 'FIRE'", default='FIRE')
@@ -143,7 +147,7 @@ if __name__ == "__main__":
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5,
                    opt_nsteps=1e5, hmin=0, hmax=1000, hbinsize=1e-1,
                    acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter,
-                   adjustf_navg=100, pt_eq_niter=pt_eq_niter, ts_niter=ts_niter,
+                   adjustf_navg=args.adjustf_navg, pt_eq_niter=pt_eq_niter, ts_niter=ts_niter,
                    ts_freq=ts_freq, minimizer=minimizer,
                    perform_convergence_test=perform_minimisation_convergence_test,
                    collect_minima_list=collect_minima_list, seeds=seeds,
