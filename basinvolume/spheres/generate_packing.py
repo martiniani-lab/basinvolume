@@ -483,7 +483,7 @@ class HS_Generate_Packing(_Generate_Packing):
         it generates an initial set of coordinates from a HSWCA quench,
         the HSWCA particles are then substitued by HS
         """
-        self.potential = create_potential(self, 0.05, self.packing_frac)
+        self.potential = self.create_potential(self, 0.05, self.packing_frac)
         overlap = True
         while overlap:
             coords = self._sample_random_coords()

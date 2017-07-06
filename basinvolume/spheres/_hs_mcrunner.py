@@ -10,6 +10,7 @@ from basinvolume.monte_carlo import (FindNrDecorrelationSteps,
                                      CheckOverlapLeesEdwards,
                                      CheckOverlapLeesEdwardsCellLists)
 
+
 class HS_MCrunner(_BaseMCRunner):
     """This class is derived from the _base_MCrunner abstract
      method and performs Metropolis Monte Carlo. This particular implementation of the algorithm:
@@ -32,26 +33,27 @@ class HS_MCrunner(_BaseMCRunner):
      * has a separate rng engine, therefore it's best if each receives a different randomly sampled seed
      * this class requires 1 seed for takestep
     """
+
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter=1e4,
-                  adjustf_navg=100, single=False, seeds=None, use_cell=None,
-                  distance_method=Distance.PERIODIC, pot_kwargs={}):
-        #construct base class
-        super(HS_MCrunner,self).__init__(potential, coords, temperature, niter)
+                 hs_radii, boxvec, acceptance=0.2, adjustf=0.9, adjustf_niter=1e4,
+                 adjustf_navg=100, single=False, seeds=None, use_cell=None,
+                 distance_method=Distance.PERIODIC, ncellx_scale=1.0, pot_kwargs={}):
+        # construct base class
+        super(HS_MCrunner, self).__init__(potential, coords, temperature, niter)
         self.hs_radii = hs_radii
         self.boxv = boxvec
         self.bdim = len(boxvec)
         self.nparticles = len(hs_radii)
 
-        #compute seeds
+        # compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=random.randint(0, i32max),
-                    seed_swap=random.randint(0, i32max),
-                    seed_probability_step_pattern=random.randint(0, i32max))
-        self.seeds=seeds
+                         seed_swap=random.randint(0, i32max),
+                         seed_probability_step_pattern=random.randint(0, i32max))
+        self.seeds = seeds
 
-        #construct test/action classes
+        # construct test/action classes
         self.set_report_steps(adjustf_niter)
         self.takestep_displacement = RandomCoordsDisplacement(self.seeds['seed_takestep'],
                                                               stepsize,
@@ -63,30 +65,31 @@ class HS_MCrunner(_BaseMCRunner):
         self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
         self.takestep = TakeStepProbabilities(self.seeds['seed_probability_step_pattern'])
         self.takestep.add_step(self.takestep_displacement, 0.9)
-        self.takestep.add_step(self.takestep_particle_pair_swap, 0.1) #1e-3
+        self.takestep.add_step(self.takestep_particle_pair_swap, 0.1)  # 1e-3
         ##########################################
 
         if use_cell == None:
             if np.amin(boxvec) // (2 * np.amax(hs_radii)) <= 3:
                 self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
             else:
-                self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, use_frozen=False)
+                self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, ncellx_scale=ncellx_scale,
+                                                                  use_frozen=False)
         else:
             if distance_method is Distance.LEES_EDWARDS:
                 if use_cell:
                     self.checkoverlap = CheckOverlapLeesEdwardsCellLists(
-                        hs_radii, boxvec, shear=pot_kwargs['shear'], use_frozen=False)
+                        hs_radii, boxvec, ncellx_scale=ncellx_scale, shear=pot_kwargs['shear'], use_frozen=False)
                 else:
                     self.checkoverlap = CheckOverlapLeesEdwards(hs_radii, boxvec,
                                                                 shear=pot_kwargs['shear'])
             else:
                 if use_cell:
-                    self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec,
+                    self.checkoverlap = CheckOverlapPeriodicCellLists(hs_radii, boxvec, ncellx_scale=ncellx_scale,
                                                                       use_frozen=False)
                 else:
                     self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
 
-        #set up pele:MC
+        # set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.checkoverlap)
 
@@ -106,22 +109,25 @@ class HS_MCrunner(_BaseMCRunner):
         status.stepsize = self.get_stepsize()
         return status
 
+
 class HS_MCrunnerOptDiffusion(HS_MCrunner):
     """HS_MCrunnerOptDiffusion
     * this class requires 1 seed for takestep
     """
+
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                  hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2,
-                  adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100,
-                  desired_mean_rsm_displ=None, single=False, seeds=None,
-                  use_cell=None, distance_method=Distance.PERIODIC, pot_kwargs={}):
-        #construct base class
-        super(HS_MCrunnerOptDiffusion,self).__init__(potential, coords, temperature,
-                                         stepsize, niter, hs_radii, boxvec, acceptance=acceptance,
-                                         adjustf=adjustf, adjustf_niter=adjustf_niter,
-                                         adjustf_navg=adjustf_navg, single=single, seeds=seeds,
-                                         use_cell=use_cell, distance_method=distance_method,
-                                         pot_kwargs=pot_kwargs)
+                 hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2,
+                 adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100,
+                 desired_mean_rsm_displ=None, single=False, seeds=None,
+                 use_cell=None, distance_method=Distance.PERIODIC, ncellx_scale=1.0,
+                 pot_kwargs={}):
+        # construct base class
+        super(HS_MCrunnerOptDiffusion, self).__init__(potential, coords, temperature,
+                                                      stepsize, niter, hs_radii, boxvec, acceptance=acceptance,
+                                                      adjustf=adjustf, adjustf_niter=adjustf_niter,
+                                                      adjustf_navg=adjustf_navg, single=single, seeds=seeds,
+                                                      use_cell=use_cell, distance_method=distance_method,
+                                                      ncellx_scale=ncellx_scale, pot_kwargs=pot_kwargs)
         if not desired_mean_rsm_displ:
             desired_mean_rsm_displ = np.amax(self.hs_radii) * 2
         self.initial_stepsize = stepsize
@@ -136,7 +142,7 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
 
     def get_stepsize(self):
         stepsize = self.takestep_displacement.get_stepsize()
-        #print("self.initial_stepsize:", self.initial_stepsize)
-        #print("stepsize:", stepsize)
-        #assert np.abs(self.initial_stepsize - stepsize) < 1e-10
+        # print("self.initial_stepsize:", self.initial_stepsize)
+        # print("stepsize:", stepsize)
+        # assert np.abs(self.initial_stepsize - stepsize) < 1e-10
         return stepsize
