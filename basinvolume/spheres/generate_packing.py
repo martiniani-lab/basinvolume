@@ -409,8 +409,8 @@ class HS_Generate_Packing(_Generate_Packing):
             dif_mcrunner = HS_MCrunnerOptDiffusion(
                 self.null_potential, self.coords, temperature, self.hsf_stepsize,
                 self.hsf_niter_dif, self.hs_radii, self.boxv, adjustf=0.9,
-                acceptance=0.15, adjustf_niter=1e6, single=self.single,
-                seeds=self.seeds, use_cell=self.use_cell_lists,
+                acceptance=0.2, adjustf_niter=1e6, frac_swaps=0.1,
+                single=self.single, seeds=self.seeds, use_cell=self.use_cell_lists,
                 distance_method=self.distance_method, pot_kwargs=self.pot_kwargs)
             dif_mcrunner.run()
             self.hsf_stepsize = dif_mcrunner.get_stepsize()
@@ -421,8 +421,8 @@ class HS_Generate_Packing(_Generate_Packing):
                                                      self.hsf_niter))
         self.mcrunner = HS_MCrunner(self.null_potential, self.coords, temperature,
                                     self.hsf_stepsize, self.hsf_niter, self.hs_radii,
-                                    self.boxv, adjustf=0.9, acceptance=0.15,
-                                    adjustf_niter=0, single=self.single,
+                                    self.boxv, adjustf=0.9, acceptance=0.2,
+                                    adjustf_niter=0, frac_swaps=0.1, single=self.single,
                                     seeds=self.seeds, use_cell=self.use_cell_lists,
                                     distance_method=self.distance_method,
                                     pot_kwargs=self.pot_kwargs)
