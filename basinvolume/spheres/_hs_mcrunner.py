@@ -125,8 +125,8 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
                  pot_kwargs={}):
         # construct base class
         super(HS_MCrunnerOptDiffusion, self).__init__(potential, coords, temperature,
-                                                      stepsize, niter, hs_radii, boxvec, min_acc_ratio=acceptance,
-                                                      max_acc_ratio=acceptance, adjustf=adjustf, adjustf_niter=adjustf_niter,
+                                                      stepsize, niter, hs_radii, boxvec, acceptance=acceptance,
+                                                      adjustf=adjustf, adjustf_niter=adjustf_niter,
                                                       adjustf_navg=adjustf_navg, frac_swaps=frac_swaps,
                                                       single=single, seeds=seeds, use_cell=use_cell,
                                                       distance_method=distance_method, ncellx_scale=ncellx_scale,
