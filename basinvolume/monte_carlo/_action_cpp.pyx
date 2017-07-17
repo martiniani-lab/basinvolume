@@ -257,14 +257,14 @@ cdef class _Cdef_FindNrDecorrelationSteps(_Cdef_Action):
     
     cdef cppFindNrDecorrelationSteps* newptr
     
-    def __cinit__(self, desired_mean_rsm_displ, nr_iterations_start, nr_samples_avergage,
+    def __cinit__(self, desired_mean_rsm_displ, nr_iterations_start, nr_samples_average,
                   initial_coords, boxdim):
         if len(initial_coords) % boxdim != 0:
             raise Exception("_Cdef_FindNrDecorrelationSteps: illegal input: initial_coords, boxdim")
         cdef np.ndarray[double, ndim=1] initial_coordsc = np.array(initial_coords, dtype=float)
         self.thisptr = shared_ptr[cppAction](<cppAction*>new
                          cppFindNrDecorrelationSteps(desired_mean_rsm_displ, nr_iterations_start,
-                                                    nr_samples_avergage, _pele.Array[double](<double*>
+                                                    nr_samples_average, _pele.Array[double](<double*>
                                                          initial_coordsc.data, initial_coordsc.size), boxdim))
         self.newptr = <cppFindNrDecorrelationSteps*> self.thisptr.get()
     

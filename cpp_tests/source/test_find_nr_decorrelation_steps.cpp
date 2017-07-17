@@ -71,9 +71,9 @@ TEST_F(FindNrDecorrelationSepsTest, BasicWorks){
     const size_t niter = 1e5;
     const double desired_mean_rsm_displ_ = 3*stepsize;
     const size_t nr_iterations_start_ = niter/10;
-    const size_t nr_samples_avergage_ = 3;
+    const size_t nr_samples_average_ = 3;
     bv::FindNrDecorrelationSteps* finder = new bv::FindNrDecorrelationSteps(desired_mean_rsm_displ_,
-            nr_iterations_start_, nr_samples_avergage_, x, nr_dim);
+            nr_iterations_start_, nr_samples_average_, x, nr_dim);
     mc.add_action(std::shared_ptr<mcpele::Action>(finder));
     EXPECT_EQ(finder->done(), false);
     //run mc
@@ -81,9 +81,9 @@ TEST_F(FindNrDecorrelationSepsTest, BasicWorks){
     mc.run(niter);
     //check output
     // +1 in niter_lower_limit, because we are only termiating the mc run in the next iteration in find_nr_decorrelation_steps
-    const size_t niter_lower_limit = nr_iterations_start_ + nr_samples_avergage_ * (finder->get_nr_decorrelation_steps() + 1);
+    const size_t niter_lower_limit = nr_iterations_start_ + nr_samples_average_ * (finder->get_nr_decorrelation_steps() + 1);
     // +2 in niter_upper_limit to account for inteteger truncation effects
-    const size_t niter_upper_limit = nr_iterations_start_ + nr_samples_avergage_ * (finder->get_nr_decorrelation_steps() + 2);
+    const size_t niter_upper_limit = nr_iterations_start_ + nr_samples_average_ * (finder->get_nr_decorrelation_steps() + 2);
     EXPECT_TRUE(mc.get_iterations_count() >= niter_lower_limit);
     EXPECT_TRUE(mc.get_iterations_count() <= niter_upper_limit);
     EXPECT_EQ(finder->done(), true);
@@ -97,9 +97,9 @@ TEST_F(FindNrDecorrelationSepsTest, NullTargetWorks){
     const size_t niter = 1e5;
     const double desired_mean_rsm_displ_ = 0;
     const size_t nr_iterations_start_ = niter/10;
-    const size_t nr_samples_avergage_ = 3;
+    const size_t nr_samples_average_ = 3;
     bv::FindNrDecorrelationSteps* finder = new bv::FindNrDecorrelationSteps(desired_mean_rsm_displ_,
-            nr_iterations_start_, nr_samples_avergage_, x, nr_dim);
+            nr_iterations_start_, nr_samples_average_, x, nr_dim);
     mc.add_action(std::shared_ptr<mcpele::Action>(finder));
     EXPECT_EQ(finder->done(), false);
     //run mc
@@ -107,9 +107,9 @@ TEST_F(FindNrDecorrelationSepsTest, NullTargetWorks){
     mc.run(niter);
     //check output
     // +1 in niter_lower_limit, because we are only termiating the mc run in the next iteration in find_nr_decorrelation_steps
-    const size_t niter_lower_limit = nr_iterations_start_ + nr_samples_avergage_ * (finder->get_nr_decorrelation_steps() + 1);
+    const size_t niter_lower_limit = nr_iterations_start_ + nr_samples_average_ * (finder->get_nr_decorrelation_steps() + 1);
     // +2 in niter_upper_limit to account for inteteger truncation effects
-    const size_t niter_upper_limit = nr_iterations_start_ + nr_samples_avergage_ * (finder->get_nr_decorrelation_steps() + 2);
+    const size_t niter_upper_limit = nr_iterations_start_ + nr_samples_average_ * (finder->get_nr_decorrelation_steps() + 2);
     EXPECT_TRUE(mc.get_iterations_count() >= niter_lower_limit);
     EXPECT_TRUE(mc.get_iterations_count() <= niter_upper_limit);
     EXPECT_EQ(finder->done(), true);
@@ -129,11 +129,11 @@ TEST_F(FindNrDecorrelationSepsTest, MoreNeedsMoreWorks){
     const double desired_mean_rsm_displ_ = 1 * stepsize;
     const double desired_mean_rsm_displ_2 = 2 * stepsize;
     const size_t nr_iterations_start_ = niter / 100;
-    const size_t nr_samples_avergage_ = 3;
+    const size_t nr_samples_average_ = 3;
     bv::FindNrDecorrelationSteps* finder = new bv::FindNrDecorrelationSteps(desired_mean_rsm_displ_,
-            nr_iterations_start_, nr_samples_avergage_, x, nr_dim);
+            nr_iterations_start_, nr_samples_average_, x, nr_dim);
     bv::FindNrDecorrelationSteps* finder2 = new bv::FindNrDecorrelationSteps(desired_mean_rsm_displ_2,
-                nr_iterations_start_, nr_samples_avergage_, x, nr_dim);
+                nr_iterations_start_, nr_samples_average_, x, nr_dim);
     mc.add_action(std::shared_ptr<mcpele::Action>(finder));
     mc2.add_action(std::shared_ptr<mcpele::Action>(finder2));
     EXPECT_EQ(finder->done(), false);
@@ -147,16 +147,16 @@ TEST_F(FindNrDecorrelationSepsTest, MoreNeedsMoreWorks){
     //check output
 
     // +1 in niter_lower_limit, because we are only termiating the mc run in the next iteration in find_nr_decorrelation_steps
-    const size_t niter_lower_limit = nr_iterations_start_ + nr_samples_avergage_ * (finder->get_nr_decorrelation_steps() + 1);
+    const size_t niter_lower_limit = nr_iterations_start_ + nr_samples_average_ * (finder->get_nr_decorrelation_steps() + 1);
     // +2 in niter_upper_limit to account for inteteger truncation effects
-    const size_t niter_upper_limit = nr_iterations_start_ + nr_samples_avergage_ * (finder->get_nr_decorrelation_steps() + 2);
+    const size_t niter_upper_limit = nr_iterations_start_ + nr_samples_average_ * (finder->get_nr_decorrelation_steps() + 2);
     EXPECT_TRUE(mc.get_iterations_count() >= niter_lower_limit);
     EXPECT_TRUE(mc.get_iterations_count() <= niter_upper_limit);
 
     // +1 in niter_lower_limit, because we are only termiating the mc run in the next iteration in find_nr_decorrelation_steps
-    const size_t niter_lower_limit2 = nr_iterations_start_ + nr_samples_avergage_ * (finder2->get_nr_decorrelation_steps() + 1);
+    const size_t niter_lower_limit2 = nr_iterations_start_ + nr_samples_average_ * (finder2->get_nr_decorrelation_steps() + 1);
     // +2 in niter_upper_limit to account for inteteger truncation effects
-    const size_t niter_upper_limit2 = nr_iterations_start_ + nr_samples_avergage_ * (finder2->get_nr_decorrelation_steps() + 2);
+    const size_t niter_upper_limit2 = nr_iterations_start_ + nr_samples_average_ * (finder2->get_nr_decorrelation_steps() + 2);
     EXPECT_TRUE(mc2.get_iterations_count() >= niter_lower_limit2);
     EXPECT_TRUE(mc2.get_iterations_count() <= niter_upper_limit2);
 

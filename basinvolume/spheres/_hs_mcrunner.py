@@ -118,7 +118,7 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
     """
 
     def __init__(self, potential, coords, temperature, stepsize, niter,
-                 hs_radii, boxvec, nr_samples_avergage=10, acceptance=0.2,
+                 hs_radii, boxvec, nr_samples_average=10, acceptance=0.2,
                  adjustf=0.9, adjustf_niter=1e4, adjustf_navg=100, frac_swaps=0.1,
                  desired_mean_rsm_displ=None, single=False, seeds=None,
                  use_cell=None, distance_method=Distance.PERIODIC, ncellx_scale=1.0,
@@ -136,7 +136,7 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
         self.initial_stepsize = stepsize
 
         self.diffusion = FindNrDecorrelationSteps(desired_mean_rsm_displ, adjustf_niter,
-                                                  nr_samples_avergage, coords, self.bdim)
+                                                  nr_samples_average, coords, self.bdim)
         self.add_action(self.diffusion)
 
     def get_nr_decorrelation_steps(self):

@@ -12,13 +12,13 @@ namespace bv{
 class FindNrDecorrelationSteps: public mcpele::Action{
 private:
     const size_t nr_iterations_start;
-    const size_t nr_samples_avergage;
+    const size_t nr_samples_average;
     mcpele::Moments nr_decorrelation_steps;
     RSMDTracker rsmd_tracker;
     void compute_and_update_rmsd(pele::Array<double>);
 public:
     FindNrDecorrelationSteps(const double desired_mean_rsm_displ_,
-            const size_t nr_iterations_start_, const size_t nr_samples_avergage_,
+            const size_t nr_iterations_start_, const size_t nr_samples_average_,
             pele::Array<double> initial_coords_, const size_t boxdim_);
     virtual ~FindNrDecorrelationSteps(){}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
