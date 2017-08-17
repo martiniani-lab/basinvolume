@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
     min_ptiter = int(min_tot_niter*0.1)  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
     niter = int((min_tot_niter-min_ptiter)/min_ptiter)  # 90% MCMC walk
-    adjustf_niter = int(min_tot_niter*0.2)  # equilibrate for the first 1/10th of total steps
+    adjustf_niter = int(min_tot_niter*0.2)  # equilibrate for the first 1/5th of total steps
     nskip = int(adjustf_niter/niter)  # don't swap while adjusting the step-size
     # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
     # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
