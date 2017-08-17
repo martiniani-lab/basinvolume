@@ -342,8 +342,7 @@ class PT_Master(object):
 
     def _find_exchange_buddies(self):
         """
-        This function determines the exchange pattern using alternating swaps
-        with the right and left neighbours.
+        This function determines the exchange pattern.
         An exchange pattern array is constructed, filled with self.NO_EXCHANGE
         which signifies that no exchange should be attempted. If the swap attempt
         is successful this value is replaced with the id of the replica with
@@ -398,6 +397,10 @@ class PT_Master(object):
                         self.replica_states[i].k, self.replica_states[j].k))
 
     def _neighbor_exchange(self, exchange_pattern):
+        """
+        This function determines the exchange pattern using alternating swaps
+        with the right and left neighbours.
+        """
         for i in xrange(self.exchange_choice, self.nreplicas-1, 2):
             dx1 = self.replica_states[i].dx
             k1 = self.replica_states[i].k
