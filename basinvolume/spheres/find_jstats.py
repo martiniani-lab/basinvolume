@@ -65,7 +65,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         self.interaction = interaction
         self.hs_packing_frac = ss_packing_frac / np.power(1.+sca, bdim)
         self.ss_packing_frac = ss_packing_frac
-        print self.hs_packing_frac, self.ss_packing_frac
+        logging.info("{}, {}".format(self.hs_packing_frac, self.ss_packing_frac))
         super(GeneratePackingFindJ, self).__init__(nparticles, method=method, bdim=bdim, boxv=boxv,
                                                    packing_frac=self.hs_packing_frac, hs_radii=hs_radii, mu=mu,
                                                    sig=sig, new_poly=new_poly,
@@ -110,7 +110,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             self.packing_dataset.add_packing_data(data)
         self.packing_dataset.add_success(success)
         self.iteration += 1
-        print 'iteration ', self.iteration
+        logging.info("Iteration {}".format(self.iteration))
 
     def _one_iteration_ss(self):
         """perform one iteration
@@ -123,9 +123,9 @@ class GeneratePackingFindJ(HS_Generate_Packing):
     def _setup_one_iteration_ss(self):
         # assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca_ss) >= np.amin(self.boxv) / 2:
-            print "WARNING: max soft diameter >= 1/2 box side!"
+            logging.warning("Max soft diameter >= 1/2 box side!")
         if np.amax(self.hs_radii) * 2 * (1 + self.sca_ss) >= np.amin(self.boxv):
-            raise Exception("WARNING: particle does not fit the box")
+            raise Exception("Particle does not fit in the box")
 
         ###potential needs to be called because self.coords_ss is an input argument of HS_WCAPeriodicCellLists
 
@@ -221,7 +221,8 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         if total_contacts >= N_min:
             return True
         else:
-            print "packing is not globally stable, N_min: {} N_contacts: {}".format(N_min, N_contacts)
+            logging.warning("Packing is not globally stable, N_min: {} "
+                            "total_contacts: {}".format(N_min, total_contacts))
             return False
 
     def _generate_packing_coords_ss(self):
@@ -236,7 +237,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         fire_maxstep = np.amin(self.hs_radii) * self.sca_ss
         res = modifiedfire_cpp(self.coords, self.potential_ss, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
         if not res.success:
-            print 'quench failed'
+            logging.warning("Quench failed")
             return False
 
         self.coords_ss = res.coords
@@ -245,13 +246,13 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         # test that on ri-minimisation the structure does not change
         res2 = modifiedfire_cpp(self.coords_ss, self.potential_ss, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
         if res2.nfev > 1:
-            print 'quench failed (structure changed at second minimisation)'
+            logging.warning("Quench failed (structure changed at second minimisation)")
             return False
 
         # asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
-            print 'overlap found'
+            logging.warning("Overlap found after quenching")
             return False
 
         return self._find_rattlers()
@@ -311,11 +312,14 @@ if __name__ == "__main__":
     parser.add_argument("--phimin", type=float, help="smallest density to run", default=0.83)
     parser.add_argument("--phimax", type=float, help="largest density to run", default=0.87)
     parser.add_argument("--nphi", type=int, help="number of densities to run", default=32)
-
     args = parser.parse_args()
-    print args
-    single = not args.moveall
 
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.DEBUG)
+    logging.info(args)
+
+    single = not args.moveall
     #import radii from other configuration file
     dpath = args.dpath
     hs_radii = None
