@@ -303,7 +303,7 @@ if __name__ == "__main__":
     parser.add_argument("-s","--rsigma", type=float, help="percent standard deviation",default=0.1)
     parser.add_argument("-t","--hsfstep", type=float, help="stepsize for hard sphere fluid MC simulation",default=1e-3)
     parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
-    parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
+    parser.add_argument("--newpoly", action='store_true', help="resample polydispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
     parser.add_argument("--r-pickle-path", type=str, help="path to pickled find_jstats from where to import diameters",default=None)
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)

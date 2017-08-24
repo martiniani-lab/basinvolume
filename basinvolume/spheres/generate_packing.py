@@ -457,7 +457,10 @@ class HS_Generate_Packing(_Generate_Packing):
         overlap = True
         while overlap:
             coords = self._sample_random_coords()
-            current_frac = 0.5
+            if self.bdim == 2:
+                current_frac = 0.5
+            else:
+                current_frac = 0.3
             while current_frac < self.packing_frac:
                 self.potential = self.create_potential(0.05, current_frac)
                 res = lbfgs_cpp(coords, self.potential, nsteps=1e4, tol=1e-5)
