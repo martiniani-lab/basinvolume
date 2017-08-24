@@ -305,6 +305,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--start-iter", type=int, help="starting label iteration, default=0", default=0)
     parser.add_argument("--newpoly", action='store_true', help="resample polidispersity at each iteration, default: False",default=False)
     parser.add_argument("--dpath", type=str, help="path to xy(z)d path from where to import diameters",default=None)
+    parser.add_argument("--r-pickle-path", type=str, help="path to pickled find_jstats from where to import diameters",default=None)
     parser.add_argument("--nocell", action='store_true', help="don't use cell lists, default: False",default=False)
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
@@ -327,6 +328,12 @@ if __name__ == "__main__":
         if not os.path.isabs(args.dpath):
             dpath = os.path.abspath(dpath)
         hs_radii = import_packing(dpath, False, args.boxdim)['hs_radii']
+    if args.r_pickle_path:
+        rpath = args.r_pickle_path
+        if not os.path.isabs(rpath):
+            rpath = os.path.abspath(rpath)
+        with open(rpath, 'rb') as rfile:
+            hs_radii = pickle.load(rfile).hs_radii
 
     # density = args.density
     density = np.logspace(np.log10(args.phimin), np.log10(args.phimax), args.nphi)
