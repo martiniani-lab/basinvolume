@@ -46,7 +46,8 @@ class SubmitBV(object):
                  kmax_start=500, mintotniter=5e5, maxtotniter=2e6, relstderr=0.05,
                  numnegk=0, lownegk=-2.5, nocell=False, delraw=False,
                  cores_per_node=16, nthreads=1, pt_nthreads=1, pt_workers=4,
-                 pt_replicas=16, pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
+                 pt_replicas=16, pt_adjustf_navg=100,
+                 pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
                  pt_sleep_seconds=0.0001, pt_collect_minima=False,
                  pt_checkpoint_time=None, mpi_impl=MPI_Implementation.OPENMPI,
                  verbose=False):
@@ -83,6 +84,7 @@ class SubmitBV(object):
         self.pt_output_files = ["exchanges", "rem_permutations", "temperatures"]
         self.pt_workers = pt_workers
         self.pt_replicas = pt_replicas
+        self.pt_adjustf_navg = pt_adjustf_navg
         self.pt_exchange_scheme = pt_exchange_scheme
         self.pt_sleep_seconds = pt_sleep_seconds
         self.pt_collect_minima = pt_collect_minima
@@ -412,6 +414,7 @@ class SubmitBV(object):
         if self.nocell:
             command += " --nocell"
         command += " --minimizer {}".format(self.minimizer.name)
+        command += " --adjustf-navg {}".format(self.pt_adjustf_navg)
         command += " --exchange-scheme {}".format(self.pt_exchange_scheme.name)
         command += " --sleep-seconds {}".format(self.pt_sleep_seconds)
         if self.pt_collect_minima:
@@ -781,6 +784,10 @@ if __name__ == "__main__":
                                help="Number of replicas to use for "
                                     "parallel tempering. Default: 16",
                                default=16)
+    single_parser.add_argument("--pt-adjustf-navg", type=int,
+                               help="Number of steps to average over when adjusting the stepsize "
+                                    "during PT. Default: 100",
+                               default=100)
     single_parser.add_argument("--pt-sleep-seconds", type=float,
                                help="Waiting time between MPI probes for the "
                                     "parallel tempering job queue master. "
@@ -894,6 +901,10 @@ if __name__ == "__main__":
                               help="Number of replicas to use for "
                                    "parallel tempering. Default: 16",
                               default=16)
+    chain_parser.add_argument("--pt-adjustf-navg", type=int,
+                              help="Number of steps to average over when adjusting the stepsize "
+                                   "during PT. Default: 100",
+                              default=100)
     chain_parser.add_argument("--pt-sleep-seconds", type=float,
                               help="Waiting time between MPI probes for the "
                                    "parallel tempering job queue master. "
@@ -1003,6 +1014,7 @@ if __name__ == "__main__":
                          cores_per_node=args.cores_per_node, nthreads=args.threads,
                          pt_nthreads=args.pt_threads,
                          pt_workers=args.pt_workers, pt_replicas=args.pt_replicas,
+                         pt_adjustf_navg=args.pt_adjustf_navg,
                          pt_exchange_scheme=pt_exchange_scheme,
                          pt_sleep_seconds=args.pt_sleep_seconds,
                          pt_collect_minima=args.pt_collect_minima,

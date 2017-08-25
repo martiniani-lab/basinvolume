@@ -21,6 +21,7 @@ minimizer=LBFGS
 kmax_start=500
 pt_workers=4
 pt_replicas=16
+pt_adjustf_navg=100
 pt_sleep_seconds=0.0001
 pt_exchange=INDEPENDENCE_SAMPLING
 pt_relstderr=0.05
@@ -43,8 +44,9 @@ $ndim $workdir $path_to_script $job_label $walltime $option \
 --queue $queue --cores-per-node $cores_per_node --threads $threads \
 --nojmin $nojmin --nojmax $nojmax --minimizer $minimizer \
 --kmax-start $kmax_start --pt-workers $pt_workers --pt-replicas $pt_replicas \
---pt-sleep-seconds $pt_sleep_seconds --pt-exchange-scheme $pt_exchange \
---relstderr $pt_relstderr --pt-checkpoint-time $pt_checkpoint_time --sort --delraw
+--pt-adjustf-navg $pt_adjustf_navg --pt-sleep-seconds $pt_sleep_seconds \
+--pt-exchange-scheme $pt_exchange --relstderr $pt_relstderr \
+--pt-checkpoint-time $pt_checkpoint_time --sort --delraw
 echo
 echo "Job finished. PBS details are:"
 echo
