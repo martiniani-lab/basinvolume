@@ -389,12 +389,13 @@ class PT_Master(object):
         if logging.getLogger().isEnabledFor(logging.DEBUG):
             for i in xrange(self.nreplicas):
                 j = exchange_pattern[i]
-                self.ex_outstream.write(
-                    "{}: Accepting exchange {:>2} -> {:<2}: "
-                    "{:.4g} -> {:.4g}, {:.4g} -> {:.4g}\n".format(
-                        self.ptiter, i, j,
-                        self.replica_states[i].dx, self.replica_states[j].dx,
-                        self.replica_states[i].k, self.replica_states[j].k))
+                if i != j:
+                    self.ex_outstream.write(
+                        "{}: Accepting exchange {:>2} -> {:<2}: "
+                        "{:.4g} -> {:.4g}, {:.4g} -> {:.4g}\n".format(
+                            self.ptiter, i, j,
+                            self.replica_states[i].dx, self.replica_states[j].dx,
+                            self.replica_states[i].k, self.replica_states[j].k))
 
     def _neighbor_exchange(self, exchange_pattern):
         """
