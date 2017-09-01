@@ -619,12 +619,12 @@ class PT_Master(object):
 
     def _print_exchanges(self):
         logging.info("Number of exchanges:")
-        exchange_header = "        "
+        exchange_header = "       "
         for i in xrange(self.nreplicas):
             exchange_header += "{:>6}".format(i)
         logging.info(exchange_header)
         for i in range(self.nreplicas):
-            line = "{:>2} <-> _".format(i)
+            line = "{:>2} -> _".format(i)
             for j in range(self.nreplicas):
                 line += "{:>6}".format(self.exchange_cnts[i, j])
             logging.info(line)
