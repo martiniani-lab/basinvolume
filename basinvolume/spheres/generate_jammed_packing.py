@@ -440,6 +440,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         logging.debug(self._log("N_min: {} total_contacts: {}"
                                 .format(N_min, total_contacts)))
         logging.debug(self._log("Number of rattlers: {}".format(nrattlers)))
+        if nrattlers > self.max_nrattlers:
+            logging.warning(self._log("Too many rattlers. Discarding packing."))
+            return False
         if total_contacts >= N_min:
             return True
         else:

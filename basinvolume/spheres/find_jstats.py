@@ -218,6 +218,9 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         logging.debug("N_min: {} total_contacts: {}"
                       .format(N_min, total_contacts))
         logging.debug("Number of rattlers: {}".format(self.nrattlers))
+        if self.nrattlers > self.max_nrattlers:
+            logging.warning("Too many rattlers. Discarding packing.")
+            return False
         if total_contacts >= N_min:
             return True
         else:
