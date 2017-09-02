@@ -701,7 +701,7 @@ def simple_overlap_check(coords, radii, boxlength):
                 return True # At least one overlap.
     return False # No overlap.
 
-def check_kmax_reasonable(kmax_configpath, max_kmax=5e5):
+def check_kmax_reasonable(kmax_configpath, max_kmax=1e9):
     """
     checks whether the value for kmax is reasonable. If it can't
     read kmax then it assumes that it is reasonable. It is essential
