@@ -4,6 +4,7 @@ import os
 import traceback
 import ConfigParser
 import logging
+import argparse
 from pele.utils._pressure_tensor import pressure_tensor
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp

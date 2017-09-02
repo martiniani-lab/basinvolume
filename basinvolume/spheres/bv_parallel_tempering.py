@@ -156,7 +156,7 @@ if __name__ == "__main__":
                    packings_dir=args.packings_dir, base_dir=path)
 
     if not check_kmax_reasonable(sim.findk_configpath):
-        logging.warning('bv_parallel_tempering: kmax is unreasonable, exiting')
+        logging.error('bv_parallel_tempering: kmax is unreasonable, exiting')
         sys.exit()
 
     # prepare PT runner

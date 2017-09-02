@@ -5,6 +5,7 @@ import os
 import traceback
 import ConfigParser
 import logging
+import argparse
 from scipy.special import sph_harm
 from basinvolume.utils import trymakedir
 from basinvolume.post_processing.simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
