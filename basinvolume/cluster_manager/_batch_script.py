@@ -71,12 +71,13 @@ class BatchScript(object):
         if outdir and not os.path.isabs(outdir):
             outdir = os.path.abspath(outdir)
         self.mpi_procs = mpi_procs
+        self.mpi_oversubscribe = mpi_oversubscribe
         self.omp_threads = omp_threads
         self.outdir = outdir
         self.nodes = 1
-        while self.omp_threads*(self.mpi_procs-mpi_oversubscribe) - self.nodes*cores_per_node > 0:
+        while self.omp_threads*(self.mpi_procs-self.mpi_oversubscribe) - self.nodes*cores_per_node > 0:
            self.nodes += 1
-        self.ncores = min(cores_per_node, self.omp_threads*(self.mpi_procs-mpi_oversubscribe))
+        self.ncores = min(cores_per_node, self.omp_threads*(self.mpi_procs-self.mpi_oversubscribe))
         self.mpi_impl = mpi_impl
 
     def _get_queue(self, walltime):
@@ -153,7 +154,7 @@ class BatchScript(object):
         f.write('#!/bin/bash\n')
         f.write('#SBATCH --job-name={}\n'.format(job_name))
         f.write('#SBATCH --nodes={}\n'.format(self.nodes))
-        f.write('#SBATCH --ntasks={}\n'.format(self.mpi_procs))
+        f.write('#SBATCH --ntasks={}\n'.format(self.mpi_procs-self.mpi_oversubscribe))
         f.write('#SBATCH --cpus-per-task={}\n'.format(self.omp_threads))
         f.write('#SBATCH --time={}\n'.format(self.dhms_wtime))
         if self.outdir:
