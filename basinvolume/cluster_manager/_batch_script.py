@@ -153,6 +153,7 @@ class BatchScript(object):
         f.write('#!/bin/bash\n')
         f.write('#SBATCH --job-name={}\n'.format(job_name))
         f.write('#SBATCH --nodes={}\n'.format(self.nodes))
+        f.write('#SBATCH --ntasks={}\n'.format(self.mpi_procs))
         f.write('#SBATCH --cpus-per-task={}\n'.format(self.omp_threads))
         f.write('#SBATCH --time={}\n'.format(self.dhms_wtime))
         if self.outdir:

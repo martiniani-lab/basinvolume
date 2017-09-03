@@ -2,6 +2,7 @@
 ##Example SLURM script to submit job chains using submit_bv
 #SBATCH --job-name=submit_chain_jobs
 #SBATCH --nodes=1
+#SBATCH --ntasks=1
 #SBATCH --time=00-01:00:00
 #SBATCH --output=submit_%j.out
 
