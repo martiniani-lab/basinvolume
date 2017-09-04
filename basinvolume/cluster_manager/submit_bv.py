@@ -971,10 +971,11 @@ if __name__ == "__main__":
             logging.warning("Sorting without cell lists does not do anything.")
         def sort_packings(target_dir, config, nthreads, remove_old=False):
             target_path = os.path.join(args.workdir, target_dir)
-            if (not config['sorted']
+            if (not os.path.isdir(target_path)
+                or not config['sorted']
                 or (config['sorted_nsubdoms'] != nthreads
                     and config['pot_kwargs']['balance_omp'])):
-                # Only sort when packings have not yet been sorted
+                # Only sort when directory doesn't exist or packings have not yet been sorted
                 logging.info("Sorting jammed packings")
                 unsorted_path = os.path.join(os.path.dirname(target_path), 'jammed_unsorted')
                 if os.path.isdir(target_path):
