@@ -250,7 +250,8 @@ class PT_Master(object):
     def _create_checkpoint(self):
         del self.comm
         del self._calculate_exchange
-        del self.indep_sampling
+        if hasattr(self, 'indep_sampling'):
+            del self.indep_sampling
         self._flush_close_streams()
         del self.ex_outstream
         del self.permutations_stream
