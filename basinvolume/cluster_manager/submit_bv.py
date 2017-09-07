@@ -992,9 +992,10 @@ if __name__ == "__main__":
                                                     outdir=target_path, sort_atoms=True,
                                                     import_jammed=True, check_packing=False)
                 sorter.run()
-        packing_config = read_jammed_packing_config(os.path.join(args.workdir,
-                                                                 args.packings_dir,
-                                                                 'jammed_packing0.config'))
+        packings_path = os.path.join(args.workdir, args.packings_dir)
+        packing_files = os.listdir(packings_path)
+        first_config = sorted([f for f in packing_files if '.config' in f])[0]
+        packing_config = read_jammed_packing_config(os.path.join(packings_path, first_config))
         sort_packings(args.packings_dir, packing_config, args.threads)
         if args.pt_threads != args.threads:
             pt_packings_dir = 'jammed_packings_pt'
