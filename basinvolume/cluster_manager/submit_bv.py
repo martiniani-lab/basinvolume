@@ -43,8 +43,8 @@ class SubmitBV(object):
                  structures_dir='jammed_packings', pt_structures_dir='jammed_packings',
                  nojmin=0, nojmax=1e6, nodays=False, experimental=False,
                  minimizer=Minimizer.FIRE, record_steps_timeseries=False,
-                 kmax_start=500, mintotniter=5e5, maxtotniter=2e6, relstderr=0.05,
-                 numnegk=0, lownegk=-2.5, nocell=False, delraw=False,
+                 kmax_start=500, mintotniter=5e5, maxtotniter=2e6, adjustf_niter=5e4,
+                 relstderr=0.05, numnegk=0, lownegk=-2.5, nocell=False, delraw=False,
                  cores_per_node=16, nthreads=1, pt_nthreads=1, pt_workers=4,
                  pt_replicas=16, pt_adjustf_navg=100,
                  pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
@@ -74,6 +74,7 @@ class SubmitBV(object):
         self.record_steps_timeseries = record_steps_timeseries
         self.mintotniter = int(mintotniter)
         self.maxtotniter = int(maxtotniter)
+        self.adjustf_niter = adjustf_niter
         self.relstderr = relstderr
         self.lownegk = lownegk
         self.numnegk = numnegk
@@ -405,10 +406,10 @@ class SubmitBV(object):
         explore_dir = self.explore_dir + noj
         pt_script = os.path.join(path_to_script, script)
         command = ("python {0} {1} ${{{2}}}/{3} "
-                   "--mintotniter {4} --maxtotniter {5} --relstderr {6} "
-                   "--nreplicas {7}"
+                   "--mintotniter {4} --maxtotniter {5} --adjustf-niter {6} "
+                   "--relstderr {7} --nreplicas {8}"
                    .format(pt_script, packing, self.workdir_var, explore_dir,
-                           self.mintotniter, self.maxtotniter,
+                           self.mintotniter, self.maxtotniter, self.adjustf_niter,
                            self.relstderr, self.pt_replicas))
         command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.pt_structures_dir))
         if self.nocell:
@@ -741,11 +742,14 @@ if __name__ == "__main__":
                                help="starting value for kmax calculation", default=500)
     single_parser.add_argument("--mintotniter", type=float,
                                help="minimum number of energy evaluation per replica, "
-                               "before checking for convergence default: 5e5. "
-                               "This sets a lower bound", default=5e5)
+                                    "before checking for convergence default: 5e5. "
+                                    "This sets a lower bound", default=5e5)
     single_parser.add_argument("--maxtotniter", type=float,
                                help="maximum number of energy evaluation per replica, "
-                               "This sets an upper bound default: 2e6", default=2e6)
+                                    "This sets an upper bound default: 2e6", default=2e6)
+    single_parser.add_argument("--adjustf-niter", type=float,
+                               help="Number of steps to adjust the stepsize. "
+                                    "Default: 0.1 * mintotniter", default=None)
     single_parser.add_argument("--relstderr", type=float,
                                help="relative standard error to test convergence, "
                                "default 0.05", default=0.05)
@@ -861,6 +865,9 @@ if __name__ == "__main__":
     chain_parser.add_argument("--maxtotniter", type=float,
                               help="maximum number of energy evaluation per replica, "
                               "This sets an upper bound default: 2e6", default=2e6)
+    chain_parser.add_argument("--adjustf-niter", type=float,
+                              help="Number of steps to adjust the stepsize. "
+                                   "Default: 0.1 * mintotniter", default=None)
     chain_parser.add_argument("--relstderr", type=float,
                               help="relative standard error to test convergence, default 0.05",
                               default=0.05)
@@ -961,8 +968,14 @@ if __name__ == "__main__":
     else:
         raise ValueError("Unknown exchange scheme: {}".format(args.pt_exchange_scheme))
 
+    if args.adjustf_niter is None:
+        adjustf_niter = int(args.mintotniter * 0.1)  # equilibrate for the first 1/10th of total steps
+    else:
+        adjustf_niter = int(args.adjustf_niter)
+
     if args.pt_threads is None:
         args.pt_threads = args.threads
+
 
     pt_packings_dir = args.packings_dir
 
@@ -1007,7 +1020,7 @@ if __name__ == "__main__":
                          experimental=args.experimental, minimizer=minimizer,
                          record_steps_timeseries=args.rsts,
                          kmax_start=args.kmax_start, mintotniter=args.mintotniter,
-                         maxtotniter=args.maxtotniter,
+                         maxtotniter=args.maxtotniter, adjustf_niter=adjustf_niter,
                          relstderr=args.relstderr, numnegk=args.numnegk,
                          lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw,
                          explore_dir=args.explore_dir,

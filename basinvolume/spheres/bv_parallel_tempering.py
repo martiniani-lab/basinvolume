@@ -29,7 +29,10 @@ if __name__ == "__main__":
                              "This sets a lower bound", default=5e5)
     parser.add_argument("-m","--maxtotniter", type=float,
                         help="maximum number of energy evaluations per replica. "
-                        "This sets an upper bound default: 2e6", default=2e6)
+                             "This sets an upper bound default: 2e6", default=2e6)
+    parser.add_argument("--adjustf-niter", type=float,
+                        help="Number of steps to adjust the stepsize. "
+                             "Default: 0.1 * mintotniter", default=None)
     parser.add_argument("--numnegk", type=int, help="number of negative k's to use, default 0",default=0)
     parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
     parser.add_argument("-s", "--relstderr", type=float, help="relative standard error to test convergence, default 0.05", default=0.05)
@@ -100,7 +103,10 @@ if __name__ == "__main__":
 
     min_ptiter = int(min_tot_niter*0.1)  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
     niter = int((min_tot_niter-min_ptiter)/min_ptiter)  # 90% MCMC walk
-    adjustf_niter = int(min_tot_niter*0.2)  # equilibrate for the first 1/5th of total steps
+    if args.adjustf_niter is None:
+        adjustf_niter = int(min_tot_niter * 0.1)  # equilibrate for the first 1/10th of total steps
+    else:
+        adjustf_niter = int(args.adjustf_niter)
     nskip = int(adjustf_niter/niter)  # don't swap while adjusting the step-size
     # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
     # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
