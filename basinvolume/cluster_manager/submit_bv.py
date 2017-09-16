@@ -82,7 +82,8 @@ class SubmitBV(object):
         self.nocell = nocell
         self.delraw = delraw
         self.cores_per_node = cores_per_node
-        self.pt_output_files = ["exchanges", "rem_permutations", "temperatures"]
+        self.checkpoint_file = 'checkpoint.dmp'
+        self.pt_output_files = ["exchanges", "rem_permutations", "temperatures", "stepsizes", self.checkpoint_file]
         self.pt_workers = pt_workers
         self.pt_replicas = pt_replicas
         self.pt_adjustf_navg = pt_adjustf_navg
@@ -91,7 +92,6 @@ class SubmitBV(object):
         self.pt_collect_minima = pt_collect_minima
         self.pt_checkpoint_time = pt_checkpoint_time
         self.pt_nthreads = pt_nthreads
-        self.checkpoint_file = 'checkpoint.dmp'
         self.nthreads = nthreads
         self.mpi_impl = mpi_impl
         self.verbose = verbose
