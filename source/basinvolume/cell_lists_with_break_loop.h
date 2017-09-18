@@ -16,9 +16,9 @@ public:
         : CellLists<distance_policy>(dist, boxv, rcut, ncellx_scale)
     {}
     template<class callback_class>
-    CellListsLoopBreak<callback_class, m_ndim> get_atom_pair_looper_break(callback_class& callback) const
+    CellListsLoopBreak<callback_class, distance_policy> get_atom_pair_looper_break(callback_class& callback) const
     {
-        return CellListsLoopBreak<callback_class, m_ndim>(callback, CellLists<distance_policy>::m_container);
+        return CellListsLoopBreak<callback_class, distance_policy>(callback, CellLists<distance_policy>::m_container, CellLists<distance_policy>::m_lattice_tool);
     }
 };
 

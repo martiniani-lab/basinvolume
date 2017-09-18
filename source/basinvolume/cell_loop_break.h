@@ -11,15 +11,20 @@ namespace pele {
  * of m_visitor.insert_atom_pair(atomi, atomj).
  * This is used to have a cell-list-based overlap check.
  */
-template <class visitor_t, size_t ndim>
-class CellListsLoopBreak : public CellListsLoop<visitor_t, ndim> {
-    using CellListsLoop<visitor_t, ndim>::m_container;
+template <class visitor_t, typename distance_policy = periodic_distance<3> >
+class CellListsLoopBreak : public CellListsLoop<visitor_t, distance_policy> {
+    using CellListsLoop<visitor_t, distance_policy>::m_container;
+    using CellListsLoop<visitor_t, distance_policy>::m_lattice_tool;
 protected:
+    typedef VecN<distance_policy::_ndim, size_t> cell_vec_t;
     bool m_break = false;
 public:
     virtual ~CellListsLoopBreak() {}
-    CellListsLoopBreak(visitor_t& visitor, CellListsContainer<ndim> const& container)
-        : CellListsLoop<visitor_t, ndim>(visitor, container)
+    CellListsLoopBreak(
+        visitor_t& visitor,
+        CellListsContainer<distance_policy::_ndim> const& container,
+        pele::LatticeNeighbors<distance_policy> lattice_tool)
+        : CellListsLoop<visitor_t, distance_policy>(visitor, container, lattice_tool)
     {}
 
     void loop_cell_pairs(std::vector< std::array<long*, 2> > const & neighbor_pairs,
@@ -35,11 +40,32 @@ public:
                 for (auto jcell_iter = m_container.getIterator(ijpair[1]);
                      *jcell_iter != jend;
                      ++jcell_iter) {
-                    if (CellListsLoop<visitor_t, ndim>::m_visitor.insert_atom_pair(*icell_iter, *jcell_iter, isubdom)) {
+                    if (CellListsLoop<visitor_t, distance_policy>::m_visitor.insert_atom_pair(*icell_iter, *jcell_iter, isubdom)) {
                         m_break = true;
                     }
                     if (m_break) {
                         return;
+                    }
+                }
+            }
+        }
+    }
+
+    void loop_cell_pairs_specific(std::vector<size_t> const & icells, std::vector<long> const & iatoms)
+    {
+        for (size_t i = 0; i < icells.size(); ++i) {
+            size_t isubdom = m_lattice_tool.get_subdomain(icells[i]);
+            for (long* jcell : m_container.m_cell_neighbors[icells[i]]) {
+                for (auto jcell_iter = m_container.getIterator(jcell);
+                     *jcell_iter != CELL_END;
+                     ++jcell_iter) {
+                    if (iatoms[i] != *jcell_iter) {
+                        if (CellListsLoop<visitor_t, distance_policy>::m_visitor.insert_atom_pair(iatoms[i], *jcell_iter, isubdom)) {
+                            m_break = true;
+                        }
+                        if (m_break) {
+                            return;
+                        }
                     }
                 }
             }

@@ -62,7 +62,7 @@ class HS_MCrunner(_BaseMCRunner):
                                                               max_acc_ratio=acceptance, single=single,
                                                               nparticles=self.nparticles,
                                                               bdim=self.bdim)
-        self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles)
+        self.takestep_particle_pair_swap = ParticlePairSwap(self.seeds['seed_swap'], self.nparticles, self.bdim)
         self.takestep = TakeStepProbabilities(self.seeds['seed_probability_step_pattern'])
         if frac_swaps < 1:
             self.takestep.add_step(self.takestep_displacement, 1-frac_swaps)

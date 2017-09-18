@@ -49,7 +49,7 @@ public:
             throw std::runtime_error("CheckOverlap::conf_test: illegal input");
         }
         double dr[m_ndim];
-        std::vector<size_t> changed_atoms = mc->get_changed_atoms();
+        const std::vector<long> changed_atoms = mc->get_changed_atoms();
         if (changed_atoms.size() == 0) {
             for (size_t i = 0; i < m_nparticles; ++i) {
                 const size_t i1 = m_ndim * i;
@@ -64,7 +64,7 @@ public:
                 }
             }
         } else {
-            for (size_t i : changed_atoms) {
+            for (long i : changed_atoms) {
                 const size_t i1 = m_ndim * i;
                 for (size_t j = 0; j < m_nparticles; ++j) {
                     if (i != j) {
