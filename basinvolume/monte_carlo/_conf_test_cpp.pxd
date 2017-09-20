@@ -46,24 +46,24 @@ cdef extern from "basinvolume/check_overlap.h" namespace "bv":
 cdef extern from "basinvolume/check_overlap_cell_lists.h" namespace "bv":
     cdef cppclass cppCheckOverlapPeriodicCellLists "bv::CheckOverlapPeriodicCellLists"[ndim]:
         cppCheckOverlapPeriodicCellLists(_pele.Array[double] radii,
-        _pele.Array[double] boxvec, double ncellx_scale) except +
+        _pele.Array[double] boxvec, double ncellx_scale, cbool specific) except +
     cdef cppclass cppCheckOverlapCartesianCellLists "bv::CheckOverlapCartesianCellLists"[ndim]:
         cppCheckOverlapCartesianCellLists(_pele.Array[double] radii,
-        _pele.Array[double] boxvec, double ncellx_scale) except +
+        _pele.Array[double] boxvec, double ncellx_scale, cbool specific) except +
     cdef cppclass cppCheckOverlapLeesEdwardsCellLists "bv::CheckOverlapLeesEdwardsCellLists"[ndim]:
         cppCheckOverlapLeesEdwardsCellLists(_pele.Array[double] radii,
-        _pele.Array[double] boxvec, const double shear, double ncellx_scale) except +
+        _pele.Array[double] boxvec, const double shear, double ncellx_scale, cbool specific) except +
     cdef cppclass cppCheckOverlapPeriodicCellListsFrozen "bv::CheckOverlapPeriodicCellListsFrozen"[ndim]:
         cppCheckOverlapPeriodicCellListsFrozen(_pele.Array[double] reference_coords,
         _pele.Array[size_t] frozen_ndof, _pele.Array[double] radii, _pele.Array[double] boxvec,
-        double ncellx_scale) except +
+        double ncellx_scale, cbool specific) except +
     cdef cppclass cppCheckOverlapCartesianCellListsFrozen "bv::CheckOverlapCartesianCellListsFrozen"[ndim]:
         cppCheckOverlapCartesianCellListsFrozen(_pele.Array[double] reference_coords,
         _pele.Array[size_t] frozen_ndof, _pele.Array[double] radii, _pele.Array[double] boxvec,
-        double ncellx_scale) except +
+        double ncellx_scale, cbool specific) except +
     cdef cppclass cppCheckOverlapLeesEdwardsCellListsFrozen "bv::CheckOverlapLeesEdwardsCellListsFrozen"[ndim]:
         cppCheckOverlapLeesEdwardsCellListsFrozen(_pele.Array[double] reference_coords,
-        _pele.Array[size_t] frozen_ndof, _pele.Array[double] radii, _pele.Array[double] boxvec, const double shear, double ncellx_scale) except +
+        _pele.Array[size_t] frozen_ndof, _pele.Array[double] radii, _pele.Array[double] boxvec, const double shear, double ncellx_scale, cbool specific) except +
 
 cdef extern from "basinvolume/minimum.h" namespace "bv":
     cdef cppclass cppMinimum "bv::Minimum":
