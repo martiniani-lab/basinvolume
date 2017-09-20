@@ -126,9 +126,10 @@ public:
         if (!std::isfinite(trial_coords[0]) || !std::isfinite(*(trial_coords.end() - 1))) {
             return false;
         }
-        if (m_specific) {
 
-            std::vector<long> changed_atoms = mc->get_changed_atoms();
+        std::vector<long> changed_atoms = mc->get_changed_atoms();
+        if (m_specific && changed_atoms.size() > 0) {
+
             std::vector<double> changed_coords_old = mc->get_changed_coords_old();
             if (!mc->get_last_success()) {
                 merge_last_and_current_changes(changed_atoms, changed_coords_old);
