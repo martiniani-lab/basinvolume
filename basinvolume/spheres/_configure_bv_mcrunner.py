@@ -32,8 +32,8 @@ class configure_bv_mcrunner(_configure_mcrunner):
                  adjustf=0.9, adjustf_niter=5e3, adjustf_navg=100, pt_eq_niter=0,
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=None,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
-                 collect_minima_list=False, single=False, seeds=None,
-                 use_cell_lists=False, minimizer=Minimizer.FIRE, record_histogram=False,
+                 collect_minima_list=False, single=False, seeds=None, use_cell_lists=False,
+                 checkoverlap_cell_lists=None, minimizer=Minimizer.FIRE, record_histogram=False,
                  packings_dir='jammed_packings', base_dir=None, verbose=False):
 
         self.fname = fname
@@ -51,8 +51,10 @@ class configure_bv_mcrunner(_configure_mcrunner):
                       pt_eq_niter=pt_eq_niter, ts_niter=ts_niter, ts_freq=ts_freq,
                       opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol, opt_nsteps=opt_nsteps,
                       perform_convergence_test=perform_convergence_test, record_histogram=record_histogram,
-                      collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
-                      single=single, distance_method=self.distance_method, use_frozen=False, minimizer=minimizer, record_trajectory=False,
+                      collect_minima_list=collect_minima_list, seeds=seeds,
+                      use_cell_lists=use_cell_lists, checkoverlap_cell_lists=checkoverlap_cell_lists,
+                      single=single, distance_method=self.distance_method,
+                      use_frozen=False, minimizer=minimizer, record_trajectory=False,
                       interaction=self.interaction, pot_kwargs=self.pot_kwargs)
 
         self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)

@@ -150,6 +150,11 @@ if __name__ == "__main__":
             logging.info("found numerical packing")
         sim = configure_bv_mcrunner(rank, nprocs)
 
+    # Specific check overlap with cell lists and job queue doesn't work.
+    # Use specific version without cell lists instead, since that's faster than
+    # the non-specific cell lists version
+    mcrunner_checkoverlap_cell_lists = False
+
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5,
                    opt_nsteps=1e5, hmin=0, hmax=1000, hbinsize=1e-1,
                    acceptance=0.2, adjustf=0.9, adjustf_niter=adjustf_niter,
@@ -157,8 +162,9 @@ if __name__ == "__main__":
                    ts_freq=ts_freq, minimizer=minimizer,
                    perform_convergence_test=perform_minimisation_convergence_test,
                    collect_minima_list=collect_minima_list, seeds=seeds,
-                   use_cell_lists=not args.nocell, single=single,
-                   record_histogram=record_histogram,
+                   use_cell_lists=not args.nocell,
+                   checkoverlap_cell_lists=mcrunner_checkoverlap_cell_lists,
+                   single=single, record_histogram=record_histogram,
                    packings_dir=args.packings_dir, base_dir=path)
 
     if not check_kmax_reasonable(sim.findk_configpath):

@@ -86,7 +86,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                  hmin=0, hmax=1, hbinsize=0.001, report_steps=0, pt_eq_niter=0,
                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-5, opt_nsteps=1e5,
                  perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=True, record_histogram=False,
+                 seeds=None, use_cell_lists=True, checkoverlap_cell_lists=None, record_histogram=False,
                  distance_method=Distance.PERIODIC, use_frozen=False, frozen_atoms=None,
                  rcontainer=None, minimizer=Minimizer.FIRE,
                  interaction=Interaction.HS_WCA, pot_kwargs={}):
@@ -102,6 +102,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         # check same minimum parameters
         self.perform_convergence_test = perform_convergence_test
         self.collect_minima_list = collect_minima_list
+        self.checkoverlap_cell_lists = checkoverlap_cell_lists
         super(SpheresMCRunner, self).__init__(potential, full_coords, temperature, stepsize,
                                               niter, origin, hs_radii, boxv, sca, rattlers=rattlers,
                                               k=k, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax, hbinsize=hbinsize,
@@ -158,7 +159,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             self.add_conf_test(self.conftest0)
         if self.interaction is Interaction.HS_WCA:
             if self.distance_method is Distance.PERIODIC:
-                if self.use_cell_lists:
+                if (self.checkoverlap_cell_lists is None and self.use_cell_lists) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapPeriodicCellLists(
                         self.hs_radii, self.boxv, ncellx_scale=self.ncellx_scale,
                         use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
@@ -168,7 +169,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                         self.hs_radii, self.boxv, use_frozen=self.use_frozen,
                         reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
             elif self.distance_method is Distance.CARTESIAN:
-                if self.use_cell_lists:
+                if (self.checkoverlap_cell_lists is None and self.use_cell_lists) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapCartesianCellLists(
                         self.hs_radii, self.boxv, ncellx_scale=self.ncellx_scale,
                         use_frozen=self.use_frozen, frozen_atoms=self.frozen_atoms,
@@ -178,7 +179,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                         self.hs_radii, self.bdim, use_frozen=self.use_frozen,
                         reference_coords=self.origin, frozen_atoms=self.frozen_atoms)
             elif self.distance_method is Distance.LEES_EDWARDS:
-                if self.use_cell_lists:
+                if (self.checkoverlap_cell_lists is None and self.use_cell_lists) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapLeesEdwardsCellLists(
                         self.hs_radii, self.boxv,
                         shear=self.pot_kwargs['shear'],
@@ -371,10 +372,9 @@ class BV_MCrunner(SpheresMCRunner):
                  ts_niter=None, ts_freq=1, opt_dtmax=1, opt_maxstep=0.5,
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
-                 record_histogram=False, record_steps_timeseries=False,
-                 record_steps_timeseries_every=[1],
-                 record_trajectory=False,
-                 record_trajectory_npoints=1e4,
+                 checkoverlap_cell_lists=None, record_histogram=False,
+                 record_steps_timeseries=False, record_steps_timeseries_every=[1],
+                 record_trajectory=False, record_trajectory_npoints=1e4,
                  single=False, distance_method=Distance.PERIODIC, use_frozen=False,
                  frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
                  interaction=Interaction.HS_WCA, pot_kwargs={}):
@@ -400,6 +400,7 @@ class BV_MCrunner(SpheresMCRunner):
                                           perform_convergence_test=perform_convergence_test,
                                           collect_minima_list=collect_minima_list,
                                           seeds=seeds, use_cell_lists=use_cell_lists,
+                                          checkoverlap_cell_lists=checkoverlap_cell_lists,
                                           record_histogram=record_histogram, distance_method=distance_method,
                                           use_frozen=use_frozen, frozen_atoms=frozen_atoms,
                                           rcontainer=rcontainer, minimizer=minimizer,
