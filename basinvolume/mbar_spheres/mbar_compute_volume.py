@@ -99,7 +99,7 @@ class mbar_compute_dos(object):
             jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
         self.jammed_packings_dir = jammed_packings_dir
         if not os.path.isabs(explore_dir):
-            number = int(re.findall('\d+', self.fname)[0])
+            number = re.findall('\d+', self.fname)[0]
             explore_dir = os.path.join(os.getcwd(),explore_dir+number)
         self.explore_dir = explore_dir
         self.base_directory = os.path.join(self.explore_dir, base_dir)
@@ -139,7 +139,7 @@ class mbar_compute_dos(object):
         self._import_pt_time_series()
         print "subtracting equilibration point"
         self._subtract_eqtime()
-        print "importing innersphre time series"
+        print "importing innersphere time series"
         self._import_ts_sphere()
         print "subsampling time series"
         self._build_flat_timeseries()
@@ -668,7 +668,7 @@ if __name__ == "__main__":
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
     args = parser.parse_args()
-    print args
+    print(args)
 
     fname = args.fname
     fdir = args.fdir
@@ -676,12 +676,11 @@ if __name__ == "__main__":
     assert(os.path.isabs(wdir))
 
     sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
-
     if (fname != None):
         if not os.path.isabs(fdir):
             fdir = os.path.join(wdir, fdir + fname)
         sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=args.show)
-    else :
+    else:
         for dirpath, dirs, files in os.walk(wdir):
             for dir in dirs:
                 if dir.startswith(fdir):

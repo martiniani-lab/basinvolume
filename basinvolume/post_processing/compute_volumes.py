@@ -203,7 +203,7 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
                                                      self.packings_dir))
         self.series_collector(frozen=self.experimental,
                               fname=fname,
-                              explore_dir=self.explore_bv_dir,
+                              explore_dir=explore_dir,
                               jammed_packings_dir=jammed_packings_path,
                               packings_dir=packings_path,
                               plot_ts_integrand_data=False)
@@ -234,7 +234,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
         packings_path = os.path.abspath(os.path.join(self.workspace_dir,
                                                      self.packings_dir))
         self.series_collector(fname=fname,
-                              explore_dir=self.explore_bv_dir,
+                              explore_dir=explore_dir,
                               packings_dir=packings_path,
                               jammed_packings_dir=jammed_packings_path,
                               base_dir='analysis',
