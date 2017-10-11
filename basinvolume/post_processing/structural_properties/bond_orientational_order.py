@@ -44,6 +44,19 @@ class BondOrientationalOrder(StructuralAnalysis):
             boo_dict['BOO'] = (boo[0].upper(), float(boo[1]))
         return boo_dict
 
+    def _check_computed(self, boo_fname):
+        """Check if structural analysis in file is complete"""
+        try:
+            configf = ConfigParser.ConfigParser()
+            configf.read(boo_fname)
+            test_z = configf.getfloat('Z','Z')
+            test_boo = configf.getfloat('BOO','Q{}'.format(self.deg))
+            if not os.path.isfile(boo_fname):
+                raise Exception
+        except Exception:
+            return False
+        return True
+
     def _calculate(self, global_boo_fname, packing_name, input_fname):
         """compute boo for packings. We exclude rattlers
         from the computation of the global structure factors

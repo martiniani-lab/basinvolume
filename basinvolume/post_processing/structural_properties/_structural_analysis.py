@@ -86,17 +86,22 @@ class StructuralAnalysis(object):
                                                   self.analysis_name)
                     already_computed = True
                     if not self.force:
-                        try:
-                            self.read(analysis_fname)
-                        except Exception:
-                            already_computed = False
+                        already_computed = self._check_computed(analysis_fname)
 
                     if self.force or not already_computed:
                         trymakedir(self.analysis_dir_path)
                         self._calculate(analysis_fname, packing_name, fname)
 
+    def _check_computed(self, analysis_fname):
+        """Check if structural analysis in file has already been computed"""
+        try:
+            self.read(analysis_fname)
+        except Exception:
+            return False
+        return True
+
     @abc.abstractmethod
-    def read(self):
+    def read(self, analysis_fname):
         """Read structural property from a file"""
 
     @abc.abstractmethod
