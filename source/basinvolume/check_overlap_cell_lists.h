@@ -85,10 +85,12 @@ protected:
     void save_changes(pele::Array<double> & trial_coords, mcpele::MC * mc)
     {
         m_last_changed_atoms = std::vector<long>(mc->get_changed_atoms());
-        m_last_changed_coords = std::vector<double>();
-        for (long iatom : m_last_changed_atoms) {
-            for (size_t i = 0; i < m_ndim; ++i) {
-                m_last_changed_coords.push_back(trial_coords[iatom * m_ndim + i]);
+        m_last_changed_coords = std::vector<double>(m_ndim * m_last_changed_atoms.size());
+        for (size_t i = 0; i < m_last_changed_atoms.size(); ++i) {
+            long iatom_ndim = m_last_changed_atoms[i] * m_ndim;
+            size_t i_ndim = i * m_ndim;
+            for (size_t j = 0; j < m_ndim; ++j) {
+                m_last_changed_coords[i_ndim + j] = trial_coords[iatom_ndim + j];
             }
         }
     }
