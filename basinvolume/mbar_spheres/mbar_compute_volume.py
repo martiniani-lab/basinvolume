@@ -54,7 +54,7 @@ def dos_from_offsets(visits, log_dos_all, offsets, nodata_value=0.):
 def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cross_validation", skip=1):
     if kernel == "gaussian":
         if method == "cross_validation":
-            skip = max(1, len(timeseries)//1e5)
+            skip = max(1, int(len(timeseries) / 1e5))
         bw = get_bandwidth_estimate(np.array(timeseries[::skip]), kernel="gaussian", method=method)
         print "bandwidth ", bw
         #bw *= 3
