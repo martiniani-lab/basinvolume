@@ -16,6 +16,9 @@ try:
     import ConfigParser
     import os
     import re
+    import logging
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     import traceback
     import copy
@@ -90,16 +93,16 @@ class ComputeVolumesCommon(object):
                                 path, self.analysis_dir, self.volume_file))
                             F0 = volf.getfloat(self.volume_title, 'F0')
                         except Exception, e:
-                            print "run_analysis Exception: ", e
+                            logging.info("run_analysis Exception: {}".format(e))
                             self._compute_volume(fname, path)
                     else:
                         self._compute_volume(fname, path)
                 except Exception, e:
-                    print "Exception: ", e
-                    print(traceback.format_exc())
-                    print "failed packing!"
-                    print "name: ", fname
-                    print "path:", path
+                    logging.info("Exception: {}".format(e))
+                    logging.info(traceback.format_exc())
+                    logging.info("failed packing!")
+                    logging.info("name: {}".format(fname))
+                    logging.info("path: {}".format(path))
         self.pt_failures.print_failure_info()
 
     def set_up_directories(self):
@@ -107,7 +110,7 @@ class ComputeVolumesCommon(object):
                              for f in os.listdir(self.workspace_dir)
                              if f.startswith(self.explore_bv_dir)]
         if self.nr_volume_points != -1:
-            print "removing volume points"
+            logging.info("removing volume points")
             nr_to_kill = len(self.explore_dirs) - self.nr_volume_points
             for _ in xrange(nr_to_kill):
                 self.explore_dirs = np.delete(
@@ -145,18 +148,18 @@ class ComputeVolumesCommon(object):
 #            self.F0_actually_imported_files.append(vf)
 #            try:
 #                packing_configpath = self.get_packing_configpath(vf)
-#                print "packing_configpath", packing_configpath
+#                logging.info("packing_configpath: {}".format(packing_configpath))
 #                volume_sanity_check = VolumeSanityCheck(packing_configpath,
 # numerical_moments=self.numerical_moments)
 #                self.best_integration_selection.check_next_F0(volume_sanity_check, self, vf)
 #            except Exception, e:
-#                print "Exception: ", e
-#                print "integration selection failed"
-#                print "location:", vf
+#                logging.info("Exception: {}".format(e))
+#                logging.info("integration selection failed")
+#                logging.info("location: {}".format(vf))
 #        except Exception, e:
-#            print "Exception: ", e
-#            print "insufficient data available"
-#            print "location:", vf
+#            logging.info("Exception: {}".format(e))
+#            logging.info("insufficient data available")
+#            logging.info("location: {}".format(vf))
 
 #    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
 #    def select_final_dataset(self):
@@ -176,7 +179,7 @@ class ComputeVolumesCommon(object):
 #            self.print_histogram_and_data(self.F0_wo_outliers,
 # "/volume_histogram_F0_final_removed_outliers")
 #        except Exception as err:
-#            print err
+#            logging.info(err)
 
 
 class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
@@ -266,16 +269,16 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                                                    self.volume_file))
                             F0 = volf.getfloat(self.volume_title, 'F0')
                         except Exception, e:
-                            print "run_analysis Exception: ", e
+                            logging.info("run_analysis Exception: {}".format(e))
                             self._compute_volume(fname, path)
                     else:
                         self._compute_volume(fname, path)
                 except Exception, e:
-                    print "Exception: ", e
-                    print(traceback.format_exc())
-                    print "failed packing!"
-                    print "name: ", fname
-                    print "path:", path
+                    logging.info("Exception: {}".format(e))
+                    logging.info(traceback.format_exc())
+                    logging.info("failed packing!")
+                    logging.info("name: {}".format(fname))
+                    logging.info("path: {}".format(path))
         self.pt_failures.print_failure_info()
 
 
@@ -289,13 +292,13 @@ class ComputeVolumes(object):
         self.method = method
         self.experimental = "exp" in workspace_dir  # THIS SHOULD BE IMPROVED
         if self.method == "mbar":
-            print("using MBAR method")
+            logging.info("using MBAR method")
             self.computer = ComputeVolumesMBARMultiConfigFile(
                 workspace_dir, nr_volume_points, force_run, method,
                 explore_bv_dir=explore_bv_dir, packings_dir=packings_dir,
                 jammed_packings_dir=jammed_packings_dir)
         elif self.method == "tint":
-            print("using thermodynamic integration method")
+            logging.info("using thermodynamic integration method")
             self.computer = ComputeVolumesTINTMultiConfigFile(
                 workspace_dir, nr_volume_points, force_run, method,
                 explore_bv_dir=explore_bv_dir, packings_dir=packings_dir,
@@ -313,7 +316,7 @@ def worker(workspace_dir, kwargs):
         cv = ComputeVolumes(workspace_dir, **kwargs)
         cv()
     except Exception:
-        print('find_k worker: %s' % (traceback.format_exc()))
+        logging.info('find_k worker: %s' % (traceback.format_exc()))
 
 
 def get_immediate_subdirectories(dir):
@@ -352,6 +355,10 @@ if __name__ == "__main__":
                         "Default: 'jammed_packings'", default='jammed_packings')
     args = parser.parse_args()
 
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
+
     ncores = args.ncores
     kwargs = dict(nr_volume_points=args.nr_vpoints,
                   force_run=args.force,
@@ -364,7 +371,7 @@ if __name__ == "__main__":
         worker(workspace_dir, kwargs)
     else:
         subdirs = glob.glob(os.path.join(os.getcwd(), args.workspace_dir))
-        print subdirs
+        logging.info(subdirs)
         if args.ncores > 1 and args.method != 'mbar':
             mypool = mp.Pool(ncores)
             try:

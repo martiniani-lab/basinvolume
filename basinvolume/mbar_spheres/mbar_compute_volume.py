@@ -4,6 +4,7 @@ import os
 import re
 import argparse
 import time
+import logging
 from itertools import cycle
 try:
     import matplotlib
@@ -56,15 +57,15 @@ def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cros
         if method == "cross_validation":
             skip = max(1, int(len(timeseries) / 1e5))
         bw = get_bandwidth_estimate(np.array(timeseries[::skip]), kernel="gaussian", method=method)
-        print "bandwidth ", bw
+        logging.info("bandwidth {}".format(bw))
         #bw *= 3
     hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
     area = simps(hist, bin_edges)
-    print "kde pdf area", area
+    logging.info("kde pdf area {}".format(area))
 #    normalise again by hand
 #    hist /= area
 #    area = simps(hist, bin_edges)
-#    print "kde pdf area", area
+#    logging.info("kde pdf area {}".format(area))
     return hist
 
 def find_eqtime(ts):
@@ -131,26 +132,26 @@ class mbar_compute_dos(object):
         Full volume computation, assuming that PT data is available
         """
         base_directory = self.base_directory
-        print "analysing ", self.explore_dir
+        logging.info("Analysing {}".format(self.explore_dir))
         trymakedir(base_directory)
-        print "importing k array"
+        logging.info("importing k array")
         self._import_ks()
-        print "importing time series"
+        logging.info("importing time series")
         self._import_pt_time_series()
-        print "subtracting equilibration point"
+        logging.info("subtracting equilibration point")
         self._subtract_eqtime()
-        print "importing innersphere time series"
+        logging.info("importing innersphere time series")
         self._import_ts_sphere()
-        print "subsampling time series"
+        logging.info("subsampling time series")
         self._build_flat_timeseries()
-        print "building mbar"
+        logging.info("building mbar")
         self._build_mbar()
-        print "mbar computing volume"
+        logging.info("mbar computing volume")
         self._mbar_compute_volume()
         self._compute_hs_fluid_volume()
         self._print_volumes()
         if self.plot_dos_data:
-            print "plotting data"
+            logging.info("plotting data")
             self._build_histogram(kde=self.kde)
             self._compute_dos()
             self._plot_dos_data()
@@ -158,24 +159,24 @@ class mbar_compute_dos(object):
 
     def run_bs(self, nr_subsamples=10):
         base_directory = self.base_directory
-        print "analysing ", self.explore_dir
+        logging.info("Analysing {}".format(self.explore_dir))
         trymakedir(base_directory)
         #first compute the volume using the full set of data
         self._import_ks()
-        print "importing time series"
+        logging.info("importing time series")
         self._import_pt_time_series()
-        print "subtracting equilibration point"
+        logging.info("subtracting equilibration point")
         self._subtract_eqtime()
-        print "importing innersphre time series"
+        logging.info("importing innersphre time series")
         self._import_ts_sphere()
-        print "subsampling time series"
+        logging.info("subsampling time series")
         self._build_flat_timeseries()
-        print "building mbar"
+        logging.info("building mbar")
         self._build_mbar()
-        print "mbar computing volume"
+        logging.info("mbar computing volume")
         self._mbar_compute_volume()
         self._print_volumes()
-        print "plotting data all"
+        logging.info("plotting data all")
         if self.plot_dos_data:
             self._build_histogram(kde=self.kde)
             self._compute_dos()
@@ -185,7 +186,7 @@ class mbar_compute_dos(object):
             self.logn_E_subs = self.logn_E.copy()
             initial_f_k = np.array(self.mbar.f_k)
             for iter in xrange(nr_subsamples):
-                print "sumbsapling - iteration {}".format(iter)
+                logging.info("sumbsapling - iteration {}".format(iter))
                 j = 0
                 for n_k in self.N_k:
                     idx = np.random.randint(0, n_k, size=n_k)
@@ -195,7 +196,7 @@ class mbar_compute_dos(object):
                 start = time.time()
                 #self._build_mbar(verbose=False, maxiter=1000, reltol=1.0e-7, initial_f_k=initial_f_k, subsampling=16)
                 self._build_mbar(verbose=False, initial_f_k=initial_f_k)
-                print "t: ", time.time() - start
+                logging.info("t: {}".format(time.time() - start))
                 #compute the weights, skip the volume calculation
                 Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
                 self.w_i_final = -Deltaf_ij[0]
@@ -252,7 +253,7 @@ class mbar_compute_dos(object):
     def _subtract_eqtime(self):
         #remove equilibration region from pt timeseries
         results = Parallel(n_jobs=max(1,self.ncores))(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
-        print "eq_times: ", results
+        logging.info("eq_times: {}".format(results))
         eq_time = int(np.amax(results))
         self.timeseries = self.timeseries[:,eq_time:]
 
@@ -307,11 +308,11 @@ class mbar_compute_dos(object):
     def _mbar_compute_volume(self):
         Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
         self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
-        #print "effective sample number", self.mbar.computeEffectiveSampleNumber()
+        # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
 
         rmin = 1./np.sqrt(self.kmax) #we choose rmin to be 1/sqrt(k_max)
-        print "kmax", self.kmax
-        print "rmin", rmin
+        logging.info("kmax {}".format(self.kmax))
+        logging.info("rmin {}".format(rmin))
         logvmin = log_volume_nball(rmin, self.ndof)
         Fmin = -logvmin
 
@@ -330,8 +331,8 @@ class mbar_compute_dos(object):
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
 
         if self.verbose:
-            print 'F0 {} F0unc {} +/- {}'.format(self.F0, self.F0unc, self.sigF0)
-            print 'unit_box_F0 {} unit_box_F0unc {} +/- {}'.format(self.unit_box_F0, self.unit_box_F0unc, self.sigF0)
+            logging.info('F0 {} F0unc {} +/- {}'.format(self.F0, self.F0unc, self.sigF0))
+            logging.info('unit_box_F0 {} unit_box_F0unc {} +/- {}'.format(self.unit_box_F0, self.unit_box_F0unc, self.sigF0))
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
         volume_sanity_check = VolumeSanityCheck(self.packing_configpath,
@@ -377,10 +378,10 @@ class mbar_compute_dos(object):
         hist = get_kde_hist(self.ts_sphere, kde_bin_edges, kernel="epanechnikov", bw=0.001)
         hist_visits.append(hist)
         results = Parallel(n_jobs=max(1,self.ncores))(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
-        print np.shape(results)
+        logging.info(np.shape(results))
         for hist in results:
             hist_visits.append(hist)
-        print np.shape(hist_visits)
+        logging.info(np.shape(hist_visits))
         return hist_visits
 
     def _unbias_histogram(self):
@@ -499,7 +500,7 @@ class mbar_compute_dos(object):
         rg = np.array(logn_E)
         rg -= (self.ndof-1)*np.log(bin_edges)
         rg -= np.mean(rg[:3])
-        #print  "mean(rg[:3])= ", np.mean([rg[finindx[0]],rg[finindx[1]],rg[finindx[2]]])
+        # logging.info("mean(rg[:3]) = {}".format(np.mean([rg[finindx[0]],rg[finindx[1]],rg[finindx[2]]])))
         assert(abs(np.mean(rg[:3])) < 1e-8)
         ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=color_cycle.next(), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
@@ -668,7 +669,11 @@ if __name__ == "__main__":
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
     args = parser.parse_args()
-    print(args)
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
+    logging.info(args)
 
     fname = args.fname
     fdir = args.fdir
