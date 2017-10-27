@@ -202,7 +202,7 @@ if __name__ == "__main__":
                     checkpoint_path = os.path.join(path, args.load_checkpoint)
                     with open(checkpoint_path, 'rb') as infile:
                         master = cPickle.load(infile)
-                    master.init_state()
+                    master.init_state(base_directory=path)
                 master.run()
                 exit_on_checkpoint = master.created_checkpoint
                 if args.load_checkpoint is not None and not exit_on_checkpoint:

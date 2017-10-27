@@ -140,7 +140,9 @@ class PT_Master(object):
         assert(self.min_window > self.mcrunner_eqsteps)
         assert(self.max_eq_time > self.mcrunner_eqsteps)
 
-    def init_state(self):
+    def init_state(self, base_directory=None):
+        if base_directory is not None:
+            self.base_directory = base_directory
         self.comm = MPI.COMM_WORLD
         self._init_sampling()
         self._init_print(append=True)
