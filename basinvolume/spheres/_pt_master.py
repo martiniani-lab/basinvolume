@@ -577,9 +577,13 @@ class PT_Master(object):
             status['energy'] = self.replica_states[ireplica].energy
             status['neval'] = counters[4]
 
-            status['frac_acc_swaps'] = (self.replica_states[ireplica].swap_accepted_count /
-                                        (self.replica_states[ireplica].swap_accepted_count
-                                         + self.replica_states[ireplica].swap_rejected_count))
+            nswaps = (self.replica_states[ireplica].swap_accepted_count
+                      + self.replica_states[ireplica].swap_rejected_count)
+            if nswaps == 0:
+                status['frac_acc_swaps'] = 1.
+            else:
+                status['frac_acc_swaps'] = (self.replica_states[ireplica].swap_accepted_count
+                                            / nswaps)
             if self.ptiter == self.skip:
                 self.status_streams[ireplica].write('#')
                 for key, _ in status.iteritems():
