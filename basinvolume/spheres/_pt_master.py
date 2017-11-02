@@ -580,7 +580,7 @@ class PT_Master(object):
             nswaps = (self.replica_states[ireplica].swap_accepted_count
                       + self.replica_states[ireplica].swap_rejected_count)
             if nswaps == 0:
-                status['frac_acc_swaps'] = 1.
+                status['frac_acc_swaps'] = np.nan
             else:
                 status['frac_acc_swaps'] = (self.replica_states[ireplica].swap_accepted_count
                                             / nswaps)
