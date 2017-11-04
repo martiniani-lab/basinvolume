@@ -35,6 +35,7 @@ class PackingDataSet(object):
         self.energies = []
         self.contacts = []
         self.boos = []
+        self.invsyms = []
         self.extras = []
 
     def add_data_all(self, packing_data):
@@ -47,8 +48,8 @@ class PackingDataSet(object):
         self.packing_data.extend(packing_data)
         for data in packing_data:
             #the reason why they must all be true is because we are interested in the realation among these variables
-            if data.F is not None and data.Ferr is not None and data.P is not None and data.energy is not None \
-                    and data.Z is not None and data.boo is not None:
+            if (data.F is not None and data.Ferr is not None and data.P is not None
+                and data.energy is not None and data.Z is not None and data.boo is not None):
                 if int(np.sum(data.Zlist)) >= int( 2 * (((data.rattlers == 1).sum() // self.bdim - 1) * self.bdim + 1)):
                     self.free_energies.append(data.F)
                     self.free_energies_err.append(data.Ferr)
@@ -56,6 +57,8 @@ class PackingDataSet(object):
                     self.energies.append(data.energy)
                     self.contacts.append(data.Z)
                     self.boos.append(data.boo)
+                    if data.invsym is not None:
+                        self.invsyms.append(data.invsym)
 
     def add_data_structure(self, packing_data):
         """
@@ -72,6 +75,8 @@ class PackingDataSet(object):
                     self.pressures.append(data.P)
                     self.contacts.append(data.Z)
                     self.boos.append(data.boo)
+                    if data.invsym is not None:
+                        self.invsyms.append(data.invsym)
 
     def add_extras(self, extra):
         self.extras.extend(np.array(extra).tolist())
@@ -102,7 +107,7 @@ class PackingData(object):
         self.Zlist = None
         self.boo = None
         self.boolist = None
-
+        self.invsym = None
 
     def _import_packing_configuration(self, path):
         #path = os.path.join(self.packings_dir, fname)
@@ -154,3 +159,12 @@ class PackingData(object):
             z = configf.getfloat(title_z,'Z')
             self.Z = z
             self.boolist, self.Zlist = np.loadtxt(path2, unpack=True)
+
+    def import_invsym_data(self, path, title_invsym='INVERSION_SYMMETRY'):
+        """
+        import average contact number and bond orientational order parameters
+        """
+        if os.path.isfile(path):
+            configf = ConfigParser.ConfigParser()
+            configf.read(path)
+            self.invsym = configf.getfloat(title_invsym, 'inversion_symmetry')
