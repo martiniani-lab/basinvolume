@@ -2,6 +2,7 @@ from __future__ import print_function
 import numpy as np
 import sys
 from pele.distance import Distance
+from mcpele.monte_carlo import UniformSphericalSampling
 from basinvolume.spheres import SpheresMCRunner
 from basinvolume.monte_carlo import RecordDisplacementTimeseries
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
@@ -125,7 +126,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
                  opt_tol=1e-5, opt_nsteps=1e5, perform_convergence_test=False,
                  collect_minima_list=False, seeds=None, use_cell_lists=True,
                  record_histogram=False, distance_method=Distance.PERIODIC,
-                 use_frozen=False, frozen_atoms=None, rcontainer=None,
+                 use_frozen=False, frozen_atoms=None, rcontainer=None, gaussian_step=True,
                  minimizer=Minimizer.FIRE, interaction=Interaction.HS_WCA,
                  pot_kwargs={}):
 
@@ -135,6 +136,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
             ts_niter = niter
         self.ts_niter = ts_niter
         self.ts_freq = ts_freq
+        self.gaussian_step = gaussian_step
 
         super(BVInnerSphereMCrunner, self).__init__(potential, full_coords, temperature, stepsize, niter, origin,
                                                     hs_radii, boxv, sca, rattlers=rattlers, k=self.k, dtol=dtol,
@@ -155,7 +157,10 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         self.add_action(self.time_series)
 
     def _set_takestep(self, stepsize):
-        self.takestep = SampleUniformSphereGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
+        if self.gaussian_step:
+            self.takestep = SampleUniformSphereGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
+        else:
+            self.takestep = UniformSphericalSampling(self.seeds['seed_takestep'], stepsize, origin=self.origin)
         self.set_takestep(self.takestep)
 
     def _set_accept_tests(self):

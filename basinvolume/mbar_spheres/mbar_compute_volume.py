@@ -100,7 +100,7 @@ class mbar_compute_dos(object):
             jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
         self.jammed_packings_dir = jammed_packings_dir
         if not os.path.isabs(explore_dir):
-            number = re.findall('\d+', self.fname)[0]
+            number = int(re.findall('\d+', self.fname)[0])
             explore_dir = os.path.join(os.getcwd(),explore_dir+number)
         self.explore_dir = explore_dir
         self.base_directory = os.path.join(self.explore_dir, base_dir)
@@ -167,7 +167,7 @@ class mbar_compute_dos(object):
         self._import_pt_time_series()
         logging.info("subtracting equilibration point")
         self._subtract_eqtime()
-        logging.info("importing innersphre time series")
+        logging.info("importing innersphere time series")
         self._import_ts_sphere()
         logging.info("subsampling time series")
         self._build_flat_timeseries()
@@ -211,6 +211,7 @@ class mbar_compute_dos(object):
         imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath))
         self.nparticles = imp_packing['nparticles']
         self.bdim = imp_packing['bdim']
+        assert self.bdim==2 or self.bdim==3, "bdim={} not implemented".format(self.bdim)
         self.ndim = imp_packing['ndim']
         self.boxv = imp_packing['boxv'].copy()
         self.packing_frac = imp_packing['packing_frac']
@@ -228,6 +229,8 @@ class mbar_compute_dos(object):
         configf.read(str(self.innersphere_configpath))
         self.k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
         self.ndof = (self.nparticles-1)*self.bdim
+        self.ref_radius = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'stepsize')
+        self.ref_acceptance = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'acc_frac')
 
     def _import_ks(self):
         """
@@ -310,11 +313,12 @@ class mbar_compute_dos(object):
         self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
         # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
 
-        rmin = 1./np.sqrt(self.kmax) #we choose rmin to be 1/sqrt(k_max)
+        rmin = self.ref_radius # 1./np.sqrt(self.kmax) #we choose rmin to be 1/sqrt(k_max)
         logging.info("kmax {}".format(self.kmax))
         logging.info("rmin {}".format(rmin))
+        logging.info("ref acceptance {}".format(self.ref_acceptance))
         logvmin = log_volume_nball(rmin, self.ndof)
-        Fmin = -logvmin
+        Fmin = -logvmin - np.log(self.ref_acceptance)
 
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
@@ -324,8 +328,8 @@ class mbar_compute_dos(object):
         u_lk = np.vstack((u_lk, self.u_kn[self.k0_index])) #measure free energy difference between k=0 and kw
         Deltaf_ij, dDeltaf_ij = self.mbar.computePerturbedFreeEnergies(u_lk)
         #vol = Deltaf_ij[1,0]
-        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) - np.log(self.prob_kmax) - np.log(self.vcavity), dDeltaf_ij[1,0]
-        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0])  - np.log(self.prob_kmax), dDeltaf_ij[1,0]
+        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) - np.log(self.vcavity), dDeltaf_ij[1,0]
+        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0]), dDeltaf_ij[1,0]
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
@@ -420,7 +424,8 @@ class mbar_compute_dos(object):
         color_cycle = get_color_cycle()
         skip = max(1, int(len(self.timeseries[0])/1e3))
         for i,series in enumerate(self.timeseries):
-            ax.plot(series[::skip], ls=next(linecycler), color=color_cycle.next(), linewidth=1.8, label=str(i))
+            ax.plot(series[series>0].flatten()[::skip], ls=next(linecycler),
+                    color=color_cycle.next(), linewidth=1.8, label=str(i))
         ax.set_ylabel(r'$r$', fontsize=28)
         ax.set_xlabel('steps/{}'.format(skip), fontsize=28)
         ax.set_xlim((0,150))
@@ -483,14 +488,15 @@ class mbar_compute_dos(object):
         linecycler = cycle(lines)
 
         #bin_edges=self.bin_edges[:-1]
-        logn_E = np.array(self.logn_E - np.amax(self.logn_E))
-        dos = np.exp(logn_E)
-        dos /= simps(dos, self.bin_edges[:-1])
-        logn_E = np.log(dos)
 
         finindx = np.where(np.isfinite(self.logn_E))[0]
         logn_E = np.array([self.logn_E[i] for i in finindx])
         bin_edges = np.array([self.bin_edges[i] for i in finindx])
+
+        logn_E = np.array(logn_E - np.amax(logn_E))
+        dos = np.exp(logn_E)
+        dos /= simps(dos, bin_edges)
+        logn_E = np.log(dos)
 
         color_cycle = get_color_cycle()
         fig = plt.figure()
