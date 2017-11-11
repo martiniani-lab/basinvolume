@@ -470,14 +470,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         opt_maxstep = self.sca * np.amin(self.hs_radii) * 0.5 * self.maxstep_factor
         if self.minimizer is Minimizer.FIRE:
-            res = modifiedfire_cpp(self.coords, self.potential, maxstep=opt_maxstep,
+            res = modifiedfire_cpp(self.coords, self.potential,
+                                   maxstep=opt_maxstep,
                                    nsteps=1e6, tol=tol, iprint=iprint)
         elif self.minimizer is Minimizer.CG:
             optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                   nsteps=1e6, print_level=iprint)
             res = optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
-            res = lbfgs_cpp(self.coords, self.potential, maxstep=opt_maxstep,
+            res = lbfgs_cpp(self.coords, self.potential,
+                            maxstep=opt_maxstep,
                             tol=tol, nsteps=1e6, iprint=iprint)
         else:
             raise NotImplementedError
@@ -493,13 +495,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if __debug__ and self.check_packing:
             if self.minimizer is Minimizer.FIRE:
                 res2 = modifiedfire_cpp(self.coords, self.potential,
-                                        maxstep=fire_maxstep, nsteps=1e6, tol=tol)
+                                        maxstep=opt_maxstep, nsteps=1e6, tol=tol)
             elif self.minimizer is Minimizer.CG:
                 optimizer = CGDescent(self.coords, self.potential, tol=tol,
                                       nsteps=1e6, print_level=iprint)
                 res2 = optimizer.run()
             elif self.minimizer is Minimizer.LBFGS:
-                res2 = lbfgs_cpp(self.coords, self.potential, tol=tol, nsteps=1e6,
+                res2 = lbfgs_cpp(self.coords, self.potential,
+                                 maxstep=opt_maxstep, tol=tol, nsteps=1e6,
                                  iprint=iprint)
             else:
                 raise NotImplementedError
