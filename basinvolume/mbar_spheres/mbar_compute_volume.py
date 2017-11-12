@@ -175,6 +175,7 @@ class mbar_compute_dos(object):
         self._build_mbar()
         logging.info("mbar computing volume")
         self._mbar_compute_volume()
+        self._compute_hs_fluid_volume()
         self._print_volumes()
         logging.info("plotting data all")
         if self.plot_dos_data:
