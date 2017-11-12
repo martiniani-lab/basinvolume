@@ -58,7 +58,7 @@ inline double GaussianCrossValidationCost::get_energy(pele::Array<double> const 
             termC += 2 * this->m_nd(dij, m_h*m_h);
         }
     }
-    return 1 / (m_ndim - 1) * termA + (m_ndim - 2) / (m_ndim * (m_ndim - 1) * (m_ndim - 1)) * termB - 2 / (m_ndim * (m_ndim - 1)) * termC;
+    return 1.0 / (m_ndim - 1) * termA + (m_ndim - 2.0) / (m_ndim * (m_ndim - 1) * (m_ndim - 1)) * termB - 2.0 / (m_ndim * (m_ndim - 1)) * termC;
 }
 
 }
