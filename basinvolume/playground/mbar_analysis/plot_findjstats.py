@@ -514,7 +514,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
 def plot_all(figdir="figures", bdim=2):
     figdir = os.path.join(os.getcwd(), figdir)
     trymakedir(figdir)
-    datasets = collect_data_every_set_all(data_signature='[0-9]*/findjstats.pickle')
+    datasets = collect_data_every_set_all(data_signature='n[0-9]*/findjstats.pickle')
     for dp in datasets:
         assert dp.initialized == True
     nparticles = np.asarray([dp.nparticles for dp in sorted(datasets, key=lambda data: data.nparticles)])

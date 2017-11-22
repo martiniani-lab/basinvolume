@@ -108,7 +108,8 @@ class ComputeVolumesCommon(object):
     def set_up_directories(self):
         self.explore_dirs = [os.path.join(self.workspace_dir, f)
                              for f in os.listdir(self.workspace_dir)
-                             if f.startswith(self.explore_bv_dir)]
+                             if (f.startswith(self.explore_bv_dir)
+                                 and os.path.isfile(os.path.join(self.workspace_dir, f, 'inner_sphere.timeseries')))]
         if self.nr_volume_points != -1:
             logging.info("removing volume points")
             nr_to_kill = len(self.explore_dirs) - self.nr_volume_points
@@ -119,6 +120,7 @@ class ComputeVolumesCommon(object):
             assert(len(self.explore_dirs) == self.nr_volume_points)
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3]
                                 for s in self.explore_dirs]
+
 
 #    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
 #    def get_packing_configpath(self, volume_file):
