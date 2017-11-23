@@ -31,7 +31,7 @@ def get_bandwidth_estimate(data, kernel="gaussian", method="cross_validation"):
     std_samples = np.std(data)
     silverman_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
     if method == "Silverman":
-        return [silverman_bandwidth]
+        return np.asarray([silverman_bandwidth])
     loocv = CrossValidationBandwidthSelection(data, kernel=kernel, h_initial=silverman_bandwidth)
     return loocv.opt_bandwidth
 
