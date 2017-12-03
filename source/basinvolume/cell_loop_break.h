@@ -31,16 +31,14 @@ public:
                          const size_t isubdom)
     {
         for (auto const & ijpair : neighbor_pairs) {
+            cell_t* icell = ijpair[0];
+            cell_t* jcell = ijpair[1];
             // do double loop through atoms, avoiding duplicate pairs
-            for (auto icell_iter = m_container.getIterator(ijpair[0]);
-                 *icell_iter != CELL_END;
-                 ++icell_iter) {
+            for (auto iatom = icell->begin(); iatom != icell->end(); ++iatom) {
                 // if icell==jcell we need to avoid duplicate atom pairs
-                auto jend = (ijpair[0] == ijpair[1]) ? *icell_iter : CELL_END;
-                for (auto jcell_iter = m_container.getIterator(ijpair[1]);
-                     *jcell_iter != jend;
-                     ++jcell_iter) {
-                    if (CellListsLoop<visitor_t, distance_policy>::m_visitor.insert_atom_pair(*icell_iter, *jcell_iter, isubdom)) {
+                auto jend = (icell == jcell) ? iatom : jcell->end();
+                for (auto jatom = jcell->begin(); jatom != jend; ++jatom) {
+                    if (CellListsLoop<visitor_t, distance_policy>::m_visitor.insert_atom_pair(*iatom, *jatom, isubdom)) {
                         m_break = true;
                     }
                     if (m_break) {
@@ -55,12 +53,10 @@ public:
     {
         for (size_t i = 0; i < icells.size(); ++i) {
             size_t isubdom = m_lattice_tool.get_subdomain(icells[i]);
-            for (long* jcell : m_container.m_cell_neighbors[icells[i]]) {
-                for (auto jcell_iter = m_container.getIterator(jcell);
-                     *jcell_iter != CELL_END;
-                     ++jcell_iter) {
-                    if (iatoms[i] != *jcell_iter) {
-                        if (CellListsLoop<visitor_t, distance_policy>::m_visitor.insert_atom_pair(iatoms[i], *jcell_iter, isubdom)) {
+            for (cell_t* jcell : m_container.m_cell_neighbors[icells[i]]) {
+                for (auto jatom = jcell->begin(); jatom != jcell->end(); ++jatom) {
+                    if (iatoms[i] != *jatom) {
+                        if (CellListsLoop<visitor_t, distance_policy>::m_visitor.insert_atom_pair(iatoms[i], *jatom, isubdom)) {
                             m_break = true;
                         }
                         if (m_break) {
