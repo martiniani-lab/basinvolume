@@ -200,7 +200,6 @@ double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> con
     _dist_policy->get_rij(dr_align.data(), &coords[_inoratt*_ndim], &_origin[_inoratt*_ndim]);
 
     //compute distance between aligned structures
-    #pragma simd reduction( + : distance2)
     for (size_t i = 0; i < _nparticles; ++i) {
         const size_t i1 = i * _ndim;
         pele::VecN<_ndim, double> dr, x_aligned;

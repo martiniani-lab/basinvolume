@@ -85,7 +85,6 @@ double BvCGDescent<distance_policy>::m_get_d2(pele::Array<double> const & coords
     m_dist_policy->get_rij(dr_align.data(), &coords[m_inoratt*m_ndim], &m_origin[m_inoratt*m_ndim]);
 
     //compute distance between aligned structures
-    #pragma simd reduction( + : distance2)
     for (size_t i = 0; i < m_nparticles; ++i) {
         const size_t i1 = i * m_ndim;
         pele::VecN<m_ndim, double> dr, x_aligned;
