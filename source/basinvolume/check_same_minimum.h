@@ -63,7 +63,6 @@ protected:
     pele::Array<double> _origin;
     pele::Array<double> _rattlers;
     pele::Array<double> _new_minimum;
-    pele::Array<double> _aligned_coords; //!< Coordinates after alignment, used in _get_d2
     double _dtol;
     double _d;
     double _rms;
@@ -114,7 +113,6 @@ CheckSameMinimum<distance_policy, OPT_T>::CheckSameMinimum(std::shared_ptr<OPT_T
       _origin(origin.copy()),
       _rattlers(rattlers.size() / _ndim),
       _new_minimum(origin.size()),
-      _aligned_coords(origin.size()),
       _dtol(dtol),
       _d(0),
       _rms(0),

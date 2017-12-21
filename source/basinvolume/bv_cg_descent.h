@@ -17,7 +17,6 @@ protected:
     static const size_t m_ndim = distance_policy::_ndim;
     pele::Array<double> m_origin;
     pele::Array<double> m_rattlers;
-    pele::Array<double> m_distance;
     double m_dtol2, m_d2, m_rmsd2, m_rmsgtol;
     size_t m_nparticles, m_maxiter, m_inoratt, m_Nnoratt;
     const std::shared_ptr<distance_policy> m_dist_policy;
@@ -43,7 +42,6 @@ BvCGDescent<distance_policy>::BvCGDescent(std::shared_ptr<pele::BasePotential> p
     : pycgd::CGDescent(potential, x0, tol, PrintLevel),
       m_origin(origin.copy()),
       m_rattlers(rattlers.size() / m_ndim),
-      m_distance(origin.size()),
       m_dtol2(dtol*dtol),
       m_d2(0),
       m_rmsd2(0),
