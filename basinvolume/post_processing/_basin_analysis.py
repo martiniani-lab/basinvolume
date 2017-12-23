@@ -76,7 +76,7 @@ class BasinAnalysis(object):
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
                     pd = PackingData(str(dname), configpath, packing_path=packing_path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
-                    pd.import_volume_data(path)
+                    pd.import_volume_data(path, title=self.volume_title)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)

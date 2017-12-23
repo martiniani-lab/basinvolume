@@ -174,7 +174,7 @@ if __name__ == "__main__":
     # prepare PT runner
     kmin = 0
     displ_k_min = sim.displ_k_min
-    var_displ_k_min = sim.displ_k_min
+    var_displ_k_min = sim.var_displ_k_min
     kmax = sim.kmax
 
     start = time.time()

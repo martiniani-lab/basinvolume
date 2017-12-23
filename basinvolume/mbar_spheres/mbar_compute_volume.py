@@ -187,7 +187,7 @@ class mbar_compute_dos(object):
             self.logn_E_subs = self.logn_E.copy()
             initial_f_k = np.array(self.mbar.f_k)
             for iter in xrange(nr_subsamples):
-                logging.info("sumbsapling - iteration {}".format(iter))
+                logging.info("subsampling - iteration {}".format(iter))
                 j = 0
                 for n_k in self.N_k:
                     idx = np.random.randint(0, n_k, size=n_k)
