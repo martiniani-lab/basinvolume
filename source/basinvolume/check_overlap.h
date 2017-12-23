@@ -64,7 +64,7 @@ public:
                 }
             }
         } else {
-            for (long i : changed_atoms) {
+            for (const long i : changed_atoms) {
                 const size_t i1 = m_ndim * i;
                 for (size_t j = 0; j < m_nparticles; ++j) {
                     if (i != j) {
