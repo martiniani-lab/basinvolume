@@ -5,6 +5,9 @@
 
 namespace pele {
 
+// Type of each cell inside the cell list
+using cell_t = std::vector<long>;
+
 /**
  * Looping over atom pair similar to CellListsLoop.
  * The loop in loop_through_atom_pairs can terminate based on the result
@@ -27,7 +30,7 @@ public:
         : CellListsLoop<visitor_t, distance_policy>(visitor, container, lattice_tool)
     {}
 
-    void loop_cell_pairs(std::vector< std::array<long*, 2> > const & neighbor_pairs,
+    void loop_cell_pairs(std::vector< std::array<cell_t*, 2> > const & neighbor_pairs,
                          const size_t isubdom)
     {
         for (auto const & ijpair : neighbor_pairs) {
