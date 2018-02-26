@@ -3,7 +3,7 @@ import numpy as np
 import copy
 from basinvolume.utils import CrossValidationCost
 from pele.potentials import BasePotential
-from pele.optimize import LBFGS
+from pele.optimize import LBFGS, ModifiedFireCPP
 from sklearn.neighbors import KernelDensity
                     
 class CrossValidationBandwidthSelection(object):
@@ -20,6 +20,7 @@ class CrossValidationBandwidthSelection(object):
     def __init__(self, data, kernel="gaussian", h_initial=2):
         pot = CrossValidationCost(data, kernel=kernel)
         optimizer = LBFGS(np.asarray([h_initial]), pot)
+        print optimizer.result
         print "run bandwidth optimization"
         result = optimizer.run()
         print "done"
