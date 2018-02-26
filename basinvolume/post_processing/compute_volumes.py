@@ -108,7 +108,8 @@ class ComputeVolumesCommon(object):
     def set_up_directories(self):
         self.explore_dirs = [os.path.join(self.workspace_dir, f)
                              for f in os.listdir(self.workspace_dir)
-                             if f.startswith(self.explore_bv_dir)]
+                             if (f.startswith(self.explore_bv_dir)
+                                 and os.path.isfile(os.path.join(self.workspace_dir, f, 'inner_sphere.timeseries')))]
         if self.nr_volume_points != -1:
             logging.info("removing volume points")
             nr_to_kill = len(self.explore_dirs) - self.nr_volume_points
@@ -119,6 +120,7 @@ class ComputeVolumesCommon(object):
             assert(len(self.explore_dirs) == self.nr_volume_points)
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3]
                                 for s in self.explore_dirs]
+
 
 #    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
 #    def get_packing_configpath(self, volume_file):
@@ -227,9 +229,10 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
             volume_file=volume_file, volume_title=volume_title,
             explore_bv_dir=explore_bv_dir, packings_dir=packings_dir,
             jammed_packings_dir=jammed_packings_dir)
-        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=False,
-                                                 kde=True, plot_dos_data=True,
-                                                 ncores=8)
+        self.plot_dos_data = False
+        self.series_collector = mbar_compute_dos(nbins=1000, bootstrap=True,
+                                                 kde=True, plot_dos_data=self.plot_dos_data,
+                                                 ncores=4)
 
     def _compute_volume(self, fname, explore_dir):
         jammed_packings_path = os.path.abspath(os.path.join(self.workspace_dir,
@@ -261,8 +264,9 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                     if (not self.force_run
                         and os.path.isfile(os.path.join(path, self.analysis_dir,
                                                         self.volume_file))
-                        and os.path.isfile(os.path.join(path, self.analysis_dir,
-                                                        log_gr_ratio_file))):
+                        and (not self.plot_dos_data
+                             or os.path.isfile(os.path.join(path, self.analysis_dir,
+                                                            log_gr_ratio_file)))):
                         try:
                             volf = ConfigParser.ConfigParser()
                             volf.read(os.path.join(path, self.analysis_dir,

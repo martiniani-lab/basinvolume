@@ -83,7 +83,7 @@ pele::Array<double> RecordStepsTimeseries<ndim>::m_align_coords(pele::Array<doub
     pele::Array<double> dr(ndim);
 
     //measure distance between two non rattlers
-    m_dist_policy->get_rij(dr.data(), &coords[m_inoratt], &m_old_coords[m_inoratt]);
+    m_dist_policy->get_rij(dr.data(), &coords[m_inoratt*ndim], &m_old_coords[m_inoratt*ndim]);
 
     //align structures
     for (size_t i = 0; i < m_nparticles; ++i) {

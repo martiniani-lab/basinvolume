@@ -17,7 +17,8 @@ class BasinAnalysis(object):
     """
     def __init__(self, workspace=None, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', volume_file="volume_data", pressure_file="pressure_data",
-                 zboo_file="glob_boo", zboolist_file="boo_deg6", volume_title = "VOLUME_FULL_PT"):
+                 zboo_file="glob_boo", zboolist_file="boo_deg6", volume_title = "VOLUME_FULL_PT",
+                 invsym_file="inversion_symmetry"):
         if workspace is None:
             workspace = os.getcwd()
         if not os.path.isabs(workspace):
@@ -30,6 +31,7 @@ class BasinAnalysis(object):
         self.volume_title = volume_title
         self.zboo_file = zboo_file
         self.zboolist_file = zboolist_file
+        self.invsym_file = invsym_file
         self.iteration = 0
         self.packing_datasets = []
 
@@ -74,12 +76,14 @@ class BasinAnalysis(object):
                     configpath = os.path.join(set_path, self.jammed_packings_dir, dname + '.config')
                     pd = PackingData(str(dname), configpath, packing_path=packing_path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.volume_file)
-                    pd.import_volume_data(path)
+                    pd.import_volume_data(path, title=self.volume_title)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.pressure_file)
                     pd.import_pressure_data(path)
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
                     path2 = os.path.join(base_directory_path, self.analysis_dir, self.zboolist_file)
                     pd.import_structural_data(path, path2)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.invsym_file)
+                    pd.import_invsym_data(path)
                     pd_list.append(pd)
         packing_dataset.add_data_all(pd_list)
         return packing_dataset
@@ -127,6 +131,8 @@ class BasinAnalysis(object):
                     path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
                     path2 = os.path.join(base_directory_path, self.analysis_dir, self.zboolist_file)
                     pd.import_structural_data(path, path2)
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.invsym_file)
+                    pd.import_invsym_data(path)
                     pd_list.append(pd)
         packing_dataset.add_data_structure(pd_list)
         return packing_dataset

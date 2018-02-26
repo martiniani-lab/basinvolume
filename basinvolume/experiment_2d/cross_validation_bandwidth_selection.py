@@ -1,15 +1,16 @@
 from __future__ import division
 import numpy as np
 import copy
+import logging
 from basinvolume.utils import CrossValidationCost
 from pele.potentials import BasePotential
-from pele.optimize import LBFGS, ModifiedFireCPP
+from pele.optimize import LBFGS
 from sklearn.neighbors import KernelDensity
-                    
+
 class CrossValidationBandwidthSelection(object):
     """
     Use leave-one-out cross validation to estimate bandwidth.
-    
+
     References
     ----------
     http://en.wikipedia.org/wiki/Kernel_density_estimation
@@ -20,10 +21,9 @@ class CrossValidationBandwidthSelection(object):
     def __init__(self, data, kernel="gaussian", h_initial=2):
         pot = CrossValidationCost(data, kernel=kernel)
         optimizer = LBFGS(np.asarray([h_initial]), pot)
-        print optimizer.result
-        print "run bandwidth optimization"
+        logging.info("run bandwidth optimization")
         result = optimizer.run()
-        print "done"
+        logging.info("done")
         self.opt_bandwidth = result.coords
 
 def get_bandwidth_estimate(data, kernel="gaussian", method="cross_validation"):
@@ -31,7 +31,7 @@ def get_bandwidth_estimate(data, kernel="gaussian", method="cross_validation"):
     std_samples = np.std(data)
     silverman_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
     if method == "Silverman":
-        return silverman_bandwidth
+        return np.asarray([silverman_bandwidth])
     loocv = CrossValidationBandwidthSelection(data, kernel=kernel, h_initial=silverman_bandwidth)
     return loocv.opt_bandwidth
 
@@ -39,7 +39,7 @@ def get_pdf(data, x_sample_positions, bandwidth=2, kernel="gaussian"):
     kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
     log_pdf = kde.score_samples(x_sample_positions[:, np.newaxis])
     return np.exp(log_pdf)
-    
+
 def sample_from_pdf(data, nr_samples, bandwidth=2, kernel="gaussian", random_state=None):
     kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
     return kde.sample(nr_samples, random_state=random_state)[:, 0]
@@ -54,16 +54,20 @@ def compute_central_moment(pdf_x, pdf_pdf, exponent=0):
         raise Exception("illegal input")
     mu = compute_raw_moment(pdf_x, pdf_pdf, exponent=1)
     return integrate.romb([pdf_pdfi * (xi - mu) ** exponent for (pdf_pdfi, xi) in zip(pdf_pdf, pdf_x)], dx=pdf_x[1]-pdf_x[0])
-    
+
 if __name__ == "__main__":
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
+
     np.random.seed(42)
     data = np.random.randn(100)
-    print "mean data", np.mean(data)
-    print "var data", np.var(data)
+    logging.info("mean data: {}".format(np.mean(data)))
+    logging.info("var data: {}".format(np.var(data)))
     silverman_bw = get_bandwidth_estimate(data, method="Silverman")
     bandwidth = get_bandwidth_estimate(data)
-    print "Silverman bw", silverman_bw
-    print "cv bw", bandwidth
+    logging.info("Silverman bw: {}".format(silverman_bw))
+    logging.info("cv bw: {}".format(bandwidth))
     n_integrate = 2**18 + 1
     pdf_x = np.linspace(-13, 13, n_integrate)
     pdf_pdf = get_pdf(data, pdf_x, bandwidth=bandwidth)
@@ -78,7 +82,6 @@ if __name__ == "__main__":
     numerical_raw_moments = [compute_raw_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in xrange(max_order + 1)]
     numerical_central_moments = [compute_central_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in xrange(max_order + 1)]
     for n in xrange(max_order + 1):
-        print "order", n
-        print numerical_raw_moments[n]
-        print numerical_central_moments[n]
-    
+        logging.info("order: {}".format(n))
+        logging.info(numerical_raw_moments[n])
+        logging.info(numerical_central_moments[n])

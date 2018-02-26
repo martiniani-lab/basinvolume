@@ -7,6 +7,7 @@ import numpy as np
 import os
 import glob
 import gc
+import logging
 import cPickle as pickle
 from itertools import cycle
 from cycler import cycler
@@ -104,7 +105,7 @@ def collect_data_every_set_all(workspace=None,
     datasets = []
     gc.disable()
     for path in listdir:
-        print "collecting data from ", os.path.split(path)[1]
+        logging.info("collecting data from {}".format(os.path.split(path)[1]))
         with open(path, "rb") as f:
             d_ = pickle.loads(f.read())
         datasets.append(d_)
@@ -419,7 +420,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         v_mean_bias, v_mean = [], []
         v_var_bias, v_var = [], []
         for i in xrange(phi_ss_packed.size):
-            print phi_ss_packed[i]
+            logging.info(phi_ss_packed[i])
             # kde histogram
             assert log_pdf[i].size == log_pdf_x[i].size
             log_maxp = log_pdf_x[i][np.argmax(log_pdf[i])]
@@ -429,7 +430,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             ax5.plot(log_pdf_x[i]-log_maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label, rasterized=True)
 
             # bias = 1./np.exp(np.log(pressure[i]) * ikappa(phi_ss_packed[i]) + c(phi_ss_packed[i]))
-            print "len pressure ", len(pressure[i])
+            logging.info("len pressure {}".format(len(pressure[i])))
             y = np.log(pressure[i]) * ikappa(phi_ss_packed[i]) + c(phi_ss_packed[i])
             # bias = np.exp(y)
             y = -y
@@ -494,7 +495,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax7.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
 
         phi_c = xx[np.argmax(yspl)] #phi_ss[np.argmin(np.abs(np.asarray(psuccess) - 0.5))]
-        print phi_c
+        logging.info(phi_c)
         logx = np.abs(1 - phi_ss_packed / phi_c)
         color_cycle = get_color_cycle(ncolors=3)
         color = color_cycle.next()
@@ -513,7 +514,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
 def plot_all(figdir="figures", bdim=2):
     figdir = os.path.join(os.getcwd(), figdir)
     trymakedir(figdir)
-    datasets = collect_data_every_set_all(data_signature='[0-9]*/findjstats.pickle')
+    datasets = collect_data_every_set_all(data_signature='n[0-9]*/findjstats.pickle')
     for dp in datasets:
         assert dp.initialized == True
     nparticles = np.asarray([dp.nparticles for dp in sorted(datasets, key=lambda data: data.nparticles)])
@@ -648,7 +649,7 @@ def plot_all(figdir="figures", bdim=2):
             xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y, np.sqrt(nparticles[i]), 0.844, 2, -0.5)
             ax06.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
             ax02inset.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
-        print "yder_argavg ", yder_argavg
+        logging.info("yder_argavg {}".format(yder_argavg))
         ax.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         ax02.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
@@ -706,7 +707,7 @@ def plot_all(figdir="figures", bdim=2):
         ax2.plot(xnew, fit_fn(xnew), color=color, linewidth=2,
                  label="argavg: : ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(fit_params[0], fit_params[1]), rasterized=True)
         popt, pcov = curve_fit(lambda L, a, b, c: a - b*(L**(-1/c)), np.sqrt(nparticles), np.asarray(yder_argavg), p0=[0.845,1,1])
-        print "ppack_argavg phi_c, c, nu ", popt, " err ", np.sqrt(np.diag(pcov))
+        logging.info("ppack_argavg phi_c, c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
         color = color_cycle.next()
         y = np.log(0.845 - np.asarray(yder_argmid))
         ax2.plot(x, y, marker='o', linestyle='None', color=color, markeredgecolor=color, rasterized=True)
@@ -740,17 +741,17 @@ def plot_all(figdir="figures", bdim=2):
         # rho = rho[30:-30]
         # ycut = np.asarray([y[30:-30] for y in ysig_list])
         a = np.asarray(ysig_list)
-        print a.shape
+        logging.info(a.shape)
         da = np.ones(a.shape) * 1e-2
         rho_c0 = 0.842
         nu0 = 0.5
         zeta0 = -0.1
         ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
-        print "p_J fssa"
-        print "rho: {} +/- {}".format(ret.rho, ret.drho)
-        print "nu: {} +/- {}".format(ret.nu, ret.dnu)
-        print "zeta: {} +/- {}".format(ret.zeta, ret.dzeta)
-        print ret.fun
+        logging.info("p_J fssa")
+        logging.info("rho: {} +/- {}".format(ret.rho, ret.drho))
+        logging.info("nu: {} +/- {}".format(ret.nu, ret.dnu))
+        logging.info("zeta: {} +/- {}".format(ret.zeta, ret.dzeta))
+        logging.info(ret.fun)
         auto_scaled_data = fssa.scaledata(l, rho, a, da, ret.rho, ret.nu, ret.zeta)
         # critical exponents and errors, quality of data collapse
         fig3 = plt.figure()
@@ -774,17 +775,17 @@ def plot_all(figdir="figures", bdim=2):
             # rho = rho[30:-30]
             # ycut = np.asarray([y[30:-30] for y in ysig_list])
             a = np.asarray(ratl_list)
-            print a.shape
+            logging.info(a.shape)
             da = np.ones(a.shape) * 1e-2
             rho_c0 = 0.844
             nu0 = 2.5
             zeta0 = 1
             ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
-            print "n_r/n fssa"
-            print "rho: {} +/- {}".format(ret.rho, ret.drho)
-            print "nu: {} +/- {}".format(ret.nu, ret.dnu)
-            print "zeta: {} +/- {}".format(ret.zeta, ret.dzeta)
-            print ret.fun
+            logging.info("n_r/n fssa")
+            logging.info("rho: {} +/- {}".format(ret.rho, ret.drho))
+            logging.info("nu: {} +/- {}".format(ret.nu, ret.dnu))
+            logging.info("zeta: {} +/- {}".format(ret.zeta, ret.dzeta))
+            logging.info(ret.fun)
             auto_scaled_data = fssa.scaledata(l, rho, a, da, ret.rho, ret.nu, ret.zeta)
             # critical exponents and errors, quality of data collapse
             fig3a = plt.figure()
@@ -806,16 +807,16 @@ def plot_all(figdir="figures", bdim=2):
         # ycut = np.asarray([y[15:-15] for y in yder_list])
         # a = np.asarray([y / simps(y, rho) for y in ycut])
         # # a = np.asarray(yder_list)
-        # print a.shape
+        # logging.info(a.shape)
         # da = np.ones(a.shape) * 1e-1
         # rho_c0 = 0.84
         # nu0 = 1
         # zeta0 = 0.1
         # ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
-        # print "rho: {} +/- {}".format(ret.rho, ret.drho)
-        # print "nu: {} +/- {}".format(ret.nu, ret.dnu)
-        # print "zeta: {} +/- {}".format(ret.zeta, ret.dzeta)
-        # print ret.fun
+        # logging.info("rho: {} +/- {}".format(ret.rho, ret.drho))
+        # logging.info("nu: {} +/- {}".format(ret.nu, ret.dnu))
+        # logging.info("zeta: {} +/- {}".format(ret.zeta, ret.dzeta))
+        # logging.info(ret.fun)
         # auto_scaled_data = fssa.scaledata(l, rho, a, da, ret.rho, ret.nu, ret.zeta)
         # # critical exponents and errors, quality of data collapse
         # fig4 = plt.figure()
@@ -830,16 +831,16 @@ def plot_all(figdir="figures", bdim=2):
         # rho = rho[30:-30]
         # ycut = np.asarray([y[30:-30] for y in ysig_list])
         a = np.asarray([dp.logp_var[:, 0][dp.phi_ss_packed > phi_c] for dp in datasets])
-        print a.shape
+        logging.info(a.shape)
         da = np.ones(a.shape) * 1e-1
         rho_c0 = 0.84
         nu0 = 1. / 2
         zeta0 = 1. / 3
         ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
-        print "rho: {} +/- {}".format(ret.rho, ret.drho)
-        print "nu: {} +/- {}".format(ret.nu, ret.dnu)
-        print "zeta: {} +/- {}".format(ret.zeta, ret.dzeta)
-        print ret.fun
+        logging.info("rho: {} +/- {}".format(ret.rho, ret.drho))
+        logging.info("nu: {} +/- {}".format(ret.nu, ret.dnu))
+        logging.info("zeta: {} +/- {}".format(ret.zeta, ret.dzeta))
+        logging.info(ret.fun)
         auto_scaled_data = fssa.scaledata(l, rho, a, da, ret.rho, ret.nu, ret.zeta)
         # critical exponents and errors, quality of data collapse
         fig8 = plt.figure()
@@ -955,7 +956,7 @@ def plot_all(figdir="figures", bdim=2):
             # spl = UnivariateSpline(x, y, s=1.5e6, k=5, w=weights)
             # yspl = spl(xx)
             popt, pcov = curve_fit(sigmoid, x, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
-            print popt
+            logging.info(popt)
             yspl = np.vectorize(sigmoid)(xx, *popt)
             yder = np.vectorize(sigmoid_d1)(xx_der, *popt)
             ax12.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
@@ -999,7 +1000,7 @@ def plot_all(figdir="figures", bdim=2):
             # spl = UnivariateSpline(x, y, s=1e7, k=5, w=weights)
             # yspl = spl(xx)
             popt, pcov = curve_fit(sigmoid, x, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
-            print popt
+            logging.info(popt)
             yspl = np.vectorize(sigmoid)(xx, *popt)
             yder = np.vectorize(sigmoid_d1)(xx_der, *popt)
             ax14.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
@@ -1014,28 +1015,28 @@ def plot_all(figdir="figures", bdim=2):
         color = color_cycle.next()
         x = np.log(np.sqrt(nparticles))
         y = np.log(0.841 - np.asarray(varlnp_argmax))
-        print "varlnp_argmax: ", varlnp_argmax
+        logging.info("varlnp_argmax: {}".format(varlnp_argmax))
         ax15.plot(x, y, marker='o', color=color, markeredgecolor=color, label=r'$\sigma^2_{\Lambda}$')
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
         ax15.plot(x, fit_fn(x), marker='', linewidth=2, color=color)
         varlnp_argmax_fn = fit_fn
-        print "varlnP_argmax fit params: ", fit_params, " fit_err: ", fit_err
+        logging.info("varlnP_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err))
         f = lambda L, b, c: 0.841 + b * (L ** (-1 / c))
         popt, pcov = curve_fit(f, np.sqrt(nparticles), np.asarray(varlnp_argmax),
                                p0=[-2, 0.5], maxfev=10000)
-        print "varlnP_argmax c, nu ", popt, " err ", np.sqrt(np.diag(pcov))
+        logging.info("varlnP_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
         # ax18.plot(np.sqrt(nparticles), np.asarray(varlnp_argmax), marker='o', color='b')
         # ax18.plot(np.exp(xnew), f(np.exp(xnew), popt[0],popt[1],popt[2]), linestyle='--', color='b')
         color = color_cycle.next()
         y = np.log(0.841 - np.asarray(varprel_argmax))
-        print "varprel_argmax: ", varprel_argmax
+        logging.info("varprel_argmax: {}".format(varprel_argmax))
         ax15.plot(x, y, marker='s', color=color, markeredgecolor=color, label=r'$\sigma^2_{P}/\langle P \rangle^2$')
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
         ax15.plot(x, fit_fn(x), marker='', linewidth=2, color=color)
-        print "varprel_argmax fit params: ", fit_params, " fit_err: ", fit_err
+        logging.info("varprel_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err))
         popt, pcov = curve_fit(f, np.sqrt(nparticles), np.asarray(varprel_argmax),
                                p0=[-2, 0.5], maxfev=10000)
-        print "varprel_argmax c, nu ", popt, " err ", np.sqrt(np.diag(pcov))
+        logging.info("varprel_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
         # ax18.plot(np.sqrt(nparticles), np.asarray(varprel_argmax), marker='o', color='r')
         # ax18.plot(np.exp(xnew), f(np.exp(xnew), popt[0], popt[1], popt[2]), linestyle='--', color='r')
         color_cycle = get_color_cycle(ncolors=3)
@@ -1045,14 +1046,14 @@ def plot_all(figdir="figures", bdim=2):
         ax17.plot(x, y, marker='o', color=color, markeredgecolor=color, label=r'$\sigma^2_{\Lambda}$')
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
         ax17.plot(x, fit_fn(x), marker='', linewidth=2, color=color)
-        print "varlnP_max fit params: ", fit_params, " fit_err: ", fit_err
+        logging.info("varlnP_max fit params: {}, fit_err: {}".format(fit_params, fit_err))
         color = color_cycle.next()
         y = np.log(varprel_max)
         ax17.plot(x, y, marker='s', color=color, markeredgecolor=color, label=r'$\sigma^2_{P}/\langle P \rangle^2$')
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
         ax17.plot(x, fit_fn(x), marker='', linewidth=2, color=color)
         varprel_argmax_fn = fit_fn
-        print "varprel_max fit params: ", fit_params, " fit_err: ", fit_err
+        logging.info("varprel_max fit params: {}, fit_err: {}".format(fit_params, fit_err))
 
         # ax9inset.set_xlim((0.84,0.87))
         ax9.set_xlim((0.81, phi_max))
@@ -1238,8 +1239,8 @@ def plot_all(figdir="figures", bdim=2):
             # fit_fn, fit_params, fit_err, rho = poly_fit(logx[idx:], logy[idx:], yerr=None, order=1)
             # ax52.plot(logx[idx:], fit_fn(logx[idx:]), color=color, linewidth=2,
             #           label="{}".format(dp.nparticles), rasterized=True)
-            # print "nparticles: {}; ({}+/-{}) x + ({}+/-{})".format(dp.nparticles, fit_params[0], fit_err[0],
-            #                                                        fit_params[1], fit_err[1])
+            # logging.info("nparticles: {}; ({}+/-{}) x + ({}+/-{})".format(dp.nparticles, fit_params[0], fit_err[0],
+            #                                                        fit_params[1], fit_err[1]))
 
         ax51.set_ylabel(r'$\chi_{\Lambda} L^{-\gamma/\nu}$')
         ax51.set_xlabel(r'$\varepsilon L^{1/\nu}$')
@@ -1299,7 +1300,7 @@ def plot_all(figdir="figures", bdim=2):
         #                                             yerr=np.asarray(fit_params_list_err)[:, 0], order=1)
         # ax6.plot(nparticles, fit_fn(nparticles), color=color, linewidth=2,
         #          label="{:.3f} x + {:.3f}".format(fit_params[0], fit_params[1]), rasterized=True)
-        # print "fit slopes; ({}+/-{}) x + ({}+/-{})".format(fit_params[0], fit_err[0], fit_params[1], fit_err[1])
+        # logging.info("fit slopes; ({}+/-{}) x + ({}+/-{})".format(fit_params[0], fit_err[0], fit_params[1], fit_err[1]))
         # # intercepts subplot
         # ax7.errorbar(nparticles, np.asarray(fit_params_list)[:, 1], yerr=np.asarray(fit_params_list_err)[:, 1],
         #              fmt='o', color=color, rasterized=True)
@@ -1307,7 +1308,7 @@ def plot_all(figdir="figures", bdim=2):
         #                                             yerr=np.asarray(fit_params_list_err)[:, 1], order=1)
         # ax7.plot(nparticles, fit_fn(nparticles), color=color, linewidth=2,
         #          label="{:.3f} x + {:.3f}".format(fit_params[0], fit_params[1]), rasterized=True)
-        # print "fit interceps ; ({}+/-{}) x + ({}+/-{})".format(fit_params[0], fit_err[0], fit_params[1], fit_err[1])
+        # logging.info("fit interceps ; ({}+/-{}) x + ({}+/-{})".format(fit_params[0], fit_err[0], fit_params[1], fit_err[1]))
         # # ax6 ax7 legends
         # ax6.set_xlabel('N')
         # ax6.set_ylabel('slope')
@@ -1327,6 +1328,11 @@ if __name__=="__main__":
     parser.add_argument("--show", action='store_true', help="show plots", default=False)
     args = parser.parse_args()
 
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S',
+                        level=logging.INFO)
+    logging.info(args)
+
     if args.all:
         plot_all()
     else:
@@ -1342,7 +1348,7 @@ if __name__=="__main__":
     #     return a * x + b
     # popt, pcov = curve_fit(ff, x, y)
     # plt.plot(x, ff(x, popt[0], popt[1]), label=r"$\ln P = {}\ln E + {}$".format(popt[0], popt[1]))
-    # print "fit: ", popt
+    # logging.info("fit: {}".format(popt))
     # plt.legend()
     # plt.xlabel(r"$\ln E$")
     # plt.ylabel(r"$\ln P$")

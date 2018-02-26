@@ -314,6 +314,13 @@ class HS_Generate_Packing(_Generate_Packing):
         if (self.hs_radii is None or new_poly) and self.sig > 1e-8:
             logging.info("Sampling hs_radii")
             self.hs_radii = self.rng.normal(self.mu, self.sig, self.nparticles)
+            while True:
+                outside_cut = self.hs_radii <= 0
+                n_outside = np.sum(outside_cut)
+                if n_outside == 0:
+                    break
+                self.hs_radii[outside_cut] = self.rng.normal(self.mu, self.sig,
+                                                             n_outside)
         elif (self.hs_radii is None or new_poly) and self.sig <= 1e-8:
             logging.info("Sampling hs_radii, setting to ones because sig <= 1e-8")
             self.hs_radii = np.ones(self.nparticles) * self.mu

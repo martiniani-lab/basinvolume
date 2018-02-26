@@ -174,7 +174,7 @@ if __name__ == "__main__":
     # prepare PT runner
     kmin = 0
     displ_k_min = sim.displ_k_min
-    var_displ_k_min = sim.displ_k_min
+    var_displ_k_min = sim.var_displ_k_min
     kmax = sim.kmax
 
     start = time.time()
@@ -184,11 +184,11 @@ if __name__ == "__main__":
             logging.info("Using job queue with {} workers.".format(nprocs - 1))
 
             try:
+                if args.checkpoint_time is None:
+                    checkpoint_time = None
+                else:
+                    checkpoint_time = 60 * args.checkpoint_time
                 if args.load_checkpoint is None:
-                    if args.checkpoint_time is None:
-                        checkpoint_time = None
-                    else:
-                        checkpoint_time = 60 * args.checkpoint_time
                     master = PT_Master(
                         nreplicas, mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
                         pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
@@ -202,7 +202,7 @@ if __name__ == "__main__":
                     checkpoint_path = os.path.join(path, args.load_checkpoint)
                     with open(checkpoint_path, 'rb') as infile:
                         master = cPickle.load(infile)
-                    master.init_state(base_directory=path)
+                    master.init_state(base_directory=path, checkpoint_time=checkpoint_time)
                 master.run()
                 exit_on_checkpoint = master.created_checkpoint
                 if args.load_checkpoint is not None and not exit_on_checkpoint:

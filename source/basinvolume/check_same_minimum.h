@@ -30,7 +30,7 @@ namespace bv {
  *                                                             1 -> jammed particle
  *             this convention removes if statements in the for loop and replaces them with
  *             arithmetic operation (distance[i] *= rattlers[i]), distance is set artificially to
- *             zero if the particle is a rattler. note _rattlers.size() = coords.size()
+ *             zero if the particle is a rattler.
  * _d: norm of distance
  * _rms: root mean square displacement from origin
  * _E = energy of the quenched state
@@ -63,7 +63,6 @@ protected:
     pele::Array<double> _origin;
     pele::Array<double> _rattlers;
     pele::Array<double> _new_minimum;
-    pele::Array<double> _aligned_coords; //!< Coordinates after alignment, used in _get_d2
     double _dtol;
     double _d;
     double _rms;
@@ -112,9 +111,8 @@ CheckSameMinimum<distance_policy, OPT_T>::CheckSameMinimum(std::shared_ptr<OPT_T
     : _optimizer(optimizer),
       _potential(potential),
       _origin(origin.copy()),
-      _rattlers(rattlers.copy()),
+      _rattlers(rattlers.size() / _ndim),
       _new_minimum(origin.size()),
-      _aligned_coords(origin.size()),
       _dtol(dtol),
       _d(0),
       _rms(0),
@@ -130,19 +128,19 @@ CheckSameMinimum<distance_policy, OPT_T>::CheckSameMinimum(std::shared_ptr<OPT_T
     if (_dist_policy == NULL) {
         throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: distance policy uninitialised");
     }
-    if (_origin.size() != _rattlers.size()) {
+    if (_origin.size() != rattlers.size()) {
         throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: illegal input: origin vs rattlers");
     }
     if (_origin.size() % _ndim) {
         throw std::runtime_error("CheckSameMinimum::CheckSameMinimum: illegal input: origin vs boxdimension");
     }
-    for (size_t i = 0; i < _origin.size(); i +=_ndim) {
-        if (_rattlers[i] != 0){
-            _inoratt = i / _ndim;
-            break;
+    bool no_stable_yet = true;
+    for (size_t i = 0; i < _rattlers.size(); ++i) {
+        _rattlers[i] = rattlers[i*_ndim];
+        if (no_stable_yet && _rattlers[i] != 0) {
+            _inoratt = i;
+            no_stable_yet = false;
         }
-    }
-    for (size_t i = 0; i < _origin.size(); i +=_ndim) {
         _Nnoratt += _rattlers[i];
     }
 }
@@ -175,7 +173,7 @@ void CheckSameMinimum<distance_policy, OPT_T>::_align_coords(pele::Array<double>
     pele::VecN<_ndim, double> dr;
 
     //measure distance between two non rattlers
-    _dist_policy->get_rij(dr.data(), &coords[_inoratt], &_origin[_inoratt]);
+    _dist_policy->get_rij(dr.data(), &coords[_inoratt*_ndim], &_origin[_inoratt*_ndim]);
 
     //align structures
     #pragma simd
@@ -197,10 +195,9 @@ double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> con
     pele::VecN<_ndim, double> dr_align;
 
     //measure distance between two non rattlers
-    _dist_policy->get_rij(dr_align.data(), &coords[_inoratt], &_origin[_inoratt]);
+    _dist_policy->get_rij(dr_align.data(), &coords[_inoratt*_ndim], &_origin[_inoratt*_ndim]);
 
     //compute distance between aligned structures
-    #pragma simd reduction( + : distance2)
     for (size_t i = 0; i < _nparticles; ++i) {
         const size_t i1 = i * _ndim;
         pele::VecN<_ndim, double> dr, x_aligned;
@@ -211,7 +208,7 @@ double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> con
         _dist_policy->get_rij(dr.data(), x_aligned.data(), &_origin[i1]);
         #pragma unroll
         for (size_t j = 0; j < _ndim; ++j) {
-            const double current_distance = dr[j] * _rattlers[i1 + j];
+            const double current_distance = dr[j] * _rattlers[i];
             distance2 += current_distance * current_distance;
         }
     }
