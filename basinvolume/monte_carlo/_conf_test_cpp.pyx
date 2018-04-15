@@ -129,9 +129,9 @@ cdef class _Cdef_CheckOverlapCartesian(_Cdef_ConfTest):
     """
     Python interface for c++ CheckOverlapCartesian
     """
-    def __cinit__(self, hs_radii, boxdim, use_frozen=False, reference_coords=None, frozen_atoms=None):
+    def __cinit__(self, hs_radii, boxvec, use_frozen=False, reference_coords=None, frozen_atoms=None):
         cdef np.ndarray[size_t, ndim=1] frozen_dof
-        cdef size_t ndim = boxdim
+        cdef size_t ndim = len(boxvec)
         cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
         cdef _pele.Array[double] rc_
         cdef _pele.Array[size_t] fd_

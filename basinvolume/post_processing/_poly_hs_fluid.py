@@ -32,7 +32,7 @@ class Poly_HS_Fluid_2d(Poly_HS_Fluid):
             rho_max = 0.9
             phi_max = rho_max * 0.25 * pi
             if phi > phi_max or phi < 0:
-                raise Exception("illegal volume fraction, phi = {}".format(phi))
+                raise Exception("illegal volume fraction, phi = {} > phi_max = {} or phi < 0".format(phi, phi_max))
             x = phi / (1 - phi)
             return 1 + 2 * x + 1.12801775 * x**2 + 0.00181895291 * x**3 - 0.0526134737 * x**4 \
                    + 0.0504960168 * x**5 - 0.0325537792 * x**6 + 0.0134578632 * x**7 + 0.00140888182 * x**8 \
