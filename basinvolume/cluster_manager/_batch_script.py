@@ -56,7 +56,7 @@ class BatchScript(object):
     *outdir [string]: Directory for redirecting the standard output
     """
     def __init__(self, batch_system, queue, walltime, command, mpi_procs=1,
-                 mpi_oversubscribe=0, omp_threads=1, cores_per_node=16,
+                 mpi_oversubscribe=0, omp_threads=1, cores_per_node=16, memory_per_cpu=2,
                  nodays=False, outdir=None, mpi_impl=MPI_Implementation.OPENMPI):
         self.batch_system = batch_system
         if queue is None:
@@ -79,6 +79,7 @@ class BatchScript(object):
            self.nodes += 1
         self.ncores = min(cores_per_node, self.omp_threads*(self.mpi_procs-self.mpi_oversubscribe))
         self.mpi_impl = mpi_impl
+        self.memory_per_cpu = memory_per_cpu
 
     def _get_queue(self, walltime):
         if walltime <= 1:
@@ -94,7 +95,7 @@ class BatchScript(object):
 
     def _get_mpi_flags(self):
         if self.mpi_impl is MPI_Implementation.OPENMPI:
-            return '-n {} --bynode'.format(self.mpi_procs)
+            return '-n {} --map-by node'.format(self.mpi_procs)
         elif self.mpi_impl is MPI_Implementation.INTEL:
             return '-n {} -rr'.format(self.mpi_procs)
         else:
@@ -121,6 +122,7 @@ class BatchScript(object):
         f.write('#PBS -q {}\n'.format(self.qtype))
         f.write('#PBS -l nodes={0}:ppn={1}\n'.format(self.nodes, self.ncores))
         f.write('#PBS -l walltime={}\n'.format(self.dhms_wtime))
+        f.write('#PBS -l mem={}GB\n'.format(self.ncores*self.memory_per_cpu))
         f.write('#PBS -j oe\n') # this directive merges output and error in the same file
         if self.outdir:
             f.write('#PBS -o {}\n'.format(self.outdir))
@@ -136,7 +138,8 @@ class BatchScript(object):
         f.write('echo\n')
         f.write('echo \"Running ${PBS_JOBNAME}\"\n')
         f.write('echo\n')
-        f.write('mpirun {} {}\n'.format(self._get_mpi_flags(), self.command))
+        #f.write('mpirun {} {}\n'.format(self._get_mpi_flags(), self.command))
+        f.write('{}\n'.format(self.command))
         f.write('echo\n')
         f.write('echo \"Job finished. PBS details are:\"\n')
         f.write('echo\n')
@@ -154,8 +157,8 @@ class BatchScript(object):
         f.write('#!/bin/bash\n')
         f.write('#SBATCH --job-name={}\n'.format(job_name))
         f.write('#SBATCH --nodes={}\n'.format(self.nodes))
-        f.write('#SBATCH --ntasks={}\n'.format(self.mpi_procs-self.mpi_oversubscribe))
         f.write('#SBATCH --cpus-per-task={}\n'.format(self.omp_threads))
+        f.write('#SBATCH --mem={}GB\n'.format(self.memory_per_cpu*self.ncores))
         f.write('#SBATCH --time={}\n'.format(self.dhms_wtime))
         if self.outdir:
             f.write('#SBATCH --output={}_%j.out\n'.format(os.path.join(self.outdir, job_name)))
@@ -173,7 +176,8 @@ class BatchScript(object):
         f.write('echo\n')
         f.write('echo \"Running ${SLURM_JOB_NAME}\"\n')
         f.write('echo\n')
-        f.write('mpirun {} {}\n'.format(self._get_mpi_flags(), self.command))
+        #f.write('mpirun {} {}\n'.format(self._get_mpi_flags(), self.command))
+        f.write('{}\n'.format(self.command))
         f.write('echo\n')
         f.write('echo \"Job finished. SLURM details are:\"\n')
         f.write('echo\n')

@@ -134,7 +134,7 @@ class _Generate_Jammed_Packing(object):
             if self.override_pot_kwargs is not None:
                 self.pot_kwargs.update(self.override_pot_kwargs)
             self.sca = imp_packing['sca']
-            self.packing_frac = self.target_packing_frac / (1 + self.sca)**2
+            self.packing_frac = self.target_packing_frac / (1 + self.sca) ** self.bdim
         else:
             self._import_packing_config_file(str(self.configpath))
 
@@ -461,7 +461,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
         """quenches the imported structure"""
 
-        # asserts that none of the hard sphere is overlapping before quenching
+        # asserts that none of the hard spheres is overlapping before quenching
         if __debug__ and self.check_packing:
             no_overlap = self._check_no_overlaps()
             if not no_overlap:
