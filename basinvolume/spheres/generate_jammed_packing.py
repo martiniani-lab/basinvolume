@@ -479,8 +479,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             res = optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
             res = lbfgs_cpp(self.coords, self.potential,
-                            maxstep=opt_maxstep,
-                            tol=tol, nsteps=1e6, iprint=iprint)
+                            maxstep=opt_maxstep, tol=tol,
+                            nsteps=1e6, maxErise=0, iprint=iprint)
         else:
             raise NotImplementedError
 
@@ -502,8 +502,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 res2 = optimizer.run()
             elif self.minimizer is Minimizer.LBFGS:
                 res2 = lbfgs_cpp(self.coords, self.potential,
-                                 maxstep=opt_maxstep, tol=tol, nsteps=1e6,
-                                 iprint=iprint)
+                                 maxstep=opt_maxstep, tol=tol,
+                                 nsteps=1e6, maxErise=0, iprint=iprint)
             else:
                 raise NotImplementedError
             if res2.nfev > 1:
