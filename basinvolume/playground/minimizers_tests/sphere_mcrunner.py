@@ -229,7 +229,8 @@ class BVSphereMCrunner(_BaseMCRunner):
                                        self.pot_optimizer,
                                        tol=opt_tol,
                                        nsteps=opt_nsteps,
-                                       maxstep=opt_maxstep)
+                                       maxstep=opt_maxstep,
+                                       maxErise=0)
         else:
             self.optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
                                              dtmax=opt_dtmax, maxstep=opt_maxstep,

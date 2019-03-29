@@ -135,7 +135,8 @@ class configure_bv_gauss_mcrunner(object):
                                        self.pot_optimizer,
                                        tol=self.opt_tol,
                                        nsteps=opt_nsteps,
-                                       maxstep=self.opt_maxstep)
+                                       maxstep=self.opt_maxstep,
+                                       maxErise=0)
         else:
             from pele.optimize import ModifiedFireCPP
             self.optimizer = ModifiedFireCPP(self.origin,

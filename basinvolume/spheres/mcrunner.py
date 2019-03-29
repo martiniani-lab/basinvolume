@@ -5,6 +5,7 @@ import warnings
 import logging
 from pele.potentials import Harmonic, HS_WCA, InversePowerStillingerCut
 from pele.optimize import ModifiedFireCPP, LBFGS_CPP
+from pele.optimize._quench import modifiedfire_cpp
 from pele.storage.database import Minimum
 from pele.distance import Distance
 from mcpele.monte_carlo import (RandomCoordsDisplacement, MetropolisTest,
@@ -133,10 +134,13 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         return pot_optimizer
 
     def get_optimizer(self):
+        # res = modifiedfire_cpp(self.start_coords, self.pot_optimizer, dtmax=self.opt_dtmax,
+        #                        maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=self.opt_nsteps)
+        # maxErise = res.energy * 1e-9
         if self.minimizer is Minimizer.LBFGS:
             optimizer = LBFGS_CPP(self.start_coords, self.pot_optimizer,
                                   tol=self.opt_tol, nsteps=self.opt_nsteps,
-                                  maxstep=self.opt_maxstep)
+                                  maxstep=self.opt_maxstep, maxErise=0)
         else:
             optimizer = ModifiedFireCPP(self.start_coords, self.pot_optimizer,
                                         dtmax=self.opt_dtmax, maxstep=self.opt_maxstep,
