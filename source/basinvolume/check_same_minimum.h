@@ -32,7 +32,7 @@ namespace bv {
  *             arithmetic operation (distance[i] *= rattlers[i]), distance is set artificially to
  *             zero if the particle is a rattler.
  * _d: norm of distance
- * _rms: root mean square displacement from origin
+ * _dmax: maximum displacement from origin for any particle
  * _E = energy of the quenched state
  * _dtol: tolerance on distances
  * _Etol: tolerance on energies (a minimum should be whithin this value from _Emin)
@@ -56,6 +56,7 @@ protected:
     static const size_t _ndim = distance_policy::_ndim;
     inline void _align_coords(pele::Array<double> & coords);
     inline double _get_d2(pele::Array<double> const & coords);
+    inline double _get_d2_max(pele::Array<double> const & coords);
     inline void _check_convergence(pele::Array<double> const & quenched_coords);
     bool _quench(pele::Array<double> &trial_coords);
     std::shared_ptr<OPT_T> _optimizer;
@@ -65,7 +66,7 @@ protected:
     pele::Array<double> _new_minimum;
     double _dtol;
     double _d;
-    double _rms;
+    double _dmax;
     size_t _nparticles;
     const std::shared_ptr<distance_policy> _dist_policy;
     size_t _Nnoratt;
@@ -115,7 +116,7 @@ CheckSameMinimum<distance_policy, OPT_T>::CheckSameMinimum(std::shared_ptr<OPT_T
       _new_minimum(origin.size()),
       _dtol(dtol),
       _d(0),
-      _rms(0),
+      _dmax(0),
       _nparticles(origin.size() / _ndim),
       _dist_policy(dist),
       _Nnoratt(0),
@@ -172,7 +173,7 @@ void CheckSameMinimum<distance_policy, OPT_T>::_align_coords(pele::Array<double>
     assert(coords.size() == _ndim * _nparticles);*/
     pele::VecN<_ndim, double> dr;
 
-    //measure distance between two non rattlers
+    //measure distance between a non-rattler and its origin
     _dist_policy->get_rij(dr.data(), &coords[_inoratt*_ndim], &_origin[_inoratt*_ndim]);
 
     //align structures
@@ -186,15 +187,15 @@ void CheckSameMinimum<distance_policy, OPT_T>::_align_coords(pele::Array<double>
     }
 }
 
-/*compute distance from origin after aligning two particles
-this ignores the rattlers completely and returns rmsd squared*/
+/*compute the squared distance from origin after aligning one particle with its origin
+this ignores the rattlers completely*/
 template <typename distance_policy, class OPT_T>
 double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> const & coords)
 {
     double distance2 = 0;
     pele::VecN<_ndim, double> dr_align;
 
-    //measure distance between two non rattlers
+    //measure distance between a non-rattler and its origin
     _dist_policy->get_rij(dr_align.data(), &coords[_inoratt*_ndim], &_origin[_inoratt*_ndim]);
 
     //compute distance between aligned structures
@@ -208,8 +209,41 @@ double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> con
         _dist_policy->get_rij(dr.data(), x_aligned.data(), &_origin[i1]);
         #pragma unroll
         for (size_t j = 0; j < _ndim; ++j) {
-            const double current_distance = dr[j] * _rattlers[i];
-            distance2 += current_distance * current_distance;
+            distance2 += dr[j] * dr[j] * _rattlers[i];
+        }
+    }
+
+    //avoid taking square roots by returning squared quantities
+    return distance2;
+}
+
+/*compute maximum of squared distances between a particle and its origin after aligning one particle with its origin
+this ignores the rattlers completely*/
+template <typename distance_policy, class OPT_T>
+double CheckSameMinimum<distance_policy, OPT_T>::_get_d2_max(pele::Array<double> const & coords)
+{
+    double distance2 = 0;
+    pele::VecN<_ndim, double> dr_align;
+
+    //measure distance between a non-rattler and its origin
+    _dist_policy->get_rij(dr_align.data(), &coords[_inoratt*_ndim], &_origin[_inoratt*_ndim]);
+
+    //compute distance between aligned structures
+    for (size_t i = 0; i < _nparticles; ++i) {
+        const size_t i1 = i * _ndim;
+        pele::VecN<_ndim, double> dr, x_aligned;
+        #pragma unroll
+        for (size_t j = 0; j < _ndim; ++j) {
+            x_aligned[j] = coords[i1 + j] - dr_align[j];
+        }
+        _dist_policy->get_rij(dr.data(), x_aligned.data(), &_origin[i1]);
+        double current_distance2 = 0;
+        #pragma unroll
+        for (size_t j = 0; j < _ndim; ++j) {
+            current_distance2 += dr[j] * dr[j];
+        }
+        if (_rattlers[i] && current_distance2 > distance2) {
+            distance2 = current_distance2;
         }
     }
 
@@ -218,21 +252,19 @@ double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> con
 }
 
 /*quench configuration and add minimum to new minimum list*/
-
 template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::_quench(pele::Array<double> &trial_coords)
 {
     _optimizer->reset(trial_coords);
 
     bool success = true;
-    double d2 = this->_get_d2(_optimizer->get_x());
-    double rmsd2 = d2 / _Nnoratt;
+    double d2max = this->_get_d2_max(_optimizer->get_x());
     double dtol2 = _dtol * _dtol;
     const size_t opt_maxiter = _optimizer->get_maxiter();
 
     //this might become an infinite loop
     //optimizer stop-criterion needs to be checked before calling one_iteration
-    while (rmsd2 > dtol2 && static_cast<size_t>(_optimizer->get_niter()) < opt_maxiter) {
+    while (d2max > dtol2 && static_cast<size_t>(_optimizer->get_niter()) < opt_maxiter) {
         if (_optimizer->stop_criterion_satisfied()) {
             //minimisation converged before satisfying distance criterion,
             //save minimum and return false
@@ -240,13 +272,12 @@ bool CheckSameMinimum<distance_policy, OPT_T>::_quench(pele::Array<double> &tria
             break;
         }
         _optimizer->one_iteration();
-        d2 = this->_get_d2(_optimizer->get_x());
-        rmsd2 = d2 / _Nnoratt;
+        d2max = this->_get_d2_max(_optimizer->get_x());
     }
 
     //assign attributes for rms displacement from origin
-    _d = sqrt(d2);
-    _rms = sqrt(rmsd2);
+    _dmax = sqrt(d2max);
+    _d = sqrt(this->_get_d2(_optimizer->get_x()));
 
     return success;
 }
@@ -259,8 +290,8 @@ template <>
 bool CheckSameMinimum<pele::cartesian_distance<2UL>, BvCGDescent<pele::cartesian_distance<2UL>>>::_quench(pele::Array<double> &trial_coords){
     _optimizer->reset(trial_coords);
     _optimizer->run();
+    _dmax = sqrt(_optimizer->get_d2_max());
     _d = sqrt(_optimizer->get_d2());
-    _rms = sqrt(_optimizer->get_rmsd2());
     bool success = _optimizer->success();
     return success;
 }
@@ -268,8 +299,8 @@ template <>
 bool CheckSameMinimum<pele::cartesian_distance<3UL>, BvCGDescent<pele::cartesian_distance<3UL>>>::_quench(pele::Array<double> &trial_coords){
     _optimizer->reset(trial_coords);
     _optimizer->run();
+    _dmax = sqrt(_optimizer->get_d2_max());
     _d = sqrt(_optimizer->get_d2());
-    _rms = sqrt(_optimizer->get_rmsd2());
     bool success = _optimizer->success();
     return success;
 }
@@ -291,7 +322,7 @@ bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(pele::Array<double> &tr
     //check if minimisation has converged
     //if exited loop with rmsd>dtol2 and success == true
     //then the quench has failed in the given no. of steps
-    if (_rms > _dtol && same_minimum) {
+    if (_dmax > _dtol && same_minimum) {
         quench_success = false;
     }
     m_failed_quench_frac.update(!quench_success);
@@ -302,7 +333,7 @@ bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(pele::Array<double> &tr
     if (!same_minimum) {
         //if quench has converged to different minimum then one might want to
         //save the new minimum
-        //std::cout<<"failed quench rms "<<_rms<<"dtol"<<_dtol<<std::endl;
+        // std::cout <<" failed quench dmax " << _dmax << ", dtol " << _dtol << std::endl;
         if (_collect_minima_list && mc->get_iterations_count() > m_eqsteps) {
             _new_minimum.assign(_optimizer->get_x());
             this->_align_coords(_new_minimum);
