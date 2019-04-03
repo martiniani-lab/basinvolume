@@ -64,9 +64,11 @@ protected:
     pele::Array<double> _origin;
     pele::Array<double> _rattlers;
     pele::Array<double> _new_minimum;
-    double _dtol;
+    double _dtol, _dtol_barriercheck;
     double _d;
     double _dmax;
+    size_t _nbarrierchecks;
+    double _tol_barrier;
     size_t _nparticles;
     const std::shared_ptr<distance_policy> _dist_policy;
     size_t _Nnoratt;
@@ -115,6 +117,9 @@ CheckSameMinimum<distance_policy, OPT_T>::CheckSameMinimum(std::shared_ptr<OPT_T
       _rattlers(rattlers.size() / _ndim),
       _new_minimum(origin.size()),
       _dtol(dtol),
+      _dtol_barriercheck(100 * _dtol),
+      _tol_barrier(1e-5),
+      _nbarrierchecks(20),
       _d(0),
       _dmax(0),
       _nparticles(origin.size() / _ndim),
@@ -292,8 +297,7 @@ bool CheckSameMinimum<pele::cartesian_distance<2UL>, BvCGDescent<pele::cartesian
     _optimizer->run();
     _dmax = sqrt(_optimizer->get_d2_max());
     _d = sqrt(_optimizer->get_d2());
-    bool success = _optimizer->success();
-    return success;
+    return _optimizer->success();
 }
 template <>
 bool CheckSameMinimum<pele::cartesian_distance<3UL>, BvCGDescent<pele::cartesian_distance<3UL>>>::_quench(pele::Array<double> &trial_coords){
@@ -301,15 +305,39 @@ bool CheckSameMinimum<pele::cartesian_distance<3UL>, BvCGDescent<pele::cartesian
     _optimizer->run();
     _dmax = sqrt(_optimizer->get_d2_max());
     _d = sqrt(_optimizer->get_d2());
-    bool success = _optimizer->success();
-    return success;
+    return _optimizer->success();
 }
 
 template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
 {
-    bool quench_success = true;
+    bool quench_success;
     bool same_minimum = this->_quench(trial_coords);
+
+    // Check if this is indeed a different minimum by searching for a barrier between origin and coordinates
+    if (!same_minimum && _dmax <= _dtol_barriercheck)
+    {
+        quench_success = true;
+        double energy_minima = std::max(_potential->get_energy(_origin), _optimizer->get_f());
+        bool barrier_found = false;
+        for (int icheck = 1; icheck <= _nbarrierchecks; ++icheck) {
+            double stepratio = icheck / (_nbarrierchecks + 1);
+            #pragma simd
+            for (int i = 0; i < _origin.size(); ++i) {
+                _new_minimum[i] = _origin[i] + stepratio * _optimizer->get_x()[i];
+            }
+            if(_potential->get_energy(_new_minimum) > energy_minima + _tol_barrier) {
+                barrier_found = true;
+                break;
+            }
+        }
+        same_minimum = !barrier_found;
+    } else {
+        // check if minimisation has converged
+        // if exited loop with dmax > dtol and success == true
+        // then the quench has failed in the given no. of steps
+        quench_success = _dmax <= _dtol || !same_minimum;
+    }
 
     //add number of energy evaluations to mc eval count
     const size_t nfev = _optimizer->get_nfev();
@@ -319,12 +347,6 @@ bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(pele::Array<double> &tr
         this->_check_convergence(_optimizer->get_x());
     }
 
-    //check if minimisation has converged
-    //if exited loop with rmsd>dtol2 and success == true
-    //then the quench has failed in the given no. of steps
-    if (_dmax > _dtol && same_minimum) {
-        quench_success = false;
-    }
     m_failed_quench_frac.update(!quench_success);
     if (!quench_success) {
         return false;
