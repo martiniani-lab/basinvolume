@@ -324,7 +324,7 @@ bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(pele::Array<double> &tr
             double stepratio = icheck / (_nbarrierchecks + 1);
             #pragma simd
             for (int i = 0; i < _origin.size(); ++i) {
-                _new_minimum[i] = _origin[i] + stepratio * _optimizer->get_x()[i];
+                _new_minimum[i] = (1 - stepratio) * _origin[i] + stepratio * _optimizer->get_x()[i];
             }
             if(_potential->get_energy(_new_minimum) > energy_minima + _tol_barrier) {
                 barrier_found = true;
