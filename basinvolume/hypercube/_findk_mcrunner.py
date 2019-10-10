@@ -12,11 +12,11 @@ import warnings
 class _hypercube_findk_mcrunner(_configure_mcrunner):
     """
     """
-        
-    def __init__(self, ndof, sidelength=1, k=100.0, niter=5e4, avgcount=1e4, 
-                 ktarget=0.9, knavg=1000, ktol=0.025, hmin=0, hmax=0.01, 
+
+    def __init__(self, ndof, sidelength=1, k=100.0, niter=5e4,
+                 ktarget=0.9, knavg=1000, ktol=0.025, hmin=0, hmax=0.01,
                  hbinsize=0.0005, seeds=None, verbose=False, workspace=None):
-                
+
         self.temperature=1.0
         self.ndof = ndof
         self.sidelength = sidelength
@@ -25,12 +25,12 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
             self.workspace = os.getcwd()
         else:
             self.workspace = os.path.abspath(workspace)
-        
+
         self._set_paths()
         stepsize = np.sqrt(1.0 / k) #stepsize plays the role of the standard deviation
-        
-        #self.mc_params = dict(k=k, temperature=temperature, )    
-        kwargs = dict(ktarget=ktarget, knavg=knavg, ktol=ktol, avgcount=avgcount,
+
+        #self.mc_params = dict(k=k, temperature=temperature, )
+        kwargs = dict(ktarget=ktarget, knavg=knavg, ktol=ktol,
                       hmin=hmin, hmax=hmax, hbinsize=hbinsize, sidelength=self.sidelength,
                       seeds=seeds)
 
@@ -38,15 +38,15 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
-                
+
         #self.coords is origin, set initial configuration and origin to be the same
         potential = NullPotential()
-        #####       
+        #####
         self.mcrunner = HypercubeFindkMCrunner(potential, self.coords, self.temperature, stepsize, niter,
                                                self.coords, **kwargs)
-        
+
         self._initialise()
-        
+
     def run(self):
         try:
             self.mcrunner.run()
@@ -58,21 +58,21 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         except:
             view_traceback()
             self._print_success(False)
-    
+
     def _set_paths(self):
         dname = 'hypercube_n'+str(self.ndof)+'_l'+str(self.sidelength)
         self.base_directory = os.path.join(self.workspace,'explore_bv_'+dname)
         configfile = 'findk_' + dname
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
-    
+
     def _initialise(self):
         self._print_initialise()
-         
+
     def _print_initialise(self):
         base_directory = self.base_directory
         trymakedir(base_directory)
         self._print_parameters()
-        
+
     def _write_sim_params(self, f):
         """
         write simulation parameters
@@ -85,7 +85,7 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         f.write('[FINDK_MCRUNNER]\n')
         for key, value in self.mc_params.iteritems() :
             f.write('{}: {}\n'.format(key,value))
-    
+
     def _print_results(self):
         fname = self.configfile
         f = open(fname, 'a')
@@ -99,21 +99,21 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         f.write('displ_k_max: {:.16f}\n'.format(self.displ_k_max))
         f.write('var_displ_k_max: {:.16f}\n'.format(self.var_displ_k_max))
         f.close()
-    
+
     def _import_packing_config_files(self):
         """pure virtual, must overload"""
         pass
-    
+
 if __name__ == "__main__":
-    
+
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
     ndof = 93
-    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, avgcount=1e4, k=50, ktarget=0.9, knavg=1e3,
+    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=50, ktarget=0.9, knavg=1e3,
                                     seeds=seeds, verbose=True)
     print 'simulation started'
-    start=time.time() 
+    start=time.time()
     sim.run()
     end=time.time()
     print 'time elapsed', end-start
@@ -127,4 +127,3 @@ if __name__ == "__main__":
     print "(N-1)d/k", sim.ndof / sim.kmax
     #sim.mcrunner.show_histogram()
     print "entries in histogram:", sim.mcrunner.get_entries()
-    

@@ -18,7 +18,7 @@ class _findk_mcrunner(_configure_mcrunner):
     *knavg: number of steps over findk averages the acceptance
     *ktol: when acceptance-ktarget<ktol the search for k terminates
     """
-    def __init__(self, fname, k=150, niter=1e8, avgcount=1e4, dtol=1e-4, eps=1., ktarget=0.9,
+    def __init__(self, fname, k=150, niter=1e8, dtol=1e-4, eps=1., ktarget=0.9,
                  knavg=1000, ktol=0.025, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5,
                  opt_nsteps=1e5, perform_convergence_test=False, collect_minima_list=False,
                  seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE,
@@ -63,7 +63,7 @@ class _findk_mcrunner(_configure_mcrunner):
         #####
 
         #self.mc_params = dict(k=k, temperature=temperature, )
-        kwargs = dict(avgcount=avgcount, dtol=dtol, eps=eps, ktarget=ktarget, knavg=knavg, ktol=ktol,
+        kwargs = dict(dtol=dtol, eps=eps, ktarget=ktarget, knavg=knavg, ktol=ktol,
                       opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep, opt_tol=opt_tol,
                       opt_nsteps=opt_nsteps, perform_convergence_test=perform_convergence_test,
                       collect_minima_list=collect_minima_list, seeds=seeds, use_cell_lists=use_cell_lists,
@@ -88,7 +88,6 @@ class _findk_mcrunner(_configure_mcrunner):
             self.mcrunner.run()
             self.kmax = self.mcrunner.get_k()
             self.prob = self.mcrunner.findk.get_prob()
-            self.displ_k_max, self.var_displ_k_max = self.mcrunner.findk.get_mean_variance()
             self._print_results()
             self._print_success(True)
         except:
@@ -145,8 +144,6 @@ class _findk_mcrunner(_configure_mcrunner):
         f.write('[FINDK]\n')
         f.write('kmax: {:.16f}\n'.format(self.kmax))
         f.write('prob: {:.16f}\n'.format(self.prob))
-        f.write('displ_k_max: {:.16f}\n'.format(self.displ_k_max))
-        f.write('var_displ_k_max: {:.16f}\n'.format(self.var_displ_k_max))
         f.close()
 
 if __name__ == "__main__":
@@ -154,7 +151,7 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    sim = _findk_mcrunner('jammed_packing0.xydr', avgcount=1e4, k=759, opt_tol=1e-5,
+    sim = _findk_mcrunner('jammed_packing0.xydr', k=759, opt_tol=1e-5,
                           ktarget=0.9, knavg=1e3, seeds=seeds, use_cell_lists=True,
                           verbose=True, minimizer=Minimizer.FIRE)
     print 'simulation started'
@@ -168,8 +165,6 @@ if __name__ == "__main__":
     print status
     print "self.kmax:", sim.kmax
     print "self.prob:", sim.prob
-    print "self.displ_k_max:", sim.displ_k_max
-    print "self.var_displ_k_max:", sim.var_displ_k_max
     #print "Nd/k: ", sim.nparticles * sim.bdim / sim.kmax
     print "(N-1)d/k", (sim.nparticles - 1) * sim.bdim / sim.kmax
     sim.mcrunner.show_histogram()

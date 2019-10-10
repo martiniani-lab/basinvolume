@@ -11,14 +11,13 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         super(GaussianBenchmarkKmaxRun, self).__init__(a, b, c, d)
     def setup(self, pot_optimizer=None, origin=None, seeds=None,
         conftest_outer_sphere=None, conftest_check_same_minimum=None,
-        action_findk=None, avgcount=1e4, niter=None):
+        action_findk=None, niter=None):
         self.pot_optimizer = pot_optimizer
         self.origin = origin
         self.conftest_outer_sphere = conftest_outer_sphere
         self.conftest_check_same_minimum = conftest_check_same_minimum
         self.action_findk = action_findk
         self.niter = niter
-        self.avgcount = avgcount
         if self.pot_optimizer is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: pot_optimizer")
         if self.origin is None:

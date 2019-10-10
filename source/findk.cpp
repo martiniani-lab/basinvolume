@@ -9,7 +9,7 @@
 
 namespace bv {
 
-Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
+Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, double target,
         size_t navg, double tol, double min, double max, double bin, const bool fix_com)
 	: _origin(origin.copy()),
       _rattlers(rattlers.copy()),
@@ -20,7 +20,6 @@ Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t nd
       _tol(tol),
       _ndim(ndim),
       _nparticles(_origin.size() / _ndim),
-      _avg_count(avg_count),
       _navg(navg),
       _naccepted(0),
       _nrejected(0),
@@ -73,16 +72,7 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
     }
 
     if (_converged) { // kmax search converged
-        if (accepted) {
-            this->_get_vec_distance(coords);
-            //compute square displacement from origin
-            const double norm2 = dot(_distance, _distance);
-            _hist.add_entry(norm2);
-        }
-        //this will trigger premature exit from the MC run loop
-        if (static_cast<size_t>(_hist.get_count()) >= _avg_count) {
-            mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
-        }
+        mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
     }
     else if (mc_count % _navg == 0) { // kmax seach not yet converged
         _acceptedf = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected));
@@ -122,7 +112,6 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc)
     //check for convergence
     if (fabs(_target - _acceptedf) < _tol) {
         _converged = true;
-        std::cout << "k converged. Collect data for mean squared displacement." << std::endl;
         return;
     }
     //adapt k size

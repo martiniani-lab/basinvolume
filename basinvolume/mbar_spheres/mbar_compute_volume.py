@@ -224,9 +224,6 @@ class mbar_compute_dos(object):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
-#        unused variables
-#        self.displ_k_max = 0.1 #configf.getfloat('FINDK', 'displ_k_max') #DEBUG
-#        self.var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max')
         configf.read(str(self.innersphere_configpath))
         self.k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
         self.ndof = (self.nparticles-1)*self.bdim

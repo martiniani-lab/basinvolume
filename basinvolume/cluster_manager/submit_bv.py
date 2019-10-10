@@ -126,8 +126,6 @@ class SubmitBV(object):
             configf.read(str(kmax_configpath))
             kmax = configf.getfloat('FINDK', 'kmax')
             prob_kmax = configf.getfloat('FINDK', 'prob')
-            displ_k_max = configf.getfloat('FINDK', 'displ_k_max')
-            var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max')
             success = configf.getboolean('STATUS', 'success')
         except:
             return False

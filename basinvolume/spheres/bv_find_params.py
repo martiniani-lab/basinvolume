@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     ncores = args.ncores
 
-    findk_kwargs = dict(k=600, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
+    findk_kwargs = dict(k=600, niter=1e8, dtol=1e-4, eps=1., ktarget=0.9,
                         knavg=2000, ktol=0.025, opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4,
                         packings_dir=packings_dir, use_cell_lists=args.cell)
 

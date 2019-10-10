@@ -19,32 +19,32 @@ cdef extern from "basinvolume/record_disp2_histogram.h" namespace "bv":
     cdef cppclass cppRecordDisp2Histogram "bv::RecordDisp2Histogram":
         cppRecordDisp2Histogram(_pele.Array[double],_pele.Array[double], size_t, double, double, double, size_t, cbool) except +
         int get_count() except +
-        
+
 cdef extern from "basinvolume/record_acceptance_histogram.h" namespace "bv":
     cdef cppclass cppRecordAcceptanceHistogram "bv::RecordAcceptanceHistogram":
         cppRecordAcceptanceHistogram(_pele.Array[double], double, double, size_t, size_t) except+
         _pele.Array[double] get_acceptance_distance_values() except+
         _pele.Array[double] get_acceptance_fraction_values() except+
 
-cdef extern from "basinvolume/findk.h" namespace "bv":    
+cdef extern from "basinvolume/findk.h" namespace "bv":
     cdef cppclass cppFindk "bv::Findk":
-        cppFindk(_pele.Array[double], _pele.Array[double], size_t, size_t, double, size_t, double, double, double, double, cbool) except+
+        cppFindk(_pele.Array[double], _pele.Array[double], size_t, double, size_t, double, double, double, double, cbool) except+
         double get_prob() except+
         double get_mean() except+
         double get_variance() except+
         _pele.Array[double] get_histogram() except +
         int get_entries() except+
 
-cdef extern from "basinvolume/record_displacement_timeseries.h" namespace "bv":    
+cdef extern from "basinvolume/record_displacement_timeseries.h" namespace "bv":
     cdef cppclass cppRecordDisplacementTimeseries "bv::RecordDisplacementTimeseries":
         cppRecordDisplacementTimeseries(_pele.Array[double], size_t, size_t, size_t, cbool) except +
 
-cdef extern from "basinvolume/record_steps_timeseries.h" namespace "bv":    
+cdef extern from "basinvolume/record_steps_timeseries.h" namespace "bv":
     cdef cppclass cppRecordStepsTimeseries "bv::RecordStepsTimeseries"[ndim]:
         cppRecordStepsTimeseries(_pele.Array[double], _pele.Array[double], size_t, size_t) except +
-        
+
 cdef extern from "basinvolume/find_nr_decorrelation_steps.h" namespace "bv":
-    cdef cppclass cppFindNrDecorrelationSteps "bv::FindNrDecorrelationSteps": 
+    cdef cppclass cppFindNrDecorrelationSteps "bv::FindNrDecorrelationSteps":
         cppFindNrDecorrelationSteps(double, size_t, size_t,
             _pele.Array[double], size_t) except +
         size_t get_nr_decorrelation_steps() except +

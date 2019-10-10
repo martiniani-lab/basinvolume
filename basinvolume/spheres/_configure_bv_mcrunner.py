@@ -168,8 +168,6 @@ class configure_bv_mcrunner(_configure_mcrunner):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')
         self.prob_kmax = configf.getfloat('FINDK','prob')
-        self.displ_k_max = configf.getfloat('FINDK','displ_k_max')
-        self.var_displ_k_max = configf.getfloat('FINDK','var_displ_k_max')
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat('KMIN','displ_k_min')
         self.var_displ_k_min = configf.getfloat('KMIN','var_displ_k_min')

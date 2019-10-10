@@ -32,7 +32,7 @@ except Exception as e:
 class TIVolumeComputer(object):
     """
     Take information obtained in Ti related simulations and return volume.
-    
+
     Initially this takes the results of the kmax and kmin runs, then,
     after each biased random walk iteration, it takes the updated displ2
     array and computes the volume. The output is intended for the volume
@@ -47,7 +47,7 @@ class TIVolumeComputer(object):
         self.nparticles = nparticles
         self.prob_kmax = prob_kmax
         self.displ2_kmin_mean = displ2_kmin_mean
-        
+
     def compute_volume(self, direct_k_u2_means):
         self.u2_array = copy.deepcopy(direct_k_u2_means)
         self.u2_array = np.append(self.u2_array, self.displ_k_max)
@@ -60,7 +60,7 @@ class TIVolumeComputer(object):
                                                                                                      displ_k_min_trafo=self.displ2_kmin_mean,
                                                                                                      simple_integrator=False).get_free_energy_F0(sqared_std_errors)
         return np.exp(-self.F0unc)
-        
+
 class TIEngine(EngineCommonOpt):
     """
     Engine to do iteration-wise computation of basin volume by TI method.
@@ -72,7 +72,7 @@ class TIEngine(EngineCommonOpt):
         self.ti_parameters["equilibration_steps"] = self.ti_parameters["adjustf_niter"] + self.ti_parameters["pt_eq_niter"]
         self.verbose = verbose
         self.setup(seeds)
-        
+
     def setup(self, seeds):
         self.conftest_outer_sphere = CheckHyperSphericalContainer(np.zeros(self.pes_parameters["nr_dimensions"]),
             self.pes_parameters["radius_container"],
@@ -96,7 +96,7 @@ class TIEngine(EngineCommonOpt):
         self.setup_ti_kmin()
         self.setup_ti_pt_walks()
         self.ini_evals = self.conftest_check_same_minimum.get_nfev()
-        
+
     def setup_ti_kmax(self):
         self.action_findk = Findk(self.pes_parameters["origin"],
                                   self.pes_parameters["rattlers"],
@@ -119,7 +119,6 @@ class TIEngine(EngineCommonOpt):
                             conftest_outer_sphere=self.conftest_outer_sphere,
                             conftest_check_same_minimum=self.conftest_check_same_minimum,
                             action_findk=self.action_findk,
-                            avgcount=self.ti_parameters["kmax_avgcount"],
                             niter=self.ti_parameters["kmax_niter"])
         self.kmax_run.run()
         self.kmax = self.kmax_run.get_k()
@@ -127,7 +126,7 @@ class TIEngine(EngineCommonOpt):
         self.prob_kmax = self.kmax_run.get_prob_kmax()
         self.var_displ_kmax = self.kmax_run.get_var_displ_kmax()
         self.kmax_displ2_nr_samples = self.kmax_run.get_entries()
-        
+
     def setup_ti_kmin(self):
         self.action_record_displ_kmin = RecordDisp2Histogram(self.pes_parameters["origin"],
                                                              self.pes_parameters["rattlers"],
@@ -157,7 +156,7 @@ class TIEngine(EngineCommonOpt):
             print("displ2_kmin", self.displ2_kmin_mean)
             print("displ2_kmin_variance", self.displ2_kmin_variance)
             print("kmin niter:", self.kmin_run.get_iterations_count())
-        
+
     def setup_ti_pt_walks(self):
         self.all_k_values = spring_constants_variable_transform(self.ti_parameters["nprocs"] + 1,
                                                                 self.kmax,
@@ -176,22 +175,22 @@ class TIEngine(EngineCommonOpt):
         self.direct_k_walkers = []
         for k_index, k_value in enumerate(self.direct_k_values):
             self.direct_k_walkers.append(DirectKWalker(k_index, k_value,
-                self.pes_parameters, self.ti_parameters, self.potential, 
+                self.pes_parameters, self.ti_parameters, self.potential,
                 self.conftest_outer_sphere, self.metropolis,
                 self.conftest_check_same_minimum, self.seeds))
             self.direct_k_walkers[k_index].step_choice_equilibration()
-    
+
     def one_iteration(self):
         self.continue_pt_walks()
         self.volume = self.volume_computer.compute_volume(self.direct_k_u2_means)
         self.evaluations = self.conftest_check_same_minimum.get_nfev()
-    
+
     def continue_pt_walks(self):
         for i in xrange(len(self.direct_k_values)):
             m, v = self.direct_k_walkers[i].one_iteration_walk()
             self.direct_k_u2_means[i] = m
             self.direct_k_u2_variances[i] = v
-            
+
 class DirectKWalker(object):
     """
     Perform biased random walk in basin with spring constant k; setup is
@@ -239,7 +238,7 @@ class DirectKWalker(object):
                                                niter=self.ti_parameters["kmin_niter"],
                                                nparticles=1)
         self.ki_run.set_control(self.k_value)
-        
+
     def step_choice_equilibration(self):
         """
         Adapt stepsize to obtain around 20% acceptance probability and
@@ -260,7 +259,7 @@ class DirectKWalker(object):
             print("step_choice_equilibration: number of MC iterations after:", self.ki_run.get_iterations_count())
             print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
             print("------")
-        
+
     def one_iteration_walk(self):
         if self.verbose:
             print("one_iteration_walk: number of MC iterations before:", self.ki_run.get_iterations_count())
@@ -285,10 +284,10 @@ class TIComputer(ComputerCommon):
         self.ti_engine = TIEngine(self.method_parameters,
             self.pes_parameters, self.pot, self.opt_parameters)
         self.ini_evals = self.ti_engine.ini_evals
-            
+
     def get_method_label(self):
         return "ti"
-        
+
     def get_evaluations_volume_one_iteration(self):
         self.ti_engine.one_iteration()
         evaluations = self.ti_engine.evaluations
@@ -309,10 +308,10 @@ def run_ti(ls_basin_label):
     nr_iterations = arg.nr_iterations
     """
     Execute ti basin volume computation for large or small basin.
-    
+
     Parameter
     ---------
-    
+
     ls_basin_label : string
         Needs to be "large" or "small" and indicates size label of basin to be computed.
     """

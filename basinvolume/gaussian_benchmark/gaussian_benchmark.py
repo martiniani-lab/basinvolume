@@ -49,7 +49,6 @@ class GaussianBenchmark(object):
                  opt_nsteps=1e8,
                  radius_container=10,
                  bdim=1,
-                 avgcount=1e4,
                  ktarget=0.8,
                  knavg=500,
                  ktol=0.05,
@@ -77,7 +76,6 @@ class GaussianBenchmark(object):
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
         self.radius_container = radius_container
-        self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg = knavg
         self.ktol = ktol
@@ -193,13 +191,12 @@ class GaussianBenchmark(object):
                                                         hmin,
                                                         hmax,
                                                         hbinsize,
-                                                        self.kmax_niter - self.avgcount,
+                                                        self.kmax_niter,
                                                         fix_com=self.harmonic_com_flag)
         #"""
         self.action_findk = Findk(self.origin,
                              self.rattlers,
                              self.bdim,
-                             self.avgcount,
                              self.ktarget,
                              self.knavg,
                              self.ktol,
@@ -214,8 +211,7 @@ class GaussianBenchmark(object):
                                            conftest_check_same_minimum=self.conftest_check_same_minimum,
                                            action_findk=self.action_findk,
                                            action_record_displ_kmax=self.action_record_displ_kmax,
-                                           niter=self.kmax_niter,
-                                           avgcount=self.avgcount)
+                                           niter=self.kmax_niter)
         self.kmax_run.run()
         self.kmax = self.kmax_run.get_k()
         self.kmax_displ2 = self.kmax_run.get_displ2()

@@ -126,8 +126,6 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')
         self.prob_kmax = configf.getfloat('FINDK','prob')
-        self.displ_k_max = configf.getfloat('FINDK','displ_k_max')
-        self.var_displ_k_max = configf.getfloat('FINDK','var_displ_k_max')
         #import mean displacement of replica with largest k
         path = os.path.join(self.base_directory, '0/hist_mean')
         fileHandle = open (path, "r")

@@ -191,7 +191,7 @@ class HypercubeOMCrunner(_BaseMCRunner):
 
 class HypercubeFindkOMCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
-                 sidelength=1, ktarget = 0.9, knavg=500, ktol=0.05, avgcount=1e6,
+                 sidelength=1, ktarget = 0.9, knavg=500, ktol=0.05,
                  hmin=0, hmax=1, hbinsize=0.001, seeds=None):
         #construct base class
         super(HypercubeFindkOMCrunner, self).__init__(potential, full_coords, temperature, niter)
@@ -210,7 +210,6 @@ class HypercubeFindkOMCrunner(_BaseMCRunner):
         self.seeds = seeds
 
         #findk parameters
-        self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg=knavg
         self.ktol=ktol
@@ -227,7 +226,7 @@ class HypercubeFindkOMCrunner(_BaseMCRunner):
         #conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
         #self.conftest.add_test(conftest2)
 
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.ktarget,
                            self.knavg, self.ktol, self.hmin, self.hmax, self.hbinsize,
                            fix_com=False)
 

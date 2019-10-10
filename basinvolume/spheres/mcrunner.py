@@ -562,8 +562,6 @@ class Findk_MCrunner(SpheresMCRunner):
     *k: spring constant
     *temperature
     *niter: number of MC takesteps to perform
-    *avgcount is the number of steps over which the mean square displacement is
-    *    averaged once kmax has been found
     *
     *stepsize
     *Etol: tolerance with which a minimised structure is accepted
@@ -574,11 +572,9 @@ class Findk_MCrunner(SpheresMCRunner):
     *knavg: number of steps over findk averages the acceptance
     *ktol: when acceptance-ktarget<ktol the search for k terminates
     * this class requires 1 seed
-    avgcount : integer
-        Number of samples to measure displ2 at kmax once kmax has been found
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
-                 hs_radii, boxv, sca, rattlers=None, avgcount=1e6, dtol=1e-3,
+                 hs_radii, boxv, sca, rattlers=None, dtol=1e-3,
                  eps=1., ktarget = 0.75, knavg=500, ktol=0.05, opt_dtmax=1,
                  opt_maxstep=0.6, opt_tol=1e-4, opt_nsteps=1e5, hmin=0, hmax=1,
                  binsize=0.005, perform_convergence_test=False,
@@ -587,7 +583,6 @@ class Findk_MCrunner(SpheresMCRunner):
                  frozen_atoms=None, rcontainer=None, minimizer=Minimizer.FIRE,
                  interaction=Interaction.HS_WCA, pot_kwargs={}):
         #findk parameters
-        self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg=knavg
         self.ktol=ktol
@@ -610,7 +605,7 @@ class Findk_MCrunner(SpheresMCRunner):
         self.set_takestep(self.takestep)
 
     def _set_actions(self):
-        self.findk = Findk(self.red_origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
+        self.findk = Findk(self.red_origin, self.rattlers, self.bdim, self.ktarget,
                            self.knavg, self.ktol, self.hmin, self.hmax, self.binsize)
         self.add_action(self.findk)
 
