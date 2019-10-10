@@ -45,7 +45,7 @@ class BatchScript(object):
     and structures of any particular library. If any such knowledge is necessary please make a derived class
     and overload the member functions
     *batch_system [BatchSystem]: PBS or SLURM
-    *queue_type [string]
+    *queue_or_partition [string]
     *walltime [hours]
     *command [string]: command line to execute e.g. python parallel_tempering.py args
     *mpi_procs [int]: Number of MPI processes
@@ -55,14 +55,17 @@ class BatchScript(object):
     *noday [bool]: Don't use a separate day counter, use hours instead
     *outdir [string]: Directory for redirecting the standard output
     """
-    def __init__(self, batch_system, queue, walltime, command, mpi_procs=1,
+    def __init__(self, batch_system, queue_or_partition, walltime, command, mpi_procs=1,
                  mpi_oversubscribe=0, omp_threads=1, cores_per_node=16, memory_per_cpu=2,
                  nodays=False, outdir=None, mpi_impl=MPI_Implementation.OPENMPI):
         self.batch_system = batch_system
-        if queue is None:
-            self.qtype = self._get_queue(walltime)
-        else:
-            self.qtype = queue
+        if self.batch_system is BatchSystem.PBS:
+            if queue_or_partition is None:
+                self.queue = self._get_queue(walltime)
+            else:
+                self.queue = queue_or_partition
+        elif self.batch_system is BatchSystem.SLURM:
+            self.partition = queue_or_partition
         self.s_wtime = walltime*60*60  # convert hours to seconds
         self.dhms_wtime = sec_to_time(self.s_wtime, nodays=nodays,
                                       batch_system=self.batch_system)  # DD-/:HH:MM:SS time
@@ -119,7 +122,7 @@ class BatchScript(object):
             fname += ".sh"
         f = open(fname,'w')
         f.write('#PBS -N {}\n'.format(job_name))
-        f.write('#PBS -q {}\n'.format(self.qtype))
+        f.write('#PBS -q {}\n'.format(self.queue))
         f.write('#PBS -l nodes={0}:ppn={1}\n'.format(self.nodes, self.ncores))
         f.write('#PBS -l walltime={}\n'.format(self.dhms_wtime))
         f.write('#PBS -l mem={}GB\n'.format(self.ncores*self.memory_per_cpu))
@@ -157,6 +160,7 @@ class BatchScript(object):
         f.write('#SBATCH --job-name={}\n'.format(job_name))
         f.write('#SBATCH --nodes={}\n'.format(self.nodes))
         f.write('#SBATCH --cpus-per-task={}\n'.format(self.ncores))
+        f.write('#SBATCH --partition={}\n'.format(self.partition))
         f.write('#SBATCH --mem={}GB\n'.format(self.memory_per_cpu*self.ncores))
         f.write('#SBATCH --time={}\n'.format(self.dhms_wtime))
         if self.outdir:
