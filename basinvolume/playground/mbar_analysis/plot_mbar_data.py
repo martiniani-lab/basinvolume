@@ -6,7 +6,7 @@ try:
     import os
     import re
     import matplotlib
-    #matplotlib.use('Agg')
+    #matplotlib.use('Agg', warn=False)
     from matplotlib import rc
     import matplotlib.pyplot as plt
     from itertools import cycle

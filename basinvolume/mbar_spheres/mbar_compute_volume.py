@@ -8,7 +8,7 @@ import logging
 from itertools import cycle
 try:
     import matplotlib
-    matplotlib.use('Agg')
+    matplotlib.use('Agg', warn=False)
     import matplotlib.pyplot as plt
     from matplotlib import rc
     from joblib import Parallel, delayed
