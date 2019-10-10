@@ -832,14 +832,14 @@ if __name__ == "__main__":
                               help="MPI implementation. Supported: OpenMPI, Intel. "
                                    "Default: 'OpenMPI'", default='OPENMPI')
     chain_parser.add_argument("-k-qp", "--k-queue-or-partition", type=str,
-                              help="Queue type (PBS) or partition (Slurm) for k.
-                                    "Default: Default partition of cluster (Slurm) "
-                                    "or derive from k-walltime (PBS, works on Dexter)",
+                              help="Queue type (PBS) or partition (Slurm) for k. "
+                                   "Default: Default partition of cluster (Slurm) "
+                                   "or derive from k-walltime (PBS, works on Dexter)",
                               default=None)
     chain_parser.add_argument("-pt-qp", "--pt-queue-or-partition", type=str,
-                              help="Queue type (PBS) or partition (Slurm) for PT.
-                                    "Default: Default partition of cluster (Slurm) "
-                                    "or derive from PT-walltime (PBS, works on Dexter)",
+                              help="Queue type (PBS) or partition (Slurm) for PT. "
+                                   "Default: Default partition of cluster (Slurm) "
+                                   "or derive from PT-walltime (PBS, works on Dexter)",
                               default=None)
     chain_parser.add_argument("--cores-per-node", type=int,
                               help="Number of cores per node. Default: 16",
