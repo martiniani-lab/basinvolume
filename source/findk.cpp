@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cmath>
+#include <chrono>
+#include <ctime>
 
 #include "mcpele/gaussian_coords_displacement.h"
 
@@ -106,13 +108,21 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc)
     _k = 1 / (ik * ik);
     //debug output
 
+    // Get current time
+    auto tp = std::chrono::system_clock::now();
+    std::time_t tt = std::chrono::system_clock::to_time_t(tp);
+    std::tm * ptm = std::localtime(&tt);
+    char time_str[32];
+    std::strftime(time_str, 32, "%d/%m/%Y %H:%M:%S", ptm);
+
+    std::cout << time_str << ": Iteration " << iterations << std::endl; //debug
     std::cout << "_acceptedf " << _acceptedf << std::endl; //debug
     std::cout << "_k " << _k << std::endl; //debug
-    std::cout << "iterations " << iterations << std::endl; //debug
 
     //check for convergence
     if (fabs(_target - _acceptedf) < _tol) {
         _converged = true;
+        std::cout << "k converged. Collect data for mean squared displacement." << std::endl;
         return;
     }
     //adapt k size
