@@ -47,7 +47,7 @@ if __name__ == "__main__":
                         level=loglevel)
 
     logging.info(args)
-    
+
     fname = args.fname
     packings_dir = args.packings_dir
     if not os.path.isabs(packings_dir):
