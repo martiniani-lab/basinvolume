@@ -58,7 +58,7 @@ if __name__ == "__main__":
     else:
         raise ValueError("Unknown minimizer: {}".format(args.minimizer))
 
-    findk_kwargs = dict(k=args.kstart, niter=1e8, avgcount=1e5, dtol=1e-4, eps=1., ktarget=0.9,
+    findk_kwargs = dict(k=args.kstart, niter=1e8, dtol=1e-4, eps=1., ktarget=0.9,
                         knavg=1e4, ktol=0.025, opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5,
                         packings_dir=packings_dir, explore_dir=args.explore_dir,
                         use_cell_lists=not args.nocell, minimizer=minimizer,
