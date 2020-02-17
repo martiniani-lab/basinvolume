@@ -1,4 +1,9 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import numpy as np
 import abc
 import os
@@ -9,7 +14,7 @@ from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
 from basinvolume.utils import get_git_version, get_python_version, get_cython_version
 from basinvolume.enums import Minimizer
-import ConfigParser
+import configparser
 import time
 import copy
 
@@ -37,15 +42,15 @@ class _findk_exp_mcrunner(_configure_mcrunner):
 
         #select rcontainer to correspond to frozen particle furthest away
         rcontainer = 0
-        for i in xrange(len(self.hs_radii)):
+        for i in range(len(self.hs_radii)):
             r2=0
-            for j in xrange(self.bdim):
+            for j in range(self.bdim):
                 r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
             if r2 > (rcontainer*rcontainer):
                 rcontainer = np.sqrt(r2)
                 index = i
                 if verbose:
-                    print "new rcontainer",rcontainer
+                    print("new rcontainer",rcontainer)
         #rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
 
         #self.mc_params = dict(k=k, temperature=temperature, )
@@ -57,7 +62,7 @@ class _findk_exp_mcrunner(_configure_mcrunner):
         try:
             self.mc_params.update(seeds)
         except:
-            print "WARNING:seeds not passed"
+            print("WARNING:seeds not passed")
 
         self._requench_coords(dtol, opt_maxstep, verbose, frozen=True)
 
@@ -98,7 +103,7 @@ class _findk_exp_mcrunner(_configure_mcrunner):
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
 
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
@@ -137,7 +142,7 @@ class _findk_exp_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[FINDK_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in self.mc_params.items() :
             f.write('{}: {}\n'.format(key,value))
 
     def _print_results(self):
@@ -145,7 +150,7 @@ class _findk_exp_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[FINDK_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
+        for key, value in status.items() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[FINDK]\n')
         f.write('kmax: {:.16f}\n'.format(self.kmax))
@@ -159,16 +164,16 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[1])
 
     sim = _findk_exp_mcrunner('jammed_packing1.xydfr', seeds=seeds, use_cell_lists=False, verbose=True, minimizer=Minimizer.FIRE)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     sim.run()
     frac = sim.mcrunner.conftest2.get_failed_quench_frac()
-    print "failed quench frac",frac
+    print("failed quench frac",frac)
     end=time.time()
-    print 'time elapsed', end-start
-    print "self.kmax: ", sim.kmax
-    print "self.prob: ", sim.prob
+    print('time elapsed', end-start)
+    print("self.kmax: ", sim.kmax)
+    print("self.prob: ", sim.prob)
     #print "Nd/k: ", sim.nparticles*sim.bdim/sim.kmax
-    print "(N-1)d/k", (sim.nparticles-1)*sim.bdim/sim.kmax
+    print("(N-1)d/k", (sim.nparticles-1)*sim.bdim/sim.kmax)
     sim.mcrunner.show_histogram()
-    print "entries in histogram: ",sim.mcrunner.get_entries()
+    print("entries in histogram: ",sim.mcrunner.get_entries())

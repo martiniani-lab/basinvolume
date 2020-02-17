@@ -307,7 +307,7 @@ bool CheckSameMinimum<pele::cartesian_distance<3UL>, BvCGDescent<pele::cartesian
     _d = sqrt(_optimizer->get_d2());
     return _optimizer->success();
 }
-
+// linetest
 template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc)
 {

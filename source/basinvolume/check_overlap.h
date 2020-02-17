@@ -49,35 +49,36 @@ public:
             throw std::runtime_error("CheckOverlap::conf_test: illegal input");
         }
         double dr[m_ndim];
+        // std::cout << trial_coords  << "\n";
         const std::vector<long> changed_atoms = mc->get_changed_atoms();
         if (changed_atoms.size() == 0) {
-            for (size_t i = 0; i < m_nparticles; ++i) {
-                const size_t i1 = m_ndim * i;
-                for (size_t j = i + 1; j < m_nparticles; ++j) {
-                    const size_t j1 = m_ndim * j;
-                    m_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
-                    const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
-                    const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
-                    if (dij2 < tmp * tmp) {
-                        return false;
-                    }
-                }
+          for (size_t i = 0; i < m_nparticles; ++i) {
+            const size_t i1 = m_ndim * i;
+            for (size_t j = i + 1; j < m_nparticles; ++j) {
+              const size_t j1 = m_ndim * j;
+              m_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
+              const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
+              const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
+              if (dij2 < tmp * tmp) {
+                return false;
+              }
             }
+          }
         } else {
-            for (const long i : changed_atoms) {
-                const size_t i1 = m_ndim * i;
-                for (size_t j = 0; j < m_nparticles; ++j) {
-                    if (i != j) {
-                        const size_t j1 = m_ndim * j;
-                        m_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
-                        const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
-                        const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
-                        if (dij2 < tmp * tmp) {
-                            return false;
-                        }
-                    }
+          for (const long i : changed_atoms) {
+            const size_t i1 = m_ndim * i;
+            for (size_t j = 0; j < m_nparticles; ++j) {
+              if (i != j) {
+                const size_t j1 = m_ndim * j;
+                m_dist->get_rij(dr, &trial_coords[i1], &trial_coords[j1]);
+                const double dij2 = std::inner_product(dr, dr + m_ndim, dr, double(0));
+                const double tmp = (m_hs_radii[i] + m_hs_radii[j]);
+                if (dij2 < tmp * tmp) {
+                  return false;
                 }
+              }
             }
+          }
         }
         return true;
     }

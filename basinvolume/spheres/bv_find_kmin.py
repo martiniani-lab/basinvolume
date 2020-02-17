@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from builtins import range
 import numpy as np
 import random
 import os
@@ -5,7 +7,7 @@ import argparse
 import logging
 import traceback
 import copy
-from _kmin_mcrunner import _kmin_mcrunner
+from ._kmin_mcrunner import _kmin_mcrunner
 from basinvolume.experiment_2d import _kmin_exp_mcrunner
 from basinvolume.utils import check_kmax_reasonable
 from basinvolume.enums import Minimizer
@@ -79,7 +81,7 @@ if __name__ == "__main__":
                        use_cell_lists=not args.nocell, single=single,
                        minimizer=minimizer, verbose=args.verbose,
                        record_steps_timeseries=args.rsts,
-                       record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
+                       record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
                        print_diffusion_only=args.rsts_only,
                        record_trajectory_npoints=int(1e4))
 

@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import zip
+from builtins import range
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 import matplotlib.pyplot as plt
@@ -25,9 +28,9 @@ def _hist_nnb_midpoint(fname, Xin, Xout):
     note: should check that midpoint is inside the basin!
     """
     array_dist = []
-    for i in xrange(len(Xin)):
+    for i in range(len(Xin)):
         dx = 1e100
-        for j in xrange(i+1, len(Xin)):
+        for j in range(i+1, len(Xin)):
             dx_trial = np.linalg.norm(Xin[i] - Xin[j])
             if dx_trial < dx:
                 nnb_in = (i,j)
@@ -60,11 +63,11 @@ def _hist_nnb(fname, Xin, Xout):
 
 def hist_nnb(fname, Xin, Xout):
     try:
-        print "loading data...",
+        print("loading data...", end=' ')
         f = fname[:-4]+"_array_dist"
         data = np.load(f)
         array_dist= data['array_dist']
-        print "done"
+        print("done")
     except:
         array_dist = _hist_nnb(fname, Xin, Xout)
     
@@ -149,7 +152,7 @@ def build_histogram(explore_dir, nbins=100):
         hist = np.histogram(timeseries, bin_edges)[0]
         hist_visits.append(hist)
 #        hist_red_energy = np.vstack((hist_red_energy, 0.5 * bin_edges[:-1]*karray[i]))
-        print i
+        print(i)
     hist_visits = np.array(hist_visits)
     karray = np.array(karray)
     hist_red_energy = np.outer(0.5*karray[1:], bin_edges[:-1]**2)
@@ -164,10 +167,10 @@ def main(explore_dir="explore_bv_jammed_packing1"):
     from histogram_reweighting import wham_utils
     
     hist_visits, hist_red_energy, karray, bin_edges = build_histogram(explore_dir, nbins=500)
-    print hist_visits, hist_red_energy, karray
+    print(hist_visits, hist_red_energy, karray)
     nreps, nbins = hist_visits.shape
     #print hist_ts
-    print np.shape(hist_visits), np.shape(hist_red_energy)
+    print(np.shape(hist_visits), np.shape(hist_red_energy))
     
     whampot = WhamPotential(hist_visits, hist_red_energy)
     if True:
@@ -184,18 +187,18 @@ def main(explore_dir="explore_bv_jammed_packing1"):
     try:
         from pele.optimize import lbfgs_cpp as quench
         if True:
-            print "minimizing with pele lbfgs"
+            print("minimizing with pele lbfgs")
         ret = quench(X, whampot, tol=1e-3, maxstep=1e4, nsteps=10000, iprint=1)
     except ImportError:
         from wham_utils import lbfgs_scipy
         if True:
-            print "minimizing with scipy lbfgs"
+            print("minimizing with scipy lbfgs")
         ret = lbfgs_scipy(X, whampot, tol=1e-3, nsteps=10000)
     #print "quench energy", ret.energy
     
     if True:
-        print "chi^2 went from %g (rms %g) to %g (rms %g) in %d iterations" % (
-            E0, rms0, ret.energy, ret.rms, ret.nfev)
+        print("chi^2 went from %g (rms %g) to %g (rms %g) in %d iterations" % (
+            E0, rms0, ret.energy, ret.rms, ret.nfev))
     
     X = ret.coords
     logn_E = X[nreps:]
@@ -206,7 +209,7 @@ def main(explore_dir="explore_bv_jammed_packing1"):
         plt.show()
         
         plt.figure()
-        for i in xrange(len(karray)):
+        for i in range(len(karray)):
             x = np.log(hist_visits[i,:]) + hist_red_energy[i,:] + w_i_final[i]
             plt.plot(bin_edges[:-1], x)
         plt.show()
@@ -244,12 +247,12 @@ if __name__ == "__main__":
     
     plt.plot(bin_edges[:-1], dos_interp)
     #plt.show()
-    print logn_E, w_i_final
-    print "bin_edges diff", bin_edges[1] - bin_edges[0] - (bin_edges[-1] - bin_edges[-2])
+    print(logn_E, w_i_final)
+    print("bin_edges diff", bin_edges[1] - bin_edges[0] - (bin_edges[-1] - bin_edges[-2]))
     #volume non smooth
-    print "raw"
-    print "fake volume",np.trapz(np.ones(len(dos)),dx=bin_edges[1]-bin_edges[0])
-    print "bin_edges extrema", bin_edges[0], bin_edges[-1]
+    print("raw")
+    print("fake volume",np.trapz(np.ones(len(dos)),dx=bin_edges[1]-bin_edges[0]))
+    print("bin_edges extrema", bin_edges[0], bin_edges[-1])
     natoms = 24
     ndof = (natoms-1)*3
     rmin = 0.1
@@ -257,32 +260,32 @@ if __name__ == "__main__":
     vmin = volume_nball(rmin, ndof)
     s = bisect.bisect(bin_edges,rmin)
     #numpy trapez
-    print "np.trapez"
+    print("np.trapez")
     A = vmin / np.trapz(dos[:s],bin_edges[:s])
     Vol = A*np.trapz(dos,bin_edges[:-1])
-    print "A: {} Vol: {}".format(A, Vol)
-    print "F: {}".format(-np.log(Vol) - np.log(boxv))        
+    print("A: {} Vol: {}".format(A, Vol))
+    print("F: {}".format(-np.log(Vol) - np.log(boxv)))        
     #scipy trapz
-    print "scipy.trapz"
+    print("scipy.trapz")
     dx=bin_edges[1]-bin_edges[0]
     A = vmin / trapz(dos[:s],dx=dx)
     Vol = A*trapz(dos, dx=dx)
-    print "A: {} Vol: {}".format(A, Vol)
-    print "F: {}".format(-np.log(Vol)- np.log(boxv))
+    print("A: {} Vol: {}".format(A, Vol))
+    print("F: {}".format(-np.log(Vol)- np.log(boxv)))
     #scipy simps
-    print "scipy.simps"
+    print("scipy.simps")
     A = vmin / simps(dos[:s],dx=dx)
     Vol = A*simps(dos,dx=dx)
-    print "A: {} Vol: {}".format(A, Vol)
-    print "F: {}".format(-np.log(Vol)- np.log(boxv))
+    print("A: {} Vol: {}".format(A, Vol))
+    print("F: {}".format(-np.log(Vol)- np.log(boxv)))
     #scipy romb
-    print "scipy.romb"
+    print("scipy.romb")
     s2 = 2**np.ceil(np.log2(s))
     dosmin = np.append(np.zeros(s2-s+1), dos[:s])
     A = vmin / simps(dosmin,dx=dx)
     dosromb = np.append(np.zeros(2**np.ceil(np.log2(dos.size))+1), dos)
     Vol = A*simps(dosromb,dx=dx)
-    print "A: {} Vol: {}".format(A, Vol)
-    print "F: {}".format(-np.log(Vol)- np.log(boxv))
+    print("A: {} Vol: {}".format(A, Vol))
+    print("F: {}".format(-np.log(Vol)- np.log(boxv)))
     
     

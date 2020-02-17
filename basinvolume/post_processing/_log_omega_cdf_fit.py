@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import range
+from builtins import object
 try:
     import numpy as np
     import matplotlib.pyplot as plt
@@ -7,7 +10,7 @@ try:
     from basinvolume.post_processing import GeneralisedGauss
     from scipy import integrate
 except ImportError as err:
-    print err
+    print(err)
 
 class JackLogOmega(object):
     """
@@ -26,7 +29,7 @@ class JackLogOmega(object):
         self.jack_acc_mu = MomentsAcc()
         self.jack_acc_alpha = MomentsAcc()
         self.jack_acc_zeta = MomentsAcc()
-        for idx in xrange(len(self.F0)):
+        for idx in range(len(self.F0)):
             S_star_red, mu_red, alpha_red, zeta_red = self.get_S_star_excluding_index(idx)
             self.jack_acc.update(S_star_red)
             self.jack_acc_mu.update(mu_red)
@@ -61,7 +64,7 @@ class JackLogOmega(object):
         Does not include jack estimates for generalised gaussian parameters
         """
         self.jack_acc = MomentsAcc()
-        for idx in xrange(len(self.F0)):
+        for idx in range(len(self.F0)):
             self.jack_acc.update(self.get_S_star_excluding_index_from_pdf(idx))
         self.S_star = self.jack_acc.mean
         self.error_S_star = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc.get_variance())
@@ -145,7 +148,7 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
                                                    np.amax(self.F0) * 100, args = (self.mu, self.alpha, self.zeta, ), 
                                                    points = [np.amin(self.F0), np.amax(self.F0), np.mean(self.F0)])
         plt.yscale('log')
-        plt.plot(bin_centres, [hist[i] * np.exp(bin_centres[i]) / normalisation for i in xrange(len(hist))], "o", label = "Data")
+        plt.plot(bin_centres, [hist[i] * np.exp(bin_centres[i]) / normalisation for i in range(len(hist))], "o", label = "Data")
         xp = np.linspace(bin_centres[0], bin_centres[-1], num = 1000)
         plt.plot(xp, [self.generalised_gauss.get_times_expx_with_pars(xi, self.mu, self.alpha, self.zeta) / normalisation for xi in xp], 
                  label = r"$P_\mathcal{U}(F)$")
@@ -168,11 +171,11 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
         assert(self.integral_no_jack > 0)
     def write_to_file(self):
         def prnt(name, value, error):
-            print name + ":", value, "+/-", error
-        print "Log of Omega entropy:"
+            print(name + ":", value, "+/-", error)
+        print("Log of Omega entropy:")
         prnt("S_star", self.S_star, self.error_S_star)
         prnt("S", self.S, self.error_S)
-        print "Generalised Gaussian parameters:"
+        print("Generalised Gaussian parameters:")
         prnt("mu", self.mu, self.mu_error)
         prnt("alpha", self.alpha, self.alpha_error)
         prnt("zeta", self.zeta, self.zeta_error)

@@ -1,5 +1,10 @@
 from __future__ import division
-import ConfigParser
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+import configparser
 import os
 import ast
 import traceback
@@ -7,7 +12,7 @@ import numpy as np
 import argparse
 import logging
 from basinvolume.utils import trymakedir
-from _structural_analysis import StructuralAnalysis
+from ._structural_analysis import StructuralAnalysis
 
 
 class InversionSymmetry(StructuralAnalysis):
@@ -59,14 +64,14 @@ class InversionSymmetry(StructuralAnalysis):
                                               rot_matrix))
 
         result = np.empty((self.bdim, self.bdim, self.bdim))
-        for i in xrange(self.bdim):
+        for i in range(self.bdim):
             result[i, :, :] = distance[i] * hessian
 
         return result
 
     def _affine_force_particle(self, index, distances, neighbors):
         affine_force_particle = np.zeros((self.bdim, self.bdim, self.bdim))
-        for i in xrange(len(neighbors)):
+        for i in range(len(neighbors)):
             affine_force = self._affine_force_interaction(distances[i], index,
                                                           neighbors[i])
             affine_force_particle += affine_force
@@ -74,7 +79,7 @@ class InversionSymmetry(StructuralAnalysis):
 
     def _sum_affine_forces(self, neighbor_distancess, neighbor_lists):
         affine_forces = 0
-        for i in xrange(self.nparticles):
+        for i in range(self.nparticles):
             affine_force = self._affine_force_particle(i, neighbor_distancess[i],
                                                        neighbor_lists[i])
             affine_forces += np.sum(affine_force ** 2)
@@ -89,15 +94,15 @@ class InversionSymmetry(StructuralAnalysis):
 
     def _sum_affine_forces_sym_broken(self, neighbor_distancess, neighbor_lists):
         affine_forces_isb = 0
-        for i in xrange(len(neighbor_lists)):
-            for j in xrange(len(neighbor_lists[i])):
+        for i in range(len(neighbor_lists)):
+            for j in range(len(neighbor_lists[i])):
                 affine_forces_isb += np.sum(self._affine_force_interaction_sym_broken(
                     neighbor_distancess[i][j], i, neighbor_lists[i][j]) ** 2)
         return affine_forces_isb
 
     @staticmethod
     def read(invsym_fname):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(invsym_fname)
         invsym_dict = {}
         invsym_dict['inversion_symmetry'] \

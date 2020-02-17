@@ -1,14 +1,18 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import re
 import os
 import numpy as np
-import ConfigParser
+import configparser
 from basinvolume.utils import import_packing, Bunch
 from basinvolume.spheres import read_jammed_packing_config, read_packing_config
 try:
     import matplotlib.pyplot as plt
 except ImportError as err:
-    print err
+    print(err)
 
 class PackingDataSet(object):
     """
@@ -124,17 +128,17 @@ class PackingData(object):
 
     def import_volume_data(self, path, title="VOLUME_FULL_PT", vfluid_title="VOLUME_HS_FLUID"):
         if os.path.isfile(path):
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(path)
             self.F, self.Ferr = configf.getfloat(title, 'F0'), configf.getfloat(title, 'sigF0')
             try:
                 self.Facc = configf.getfloat(vfluid_title, 'F0_acc')
-            except Exception,e:
+            except Exception as e:
                 pass
 
     def import_pressure_data(self, path, pressure_title="PRESSURE", energy_title="ENERGY"):
         if os.path.isfile(path):
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(path)
             self.P = configf.getfloat(pressure_title, 'P')
             Ptensor = configf.get(pressure_title, 'Ptensor')
@@ -146,7 +150,7 @@ class PackingData(object):
         import average contact number and bond orientational order parameters
         """
         if os.path.isfile(path):
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(path)
             if self.bdim == 3:
                 Q4, Q6 = configf.getfloat(title_boo,'Q4'), configf.getfloat(title_boo,'Q6')
@@ -165,6 +169,6 @@ class PackingData(object):
         import average contact number and bond orientational order parameters
         """
         if os.path.isfile(path):
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(path)
             self.invsym = configf.getfloat(title_invsym, 'inversion_symmetry')

@@ -1,10 +1,15 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import range
 from basinvolume.utils._utils import _sort_pair
 from scipy.misc import factorial
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import re
     import matplotlib.pyplot as plt
@@ -18,12 +23,12 @@ try:
     from scipy.integrate import romberg, simps, quad, cumtrapz, trapz
     import glob
     from itertools import chain
-    import cPickle as pickle
+    import pickle as pickle
     from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
     from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
     from basinvolume.post_processing import GeneralisedLogNormal, OutlierRemovalUnbiasingEntropyLogOmega
 except ImportError as err:
-    print err
+    print(err)
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
@@ -36,7 +41,7 @@ plt.rcParams.update({'figure.autolayout': True})
 ####SET COLOUR MAP######                                                               
 def get_color_cycle():
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
+    color_cycle=cycle([cm(1. * i / 7) for i in range(7)])
     return color_cycle
 ########################
 #####################LINE STYLE CYCLER####################                             
@@ -61,7 +66,7 @@ def myplot(packing_datasets, figdir="figures"):
         for i,dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             if len(dataset.pressures) > 0:
                 nparticles = dataset.nparticles
-                color = color_cycle.next()  
+                color = next(color_cycle)  
                 x2 = np.array(dataset.pressures)
                 x2 = (nparticles/glob_kappa)*np.log(x2) + glob_interc*nparticles
                 bw2 = get_bandwidth_estimate(np.array(x2), kernel="gaussian", method="cross_validation")

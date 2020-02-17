@@ -1,12 +1,17 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import os
 import glob
-import cPickle as pickle
+import pickle as pickle
 from basinvolume.post_processing import PackingData, PackingDataSet
 try:
     import matplotlib.pyplot as plt
 except ImportError as err:
-    print err
+    print(err)
 
 class BasinAnalysis(object):
     """
@@ -49,8 +54,8 @@ class BasinAnalysis(object):
                 self.packing_datasets = pickle.loads(f.read())
         else:
             for set_path in listdir:
-                print("set_path", set_path)
-                print "collecting data from ", os.path.split(set_path)[1]
+                print(("set_path", set_path))
+                print("collecting data from ", os.path.split(set_path)[1])
                 self.collect_data_single_all(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
             pickle.dump(self.packing_datasets, open( data_pickle, "wb" ),protocol=-1)
@@ -100,8 +105,8 @@ class BasinAnalysis(object):
                 self.packing_datasets = pickle.loads(f.read())
         else:
             for set_path in listdir:
-                print("set_path", set_path)
-                print "collecting data from ", os.path.split(set_path)[1]
+                print(("set_path", set_path))
+                print("collecting data from ", os.path.split(set_path)[1])
                 self.collect_data_single_structure(set_path=set_path)
             self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
             pickle.dump(self.packing_datasets, open( data_pickle, "wb" ), protocol=-1)

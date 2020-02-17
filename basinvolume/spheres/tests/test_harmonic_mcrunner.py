@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import range
 import numpy as np
 #from pele.utils.rotations import vector_random_uniform_hypersphere
 from pele.potentials import Harmonic
@@ -10,7 +12,7 @@ import copy
 try:
     import pylab as plt
 except ImportError as err:
-    print err
+    print(err)
 
 class Metropolis_MCrunner(_BaseMCRunner):
     """This class is derived from the _base_MCrunner abstract
@@ -91,7 +93,7 @@ class Metropolis_MCrunner(_BaseMCRunner):
     def show_histogram(self):
         """shows the histogram"""
         hist = self.histogram.get_histogram()
-        val = [i*self.binsize for i in xrange(len(hist))]
+        val = [i*self.binsize for i in range(len(hist))]
         plt.hist(val, weights=hist,bins=len(hist))
         plt.show()
 
@@ -133,7 +135,7 @@ class TestHarmonic(unittest.TestCase):
             
             cv = variance/T**2
             
-            print cv
+            print(cv)
             self.assertLess(abs(cv-(self.ndim-3)/2.0),1e-1,'failed for temperature {}, cv = {}'.format(T,cv))
 
 if __name__ == "__main__":

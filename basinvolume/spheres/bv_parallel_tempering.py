@@ -1,4 +1,7 @@
 from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 import numpy as np
 import random
 import argparse
@@ -6,7 +9,7 @@ import logging
 import time
 import sys
 import os
-import cPickle
+import pickle
 from mpi4py import MPI
 from basinvolume.spheres import (configure_bv_mcrunner, MPI_BV_PT_RLhandshake,
                                  PT_Worker, PT_Master, ExchangeScheme)
@@ -201,7 +204,7 @@ if __name__ == "__main__":
                 else:
                     checkpoint_path = os.path.join(path, args.load_checkpoint)
                     with open(checkpoint_path, 'rb') as infile:
-                        master = cPickle.load(infile)
+                        master = pickle.load(infile)
                     master.init_state(base_directory=path, checkpoint_time=checkpoint_time)
                 master.run()
                 exit_on_checkpoint = master.created_checkpoint
@@ -211,7 +214,7 @@ if __name__ == "__main__":
                     sim.print_success_all(True)
             except Exception:
                 view_traceback()
-                for iworker in xrange(1, nprocs):
+                for iworker in range(1, nprocs):
                     comm.Isend(np.array([-1], dtype='d'), dest=iworker)
                 sim.print_success_all(False)
 

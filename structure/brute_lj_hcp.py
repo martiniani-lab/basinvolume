@@ -1,5 +1,7 @@
 from __future__ import division
+from __future__ import print_function
 
+from builtins import str
 import argparse as ap
 import numpy as np
 import os
@@ -22,7 +24,7 @@ try:
     from matplotlib.backends.backend_pdf import PdfPages
     from pele.optimize import SteepestDescentCPP
 except ImportError as err:
-    print err
+    print(err)
 
 class MC(_BaseMCRunner):
     def set_control(self, tmp):
@@ -60,7 +62,7 @@ class BruteComputer(BasicPlot):
     def run_bv(self):
         self.mc.run()
         p = self.mc.get_accepted_fraction()
-        print("nr times hcp found", p * self.common_pars["nr_samples"])
+        print(("nr times hcp found", p * self.common_pars["nr_samples"]))
         self.volume = np.exp(np.log(p) + self.common_pars["log_accessible_volume"])
         self.log_volume = np.log(p) + self.common_pars["log_accessible_volume"]
         if p > 0:
@@ -98,9 +100,9 @@ if __name__ == "__main__":
     p.add_argument("--plot", action="store_true", default=False)
     args = p.parse_args()
     N = args.Nroot3 ** 3
-    print("r", r)
-    print("2r", 2 * r)
-    print("N", N)
+    print(("r", r))
+    print(("2r", 2 * r))
+    print(("N", N))
     bv = np.asarray([2 * r, np.sqrt(3) * r, np.sqrt(6) * 2 / 3 * r]) * args.Nroot3
     common_pars = dict([("nr_samples", args.nr_samples),
         ("nr_particles", N), ("log_accessible_volume", N * np.log(np.prod(bv))),
@@ -111,9 +113,9 @@ if __name__ == "__main__":
         ("nr_bins", 200)])
     c = BruteComputer(common_pars, Q4_pars, opt_pars)
     c.run_bv()
-    print("common_pars", common_pars)
-    print("Q4_pars", Q4_pars)
-    print("log_volume", c.log_volume)
-    print("nr_attempts", c.nr_attempts)
+    print(("common_pars", common_pars))
+    print(("Q4_pars", Q4_pars))
+    print(("log_volume", c.log_volume))
+    print(("nr_attempts", c.nr_attempts))
     print(to_string(N, 0) + " " + to_string(common_pars["log_accessible_volume"]) + " " + to_string(common_pars["nr_samples"], 0) + " " + to_string(Q4_pars["tol"]) + " " + to_string(c.log_volume) + " " + to_string(c.nr_attempts))
     

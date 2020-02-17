@@ -1,9 +1,13 @@
 from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 import logging
 import argparse
-import cPickle as pickle
+import pickle as pickle
 from joblib import Parallel, delayed
 from numpy.random import RandomState
 from pele.distance import get_distance, Distance
@@ -165,7 +169,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         else:
             raise NotImplementedError
 
-        check_again = range(len(self.hs_radii))
+        check_again = list(range(len(self.hs_radii)))
         self.ss_radii = self.hs_radii * (1. + self.sca)
         neighbor_indicess, neighbor_distancess \
             = self.potential_ss.getNeighbors(self.coords_ss)

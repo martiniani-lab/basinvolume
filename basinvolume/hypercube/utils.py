@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import map
+from builtins import object
 import numpy as np
 
 class LineStitcher(object):
@@ -6,7 +9,7 @@ class LineStitcher(object):
         #
         self.lines = []
         self.stitch_lines()
-        print("self.lines", self.lines)
+        print(("self.lines", self.lines))
         assert(False)
     def stitch_lines(self):
         status = []
@@ -33,7 +36,7 @@ class LineStitcher(object):
 
 def get_means_cov(gauss_path):
     print("reading means, cov from the following gauss path")
-    print("gauss_path", gauss_path)
+    print(("gauss_path", gauss_path))
     mean = []
     cov = []
     f = open(gauss_path, "r")
@@ -43,13 +46,13 @@ def get_means_cov(gauss_path):
         if line.startswith("["):
             m = None
             c = None
-            print("line", line)
+            print(("line", line))
             if "," in line:
-                m = map(float, (line.split(",")[0].replace("[", "")).replace("]", "").split())
-                c = map(float, (line.split(",")[1].replace("[", "")).replace("]", "").split())
+                m = list(map(float, (line.split(",")[0].replace("[", "")).replace("]", "").split()))
+                c = list(map(float, (line.split(",")[1].replace("[", "")).replace("]", "").split()))
             else:
-                m = map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split())
-                c = map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split())
+                m = list(map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split()))
+                c = list(map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split()))
             mean.append(m)
             cov.append(c)
     f.close()

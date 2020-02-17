@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import object
 import numpy as np
 from pele.potentials import HS_WCA
 from pele.optimize import LBFGS_CPP
@@ -35,7 +37,7 @@ class ThrowAndQuench(object):
         iteration = 0
         while illegal:
             iteration += 1
-            print("iteration", iteration)
+            print(("iteration", iteration))
             illegal = self.sample_and_minimize()
         print("done")
     def sample_and_minimize(self):

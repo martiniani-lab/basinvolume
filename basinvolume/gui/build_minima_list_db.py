@@ -1,4 +1,8 @@
 from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import numpy as np
 import abc
 import os
@@ -7,7 +11,7 @@ from pele.storage import Minimum
 from basinvolume.utils import import_packing
 from basinvolume.gui import HSWCASystem
 from basinvolume.spheres import read_jammed_packing_config
-import ConfigParser
+import configparser
 import time
 import re
 import pylab

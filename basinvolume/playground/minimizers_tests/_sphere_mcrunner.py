@@ -1,4 +1,8 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential
@@ -7,7 +11,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.playground.minimizers_tests import BVSphereMCrunner
 from basinvolume.enums import Minimizer
-import ConfigParser
+import configparser
 import time
 
 def _subtract_com(x):
@@ -65,7 +69,7 @@ class _sphere_mcrunner(_configure_mcrunner):
         try:
             self.mc_params.update(seeds)
         except:
-            print "WARNING:seeds not passed"
+            print("WARNING:seeds not passed")
 
         self._requench_coords(dtol, opt_maxstep, verbose)
 
@@ -130,7 +134,7 @@ class _sphere_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[KMIN_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
 
     def _print_results(self):
@@ -142,7 +146,7 @@ class _sphere_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[KMIN_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
+        for key, value in list(status.items()) :
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
@@ -157,15 +161,15 @@ if __name__ == "__main__":
     sim = _sphere_mcrunner('jammed_packing1.xyzdr', niter=5e5, opt_tol=1e-4, seeds=seeds,
                          stepsize=1/np.sqrt(11), use_cell_lists=False, verbose=False, minimizer=Minimizer.FIRE,
                          hmax=0.1, hbinsize=0.001, opt_nsteps=1e6)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     sim.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = sim.mcrunner.get_status()
-    print status
-    print 'stepsize: ',sim.mcrunner.get_stepsize()
-    print 'd2 kmin: ',sim.displ_k_min
-    print 'var: ',sim.var_displ_k_min
+    print(status)
+    print('stepsize: ',sim.mcrunner.get_stepsize())
+    print('d2 kmin: ',sim.displ_k_min)
+    print('var: ',sim.var_displ_k_min)
     sim.mcrunner.dump_timeseries("test_time_series_unif", clear=True)
     sim.mcrunner.show_histogram_kmax()

@@ -1,11 +1,14 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
+from builtins import object
 import argparse as ap
 import numpy as np
 import os
 
-from computer_common import ComputerCommon
-from computer_common import run_computer
+from .computer_common import ComputerCommon
+from .computer_common import run_computer
 
 try:
     import trajectories.volcalc_onthefly_no_store_2 as vc

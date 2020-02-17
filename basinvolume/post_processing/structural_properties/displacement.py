@@ -1,5 +1,11 @@
 from __future__ import division
-import ConfigParser
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import range
+import configparser
 import os
 import ast
 import traceback
@@ -7,7 +13,7 @@ import numpy as np
 import argparse
 import logging
 from basinvolume.utils import trymakedir, calc_distance
-from _structural_analysis import StructuralAnalysis
+from ._structural_analysis import StructuralAnalysis
 from pele.distance import Distance
 
 
@@ -30,7 +36,7 @@ class Displacement(StructuralAnalysis):
 
     @staticmethod
     def read(displacement_fname):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(displacement_fname)
         disp_dict = {}
         disp_dict['avg_abs_displacement_norm'] \
@@ -86,7 +92,7 @@ class Displacement(StructuralAnalysis):
         displacements = []
         if self.shear is not None:
             nonaff_displacements = []
-        for i in xrange(self.nparticles):
+        for i in range(self.nparticles):
             displacement = calc_distance(
                 coords_new[i * self.bdim: (i + 1) * self.bdim],
                 coords_old[i * self.bdim: (i + 1) * self.bdim],
@@ -110,7 +116,7 @@ class Displacement(StructuralAnalysis):
                 # Centre of mass displacement by affine shear component
                 affine_com_displacement = np.mean(coords_old[1::self.bdim]
                                                   * self.shear)
-                for i in xrange(self.nparticles):
+                for i in range(self.nparticles):
                     nonaff_displacements[i][0] += affine_com_displacement
 
         # Calculate averages

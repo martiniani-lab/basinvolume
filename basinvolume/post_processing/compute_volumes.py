@@ -10,10 +10,17 @@ python ~/PathToBasinvolume/basinvolume/post_processing/compute_volumes.py -d n32
 """
 
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import range
+from builtins import object
+from future.utils import with_metaclass
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import re
     import logging
@@ -33,15 +40,14 @@ try:
     from basinvolume.spheres import _collect_u2_vs_k
     from basinvolume.mbar_spheres import mbar_compute_dos
 except ImportError as err:
-    print err
+    print(err)
 
 
-class ComputeVolumesCommon(object):
+class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
     """
     Contains common functionality of volume computation which is
     independent on config file layout.
     """
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, workspace_dir, nr_volume_points, force_run, method,
                  explore_bv_dir="explore_bv_jammed_packing", analysis_dir="analysis",
@@ -88,16 +94,16 @@ class ComputeVolumesCommon(object):
                                                         self.analysis_dir,
                                                         self.volume_file))):
                         try:
-                            volf = ConfigParser.ConfigParser()
+                            volf = configparser.ConfigParser()
                             volf.read(os.path.join(
                                 path, self.analysis_dir, self.volume_file))
                             F0 = volf.getfloat(self.volume_title, 'F0')
-                        except Exception, e:
+                        except Exception as e:
                             logging.info("run_analysis Exception: {}".format(e))
                             self._compute_volume(fname, path)
                     else:
                         self._compute_volume(fname, path)
-                except Exception, e:
+                except Exception as e:
                     logging.info("Exception: {}".format(e))
                     logging.info(traceback.format_exc())
                     logging.info("failed packing!")
@@ -113,7 +119,7 @@ class ComputeVolumesCommon(object):
         if self.nr_volume_points != -1:
             logging.info("removing volume points")
             nr_to_kill = len(self.explore_dirs) - self.nr_volume_points
-            for _ in xrange(nr_to_kill):
+            for _ in range(nr_to_kill):
                 self.explore_dirs = np.delete(
                     self.explore_dirs,
                     np.random.randint(0, len(self.explore_dirs)))
@@ -268,16 +274,16 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                              or os.path.isfile(os.path.join(path, self.analysis_dir,
                                                             log_gr_ratio_file)))):
                         try:
-                            volf = ConfigParser.ConfigParser()
+                            volf = configparser.ConfigParser()
                             volf.read(os.path.join(path, self.analysis_dir,
                                                    self.volume_file))
                             F0 = volf.getfloat(self.volume_title, 'F0')
-                        except Exception, e:
+                        except Exception as e:
                             logging.info("run_analysis Exception: {}".format(e))
                             self._compute_volume(fname, path)
                     else:
                         self._compute_volume(fname, path)
-                except Exception, e:
+                except Exception as e:
                     logging.info("Exception: {}".format(e))
                     logging.info(traceback.format_exc())
                     logging.info("failed packing!")

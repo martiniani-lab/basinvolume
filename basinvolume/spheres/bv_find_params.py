@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import numpy as np
 import multiprocessing as mp
 import pele.utils.fix_multiprocessing
@@ -5,8 +7,8 @@ import os
 import argparse
 import traceback
 import copy
-from _findk_mcrunner import _findk_mcrunner
-from _kmin_mcrunner import _kmin_mcrunner
+from ._findk_mcrunner import _findk_mcrunner
+from ._kmin_mcrunner import _kmin_mcrunner
 
 def worker_findk(fname, kwargs):
     try:
@@ -28,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("-p","--packings-dir", type=str, help="protocol to generate packings", default="jammed_packings")
     parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
     args = parser.parse_args()
-    print args
+    print(args)
 
     packings_dir = args.packings_dir
     if not os.path.isabs(packings_dir):

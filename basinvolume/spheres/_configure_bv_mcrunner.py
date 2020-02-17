@@ -1,4 +1,9 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import numpy as np
 import os
 import logging
@@ -7,7 +12,7 @@ from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.enums import Minimizer
-import ConfigParser
+import configparser
 import time
 import warnings
 
@@ -132,10 +137,10 @@ class configure_bv_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in self.mc_params.items() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[STATUS]\n')
-        for i in xrange(self.nprocs):
+        for i in range(self.nprocs):
             f.write('success_rank{}: {}\n'.format(str(i), "False"))
 
     def _import_packing_config_files(self):
@@ -164,7 +169,7 @@ class configure_bv_mcrunner(_configure_mcrunner):
                                 "different number of subdomains (OpenMP threads), "
                                 "which changes the number of cells and can "
                                 "negatively impact performance.")
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK','kmax')
         self.prob_kmax = configf.getfloat('FINDK','prob')
@@ -178,9 +183,9 @@ class configure_bv_mcrunner(_configure_mcrunner):
         """
         assert(hasattr(self, 'configfile'))
         if self.rank == 0:
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
-            for i in xrange(self.nprocs):
+            for i in range(self.nprocs):
                 configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
             configf.write(open(str(self.configfile),'w'))
 
@@ -192,12 +197,12 @@ if __name__ == "__main__":
 
     sim = configure_bv_mcrunner(0, 1)
     mcrunner = sim('jammed_packing0.xydr', seeds=seeds, use_cell_lists=True, verbose=True)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     mcrunner.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = mcrunner.get_status()
-    print status
+    print(status)
     mcrunner.dump_minima_list('minima_list.db')
     mcrunner.show_histogram()

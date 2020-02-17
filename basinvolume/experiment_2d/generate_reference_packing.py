@@ -1,9 +1,13 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import numpy as np
 import argparse as ap
-from radii_sampler import RadiiSampler
-from throw_and_quench import ThrowAndQuench
-from eq_fluid_snapshots import EqFluidSnapshots
+from .radii_sampler import RadiiSampler
+from .throw_and_quench import ThrowAndQuench
+from .eq_fluid_snapshots import EqFluidSnapshots
 
 class HSExpReferenceGeneratePacking(object):
     """
@@ -73,5 +77,5 @@ if __name__ == "__main__":
     parser.add_argument("--seed_coords", type=int, default=44, help="seed for rng for sampling of initial positions")
     parser.add_argument("--step_seed", type=int, default=46, help="seed for rng for sampling of displacements in fluid")
     pars = parser.parse_args()
-    print("input parameters:", pars)
+    print(("input parameters:", pars))
     HSExpReferenceGeneratePacking(nr_particles=pars.nr_particles, nr_images=pars.nr_images, exp_data_set_index=pars.exp_data_set_index, exp_data_set_name_begin=pars.exp_data_set_name_begin, data_dir=pars.data_dir, show_radii_distribution=pars.show_radii_distribution, hard_phi=pars.hard_phi, seed_radii=pars.seed_radii, seed_coords=pars.seed_coords, step_seed=pars.step_seed)

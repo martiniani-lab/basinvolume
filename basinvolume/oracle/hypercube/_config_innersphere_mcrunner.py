@@ -1,11 +1,15 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.hypercube import HypercubeInnerSphereMCrunner
-import ConfigParser
+import configparser
 import time
 import warnings
 
@@ -73,7 +77,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
     
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.ndof = configf.getfloat('FINDK_HYPERCUBE','ndof')
         self.sidelength = configf.getfloat('FINDK_HYPERCUBE','sidelength')
@@ -109,7 +113,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         f.write('ndof: {}\n'.format(self.ndof))
         f.write('sidelength: {}\n'.format(self.sidelength))
         f.write('[INNERSPHERE_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
     
     def _print_results(self):
@@ -121,7 +125,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[INNERSPHERE_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
+        for key, value in list(status.items()) :
             f.write('{}: {}\n'.format(key,value))
         f.close()
         path = os.path.join(self.base_directory, "inner_sphere.timeseries")
@@ -133,14 +137,14 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
     sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n93_l1', niter=1e5, seeds=seeds, verbose=False)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     sim.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = sim.mcrunner.get_status()
-    print status
-    print 'stepsize: ',sim.mcrunner.get_stepsize()
+    print(status)
+    print('stepsize: ',sim.mcrunner.get_stepsize())
     sim.mcrunner.show_histogram_analytical()
     
     

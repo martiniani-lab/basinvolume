@@ -1,11 +1,18 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 import re
 import glob
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, volume_nball
-import ConfigParser
+import configparser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from basinvolume.spheres import read_jammed_packing_config
 import argparse
@@ -16,7 +23,7 @@ try:
     from histogram_reweighting import wham_utils
     from scipy.integrate import simps
 except ImportError as err:
-    print err
+    print(err)
 
 class wham_compute_dos(object):
     """
@@ -64,21 +71,21 @@ class wham_compute_dos(object):
         Full volume computation, assuming that PT data is available
         """
         #try:
-        print "importing k array"
+        print("importing k array")
         self._import_ks()
-        print "importing time series"
+        print("importing time series")
         self._import_pt_time_series()
-        print "detecting equilibration point"
+        print("detecting equilibration point")
         self._find_eqtime()
-        print "building histograms"
+        print("building histograms")
         self._build_histogram()
-        print "unbiasing histograms"
+        print("unbiasing histograms")
         self._unbias_histogram()
-        print "running wham"
+        print("running wham")
         self._wham_dos()
-        print "computing volume"
+        print("computing volume")
         self._compute_volume()
-        print "plotting data"
+        print("plotting data")
         self._plot_data()
         #except Exception as err:
         #    print err
@@ -97,7 +104,7 @@ class wham_compute_dos(object):
         self.boxv = imp_packing['boxv'].copy()
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.adjustf_niter = configf.getint('MCRUNNER', 'adjustf_niter')
         configf.read(str(self.findk_configpath))
@@ -151,7 +158,7 @@ class wham_compute_dos(object):
                 time = np.amin([max_eq_time, time]) #this should avoid detecting artifacts near the end of the series
                 new_eq_time = np.amax([time, self.adjustf_niter]) #guarantees that eq_time is larger than the mcrunner adapted number of steps
                 if self.verbose:
-                    print "eq_time{}: {}".format(i, new_eq_time)
+                    print("eq_time{}: {}".format(i, new_eq_time))
                 #gather values, find largest, then broadcast it
                 if new_eq_time > eq_time:
                     eq_time = new_eq_time
@@ -201,22 +208,22 @@ class wham_compute_dos(object):
         try:
             from pele.optimize import lbfgs_cpp as quench
             if True:
-                print "minimizing with pele lbfgs"
+                print("minimizing with pele lbfgs")
             ret = quench(X, whampot, tol=1e-5, maxstep=1e4, nsteps=10000, iprint=0)
         except ImportError:
             from wham_utils import lbfgs_scipy
             if True:
-                print "minimizing with scipy lbfgs"
+                print("minimizing with scipy lbfgs")
             ret = lbfgs_scipy(X, whampot, tol=1e-5, nsteps=10000)
 
         if self.verbose:
-            print "chi^2 went from %g (rms %g) to %g (rms %g) in %d iterations" % (
-                E0, rms0, ret.energy, ret.rms, ret.nfev)
+            print("chi^2 went from %g (rms %g) to %g (rms %g) in %d iterations" % (
+                E0, rms0, ret.energy, ret.rms, ret.nfev))
 
         X = ret.coords
         self.logn_E = np.array(X[nreps:])
         self.w_i_final = np.array(X[:nreps])
-        print "dF from w_i_final", self.w_i_final[0] - self.w_i_final
+        print("dF from w_i_final", self.w_i_final[0] - self.w_i_final)
 
 
     def _compute_volume(self):
@@ -237,7 +244,7 @@ class wham_compute_dos(object):
         #compute the average for the prefactor
         Alist = []
         assert s > 2
-        for i in xrange(-2,2,1):
+        for i in range(-2,2,1):
             vmin = volume_nball(self.rmin+i*dx, self.ndof)
             A = vmin / simps(self.dos[:s+i], dx=dx)
             Alist.append(A)
@@ -247,8 +254,8 @@ class wham_compute_dos(object):
         Vol = A*simps(self.dos, dx=dx) + volume_nball(bin_edges[0], self.ndof) #add the contribution from 0 to the first bin
 
         if self.verbose:
-            print "A: {}+/-{} Vol: {}".format(A, Astd, Vol)
-            print "F0: {}".format(-np.log(Vol) - np.log(self.vcavity))
+            print("A: {}+/-{} Vol: {}".format(A, Astd, Vol))
+            print("F0: {}".format(-np.log(Vol) - np.log(self.vcavity)))
 
         #print "const simpson", simps(np.ones(10), dx=dx) - dx*9
         #currently don't have an estimate for the error
@@ -259,8 +266,8 @@ class wham_compute_dos(object):
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
 
         if self.verbose:
-            print 'F0 {} F0unc {}'.format(self.F0, self.F0unc)
-            print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
+            print('F0 {} F0unc {}'.format(self.F0, self.F0unc))
+            print('unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc))
 
     def _plot_data(self):
         if self.plot_data is False:
@@ -279,7 +286,7 @@ class wham_compute_dos(object):
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        for i in xrange(len(self.karray)):
+        for i in range(len(self.karray)):
             y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] #hist(r)*exp(kx^2) (hist*unbiasing) -> dos up to free energy difference
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
         ax.set_xlabel(r'$\Delta r$')
@@ -290,7 +297,7 @@ class wham_compute_dos(object):
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        for i in xrange(len(self.karray)):
+        for i in range(len(self.karray)):
             y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
         ax.set_xlabel(r'$\Delta r$')
@@ -355,7 +362,7 @@ if __name__ == "__main__":
     parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir", default=os.getcwd())
     parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
     args = parser.parse_args()
-    print args
+    print(args)
 
     fname = args.fname
     fdir = args.fdir

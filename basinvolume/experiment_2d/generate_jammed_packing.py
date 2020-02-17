@@ -1,4 +1,8 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 import numpy as np
 import os
 import pyvoro
@@ -8,7 +12,7 @@ from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import trymakedir, volume_nball, get_git_version, get_cython_version
 from basinvolume.utils import get_python_version, read_xydf, read_xyzdf,reduce_coordinates, full_coordinates
 from basinvolume.spheres import _Generate_Jammed_Packing
-import ConfigParser
+import configparser
 import re
 import argparse
 import sys
@@ -58,7 +62,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii)*2*(1+self.sca) >= np.amin(self.boxv)/2:
-            print "WARNING: max soft diameter >= 1/2 box side!"
+            print("WARNING: max soft diameter >= 1/2 box side!")
 
         assert(len(self.coords)/self.bdim == len(self.hs_radii))
 
@@ -83,7 +87,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.rattlers_draw = np.empty(self.nparticles,dtype='d')
         redcoords = reduce_coordinates(self.coords, self.frozen, self.bdim)
         hess = self.potential.getHessian(redcoords)
-        for i in xrange(self.nparticles):
+        for i in range(self.nparticles):
             i1 = self.bdim*i
             hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
             w, v = np.linalg.eig(hess_block)
@@ -91,8 +95,8 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             self.rattlers[i] = np.amin(np.absolute(w))
             self.rattlers_draw[i] = float(self.rattlers[i] >= self.rattler_eval_tol)
             if self.rattlers_draw[i] < 1:
-                print 'zero eigenvalue, particle {}'.format(i)
-                print w
+                print('zero eigenvalue, particle {}'.format(i))
+                print(w)
         #set the eigenvalue of frozen particles to 0 as if they were rattlers
         for i in sorted(self.frozen, reverse=False):
             self.rattlers = np.insert(self.rattlers, i, 0)
@@ -113,7 +117,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         maxstep = np.amin(red_radii) * self.sca
         res = modifiedfire_cpp(redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
         if not res.success:
-            print 'quench failed'
+            print('quench failed')
             return False
 
         new_redcoords = res.coords.copy()
@@ -122,28 +126,28 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #test that on re-minimisation the structure does not change
         res2 = modifiedfire_cpp(new_redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
         if res2.nfev > 1:
-            print 'quench failed (structure changed at second minimisation)'
+            print('quench failed (structure changed at second minimisation)')
             return False
 
         #check that no particle has moved more than its own diameter
         dvec = np.power(new_redcoords - redcoords,2)
-        for i in xrange(0,np.size(dvec), self.bdim):
+        for i in range(0,np.size(dvec), self.bdim):
             if np.sqrt(np.sum(dvec[i:i+self.bdim])) > red_radii[int(i/self.bdim)]:
-                print "quench rejected, particle has moved more than its own radius"
+                print("quench rejected, particle has moved more than its own radius")
                 return False
 
         self.coords = full_coordinates(new_redcoords, self.coords, self.frozen, self.bdim)
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
-            print 'overlap found'
+            print('overlap found')
             return False
 
         #analyse packing, assert that the whole system has only 3 0'evalues + a 0 evalue for each rattler 0 evalue
         hess = self.potential.getHessian(redcoords)
         ratt0evals= []
         nratls = 0
-        for i in xrange(self.nparticles):
+        for i in range(self.nparticles):
             i1 = self.bdim*i
             hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
             w, v = np.linalg.eig(hess_block)
@@ -158,19 +162,19 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         w = np.real(w)
         full0evals = [x for x in w if abs(x) < self.rattler_eval_tol]
         if len(full0evals) - len(ratt0evals) > self.bdim:
-            print 'hessian 0s mismatch rattlers 0s'
+            print('hessian 0s mismatch rattlers 0s')
             #do not return false because for lower packings fraction the number of low freequency modes increases significantly
             pass
         self.whole_evalues.extend(w)
 
-        print "nrattlers: {}".format(nratls)
+        print("nrattlers: {}".format(nratls))
         if nratls > self.max_nrattlers:
-            print '{} rattlers constitute more than 10% of the system'.format(nratls)
+            print('{} rattlers constitute more than 10% of the system'.format(nratls))
             return False
 
         #check that there isn't any significantly negative evalue
         if np.any(w < -2e-7):
-            print 'eigevalue < -2e-7'
+            print('eigevalue < -2e-7')
             return False
 
         return True
@@ -178,9 +182,9 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
-        for i in xrange(self.nparticles):
+        for i in range(self.nparticles):
             if no_overlap == True:
-                for j in xrange(i, self.nparticles):
+                for j in range(i, self.nparticles):
                     if i != j:
                         dij = np.linalg.norm(get_distance(
                             self.coords[i * self.bdim : (i + 1) * self.bdim],
@@ -188,10 +192,10 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                             self.bdim, Distance.PERIODIC, box=self.boxv))
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
-                            print 'invalid configuration'
-                            print 'atoms {} {} are overlapping'.format(i,j)
-                            print 'real distance {}'.format(dij)
-                            print 'min distance {}'.format(dmin)
+                            print('invalid configuration')
+                            print('atoms {} {} are overlapping'.format(i,j))
+                            print('real distance {}'.format(dij))
+                            print('min distance {}'.format(dmin))
                             no_overlap = False
                             break
             else:
@@ -215,7 +219,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #self.packing_frac = np.power(1+self.imp_sca,self.bdim)*self.imp_packing_frac
 
     def _import_packing_config_file(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(self.configpath)
         self.nparticles = configf.getint('PACKING','nparticles')
         self.bdim = configf.getint('PACKING','boxdim')
@@ -243,7 +247,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _get_particles_volume(self):
         """returns volume of n=self.bdim dimensional sphere for mobile particles """
         volume = 0.
-        for i in xrange(len(self.hs_radii)):
+        for i in range(len(self.hs_radii)):
             if i not in self.frozen:
                 volume += volume_nball(self.hs_radii[i],self.bdim)
         return volume
@@ -257,7 +261,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         coords = self.coords.reshape(-1,self.bdim).tolist()
         #get box limits
         limits = []
-        for i in xrange(self.bdim):
+        for i in range(self.bdim):
             limits.append([-self.boxv[i]/2,self.boxv[i]/2])
         #compute dispersion (max distance between two points that might be adjacent)
         dispersion = np.amax(self.hs_radii) * 2
@@ -293,13 +297,13 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if self.bdim == 2:
             fname = "{0}/jammed_packing{1}.xydfr".format(directory,n)
             f = open(fname,'w')
-            for i in xrange(nparticles):
+            for i in range(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           self.hs_radii[i]*2, int(i in self.frozen), self.rattlers[i]))
         elif self.bdim == 3:
             fname = "{0}/jammed_packing{1}.xyzdfr".format(directory,n)
             f = open(fname,'w')
-            for i in xrange(nparticles):
+            for i in range(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                           coords[i*self.bdim+2],self.hs_radii[i]*2,int(i in self.frozen),
                                                                           self.rattlers[i]))
@@ -362,8 +366,8 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(np.amax(self.hs_radii)*2))
-            for i in xrange(nparticles):
-                for j in xrange(self.bdim):
+            for i in range(nparticles):
+                for j in range(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(0.0))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
@@ -378,8 +382,8 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
-            for i in xrange(nparticles):
-                for j in xrange(self.bdim):
+            for i in range(nparticles):
+                for j in range(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
                 if i in self.frozen:
@@ -438,7 +442,7 @@ if __name__ == "__main__":
     parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="packings")
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
     args = parser.parse_args()
-    print args
+    print(args)
 
     sim = HS_Exp_Generate_Jammed_Packing(packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
                                          show=args.show)

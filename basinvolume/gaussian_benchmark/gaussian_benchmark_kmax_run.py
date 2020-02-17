@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import print_function
 import numpy as np
 from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import CheckSphericalContainer
@@ -39,8 +40,8 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         #self.set_report_steps(self.niter - self.avgcount)
         in_origin = self.origin
         used_origin = self.conftest_check_same_minimum.get_origin()
-        print("in_origin", in_origin)
-        print("used_origin", used_origin)
+        print(("in_origin", in_origin))
+        print(("used_origin", used_origin))
     def add_modules_to_mc(self):
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest_outer_sphere)
@@ -57,7 +58,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
     def get_entries(self):
         return self.action_findk.get_entries()
     def get_prob_kmax(self):
-        print("p", self.action_findk.get_prob())
+        print(("p", self.action_findk.get_prob()))
         return self.action_findk.get_prob()
     def get_k(self):
         """ The MC potential is just a placeholder.
@@ -66,7 +67,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         stepsize = self.get_stepsize()
         k = 1.0 / (stepsize * stepsize)
         ###
-        print("k", k)
+        print(("k", k))
         ###
         return k
     def set_control(self, c):

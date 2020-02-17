@@ -1,15 +1,16 @@
 from __future__ import division
+from __future__ import absolute_import
 import numpy as np
 import os
 import argparse
 import multiprocessing as mp
 import logging
-from bond_orientational_order import worker_boo
-from density_of_states import worker_dos
-from displacement import worker_disp
-from inversion_symmetry import worker_invsym
-from neighbors import worker_neighbors
-from pressure_tensor import worker_pressure
+from .bond_orientational_order import worker_boo
+from .density_of_states import worker_dos
+from .displacement import worker_disp
+from .inversion_symmetry import worker_invsym
+from .neighbors import worker_neighbors
+from .pressure_tensor import worker_pressure
 
 
 def get_immediate_subdirectories(dir):

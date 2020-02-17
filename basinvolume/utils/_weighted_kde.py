@@ -1,3 +1,9 @@
+from __future__ import division
+from builtins import zip
+from builtins import range
+from past.builtins import basestring
+from builtins import object
+from past.utils import old_div
 import numpy as np
 from scipy.spatial.distance import cdist
 
@@ -146,9 +152,9 @@ class weighted_gaussian_kde(object):
         self.d, self.n = self.dataset.shape
 
         if weights is not None:
-            self.weights = weights / np.sum(weights)
+            self.weights = old_div(weights, np.sum(weights))
         else:
-            self.weights = np.ones(self.n) / self.n
+            self.weights = old_div(np.ones(self.n), self.n)
 
         # Compute the effective sample size
         # http://surveyanalysis.org/wiki/Design_Effects_and_Effective_Sample_Size#Kish.27s_approximate_formula_for_computing_effective_sample_size
@@ -192,17 +198,17 @@ class weighted_gaussian_kde(object):
         # compute the normalised residuals
         chi2 = cdist(points.T, self.dataset.T, 'mahalanobis', VI=self.inv_cov) ** 2
         # compute the pdf
-        result = np.sum(np.exp(-.5 * chi2) * self.weights, axis=1) / self._norm_factor
+        result = old_div(np.sum(np.exp(-.5 * chi2) * self.weights, axis=1), self._norm_factor)
 
         return result
 
     __call__ = evaluate
 
     def scotts_factor(self):
-        return np.power(self.neff, -1./(self.d+4))
+        return np.power(self.neff, old_div(-1.,(self.d+4)))
 
     def silverman_factor(self):
-        return np.power(self.neff*(self.d+2.0)/4.0, -1./(self.d+4))
+        return np.power(self.neff*(self.d+2.0)/4.0, old_div(-1.,(self.d+4)))
 
     #  Default method to calculate bandwidth, can be overwritten by subclass
     covariance_factor = scotts_factor
@@ -285,7 +291,7 @@ class weighted_gaussian_kde(object):
             self._data_inv_cov = np.linalg.inv(self._data_covariance)
 
         self.covariance = self._data_covariance * self.factor**2
-        self.inv_cov = self._data_inv_cov / self.factor**2
+        self.inv_cov = old_div(self._data_inv_cov, self.factor**2)
         self._norm_factor = np.sqrt(np.linalg.det(2*np.pi*self.covariance)) #* self.n
 
     def resample(self, size=None):
@@ -305,7 +311,7 @@ class weighted_gaussian_kde(object):
             size = self.n
         norm = np.transpose(np.random.multivariate_normal(np.zeros((self.d,), dtype=np.float64),
                                                           self.covariance, size=int(size)))
-        indices = np.random.choice(xrange(0, self.n), p=self.weights/np.sum(self.weights), size=size)
+        indices = np.random.choice(range(0, self.n), p=old_div(self.weights,np.sum(self.weights)), size=size)
         means = self.dataset[:, indices]
 
         return means + norm
@@ -322,7 +328,7 @@ if __name__=="__main__":
 
     # Generate equal-weighted samples
     samples = np.random.normal(size=num_samples)
-    weights = np.ones(num_samples) / num_samples
+    weights = old_div(np.ones(num_samples), num_samples)
 
     # Plot a histogram
     plt.hist(samples, bins, (-xmax, xmax), histtype='stepfilled',
@@ -370,7 +376,7 @@ if __name__=="__main__":
         _samples = np.random.normal(m, s, n)
         _samples = _samples[o > np.random.uniform(size=n)]
         samples.extend(_samples)
-        weights.extend(np.ones_like(_samples) / o)
+        weights.extend(old_div(np.ones_like(_samples), o))
 
     # Renormalise the sample weights
     weights = np.array(weights, np.float)

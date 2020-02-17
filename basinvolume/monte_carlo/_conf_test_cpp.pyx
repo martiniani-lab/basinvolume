@@ -220,9 +220,11 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
 
         if not use_frozen:
             if (ndim == 2):
+                print("here 2")
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT2]
                                                         (rd_, bv_, specific, ncellx_scale))
             elif (ndim == 3):
+                print("here 3")
                 self.thisptr = shared_ptr[cppConfTest]( <cppConfTest*>new cppCheckOverlapPeriodicCellLists[INT3]
                                                         (rd_, bv_, specific, ncellx_scale))
             else:

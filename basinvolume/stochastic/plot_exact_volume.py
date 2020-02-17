@@ -1,4 +1,6 @@
 from __future__ import division
+from builtins import str
+from builtins import range
 import numpy as np
 
 from basinvolume.monte_carlo import CheckExponentiallyDecayingProfile
@@ -7,7 +9,7 @@ from basinvolume.utils import *
 if __name__ == "__main__":
     u = 3
     d = 0.3
-    n = range(1, 21)
+    n = list(range(1, 21))
     cube = []
     sphere = []
     exp_cube = []

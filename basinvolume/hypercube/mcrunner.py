@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from builtins import range
 import numpy as np
 import sys
 
@@ -38,7 +39,7 @@ try:
     #####################LINE STYLE CYCLER####################
     lines = ["-","--","-."]
     linecycler = cycle(lines)
-    color_cycle=[cm(1. * i / 6) for i in xrange(6)]
+    color_cycle=[cm(1. * i / 6) for i in range(6)]
     ##########################################################
 except ImportError as err:
     print(err)
@@ -342,7 +343,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 

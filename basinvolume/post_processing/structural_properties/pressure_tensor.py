@@ -1,8 +1,12 @@
 from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import numpy as np
 import os
 import traceback
-import ConfigParser
+import configparser
 import logging
 import argparse
 from pele.utils._pressure_tensor import pressure_tensor
@@ -10,7 +14,7 @@ from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import trymakedir
 from basinvolume.enums import Interaction
-from _structural_analysis import StructuralAnalysis
+from ._structural_analysis import StructuralAnalysis
 
 
 class PressureTensor(StructuralAnalysis):
@@ -27,7 +31,7 @@ class PressureTensor(StructuralAnalysis):
 
     @staticmethod
     def read(pressure_fname):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(pressure_fname)
         pressure_dict = {}
         pressure_dict['P'] \

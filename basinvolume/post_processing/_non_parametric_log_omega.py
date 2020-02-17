@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import range
+from builtins import object
 try:
     import numpy as np
     from basinvolume.utils import ResultsFile, log_factorial, save_pdf
@@ -8,7 +11,7 @@ try:
     from sklearn.neighbors import KernelDensity
     from pele.optimize import LBFGS
 except ImportError as err:
-    print err
+    print(err)
     
 class KernelDensityLogOmega(object):
     """
@@ -61,9 +64,9 @@ class KernelDensityLogOmega(object):
         f.to_file("S_star", self.S_star)
         f.to_file("S", self.S)
         f.close()
-        print self.out_file_heading
-        print "S_star", self.S_star
-        print "S", self.S
+        print(self.out_file_heading)
+        print("S_star", self.S_star)
+        print("S", self.S)
         plot_name = file_name + "_plot.pdf"
         plt.hist(self.F0, bins=42, normed=True, label="Data")
         self.x_plot_1d = np.linspace(np.amin(self.F0), np.amax(self.F0), 500)
@@ -90,14 +93,14 @@ class KernelDensityLogOmega(object):
             opt_bandwidth = ((4 * std_samples ** 5) / (3 * nr_samples)) ** (1/5)
         elif method == "cross_validation":
             silv_initial = ((4 * np.std(self.F0) ** 5) / (3 * len(self.F0))) ** (1/5)
-            print "silv_initial", silv_initial
+            print("silv_initial", silv_initial)
             loocv = CrossValidationBandwidthSelection(self.F0, kernel=self.kernel, h_initial=silv_initial)
             opt_bandwidth = loocv.opt_bandwidth 
         else:
             raise Exception("KernelDensityLogOmega: get_bandwidth_estimate: illegal method input")
         assert(opt_bandwidth is not None)
-        print method, "method used to estimate bandwidth"
-        print "estimated optimal bandwidth", opt_bandwidth
+        print(method, "method used to estimate bandwidth")
+        print("estimated optimal bandwidth", opt_bandwidth)
         return opt_bandwidth
     
 class CrossValidationBandwidthSelection(object):
@@ -113,9 +116,9 @@ class CrossValidationBandwidthSelection(object):
     def __init__(self, data, kernel="gaussian", h_initial=2):
         pot = CrossValidationCost(data, kernel=kernel)
         optimizer = LBFGS(np.asarray([h_initial]), pot, maxstep=1)
-        print "run bandwidth optimization"
+        print("run bandwidth optimization")
         result = optimizer.run()
-        print "done"
+        print("done")
         self.opt_bandwidth = result.coords
 
 class KernelDensityLogOmegaJackKnife(object):
@@ -142,10 +145,10 @@ class KernelDensityLogOmegaJackKnife(object):
         self.write_to_file(file_name)
     def compute_log_omega(self):
         self.jack_acc = MomentsAcc()
-        print "run jackknife for error bar on kernel density log omega"
-        for idx in xrange(len(self.F0)):
+        print("run jackknife for error bar on kernel density log omega")
+        for idx in range(len(self.F0)):
             S_star_red = self.get_S_star_excluding_index(idx)
-            print "done", (idx + 1), "of", len(self.F0)
+            print("done", (idx + 1), "of", len(self.F0))
             self.jack_acc.update(S_star_red)
         self.S_star = self.jack_acc.mean
         self.error_S_star = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc.get_variance())
@@ -173,11 +176,11 @@ class KernelDensityLogOmegaJackKnife(object):
         f.to_file("S", self.S)
         f.to_file("error_S", self.error_S)
         f.close()
-        print self.out_file_heading
-        print "S_star", self.S_star
-        print "error_S_star", self.error_S_star
-        print "S", self.S
-        print "error_S", self.error_S
+        print(self.out_file_heading)
+        print("S_star", self.S_star)
+        print("error_S_star", self.error_S_star)
+        print("S", self.S)
+        print("error_S", self.error_S)
         plot_name = file_name + "_plot.pdf"
         plt.hist(self.F0, bins=14, normed=True, label="Data")
         self.x_plot_1d = np.linspace(np.amin(self.F0), np.amax(self.F0), 500)

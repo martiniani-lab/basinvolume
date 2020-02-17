@@ -1,8 +1,12 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import matplotlib.pyplot as plt
     from scipy.optimize import curve_fit
@@ -12,7 +16,7 @@ try:
     from basinvolume.utils import MomentsAcc, CDFAccumulator
     from scipy import integrate
 except ImportError as err:
-    print err
+    print(err)
 
 class F0MeanError(object):
     """
@@ -43,9 +47,9 @@ class APFEntropy(object):
         self.S = self.S_star - log_factorial(self.nr_particles)
         self.error_S_star = F0_stat.sample_variance_error
         self.error_S = self.error_S_star
-        print "Granular entropy according to APF:"
-        print "S_star:", self.S_star, "+/-", self.error_S_star 
-        print "S:", self.S, "+/-", self.error_S
+        print("Granular entropy according to APF:")
+        print("S_star:", self.S_star, "+/-", self.error_S_star) 
+        print("S:", self.S, "+/-", self.error_S)
         self.write_to_file(entropy_file_path)
     def write_to_file(self, entropy_file_path):
         f = ResultsFile(entropy_file_path)

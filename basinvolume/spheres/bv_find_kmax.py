@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import numpy as np
 import random
 import os
@@ -5,7 +6,7 @@ import argparse
 import logging
 import traceback
 import copy
-from _findk_mcrunner import _findk_mcrunner
+from ._findk_mcrunner import _findk_mcrunner
 from basinvolume.experiment_2d import _findk_exp_mcrunner
 from basinvolume.enums import Minimizer
 

@@ -80,14 +80,17 @@ class HS_MCrunner(_BaseMCRunner):
             if distance_method is Distance.LEES_EDWARDS:
                 if use_cell:
                     self.checkoverlap = CheckOverlapLeesEdwardsCellLists(
-                        hs_radii, boxvec, specific=True, ncellx_scale=ncellx_scale, shear=pot_kwargs['shear'], use_frozen=False)
+                        hs_radii, boxvec, specific=True, ncellx_scale=ncellx_scale, shear=pot_kwargs['shear'])
                 else:
                     self.checkoverlap = CheckOverlapLeesEdwards(hs_radii, boxvec,
                                                                 shear=pot_kwargs['shear'])
             else:
                 if use_cell:
+                    ncellx_scale = 1.0
                     self.checkoverlap = CheckOverlapPeriodicCellLists(
                         hs_radii, boxvec, specific=True, ncellx_scale=ncellx_scale, use_frozen=False)
+                    # self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
+                    
                 else:
                     self.checkoverlap = CheckOverlapPeriodic(hs_radii, boxvec)
 

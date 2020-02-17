@@ -1,4 +1,8 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
 import numpy as np
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner
@@ -52,21 +56,21 @@ class EqFluidSnapshots(object):
         self.coordinates, energy = diffusion_test_mc.get_config()
         self.nr_steps = self.nr_images * self.nr_decorrelation_steps
         print("finding number of decorrelation steps -- done -- results:")
-        print("stepsize", self.stepsize)
-        print("nr decorrelation steps", self.nr_decorrelation_steps)
-        print("maximum total nr steps", self.nr_steps)
+        print(("stepsize", self.stepsize))
+        print(("nr decorrelation steps", self.nr_decorrelation_steps))
+        print(("maximum total nr steps", self.nr_steps))
     def print_next_image(self):
-        print("printing image", self.printed_images + 1, "out of", self.nr_images)
-        for _ in xrange(self.nr_decorrelation_steps):
+        print(("printing image", self.printed_images + 1, "out of", self.nr_images))
+        for _ in range(self.nr_decorrelation_steps):
             self.mc.one_iteration()
         self.print_Lorenzo_style()
-        print("printed image", self.printed_images, "out of", self.nr_images)
+        print(("printed image", self.printed_images, "out of", self.nr_images))
     def print_Lorenzo_style(self):
-        print("number of MC steps", self.mc.get_iterations_count())
+        print(("number of MC steps", self.mc.get_iterations_count()))
         self.coordinates = self.mc.get_coords()
         self.coordinates = put_in_box(self.coordinates, 2, Distance.PERIODIC, self.boxvec)
         out_file = open(self.base_out_file_name + "_" + str(self.printed_images), "w")
-        for particle_index in xrange(self.nr_particles):
+        for particle_index in range(self.nr_particles):
             out_file.write(self.get_Lorenzo_style_string(particle_index) + "\n")
         out_file.close()
         self.printed_images += 1

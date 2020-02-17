@@ -4,13 +4,22 @@ But it has some useful code in it which should be migrated to the newer implemen
 """
 
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import map
+from builtins import str
+from builtins import next
+from builtins import zip
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 import re
 import glob
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, write_csv_xy, import_pt_time_series
-import ConfigParser
+import configparser
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
@@ -23,7 +32,7 @@ try:
     import pylab as plt
     from matplotlib import rc
 except ImportError as err:
-    print err
+    print(err)
 
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
@@ -37,7 +46,7 @@ plt.rcParams.update({'figure.autolayout': True})
 ####SET COLOUR MAP######
 def get_color_cycle():
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
+    color_cycle=cycle([cm(1. * i / 7) for i in range(7)])
     return color_cycle
 ########################
 
@@ -74,10 +83,10 @@ class _collect_u2_vs_k(object):
         assert os.path.isfile(self.pt_configpath)
         self.verbose = verbose
         if self.verbose:
-            print("self.packing_configpath", self.packing_configpath)
-            print("self.jammed_packing_configpath", self.jammed_packing_configpath)
-            print("self.findk_configpath", self.findk_configpath)
-            print("self.kmin_configpath", self.kmin_configpath)
+            print(("self.packing_configpath", self.packing_configpath))
+            print(("self.jammed_packing_configpath", self.jammed_packing_configpath))
+            print(("self.findk_configpath", self.findk_configpath))
+            print(("self.kmin_configpath", self.kmin_configpath))
 
         self.ts_skip = ts_skip
         self.plot_ts_integrand_data = plot_ts_integrand_data
@@ -104,7 +113,7 @@ class _collect_u2_vs_k(object):
                 self._compute_volume()          # there is no reason to also compute the accessible volume at this point.
                 self._plot_data()
         except Exception as err:
-            print("Exception: ", err)
+            print(("Exception: ", err))
             print(traceback.format_exc())
         """
         Print basin volumes for further processing
@@ -120,7 +129,7 @@ class _collect_u2_vs_k(object):
         self.boxv = imp_packing['boxv'].copy()
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
@@ -152,9 +161,9 @@ class _collect_u2_vs_k(object):
 
     def _import_u2_reverse(self):
         n = len(self.karray)-1
-        self.u2_array = [0 for _ in xrange(n)]
-        self.var_array = [0 for _ in xrange(n)]
-        self.std_error_array = [0 for _ in xrange(n)]
+        self.u2_array = [0 for _ in range(n)]
+        self.var_array = [0 for _ in range(n)]
+        self.std_error_array = [0 for _ in range(n)]
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
@@ -201,7 +210,7 @@ class _collect_u2_vs_k(object):
         series = []
         for series_path in file_list:
             fname = str(os.path.split(series_path)[-1].split())
-            digits = map(int, re.findall(r'\d+', fname))
+            digits = list(map(int, re.findall(r'\d+', fname)))
             series_order.append(digits[-1])
             timeseries.append(read_txt(series_path))
         Y = series_order
@@ -215,7 +224,7 @@ class _collect_u2_vs_k(object):
         for i,n in enumerate(step_timeseries_order[1:]):
             mean_arr = []
             nsubs = step_timeseries[0][eqtime:].size // n
-            for j in xrange(nsubs):
+            for j in range(nsubs):
                 mean_arr.append(np.sum(step_timeseries[0][eqtime+j*n:eqtime+(j+1)*n]))
             mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
             step_timeseries_mean_path.append(mean)
@@ -231,7 +240,7 @@ class _collect_u2_vs_k(object):
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#{:>15}\t{:>15}\n'.format('<u2>', 'var(<u2>)'))
-        for i in xrange(len(self.u2_array)):
+        for i in range(len(self.u2_array)):
             f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i]))
         f.close()
 
@@ -256,7 +265,7 @@ class _collect_u2_vs_k(object):
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
-        print 'unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc)
+        print('unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc))
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
         volume_sanity_check = VolumeSanityCheck(self.packing_configpath, numerical_moments=numerical_moments)
@@ -303,8 +312,8 @@ class _collect_u2_vs_k(object):
         #try to plot cumulative sum of steps_timeseries
         try:
             self._plot_diffusion()
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             print('_collect_u2_vs_k diffusion: %s' % (traceback.format_exc()))
 
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
@@ -318,7 +327,7 @@ class _collect_u2_vs_k(object):
             ax = fig.add_subplot(111)
             self._import_time_series()
             for i,series in enumerate(self.timeseries):
-                ax.plot(series[::self.ts_skip], ls=next(linecycler), color=color_cycle.next(), linewidth=1.8, label=str(i))
+                ax.plot(series[::self.ts_skip], ls=next(linecycler), color=next(color_cycle), linewidth=1.8, label=str(i))
             ax.set_ylabel(r'$|{\bf r} - {\bf r}_0|$', fontsize=18)
             ax.set_xlabel('steps/{}'.format(self.ts_skip), fontsize=18)
             ax.set_xlim((0,150))
@@ -336,12 +345,12 @@ class _collect_u2_vs_k(object):
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
         (line, caps, _) = ax2.errorbar(self.karray, self.u2_array, yerr=np.sqrt(self.var_array), marker='o', ms=12, linestyle='',
-                     color=color_cycle.next(), clip_on=False, zorder=100, capsize=5, elinewidth=2)
+                     color=next(color_cycle), clip_on=False, zorder=100, capsize=5, elinewidth=2)
         for cap in caps:
             cap.set_zorder(100)
         line.set_zorder(100)
 
-        ax2.plot(cont_karray, u2_array_app, '--', linewidth=2, color=color_cycle.next())
+        ax2.plot(cont_karray, u2_array_app, '--', linewidth=2, color=next(color_cycle))
         ax2.set_xlabel(r'$k$')
         ax2.set_ylabel(r'$\langle |\mathbf{r} - \mathbf{r}_0|^2\rangle_k $')
         ax2.set_ylim(bottom=0)
@@ -351,7 +360,7 @@ class _collect_u2_vs_k(object):
                      fname=os.path.join(self.base_directory, 'u2_vs_k.csv'))
         #inset
         ax3 = fig2.add_axes([0.45,0.42,0.4,0.4], alpha=0.5)
-        ax3.errorbar(self.tarray, self.farray, yerr=self.sigfarray, marker='o', color=color_cycle.next(), ms=12, clip_on=False, zorder=100)
+        ax3.errorbar(self.tarray, self.farray, yerr=self.sigfarray, marker='o', color=next(color_cycle), ms=12, clip_on=False, zorder=100)
         ax3.set_xlabel(r'$t$', fontsize=18)
         ax3.locator_params(axis = 'x', nbins = 4)
         ax3.locator_params(axis = 'y', nbins = 4)
@@ -393,7 +402,7 @@ if __name__ == "__main__":
     parser.add_argument("--plotonly", action='store_true', help="plot only, default: False", default=False)
     parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
     args = parser.parse_args()
-    print args
+    print(args)
 
     fname = args.fname
     fdir = args.fdir

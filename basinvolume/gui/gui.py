@@ -1,3 +1,4 @@
+from __future__ import print_function
 import glob
 import numpy as np
 import os
@@ -11,7 +12,7 @@ import pylab as pl
 def quench(coords, potential, boxv, nsteps=1e6, tol=1e-9):
     res = modifiedfire_cpp(coords, potential, maxstep=(boxv[0]*0.1), nsteps=nsteps, tol=tol)
     if not res.success:
-        print 'quench failed'
+        print('quench failed')
         return False
     return res.coords, res.energy
 
@@ -27,7 +28,7 @@ def merge_db(explore_dir, fname='merged_minima_list.sqlite', distinct=False):
                         system = create_system(dbname=file)
                         newdb = system.create_database(fname)
                         created_newdb=True
-                    print file
+                    print(file)
                     db = Database(file)
                     for m in db.minima():
                         m.coords, m.energy = quench(m.coords, system.potential, system.boxv)
@@ -46,11 +47,11 @@ def merge_db(explore_dir, fname='merged_minima_list.sqlite', distinct=False):
 #        print m.user_data
 
 def create_system(dbname):
-    print "testing whether", dbname, "exists"
+    print("testing whether", dbname, "exists")
     try:
         # if the database already exists get the phases
         db = Database(dbname, createdb=False)
-        print dbname, "exists.  getting parameters"
+        print(dbname, "exists.  getting parameters")
         bdim = db.get_property("bdim").value()
         eps = db.get_property("eps").value()
         sca = db.get_property("sca").value()
@@ -59,7 +60,7 @@ def create_system(dbname):
         etol = db.get_property("etol").value()
         dtol = db.get_property("dtol").value()
     except IOError:
-        print dbname, "doesn't exist"
+        print(dbname, "doesn't exist")
         sys.exit(0)
     system = HSWCASystem(eps, sca, radii, boxv,
                          bdim=bdim, dtol=dtol, etol=etol)

@@ -1,4 +1,6 @@
 from __future__ import division
+from builtins import range
+from builtins import object
 from basinvolume.utils import cround
 from pele.distance import get_distance, Distance
 import numpy as np
@@ -24,7 +26,7 @@ class SimpleSolidAngleNeighbors(object):
         count = self.nparticles - 1
         if count < 3:
             raise Exception("SimpleSolidAngleNeighbors: too few particles")
-        d = dict([(self.get_distance(k), k) for k in xrange(self.nparticles) if k != self.center])
+        d = dict([(self.get_distance(k), k) for k in range(self.nparticles) if k != self.center])
         distance_sum = 0
         sk = sorted(d.keys())
         for s in sk[0:3]:

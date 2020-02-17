@@ -1,4 +1,9 @@
 from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from builtins import object
 import numpy as np
 import abc
 import os
@@ -13,7 +18,7 @@ from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
                                conf_getint_default, conf_getfloat_default)
 from basinvolume.spheres import read_packing_config
 from basinvolume.enums import Minimizer, Interaction
-import ConfigParser
+import configparser
 import re
 import argparse
 import subprocess
@@ -21,6 +26,7 @@ import shlex
 import glob
 import ast
 import logging
+from future.utils import with_metaclass
 # try:
 #     import pylab
 # except:
@@ -36,7 +42,7 @@ def cartesian_to_polar2d(vector):
 
 def sum_neighbor_angles2d(neigh_vec):
     sum_ = 0.
-    for idx in xrange(len(neigh_vec) - 1):
+    for idx in range(len(neigh_vec) - 1):
         sum_ += np.arccos(np.dot(neigh_vec[idx], neigh_vec[idx + 1])
                           / (np.linalg.norm(neigh_vec[idx])
                              * np.linalg.norm(neigh_vec[idx + 1])))
@@ -49,7 +55,7 @@ def sum_neighbor_angles2d(neigh_vec):
 def read_jammed_packing_config(configpath, frozen=False):
     if not os.path.isfile(str(configpath)):
         raise IOError("Config file does not exist: {}".format(str(configpath)))
-    configf = ConfigParser.ConfigParser()
+    configf = configparser.ConfigParser()
     configf.read(str(configpath))
     parameters = {}
     parameters['nparticles'] = configf.getint('JAMMED_PACKING', 'nparticles')
@@ -81,7 +87,7 @@ def read_jammed_packing_config(configpath, frozen=False):
     return parameters
 
 
-class _Generate_Jammed_Packing(object):
+class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
     """
     this is an abstract class that implements the basic components of a generate packing class,
     and declares a number of abstract methods which should be implemented in all inheriting classes
@@ -93,7 +99,6 @@ class _Generate_Jammed_Packing(object):
     *target_packing_frac: target jammed packing fraction
     *boxv: an array of size bdim that contains the vectors defining the box
     """
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, target_packing_frac=0.65, packings_dir='packings', packing_nrs=None,
                  import_jammed=False, outdir='jammed_packings', override_pot_kwargs=None,
@@ -386,7 +391,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         else:
             raise NotImplementedError
 
-        check_again = range(len(self.hs_radii))
+        check_again = list(range(len(self.hs_radii)))
         self.ss_radii = self.hs_radii * (1. + self.sca)
         neighbor_indicess, neighbor_distancess \
             = self.potential.getNeighbors(self.coords)
@@ -566,10 +571,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             new_radii = np.empty(len(self.hs_radii))
             new_rattlers = np.empty(len(self.rattlers))
             new_coords = np.empty(len(self.coords))
-            for i in xrange(len(self.hs_radii)):
+            for i in range(len(self.hs_radii)):
                 new_radii[i] = self.hs_radii[new_order[i]]
                 new_rattlers[i] = self.rattlers[new_order[i]]
-                for j in xrange(self.bdim):
+                for j in range(self.bdim):
                     new_coords[i * self.bdim + j] = self.coords[new_order[i] * self.bdim + j]
             self.hs_radii = new_radii
             self.rattlers = new_rattlers
@@ -579,7 +584,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _dump_permutations(self, old_ind, n):
         fname = "{0}/jammed_packing{1}.perm".format(self.base_directory, n)
         perms = []
-        for new_ind in xrange(len(old_ind)):
+        for new_ind in range(len(old_ind)):
             perms.append((old_ind[new_ind], new_ind))
         perms = sorted(perms, key=lambda perm: perm[0])
         with open(fname, 'w') as forder:
@@ -599,13 +604,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         coords = self._correct_coords()
         if self.bdim == 2:
             f = open(fname, 'w')
-            for i in xrange(self.nparticles):
+            for i in range(self.nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(
                     coords[i * self.bdim], coords[i * self.bdim + 1],
                     self.hs_radii[i] * 2, self.rattlers[i]))
         elif self.bdim == 3:
             f = open(fname, 'w')
-            for i in xrange(self.nparticles):
+            for i in range(self.nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(
                     coords[i * self.bdim], coords[i * self.bdim + 1],
                     coords[i * self.bdim + 2], self.hs_radii[i] * 2, self.rattlers[i]))
@@ -629,8 +634,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(np.amax(self.hs_radii) * 2))
-            for i in xrange(self.nparticles):
-                for j in xrange(self.bdim):
+            for i in range(self.nparticles):
+                for j in range(self.bdim):
                     f.write('{}\t'.format(coords[i * self.bdim + j]))
                 f.write('{}\t'.format(0.0))
                 f.write('{}\t'.format(self.hs_radii[i] * 2 * (1. + self.sca)))
@@ -640,8 +645,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
-            for i in xrange(self.nparticles):
-                for j in xrange(self.bdim):
+            for i in range(self.nparticles):
+                for j in range(self.bdim):
                     f.write('{}\t'.format(coords[i * self.bdim + j]))
                 f.write('{}\t'.format(self.hs_radii[i] * 2 * (1. + self.sca)))
                 f.write('{}\n'.format(colour - int(self.rattlers_draw[i])))

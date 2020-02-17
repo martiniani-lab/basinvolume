@@ -1,8 +1,15 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import next
+from builtins import range
+from builtins import object
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import matplotlib.pyplot as plt
     from matplotlib import rc
@@ -14,7 +21,7 @@ try:
     from itertools import chain
     from scipy.optimize import curve_fit
 except ImportError as err:
-    print err
+    print(err)
 
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
@@ -28,7 +35,7 @@ plt.rcParams.update({'figure.autolayout': True})
 ####SET COLOUR MAP######                                                               
 def get_color_cycle():
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / 7) for i in xrange(7)])
+    color_cycle=cycle([cm(1. * i / 7) for i in range(7)])
     return color_cycle
 ########################
 """
@@ -58,7 +65,7 @@ def _sort_pair(x,y):
     sorts x and moves elements of y accordingly
     """
     xc = np.array(x)
-    points = zip(xc,y)
+    points = list(zip(xc,y))
     sorted_points = sorted(points, key=lambda x: x[0])
     new_x = np.array([point[0] for point in sorted_points])
     new_y = np.array([point[1] for point in sorted_points])
@@ -95,15 +102,15 @@ class EntropyData(object):
         data = EntropyData()
         data.add_entropy(S, ds, data.apf)
         """
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         fpath = os.path.join(self.path, member.file)
         if os.path.isfile(fpath):
             configf.read(fpath)
             try:
                 member.entropy[0] = configf.getfloat(member.title,'S_star')
                 member.entropy[1] = configf.getfloat(member.title,'error_S_star')
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
          
     def add_entropy_with_parameters(self, member):
         """
@@ -116,15 +123,15 @@ class EntropyData(object):
         data = EntropyData()
         data.add_entropy(S, ds, data.apf)
         """
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         fpath = os.path.join(self.path, member.file)
         if os.path.isfile(fpath):
             configf.read(fpath)
             try:
                 member.entropy[0] = configf.getfloat(member.title,'S_star')
                 member.entropy[1] = configf.getfloat(member.title,'error_S_star')
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
             for name in self.gen_gaussian_param_names:
                 try:
                     val = configf.getfloat(member.title, name[0])
@@ -190,7 +197,7 @@ class plot_entropy(object):
         trialx = np.linspace(0,nmax+2,1000)
         #extensive
         if ax is None:
-            print "here"
+            print("here")
             fig = plt.figure()
             ax = fig.add_subplot(111)
         y = np.array(entropy_array[1::3]) - log_factorial(np.array(nparticles))
@@ -205,7 +212,7 @@ class plot_entropy(object):
             return a * x
         popt, pcov = curve_fit(ff, x, y, sigma=yerr, absolute_sigma=True)
         ynew = ff(trialx, popt[0])
-        color = color_cycle.next()    
+        color = next(color_cycle)    
         ax.errorbar(x, y, yerr=yerr, color=color, marker=marker, linestyle='', ms=12, label=r"$S^\star -\ln N!$")
         ax.plot(trialx,ynew,'--', color=color,linewidth=2)
         #raw
@@ -240,7 +247,7 @@ class plot_entropy(object):
         y = np.array(entropy_array[1::2]) - log_factorial(np.array(nparticles))
         fit = np.polyfit(nparticles, y, 1)
         ynew = trialx * fit[0] + fit[1] 
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax.errorbar(nparticles, y, marker='o', linestyle='', color=color, ms=12, label=r"$S^\star -\ln N!$")
         ax.plot(trialx,ynew,'b--', linewidth=2)
         #raw
@@ -248,7 +255,7 @@ class plot_entropy(object):
             y = np.array(entropy_array[1::2])
             fit = np.polyfit(nparticles, y, 1)
             ynew = trialx * fit[0] + fit[1] 
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax.errorbar(nparticles, y, marker='^', linestyle='', color=color, ms=12, label=r"$S^\star$")
             ax.plot(trialx,ynew,'r--', linewidth=2)
         plt.xlabel(xlabel)
@@ -300,7 +307,7 @@ class plot_entropy(object):
             fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
             ynew = trialx * fit[0] + fit[1]
             m = next(self.markercycler)
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax.errorbar(x, y, yerr=yerr, marker=m, linestyle='', color=color, ms=12, label=label)
             ax.plot(trialx,ynew,'--', color=color, linewidth=2)
         #loop over entropies without an associated error
@@ -315,7 +322,7 @@ class plot_entropy(object):
             fit = np.polyfit(x, y, 1)
             ynew = trialx * fit[0] + fit[1]
             m = next(self.markercycler)
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax.errorbar(x, y, marker=m, linestyle='', color=color, ms=12, mew=2, label=label)
             ax.plot(trialx,ynew, '--', color=color, linewidth=2)
         plt.xlabel(xlabel)
@@ -344,7 +351,7 @@ class plot_entropy(object):
         x, mu_err = _sort_pair(nparticles,mu_err)
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax.errorbar(x, mu, yerr=mu_err, marker='o', linestyle='', color=color, ms=12, label=r"$\mu$")        
         fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -353,7 +360,7 @@ class plot_entropy(object):
         if mlplot:
             mu = np.array(self.loml_parameters[1::4])
             x,mu = _sort_pair(nparticlesml,mu)
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax.errorbar(x, mu, marker='^', linestyle='', color=color, ms=12, label=r"$\mu_{ML}$")        
             fit = np.polyfit(x, mu, 1)
             ynew = trialx * fit[0] + fit[1] 
@@ -372,7 +379,7 @@ class plot_entropy(object):
         x, alpha_err = _sort_pair(nparticles,alpha_err)
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax.errorbar(x, alpha, yerr=alpha_err, marker='o', linestyle='', color=color, ms=12, label=r"$\sigma$")        
         fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -381,7 +388,7 @@ class plot_entropy(object):
         if mlplot:
             alpha = np.array(self.loml_parameters[2::4])
             x,alpha = _sort_pair(nparticlesml, alpha)
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax.errorbar(x, alpha, marker='^', linestyle='', color=color, ms=12, label=r"$\sigma_{ML}$")        
             fit = np.polyfit(x, alpha, 1)
             ynew = trialx * fit[0] + fit[1] 
@@ -402,7 +409,7 @@ class plot_entropy(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         szeta = 2-zeta
-        color = color_cycle.next()        
+        color = next(color_cycle)        
         ax.errorbar(1./x, szeta, yerr=zeta_err, marker='o', linestyle='', color=color, ms=12, label=r"$2-\zeta$")
         fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
         ynew = trialx * fit[0] + fit[1]
@@ -412,7 +419,7 @@ class plot_entropy(object):
             zeta = np.array(self.loml_parameters[3::4])
             x, zeta = _sort_pair(nparticlesml, zeta)
             szeta = 2-zeta
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax.errorbar(1./x, szeta, marker='^', linestyle='', color=color, ms=12, label=r"$2-\zeta_{ML}$")        
             fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
             ynew = trialx * fit[0] + fit[1]
@@ -462,8 +469,8 @@ class plot_entropy(object):
         y_apf_err = dat_dense[:,2]
         #2D apf
         color_cycle = get_color_cycle()
-        color = color_cycle.next()
-        color = color_cycle.next()
+        color = next(color_cycle)
+        color = next(color_cycle)
         ax.errorbar(x, y_apf, marker='^', yerr=y_apf_err, color=color, linestyle='', markersize=12, label=r"$S^\star_{2D} -\ln N!$")
         #fit = np.polyfit(x, y_apf, 1)
         #ynew = trialx * fit[0] + fit[1] 
@@ -519,7 +526,7 @@ class plot_entropy(object):
         x, mu_err = _sort_pair(nparticles,mu_err)
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax.errorbar(x, mu, yerr=mu_err, marker='o', linestyle='', color=color, ms=12, label=r"$3D$")
         fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -528,7 +535,7 @@ class plot_entropy(object):
         x = np.array(dat_dense[:,0])
         mu = np.array(dat_dense[:,1])
         mu_err = np.array(dat_dense[:,4])
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax.errorbar(x, mu, yerr=mu_err, marker='^', linestyle='', color=color, ms=12, label=r"$2D$")
         fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -547,7 +554,7 @@ class plot_entropy(object):
         x, alpha_err = _sort_pair(nparticles,alpha_err)
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax.errorbar(x, alpha, yerr=alpha_err, marker='o', linestyle='', color=color, ms=12, label=r"$3D$")
         fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -556,7 +563,7 @@ class plot_entropy(object):
         alpha = np.sqrt(np.array(dat_dense[:,3]))
         alpha_err = np.sqrt(np.array(dat_dense[:,4]))
         x = np.array(dat_dense[:,0])
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax.errorbar(x, alpha, yerr=alpha_err, marker='^', linestyle='', color=color, ms=12, label=r"$2D$")
         fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -577,7 +584,7 @@ class plot_entropy(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         szeta = 2-zeta
-        color = color_cycle.next()        
+        color = next(color_cycle)        
         ax.errorbar(1./x, szeta, yerr=zeta_err, marker='o', linestyle='', color=color, ms=12, label=r"$3D$")
         fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
         ynew = trialx * fit[0] + fit[1]
@@ -587,7 +594,7 @@ class plot_entropy(object):
         zeta_err = np.array(dat_dense[:,6])
         x = np.array(dat_dense[:,0])
         szeta = 2-zeta
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax.errorbar(1./x, szeta, yerr=zeta_err, marker='^', linestyle='', color=color, ms=12, label=r"$2D$")
         fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
         trialx = np.linspace(0,1/np.amin(x),1000)
@@ -622,7 +629,7 @@ class plot_entropy(object):
         xa, mu = _sort_pair(nparticles,mu)
         x, mu_err = _sort_pair(nparticles,mu_err)
         ax1 = fig.add_subplot(222)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax1.errorbar(x, mu, yerr=mu_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")
         fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -631,7 +638,7 @@ class plot_entropy(object):
         x = np.array(dat_dense[:,0])
         mu = np.array(dat_dense[:,1]) - x*np.log(x*np.pi*(1.12**2)/0.88)
         mu_err = np.array(dat_dense[:,4])
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax1.errorbar(x, mu, yerr=mu_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")
         fit = np.polyfit(x, mu, 1, w=1./np.array(mu_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -651,7 +658,7 @@ class plot_entropy(object):
         xa,alpha = _sort_pair(nparticles,alpha)
         x, alpha_err = _sort_pair(nparticles,alpha_err)
         ax2 = fig.add_subplot(223)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax2.errorbar(x, alpha, yerr=alpha_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")
         fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -660,7 +667,7 @@ class plot_entropy(object):
         alpha = np.sqrt(np.array(dat_dense[:,3]))
         alpha_err = np.sqrt(np.array(dat_dense[:,4]))
         x = np.array(dat_dense[:,0])
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax2.errorbar(x, alpha, yerr=alpha_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")
         fit = np.polyfit(x, alpha, 1, w=1./np.array(alpha_err))
         ynew = trialx * fit[0] + fit[1] 
@@ -681,7 +688,7 @@ class plot_entropy(object):
         x, zeta_err = _sort_pair(nparticles, zeta_err)
         ax3 = fig.add_subplot(224)
         szeta = 2-zeta
-        color = color_cycle.next()        
+        color = next(color_cycle)        
         ax3.errorbar(1./x, szeta, yerr=zeta_err, marker='o', linestyle='', color=color, ms=14, label=r"$3D$")
         fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
         ynew = trialx * fit[0] + fit[1]
@@ -691,7 +698,7 @@ class plot_entropy(object):
         zeta_err = np.array(dat_dense[:,6])
         x = np.array(dat_dense[:,0])
         szeta = 2-zeta
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax3.errorbar(1./x, szeta, yerr=zeta_err, marker='^', linestyle='', color=color, ms=14, label=r"$2D$")
         fit = np.polyfit(1./x, szeta, 1, w=1./np.array(zeta_err))
         trialx = np.linspace(0,1/np.amin(x),1000)
@@ -725,7 +732,7 @@ class plot_entropy(object):
             fit = np.polyfit(x, y, 1, w=1./np.array(yerr))
             ynew = trialx * fit[0] + fit[1]
             m = next(self.markercycler)
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax.errorbar(x, y, yerr=yerr, marker=m, linestyle='', color=color, ms=14, label=label)
             ax.plot(trialx,ynew,'--', color=color, linewidth=2)
         #loop over entropies without an associated error
@@ -740,7 +747,7 @@ class plot_entropy(object):
             fit = np.polyfit(x, y, 1)
             ynew = trialx * fit[0] + fit[1]
             m = next(self.markercycler)
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax.errorbar(x, y, marker=m, linestyle='', color=color, ms=14, mew=2, label=label)
             ax.plot(trialx,ynew, '--', color=color, linewidth=2)
         plt.xlabel(r'$N$')

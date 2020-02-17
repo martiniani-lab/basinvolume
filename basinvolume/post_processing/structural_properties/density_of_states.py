@@ -1,5 +1,10 @@
 from __future__ import division
-import ConfigParser
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+import configparser
 import os
 import ast
 import traceback
@@ -7,7 +12,7 @@ import numpy as np
 import argparse
 import logging
 from basinvolume.utils import trymakedir
-from _structural_analysis import StructuralAnalysis
+from ._structural_analysis import StructuralAnalysis
 
 
 class DensityOfStates(StructuralAnalysis):
@@ -23,7 +28,7 @@ class DensityOfStates(StructuralAnalysis):
 
     @staticmethod
     def read(dos_fname):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(dos_fname)
         dos_dict = {}
         dos_dict['neg_eigenvalues'] \
@@ -37,9 +42,9 @@ class DensityOfStates(StructuralAnalysis):
     def calc_participation(self, eigenvectors):
         eigvec_norm = np.empty(self.nparticles)
         participation = np.empty((eigenvectors.shape[1]))
-        for i in xrange(eigenvectors.shape[1]):
+        for i in range(eigenvectors.shape[1]):
             eigvec_norm = np.sqrt(sum((eigenvectors[dim::self.bdim, i] ** 2
-                                       for dim in xrange(self.bdim))))
+                                       for dim in range(self.bdim))))
             participation[i] = (sum(eigvec_norm ** 2) ** 2
                                 / (self.nparticles * sum(eigvec_norm ** 4)))
         return participation

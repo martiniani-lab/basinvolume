@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import range
 import numpy as np
 import random
 from pele.distance import Distance
@@ -55,7 +56,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof
         if (rattlers is None):
-            self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
+            self.rattlers = np.array([1. for _ in range(self.ndim)], dtype='d')
         else:
             self.rattlers = np.array(rattlers, dtype='d')
         if self.use_frozen:

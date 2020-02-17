@@ -1,4 +1,8 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import numpy as np
 import sys
 import warnings
@@ -52,7 +56,7 @@ try:
     #####################LINE STYLE CYCLER####################
     lines = ["-","--","-."]
     linecycler = cycle(lines)
-    color_cycle=[cm(1. * i / 6) for i in xrange(6)]
+    color_cycle=[cm(old_div(1. * i, 6)) for i in range(6)]
     ##########################################################
 except ImportError as err:
     print(err)
@@ -429,7 +433,7 @@ class BV_MCrunner(SpheresMCRunner):
         self.time_series = RecordDisplacementTimeseries(self.red_origin, self.bdim, self.ts_niter, self.ts_freq)
         self.add_action(self.time_series)
         if self.record_trajectory:
-            rte = max(int((self.niter-self.equilibration_steps)/self.record_trajectory_npoints),1)
+            rte = max(int(old_div((self.niter-self.equilibration_steps),self.record_trajectory_npoints)),1)
             self.record_trajectory = RecordCoordsTimeseries(self.ndim,
                                                             record_every=rte,
                                                             eqsteps=self.equilibration_steps)
@@ -455,7 +459,7 @@ class BV_MCrunner(SpheresMCRunner):
         hist = np.array(histl)
         Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
-        assert(abs(step - self.binsize) < self.binsize / 100)
+        assert(abs(step - self.binsize) < old_div(self.binsize, 100))
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
@@ -489,7 +493,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
@@ -499,12 +503,12 @@ class BV_MCrunner(SpheresMCRunner):
         this function is useful for testing
         """
         hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
-        and2 = vec_analytical_d2(val,self.k, self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.k, self.nparticles))[0]
+        and2 = old_div(vec_analytical_d2(val,self.k, self.nparticles), quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.k, self.nparticles))[0])
         plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
         #plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
@@ -629,12 +633,12 @@ class Findk_MCrunner(SpheresMCRunner):
     def show_histogram(self):
         """shows the histogram"""
         hist = self.findk.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5*self.binsize
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5*self.binsize
         n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
-        and2 = vec_analytical_d2(val,self.get_k(), self.nparticles, self.bdim) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), self.nparticles, self.bdim))[0]
+        and2 = old_div(vec_analytical_d2(val,self.get_k(), self.nparticles, self.bdim), quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.get_k(), self.nparticles, self.bdim))[0])
         plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
         #plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')

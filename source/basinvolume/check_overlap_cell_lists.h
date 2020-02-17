@@ -55,32 +55,33 @@ public:
 template <typename distance_policy>
 class CellListCheckOverlap : public mcpele::ConfTest {
 protected:
-    const static size_t m_ndim = distance_policy::_ndim;
-    std::shared_ptr<distance_policy> m_dist;
-    std::shared_ptr<pele::CellListsWithBreak<distance_policy> > m_cell_lists;
-    const pele::Array<double> m_radii;
-    OverlapAccumulator<distance_policy> m_overlap_acc;
-    const bool m_specific;
-    std::vector<long> m_last_changed_atoms;
-    std::vector<double> m_last_changed_coords;
+  const static size_t m_ndim = distance_policy::_ndim;
+  std::shared_ptr<distance_policy> m_dist;
+  std::shared_ptr<pele::CellListsWithBreak<distance_policy> > m_cell_lists;
+  const pele::Array<double> m_radii;
+  OverlapAccumulator<distance_policy> m_overlap_acc;
+  const bool m_specific;
+  std::vector<long> m_last_changed_atoms;
+  std::vector<double> m_last_changed_coords;
 
-    void merge_last_and_current_changes(std::vector<long> & changed_atoms, std::vector<double> & changed_coords_old)
-    {
-        for (size_t i = 0; i < m_last_changed_atoms.size(); ++i) {
-            auto new_iatom = std::find(changed_atoms.begin(), changed_atoms.end(), m_last_changed_atoms[i]);
-            if (new_iatom == changed_atoms.end()) {
-                changed_atoms.push_back(m_last_changed_atoms[i]);
-                for (size_t idim = 0; idim < m_ndim; ++idim) {
-                    changed_coords_old.push_back(m_last_changed_coords[i * m_ndim + idim]);
-                }
-            } else {
-                size_t new_icoords = m_ndim * (new_iatom - changed_atoms.begin());
-                for (size_t idim = 0; idim < m_ndim; ++idim) {
-                    changed_coords_old[new_icoords + idim] = m_last_changed_coords[i * m_ndim + idim];
-                }
-            }
+  
+  void merge_last_and_current_changes(std::vector<long> & changed_atoms, std::vector<double> & changed_coords_old)
+  { 
+    for (size_t i = 0; i < m_last_changed_atoms.size(); ++i) {
+      auto new_iatom = std::find(changed_atoms.begin(), changed_atoms.end(), m_last_changed_atoms[i]);
+      if (new_iatom == changed_atoms.end()) {
+        changed_atoms.push_back(m_last_changed_atoms[i]);
+        for (size_t idim = 0; idim < m_ndim; ++idim) {
+          changed_coords_old.push_back(m_last_changed_coords[i * m_ndim + idim]);
         }
+      } else {
+        size_t new_icoords = m_ndim * (new_iatom - changed_atoms.begin());
+        for (size_t idim = 0; idim < m_ndim; ++idim) {
+          changed_coords_old[new_icoords + idim] = m_last_changed_coords[i * m_ndim + idim];
+        }
+      }
     }
+  }
 
     void save_changes(pele::Array<double> & trial_coords, mcpele::MC * mc)
     {
@@ -95,6 +96,8 @@ protected:
         }
     }
 
+
+  
 public:
     virtual ~CellListCheckOverlap() {};
     CellListCheckOverlap(pele::Array<double> & hs_radii, std::shared_ptr<distance_policy> dist, std::shared_ptr<pele::CellListsWithBreak<distance_policy> > cell_lists, bool specific)
@@ -130,25 +133,52 @@ public:
         }
 
         std::vector<long> changed_atoms = mc->get_changed_atoms();
+        // for (auto i = changed_atoms.begin(); i != changed_atoms.end(); ++i)
+        //   std::cout << *i << ' ';
+
+        // for (auto i : changed_atoms) // access by value, the type of i is int
+        //   std::cout << i << ",  ";
+        // std::cout <<  " ] changed aaatoms \n";
+
+        
         if (m_specific && changed_atoms.size() > 0) {
+          
+          std::vector<double> changed_coords_old = mc->get_changed_coords_old();
+          // for (auto i: changed_coords_old) {
+          //   std::cout << *i << "changed coords old in \n";
+          // };
 
-            std::vector<double> changed_coords_old = mc->get_changed_coords_old();
-            if (!mc->get_last_success()) {
-                merge_last_and_current_changes(changed_atoms, changed_coords_old);
-            }
+          if (!mc->get_last_success()) {
+            merge_last_and_current_changes(changed_atoms, changed_coords_old);
+          }
 
-            m_cell_lists->update_specific(trial_coords, changed_atoms, changed_coords_old);
-            m_overlap_acc.reset_data(&trial_coords);
-            auto joe_the_looper = m_cell_lists->get_atom_pair_looper_break(m_overlap_acc);
-            joe_the_looper.loop_through_atom_pairs_specific(trial_coords, changed_atoms);
+          
+          
+          m_cell_lists->update_specific(trial_coords, changed_atoms, changed_coords_old);
+          
+          // std::cout << changed_atoms << "\n";
+          // std::cout << changed_coords_old << "\n";
+          // std::cout << "atom looper pair" << "\n";
+          m_overlap_acc.reset_data(&trial_coords);
+          // std::cout << "data reset" << "\n";
+          auto joe_the_looper = m_cell_lists->get_atom_pair_looper_break(m_overlap_acc);
 
-            save_changes(trial_coords, mc);
+          // std::cout << "loop through atoms";
+          // std::cout << trial_coords <<"\n";
+          // ss
+          joe_the_looper.loop_through_atom_pairs_specific(trial_coords, changed_atoms);
+          // std::cout << "loop through atoms works" << "\n";
+          save_changes(trial_coords, mc);
+          // std::cout << "out if" << "\n";
 
         } else {
-            m_cell_lists->update(trial_coords);
-            m_overlap_acc.reset_data(&trial_coords);
-            auto joe_the_looper = m_cell_lists->get_atom_pair_looper_break(m_overlap_acc);
-            joe_the_looper.loop_through_atom_pairs();
+          // std::cout << "in else \n";
+          // std::cout << trial_coords << " not changed \n";
+          m_cell_lists->update(trial_coords);
+          m_overlap_acc.reset_data(&trial_coords);
+          auto joe_the_looper = m_cell_lists->get_atom_pair_looper_break(m_overlap_acc);
+          joe_the_looper.loop_through_atom_pairs();
+          // std::cout << "out else" << "\n";
         }
 
         return m_overlap_acc.configuration_is_legal();

@@ -1,11 +1,16 @@
 from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from builtins import object
 import logging
 import time
 import copy
 import os
 import random
 import time
-import cPickle
+import pickle
 import numpy as np
 from mpi4py import MPI
 from enum import Enum, unique  # Package enum34
@@ -166,13 +171,13 @@ class PT_Master(object):
         ks = self._get_ks()
         start_state = example_mcrunner.get_complete_state()
         self.replica_states = []
-        for i in xrange(self.nreplicas):
+        for i in range(self.nreplicas):
             self.replica_states.append(ReplicaState(i, start_state))
             self.replica_states[-1].k = ks[i]
 
     def _init_timeseries(self):
-        self.replica_timeseries = [[] for _ in xrange(self.nreplicas)]
-        self.replica_timeseries2 = [[] for _ in xrange(self.nreplicas)]
+        self.replica_timeseries = [[] for _ in range(self.nreplicas)]
+        self.replica_timeseries2 = [[] for _ in range(self.nreplicas)]
 
     def _init_print(self, append=False):
         if append:
@@ -185,7 +190,7 @@ class PT_Master(object):
         self.permutations_stream = open(os.path.join(self.base_directory, 'rem_permutations'), mode)
         self.status_streams = []
         self.histogram_mean_streams = []
-        for ireplica in xrange(self.nreplicas):
+        for ireplica in range(self.nreplicas):
             directory = os.path.join(self.base_directory, str(ireplica))
             if not append:
                 trymakedir(directory)
@@ -237,7 +242,7 @@ class PT_Master(object):
                 self.created_checkpoint = True
 
         # Stop workers
-        for iworker in xrange(self.nworkers):
+        for iworker in range(self.nworkers):
             self.comm.Send(np.array([-1], dtype='d'), dest=iworker+1)
 
         if self.created_checkpoint:
@@ -263,7 +268,7 @@ class PT_Master(object):
         del self.status_streams
         checkpoint_path = os.path.join(self.base_directory, self.checkpoint_file)
         with open(checkpoint_path, 'wb') as outfile:
-            cPickle.dump(self, outfile)
+            pickle.dump(self, outfile)
 
     def _one_iteration(self):
         """Perform one parallel tempering iteration
@@ -278,7 +283,7 @@ class PT_Master(object):
         current_replica = self.nreplicas - 1
 
         # Send the first job to every worker
-        for i in xrange(self.nworkers):
+        for i in range(self.nworkers):
             self.comm.Send(self.replica_states[current_replica].serialize(), dest=i+1)
             current_replica -= 1
 
@@ -292,7 +297,7 @@ class PT_Master(object):
             current_replica -= 1
 
         # Wait for all workers to finish
-        for _ in xrange(self.nworkers):
+        for _ in range(self.nworkers):
             if self.sleep_seconds > 0:
                 while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
                     time.sleep(self.sleep_seconds)
@@ -359,7 +364,7 @@ class PT_Master(object):
 
         self._calculate_exchange(exchange_pattern)
 
-        for i in xrange(self.nreplicas):
+        for i in range(self.nreplicas):
             if exchange_pattern[i] == i:
                 exchange_pattern[i] = self.NO_EXCHANGE
 
@@ -392,7 +397,7 @@ class PT_Master(object):
 
         logging.debug("Acceptance ratio: %f" % (naccept / nexchanges))
         if logging.getLogger().isEnabledFor(logging.DEBUG):
-            for i in xrange(self.nreplicas):
+            for i in range(self.nreplicas):
                 j = exchange_pattern[i]
                 if i != j:
                     self.ex_outstream.write(
@@ -407,7 +412,7 @@ class PT_Master(object):
         This function determines the exchange pattern using alternating swaps
         with the right and left neighbours.
         """
-        for i in xrange(self.exchange_choice, self.nreplicas-1, 2):
+        for i in range(self.exchange_choice, self.nreplicas-1, 2):
             dx1 = self.replica_states[i].dx
             k1 = self.replica_states[i].k
             dx2 = self.replica_states[i + 1].dx
@@ -472,7 +477,7 @@ class PT_Master(object):
         iteration = self.mcrunner_niter * (self.ptiter+1)
         logging.info("_find_new_eq_time, iteration: {}".format(iteration))
         new_eq_times = []
-        for ireplica in xrange(self.nreplicas):
+        for ireplica in range(self.nreplicas):
             eq_time = detectEquilibration_binary_search(
                 np.array(self.replica_timeseries2[ireplica], dtype='d'), bs_nodes=self.bs_nodes)[0]
 
@@ -500,7 +505,7 @@ class PT_Master(object):
         iteration = self.mcrunner_niter * (self.ptiter+1)
         logging.info("_find_new_max_ptiter, iteration: {}".format(iteration))
         new_max_ptiters = []
-        for ireplica in xrange(self.nreplicas):
+        for ireplica in range(self.nreplicas):
             # to reduce nskip (use more points) make the factor by which len(timeseries) is divided by larger
             current_timeseries2 = self.replica_timeseries2[ireplica][self.eq_time:]
             nskip = max(int(np.round(len(current_timeseries2)/1e6)),1)
@@ -538,7 +543,7 @@ class PT_Master(object):
         logging.debug("self.eq_min_ptiter %s" % self.eq_min_ptiter)
         logging.debug("self.mcrunner_eqsteps %s" % self.mcrunner_eqsteps)
         iteration = self.mcrunner_niter * (self.ptiter+1)
-        for ireplica in xrange(self.nreplicas):
+        for ireplica in range(self.nreplicas):
             self._dump_timeseries(ireplica)
             if self.ptiter >= self.eq_min_ptiter and iteration > self.mcrunner_eqsteps:
                 self._dump_histogram(ireplica)
@@ -564,7 +569,7 @@ class PT_Master(object):
         self.histogram_mean_streams[ireplica].flush()  # flush every time, so we don't loose data
 
     def _print_status(self):
-        for ireplica in xrange(self.nreplicas):
+        for ireplica in range(self.nreplicas):
             # Counters: 0: m_nitercount, 1: m_accept_count, 2: m_E_reject_count,
             #           3: m_conf_reject_count, 4: m_neval
             counters = self.replica_states[ireplica].counters
@@ -588,23 +593,23 @@ class PT_Master(object):
                                             / nswaps)
             if self.ptiter == self.skip:
                 self.status_streams[ireplica].write('#')
-                for key, _ in status.iteritems():
+                for key, _ in status.items():
                     self.status_streams[ireplica].write('{:<12}\t'.format(key))
                 self.status_streams[ireplica].write('\n')
-            for _, value in status.iteritems():
+            for _, value in status.items():
                 self.status_streams[ireplica].write('{:>12.3f}\t'.format(value))
             self.status_streams[ireplica].write('\n')
 
     def _print_ks(self):
         fname = os.path.join(self.base_directory, 'temperatures')
         with open(fname, 'w') as kfile:
-            for ireplica in xrange(self.nreplicas):
+            for ireplica in range(self.nreplicas):
                 kfile.write('{:1.16f}\n'.format(self.replica_states[ireplica].k))
 
     def _print_stepsizes(self):
         fname = os.path.join(self.base_directory, 'stepsizes')
         with open(fname, 'w') as stepfile:
-            for ireplica in xrange(self.nreplicas):
+            for ireplica in range(self.nreplicas):
                 stepfile.write('{:1.16f}\n'.format(self.replica_states[ireplica].stepsize))
 
     def _print_parameters(self, ireplica):
@@ -629,7 +634,7 @@ class PT_Master(object):
     def _print_exchanges(self):
         logging.info("Number of exchanges:")
         exchange_header = "       "
-        for i in xrange(self.nreplicas):
+        for i in range(self.nreplicas):
             exchange_header += "{:>6}".format(i)
         logging.info(exchange_header)
         for i in range(self.nreplicas):
@@ -643,7 +648,7 @@ class PT_Master(object):
         self.ex_outstream.close()
         self.permutations_stream.flush()
         self.permutations_stream.close()
-        for ireplica in xrange(self.nreplicas):
+        for ireplica in range(self.nreplicas):
             self.histogram_mean_streams[ireplica].flush()
             self.histogram_mean_streams[ireplica].close()
             self.status_streams[ireplica].flush()

@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 import numpy as np
 import time
 from pele.potentials import Harmonic
@@ -11,7 +15,7 @@ import copy
 try:
     import pylab as plt
 except ImportError as err:
-    print err
+    print(err)
 
 """
 pele::MCrunner
@@ -60,7 +64,7 @@ class ES_MCrunner(_BaseMCRunner):
 
         #construct test/action classes
         i32max = np.iinfo(np.int32).max
-        self.rattlers = np.array([1.0 for _ in xrange(self.ndim)])
+        self.rattlers = np.array([1.0 for _ in range(self.ndim)])
         self.binsize = hbinsize
         self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax, self.binsize, adjustf_niter)
         self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
@@ -90,7 +94,7 @@ class ES_MCrunner(_BaseMCRunner):
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
         Energies, step = np.linspace(Emin,Emax,num=len(hist),endpoint=False,retstep=True)
-        assert(abs(step - self.binsize) < self.binsize/100)
+        assert(abs(step - self.binsize) < old_div(self.binsize,100))
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean = self.histogram.get_mean()
         return mean
@@ -98,7 +102,7 @@ class ES_MCrunner(_BaseMCRunner):
     def show_histogram(self):
         """shows the histogram"""
         hist = self.histogram.get_histogram()
-        val = [i*self.binsize for i in xrange(len(hist))]
+        val = [i*self.binsize for i in range(len(hist))]
         plt.hist(val, weights=hist,bins=len(hist))
         plt.show()
 
@@ -140,7 +144,7 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         self.kfactor=kfactor
         self.knavg=knavg
         self.ktol=ktol
-        self.rattlers = np.array([1. for _ in xrange(self.ndim)],dtype='d')
+        self.rattlers = np.array([1. for _ in range(self.ndim)],dtype='d')
 
         #construct test/action classes
         i32max = np.iinfo(np.int32).max
@@ -215,11 +219,11 @@ def main():
     #end=time.time()
     #print end-start
     status = mcrunner.get_status()
-    print status
+    print(status)
     #mcrunner.show_histogram()
 
     displ_k_min, var_displ_k_min = mcrunner.histogram.get_mean_variance()
-    print 'meanu2 k=0 and variance {} {}'.format(displ_k_min, var_displ_k_min)
+    print('meanu2 k=0 and variance {} {}'.format(displ_k_min, var_displ_k_min))
     #===========================================================================
     # FIND K_MAX
     #===========================================================================
@@ -235,17 +239,17 @@ def main():
     #print mcrunner.potential.get_k() derive a
     k_max = mcrunner.get_k()
     prob = mcrunner.findk.get_prob()
-    print 'kmax ',k_max
-    print 'prob ',prob
+    print('kmax ',k_max)
+    print('prob ',prob)
     #k_max= nr_particles*dimension/(r*r) = 20.25
-    print 'nr_particles*dimension/(r*r): ',nr_particles*dimension/(r*r)
+    print('nr_particles*dimension/(r*r): ',old_div(nr_particles*dimension,(r*r)))
 
     #===========================================================================
     # COMPUTE k ARRAY
     #===========================================================================
     kappa_const=1
     karray = vt(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k0, kappa_const=kappa_const)
-    print 'karray',karray
+    print('karray',karray)
     #===========================================================================
     # COMPUTE <U2> FOR k ARRAY
     #===========================================================================
@@ -259,16 +263,16 @@ def main():
                                acceptance=acceptance, hbinsize=0.01,hyperradius=r)
         mcrunner.run()
         #mcrunner.show_histogram()
-        print mcrunner.potential.get_k()
-        print mcrunner.get_status()
+        print(mcrunner.potential.get_k())
+        print(mcrunner.get_status())
         mean, var = mcrunner.histogram.get_mean_variance()
         meanu2.append(mean)
         var_meanu2.append(var)
 
     meanu2 = np.array(meanu2)
     var_meanu2 = np.array(var_meanu2)
-    print meanu2
-    print var_meanu2
+    print(meanu2)
+    print(var_meanu2)
 
     #===========================================================================
     # COMPUTE VOLUMES
@@ -277,7 +281,7 @@ def main():
     boxvol = 1.0
 
     #analytical meanu2
-    meanu2_analytical = (karray + kappa_const*(nr_particles*dimension)/displ_k_min) / ((nr_particles)*dimension)
+    meanu2_analytical = old_div((karray + old_div(kappa_const*(nr_particles*dimension),displ_k_min)), ((nr_particles)*dimension))
     meanu2_analytical = 1.0/meanu2_analytical
     #meanu2_analytical = (nr_particles*dimension)/karray
 
@@ -285,13 +289,13 @@ def main():
     aF0, asigF0, afarray, asigfarray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2_analytical, boxvol,
                                                             prob, kappa_const=kappa_const).get_free_energy_F0(np.zeros(nr_points))
 
-    print 'meanu2 corrected vol {} {}'.format(F0,sigF0)
-    print 'meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2,
-                                                                  prob, kappa_const=kappa_const).get_free_energy_F0(var_meanu2)[:2]
-    print 'analytical meanu2 corrected vol {} {}'.format(aF0, asigF0)
-    print 'analytical meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2_analytical,
-                                                                             prob, kappa_const=kappa_const).get_free_energy_F0(np.zeros(nr_points))[0:2]
-    print 'hypersphere vol',log_volume_nball(r,nr_particles*dimension)
+    print('meanu2 corrected vol {} {}'.format(F0,sigF0))
+    print('meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2,
+                                                                  prob, kappa_const=kappa_const).get_free_energy_F0(var_meanu2)[:2])
+    print('analytical meanu2 corrected vol {} {}'.format(aF0, asigF0))
+    print('analytical meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2_analytical,
+                                                                             prob, kappa_const=kappa_const).get_free_energy_F0(np.zeros(nr_points))[0:2])
+    print('hypersphere vol',log_volume_nball(r,nr_particles*dimension))
 
 
 #    tarray = Gauss_Lobatto_abscissas(nr_points)()

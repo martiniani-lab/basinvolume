@@ -1,7 +1,11 @@
 from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import os
 import re
-import ConfigParser
+import configparser
 import numpy as np
 import argparse
 import shutil
@@ -121,7 +125,7 @@ class SubmitBV(object):
         """
         if not self._check_config_file_exist(kmax_configpath):
             return False
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         try:
             configf.read(str(kmax_configpath))
             kmax = configf.getfloat('FINDK', 'kmax')
@@ -138,7 +142,7 @@ class SubmitBV(object):
         """
         if not self._check_config_file_exist(kmin_configpath):
             return False
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         try:
             configf.read(str(kmin_configpath))
             displ_k_min = configf.getfloat('KMIN', 'displ_k_min')
@@ -155,13 +159,13 @@ class SubmitBV(object):
         """
         if not self._check_config_file_exist(pt_configpath):
             return False
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         try:
             configf.read(str(pt_configpath))
             success_dict = dict(configf.items('STATUS'))
         except:
             return False
-        for key, value in success_dict.iteritems():
+        for key, value in success_dict.items():
             if not (value == "True"):
                 return False
         return True
@@ -173,7 +177,7 @@ class SubmitBV(object):
         """
         if not self._check_config_file_exist(innersphere_dos_configpath):
             return False
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         try:
             configf.read(str(innersphere_dos_configpath))
             success = configf.getboolean('STATUS', 'success')

@@ -1,10 +1,14 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from exp_file_handler import ExpFileHandler
-from exp_radii_distribution import ExpRadiiDistribution
-from cross_validation_bandwidth_selection import get_pdf
+from .exp_file_handler import ExpFileHandler
+from .exp_radii_distribution import ExpRadiiDistribution
+from .cross_validation_bandwidth_selection import get_pdf
 from basinvolume.utils import save_pdf
 
 class RadiiSampler(object):

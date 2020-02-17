@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import str
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -113,7 +115,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         f.write('ndof: {}\n'.format(self.ndof))
         f.write('sidelength: {}\n'.format(self.sidelength))
         f.write('[KMIN_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in self.mc_params.items() :
             f.write('{}: {}\n'.format(key,value))
     
     def _print_results_once(self, fname):
@@ -124,7 +126,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[KMIN_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
+        for key, value in status.items() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min))
@@ -140,7 +142,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
     
     def _dump_diffusion_timeseries(self):
         fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params['niter']))
-        print "fname", fname
+        print("fname", fname)
         self.mcrunner.dump_steps_timeseries(fname, clear=True)
     
     def _print_results(self):
@@ -187,19 +189,19 @@ if __name__ == "__main__":
     sim = _hypercube_kmin_mcrunner(ndof, sidelength=1, niter=1e6, k=0, seeds=seeds,
                          single=True, verbose=True, hmax=15, hbinsize=0.001)
     #record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     sim.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = sim.mcrunner.get_status()
-    print status
-    print 'd kmin: ',sim.displ_k_min
-    print 'var: ',sim.var_displ_k_min
-    print 'mean_coord_dist: ',sim.mean_coord_dist
-    print 'var_coord_dist: ', sim.var_coord_dist
+    print(status)
+    print('d kmin: ',sim.displ_k_min)
+    print('var: ',sim.var_displ_k_min)
+    print('mean_coord_dist: ',sim.mean_coord_dist)
+    print('var_coord_dist: ', sim.var_coord_dist)
     traj = sim.trajectory
-    print np.shape(traj)
+    print(np.shape(traj))
     #sim.mcrunner.show_histogram_kmax()
 #    from matplotlib import pyplot as plt
 #    from mpl_toolkits.mplot3d import Axes3D
@@ -216,7 +218,7 @@ if __name__ == "__main__":
     plt.plot(sim.traj_eval/np.amax(sim.traj_eval))
     #print "eigenvalues", eig_val_cov
     #print "eigenvectors \n", eig_vec_cov
-    print "asphericity factor", sim.asphericity
+    print("asphericity factor", sim.asphericity)
     #bw = get_bandwidth_estimate(np.array(eig_val_cov), kernel="gaussian", method="cross_validation")
     #edges = np.linspace(np.amin(eig_val_cov), np.amax(eig_val_cov), 1000)
     #hist = get_pdf(eig_val_cov, edges, bandwidth=bw, kernel="tophat")

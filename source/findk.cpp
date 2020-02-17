@@ -70,19 +70,19 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
     else {
         ++_nrejected;
     }
-
     if (_converged) { // kmax search converged
-        mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
+      mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
     }
+
     else if (mc_count % _navg == 0) { // kmax seach not yet converged
-        _acceptedf = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected));
-        //adjust step if last two step oscillated around the target, uses a lower bound
-        adjust_k(mc_count / _navg, mc);
-        //adjust the standard deviation of the normal distribution
-        static_cast<mcpele::SampleGaussian*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
-        //now reset to zero memory of acceptance and rejection
-        _naccepted = 0;
-        _nrejected = 0;
+      _acceptedf = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected));
+      //adjust step if last two step oscillated around the target, uses a lower bound
+      adjust_k(mc_count / _navg, mc);
+      //adjust the standard deviation of the normal distribution
+      static_cast<mcpele::SampleGaussian*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
+      //now reset to zero memory of acceptance and rejection
+      _naccepted = 0;
+      _nrejected = 0;
     }
     //reset coordinates to origin although this obsolete because the new SampleGaussian ignores the new coordinates
     //and resamples from the origin
@@ -116,6 +116,8 @@ void Findk::adjust_k(const size_t iterations, mcpele::MC* mc)
     }
     //adapt k size
     const double tmp1 = 1.0 / (iterations % period + 1);
+    std::cout << iterations << "\n";
+    std::cout << period << "\n";
     const double tmp2 = 1 + (_target - _acceptedf) / (_target + _acceptedf);
     const double tmp = (1 - tmp1) + tmp1 * tmp2;
     _k *= tmp * tmp;

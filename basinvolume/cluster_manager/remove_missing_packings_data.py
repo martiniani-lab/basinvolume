@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import object
 import shutil
 import os
 import re
@@ -41,7 +43,7 @@ class BVRemoveMissingPackingsData(object):
             if self.explore_dir in folder:
                 npack = re.findall('\d+', folder)[0]
                 if not os.path.isfile(os.path.join(self.packing_folder, self.packing_naming+npack+"."+self.ext)):
-                    print "{} is toxic".format(folder)
+                    print("{} is toxic".format(folder))
                     if ".tar.gz" in folder:
                         os.remove(os.path.join(self.workdir, folder))
                     else:
@@ -55,7 +57,7 @@ if __name__ == "__main__":
     parser.add_argument("ext", type=str, help="jammed packing extension, default xyzdr")        
     
     args = parser.parse_args()
-    print args
+    print(args)
     assert args.ext == "xyzdr" or args.ext == "xydr" or args.ext == "xyzdfr" or args.ext == "xydfr", "{} not a valid extension".format(args.ext)
     
     check = query_yes_no("Confirm that the right file extension is \"{}\" ".format(args.ext), default="no")
@@ -63,4 +65,4 @@ if __name__ == "__main__":
         bvrm = BVRemoveMissingPackingsData(workdir=args.workdir, ext=args.ext)
         bvrm.remove_toxic_data()
     else:
-        print "Check failed, change extension! and be careful!"
+        print("Check failed, change extension! and be careful!")

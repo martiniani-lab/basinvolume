@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import object
 from subprocess import Popen, PIPE
 import os
 import logging
@@ -247,10 +249,10 @@ class BatchScript(object):
 if __name__ == "__main__":
     batch_script = BatchScript('test', 1, 1, 0.5, 'python run_test.py args')
     #batch_script.write('test_job', 'test_job')
-    print batch_script.get_workdir()
-    print batch_script.get_jobid()
-    print batch_script.check_in_workdir()
-    print batch_script.s_wtime
-    print batch_script.dhms_wtime
+    print(batch_script.get_workdir())
+    print(batch_script.get_jobid())
+    print(batch_script.check_in_workdir())
+    print(batch_script.s_wtime)
+    print(batch_script.dhms_wtime)
     stdout = batch_script.submit('test_job','test_job')
-    print stdout
+    print(stdout)

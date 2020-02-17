@@ -1,4 +1,7 @@
 from __future__ import division
+from builtins import zip
+from builtins import range
+from builtins import object
 import numpy as np
 import copy
 import logging
@@ -79,9 +82,9 @@ if __name__ == "__main__":
     plt.plot(pdf_x, nd(pdf_x, 1))
     plt.show()
     max_order = 4
-    numerical_raw_moments = [compute_raw_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in xrange(max_order + 1)]
-    numerical_central_moments = [compute_central_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in xrange(max_order + 1)]
-    for n in xrange(max_order + 1):
+    numerical_raw_moments = [compute_raw_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in range(max_order + 1)]
+    numerical_central_moments = [compute_central_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in range(max_order + 1)]
+    for n in range(max_order + 1):
         logging.info("order: {}".format(n))
         logging.info(numerical_raw_moments[n])
         logging.info(numerical_central_moments[n])

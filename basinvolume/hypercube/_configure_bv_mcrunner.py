@@ -1,11 +1,16 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import numpy as np
 import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.hypercube import HypercubeMCrunner
 from basinvolume.utils import trymakedir
-import ConfigParser
+import configparser
 import time
 import warnings
 
@@ -97,14 +102,14 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
         f.write('ndof: {}\n'.format(self.ndof))
         f.write('sidelength: {}\n'.format(self.sidelength))
         f.write('[MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in self.mc_params.items() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[STATUS]\n')
-        for i in xrange(self.nprocs):
+        for i in range(self.nprocs):
             f.write('success_rank{}: {}\n'.format(str(i), "False"))
     
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         kmax_ndof = configf.getfloat('FINDK_HYPERCUBE','ndof')
         kmax_sidelength = configf.getfloat('FINDK_HYPERCUBE','sidelength')
@@ -128,9 +133,9 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
         """
         assert(hasattr(self, 'configfile'))
         if self.rank == 0:
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
-            for i in xrange(self.nprocs):
+            for i in range(self.nprocs):
                 configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
             configf.write(open(str(self.configfile),'w'))        
     
@@ -142,13 +147,13 @@ if __name__ == "__main__":
     
     sim = _hypercube_bv_mcrunner(0, 1)
     mcrunner = sim('explore_bv_hypercube_n2_l1', seeds=seeds, verbose=True, niter=1e6)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     mcrunner.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = mcrunner.get_status()
-    print status
+    print(status)
     
         
                 

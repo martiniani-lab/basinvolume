@@ -33,10 +33,17 @@ PDF description.
 """
 
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import re
     import matplotlib.pyplot as plt
@@ -57,7 +64,7 @@ try:
     from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
     from basinvolume.post_processing import PTFailures, assert_pt_success
 except ImportError as err:
-    print err
+    print(err)
 
 class ComputeEntropyCommon(object):
     """
@@ -91,9 +98,9 @@ class ComputeEntropyCommon(object):
         trymakedir(self.output_path)
         self.explore_dirs = [os.path.join(self.packings_dir, f) for f in os.listdir(self.packings_dir) if f.startswith("explore_bv_jammed_packing")]
         if self.nr_volume_points != -1:
-            print "removing volume points"
+            print("removing volume points")
             nr_to_kill = len(self.explore_dirs) - self.nr_volume_points
-            for _ in xrange(nr_to_kill):
+            for _ in range(nr_to_kill):
                 self.explore_dirs = np.delete(self.explore_dirs, np.random.randint(0, len(self.explore_dirs)))
             assert(len(self.explore_dirs) == self.nr_volume_points)
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
@@ -111,7 +118,7 @@ class ComputeEntropyCommon(object):
                 try:
                     if not self.force_run and os.path.isfile(os.path.join(path, "analysis/volume_data")):
                         try:
-                            volf = ConfigParser.ConfigParser()
+                            volf = configparser.ConfigParser()
                             volf.read(str(path + "/analysis/volume_data"))
                             F0 = volf.getfloat('VOLUME_FULL_PT', 'F0')
                         except Exception:
@@ -119,11 +126,11 @@ class ComputeEntropyCommon(object):
                     else:
                         series_collector(frozen=self.experimental, fname=fname, explore_dir=path, packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"), plot_ts_integrand_data=self.plot_ts_integrand_data)
                     self.packing_stat.add_success()
-                except Exception, e:
-                    print "Exception: ", e
-                    print "failed packing!"
-                    print "name: ", fname
-                    print "path:", path
+                except Exception as e:
+                    print("Exception: ", e)
+                    print("failed packing!")
+                    print("name: ", fname)
+                    print("path:", path)
                     self.packing_stat.add_failure()
                 self.packing_stat.print_progress_info(fname)
         self.pt_failures.print_failure_info()
@@ -137,7 +144,7 @@ class ComputeEntropyCommon(object):
         for vf in self.volume_files:
             self.read_from_volume_file(vf)
     def read_from_volume_file(self, vf):
-        volf = ConfigParser.ConfigParser()
+        volf = configparser.ConfigParser()
         volf.read(str(vf))
         try:
             self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
@@ -146,17 +153,17 @@ class ComputeEntropyCommon(object):
             self.F0_actually_imported_files.append(vf)
             try:
                 packing_configpath = self.get_packing_configpath(vf)
-                print "packing_configpath", packing_configpath
+                print("packing_configpath", packing_configpath)
                 volume_sanity_check = VolumeSanityCheck(packing_configpath, numerical_moments=self.numerical_moments)
                 self.best_integration_selection.check_next_F0(volume_sanity_check, self, vf)
-            except Exception, e:
-                print "Exception: ", e
-                print "integration selection failed"
-                print "location:", vf
-        except Exception, e:
-            print "Exception: ", e
-            print "insufficient data available"
-            print "location:", vf
+            except Exception as e:
+                print("Exception: ", e)
+                print("integration selection failed")
+                print("location:", vf)
+        except Exception as e:
+            print("Exception: ", e)
+            print("insufficient data available")
+            print("location:", vf)
     def select_final_dataset(self):
         self.best_integration_selection.print_fail_information(self.packings_dir)
         self.F0_final_integration_selection = self.best_integration_selection.F0_final
@@ -167,7 +174,7 @@ class ComputeEntropyCommon(object):
             self.print_histogram_and_data(self.F0_final_integration_selection, "/volume_histogram_F0_final")
             self.print_histogram_and_data(self.F0_wo_outliers, "/volume_histogram_F0_final_removed_outliers")
         except Exception as err:
-            print err
+            print(err)
     def print_histogram_and_data(self, data, name):
         np.savetxt(self.output_path + name + ".data", data)
         desired_binsize = 1.5
@@ -184,7 +191,7 @@ class ComputeEntropyCommon(object):
         gauss_fit_names = ["sigma", "mean"]
         gauss_fit = [gauss_fit_opt, gauss_fit_names]
         generalised_gauss = GeneralisedGauss(alpha_min = 0.01, zeta_min = 0.01)
-        print "name:", name
+        print("name:", name)
         generalised_gauss.fit(bin_centres, hist)
         gen_gauss_fit_opt = [generalised_gauss.mu_fit, generalised_gauss.alpha_fit, generalised_gauss.zeta_fit]
         gen_gauss_fit_error = generalised_gauss.fit_error
@@ -213,7 +220,7 @@ class ComputeEntropyCommon(object):
         self.fit_results_dir = self.output_path + name + ".fit_results"
         f = ResultsFile(self.fit_results_dir)
         def _print_function_parameters(fit_info):
-            for parameter in xrange(len(fit_info[0])):
+            for parameter in range(len(fit_info[0])):
                 f.to_file(fit_info[1][parameter], fit_info[0][parameter])
         f.set_heading("GAUSS_FIT_PARAMETERS")
         _print_function_parameters(gauss_fit)
@@ -247,14 +254,14 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
         self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(self.F0_wo_outliers, self.output_path)
         try:
             self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(volume_sanity_check)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         # fit to pdf with ML method
         self.ML_log_omega = MLLogOmega(self.F0_wo_outliers, volume_sanity_check)
         try:
             self.ML_log_omega.compute_and_write_entropy(os.path.join(self.output_path, "entropy_ML_LogOmega"))
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
 
 class ComputeEntropyExperimental(ComputeEntropyCommon):
     """

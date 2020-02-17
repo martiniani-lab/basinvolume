@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import absolute_import
+from builtins import range
 import numpy as np
 import argparse
 import os
@@ -7,8 +9,8 @@ import logging
 import traceback
 import multiprocessing as mp
 from pele.distance import Distance
-from generate_packing import HS_Generate_Packing
-from generate_jammed_packing import HS_Generate_Jammed_Packing
+from .generate_packing import HS_Generate_Packing
+from .generate_jammed_packing import HS_Generate_Jammed_Packing
 from basinvolume.utils import import_packing, trymakedir
 from basinvolume.enums import Minimizer, Interaction
 
@@ -50,7 +52,7 @@ def gen_jammed_packings(kwargs, npackings, njobs):
     trymakedir(kwargs['outdir'])
     if njobs > 1:
         results = []
-        for packing_nr in xrange(npackings):
+        for packing_nr in range(npackings):
             results.append(mypool.apply_async(
                 worker_jammed_packing,
                 args=(kwargs,
@@ -72,7 +74,7 @@ def gen_packings(kwargs, npackings, nparticles, njobs):
         kwargs['hs_radii'] = import_radii(fname_p0, kwargs['bdim'])
         kwargs['precalc_config_file'] = os.path.join('packings', 'packing0.config')
         results = []
-        for packing_nr in xrange(1, npackings):
+        for packing_nr in range(1, npackings):
             results.append(mypool.apply_async(
                 worker_packing,
                 args=(kwargs, nparticles, packing_nr)))

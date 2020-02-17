@@ -1,5 +1,9 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
+from builtins import range
+from builtins import object
 import argparse as ap
 import numpy as np
 import os
@@ -13,14 +17,14 @@ from mcpele.monte_carlo import NullPotential
 from basinvolume.monte_carlo import CheckSameMinimumConfig
 from basinvolume.utils import log_volume_nball
 
-from computer_common import ComputerCommon
-from computer_common import run_computer
+from .computer_common import ComputerCommon
+from .computer_common import run_computer
 
 class MC(_BaseMCRunner):
     def set_control(self, tmp):
         self.set_temperature(tmp)
     def run(self, nr_iterations):
-        for _ in xrange(nr_iterations):
+        for _ in range(nr_iterations):
             self.one_iteration()
             
 class EngineCommonOpt(object):
@@ -108,7 +112,7 @@ def run_brute(ls_basin_label):
     nr_dimensions = arg.nr_dimensions
     sample_index = arg.sample_index
     nr_iterations = arg.nr_iterations
-    print("arg", arg)
+    print(("arg", arg))
     """
     Execute brute force basin computation for large or small basin.
     

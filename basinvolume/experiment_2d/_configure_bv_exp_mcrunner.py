@@ -1,4 +1,9 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import numpy as np
 import os
 from pele.potentials import Harmonic
@@ -7,9 +12,9 @@ from pele.distance import Distance
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
 from basinvolume.enums import Minimizer
-import ConfigParser
+import configparser
 import time
-import cPickle as pickle
+import pickle as pickle
 
 class configure_bv_exp_mcrunner(_configure_mcrunner):
     """
@@ -43,15 +48,15 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
 
         #select rcontainer to correspond to frozen particle furthest away
         rcontainer = 0
-        for i in xrange(len(self.hs_radii)):
+        for i in range(len(self.hs_radii)):
             r2=0
-            for j in xrange(self.bdim):
+            for j in range(self.bdim):
                 r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
             if r2 > (rcontainer*rcontainer):
                 rcontainer = np.sqrt(r2)
                 index = i
                 if verbose:
-                    print "new rcontainer",rcontainer
+                    print("new rcontainer",rcontainer)
         #rcontainer -= self.hs_radii[index] #subtract half radius of furthest most particle from rcontainer
 
         #set parameters
@@ -68,7 +73,7 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         try:
             self.mc_params.update(seeds)
         except:
-            print "WARNING:seeds not passed"
+            print("WARNING:seeds not passed")
 
         self._initialise()
         self._requench_coords(dtol, opt_maxstep, verbose, frozen=True)
@@ -148,14 +153,14 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in self.mc_params.items() :
             f.write('{}: {}\n'.format(key,value))
         f.write('[STATUS]\n')
-        for i in xrange(self.nprocs):
+        for i in range(self.nprocs):
             f.write('success_rank{}: {}\n'.format(str(i), "False"))
 
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.packing_configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
@@ -180,9 +185,9 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         """
         if self.rank == 0:
             assert(hasattr(self, 'configfile'))
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
-            for i in xrange(self.nprocs):
+            for i in range(self.nprocs):
                 configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
             configf.write(open(str(self.configfile),'w'))
 
@@ -194,12 +199,12 @@ if __name__ == "__main__":
 
     sim = configure_bv_exp_mcrunner()
     mcrunner = sim('jammed_packing0.xydfr', seeds=seeds, single=True, use_cell_lists=False, verbose=True)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     mcrunner.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = mcrunner.get_status()
-    print status
+    print(status)
     mcrunner.dump_minima_list('minima_list.db')
     mcrunner.show_histogram()

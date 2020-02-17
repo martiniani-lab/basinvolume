@@ -19,19 +19,19 @@ protected:
     pele::Array<double> m_rattlers;
     double m_dtol2, m_d2_max;
     size_t m_nparticles, m_maxiter, m_inoratt, m_Nnoratt;
-    const std::shared_ptr<distance_policy> m_dist_policy;
-    double m_get_d2(pele::Array<double> const & coords);
-    double m_get_d2_max(pele::Array<double> const & coords);
+  const std::shared_ptr<distance_policy> m_dist_policy;
+  double m_get_d2(pele::Array<double> const & coords);
+  double m_get_d2_max(pele::Array<double> const & coords);
 public:
-    BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const pele::Array<double> & x0,
-                pele::Array<double> & origin, pele::Array<double> & rattlers,
-                std::shared_ptr<distance_policy> const & dist, double tol=1e-4,
-                double dtol=1e-4, size_t maxiter=1e6, size_t PrintLevel=0);
+  BvCGDescent(std::shared_ptr<pele::BasePotential> potential, const pele::Array<double> & x0,
+              pele::Array<double> & origin, pele::Array<double> & rattlers,
+              std::shared_ptr<distance_policy> const & dist, double tol=1e-4,
+              double dtol=1e-4, size_t maxiter=1e6, size_t PrintLevel=0);
 
-    virtual ~BvCGDescent() {}
-    virtual bool test_convergence(double energy, pele::Array<double> const & x);
-    inline double get_d2_max() { return m_d2_max; }
-    inline double get_d2() { return m_get_d2(m_x); }
+  virtual ~BvCGDescent() {}
+  virtual bool test_convergence(double energy, pele::Array<double> const & x);
+  inline double get_d2_max() { return m_d2_max; }
+  inline double get_d2() { return m_get_d2(m_x); }
 };
 
 template <typename distance_policy>
@@ -130,6 +130,7 @@ double BvCGDescent<distance_policy>::m_get_d2_max(pele::Array<double> const & co
 
     //avoid taking square roots by returning squared quantities
     return distance2;
+    
 }
 
 template <typename distance_policy>

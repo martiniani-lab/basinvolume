@@ -1,4 +1,7 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 import numpy as np
 import sys
 from pele.potentials import Harmonic, HS_WCA
@@ -39,7 +42,7 @@ try:
     #####################LINE STYLE CYCLER####################
     lines = ["-","--","-."]
     linecycler = cycle(lines)
-    color_cycle=[cm(1. * i / 6) for i in xrange(6)]
+    color_cycle=[cm(old_div(1. * i, 6)) for i in range(6)]
     ##########################################################
 except ImportError as err:
     print(err)
@@ -197,7 +200,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         #manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof
         if (rattlers is None):
-            self.rattlers = np.array([1. for _ in xrange(self.ndim)], dtype='d')
+            self.rattlers = np.array([1. for _ in range(self.ndim)], dtype='d')
         else:
             self.rattlers = np.array(rattlers, dtype='d')
         if self.use_frozen:
@@ -336,7 +339,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         hist = np.array(histl)
         Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
-        assert(abs(step - self.binsize) < self.binsize / 100)
+        assert(abs(step - self.binsize) < old_div(self.binsize, 100))
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
@@ -386,7 +389,7 @@ class BVSphereMCrunner(_BaseMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
@@ -396,15 +399,15 @@ class BVSphereMCrunner(_BaseMCRunner):
         this function is useful for testing
         """
         hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
 
         n, bins, patches = plt.hist(val, weights=hist,bins=len(hist), normed=1,
                                     alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
         #and2 = vec_analytical_d2(val,self.k, self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.k, self.nparticles))[0]
-        k = self.k * self.ndim / (self.ndim-1) #adjust for fixed com
-        and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
+        k = old_div(self.k * self.ndim, (self.ndim-1)) #adjust for fixed com
+        and2 = old_div(np.exp(-0.5 * k * bincenters) * np.sqrt(k), np.sqrt(2*np.pi*bincenters))
         plt.plot(bincenters, and2, linewidth=2.5, ls='--', color=color_cycle[-1])
         #plt.xlim(0,1)
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')

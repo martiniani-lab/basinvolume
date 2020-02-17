@@ -1,4 +1,7 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 import numpy as np
 import sys
 from pele.distance import Distance
@@ -28,7 +31,7 @@ try:
     #####################LINE STYLE CYCLER####################
     lines = ["-","--","-."]
     linecycler = cycle(lines)
-    color_cycle=[cm(1. * i / 6) for i in xrange(6)]
+    color_cycle=[cm(old_div(1. * i, 6)) for i in range(6)]
     ##########################################################
 except ImportError as err:
     print(err)
@@ -184,7 +187,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         hist = np.array(histl)
         Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
-        assert(abs(step - self.binsize) < self.binsize / 100)
+        assert(abs(step - self.binsize) < old_div(self.binsize, 100))
         np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
@@ -208,7 +211,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in xrange(len(hist))]) + 0.5 * self.binsize
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
@@ -221,7 +224,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         n, bins, patch = plt.hist(timeseries, bins=500, range=(np.amin(timeseries), np.amax(timeseries)), normed=True,
                            alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
-        k = self.k * self.nparticles / (self.nparticles-1) #adjust for fixed com
+        k = old_div(self.k * self.nparticles, (self.nparticles-1)) #adjust for fixed com
         #and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
         and2 = n[0] * np.exp(-0.5 * k * bins[:-1]**2)
         plt.plot(bins[:-1], and2, linewidth=2.5, ls='--', color=color_cycle[-1])

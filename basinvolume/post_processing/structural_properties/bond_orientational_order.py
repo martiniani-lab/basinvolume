@@ -1,15 +1,21 @@
 from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import range
 import copy
 import numpy as np
 import os
 import traceback
-import ConfigParser
+import configparser
 import logging
 import argparse
 from scipy.special import sph_harm
 from basinvolume.utils import trymakedir
 from basinvolume.post_processing.simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
-from _structural_analysis import StructuralAnalysis
+from ._structural_analysis import StructuralAnalysis
 
 
 class BondOrientationalOrder(StructuralAnalysis):
@@ -32,7 +38,7 @@ class BondOrientationalOrder(StructuralAnalysis):
 
     @staticmethod
     def read(boo_fname):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(boo_fname)
         boo_dict = {}
         boo_dict['Z'] = configf.getfloat('Z', 'Z')
@@ -47,7 +53,7 @@ class BondOrientationalOrder(StructuralAnalysis):
     def _check_computed(self, boo_fname):
         """Check if structural analysis in file is complete"""
         try:
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(boo_fname)
             test_z = configf.getfloat('Z','Z')
             test_boo = configf.getfloat('BOO','Q{}'.format(self.deg))
@@ -154,7 +160,7 @@ class BondOrientationalOrder(StructuralAnalysis):
 
     def _bond_orientational_order3d(self, nnatoms_vec, deg=6, weights=None):
         q = 0.
-        for m in xrange(-deg, deg + 1):
+        for m in range(-deg, deg + 1):
             c = self._qsum(nnatoms_vec, m, ndim=3, deg=deg, weights=weights)
             q += np.absolute(c)**2
         return np.sqrt(q * 4 * np.pi / (2 * deg + 1))
@@ -173,16 +179,16 @@ class BondOrientationalOrder(StructuralAnalysis):
 
     def find_nearest_neighbors_solid_angle(self, coords, ss_radii):
         nparticles = ss_radii.size
-        nnatoms_list = [[] for _ in xrange(nparticles)]
+        nnatoms_list = [[] for _ in range(nparticles)]
         weights_all = copy.deepcopy(nnatoms_list)
-        for i in xrange(nparticles):
+        for i in range(nparticles):
             """
             Note that if i has neighbor j it is not obvious that j has
             neighbor i, in contrast to fixed distance cutoff.
             Note: SimpleSolidAngleNeighbors does not exclude rattlers from the particles shells
             """
             sann = SimpleSolidAngleNeighbors(i, coords, nparticles, self.boxv)
-            for j in xrange(sann.nr_neighbors):
+            for j in range(sann.nr_neighbors):
                 nnatoms_list[i].append(sann.nn_vector[j])
                 weights_all[i].append(sann.weight[j])
         return nnatoms_list, weights_all
@@ -213,7 +219,7 @@ class BondOrientationalOrder(StructuralAnalysis):
 
         boo_list = []
         z_list = []
-        for i in xrange(ss_radii.size):
+        for i in range(ss_radii.size):
             contacts_vec = contacts_list[i]
             nnatoms_vec = nnatoms_list[i]
             weights = None

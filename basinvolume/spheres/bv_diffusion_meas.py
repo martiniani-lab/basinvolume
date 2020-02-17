@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import range
 import numpy as np
 import random
 import multiprocessing as mp
@@ -6,7 +9,7 @@ import os
 import argparse
 import traceback
 import copy
-from _kmin_mcrunner import _kmin_mcrunner
+from ._kmin_mcrunner import _kmin_mcrunner
 import glob
 import re
 from basinvolume.enums import Minimizer
@@ -62,7 +65,7 @@ if __name__ == "__main__":
                                        opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, packings_dir=packings_dir,
                                        use_cell_lists=True, single=True, minimizer=Minimizer.FIRE, verbose=args.verbose,
                                        record_steps_timeseries=True,
-                                       record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(28)],
+                                       record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(28)],
                                        print_diffusion_only=True, workspace=dir_path,
                                        record_trajectory_npoints=int(1e4))
                     seeds_dict = dict(seed_takestep=random.randint(0, i32max),
@@ -70,7 +73,7 @@ if __name__ == "__main__":
                     seeds = dict(seeds=seeds_dict)
                     kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))
                     mypool.apply_async(worker_kmin, args=(fname,kmin_kwargs_s,))
-                    print "performing diffusion measurement for: \n", explore_dir_path
+                    print("performing diffusion measurement for: \n", explore_dir_path)
     except:
         mypool.terminate()
         mypool.join()

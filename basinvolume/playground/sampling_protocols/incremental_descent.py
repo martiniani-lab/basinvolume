@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import range
 import numpy as np
 import os
 from pele.potentials import HS_WCA
@@ -30,7 +32,7 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
             target_packing_frac=target_packing_frac, rattler_eval_tol=rattler_eval_tol,
             packings_dir=packings_dir, use_cell_lists=use_cell_lists, show=show)
         self.nincrements = nincrements
-        print "nincrements", self.nincrements
+        print("nincrements", self.nincrements)
 
     def one_iteration(self, fname, rd=3.0):
         """perform one iteration
@@ -44,7 +46,7 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
 
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
-            print "WARNING: max soft diameter >= 1/2 box side!"
+            print("WARNING: max soft diameter >= 1/2 box side!")
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
 
@@ -116,7 +118,7 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
         fire_maxstep = np.amin(self.hs_radii)*self.sca
         res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
         if not res.success:
-            print 'quench failed'
+            print('quench failed')
             return False
 
         self.coords = res.coords
@@ -125,21 +127,21 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
-            print 'overlap found'
+            print('overlap found')
             return False
 
         if analyse:
             #test that on ri-minimisation the structure does not change
             res2 = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
             if res2.nfev > 1:
-                print 'quench failed (structure changed at second minimisation)'
+                print('quench failed (structure changed at second minimisation)')
                 return False
 
             #analyse packing, assert that the whole system has only 3 0'evalues + a 0 evalue for each rattler 0 evalue
             hess = self.potential.getHessian(self.coords)
             ratt0evals= []
             nratls = 0
-            for i in xrange(self.nparticles):
+            for i in range(self.nparticles):
                 i1 = self.bdim*i
                 hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
                 w, v = np.linalg.eig(hess_block)
@@ -153,13 +155,13 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
             w = np.real(w)
             full0evals = [x for x in w if abs(x) < 1e-6]
             if len(full0evals) - len(ratt0evals) > self.bdim:
-                print 'hessian 0s mismatch rattlers 0s'
+                print('hessian 0s mismatch rattlers 0s')
                 return False
             self.whole_evalues.extend(w)
 
-            print "nrattlers: {}".format(nratls)
+            print("nrattlers: {}".format(nratls))
             if nratls > self.max_nrattlers:
-                print '{} rattlers constitute more than 10% of the system'.format(nratls)
+                print('{} rattlers constitute more than 10% of the system'.format(nratls))
                 return False
 
         return True
@@ -174,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--show", action='store_true', help="show histograms", default=False)
 
     args = parser.parse_args()
-    print args
+    print(args)
 
     sim = Incremental_Generate_Jammed_Packing(target_packing_frac=args.density, rattler_eval_tol=args.etol, packings_dir=args.packingsdir,
                                               use_cell_lists=not args.nocell, show=args.show)

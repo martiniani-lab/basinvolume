@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import str
+from builtins import object
 import shutil
 import os
 import re
@@ -75,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument("workdir", type=str, help="working directory (folder containing the packings and jammed_packings subfolders)")        
     
     args = parser.parse_args()
-    print args
+    print(args)
     
     bvcp = BVPackingsConfigNewFormat(workdir=args.workdir)
     bvcp.copy_all()

@@ -1,15 +1,16 @@
 from __future__ import division
+from builtins import str
+from builtins import object
 import numpy as np
 import os
 import abc
 from basinvolume.utils import import_packing, trymakedir
 from basinvolume.spheres import read_jammed_packing_config
 from pele.potentials import HS_WCA
+from future.utils import with_metaclass
 
 
-class StructuralAnalysis(object):
-    __metaclass__ = abc.ABCMeta
-
+class StructuralAnalysis(with_metaclass(abc.ABCMeta, object)):
     def __init__(self, workspace, jammed_packings_dir='jammed_packings',
                  analysis_dir='analysis', force=False, existing_only=True,
                  prefix='explore_bv_', verbose=True, use_cell_lists=True):

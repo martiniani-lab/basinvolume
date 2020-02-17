@@ -1,14 +1,19 @@
 from __future__ import division
-import ConfigParser
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+import configparser
 import os
 import traceback
 import argparse
 import logging
-import cPickle
+import pickle
 import numpy as np
 import ast
 from basinvolume.utils import trymakedir
-from _structural_analysis import StructuralAnalysis
+from ._structural_analysis import StructuralAnalysis
 
 
 class Neighbors(StructuralAnalysis):
@@ -29,7 +34,7 @@ class Neighbors(StructuralAnalysis):
 
     @staticmethod
     def read(neighbors_fname):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(neighbors_fname)
         neighbors_dict = {}
         neighbors_dict['avg_neighbors'] = \
@@ -81,12 +86,12 @@ class Neighbors(StructuralAnalysis):
         if not os.path.isfile(restrict_path):
             raise IOError("The restrict neighbors file {} does "
                           "not exist.".format(restrict_path))
-        restrict_neighbor_lists = cPickle.load(open(restrict_path, 'r'))
+        restrict_neighbor_lists = pickle.load(open(restrict_path, 'r'))
 
         # Filter neighbors
-        return [filter(lambda particle: particle in
-                       restrict_neighbor_lists[i], neighbor_lists[i])
-                for i in xrange(self.nparticles)]
+        return [[particle for particle in neighbor_lists[i] if particle in
+                       restrict_neighbor_lists[i]]
+                for i in range(self.nparticles)]
 
     def _write_output(self, neighbors_fname, neighbor_lists):
         with open(neighbors_fname, 'w') as f:
@@ -97,7 +102,7 @@ class Neighbors(StructuralAnalysis):
             f.write('neighbor_counts: {}\n'.format(neighbor_counts))
 
     def _dump_neighbors(self, neighbors_dumpname, neighbor_lists):
-        cPickle.dump(neighbor_lists, open(neighbors_dumpname, 'w'))
+        pickle.dump(neighbor_lists, open(neighbors_dumpname, 'w'))
 
 
 def worker_neighbors(workspace, kwargs):

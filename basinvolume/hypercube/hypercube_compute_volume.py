@@ -1,6 +1,10 @@
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 from basinvolume.mbar_spheres import mbar_compute_dos
 import os
-import ConfigParser
+import configparser
 import argparse
 from basinvolume.utils import import_pt_time_series
 
@@ -39,7 +43,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             self.run_bs()
 
     def _import_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.adjustf_niter = configf.getint('MCRUNNER', 'adjustf_niter')
         configf.read(str(self.findk_configpath))
@@ -69,7 +73,7 @@ if __name__ == "__main__":
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
     args = parser.parse_args()
-    print args
+    print(args)
 
     sim = hypercube_mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
 

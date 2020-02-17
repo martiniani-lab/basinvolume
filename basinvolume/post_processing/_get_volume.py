@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import object
 from math import pi
 from basinvolume.post_processing import calculate_GL_integral_with_transform, calculate_GL_integral_with_transform_get_error
 from basinvolume.post_processing import calculate_simple_integral
@@ -27,8 +29,8 @@ class Base_Compute_Integral(object):
         self.simple_integrator = simple_integrator
         self.k_max = self.k_values[-1]
         if np.abs(self.k_max -  max(self.k_values)) > 1e-10:
-            print("self.k_max", self.k_max)
-            print("max(self.k_values)", max(self.k_values))
+            print(("self.k_max", self.k_max))
+            print(("max(self.k_values)", max(self.k_values)))
             raise Exception("Base_Compute_Integral: label mismatch")
         self.nr_points = len(self.k_values)
         if self.nr_points != len(self.displacements):

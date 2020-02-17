@@ -1,7 +1,13 @@
 from __future__ import division
+from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import next
+from builtins import range
 import numpy as np
-import ConfigParser
+import configparser
 import os
 import re
 import matplotlib.pyplot as plt
@@ -18,7 +24,7 @@ from scipy.interpolate import spline
 from scipy.integrate import romberg, simps, quad, cumtrapz, trapz
 import glob
 from itertools import chain
-import cPickle as pickle
+import pickle as pickle
 from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
 from joblib import Parallel, delayed
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
@@ -46,9 +52,9 @@ plt.rcParams.update({'figure.autolayout': True})
 def get_color_cycle(ncolors=8, reverse=True):
     cm = plt.get_cmap('Paired')
     if reverse:
-        color_cycle=cycle([cm(1. * (i+0.5) / float(ncolors)) for i in xrange(ncolors)][::-1])
+        color_cycle=cycle([cm(1. * (i+0.5) / float(ncolors)) for i in range(ncolors)][::-1])
     else:
-        color_cycle = cycle([cm(1. * (i - 0.5) / float(ncolors)) for i in xrange(ncolors)])
+        color_cycle = cycle([cm(1. * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
     return color_cycle
 def get_marker_cycle():
     markers = ["o","v","s","h","^","8","p","<","*","D",">",]
@@ -115,7 +121,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         y = np.array([log_integrand_nom([xi],1) for xi in x])
         argmax = np.argmax(y)
         maxy = np.amax(y)
-        print np.amax(y)
+        print(np.amax(y))
         y = np.array([log_integrand_nom([xi], maxy) for xi in x])
         end = next(i for i,yy in enumerate(y[argmax:]) if yy<np.log(1e-5))
         end += argmax
@@ -128,8 +134,8 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         zx = np.linspace(0,x[zend],100000)
         y = np.array([log_integrand_den([xi],1) for xi in zx])
         maxy = np.amax(y)
-        print "zxmax", zx[-1]
-        print "xmax", x[end]
+        print("zxmax", zx[-1])
+        print("xmax", x[end])
         
         intnval = 10000
         integ = vegas.Integrator([[0., x[end]]])
@@ -138,7 +144,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         integ = vegas.Integrator([[0., zx[-1]]])
         result = integ(lambda t : np.exp(log_integrand_den(t, maxy)), nitn=20, neval=intnval, alpha=0.2, beta=1)
         zPea, errzPea = result.mean, result.sdev
-        print "{} \pm {} \n {} \pm {}".format(Pea, errPea, zPea, errzPea)
+        print("{} \pm {} \n {} \pm {}".format(Pea, errPea, zPea, errzPea))
         return np.log(Pea) - np.log(zPea), 0.434*(errPea/Pea + errzPea/zPea)
 
 # cdf = CDFAccumulator()
@@ -194,7 +200,7 @@ def poly_fit(x, y, yerr=None, order=1):
         # this hack was taken from
         # https://stackoverflow.com/questions/27230285/numpy-polyfit-gives-useful-fit-but-infinite-covariance-matrix
         assert order == 2, "hack is only implemented for order=2"
-        w = [1 for _ in xrange(len(x))].append(0)
+        w = [1 for _ in range(len(x))].append(0)
         x = np.append(x, x[-1])
         y = np.append(y, y[-1])
     fit_params, cov = np.polyfit(x, y, order, w=w, cov=True)
@@ -211,7 +217,7 @@ def lmms_fit(x, y, support_fraction=0.99):
     mean_x, var_x = robust_cov.location_[0], robust_cov.covariance_[0, 0]
     mean_y, var_y = robust_cov.location_[1], robust_cov.covariance_[1, 1]
     robust_rho = cov/np.sqrt(var_x * var_y)
-    print " robust rho", robust_rho
+    print(" robust rho", robust_rho)
     m =  cov / var_x
     interc = mean_y - m * mean_x
     fit_fn = lambda xnew : m * (np.asarray(xnew) - mean_x) + mean_y
@@ -305,7 +311,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         pjam_spline = pickle.load(open("phi_psuccess_spline.pickle", "rb"))
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
             if len(dataset.free_energies) > 0 and  phi_min < dataset.ss_phi < phi_max:
-                print "set name ",dataset.set_name
+                print("set name ",dataset.set_name)
                 nparticles = dataset.nparticles
                 j = 0
                 Facc = None
@@ -314,15 +320,15 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     Facc = dataset.packing_data[j].Facc - np.log(pjam_spline(dataset.ss_phi))
                     vcavity = dataset.packing_data[j].vcavity
                     j += 1
-                print Facc
-                print nparticles
+                print(Facc)
+                print(nparticles)
                 if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                                     phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
                     #should remoe both outliers in pressure and in volume
                     p_raw, f_raw, ferr_raw, non_outliers_indexes = remove_outliers_cluster(np.log(dataset.pressures),
                                                                                            np.array(dataset.free_energies),
                                                                                            np.array(dataset.free_energies_err))
-                    print dataset.ss_phi, " cluster 4s n_outliers: ", np.array(dataset.free_energies).size - f_raw.size
+                    print(dataset.ss_phi, " cluster 4s n_outliers: ", np.array(dataset.free_energies).size - f_raw.size)
                     #fix units
                     u, s = 1, 0.1 # E(x^2) = V(x) + (E(x))^2
                     p_raw, f_raw = p_raw+np.log(np.pi*(u**2+s**2)), f_raw + nparticles * np.log(np.pi*(u**2+s**2)) #DEBUG: here I supposedly adjust the units, check this
@@ -341,7 +347,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     else:
                         marker = 'o'
                         label = 'cgd {:.3f}'.format(dataset.ss_phi)
-                    color = color_cycle.next()
+                    color = next(color_cycle)
                     ax.scatter(p_raw, -y_raw, label=label, marker=marker, color=color)
                     fit_fn, fit_params, fit_err, rho = lmms_fit(p, y)
                     ax.plot(p_raw, -fit_fn(p_raw), color='k', linestyle='-')
@@ -361,7 +367,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     fit_fn, fit_params, fit_err, rho = lmms_fit(p, f)
                     # fit_fn, fit_params, fit_err, rho = lmms_fit(x, f)
                     dataset.add_extras((fit_params, fit_err, rho))
-                    print dataset.extras
+                    print(dataset.extras)
 
                     contacts = np.array(dataset.contacts)[np.array(non_outliers_indexes, dtype="i")]
                     assert len(contacts) == len(f_raw)
@@ -371,10 +377,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     # remove outliers as for robust_mean_var
                     # to avoid fit issues
                     p, f, ferr, mask = remove_outliers_mcd(p_raw, f_raw, ferr_raw)
-                    print "n outliers mcd: ", mask.tolist().count(False)
+                    print("n outliers mcd: ", mask.tolist().count(False))
                     histograms_nsamples.append(len(f))
-                    print "n samples", len(f)
-                    print "min f, max f", np.amin(f), np.amax(f)
+                    print("n samples", len(f))
+                    print("min f, max f", np.amin(f), np.amax(f))
                     # f: fit to kde
                     bw = get_bandwidth_estimate(f, kernel="gaussian", method="cross_validation")
                     bw_list.append(bw[0])
@@ -460,9 +466,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     cdf.add_array(p)
                     x, cdf_x = cdf.get_vecdata()
                     generalised_gauss.fit_cdf(x, cdf_x)
-                    print "mu: ", generalised_gauss.mu_fit
-                    print "alpha: ", generalised_gauss.alpha_fit
-                    print "zeta: ", generalised_gauss.zeta_fit
+                    print("mu: ", generalised_gauss.mu_fit)
+                    print("alpha: ", generalised_gauss.alpha_fit)
+                    print("zeta: ", generalised_gauss.zeta_fit)
                     hist = np.array([generalised_gauss.get_fitted(edge) for edge in edges])
                     ax32.plot(edges, hist, linestyle='--', color=color, linewidth=3)
 
@@ -486,7 +492,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     # u_set = wpdf.resample(size=1e4)
                     # meanvar_pi_u_list.append([np.mean(u_set), np.var(u_set)])
 
-        print "bw_list ", bw_list
+        print("bw_list ", bw_list)
         ax3.set_xlabel(r'$F$')
         ax3.set_ylabel(r'$\mathcal{B}(F)$')
         ax3.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
@@ -507,7 +513,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax34.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                     columnspacing=0.25, labelspacing=0.25, handlelength=0.5)
         fig34.savefig('{0}/plot_{1}.pdf'.format(figdir, "pi_dos"))
-        print phi
+        print(phi)
 
         axbox = ax.get_position()
         ax.legend(frameon=False, loc=(axbox.x0-0.18, axbox.x1-0.475), prop={'size':glob_fontsize}, numpoints=1,
@@ -518,7 +524,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         ax.locator_params(axis='y', nbins=6)
         ax.set_ylim((205, 241))
         ax.set_xlim((-5,7.5))
-        print "extras", dataset.extras
+        print("extras", dataset.extras)
         fig0.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
 
         ax35.scatter(phi, np.array(logl_list), s=100)
@@ -535,16 +541,16 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         uSg = unp.uarray(Sg[:,0], Sg[:,1])
         yerr = Sg[:,1]
         iyerr = unp.std_devs(1./uSg)
-        print "iyerr: ", iyerr
+        print("iyerr: ", iyerr)
         fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sg[:,0], yerr=iyerr, order=2)
-        print "fit_params", fit_params
-        print "fit_err", fit_err
+        print("fit_params", fit_params)
+        print("fit_err", fit_err)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sg phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
         z = np.linspace(4, np.amax(avgz), 1000)
         color_cycle = get_color_cycle(ncolors=3, reverse=False)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax1.errorbar(phi, Sg[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_G$', fmt='o', markersize=15)
         ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
         a1 = ufloat(fit_params[0], fit_err[0])
@@ -562,13 +568,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         uSb = unp.uarray(Sb_gauss[:, 0], Sb_gauss[:, 1])
         yerr = Sb_gauss[:, 1]
         iyerr = unp.std_devs(1. / uSb)
-        print "iyerr: ", iyerr
+        print("iyerr: ", iyerr)
         fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1./Sb_gauss[:,0], yerr=iyerr, order=2)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sb-gauss phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
         z = np.linspace(4, np.amax(avgz), 1000)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax1.errorbar(phi, Sb_gauss[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$', fmt='o', markersize=15)
         ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
         a2 = ufloat(fit_params[0], fit_err[0])
@@ -577,9 +583,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         #find intersection
         a, b, c = a1-a2, b1-b2, c1-c2
         r = (-b + (b ** 2 - 4 * a * c)**0.5) / (2 * a)
-        print "phi* intersection gauss: {} \pm {}".format(r.nominal_value, r.std_dev)
-        print "z(\phi*) intersection gauss: {} \pm {}".format(meanz_spline(r.nominal_value),
-                                                            meanz_spline_err(r.nominal_value, r.std_dev))
+        print("phi* intersection gauss: {} \pm {}".format(r.nominal_value, r.std_dev))
+        print("z(\phi*) intersection gauss: {} \pm {}".format(meanz_spline(r.nominal_value),
+                                                            meanz_spline_err(r.nominal_value, r.std_dev)))
 
         fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sb_gauss[:, 0], yerr=iyerr, order=2)
         ax11.errorbar(avgz, Sb_gauss[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(Gauss)}$', fmt='o',
@@ -591,7 +597,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # find intersection
         a, b, c = za1 - a2, zb1 - b2, zc1 - c2
         r = (-b + (b ** 2 - 4 * a * c) ** 0.5) / (2 * a)
-        print "z* intersection gauss: {} \pm {}".format(r.nominal_value, r.std_dev)
+        print("z* intersection gauss: {} \pm {}".format(r.nominal_value, r.std_dev))
 
 
         Sb_kde = np.array(Sb_kde)
@@ -603,7 +609,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # print "Sb-kde phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
         z = np.linspace(4, np.amax(avgz), 1000)
-        color = color_cycle.next()
+        color = next(color_cycle)
         ax1.errorbar(phi, Sb_kde[:,0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o', markersize=15)
         ax1.plot(x, 1./fit_fn(x), marker='', linewidth=3, linestyle='--', color=color)
         a2 = ufloat(fit_params[0], fit_err[0])
@@ -612,9 +618,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # find intersection
         a, b, c = a1 - a2, b1 - b2, c1 - c2
         r = (-b + (b ** 2 - 4 * a * c) ** 0.5) / (2 * a)
-        print "phi* intersection kde: {} \pm {}".format(r.nominal_value, r.std_dev)
-        print "z(\phi*) intersection kde: {} \pm {}".format(meanz_spline(r.nominal_value),
-                                                            meanz_spline_err(r.nominal_value, r.std_dev))
+        print("phi* intersection kde: {} \pm {}".format(r.nominal_value, r.std_dev))
+        print("z(\phi*) intersection kde: {} \pm {}".format(meanz_spline(r.nominal_value),
+                                                            meanz_spline_err(r.nominal_value, r.std_dev)))
 
         fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1. / Sb_kde[:, 0], yerr=iyerr, order=2)
         ax11.errorbar(avgz, Sb_kde[:, 0], yerr=yerr, color=color, markeredgecolor=color, label=r'$S_B^{(KDE)}$', fmt='o',
@@ -626,7 +632,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         # find intersection
         a, b, c = za1 - a2, zb1 - b2, zc1 - c2
         r = (-b + (b ** 2 - 4 * a * c) ** 0.5) / (2 * a)
-        print "z* intersection kde: {} \pm {}".format(r.nominal_value, r.std_dev)
+        print("z* intersection kde: {} \pm {}".format(r.nominal_value, r.std_dev))
 
         # fit = np.polyfit(phi[2:], S[2:], 1)
         # fit_fn = np.poly1d(fit)
@@ -652,20 +658,20 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
         fig11.savefig('{0}/plot_{1}.pdf'.format(figdir, "s_z"))
 
-        print "avgz", avgz
-        print "phi", phi
-        print "Sg", Sg[:,0]
-        print "Sb_gauss", Sb_gauss[:,0]
-        print "Sb_kde", Sb_kde[:,0]
+        print("avgz", avgz)
+        print("phi", phi)
+        print("Sg", Sg[:,0])
+        print("Sb_gauss", Sb_gauss[:,0])
+        print("Sb_kde", Sb_kde[:,0])
 
         #subplots
         # subplots
         if True:
             # plot power law exponent
             color_cycle = get_color_cycle(ncolors=3, reverse=False)
-            color_marker = color_cycle.next()
-            color_cycle.next()
-            color_fit = color_cycle.next()
+            color_marker = next(color_cycle)
+            next(color_cycle)
+            color_fit = next(color_cycle)
             # ax3 = fig.add_subplot(gs[4:, 0])
             fig01 = plt.figure()
             ax3 = fig01.add_subplot(111)
@@ -697,10 +703,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             fit_fn, fit_params, fit_err, rho = poly_fit(x, y, yerr=yerr)
             ax3.plot(x, fit_fn(x), color=color_fit)
             glob_phi_j, glob_phi_j_std = find_roots(fit_params, fit_err)[0]
-            print "1/k(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
-            print "1/k: phi*: {} \pm {}, beta: {}".format(glob_phi_j, glob_phi_j_std, fit_params[1])
-            print "1/k: z(\phi*): {} \pm {}".format(meanz_spline(glob_phi_j),
-                                                    meanz_spline_err(glob_phi_j, glob_phi_j_std))
+            print("1/k(phi) = {} phi + {}".format(fit_params[0], fit_params[1]))
+            print("1/k: phi*: {} \pm {}, beta: {}".format(glob_phi_j, glob_phi_j_std, fit_params[1]))
+            print("1/k: z(\phi*): {} \pm {}".format(meanz_spline(glob_phi_j),
+                                                    meanz_spline_err(glob_phi_j, glob_phi_j_std)))
             ax3.set_xlabel(r'$\phi$', size=glob_fontsize)
             ax3.set_ylabel(r'$\lambda$', size=glob_fontsize)
             ax3.locator_params(axis='x', nbins=4)
@@ -714,8 +720,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             fit_fn, fit_params, fit_err, rho = poly_fit(avgz, y, yerr=yerr)
             ax31.plot(avgz, fit_fn(avgz), color=color_fit)
             glob_z_j, glob_z_j_std = find_roots(fit_params, fit_err)[0]
-            print "1/k(z) = {} z + {}".format(fit_params[0], fit_params[1])
-            print "1/k: z*: {} \pm {}, beta: {}".format(glob_z_j, glob_z_j_std, fit_params[1])
+            print("1/k(z) = {} z + {}".format(fit_params[0], fit_params[1]))
+            print("1/k: z*: {} \pm {}, beta: {}".format(glob_z_j, glob_z_j_std, fit_params[1]))
             ax31.set_xlabel(r'$\overline{z}$', size=glob_fontsize)
             ax31.set_ylabel(r'$\lambda$', size=glob_fontsize)
             ax31.locator_params(axis='x', nbins=4)
@@ -733,11 +739,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax4.errorbar(x, y2, y2err, marker='o', linestyle='', ms=15, color=color_marker, markeredgecolor=color_marker)
             fit_fn, fit_params, fit_err, rho = poly_fit(x, y2, yerr=yerr)
             ax4.plot(x, fit_fn(x), color=color_fit)
-            print "c(phi) = {} phi + {}".format(fit_params[0], fit_params[1])
+            print("c(phi) = {} phi + {}".format(fit_params[0], fit_params[1]))
             a, b = ufloat(fit_params[0], fit_err[0]), ufloat(fit_params[1], fit_err[1])
             r1 = (2.-b) / a
             phi_c1, phi_c1err = r1.nominal_value, r1.std_dev
-            print "c: phi_c1: {} \pm {}, beta: {}".format(phi_c1, phi_c1err, fit_params[1])
+            print("c: phi_c1: {} \pm {}, beta: {}".format(phi_c1, phi_c1err, fit_params[1]))
             ax4.set_xlabel(r'$\phi$', size=glob_fontsize)
             ax4.set_ylabel(r'$c$', size=glob_fontsize)
             ax4.locator_params(axis='x', nbins=4)
@@ -750,11 +756,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                          markeredgecolor=color_marker)
             fit_fn, fit_params, fit_err, rho = poly_fit(avgz, y2, yerr=yerr)
             ax41.plot(avgz, fit_fn(avgz), color=color_fit)
-            print "c(z) = {} z + {}".format(fit_params[0], fit_params[1])
+            print("c(z) = {} z + {}".format(fit_params[0], fit_params[1]))
             a, b = ufloat(fit_params[0], fit_err[0]), ufloat(fit_params[1], fit_err[1])
             r1 = (2. - b) / a
             z_c1, z_c1err = r1.nominal_value, r1.std_dev
-            print "c: z_c1: {} \pm {}, beta: {}".format(z_c1, z_c1err, fit_params[1])
+            print("c: z_c1: {} \pm {}, beta: {}".format(z_c1, z_c1err, fit_params[1]))
             ax41.set_xlabel(r'$\overline{z}$', size=glob_fontsize)
             ax41.set_ylabel(r'$c$', size=glob_fontsize)
             ax41.locator_params(axis='x', nbins=4)
@@ -795,9 +801,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             fig36.savefig('{0}/plot_{1}.pdf'.format(figdir, "z_phi"))
 
             color_cycle = get_color_cycle(ncolors=3, reverse=False)
-            color_cycle.next()
-            color_cycle.next()
-            colorr = color_cycle.next()
+            next(color_cycle)
+            next(color_cycle)
+            colorr = next(color_cycle)
             colorl = colorr
 
             x = np.linspace(np.amin(phi), np.amax(phi), 1000)
@@ -806,12 +812,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax2.plot(phi, y3, marker='o', markersize=10, linestyle='', color=colorl, markeredgecolor=colorl)
             ax2.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color=colorl)
             fit_params = np.array(fit_params)
-            print "mu_f = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+            print("mu_f = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2]))
             y3 = np.array(meanvar_pi_list)[:, 0]
             fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, yerr=1./np.sqrt(histograms_nsamples), order=1)
             ax22.plot(phi, y3, marker='o', markersize=10, linestyle='', color=colorr, markeredgecolor=colorr)
             ax22.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color=colorr)
-            print "mu_pi = {} phi + {} ".format(fit_params[0], fit_params[1])
+            print("mu_pi = {} phi + {} ".format(fit_params[0], fit_params[1]))
 
             ax2.set_ylabel(r"$\mu_f$")
             # for tl in ax2.get_yticklabels():
@@ -837,18 +843,18 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             y3 = np.array(meanvar_f_list)[:, 1] / dataset.nparticles**2
             fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, yerr=1./np.sqrt(histograms_nsamples), order=2)
             phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
-            print "sig_f phi* = {} \pm {}".format(phi_star, phi_star_err)
+            print("sig_f phi* = {} \pm {}".format(phi_star, phi_star_err))
             x = np.linspace(phi_star, np.amax(phi), 1000)
             ax24.plot(phi, y3, marker='o', markersize=10, linestyle='', color=colorr, markeredgecolor=colorr)
             ax24.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color=colorr)
-            print "sigma_f = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+            print("sigma_f = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2]))
 
             y3 = np.array(meanvar_pi_list)[:, 1]
             fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, yerr=1./np.sqrt(histograms_nsamples), order=2)
             ax23.plot(phi, y3, marker='o', markersize=10, linestyle='', color=colorl, markeredgecolor=colorl)
             ax23.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color=colorl)
             fit_params = np.array(fit_params)
-            print "var_pi = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+            print("var_pi = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2]))
 
 
             ax23.set_ylabel(r"$\sigma^2_\Lambda$")
@@ -877,20 +883,20 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         y3 = np.array(cov_f_pi_list) / dataset.nparticles
         fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, yerr=1./np.sqrt(histograms_nsamples), order=2)
         phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
-        print "cov_fpi phi* = {} \pm {}".format(phi_star, phi_star_err)
+        print("cov_fpi phi* = {} \pm {}".format(phi_star, phi_star_err))
         x = np.linspace(phi_star, np.amax(phi), 1000)
         ax26.plot(phi, y3, marker='o', markersize=10, linestyle='', color=colorr, markeredgecolor=colorr)
         ax26.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color=colorr)
-        print "cov_fpi = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+        print("cov_fpi = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2]))
 
         y3 = np.array(cov_f_pi_list) / np.sqrt(np.asarray(meanvar_f_list)[:,1]*np.asarray(meanvar_pi_list)[:,1])
         fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, yerr=1. / np.sqrt(histograms_nsamples), order=2)
         phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
-        print "rho phi* = {} \pm {}".format(phi_star, phi_star_err)
+        print("rho phi* = {} \pm {}".format(phi_star, phi_star_err))
         x = np.linspace(phi_star, np.amax(phi), 1000)
         ax27.plot(phi, y3, marker='o', markersize=10, linestyle='', color=colorr, markeredgecolor=colorr)
         ax27.plot(x, fit_fn(x), marker='', linewidth=3, linestyle='--', color=colorr)
-        print "rho = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
+        print("rho = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2]))
 
         # y3 = np.array(meanvar_pi_list)[:, 1]
         # fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, yerr=1./np.sqrt(histograms_nsamples), order=2)
@@ -962,7 +968,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     vcavity = dataset.packing_data[0].vcavity
                     if (0.855 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                            phi_min < dataset.ss_phi < 0.86 and "fire" in dataset.set_name):
-                        print "n:", nparticles
+                        print("n:", nparticles)
                         #fit slopes to find inverse kappa and the intercept
                         x_raw = dataset.pressures
                         f_outliers = OutlierDetection(dataset.free_energies, p=0.5, D=2 * np.std(dataset.free_energies))
@@ -1011,13 +1017,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                         norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate[1]-x_integrate[0]))
                         unpad_log_omega_p_hist.append(log_hist - norm + log_omega)
                         ax2.plot(x_integrate, log_hist - norm + log_omega, label=dataset.ss_phi,
-                                 color=color_cycle.next(), linewidth=3)
+                                 color=next(color_cycle), linewidth=3)
                         maxp.append(x_integrate[np.argmax(log_hist - norm + log_omega)])
                         max_logdos.append(np.amax(log_hist - norm + log_omega))
                         # color_cycle = get_color_cycle()
 
             xmin, xmax = np.amin(x_integrate_list), np.amax(x_integrate_list)
-            print xmin, xmax
+            print(xmin, xmax)
             pad_log_omega_p_hist = []
             for x_, x_integrate_ in zip(unpad_log_omega_p_hist, x_integrate_list):
                 dx = x_integrate_[1] - x_integrate_[0]
@@ -1034,7 +1040,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 a = np.array(x_).reshape((1, len(x_)))
                 pad_log_omega_p_hist[i] = resize(a, (1, maxsize)).flatten()
                 ax2.plot(x_integrate, pad_log_omega_p_hist[i], label=dataset.ss_phi,
-                         color=color_cycle.next(), linewidth=1)
+                         color=next(color_cycle), linewidth=1)
             ax2.set_xscale('log')
 
             dphi = np.array(phi) - glob_phi_j
@@ -1052,7 +1058,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             # fit_fn = np.poly1d(fit)
             # ax5.plot(x, fit_fn(x), color=color, linewidth=3)
 
-            color = color_cycle.next()
+            color = next(color_cycle)
             x = np.array(phi)
             y = np.array(fit_params)[:,0]
             y = np.exp(np.array(1./y))
@@ -1062,7 +1068,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             fit_fn = np.poly1d(fit)
             ax5.plot(x, fit_fn(x), color=color, linewidth=3)
             # ax5.axhline(0, color='k')
-            print "phi max(p) fit: ", fit
+            print("phi max(p) fit: ", fit)
 
             # y = np.log(np.array(p_minmax_list)[:,0])
             # color = color_cycle.next()
@@ -1086,14 +1092,14 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
 
             x, y = dphi, max_logdos
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax6.scatter(x, y, color=color, s=100)
             fit, cov = np.polyfit(x, y, 1, cov=True)
             fit_fn = np.poly1d(fit)
             ax6.plot(x, fit_fn(x), color=color, linewidth=3)
             ax6.set_xlabel(r'$\log DOS_{max}$')
             ax6.set_xlabel(r'$\Delta\phi$')
-            print "phi max dos fit: ", fit
+            print("phi max dos fit: ", fit)
 
             alpha, beta = 200, 100
             color_cycle = get_color_cycle()
@@ -1106,7 +1112,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 logg = (log_hist - log_norm + log_omega_list[i]) + alpha * dphi[i]
                 # print np.amax(logg), alpha * dphi[i]
                 ax7.plot(np.log(x_integrate) - beta*dphi[i], logg, label=phi[i],
-                         color=color_cycle.next(), linewidth=3)
+                         color=next(color_cycle), linewidth=3)
             ax7.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.25, labelspacing=0.25, handletextpad=0)
             # ax7.set_ylim((200,230))
@@ -1179,13 +1185,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
                 if len(dataset.free_energies) > 0:
                     nparticles = dataset.nparticles
-                    print nparticles
+                    print(nparticles)
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
                     x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                     y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    print len(x), len(y)
+                    print(len(x), len(y))
                     x = np.log(x)
-                    ax.scatter(x, y, color=color_cycle.next())
+                    ax.scatter(x, y, color=next(color_cycle))
 
                     def ff_msf(x, a):
                         return nparticles * (a * x + 1)
@@ -1194,7 +1200,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     ax.plot(x, ff_msf(x, popt[0]), label="F = N/{:.3f}ln(P) + N".format(1. / popt[0]))
                     avg += popt[0]
             avg /= (i + 1)
-            print "avg kappa = ", 1 / avg
+            print("avg kappa = ", 1 / avg)
             ax.legend(frameon=False, loc="best", numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25)
             plt.ylabel(r"$F$")
             plt.xlabel(r"$\ln \mathcal{P}$")

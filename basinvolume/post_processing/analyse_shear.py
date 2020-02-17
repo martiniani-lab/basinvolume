@@ -1,4 +1,7 @@
 from __future__ import division
+from builtins import zip
+from builtins import range
+from builtins import object
 import numpy as np
 import argparse
 import os
@@ -37,7 +40,7 @@ def worker_lasting_neighbors(workspace_dir, kwargs):
                       (traceback.format_exc()))
 
 
-class AnalyseShear:
+class AnalyseShear(object):
 
     def __init__(self, input_dir=".", output_dir="shear_analysis", force=False,
                  force_rel=False, start=0., step=0.01, substep=0.001, stop=1.,
@@ -106,8 +109,8 @@ class AnalyseShear:
         # Get packings to create
         input_files = os.listdir(os.path.join(self.input_dir, "shear_{}"
                                               .format(self.start), 'jammed_packings'))
-        packing_files = filter(lambda pname: "jammed_packing" in pname
-                               and ('xyzdr' in pname or 'xydr' in pname), input_files)
+        packing_files = [pname for pname in input_files if "jammed_packing" in pname
+                               and ('xyzdr' in pname or 'xydr' in pname)]
         packings = [packing.split('_')[1].split('.')[0]
                     for packing in packing_files]
 
@@ -205,10 +208,9 @@ class AnalyseShear:
 
     def get_subdir_paths(self, directory, filter_str):
         files = os.listdir(directory)
-        packings = filter(lambda pname: filter_str in pname
+        packings = [pname for pname in files if filter_str in pname
                                  and os.path.isdir(os.path.join(directory,
-                                                                pname)),
-                                 files)
+                                                                pname))]
         return sorted([os.path.join(directory, packing) for packing in packings])
 
     def collect_files(self, shear, input_relpath):
@@ -270,10 +272,10 @@ class AnalyseShear:
             if len(dims) == 0:
                 dims = ['x', 'y', 'z']
                 dims = dims[:len(displ_dict['avg_displacement'])]
-                for i in xrange(len(dims)):
+                for i in range(len(dims)):
                     avg_abs_displacement.append(pd.Series())
                     avg_abs_nonaff_displacement.append(pd.Series())
-            for i in xrange(len(dims)):
+            for i in range(len(dims)):
                 avg_abs_displacement[i][shear] \
                     = displ_dict['avg_abs_displacement'][i]
                 avg_abs_nonaff_displacement[i][shear] \
@@ -281,7 +283,7 @@ class AnalyseShear:
         data['Average absolute displacement'] = avg_abs_displacement_norm
         data['Average absolute non-affine displacement'] \
             = avg_abs_nonaff_displacement_norm
-        for i in xrange(len(dims)):
+        for i in range(len(dims)):
             data['Average absolute displacement {}'.format(dims[i])] \
                 = avg_abs_displacement[i]
             data['Average absolute non-affine displacement {}'.format(dims[i])] \
@@ -333,7 +335,7 @@ class AnalyseShear:
         data['Energy'] = energy_entry
         data['Pressure'] = pressure_entry
         data['Shear stress'] = shear_entry
-        for i in xrange(len(shears)):
+        for i in range(len(shears)):
             data['Shear stress {}'.format(shears[i])] = shear_tensor[i]
 
     def collect_parameters(self):

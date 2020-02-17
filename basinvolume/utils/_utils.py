@@ -1,4 +1,15 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import input
+from builtins import str
+from builtins import next
+from builtins import zip
+from builtins import map
+from builtins import range
+from past.builtins import basestring
+from builtins import object
 import numpy as np
 import os
 from scipy.special import gamma, gammaln
@@ -9,7 +20,7 @@ import basinvolume
 import pele
 import mcpele
 import sys, traceback
-import ConfigParser
+import configparser
 import pandas as pd
 import glob
 import logging
@@ -21,7 +32,7 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
-    print err
+    print(err)
 
 class Bunch(dict):
     def __init__(self, *args, **kwds):
@@ -39,10 +50,10 @@ class Result(dict):
     __delattr__ = dict.__delitem__
 
     def __repr__(self):
-        if self.keys():
-            m = max(map(len, self.keys())) + 1
+        if list(self.keys()):
+            m = max(list(map(len, list(self.keys())))) + 1
             return '\n'.join([k.rjust(m) + ': ' + repr(v)
-                              for k, v in self.iteritems()])
+                              for k, v in self.items()])
         else:
             return self.__class__.__name__ + "()"
 
@@ -54,7 +65,7 @@ def _sort_pair(x,y):
     sorts x and moves elements of y accordingly
     """
     xc = np.array(x)
-    points = zip(xc,y)
+    points = list(zip(xc,y))
     sorted_points = sorted(points)
     new_x = np.array([point[0] for point in sorted_points])
     new_y = np.array([point[1] for point in sorted_points])
@@ -109,7 +120,7 @@ def trymakedir(path):
             try:
                 os.makedirs(path)
                 break
-            except OSError, e:
+            except OSError as e:
                 if e.errno != 17:
                     raise
                 # time.sleep might help here
@@ -119,9 +130,9 @@ def trymakedir(path):
 
 def view_traceback():
     ex_type, ex, tb = sys.exc_info()
-    print 'exception type:', ex_type
-    print 'exception:', ex
-    print 'Traceback:'
+    print('exception type:', ex_type)
+    print('exception:', ex)
+    print('Traceback:')
     traceback.print_tb(tb)
     del tb
 
@@ -211,7 +222,7 @@ def read_xydr(fname, etol=1.0, bdim=2):
         coords.extend([float(x), float(y)])
         radii.extend([float(d)])
         stable = float(float(r) >= etol)
-        for _ in xrange(bdim):
+        for _ in range(bdim):
             stable_atoms.extend([stable])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(stable_atoms, dtype='d')
 
@@ -235,7 +246,7 @@ def read_xydfr(fname, etol=1.0, bdim=2):
         if bool(int(fr)):
             frozen.extend([i])
         stable = float(float(r) >= etol)
-        for _ in xrange(bdim):
+        for _ in range(bdim):
             stable_atoms.extend([stable])
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(stable_atoms, dtype='d')
@@ -255,7 +266,7 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
         coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
         stable = float(float(r) >= etol)
-        for _ in xrange(bdim):
+        for _ in range(bdim):
             stable_atoms.extend([stable])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(stable_atoms, dtype='d')
 
@@ -278,7 +289,7 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         if bool(int(fr)):
             frozen.extend([i])
         stable = float(float(r) >= etol)
-        for _ in xrange(bdim):
+        for _ in range(bdim):
             stable_atoms.extend([stable])
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(stable_atoms, dtype='d')
@@ -294,7 +305,7 @@ def import_packing(fname, jammed, bdim, sca=0.):
             raise NotImplementedError("bdim={} not implemented".format(bdim))
         results['ss_radii'] = hs_diameters * 0.5 * (1 + sca)
         results['stable_atoms'] = []
-        for i in xrange(0, len(results['stable_atoms_float_bdim']), bdim):
+        for i in range(0, len(results['stable_atoms_float_bdim']), bdim):
             results['stable_atoms'].append(results['stable_atoms_float_bdim'][i] == 1.0)
     else:
         if bdim == 2:
@@ -431,7 +442,7 @@ def get_git_version_from_build(repository="basinvolume"):
         f.close()
     except (OSError, IOError) as e:
         sys.stderr.write("WARNING: no version.py file found\n path: " + version_path + "\n")
-        print "error", e
+        print("error", e)
     return result
 
 def get_git_version(repository="basinvolume", from_build=True):
@@ -446,8 +457,8 @@ def get_python_version():
 def get_cython_version():
     try:
         from Cython.Compiler.Version import version
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         version="not known"
     return version
 
@@ -523,15 +534,15 @@ class OutlierDetection(object):
     def is_distant_point(self, central_datum, other_datum):
         return np.abs(central_datum - other_datum) > self.D
     def print_parameters_statistics(self):
-        print "OutlierDetection:"
-        print "parameter p:", self.p
-        print "parameter D:", self.D
-        print "number of outliers:", len(self.outliers)
+        print("OutlierDetection:")
+        print("parameter p:", self.p)
+        print("parameter D:", self.D)
+        print("number of outliers:", len(self.outliers))
         if len(self.outliers) + len(self.non_outliers) > 0:
-            print "fraction of outliers:", len(self.outliers) / (len(self.outliers) + len(self.non_outliers))
-        print "mean of non_outliers:", np.mean(self.non_outliers)
-        print "mean of outliers:", np.mean(self.outliers)
-        print "outliers:", self.outliers
+            print("fraction of outliers:", len(self.outliers) / (len(self.outliers) + len(self.non_outliers)))
+        print("mean of non_outliers:", np.mean(self.non_outliers))
+        print("mean of outliers:", np.mean(self.outliers))
+        print("outliers:", self.outliers)
 
 class MomentsAcc(object):
     def __init__(self):
@@ -577,7 +588,7 @@ class CDFAccumulator(object):
             self.data_x[inp] = 1
         self.total_number += 1
     def get_vecdata(self):
-        x = self.data_x.keys()
+        x = list(self.data_x.keys())
         x = sorted(x)
         cdf_x = []
         remaining_x = self.total_number
@@ -691,12 +702,12 @@ def simple_overlap_check(coords, radii, boxlength):
             if boxed > 0.5 * boxlength:
                 return boxed - boxlength
             return boxed
-        return np.sum(np.array([np.square(box(coords[a * boxdim + ii] - coords[b * boxdim + ii])) for ii in xrange(boxdim)]))
+        return np.sum(np.array([np.square(box(coords[a * boxdim + ii] - coords[b * boxdim + ii])) for ii in range(boxdim)]))
     def pair_is_overlapping(a, b):
         radii_sum = radii[a] + radii[b]
         return get_dist2(a, b) < radii_sum**2
-    for ii in xrange(nr_particles - 1):
-        for jj in xrange(ii + 1, nr_particles):
+    for ii in range(nr_particles - 1):
+        for jj in range(ii + 1, nr_particles):
             if pair_is_overlapping(ii, jj):
                 return True # At least one overlap.
     return False # No overlap.
@@ -707,7 +718,7 @@ def check_kmax_reasonable(kmax_configpath, max_kmax=1e7):
     read kmax then it assumes that it is reasonable. It is essential
     that if reading kmax_configpath fail this functions returns True
     """
-    configf = ConfigParser.ConfigParser()
+    configf = configparser.ConfigParser()
     try:
         configf.read(str(kmax_configpath))
         kmax = configf.getfloat('FINDK','kmax')
@@ -740,7 +751,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        choice = raw_input().lower()
+        choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -764,8 +775,8 @@ def asphericity_factor(evals):
     evals = np.sort(np.array(evals))[::-1]
     ndof = evals.size
     A = 0.
-    for i in xrange(ndof):
-        for j in xrange(i,ndof):
+    for i in range(ndof):
+        for j in range(i,ndof):
             A += (evals[i]-evals[j])**2
     A /= (ndof-1)*np.sum(evals)**2
     return A
@@ -783,7 +794,7 @@ def trajectory_pca(traj):
         array of containing trajectory with shape (npoints, ndof)
     """
     ndof = np.shape(traj)[1]
-    cov_mat = np.cov([traj[:,i] for i in xrange(ndof)])
+    cov_mat = np.cov([traj[:,i] for i in range(ndof)])
     eig_val_cov, eig_vec_cov = np.linalg.eig(cov_mat)
     idx = eig_val_cov.argsort()[::-1]
     eig_val_cov = eig_val_cov[idx]
@@ -793,8 +804,8 @@ def trajectory_pca(traj):
 def write_2d_array_to_hdf5(array, key, path):
     assert array.ndim == 2
     nind , ncol = array.shape
-    ind = [i for i in xrange(nind)]
-    col = [i for i in xrange(ncol)]
+    ind = [i for i in range(nind)]
+    col = [i for i in range(ncol)]
     df = pd.DataFrame(array, index=ind, columns=col)
     df.to_hdf(path, key)
 
@@ -975,7 +986,7 @@ def in_hull_2d(point, vertices):
     Checks if a point is inside the convex hull defined by the 2d vertices.
     """
     hull = ConvexHull(vertices)
-    for pnt in xrange(len(vertices)): # traverse hull vertices counter-clockwise
+    for pnt in range(len(vertices)): # traverse hull vertices counter-clockwise
         next_pnt = pnt + 1 if pnt + 1 < len(vertices) else 0
         if is_left(vertices, hull.vertices[pnt], hull.vertices[next_pnt], point) < 0:
             return False # Point right of line
@@ -994,8 +1005,8 @@ def sort_circle(vertices):
             rights[next(tans)] = i
         else:
             lefts[next(tans)] = i
-    return [vertices[rights[tan]] for tan in sorted(rights.iterkeys())] \
-        + [vertices[lefts[tan]] for tan in sorted(lefts.iterkeys())]
+    return [vertices[rights[tan]] for tan in sorted(rights.keys())] \
+        + [vertices[lefts[tan]] for tan in sorted(lefts.keys())]
 
 
 def origin_in_hull_2d(vertices):
@@ -1003,7 +1014,7 @@ def origin_in_hull_2d(vertices):
     Checks if the origin is inside the convex hull defined by the 2d vertices.
     """
     sorted_vertices = sort_circle(vertices)
-    for pnt in xrange(len(sorted_vertices)): # traverse hull vertices counter-clockwise
+    for pnt in range(len(sorted_vertices)): # traverse hull vertices counter-clockwise
         next_pnt = pnt + 1 if pnt + 1 < len(sorted_vertices) else 0
         if origin_is_left(sorted_vertices, pnt, next_pnt) < 0:
             return False # Origin right of line
@@ -1021,12 +1032,12 @@ def calc_distance (coord1, coord2, bdim, distance_method, box, pot_kwargs={}):
 def find_neighbors_slow(coords, radii, bdim, box, distance_method=Distance.PERIODIC,
                          pot_kwargs={'shear': 0.}, include=None, cutoff_factor=1.):
     nparticles = radii.size
-    neighbor_distancess = [[] for _ in xrange(nparticles)]
-    neighbor_indicess = [[] for _ in xrange(nparticles)]
+    neighbor_distancess = [[] for _ in range(nparticles)]
+    neighbor_indicess = [[] for _ in range(nparticles)]
 
     # Only include given particles (e.g. for excluding rattlers)
     if include is None:
-        atom_labels = range(nparticles)
+        atom_labels = list(range(nparticles))
     else:
         atom_labels = [i for i in range(nparticles) if include[i]]
 

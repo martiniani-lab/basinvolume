@@ -1,4 +1,12 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import next
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 import re
@@ -13,12 +21,12 @@ try:
     from matplotlib import rc
     from joblib import Parallel, delayed
 except ImportError as err:
-    print err
+    print(err)
 from scipy.integrate import simps
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
 from basinvolume.post_processing import VolumeSanityCheck
-import ConfigParser
+import configparser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
@@ -36,7 +44,7 @@ plt.rcParams['figure.figsize'] = 10, 7.7
 ####SET COLOUR MAP######
 def get_color_cycle(ncol=7):
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / ncol) for i in xrange(ncol)])
+    color_cycle=cycle([cm(1. * i / ncol) for i in range(ncol)])
     return color_cycle
 ########################
 #####################LINE STYLE CYCLER####################
@@ -186,7 +194,7 @@ class mbar_compute_dos(object):
             full_flat_timeseries = np.copy(self.flat_timeseries)
             self.logn_E_subs = self.logn_E.copy()
             initial_f_k = np.array(self.mbar.f_k)
-            for iter in xrange(nr_subsamples):
+            for iter in range(nr_subsamples):
                 logging.info("subsampling - iteration {}".format(iter))
                 j = 0
                 for n_k in self.N_k:
@@ -218,7 +226,7 @@ class mbar_compute_dos(object):
         self.packing_frac = imp_packing['packing_frac']
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.adjustf_niter = configf.getint('MCRUNNER', 'adjustf_niter')
         configf.read(str(self.findk_configpath))
@@ -262,7 +270,7 @@ class mbar_compute_dos(object):
         K, N = self.karray.size, flat_timeseries.size
         u_kn = np.empty((K, N))
 
-        for i in xrange(K):
+        for i in range(K):
             if i == 0:
                 u_kn[i] = (self.ndof-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
             else:
@@ -286,7 +294,7 @@ class mbar_compute_dos(object):
         N_k[0] = len(indices) # number of uncorrelated samples
         flat_ts = np.append(flat_ts, ts_sphere[indices])
         #now loop through pt timeseries
-        for i in xrange(K-1):  #subsample the energies
+        for i in range(K-1):  #subsample the energies
             j = i+1
             g[j] = statisticalInefficiency_fft(timeseries[i])
             indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
@@ -423,7 +431,7 @@ class mbar_compute_dos(object):
         skip = max(1, int(len(self.timeseries[0])/1e3))
         for i,series in enumerate(self.timeseries):
             ax.plot(series[series>0].flatten()[::skip], ls=next(linecycler),
-                    color=color_cycle.next(), linewidth=1.8, label=str(i))
+                    color=next(color_cycle), linewidth=1.8, label=str(i))
         ax.set_ylabel(r'$r$', fontsize=28)
         ax.set_xlabel('steps/{}'.format(skip), fontsize=28)
         ax.set_xlim((0,150))
@@ -445,7 +453,7 @@ class mbar_compute_dos(object):
             herr.append(np.sqrt(var)/(np.amax(self.bin_edges)-np.amin(self.bin_edges)))
         herr = np.array(herr)
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
-            ax.errorbar(self.bin_edges[:-1], hist, linewidth=2, color=color_cycle.next(),
+            ax.errorbar(self.bin_edges[:-1], hist, linewidth=2, color=next(color_cycle),
                         label='{:.1f}'.format(self.karray[i])) #yerr=err
         ax.legend(frameon=False, loc="best", prop={'size':17}, numpoints=1, scatterpoints=1,
                   markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1, ncol=2)
@@ -456,7 +464,7 @@ class mbar_compute_dos(object):
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        for i in xrange(len(self.karray)):
+        for i in range(len(self.karray)):
             y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
         ax.set_xlabel(r'$\Delta r$')
@@ -499,14 +507,14 @@ class mbar_compute_dos(object):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(bin_edges, logn_E, label=r'$\log(\xi(r))$', color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, logn_E, label=r'$\log(\xi(r))$', color=next(color_cycle), linewidth=2)
         #dx = self.bin_edges[1] - self.bin_edges[0]
         rg = np.array(logn_E)
         rg -= (self.ndof-1)*np.log(bin_edges)
         rg -= np.mean(rg[:3])
         # logging.info("mean(rg[:3]) = {}".format(np.mean([rg[finindx[0]],rg[finindx[1]],rg[finindx[2]]])))
         assert(abs(np.mean(rg[:3])) < 1e-8)
-        ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=next(color_cycle), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
         plt.ylim((min(np.amin(rg), np.amin(logn_E)), max(np.amax(rg),np.amax(logn_E)) ))
@@ -553,7 +561,7 @@ class mbar_compute_dos(object):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(bin_edges, dos, color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, dos, color=next(color_cycle), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel('DOS')
         plt.savefig(self.base_directory + '/dos.eps')

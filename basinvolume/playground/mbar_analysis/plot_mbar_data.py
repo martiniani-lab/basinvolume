@@ -1,8 +1,17 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import map
+from builtins import zip
+from builtins import next
+from builtins import str
+from builtins import range
+from builtins import object
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import re
     import matplotlib
@@ -19,7 +28,7 @@ try:
     from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
     from scipy.optimize import curve_fit
 except ImportError as err:
-    print err
+    print(err)
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
@@ -38,11 +47,11 @@ matplotlib.rcParams.update(params)
 ####SET COLOUR MAP######
 def get_color_cycle():
     cm = plt.get_cmap('Accent')
-    color_cycle=cycle([cm(1. * i / 12) for i in xrange(12)][::-1])
+    color_cycle=cycle([cm(1. * i / 12) for i in range(12)][::-1])
     return color_cycle
 def get_color_cycle2():
     cm = plt.get_cmap('Paired')
-    color_cycle=cycle([cm(1. * i / 13) for i in xrange(13)][:-1:4])
+    color_cycle=cycle([cm(1. * i / 13) for i in range(13)][:-1:4])
     return color_cycle
 def get_marker_cycle():
     markers = ["o","v","s","h","^","8","p","<","*","D",">",]
@@ -142,7 +151,7 @@ class MBARPackingData(PackingData):
     def import_steps_time_series_diffusion_config(self, path, niter=int(1e7), eqtime=int(5e5)):
         if os.path.isdir(path):
             #import stepsize
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             diffusion_configfile = os.path.join(path, "diffusion_{}.{}.config".format(self.jammed_packing_name, niter))
             assert(os.path.isfile(diffusion_configfile))
             configf.read(diffusion_configfile)
@@ -162,7 +171,7 @@ class MBARPackingData(PackingData):
             file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
             for series_path in file_list:
                 fname = str(os.path.split(series_path)[-1].split())
-                digits = map(int, re.findall(r'\d+', fname))
+                digits = list(map(int, re.findall(r'\d+', fname)))
                 series_order.append(digits[-1])
                 timeseries.append(read_txt(series_path))
             X = np.array(timeseries)
@@ -179,7 +188,7 @@ class MBARPackingData(PackingData):
                 #the last nth step
                 mean_arr = []
                 nsubs = step_timeseries[0][eqtime:].size // n
-                for j in xrange(nsubs):
+                for j in range(nsubs):
                     mean_arr.append(np.sum(step_timeseries[0][eqtime+j*n:eqtime+(j+1)*n]))
                 mean, stdev = np.mean(np.array(mean_arr))*self.step_timeseries_stepsize, np.std(np.array(mean_arr))
                 step_timeseries_mean_path.append(mean)
@@ -204,7 +213,7 @@ class PolyPackingDataSet(PackingDataSet):
         try:
             self.hs_poly =  float('0.'+str_values[4][1:])
         except Exception:
-            print "can't pick up polydispersity, setting to 0. Folder name: ", self.set_name
+            print("can't pick up polydispersity, setting to 0. Folder name: ", self.set_name)
             self.hs_poly = 0.
         if 'fcc' in self.set_name:
             self.structural_label = 'fcc'
@@ -214,7 +223,7 @@ class PolyPackingDataSet(PackingDataSet):
             self.structural_label = 'fluid'
         else:
             self.structural_label = None
-            print "cannot recognise structural label (fcc or disordered), set to None"
+            print("cannot recognise structural label (fcc or disordered), set to None")
 
 class TINTBasinAnalysis(BasinAnalysis):
     def __init__(self, workspace=None, jammed_packings_dir='jammed_packings',
@@ -224,7 +233,7 @@ class TINTBasinAnalysis(BasinAnalysis):
                                                 jammed_packings_dir=jammed_packings_dir, analysis_dir=analysis_dir,
                                                 volume_file=volume_file, pressure_file=pressure_file,
                                                 zboo_file=zboo_file, volume_title=volume_title)
-        print self.volume_title
+        print(self.volume_title)
     def _collect_data_single_all(self, set_path):
         pd_list = []
         packing_dataset = PolyPackingDataSet(set_path)
@@ -389,7 +398,7 @@ class MBARBasinAnalysis(BasinAnalysis):
         self.diffusion_dir = diffusion_dir
         self.import_diffusion = import_diffusion
         self.import_diffusion_config = import_diffusion_config
-        print self.volume_title
+        print(self.volume_title)
 
     def _collect_data_single_all(self, set_path):
         pd_list = []
@@ -420,10 +429,10 @@ class MBARBasinAnalysis(BasinAnalysis):
                             path = os.path.join(base_directory_path, self.diffusion_dir)
                             pd.import_steps_time_series_diffusion_config(path)
                         pd_list.append(pd)
-                    except Exception, e:
-                        print "Exception: ", e
+                    except Exception as e:
+                        print("Exception: ", e)
                         print(traceback.format_exc())
-                        print "{} packing import failed".format(base_directory_path)
+                        print("{} packing import failed".format(base_directory_path))
         packing_dataset.add_data_all(pd_list, import_diffusion=self.import_diffusion)
         packing_dataset.compute_mean_and_moments()
         return packing_dataset
@@ -450,13 +459,13 @@ class plot_mbar_data(object):
                 if len(dataset.free_energies) > 1:
                     poly = dataset.hs_poly
                     structural_label = dataset.structural_label
-                    print structural_label, poly
+                    print(structural_label, poly)
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
                     x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                     y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    print len(x), len(y)
+                    print(len(x), len(y))
                     x = np.log(x)
-                    ax.scatter(x, y, color=color_cycle.next(), marker=marker_cycle.next(), s=70,
+                    ax.scatter(x, y, color=next(color_cycle), marker=next(marker_cycle), s=70,
                                label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
                                alpha=0.7)
                     #fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
@@ -506,8 +515,8 @@ class plot_mbar_data(object):
                     y1err = [np.std(dataset.pressures)]
                     x = [dataset.hs_poly]
 
-                    color=color_cycle.next()
-                    marker = marker_cycle.next()
+                    color=next(color_cycle)
+                    marker = next(marker_cycle)
                     ax.errorbar(x, y, yerr=yerr, marker=marker, ms=9,
                                 label='{} {}'.format(dataset.structural_label, x[0]), color=color)
                     ax1.errorbar(x, y1, yerr=y1err, marker=marker, ms=9,
@@ -551,7 +560,7 @@ class plot_mbar_data(object):
                     f = interp1d(x, cdf_x, bounds_error=True)
                     xref = np.linspace(x[0],x[-1],1000)
                     ax3.plot(xref, f(xref), label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly),
-                            linewidth=3, color=color_cycle.next(), linestyle=line_cycle.next())
+                            linewidth=3, color=next(color_cycle), linestyle=next(line_cycle))
             ax3.set_xlabel(r'$r_{max}$')
             ax3.set_ylabel(r'$\mathrm{cdf}[\mathrm{max}_r(h(r)/r^{N-1})]$')
             ax3.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
@@ -578,13 +587,13 @@ class plot_mbar_data(object):
                             log_core_vol.append(log_volume_nball(x[j], (packing.nparticles-1)*packing.bdim))
                             log_tot_vol.append(packing.F)
                         else:
-                            print packing.configpath
-                    ax4.scatter(-np.array(log_core_vol), np.array(log_tot_vol), color=color_cycle.next(),
-                                marker=marker_cycle.next(), s=70,
+                            print(packing.configpath)
+                    ax4.scatter(-np.array(log_core_vol), np.array(log_tot_vol), color=next(color_cycle),
+                                marker=next(marker_cycle), s=70,
                                 label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
                                 alpha=0.7)
-                    ax42.scatter(np.log(dataset.pressures), -np.array(log_core_vol), color=color_cycle.next(),
-                                 marker=marker_cycle.next(), s=70,
+                    ax42.scatter(np.log(dataset.pressures), -np.array(log_core_vol), color=next(color_cycle),
+                                 marker=next(marker_cycle), s=70,
                                  label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
                                  alpha=0.7)
 
@@ -613,7 +622,7 @@ class plot_mbar_data(object):
                     assert len(mbar_dataset.free_energies) == len(tint_dataset.free_energies)
                     ax5.errorbar(mbar_dataset.free_energies, tint_dataset.free_energies,
                                  xerr=mbar_dataset.free_energies_err, yerr=tint_dataset.free_energies_err,
-                                 color=color_cycle.next(), linestyle="None", marker=marker_cycle.next(), markersize=15,
+                                 color=next(color_cycle), linestyle="None", marker=next(marker_cycle), markersize=15,
                                  label='{} {:.1E}'.format(mbar_dataset.structural_label[:3], mbar_dataset.hs_poly),
                                  alpha=0.7, markeredgecolor='none')
 
@@ -638,9 +647,9 @@ class plot_mbar_data(object):
                     X, DX = dataset.step_timeseries_mean_path_data, dataset.step_timeseries_mean_path_std_data
                     Y, DY = dataset.step_timeseries_mean_eucdist_data, dataset.step_timeseries_mean_eucdist_std_data
                     label = '{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly)
-                    marker = marker_cycle.next()
-                    color = color_cycle.next()
-                    ls = line_cycle.next()
+                    marker = next(marker_cycle)
+                    color = next(color_cycle)
+                    ls = next(line_cycle)
                     for i, (x, dx, y, dy) in enumerate(zip(X, DX, Y, DY)):
                         if i > 0:
                             label = None
@@ -690,7 +699,7 @@ class plot_mbar_data(object):
             #hypercube data logr
             hyp_label = ['iso-hcube','hcube']
             for i,hd in enumerate(self.hypercube_data):
-                ls = line_cycle.next()
+                ls = next(line_cycle)
                 hc_arr = hd.log_gr_ratio
                 (hcx, hcxerr, hcy, hcyerr, hcfit) = hc_arr[:,0], hc_arr[:,1], hc_arr[:,2], hc_arr[:,3], hc_arr[:,4]
                 csv_tuple = np.array([hcx[:-25], hcxerr[:-25], hcy[:-25], hcyerr[:-25], hcfit[:-25]]).transpose()
@@ -707,11 +716,11 @@ class plot_mbar_data(object):
 
             #packing data
             for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
-                print '{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly)
-                print len(dataset.free_energies)
+                print('{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly))
+                print(len(dataset.free_energies))
                 if len(dataset.free_energies) > 1:
-                    color = color_cycle.next()
-                    ls = line_cycle.next()
+                    color = next(color_cycle)
+                    ls = next(line_cycle)
                     ax8, xlabel, ylabel = self._plot_all(ax8, dataset, plot_type="log_gr_ratio",
                                                         average=False,
                                                         label='{} {:.1E}'.format(dataset.structural_label[:3], dataset.hs_poly),
@@ -797,8 +806,8 @@ class plot_mbar_data(object):
 
 
 
-            color = [color_cycle.next(), color_cycle.next(), color_cycle.next()]
-            marker = [marker_cycle.next(), marker_cycle.next(), marker_cycle.next(), "D"]
+            color = [next(color_cycle), next(color_cycle), next(color_cycle)]
+            marker = [next(marker_cycle), next(marker_cycle), next(marker_cycle), "D"]
             for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
                 if len(dataset.free_energies) > 1:
                     boo = []
@@ -822,7 +831,7 @@ class plot_mbar_data(object):
                                                                  zorder=2 if dataset.structural_label == 'disordered' else 1)
                     mean_pca_asph = np.mean([packing.pca_asphericity for packing in dataset.packing_data])
                     err_pca_asph = np.std([packing.pca_asphericity for packing in dataset.packing_data]) / np.sqrt(len(dataset.packing_data)-1)
-                    print 'mean_pca_asph', mean_pca_asph
+                    print('mean_pca_asph', mean_pca_asph)
                     p2, caplines2, barlinecols2 = par1.errorbar(x, [mean_pca_asph], yerr=[err_pca_asph],
                                                                 marker=marker[1], ms=9, label=None, color=color[1],
                                                                 markeredgecolor=color[1], mew=2,
@@ -830,7 +839,7 @@ class plot_mbar_data(object):
                                                                 zorder=2 if dataset.structural_label == 'disordered' else 1)
                     mean_coord_dist = np.average([packing.mean_coord_dist for packing in dataset.packing_data],
                                                  weights=[1./np.sqrt(packing.var_coord_dist) for packing in dataset.packing_data])
-                    print 'mean_coord_dist', mean_coord_dist
+                    print('mean_coord_dist', mean_coord_dist)
                     var_coord_dist = np.average([(packing.mean_coord_dist - mean_coord_dist)**2 for packing in dataset.packing_data],
                                                 weights=[1./np.sqrt(packing.var_coord_dist) for packing in dataset.packing_data])
                     err_coord_dist = np.sqrt(var_coord_dist/(len(dataset.packing_data)-1))
@@ -882,13 +891,13 @@ class plot_mbar_data(object):
         color_cycle = get_color_cycle()
         line_cycle = get_line_cycle()
         for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
-                print '{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly)
-                print len(dataset.free_energies)
+                print('{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly))
+                print(len(dataset.free_energies))
                 if len(dataset.free_energies) > 1:
                     ax, xlabel, ylabel = self._plot_all(ax, dataset, plot_type=plot_type,
                                                         average=average,
                                                         label='{} {:.3E}'.format(dataset.structural_label, dataset.hs_poly),
-                                                        color=color_cycle.next(), ls=line_cycle.next())
+                                                        color=next(color_cycle), ls=next(line_cycle))
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
@@ -897,8 +906,8 @@ class plot_mbar_data(object):
         try:
             ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                       columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         if title:
             ax.set_title(title)
         if figname is None:
@@ -990,15 +999,15 @@ class plot_mbar_data(object):
         for i,dataset in enumerate(sorted(self.mbar_packing_datasets, key=lambda data: data.hs_poly)):
             if len(dataset.free_energies) > 0:
                 ax, xlabel, ylabel = self._plot_correlations(ax, dataset, plot_type=plot_type,
-                                                             label=dataset.hs_poly, color=color_cycle.next())
+                                                             label=dataset.hs_poly, color=next(color_cycle))
 
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         try:
             ax.legend(frameon=False, loc='best', prop={'size':20}, numpoints=1, scatterpoints=1, markerscale=1,
                        columnspacing=0.5, labelspacing=0.5, handletextpad=0.25)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         if logx:
             ax.set_xscale('log')
         if logy:
