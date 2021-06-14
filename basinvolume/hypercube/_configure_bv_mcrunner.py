@@ -102,7 +102,11 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
         f.write('ndof: {}\n'.format(self.ndof))
         f.write('sidelength: {}\n'.format(self.sidelength))
         f.write('[MCRUNNER]\n')
+<<<<<<< Updated upstream
         for key, value in self.mc_params.items() :
+=======
+        for key, value in list(self.mc_params.items()) :
+>>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key,value))
         f.write('[STATUS]\n')
         for i in range(self.nprocs):

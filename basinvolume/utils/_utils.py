@@ -53,7 +53,11 @@ class Result(dict):
         if list(self.keys()):
             m = max(list(map(len, list(self.keys())))) + 1
             return '\n'.join([k.rjust(m) + ': ' + repr(v)
+<<<<<<< Updated upstream
                               for k, v in self.items()])
+=======
+                              for k, v in list(self.items())])
+>>>>>>> Stashed changes
         else:
             return self.__class__.__name__ + "()"
 
@@ -400,11 +404,11 @@ def get_git_version_direct(repository='basinvolume'):
         env['LC_ALL'] = 'C'
         repo_path = None
         try:
-            if repository is "basinvolume":
+            if repository == "basinvolume":
                 repo_path = os.path.dirname(basinvolume.__file__)[:-12]
-            elif repository is "pele":
+            elif repository == "pele":
                 repo_path = os.path.dirname(pele.__file__)[:-5]
-            elif repository is "mcpele":
+            elif repository == "mcpele":
                 repo_path = os.path.dirname(mcpele.__file__)[:-7]
         except:
             sys.stderr.write("WARNING: could't find path to" + repository + "\n")
@@ -424,11 +428,11 @@ def get_git_version_direct(repository='basinvolume'):
 def get_git_version_from_build(repository="basinvolume"):
     repo_path = None
     try:
-        if repository is "basinvolume":
+        if repository == "basinvolume":
             repo_path = os.path.dirname(basinvolume.__file__)[:-12]
-        elif repository is "pele":
+        elif repository == "pele":
             repo_path = os.path.dirname(pele.__file__)[:-5]
-        elif repository is "mcpele":
+        elif repository == "mcpele":
             repo_path = os.path.dirname(mcpele.__file__)[:-7]
         repo_path = os.path.abspath(repo_path)
     except:
@@ -997,7 +1001,7 @@ def sort_circle(vertices):
     """
     Sorts vertices by polar angle
     """
-    tans = (y / x for [x, y] in vertices)
+    tans = (y / (x) for [x, y] in vertices)
     rights = {}
     lefts = {}
     for i, coord in enumerate(vertices):

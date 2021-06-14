@@ -1,8 +1,11 @@
 from __future__ import division
 from __future__ import print_function
+<<<<<<< Updated upstream
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
+=======
+>>>>>>> Stashed changes
 import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential

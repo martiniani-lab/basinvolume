@@ -21,7 +21,10 @@ import pele
 import mcpele
 import PyCG_DESCENT
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 encoding = 'utf-8'
 ## Numpy header files
 numpy_lib = os.path.split(np.__file__)[0]

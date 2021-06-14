@@ -311,7 +311,11 @@ class weighted_gaussian_kde(object):
             size = self.n
         norm = np.transpose(np.random.multivariate_normal(np.zeros((self.d,), dtype=np.float64),
                                                           self.covariance, size=int(size)))
+<<<<<<< Updated upstream
         indices = np.random.choice(range(0, self.n), p=old_div(self.weights,np.sum(self.weights)), size=size)
+=======
+        indices = np.random.choice(list(range(0, self.n)), p=old_div(self.weights,np.sum(self.weights)), size=size)
+>>>>>>> Stashed changes
         means = self.dataset[:, indices]
 
         return means + norm

@@ -283,7 +283,11 @@ def assert_pt_success(path, fname):
     except:
         return False
     configf.read(str(kmax_path))    
+<<<<<<< Updated upstream
     for key, value in success_dict.items():
+=======
+    for key, value in list(success_dict.items()):
+>>>>>>> Stashed changes
         if not (value == "True"):
             return False
     return True

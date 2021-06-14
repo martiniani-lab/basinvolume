@@ -66,9 +66,15 @@ class BVRemoveToxicData(object):
             hash_table = self._get_hash_history(gitrepo_path)
             assert self.git_toxic_version in hash_table, "toxic_hash not in table, try to update log"
             if where == 'later':
+<<<<<<< Updated upstream
                 hash_list = [git_hash for git_hash,index in hash_table.items() if index < hash_table[self.git_toxic_version]]
             elif where == 'older':
                 hash_list = [git_hash for git_hash,index in hash_table.items() if index > hash_table[self.git_toxic_version]]
+=======
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index < hash_table[self.git_toxic_version]]
+            elif where == 'older':
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index > hash_table[self.git_toxic_version]]
+>>>>>>> Stashed changes
             else:
                 raise NotImplementedError('option \"{}\" not known')
             self.kmax_toxic_list = []
@@ -88,9 +94,15 @@ class BVRemoveToxicData(object):
             hash_table = self._get_hash_history(gitrepo_path)
             assert self.git_toxic_version in hash_table, "toxic_hash not in table, try to update log"
             if where == 'later':
+<<<<<<< Updated upstream
                 hash_list = [git_hash for git_hash,index in hash_table.items() if index < hash_table[self.git_toxic_version]]
             elif where == 'older':
                 hash_list = [git_hash for git_hash,index in hash_table.items() if index > hash_table[self.git_toxic_version]]
+=======
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index < hash_table[self.git_toxic_version]]
+            elif where == 'older':
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index > hash_table[self.git_toxic_version]]
+>>>>>>> Stashed changes
             else:
                 raise NotImplementedError('option \"{}\" not known')
             self.kmin_toxic_list = []
@@ -111,9 +123,15 @@ class BVRemoveToxicData(object):
             print("building toxic hash list...", end=' ')
             assert self.git_toxic_version in hash_table, "toxic_hash not in table, try to update log"
             if where == 'later':
+<<<<<<< Updated upstream
                 hash_list = [git_hash for git_hash,index in hash_table.items() if index < hash_table[self.git_toxic_version]]
             elif where == 'older':
                 hash_list = [git_hash for git_hash,index in hash_table.items() if index > hash_table[self.git_toxic_version]]
+=======
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index < hash_table[self.git_toxic_version]]
+            elif where == 'older':
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index > hash_table[self.git_toxic_version]]
+>>>>>>> Stashed changes
             else:
                 raise NotImplementedError('option \"{}\" not known')
             print("DONE")

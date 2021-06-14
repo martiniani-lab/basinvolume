@@ -1,6 +1,9 @@
 from __future__ import division
 from __future__ import print_function
+<<<<<<< Updated upstream
 from builtins import range
+=======
+>>>>>>> Stashed changes
 import numpy as np
 #from pele.utils.rotations import vector_random_uniform_hypersphere
 from pele.potentials import Harmonic

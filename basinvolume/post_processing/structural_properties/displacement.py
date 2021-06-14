@@ -1,11 +1,15 @@
 from __future__ import division
 from __future__ import absolute_import
+<<<<<<< Updated upstream
 from future import standard_library
 standard_library.install_aliases()
 from builtins import zip
 from builtins import str
 from builtins import range
 import configparser
+=======
+import ConfigParser
+>>>>>>> Stashed changes
 import os
 import ast
 import traceback

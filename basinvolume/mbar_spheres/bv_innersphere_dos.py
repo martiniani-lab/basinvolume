@@ -1,6 +1,10 @@
 from __future__ import absolute_import
+<<<<<<< Updated upstream
 import numpy as np
+=======
+>>>>>>> Stashed changes
 import random
+import numpy as np
 import os
 import argparse
 import logging
@@ -8,6 +12,7 @@ import traceback
 import copy
 from ._config_innersphere_mcrunner import _config_innersphere_mcrunner
 from basinvolume.enums import Minimizer
+
 
 def worker_innersphere(fname, kwargs):
     try:

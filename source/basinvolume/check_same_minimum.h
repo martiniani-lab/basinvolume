@@ -84,9 +84,9 @@ protected:
 public:
     CheckSameMinimum(std::shared_ptr<OPT_T> optimizer,
             std::shared_ptr<pele::BasePotential> potential,
-            pele::Array<double> & origin, pele::Array<double> & rattlers, double dtol,
-            const size_t eqsteps, std::shared_ptr<distance_policy> const & dist,
-            const bool perform_convergence_test,
+                     pele::Array<double> & origin, pele::Array<double> & rattlers, double dtol,
+                     const size_t eqsteps, std::shared_ptr<distance_policy> const & dist,
+                     const bool perform_convergence_test,
             const bool collect_minima_list);
     virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC * mc);
     virtual ~CheckSameMinimum() {}
@@ -222,8 +222,8 @@ double CheckSameMinimum<distance_policy, OPT_T>::_get_d2(pele::Array<double> con
     return distance2;
 }
 
-/*compute maximum of squared distances between a particle and its origin after aligning one particle with its origin
-this ignores the rattlers completely*/
+/* compute maximum of squared distances between a particle and its origin after aligning one particle with its origin
+this ignores the rattlers completely */
 template <typename distance_policy, class OPT_T>
 double CheckSameMinimum<distance_policy, OPT_T>::_get_d2_max(pele::Array<double> const & coords)
 {

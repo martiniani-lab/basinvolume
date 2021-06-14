@@ -1,5 +1,8 @@
 from __future__ import division
+<<<<<<< Updated upstream
 from __future__ import print_function
+=======
+>>>>>>> Stashed changes
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
@@ -800,7 +803,11 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
         f.write('[PACKING]\n')
+<<<<<<< Updated upstream
         for key, value in self.seeds.items():
+=======
+        for key, value in list(self.seeds.items()):
+>>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key, value))
         f.write('method: {}\n'.format(self.method))
         f.write('nparticles: {}\n'.format(self.nparticles))

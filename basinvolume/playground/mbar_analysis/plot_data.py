@@ -1,5 +1,6 @@
 from __future__ import division
 from __future__ import print_function
+<<<<<<< Updated upstream
 from future import standard_library
 standard_library.install_aliases()
 from builtins import next
@@ -8,6 +9,8 @@ from builtins import map
 from builtins import zip
 from builtins import range
 from builtins import object
+=======
+>>>>>>> Stashed changes
 try:
     import numpy as np
     import argparse
