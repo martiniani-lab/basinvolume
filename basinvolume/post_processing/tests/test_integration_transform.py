@@ -12,29 +12,7 @@ import numpy as np
 #     #(for best performance of the variable transform)
 #     return (3*128)/(x+3*128/22)
 
-<<<<<<< Updated upstream
-# def test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const, displ_k_min_trafo):
-#     """
-#     Computes integral with variable transform and directly for consistency check.
-#     """
-#     k_old = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const=kappa_const)
-#     k = spring_constants_variable_transform(nr_points, k_max, displ_k_min_trafo, nr_particles, dimension, kappa_const=kappa_const)
-#     print "k_old: "
-#     print k_old
-#     print "k: "
-#     print k
-#     samples = [integrand(x) for x in k]
-#     print "integral by variable transform (reference):"
-#     print calculate_GL_integral_with_transform(samples, k_max, nr_particles, dimension, kappa_const=kappa_const, displ_k_min_trafo=displ_k_min_trafo)
-#     print "error on integral by variable transform with parameter:"
-#     print calculate_GL_integral_with_transform_get_error(samples, samples, k_max, nr_particles, dimension, k_min=0.0, kappa_const=kappa_const, displ_k_min_trafo=samples[0])
-#     print "integral by quad:"
-#     print quad(integrand, k[0], k[-1])
-#     print "integral by fixed_quad:"
-#     print fixed_quad(integrand, k[0], k[-1], n=nr_points)
-#     print "integral by plain GL integration:"
-#     print calculate_GL_integral_range(integrand, k[0], k[-1], nr_points)
-=======
+
 def test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const, displ_k_min_trafo):
     """
     Computes integral with variable transform and directly for consistency check.
@@ -56,7 +34,7 @@ def test_integration_with_transform(nr_points, k_max, displ_k0, nr_particles, di
     print(fixed_quad(integrand, k[0], k[-1], n=nr_points))
     print("integral by plain GL integration:")
     print(calculate_GL_integral_range(integrand, k[0], k[-1], nr_points))
->>>>>>> Stashed changes
+
     
 # if __name__ == "__main__":
 #     nr_points = 6

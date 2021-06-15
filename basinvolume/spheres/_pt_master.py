@@ -593,17 +593,10 @@ class PT_Master(object):
                                             / nswaps)
             if self.ptiter == self.skip:
                 self.status_streams[ireplica].write('#')
-<<<<<<< Updated upstream
-                for key, _ in status.items():
-                    self.status_streams[ireplica].write('{:<12}\t'.format(key))
-                self.status_streams[ireplica].write('\n')
-            for _, value in status.items():
-=======
                 for key, _ in list(status.items()):
                     self.status_streams[ireplica].write('{:<12}\t'.format(key))
                 self.status_streams[ireplica].write('\n')
             for _, value in list(status.items()):
->>>>>>> Stashed changes
                 self.status_streams[ireplica].write('{:>12.3f}\t'.format(value))
             self.status_streams[ireplica].write('\n')
 

@@ -1,9 +1,5 @@
 from __future__ import division
 from __future__ import print_function
-<<<<<<< Updated upstream
-# from __future__ import print_function
-=======
->>>>>>> Stashed changes
 import numpy as np
 from basinvolume.spheres import HS_Generate_Packing
 import unittest

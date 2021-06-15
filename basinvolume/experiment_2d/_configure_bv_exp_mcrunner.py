@@ -153,11 +153,7 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[MCRUNNER]\n')
-<<<<<<< Updated upstream
-        for key, value in self.mc_params.items() :
-=======
         for key, value in list(self.mc_params.items()) :
->>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key,value))
         f.write('[STATUS]\n')
         for i in range(self.nprocs):

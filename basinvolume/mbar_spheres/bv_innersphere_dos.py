@@ -1,8 +1,4 @@
 from __future__ import absolute_import
-<<<<<<< Updated upstream
-import numpy as np
-=======
->>>>>>> Stashed changes
 import random
 import numpy as np
 import os

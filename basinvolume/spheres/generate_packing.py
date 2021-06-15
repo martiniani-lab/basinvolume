@@ -1,8 +1,5 @@
 from __future__ import division
-<<<<<<< Updated upstream
 from __future__ import print_function
-=======
->>>>>>> Stashed changes
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
@@ -14,7 +11,7 @@ import os
 from basinvolume.spheres import HS_MCrunner, HS_MCrunnerOptDiffusion
 from pele.distance import put_in_box, Distance
 from pele.potentials import HS_WCA
-from pele.optimize._quench import lbfgs_cpp
+from pele.optimize._quench import lbfgs_cpp, modifiedfire_cpp
 from basinvolume.utils import (trymakedir, get_git_version, get_python_version,
                                get_cython_version, cround, calc_distance,
                                volume_nball, import_packing, conf_get_default)
@@ -488,17 +485,21 @@ class HS_Generate_Packing(_Generate_Packing):
                 current_frac = 0.3
             while current_frac < self.packing_frac:
                 self.potential = self.create_potential(0.05, current_frac)
-                res = lbfgs_cpp(coords, self.potential, nsteps=1e4, tol=1e-5)
+                res = modifiedfire_cpp(coords, self.potential, nsteps=1e4, tol=1e-5)
                 coords = res.coords
+                
                 # print((coords, "coords in"))
                 current_frac += 0.02
             self.potential = self.create_potential(0.05, self.packing_frac)
-            res = lbfgs_cpp(coords, self.potential, nsteps=1e5, tol=1e-5)
+            res = modifiedfire_cpp(coords, self.potential, nsteps=1e5, tol=1e-5)
             # res = lbfgs_cpp(coords, self.potential, nsteps=10000)
             # assert(res.success is True) #checks that a minimum configuration
             # has been found
             self.coords = np.array(res.coords)
+            
             self.energy = res.energy
+            print(coords)
+            print(self.energy)
 #            logging.info("Generated new start coords")
 #            sort radii in cavity
 #            self._sort_radii_in_cavities()
@@ -803,11 +804,8 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#Generate_Packings base class input parameters\n')
         f.write('[PACKING]\n')
-<<<<<<< Updated upstream
-        for key, value in self.seeds.items():
-=======
+
         for key, value in list(self.seeds.items()):
->>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key, value))
         f.write('method: {}\n'.format(self.method))
         f.write('nparticles: {}\n'.format(self.nparticles))

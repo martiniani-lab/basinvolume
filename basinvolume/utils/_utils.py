@@ -53,11 +53,7 @@ class Result(dict):
         if list(self.keys()):
             m = max(list(map(len, list(self.keys())))) + 1
             return '\n'.join([k.rjust(m) + ': ' + repr(v)
-<<<<<<< Updated upstream
-                              for k, v in self.items()])
-=======
                               for k, v in list(self.items())])
->>>>>>> Stashed changes
         else:
             return self.__class__.__name__ + "()"
 

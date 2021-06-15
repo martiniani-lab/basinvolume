@@ -145,11 +145,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[KMIN_MCRUNNER]\n')
-<<<<<<< Updated upstream
-        for key, value in self.mc_params.items() :
-=======
         for key, value in list(self.mc_params.items()) :
->>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key,value))
 
     def _print_results(self):
@@ -161,11 +157,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[KMIN_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-<<<<<<< Updated upstream
-        for key, value in status.items() :
-=======
         for key, value in list(status.items()) :
->>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min))

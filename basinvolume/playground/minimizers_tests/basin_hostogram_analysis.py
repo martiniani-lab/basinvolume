@@ -1,10 +1,7 @@
 from __future__ import division
 from __future__ import print_function
-<<<<<<< Updated upstream
 from builtins import zip
 from builtins import range
-=======
->>>>>>> Stashed changes
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 import matplotlib.pyplot as plt

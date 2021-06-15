@@ -300,11 +300,7 @@ class configure_bv_gauss_mcrunner(object):
         f.write('[IMPORTED_GAUSSIAN_SUM_MINIMUM]\n')
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('[MCRUNNER]\n')
-<<<<<<< Updated upstream
-        for key, value in self.mc_params.items() :
-=======
         for key, value in list(self.mc_params.items()) :
->>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key,value))
         f.write('[STATUS]\n')
         for i in range(self.nprocs):

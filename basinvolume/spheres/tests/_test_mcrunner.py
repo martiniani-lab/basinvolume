@@ -1,10 +1,7 @@
 from __future__ import print_function
-<<<<<<< Updated upstream
 from __future__ import division
 from builtins import range
 from past.utils import old_div
-=======
->>>>>>> Stashed changes
 import numpy as np
 import time
 from pele.potentials import Harmonic
@@ -245,11 +242,7 @@ def main():
     print('kmax ',k_max)
     print('prob ',prob)
     #k_max= nr_particles*dimension/(r*r) = 20.25
-<<<<<<< Updated upstream
     print('nr_particles*dimension/(r*r): ',old_div(nr_particles*dimension,(r*r)))
-=======
-    print('nr_particles*dimension/(r*r): ',nr_particles*dimension/(r*r))
->>>>>>> Stashed changes
 
     #===========================================================================
     # COMPUTE k ARRAY

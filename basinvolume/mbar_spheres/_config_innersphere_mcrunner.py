@@ -166,11 +166,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[INNERSPHERE_MCRUNNER]\n')
-<<<<<<< Updated upstream
-        for key, value in self.mc_params.items() :
-=======
         for key, value in list(self.mc_params.items()) :
->>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key,value))
 
     def _print_results(self):
@@ -182,19 +178,11 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         f = open(fname, 'a')
         f.write('[INNERSPHERE_GAUSSIAN_MCRUNNER_STATUS]\n')
         status = self.mcrunner_gaussian.get_status()
-<<<<<<< Updated upstream
-        for key, value in status.items():
-            f.write('{}: {:.16f}\n'.format(key, value))
-        f.write('[INNERSPHERE_BALLPICK_MCRUNNER_STATUS]\n')
-        status = self.mcrunner_ballpick.get_status()
-        for key, value in status.items():
-=======
         for key, value in list(status.items()):
             f.write('{}: {:.16f}\n'.format(key, value))
         f.write('[INNERSPHERE_BALLPICK_MCRUNNER_STATUS]\n')
         status = self.mcrunner_ballpick.get_status()
         for key, value in list(status.items()):
->>>>>>> Stashed changes
             f.write('{}: {:.16f}\n'.format(key, value))
         f.close()
         path = os.path.join(self.base_directory, "inner_sphere.timeseries")

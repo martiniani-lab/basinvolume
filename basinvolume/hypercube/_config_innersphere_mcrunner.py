@@ -113,11 +113,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         f.write('ndof: {}\n'.format(self.ndof))
         f.write('sidelength: {}\n'.format(self.sidelength))
         f.write('[INNERSPHERE_MCRUNNER]\n')
-<<<<<<< Updated upstream
-        for key, value in self.mc_params.items() :
-=======
         for key, value in list(self.mc_params.items()) :
->>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key,value))
     
     def _print_results(self):
@@ -129,11 +125,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[INNERSPHERE_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-<<<<<<< Updated upstream
-        for key, value in status.items() :
-=======
         for key, value in list(status.items()) :
->>>>>>> Stashed changes
             f.write('{}: {}\n'.format(key,value))
         f.close()
         path = os.path.join(self.base_directory, "inner_sphere.timeseries")

@@ -1,10 +1,7 @@
 from __future__ import print_function
-<<<<<<< Updated upstream
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
-=======
->>>>>>> Stashed changes
 from basinvolume.mbar_spheres import mbar_compute_dos
 import os
 import configparser

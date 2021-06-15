@@ -1,9 +1,6 @@
 from __future__ import division
 from __future__ import print_function
-<<<<<<< Updated upstream
 from builtins import range
-=======
->>>>>>> Stashed changes
 import numpy as np
 import os
 from pele.potentials import HS_WCA
