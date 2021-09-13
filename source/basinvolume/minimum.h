@@ -1,7 +1,7 @@
 #ifndef _BV_MINIMUM_H__
 #define _BV_MINIMUM_H__
 
-#include "pele/array.h"
+#include "pele/array.hpp"
 
 namespace bv{
 

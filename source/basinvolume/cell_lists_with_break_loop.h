@@ -1,7 +1,7 @@
 #ifndef _BV_CELL_LISTS_WITH_BREAK_LOOP_H
 #define _BV_CELL_LISTS_WITH_BREAK_LOOP_H
 
-#include "pele/cell_lists.h"
+#include "pele/cell_lists.hpp"
 
 #include "cell_loop_break.h"
 

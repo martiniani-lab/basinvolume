@@ -20,7 +20,7 @@ cdef extern from "<memory>" namespace "std":
 #===============================================================================
 # pele::Array
 #===============================================================================
-cdef extern from "pele/array.h" namespace "pele":
+cdef extern from "pele/array.hpp" namespace "pele":
     cdef cppclass Array[dtype] :
         Array() except +
         Array(size_t) except +

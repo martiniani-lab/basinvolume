@@ -5,7 +5,7 @@
 #include <complex>
 #include <stdexcept>
 
-#include "pele/meta_pow.h"
+#include "pele/meta_pow.hpp"
 
 namespace bv {
 

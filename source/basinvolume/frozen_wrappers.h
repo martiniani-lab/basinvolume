@@ -5,10 +5,10 @@
 #include <memory>
 #include <stdexcept>
 
-#include "pele/array.h"
-#include "pele/cell_lists.h"
-#include "pele/distance.h"
-#include "pele/frozen_atoms.h"
+#include "pele/array.hpp"
+#include "pele/cell_lists.hpp"
+#include "pele/distance.hpp"
+#include "pele/frozen_atoms.hpp"
 
 #include "mcpele/mc.h"
 

@@ -6,8 +6,8 @@
 #include <numeric>
 #include <stdexcept>
 
-#include "pele/array.h"
-#include "pele/distance.h"
+#include "pele/array.hpp"
+#include "pele/distance.hpp"
 
 #include "mcpele/mc.h"
 

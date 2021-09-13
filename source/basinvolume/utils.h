@@ -6,8 +6,8 @@
 #include <numeric>
 #include <list>
 #include <vector>
-#include "pele/array.h"
-#include "pele/distance.h"
+#include "pele/array.hpp"
+#include "pele/distance.hpp"
 #include <fstream>
 #include <exception>
 #include <limits>

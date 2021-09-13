@@ -1,8 +1,8 @@
 #ifndef _BV_CHECK_MINIMUM_IS_HCP_H
 #define _BV_CHECK_MINIMUM_IS_HCP_H
 
-#include "pele/distance.h"
-#include "pele/optimizer.h"
+#include "pele/distance.hpp"
+#include "pele/optimizer.hpp"
 
 #include "mcpele/histogram.h"
 #include "mcpele/mc.h"

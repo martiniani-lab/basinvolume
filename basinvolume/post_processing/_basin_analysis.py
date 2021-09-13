@@ -51,7 +51,7 @@ class BasinAnalysis(object):
         data_pickle = os.path.join(self.workspace, data_name)
         if os.path.isfile(data_pickle) and not no_pickle:
             with open(data_pickle, "rb") as f:
-                self.packing_datasets = pickle.loads(f.read())
+                self.packing_datasets = pickle.loads(f.read(), encoding='latin-1')
         else:
             for set_path in listdir:
                 print(("set_path", set_path))

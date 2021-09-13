@@ -4,9 +4,9 @@
 #include <list>
 #include <vector>
 
-#include "pele/array.h"
-#include "pele/distance.h"
-#include "pele/harmonic.h"
+#include "pele/array.hpp"
+#include "pele/distance.hpp"
+#include "pele/harmonic.hpp"
 
 #include "mcpele/histogram.h"
 #include "mcpele/mc.h"

@@ -1,7 +1,7 @@
 #ifndef _BV_RECORD_DISP2_HISTOGRAM_H
 #define _BV_RECORD_DISP2_HISTOGRAM_H
 
-#include "pele/array.h"
+#include "pele/array.hpp"
 
 #include "mcpele/histogram.h"
 #include "mcpele/record_energy_histogram.h"

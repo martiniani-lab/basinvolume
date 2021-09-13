@@ -1,7 +1,7 @@
 #ifndef _BV_CHECK_OVERLAP_CELL_LISTS_H
 #define _BV_CHECK_OVERLAP_CELL_LISTS_H
 
-#include "pele/cell_lists.h"
+#include "pele/cell_lists.hpp"
 
 #include "cell_lists_with_break_loop.h"
 

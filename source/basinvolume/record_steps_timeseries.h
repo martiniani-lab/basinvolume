@@ -4,8 +4,8 @@
 #include <vector>
 #include <memory>
 
-#include "pele/array.h"
-#include "pele/distance.h"
+#include "pele/array.hpp"
+#include "pele/distance.hpp"
 
 #include "mcpele/mc.h"
 #include "mcpele/record_scalar_timeseries.h"

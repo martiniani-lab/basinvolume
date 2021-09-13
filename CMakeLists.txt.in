@@ -18,6 +18,37 @@ include_directories(${pele_include})
 include_directories(${mcpele_include})
 include_directories(${py_cgdescent_include})
 
+
+# Hacky way to deal with sundials being a part of
+# the pele imports
+set(SUNDIALS_INCLUDE_DIR
+  /home/praharsh/Dropbox/research/bv-libraries/sunnnew/sundials/SN_EXT/include
+  CACHE PATH "Location of SUNDIALS header files")
+set(SUNDIALS_LIBRARY_DIR
+  /home/praharsh/Dropbox/research/bv-libraries/sunnnew/sundials/SN_EXT/lib
+  CACHE PATH "Location of SUNDIALS libraries")
+
+# Find the SUNDIALS libraries
+find_library(SUNDIALS_SOLVER_LIB
+  sundials_cvode ${SUNDIALS_LIBRARY_DIR}
+  DOC "CVODE library")
+
+find_library(SUNDIALS_NVEC_LIB
+  sundials_nvecserial ${SUNDIALS_LIBRARY_DIR}
+  DOC "NVECTOR_SERIAL library")
+
+find_library(SUNDIALS_MANYVEC_LIB
+  sundials_nvecmanyvector ${SUNDIALS_LIBRARY_DIR}
+  DOC "NVECTOR_MANYVECTOR library")
+
+set(SUNDIALS_LIBRARIES
+  -L${SUNDIALS_LIBRARY_DIR}
+  ${SUNDIALS_SOLVER_LIB}
+  ${SUNDIALS_NVEC_LIB}
+  ${SUNDIALS_MANYVEC_LIB}
+  ${SUNDIALS_EXTRA_LIBS})
+
+
 cmake_minimum_required(VERSION 2.8)
 
 enable_language(CXX)
@@ -28,6 +59,7 @@ SET(CMAKE_CXX_FLAGS __COMPILER_EXTRA_ARGS__)
 # set the basinvolume include directory
 set(bv_include ${CMAKE_SOURCE_DIR}/source)
 include_directories(${bv_include})
+include_directories(${SUNDIALS_INCLUDE_DIR})
 message("basinvolume include directory: ${bv_include}")
 
 # build the bv library
@@ -42,6 +74,7 @@ function(make_cython_lib cython_cxx_source)
   string(REGEX REPLACE ".cxx$" "" library_name ${library_name})
   add_library(${library_name} SHARED ${cython_cxx_source})
   target_link_libraries(${library_name} bv_lib)
+  target_link_libraries(${library_name} ${SUNDIALS_LIBRARIES})
   set_target_properties(${library_name} PROPERTIES PREFIX "")
   message("making library ${library_name} from source ${cython_cxx_source}")
 endfunction(make_cython_lib)

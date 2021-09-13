@@ -1,11 +1,11 @@
 #ifndef _BV_HS_WCA_Smooth_H
 #define _BV_HS_WCA_Smooth_H
 
-#include "pele/simple_pairwise_potential.h"
-#include "pele/simple_pairwise_ilist.h"
-#include "pele/atomlist_potential.h"
-#include "pele/distance.h"
-#include "pele/frozen_atoms.h"
+#include "pele/simple_pairwise_potential.hpp"
+#include "pele/simple_pairwise_ilist.hpp"
+#include "pele/atomlist_potential.hpp"
+#include "pele/distance.hpp"
+#include "pele/frozen_atoms.hpp"
 #include <memory>
 
 namespace bv {

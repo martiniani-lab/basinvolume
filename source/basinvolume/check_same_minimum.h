@@ -8,9 +8,9 @@
 #include <memory>
 #include <random>
 
-#include "pele/distance.h"
-#include "pele/optimizer.h"
-#include "pele/vecn.h"
+#include "pele/distance.hpp"
+#include "pele/optimizer.hpp"
+#include "pele/vecn.hpp"
 
 #include "mcpele/mc.h"
 #include "mcpele/histogram.h"

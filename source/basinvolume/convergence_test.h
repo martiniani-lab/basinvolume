@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "pele/array.h"
+#include "pele/array.hpp"
 
 #include "mcpele/lowest_eigenvalue.h"
 

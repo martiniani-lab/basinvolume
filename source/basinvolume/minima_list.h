@@ -8,7 +8,7 @@
 #include <list>
 #include <algorithm>
 
-#include "pele/distance.h"
+#include "pele/distance.hpp"
 
 #include "minimum.h"
 

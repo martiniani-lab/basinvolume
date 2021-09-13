@@ -1,7 +1,7 @@
 #ifndef _BV_CGD_H__
 #define _BV_CGD_H__
 
-#include "pele/distance.h"
+#include "pele/distance.hpp"
 #include "PyCG_DESCENT/cg_descent_wrapper.hpp"
 
 /* this is an implementation of the cg_descent algorithm

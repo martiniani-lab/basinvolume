@@ -4,7 +4,7 @@
 #include <math.h>
 #include <random>
 
-#include "pele/array.h"
+#include "pele/array.hpp"
 
 namespace bv {
 

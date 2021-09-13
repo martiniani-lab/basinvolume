@@ -1,8 +1,11 @@
 #ifndef _BV_CHECK_SAME_MINIMUM_CONFIG_H
 #define _BV_CHECK_SAME_MINIMUM_CONFIG_H
 
+
+#include "pele/optimizer.hpp"
+
 #include "mcpele/mc.h"
-#include "pele/optimizer.h"
+
 
 namespace bv {
 
