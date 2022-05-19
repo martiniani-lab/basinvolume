@@ -295,11 +295,8 @@ class mbar_compute_dos(object):
         N_k[0] = len(indices) # number of uncorrelated samples
         flat_ts = np.append(flat_ts, ts_sphere[indices])
         #now loop through pt timeseries
-        print(K)
-        print(len(timeseries))
         for i in range(K-1):  #subsample the energies
             j = i+1
-            print("i = {0}, j = {1}\n".format(i,j))
             g[j] = statisticalInefficiency_fft(timeseries[i])
             indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
             N_k[j] = len(indices) # number of uncorrelated samples
@@ -474,7 +471,7 @@ class mbar_compute_dos(object):
             # y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
         ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel('logDOS')
+        ax.set_ylabel("logDOS")
         plt.savefig(self.base_directory + '/raw_log_dos.eps')
         if self.show:
             plt.show()

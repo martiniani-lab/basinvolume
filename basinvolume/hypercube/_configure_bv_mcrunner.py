@@ -26,7 +26,7 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter=5e3, adjustf_navg=100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, single=False, seeds=None, 
                  record_trajectory=False, record_trajectory_npoints=1e4,
-                 record_histogram=True,verbose=False):
+                 record_histogram=False,verbose=False):
                 
         self.temperature=1.0
         self._set_paths(base_dir)
