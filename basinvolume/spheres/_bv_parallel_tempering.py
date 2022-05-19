@@ -29,7 +29,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     lownegk : float
         lowest negative k
     skip: int
-        number of pt iteration where swaps should be skipped. For instance while the stepsize is adjusted, pt swaps shuold be avoided
+        number of pt iteration where swaps should be skipped. For instance while the stepsize is adjusted, pt swaps should be avoided
     max_ptiter: int
         inherited max_ptiter, in this class it plays as the minimum number of pt_iter. In other words it's eq_min_ptiter
     eq_min_ptiter: int
@@ -68,7 +68,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.max_eq_time = int(max_eq_time)
         self.bs_nodes = int(bs_nodes)
         self.numnegk = int(numnegk)
-        self.lownegk = int(lownegk)
+        self.lownegk = lownegk
         self.fix_com = fix_com
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
@@ -77,7 +77,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if not (self.min_window > self.mcrunner_eqsteps):
             logging.info("self.min_window: {}".format(self.min_window))
             logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
-        assert(self.min_window > self.mcrunner_eqsteps)
+        assert(self.min_window > self.mcrunner_eqsteps) #NB: All times are absolute values from the start of the simulation! Need the min_window to be done AFTER the equilibration steps
         assert(self.max_eq_time > self.mcrunner_eqsteps)
 
     def _print_initialise(self):
@@ -94,7 +94,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             self.permutations_stream = open(r'{0}/rem_permutations'.format(base_directory),'w')
 
     def _print_data(self):
-        self._all_dump_timeseries() #convergence is tested in this function
+        if len(self.timeseries2) > 0:
+            self._all_dump_timeseries() #convergence is tested in this function
         #the histogram depends on self.timeseries that is not empty only once the ts test is passed
         logging.info("_print_data -- BEGIN")
         logging.info("self.ptiter: {}".format(self.ptiter))

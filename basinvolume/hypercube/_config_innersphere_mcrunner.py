@@ -20,7 +20,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
     """
         
     def __init__(self, base_dir, niter=None, hmin=0, hmax=0.01, hbinsize=0.0005, 
-                 seeds=None, record_histogram=False, verbose=False):
+                 seeds=None, record_histogram=True, verbose=False):
                 
         self.temperature=1.0
         
@@ -28,7 +28,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         self._import_packing_config_files()
         self.k = 1.0 / self.u2_k0
         self.stepsize = 1./np.sqrt(self.k)
-        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
+        self.coords = np.zeros(int(self.ndof)) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if niter is not None:
             self.niter = niter
         
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n93_l1', niter=1e5, seeds=seeds, verbose=False)
+    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n100_l1', niter=1e5, seeds=seeds, verbose=False)
     print('simulation started')
     start=time.time()
     sim.run()

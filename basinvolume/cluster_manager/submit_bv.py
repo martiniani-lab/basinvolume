@@ -36,7 +36,7 @@ class SubmitBV(object):
     *nodays if true use walltime HH:MM:SS format (necessary for some clusters)
     *numnegk is the number of negative ks to use during PT
     """
-    def __init__(self, ndim, batch_system=BatchSystem.PBS, workdir=None,
+    def __init__(self, ndim, batch_system=BatchSystem.SLURM, workdir=None,
                  job_label='32_70_88_2D',
                  explore_dir='explore_bv_jammed_packing',
                  kmax_config='findk_jammed_packing',
@@ -705,7 +705,7 @@ if __name__ == "__main__":
     single_parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
     single_parser.add_argument("--batch-system", type=str,
                                help="Batch system. Supported: PBS, SLURM. "
-                                    "Default: 'PBS'", default='PBS')
+                                    "Default: 'SLURM'", default='SLURM')
     single_parser.add_argument("--mpi-implementation", type=str,
                                help="MPI implementation. Supported: OpenMPI, Intel. "
                                     "Default: 'OpenMPI'", default='OPENMPI')

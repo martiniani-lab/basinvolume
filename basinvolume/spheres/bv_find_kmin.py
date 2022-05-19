@@ -7,7 +7,7 @@ import argparse
 import logging
 import traceback
 import copy
-from ._kmin_mcrunner import _kmin_mcrunner
+from _kmin_mcrunner import _kmin_mcrunner
 from basinvolume.experiment_2d import _kmin_exp_mcrunner
 from basinvolume.utils import check_kmax_reasonable
 from basinvolume.enums import Minimizer

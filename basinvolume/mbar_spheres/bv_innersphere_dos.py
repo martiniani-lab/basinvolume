@@ -6,7 +6,7 @@ import argparse
 import logging
 import traceback
 import copy
-from ._config_innersphere_mcrunner import _config_innersphere_mcrunner
+from _config_innersphere_mcrunner import _config_innersphere_mcrunner
 from basinvolume.enums import Minimizer
 
 

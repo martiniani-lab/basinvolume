@@ -26,12 +26,12 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
                  hmax=100, hbinsize=1, acceptance=0.2, adjustf=0.9, adjustf_niter=5e3, adjustf_navg=100, 
                  pt_eq_niter=0, ts_niter=None, ts_freq=1, single=False, seeds=None, 
                  record_trajectory=False, record_trajectory_npoints=1e4,
-                 record_histogram=False,verbose=False):
+                 record_histogram=True,verbose=False):
                 
         self.temperature=1.0
         self._set_paths(base_dir)
         self._import_packing_config_files()
-        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
+        self.coords = np.zeros(int(self.ndof))
         hbinsize = self._get_histogram_bin(k)
                 
         #set parameters
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
     sim = _hypercube_bv_mcrunner(0, 1)
-    mcrunner = sim('explore_bv_hypercube_n2_l1', seeds=seeds, verbose=True, niter=1e6)
+    mcrunner = sim('explore_bv_hypercube_n100_l1', seeds=seeds, verbose=True, niter=1e6)
     print('simulation started')
     start=time.time()
     mcrunner.run()

@@ -16,7 +16,7 @@ import logging
 from itertools import cycle
 try:
     import matplotlib
-    matplotlib.use('Agg', warn=False)
+    matplotlib.use('Agg') # matplotlib.use('Agg', warn=False)
     import matplotlib.pyplot as plt
     from matplotlib import rc
     from joblib import Parallel, delayed
@@ -26,7 +26,8 @@ from scipy.integrate import simps
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
 from basinvolume.post_processing import VolumeSanityCheck
-import configparser
+from configparser import ConfigParser
+# import configparser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
@@ -207,7 +208,7 @@ class mbar_compute_dos(object):
                 self._build_mbar(verbose=False, initial_f_k=initial_f_k)
                 logging.info("t: {}".format(time.time() - start))
                 #compute the weights, skip the volume calculation
-                Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
+                Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences(return_theta=True)
                 self.w_i_final = -Deltaf_ij[0]
                 #now build histogram and compute dos
                 self._build_histogram(compute_binedges=False, kde=self.kde)
@@ -226,7 +227,7 @@ class mbar_compute_dos(object):
         self.packing_frac = imp_packing['packing_frac']
         self.vcavity = imp_packing['vcavity']
         self.sca = imp_packing['sca']
-        configf = configparser.ConfigParser()
+        configf = ConfigParser() # configf = configparser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.adjustf_niter = configf.getint('MCRUNNER', 'adjustf_niter')
         configf.read(str(self.findk_configpath))
@@ -294,8 +295,11 @@ class mbar_compute_dos(object):
         N_k[0] = len(indices) # number of uncorrelated samples
         flat_ts = np.append(flat_ts, ts_sphere[indices])
         #now loop through pt timeseries
+        print(K)
+        print(len(timeseries))
         for i in range(K-1):  #subsample the energies
             j = i+1
+            print("i = {0}, j = {1}\n".format(i,j))
             g[j] = statisticalInefficiency_fft(timeseries[i])
             indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
             N_k[j] = len(indices) # number of uncorrelated samples
@@ -309,13 +313,13 @@ class mbar_compute_dos(object):
     def _build_flat_timeseries(self):
         self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_sphere, self.timeseries)
 
-    def _build_mbar(self, verbose=True, initial_f_k=None, maxiter=10000, reltol=1.0e-7, subsampling=6):
+    def _build_mbar(self, verbose=True, initial_f_k=None, maxiter=10000, reltol=1.0e-7): #subsampling=6 no longer supported
         self.u_kn = self._build_u_kn(self.flat_timeseries)
         self.mbar = MBAR(self.u_kn, self.N_k, maximum_iterations=maxiter, relative_tolerance=reltol,
-                         initial_f_k=initial_f_k, initialize='BAR', subsampling=subsampling, verbose=verbose)
+                         initial_f_k=initial_f_k, initialize='BAR', verbose=verbose) # subsampling=subsampling no longer supported
 
     def _mbar_compute_volume(self):
-        Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
+        Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences(return_theta=True) #Default is now false for return_theta
         self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
         # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
 
@@ -373,9 +377,9 @@ class mbar_compute_dos(object):
 
     def _build_histogram_simple(self, bin_edges):
         hist_visits = []
-        hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
+        hist = np.histogram(self.ts_sphere, bin_edges, density=True)[0]
         hist_visits.append(hist)
-        results = Parallel(n_jobs=self.ncores)(delayed(np.histogram)(timeseries, bin_edges, normed=True) for timeseries in self.timeseries)
+        results = Parallel(n_jobs=self.ncores)(delayed(np.histogram)(timeseries, bin_edges, density=True) for timeseries in self.timeseries)
         for hist in results:
             hist_visits.append(hist[0])
         return hist_visits
@@ -409,7 +413,7 @@ class mbar_compute_dos(object):
         hist_visits, hist_unbiased, karray, bin_edges = self.hist_visits, self.hist_unbiased, self.karray, self.bin_edges
         nreps, nbins = hist_visits.shape
         SMALL = 0.
-        log_dos = np.where(self.hist_visits==0, SMALL, np.log(hist_visits) + hist_unbiased)
+        log_dos = np.where(self.hist_visits==0, SMALL, np.log(hist_visits) + hist_unbiased) #sends back a warning
         ldos = dos_from_offsets(self.hist_visits, log_dos, self.w_i_final)
         self.logn_E = np.array(ldos)
 
@@ -465,7 +469,9 @@ class mbar_compute_dos(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for i in range(len(self.karray)):
-            y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
+            SMALL = 0.
+            y = np.where(self.hist_visits[i, :]==0, SMALL, np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]) #sends back a warning
+            # y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel('logDOS')

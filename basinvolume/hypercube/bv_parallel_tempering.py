@@ -8,6 +8,7 @@ import time
 from mpi4py import MPI
 from basinvolume.utils import view_traceback, check_kmax_reasonable, import_pt_time_series
 import sys
+import os
 
 if __name__ == "__main__":
     """
@@ -25,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("--lownegk", type=float, help="lowest value of negative k's to use, default -2.5",default=-2.5)
     parser.add_argument("-s", "--relstderr", type=float, help="relative standard error to test convergence, default 0.05", default=0.05)
     parser.add_argument("--moveall", action='store_true', help="don't use cell lists, default: False",default=False)
-    parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
+    # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
 
     base_dir = args.base_directory
@@ -57,9 +58,13 @@ if __name__ == "__main__":
     print(seeds)
 
     #prepare MC runner
+    print("Setting up MPI comm links\n")
     comm = MPI.COMM_WORLD
     nprocs = comm.Get_size()
+    print("nprocs = "+str(nprocs)+"\n")
     rank = comm.Get_rank()
+    host = os.uname()[1]
+    print(f"hello from process {rank} on host {host}")
     sim = _hypercube_bv_mcrunner(rank, nprocs)
     mcrunner = sim(base_dir, niter=niter, stepsize=5e-1, hmin=0, hmax=1, hbinsize=1e-4, acceptance=0.2,
                    adjustf=0.9, adjustf_niter=adjustf_niter, adjustf_navg=100, pt_eq_niter=pt_eq_niter,
@@ -78,8 +83,13 @@ if __name__ == "__main__":
     ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1, pfreq=pfreq, skip=nskip,
                                      test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
                                      min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                                     numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path, verbose=args.verbose,
+                                     numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path,
                                      fix_com=False)
+    # ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1, pfreq=pfreq, skip=nskip,
+    #                                  test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
+    #                                  min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
+    #                                  numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path, verbose=args.verbose,
+    #                                  fix_com=False)
     assert ptrunner.rank == rank, "rank id does not match"
     assert ptrunner.nprocs == nprocs, "number of processes does not match"
 
@@ -87,11 +97,11 @@ if __name__ == "__main__":
     start=time.time()
     try:
         ptrunner.run()
-        sim.print_success_all(True)
+        sim.print_success_all("True")
     except:
         view_traceback()
         try:
-            sim.print_success_all(False)
+            sim.print_success_all("False")
         except:
             view_traceback()
 

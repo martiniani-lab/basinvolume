@@ -124,7 +124,7 @@ class PT_Master(object):
         self.max_eq_time = int(max_eq_time)
         self.bs_nodes = int(bs_nodes)
         self.numnegk = int(numnegk)
-        self.lownegk = int(lownegk)
+        self.lownegk = lownegk
         self._init_replicas(example_mcrunner)
         self._init_timeseries()
         self._init_print()
@@ -218,7 +218,7 @@ class PT_Master(object):
                      np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1),
                                         self.numnegk+1))
                      )[:-1]
-            assert grid == self.numnegk
+            assert len(grid) == self.numnegk
             for x in grid[::-1]:
                 Karray.insert(0, x)
         # Reverse Karray for backwards compatibility
@@ -544,7 +544,8 @@ class PT_Master(object):
         logging.debug("self.mcrunner_eqsteps %s" % self.mcrunner_eqsteps)
         iteration = self.mcrunner_niter * (self.ptiter+1)
         for ireplica in range(self.nreplicas):
-            self._dump_timeseries(ireplica)
+            if len(self.replica_timeseries[ireplica]) > 0:         # DO NOT WRITE EMPTY FILES!
+                self._dump_timeseries(ireplica)
             if self.ptiter >= self.eq_min_ptiter and iteration > self.mcrunner_eqsteps:
                 self._dump_histogram(ireplica)
         logging.debug("_print_data -- END")

@@ -2,11 +2,11 @@ from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
-from basinvolume.mbar_spheres import mbar_compute_dos
 import os
 import configparser
 import argparse
 from basinvolume.utils import import_pt_time_series
+from basinvolume.mbar_spheres.mbar_compute_volume import mbar_compute_dos
 
 class hypercube_mbar_compute_dos(mbar_compute_dos):
     """
@@ -53,6 +53,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         self.k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
         self.ndof = configf.getfloat('INNERSPHERE_HYPERCUBE', 'ndof')
         self.sidelength = configf.getfloat('INNERSPHERE_HYPERCUBE', 'sidelength')
+        self.ref_radius = configf.getfloat('INNERSPHERE_MCRUNNER', 'stepsize')
+        self.ref_acceptance = configf.getfloat('INNERSPHERE_MCRUNNER_STATUS', 'acc_frac')
         self.nparticles = 1
         self.vcavity = 1
 
@@ -72,10 +74,11 @@ if __name__ == "__main__":
     parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
+    parser.add_argument("--ncores", action='store_true', help="number of cores to use for the calculation", default=1)
     args = parser.parse_args()
     print(args)
 
-    sim = hypercube_mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
+    sim = hypercube_mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1)
 
     sim(args.explore_dir, show=args.show)
 #    else :

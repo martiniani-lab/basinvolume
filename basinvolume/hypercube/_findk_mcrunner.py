@@ -22,7 +22,7 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         self.temperature=1.0
         self.ndof = ndof
         self.sidelength = sidelength
-        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
+        self.coords = np.zeros(self.ndof) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if workspace is None:
             self.workspace = os.getcwd()
         else:
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    ndof = 93
+    ndof = 100
     sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=50, ktarget=0.9, knavg=1e3,
                                     seeds=seeds, verbose=True)
     print('simulation started')

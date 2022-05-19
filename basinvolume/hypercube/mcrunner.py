@@ -26,7 +26,7 @@ try:
     import matplotlib.pyplot as plt
     #more stuff for plotting histogram and comparing to prediction
     #######################SET LATEX OPTIONS###################
-    plt.rc('text', usetex=True)
+    plt.rc('text', usetex=False) #True = bugs on the cluster!
     plt.rc('font',**{'family':'serif','serif':['Computer Modern']})
     #rc('text.latex',preamble=r'\usepackage{times}')
     plt.rcParams.update({'font.size': 20})
@@ -118,11 +118,12 @@ class HypercubeMCrunner(_BaseMCRunner):
             for action in self.steps_timeseries_list:
                 self.add_action(action)
 
-    def set_control(self, c):
+    def set_control(self, c, reset=True):
         """set temperature, canonical control parameter"""
         self.k = c
         self.potential.set_k(c)
-        self.reset_energy()
+        if reset:
+            self.reset_energy()
 
     def get_stepsize(self):
         return self.takestep.get_stepsize()
@@ -146,9 +147,11 @@ class HypercubeMCrunner(_BaseMCRunner):
             self.action_record_displ.clear()
         return timeseries
 
-    def get_timeseries(self):
+    def get_timeseries(self, clear=False):
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.action_record_displ.get_time_series())
+        if clear:
+            self.action_record_displ.clear()
         return timeseries
 
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
@@ -176,6 +179,22 @@ class HypercubeMCrunner(_BaseMCRunner):
 
     def clear_trajectory(self):
         self.record_trajectory.clear()
+        
+    def get_complete_state(self):
+        return BV_MCRunner_State(
+            coords=self.get_coords(), energy=self.get_energy(), k=self.k,
+            stepsize=self.takestep.get_stepsize(), counters=self.get_counters(),
+            takestep_count=self.takestep.get_count(),
+            step_adaptation_counters=self.takestep.get_adaptation_counters())
+            
+    def set_complete_state(self, mcrunner_state):
+        self.set_config(mcrunner_state.coords, mcrunner_state.energy)
+        self.set_control(mcrunner_state.k, reset=False)
+        self.set_counters(mcrunner_state.counters)
+        self.takestep.set_stepsize(mcrunner_state.stepsize)
+        self.takestep.set_count(mcrunner_state.takestep_count)
+        self.takestep.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
+
 
 class HypercubeFindkMCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
@@ -247,6 +266,33 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
 
     def get_entries(self):
         return self.findk.get_entries()
+
+class BV_MCRunner_State(object):
+    """
+    This class saves the state of an BV_MCrunner in a NumPy array
+    """
+    def __init__(self, state=None, coords=None, energy=0., k=0.,
+                 stepsize=0., counters=None, takestep_count=0,
+                 step_adaptation_counters=None):
+        if state is None:
+            self.coords = coords
+            self.energy = energy
+            self.k = k
+            self.stepsize = stepsize
+            self.counters = counters
+            self.takestep_count = takestep_count
+            self.step_adaptation_counters = step_adaptation_counters
+        else:
+            self._set_state(state)
+
+    def _set_state(self, state):
+        self.coords = state.coords
+        self.energy = state.energy
+        self.k = state.k
+        self.stepsize = state.stepsize
+        self.counters = state.counters
+        self.takestep_count = state.takestep_count
+        self.step_adaptation_counters = state.step_adaptation_counters
 
 class HypercubeInnerSphereMCrunner(_BaseMCRunner):
     """
@@ -353,7 +399,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         this function is useful for testing
         """
         timeseries = self.get_timeseries()
-        n, bins, patch = plt.hist(timeseries, bins=500, range=(np.amin(timeseries), np.amax(timeseries)), normed=True,
+        n, bins, patch = plt.hist(timeseries, bins=500, range=(np.amin(timeseries), np.amax(timeseries)), density=True, stacked=True,
                            alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
         ###analytical
         k = self.k
@@ -379,13 +425,13 @@ if __name__ == "__main__":
     full_coords = np.array(origin)
     k=25
     stepsize = np.sqrt(1.0 / k)
-    if False:
+    if True:
         test = HypercubeFindkMCrunner(potential, full_coords, 1, stepsize, int(1e8), origin, sidelength=1)
         start = time.time()
         test.run()
         end = time.time()
         print(end - start)
-    if False:
+    if True:
         potential = Harmonic(origin, k, bdim=ndim, com=False)
         test = HypercubeMCrunner(potential, full_coords, 1, stepsize, int(1e5), origin, sidelength=1, record_histogram=True)
         start = time.time()

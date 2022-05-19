@@ -25,7 +25,7 @@ try:
     import re
     import logging
     import matplotlib
-    matplotlib.use('Agg', warn=False)
+    matplotlib.use('Agg') # matplotlib.use('Agg', warn=False)
     import matplotlib.pyplot as plt
     import traceback
     import copy
@@ -38,7 +38,7 @@ try:
     from basinvolume.utils import to_string, ResultsFile, MomentsAcc, trymakedir, OutlierDetection
     from basinvolume.post_processing import PTFailures, assert_pt_success, VolumeSanityCheck
     from basinvolume.spheres import _collect_u2_vs_k
-    from basinvolume.mbar_spheres import mbar_compute_dos
+    from basinvolume.mbar_spheres import mbar_compute_dos #CULPRIT!!!!!!!
 except ImportError as err:
     print(err)
 

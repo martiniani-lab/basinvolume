@@ -10,7 +10,7 @@ batch_system=SLURM
 mpi_implementation=Intel
 ndim=2
 workdir=${SLURM_SUBMIT_DIR}
-path_to_script="/home/jk695/basinvol/basinvolume/basinvolume/spheres/"
+path_to_script="/home/mc9287/basinvolumelibs/basinvolume/basinvolume/spheres/"
 job_label="100_16"
 k_walltime=12
 pt_walltime=12
@@ -38,7 +38,7 @@ squeue -j ${SLURM_JOBID} -O nodelist | tail -n +2
 echo
 echo "Running ${SLURM_JOB_NAME}"
 echo
-python ~/basinvol/basinvolume/basinvolume/cluster_manager/submit_bv.py chain \
+python ~/basinvolumelibs/basinvolume/basinvolume/cluster_manager/submit_bv.py chain \
 $ndim $workdir $path_to_script $job_label $k_walltime $pt_walltime \
 --batch-system $batch_system --mpi-implementation $mpi_implementation \
 --cores-per-node $cores_per_node --threads $threads --pt-threads $pt_threads \
