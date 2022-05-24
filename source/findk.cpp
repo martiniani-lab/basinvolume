@@ -9,17 +9,18 @@
 
 namespace bv {
 
-Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, double target,
+Findk::Findk(pele::Array<double> origin, pele::Array<double> rattlers, size_t ndim, size_t avg_count, double target,
         size_t navg, double tol, double min, double max, double bin, const bool fix_com)
 	: _origin(origin.copy()),
       _rattlers(rattlers.copy()),
       _distance(origin.size()),
       _target(target),
-      _acceptedf(1),
+      _acceptedf(1.0),
       _k(42424242),
       _tol(tol),
       _ndim(ndim),
       _nparticles(_origin.size() / _ndim),
+      _avg_count(avg_count),
       _navg(navg),
       _naccepted(0),
       _nrejected(0),
@@ -70,19 +71,28 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted, mc
     else {
         ++_nrejected;
     }
-    if (_converged) { // kmax search converged
-      mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
-    }
 
+    if (_converged) { // kmax search converged
+        if (accepted) {
+            this->_get_vec_distance(coords);
+            //compute square displacement from origin
+            const double norm2 = dot(_distance, _distance);
+            _hist.add_entry(norm2);
+        }
+        //this will trigger premature exit from the MC run loop
+        if (static_cast<size_t>(_hist.get_count()) >= _avg_count) {
+            mc->m_niter = std::numeric_limits<size_t>::max(); // can use terminate() when that is merged, leave for now
+        }
+    }
     else if (mc_count % _navg == 0) { // kmax seach not yet converged
-      _acceptedf = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected));
-      //adjust step if last two step oscillated around the target, uses a lower bound
-      adjust_k(mc_count / _navg, mc);
-      //adjust the standard deviation of the normal distribution
-      static_cast<mcpele::SampleGaussian*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
-      //now reset to zero memory of acceptance and rejection
-      _naccepted = 0;
-      _nrejected = 0;
+        _acceptedf = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected));
+        //adjust step if last two step oscillated around the target, uses a lower bound
+        adjust_k(mc_count / _navg, mc);
+        //adjust the standard deviation of the normal distribution
+        static_cast<mcpele::SampleGaussian*>(mc->get_takestep().get())->set_stepsize(std::sqrt(1.0 / _k));
+        //now reset to zero memory of acceptance and rejection
+        _naccepted = 0;
+        _nrejected = 0;
     }
     //reset coordinates to origin although this obsolete because the new SampleGaussian ignores the new coordinates
     //and resamples from the origin

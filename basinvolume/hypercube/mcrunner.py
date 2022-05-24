@@ -81,8 +81,6 @@ class HypercubeMCrunner(_BaseMCRunner):
         self.conftest = ConfTestOR()
         conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
-        #conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
-        #self.conftest.add_test(conftest2)
 
         self.action_record_displ = RecordDisplacementTimeseries(self.origin, self.bdim, ts_niter,
                                                                 ts_freq, fix_com=False)
@@ -198,7 +196,7 @@ class HypercubeMCrunner(_BaseMCRunner):
 
 class HypercubeFindkMCrunner(_BaseMCRunner):
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
-                 sidelength=1, ktarget = 0.9, knavg=500, ktol=0.05,
+                 sidelength=1, ktarget = 0.9, knavg=500, ktol=0.05, avgcount=1e6,
                  hmin=0, hmax=1, hbinsize=0.001, seeds=None):
         #construct base class
         super(HypercubeFindkMCrunner, self).__init__(potential, full_coords, temperature, niter)
@@ -217,6 +215,7 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         self.seeds = seeds
 
         #findk parameters
+        self.avgcount = avgcount
         self.ktarget = ktarget
         self.knavg=knavg
         self.ktol=ktol
@@ -230,10 +229,8 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         self.conftest = ConfTestOR()
         conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
-        #conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
-        #self.conftest.add_test(conftest2)
 
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.ktarget,
+        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.avgcount, self.ktarget,
                            self.knavg, self.ktol, self.hmin, self.hmax, self.hbinsize,
                            fix_com=False)
 
@@ -418,7 +415,7 @@ if __name__ == "__main__":
 
     import time
 
-    ndim = 2
+    ndim = 50
     origin = np.zeros(ndim)
     potential = NullPotential()
     #build start configuration

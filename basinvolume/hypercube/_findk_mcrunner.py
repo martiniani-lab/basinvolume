@@ -8,6 +8,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.utils import view_traceback
 from mcpele.monte_carlo import NullPotential
 from basinvolume.hypercube import HypercubeFindkMCrunner
+from basinvolume.monte_carlo import Findk
 import time
 import warnings
 
@@ -15,7 +16,7 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
     """
     """
 
-    def __init__(self, ndof, sidelength=1, k=100.0, niter=5e4,
+    def __init__(self, ndof, sidelength=1, k=100.0, niter=5e4, avgcount=1e4,
                  ktarget=0.9, knavg=1000, ktol=0.025, hmin=0, hmax=0.01,
                  hbinsize=0.0005, seeds=None, verbose=False, workspace=None):
 
@@ -32,7 +33,7 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         stepsize = np.sqrt(1.0 / k) #stepsize plays the role of the standard deviation
 
         #self.mc_params = dict(k=k, temperature=temperature, )
-        kwargs = dict(ktarget=ktarget, knavg=knavg, ktol=ktol,
+        kwargs = dict(ktarget=ktarget, knavg=knavg, ktol=ktol, avgcount=avgcount,
                       hmin=hmin, hmax=hmax, hbinsize=hbinsize, sidelength=self.sidelength,
                       seeds=seeds)
 
@@ -112,7 +113,7 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
     ndof = 100
-    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=50, ktarget=0.9, knavg=1e3,
+    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, avgcount=1e4, k=50, ktarget=0.9, knavg=1e3,
                                     seeds=seeds, verbose=True)
     print('simulation started')
     start=time.time()
