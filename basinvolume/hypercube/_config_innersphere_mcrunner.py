@@ -20,7 +20,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
     """
         
     def __init__(self, base_dir, niter=None, hmin=0, hmax=0.01, hbinsize=0.0005, 
-                 seeds=None, record_histogram=True, verbose=False):
+                 seeds=None, record_histogram=False, verbose=False):
                 
         self.temperature=1.0
         

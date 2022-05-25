@@ -38,7 +38,7 @@ try:
     from basinvolume.utils import to_string, ResultsFile, MomentsAcc, trymakedir, OutlierDetection
     from basinvolume.post_processing import PTFailures, assert_pt_success, VolumeSanityCheck
     from basinvolume.spheres import _collect_u2_vs_k
-    from basinvolume.mbar_spheres import mbar_compute_dos #CULPRIT!!!!!!!
+    from basinvolume.mbar_spheres import mbar_compute_dos
 except ImportError as err:
     print(err)
 

@@ -85,11 +85,6 @@ if __name__ == "__main__":
                                      min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
                                      numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path,
                                      fix_com=False)
-    # ptrunner = MPI_BV_PT_RLhandshake(mcrunner, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1, pfreq=pfreq, skip=nskip,
-    #                                  test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
-    #                                  min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-    #                                  numnegk=args.numnegk, lownegk=args.lownegk, base_directory=path, verbose=args.verbose,
-    #                                  fix_com=False)
     assert ptrunner.rank == rank, "rank id does not match"
     assert ptrunner.nprocs == nprocs, "number of processes does not match"
 

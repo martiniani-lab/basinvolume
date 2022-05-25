@@ -99,7 +99,7 @@ class HypercubeMCrunner(_BaseMCRunner):
 
         #set up pele:MC
         self.set_takestep(self.takestep)
-        self.add_accept_test(self.metropolis) #metropolis uses the harmonic potential
+        self.add_accept_test(self.metropolis) #metropolis uses the harmonic potential    
         self.add_late_conf_test(self.conftest)
         self.add_action(self.action_record_displ)
         if record_trajectory:
@@ -184,7 +184,7 @@ class HypercubeMCrunner(_BaseMCRunner):
             stepsize=self.takestep.get_stepsize(), counters=self.get_counters(),
             takestep_count=self.takestep.get_count(),
             step_adaptation_counters=self.takestep.get_adaptation_counters())
-            
+
     def set_complete_state(self, mcrunner_state):
         self.set_config(mcrunner_state.coords, mcrunner_state.energy)
         self.set_control(mcrunner_state.k, reset=False)
