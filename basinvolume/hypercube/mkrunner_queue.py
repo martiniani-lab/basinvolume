@@ -6,16 +6,8 @@ import argparse
 import os
 from mpi4py import MPI
 
-from pele.potentials import Harmonic
-from mcpele.monte_carlo import _BaseMCRunner, NullPotential
-from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckHyperCubicContainer, CheckHyperSphericalContainer, RecordStepsTimeseries, RecordDisp2Histogram
-from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement
-from basinvolume.monte_carlo import SampleUniformSphereGaussian
-from mcpele.monte_carlo import SampleGaussian
-from basinvolume.monte_carlo import Findk
-from basinvolume.spheres import (configure_bv_mcrunner, MPI_BV_PT_RLhandshake,
+from basinvolume.spheres import (MPI_BV_PT_RLhandshake,
                                  PT_Worker, PT_Master, ExchangeScheme)
-from basinvolume.utils import write_2d_array_to_hdf5
 from basinvolume.utils import view_traceback, check_kmax_reasonable, import_pt_time_series
 
 from basinvolume.hypercube import _hypercube_findk_mcrunner
@@ -23,12 +15,6 @@ from basinvolume.hypercube import _hypercube_kmin_mcrunner
 from basinvolume.hypercube import _hypercube_bv_mcrunner
 from basinvolume.hypercube import _hypercube_innersphere_mcrunner
 from basinvolume.hypercube.hypercube_compute_volume import hypercube_mbar_compute_dos
-
-try:
-    from mcpele.monte_carlo import ConfTestOR
-    from mcpele.monte_carlo import RecordCoordsTimeseries
-except Exception as e:
-    print(e)
 
 #for plotting histogram
 from itertools import cycle
@@ -62,9 +48,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a full analysis for a d-dimensional hypercube")
     parser.add_argument("cubedim", type=int, help="dimension of the cube")
     parser.add_argument("-k","--positivespringnumber", type=int, help="number of different POSITIVE spring constants, \
-                        default: 25",default=8)
+                        default: 8",default=8)
     parser.add_argument("-negk", "--negativespringnumber", type=int, help="number of different NEGATIVE spring constants, \
-                        default: 10",default=8)
+                        default: 8",default=8)
     parser.add_argument("-min_n", "--min_tot_niter", type=float, help="minimal number of total steps in the random walks, \
                         default: 5e5",default=5e5)
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
@@ -75,7 +61,6 @@ if __name__ == "__main__":
     import time
 
     origin = np.zeros(ndof)
-    potential = NullPotential()
     bv_pt_printstatus = False
     #build start configuration
     full_coords = np.array(origin)
@@ -98,14 +83,14 @@ if __name__ == "__main__":
     publicdoneflag=False
     rank0doneflag=False
     # Create a string with the name of the relevant directory
-    directory_name='explore_bv_hypercube_n'+str(ndof)+'_l1'
+    directory_name='explore_bv_hypercube_n'+str(ndof)+'_l1'# +'_numposk'+str(numposk)+'_numnegk'+str(numnegk)+'_mintotniter'+str(min_tot_niter)
     
     # First, run the findk routine
     if rank == 0:
         sidelength = 1.0
         k_guess = 1.0 / np.sqrt(0.5 * sidelength)
         findk_niter = 5e5
-        sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=0.1, ktarget=0.9, knavg=1e3, niter=findk_niter,
+        sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=k_guess, ktarget=0.9, knavg=1e3, niter=findk_niter,
                                     seeds=seeds, verbose=True)
         print('\n\nsimulation: Find k started')
         start=time.time()
@@ -116,13 +101,16 @@ if __name__ == "__main__":
         print(status)
         print("self.kmax:", sim.kmax)
         print("self.prob:", sim.prob)
+        print("self.displ_k_max:", sim.displ_k_max)
+        print("self.var_displ_k_max:", sim.var_displ_k_max)
         print("(N-1)d/k", sim.ndof / sim.kmax)
-    
+        print("entries in histogram:", sim.mcrunner.get_entries())
+
         # Then, run the kmin run
         sim_kmin = _hypercube_kmin_mcrunner(ndof, sidelength=1, niter=1e6, k=0, seeds=seeds,
                             single=True, verbose=True, hmax=15, hbinsize=0.001)
         #record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
-        print('\n\nsimulation: Find k_min started')
+        print('\n\nsimulation: k_min started')
         start=time.time()
         sim_kmin.run()
         end=time.time()
@@ -213,7 +201,7 @@ if __name__ == "__main__":
         displ_k_min = sim_pt.displ_k_min
         var_displ_k_min = sim_pt.displ_k_min
         kmax = sim_pt.kmax
-        lownegk = -2.5 #lownegk needs to be pretty low for hypercube exploration!
+        lownegk = -kmax #Used to be-2.5 #lownegk needs to be pretty low for hypercube exploration!
         path = sim_pt.base_directory
         
         exchange_scheme = ExchangeScheme.NEIGHBOR_EXCHANGE
@@ -243,25 +231,24 @@ if __name__ == "__main__":
                             .format(master.ptiter, mcrunner_pt.niter, adjustf_niter,
                                     master.skip, master.pfreq))
             else:
-                worker = PT_Worker(mcrunner_pt)
+                worker = PT_Worker(mcrunner_pt, fix_com=False)
                 worker.run()
 
         else:
             if rank == 0:
                 print("Using handshake with {} replicas.".format(nprocs))
 
-            ptreplica = MPI_BV_PT_RLhandshake(
-                mcrunner_pt, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1,
-                pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
-                fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
-                max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                numnegk=numnegk, lownegk=lownegk, base_directory=path)
-            assert ptreplica.rank == rank, "rank id does not match"
-            assert ptreplica.nprocs == nprocs, "number of processes does not match"
+            ptrunner = MPI_BV_PT_RLhandshake(mcrunner_pt, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1, pfreq=pfreq, skip=nskip,
+                                        test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
+                                        min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
+                                        numnegk=numnegk, lownegk=lownegk, base_directory=path,
+                                        fix_com=False)
+            assert ptrunner.rank == rank, "rank id does not match"
+            assert ptrunner.nprocs == nprocs, "number of processes does not match"
 
             # run simulation
             try:
-                ptreplica.run()
+                ptrunner.run()
                 sim_pt.print_success_all("True")
             except:
                 view_traceback()
@@ -270,9 +257,9 @@ if __name__ == "__main__":
                 except:
                     view_traceback()
 
-            print('ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
-                        .format(ptreplica.ptiter, mcrunner_pt.niter, adjustf_niter,
-                                ptreplica.skip, ptreplica.pfreq))
+            print('core: {} ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}'
+                        .format(rank, ptrunner.ptiter, mcrunner_pt.niter, adjustf_niter,
+                                ptrunner.skip, ptrunner.pfreq))
         
         print('convert timeseries to hdf5...')
 
