@@ -1,0 +1,15 @@
+*.cxx
+*.so
+*.pyc
+*.zip
+*.log
+build/
+cpp_tests/build/
+cpp_tests/gtest/
+cythonize.dat
+.cproject
+.project
+.pydevproject
+basinvolume/version.py
+*hist*.txt
+*hist*.pdf
