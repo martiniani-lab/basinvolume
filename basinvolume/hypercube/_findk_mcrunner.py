@@ -112,8 +112,9 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    ndof = 100
-    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, avgcount=1e4, k=50, ktarget=0.9, knavg=1e3,
+    ndof = 1000
+    kguess = 100
+    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, avgcount=1e6, k=kguess,  ktarget=1.0, ktol=0.0025/ndof, knavg=1e5, niter=1e8,
                                     seeds=seeds, verbose=True)
     print('simulation started')
     start=time.time()
@@ -128,5 +129,5 @@ if __name__ == "__main__":
     print("self.var_displ_k_max:", sim.var_displ_k_max)
     #print "Nd/k: ", sim.nparticles * sim.bdim / sim.kmax
     print("(N-1)d/k", sim.ndof / sim.kmax)
-    #sim.mcrunner.show_histogram()
+    sim.mcrunner.show_histogram()
     print("entries in histogram:", sim.mcrunner.get_entries())

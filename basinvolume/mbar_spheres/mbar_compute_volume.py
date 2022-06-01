@@ -30,6 +30,7 @@ from configparser import ConfigParser
 # import configparser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
+from FastMBAR import *
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 from basinvolume.spheres import read_jammed_packing_config
 #######################SET LATEX OPTIONS###################

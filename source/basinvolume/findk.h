@@ -66,8 +66,7 @@ public:
   double get_mean() const { return _hist.get_mean(); }
   double get_variance() const { return _hist.get_variance(); }
   pele::Array<double> get_histogram() const
-  { std::cout << "this \n" ;
-    std::vector<double> vecdata(_hist.get_vecdata());
+  { std::vector<double> vecdata(_hist.get_vecdata());
     pele::Array<double> histogram(vecdata);
     return histogram.copy();
   }

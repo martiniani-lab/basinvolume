@@ -26,8 +26,11 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         
         self._set_paths(base_dir)
         self._import_packing_config_files()
-        self.k = 1.0 / self.u2_k0
-        self.stepsize = 1./np.sqrt(self.k)
+        # XXX test value: tighter/close to the center
+        self.stepsize = 0.5 * self.sidelength
+        self.k = 1. / self.stepsize**2
+        # self.k = 1.0 / self.u2_k0 # XXX Future: Have 2 of these be automatic: one very tight close to the center, one looser with that definition to keep overlap with kmax
+        # self.stepsize = 1./np.sqrt(self.k)
         self.coords = np.zeros(int(self.ndof)) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if niter is not None:
             self.niter = niter
@@ -136,7 +139,7 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n100_l1', niter=1e5, seeds=seeds, verbose=False)
+    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n100_l1', niter=5e5, seeds=seeds, verbose=False)
     print('simulation started')
     start=time.time()
     sim.run()

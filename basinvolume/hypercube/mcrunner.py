@@ -294,6 +294,19 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
     def get_entries(self):
         return self.findk.get_entries()
 
+    def show_histogram(self):
+        hist = self.findk.get_histogram()
+        val = np.array([i * self.hbinsize for i in range(len(hist))]) + 0.5 * self.hbinsize
+        plt.hist(val, weights=hist, bins=len(hist), density=True, stacked=True)
+        ###analytical
+        k = self.get_k()
+        and2 = val[:-1]**(self.ndof/2 - 1) * np.exp(-0.5 * k * val[:-1]**1)
+        norm = and2.sum() * self.hbinsize
+        and2/=norm
+        plt.plot(val[:-1], and2, linewidth=2.5, ls='--', color=color_cycle[-1])
+        plt.savefig('findk_histogram.eps')
+        plt.show()
+
 class BV_MCRunner_State(object):
     """
     This class saves the state of an BV_MCrunner in a NumPy array
@@ -445,21 +458,21 @@ if __name__ == "__main__":
 
     import time
 
-    ndim = 50
+    ndim = 100
     origin = np.zeros(ndim)
     potential = NullPotential()
     #build start configuration
     full_coords = np.array(origin)
-    k=25
+    k = 2 #0.4261331121440447 # k=25
     stepsize = np.sqrt(1.0 / k)
-    if True:
+    if False:
         print("Find k test: \n\n\n")
         test = HypercubeFindkMCrunner(potential, full_coords, 1, stepsize, int(1e8), origin, sidelength=1)
         start = time.time()
         test.run()
         end = time.time()
         print(end - start)
-    if True:
+    if False:
         print("MC test: \n\n\n")
         potential = Harmonic(origin, k, bdim=ndim, com=False)
         test = HypercubeMCrunner(potential, full_coords, 1, stepsize, int(1e5), origin, sidelength=1, record_histogram=True)

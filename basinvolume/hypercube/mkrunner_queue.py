@@ -88,9 +88,9 @@ if __name__ == "__main__":
     # First, run the findk routine
     if rank == 0:
         sidelength = 1.0
-        k_guess = 1.0 / np.sqrt(0.5 * sidelength)
-        findk_niter = 5e5
-        sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=k_guess, ktarget=0.9, knavg=1e3, niter=findk_niter,
+        k_guess = 2.0 / (0.5 * sidelength)**2
+        findk_niter = 1e8
+        sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=k_guess, ktarget=1.0, ktol=0.0025, knavg=1e5, niter=findk_niter,
                                     seeds=seeds, verbose=True)
         print('\n\nsimulation: Find k started')
         start=time.time()
@@ -278,7 +278,7 @@ if __name__ == "__main__":
         
         if rank == 0:
             # Configure_innersphere
-            sim_innersphere = _hypercube_innersphere_mcrunner(directory_name, niter=1e5, seeds=seeds, verbose=False)
+            sim_innersphere = _hypercube_innersphere_mcrunner(directory_name, niter=min_tot_niter, seeds=seeds, verbose=False) # switched to min_tot_niter iterations to be consistent!
             print('\n\nsimulation: Inner Sphere started')
             start=time.time()
             sim_innersphere.run()
