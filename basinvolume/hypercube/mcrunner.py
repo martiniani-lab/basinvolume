@@ -433,11 +433,12 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
-    def show_histogram_analytical(self):
+    def show_histogram_analytical(self, output_directory=''):
         """
         shows the histogram against the analytical curve when k=kmax
         this function is useful for testing
         """
+        plt.clf()
         timeseries = self.get_timeseries()
         n, bins, patch = plt.hist(timeseries, bins=500, range=(np.amin(timeseries), np.amax(timeseries)), density=True, stacked=True,
                            alpha=0.4, edgecolor=color_cycle[0], color=color_cycle[0])
@@ -450,7 +451,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
         plt.ylabel(r'frequency $\times 10$')
         plt.tight_layout()
-        plt.savefig('innersphere_histogram.eps')
+        plt.savefig(output_directory+'/innersphere_histogram.eps')
         plt.show()
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from builtins import str
 import os
 import configparser
 import argparse
+import glob
 from basinvolume.utils import import_pt_time_series
 from basinvolume.mbar_spheres.fastmbar_compute_volume import fastmbar_compute_dos
 
@@ -31,8 +32,28 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
         assert os.path.isfile(self.findk_configpath)
         self.kmin_configpath = os.path.join(self.explore_dir,'kmin_'+dname+'.config')
         assert os.path.isfile(self.kmin_configpath)
-        self.innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + dname + '.config')
-        assert os.path.isfile(self.innersphere_configpath)
+        # There can be several innersphere runs, each with a config path
+        self.innersphere_configpaths = []
+        self.innersphere_timeseries_paths = [] # It's actually convenient to write down the time series paths as well right here
+        innersphere_dir_list = glob.glob(explore_dir+'/innersphere_*')
+        if len(innersphere_dir_list) == 0: #Make this implementation safe to use with the older runs
+            self.number_nested_spheres = 1
+            innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + dname + '.config')
+            assert os.path.isfile(innersphere_configpath)
+            self.innersphere_configpaths.append(innersphere_configpath)
+            innersphere_timeseries_path = os.path.join(self.explore_dir, 'inner_sphere.timeseries')
+            assert os.path.isfile(innersphere_timeseries_path)
+            self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
+        else: # If there are actually several innerspheres, go to each directory to extract the path to the config file
+            self.number_nested_spheres = len(innersphere_dir_list)
+            innersphere_dir_list = sorted(innersphere_dir_list, key = lambda x: int(x.split("_")[-1]))
+            for dir in innersphere_dir_list:
+                innersphere_configpath = dir+'/innersphere_' + dname + '.config'
+                assert os.path.isfile(innersphere_configpath)
+                self.innersphere_configpaths.append(innersphere_configpath)
+                innersphere_timeseries_path = dir+'/inner_sphere.timeseries'
+                assert os.path.isfile(innersphere_timeseries_path)
+                self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
 
         self.show = show
         self.verbose = verbose
@@ -49,12 +70,20 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
-        configf.read(str(self.innersphere_configpath))
-        self.k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
-        self.ndof = configf.getfloat('INNERSPHERE_HYPERCUBE', 'ndof')
-        self.sidelength = configf.getfloat('INNERSPHERE_HYPERCUBE', 'sidelength')
-        self.ref_radius = configf.getfloat('INNERSPHERE_MCRUNNER', 'stepsize')
-        self.ref_acceptance = configf.getfloat('INNERSPHERE_MCRUNNER_STATUS', 'acc_frac')
+        # There can be several inner spheres: each can come with its own k, radius and acceptance
+        self.ks_innersphere = []
+        self.ref_radii = []
+        self.ref_acceptances = []
+        for innersphere_configpath in self.innersphere_configpaths:
+            configf.read(str(innersphere_configpath))
+            k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
+            self.ndof = configf.getfloat('INNERSPHERE_HYPERCUBE', 'ndof')
+            self.sidelength = configf.getfloat('INNERSPHERE_HYPERCUBE', 'sidelength')
+            ref_radius = configf.getfloat('INNERSPHERE_MCRUNNER', 'stepsize')
+            ref_acceptance = configf.getfloat('INNERSPHERE_MCRUNNER_STATUS', 'acc_frac')
+            self.ks_innersphere.append(k_innersphere)
+            self.ref_radii.append(ref_radius)
+            self.ref_acceptances.append(ref_acceptance)
         self.nparticles = 1
         self.vcavity = 1
 

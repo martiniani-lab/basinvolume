@@ -11,6 +11,7 @@ import numpy as np
 import os
 import re
 import argparse
+import glob
 import time
 import logging
 from itertools import cycle
@@ -126,8 +127,28 @@ class mbar_compute_dos(object):
         assert os.path.isfile(self.findk_configpath)
         self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
         assert os.path.isfile(self.kmin_configpath)
-        self.innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + fname + '.config')
-        assert os.path.isfile(self.innersphere_configpath)
+        # There can be several innersphere runs, each with a config path
+        self.innersphere_configpaths = []
+        self.innersphere_timeseries_paths = [] # It's actually convenient to write down the time series paths as well right here
+        innersphere_dir_list = glob.glob(explore_dir+'innersphere_*')
+        if len(innersphere_dir_list) == 0: #Make this implementation safe to use with the older runs
+            self.number_nested_spheres = 1
+            innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + fname + '.config')
+            assert os.path.isfile(innersphere_configpath)
+            self.innersphere_configpaths.append(innersphere_configpath)
+            innersphere_timeseries_path = os.path.join(self.explore_dir, 'inner_sphere.timeseries')
+            assert os.path.isfile(innersphere_timeseries_path)
+            self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
+        else: # If there are actually several innerspheres, go to each directory to extract the path to the config file
+            self.number_nested_spheres = len(innersphere_dir_list)
+            innersphere_dir_list = sorted(innersphere_dir_list, key = lambda x: int(x.split("_")[-1]))
+            for dir in innersphere_dir_list:
+                innersphere_configpath=os.path.join(dir, '/innersphere_' + fname + '.config')
+                assert os.path.isfile(innersphere_configpath)
+                self.innersphere_configpaths.append(innersphere_configpath)
+                innersphere_timeseries_path = os.path.join(dir, '/inner_sphere.timeseries')
+                assert os.path.isfile(innersphere_timeseries_path)
+                self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
 
         self.show = show
         self.verbose = verbose
@@ -151,7 +172,7 @@ class mbar_compute_dos(object):
         logging.info("subtracting equilibration point")
         self._subtract_eqtime()
         logging.info("importing innersphere time series")
-        self._import_ts_sphere()
+        self._import_ts_spheres()
         logging.info("subsampling time series")
         self._build_flat_timeseries()
         logging.info("building mbar")
@@ -178,7 +199,7 @@ class mbar_compute_dos(object):
         logging.info("subtracting equilibration point")
         self._subtract_eqtime()
         logging.info("importing innersphere time series")
-        self._import_ts_sphere()
+        self._import_ts_spheres()
         logging.info("subsampling time series")
         self._build_flat_timeseries()
         logging.info("building mbar")
@@ -234,11 +255,19 @@ class mbar_compute_dos(object):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
-        configf.read(str(self.innersphere_configpath))
-        self.k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
         self.ndof = (self.nparticles-1)*self.bdim
-        self.ref_radius = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'stepsize')
-        self.ref_acceptance = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'acc_frac')
+        # There can be several inner spheres: each can come with its own k, radius and acceptance
+        self.ks_innersphere = []
+        self.ref_radii = []
+        self.ref_acceptances = []
+        for innersphere_configpath in self.innersphere_configpaths:
+            configf.read(str(innersphere_configpath))
+            k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
+            ref_radius = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'stepsize')
+            ref_acceptance = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'acc_frac')
+            self.ks_innersphere.append(k_innersphere)
+            self.ref_radii.append(ref_radius)
+            self.ref_acceptances.append(ref_acceptance)
 
     def _import_ks(self):
         """
@@ -252,7 +281,9 @@ class mbar_compute_dos(object):
             if not k: break
             karray.extend([float(k)])
         #prepend k innersphere
-        karray.insert(0, self.k_innersphere)
+        #the list must be visited in reverse order to respect the innermost = first convention
+        for k_innersphere in reversed(self.ks_innersphere):
+            karray.insert(0, k_innersphere)
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray==0.)[0][0]
 
@@ -273,7 +304,7 @@ class mbar_compute_dos(object):
         u_kn = np.empty((K, N))
 
         for i in range(K):
-            if i == 0:
+            if i < self.number_nested_spheres:
                 u_kn[i] = (self.ndof-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
             else:
                 u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
@@ -281,7 +312,7 @@ class mbar_compute_dos(object):
         assert N == u_kn.shape[1]
         return u_kn
 
-    def _subsample_timeseries(self, ts_sphere, timeseries):
+    def _subsample_timeseries(self, ts_spheres, timeseries):
         """
         returns a flatten timeseries of the uncorrelated data
         """
@@ -290,26 +321,32 @@ class mbar_compute_dos(object):
         N_k = np.zeros(K, dtype='i')
         flat_ts = np.empty(0)
 
-        #deal with ts separately
-        g[0] = statisticalInefficiency_fft(ts_sphere)
-        indices = np.array(subsampleCorrelatedData(ts_sphere, g=g[0])) # indices of uncorrelated samples
-        N_k[0] = len(indices) # number of uncorrelated samples
-        flat_ts = np.append(flat_ts, ts_sphere[indices])
-        #now loop through pt timeseries
-        for i in range(K-1):  #subsample the energies
-            j = i+1
+        # Split between innerspheres and pt time series here
+        # Start with inner spheres
+        for i in range(self.number_nested_spheres):   
+            g[i] = statisticalInefficiency_fft(ts_spheres[i])
+            indices = np.array(subsampleCorrelatedData(ts_spheres[i], g=g[i])) # indices of uncorrelated samples
+            N_k[i] = len(indices) # number of uncorrelated samples
+            flat_ts = np.append(flat_ts, ts_spheres[i][indices])
+        # Now loop through pt timeseries
+        for i in range(K-self.number_nested_spheres):  #subsample the energies
+            j = i+self.number_nested_spheres
             g[j] = statisticalInefficiency_fft(timeseries[i])
             indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
             N_k[j] = len(indices) # number of uncorrelated samples
-            flat_ts = np.append(flat_ts, timeseries[i,indices])
+            flat_ts = np.append(flat_ts, timeseries[i][indices])
         return flat_ts, N_k, g
 
-    def _import_ts_sphere(self):
-        self.ts_sphere = np.genfromtxt(os.path.join(self.explore_dir,"inner_sphere.timeseries"))
-        self.ts_sphere = np.trim_zeros(self.ts_sphere)
+    def _import_ts_spheres(self):
+        #There can be several innerspheres now
+        self.ts_spheres = []
+        for ts_file in self.innersphere_timeseries_paths:
+            ts_sphere = np.genfromtxt(ts_file)
+            ts_sphere = np.trim_zeros(ts_sphere)
+            self.ts_spheres.append(ts_sphere)
 
     def _build_flat_timeseries(self):
-        self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_sphere, self.timeseries)
+        self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_spheres, self.timeseries)
 
     def _build_mbar(self, verbose=True, initial_f_k=None, maxiter=10000, reltol=1.0e-7): #subsampling=6 no longer supported
         self.u_kn = self._build_u_kn(self.flat_timeseries)
@@ -321,12 +358,13 @@ class mbar_compute_dos(object):
         self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
         # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
 
-        rmin = self.ref_radius # 1./np.sqrt(self.kmax) #we choose rmin to be 1/sqrt(k_max)
+        # Use the smallest radius of all the innersphere runs as a reference
+        rmin = self.ref_radii[0]
         logging.info("kmax {}".format(self.kmax))
         logging.info("rmin {}".format(rmin))
-        logging.info("ref acceptance {}".format(self.ref_acceptance))
+        logging.info("ref acceptance {}".format(self.ref_acceptances[0]))
         logvmin = log_volume_nball(rmin, self.ndof)
-        Fmin = -logvmin - np.log(self.ref_acceptance)
+        Fmin = -logvmin - np.log(self.ref_acceptances[0])
 
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
@@ -359,8 +397,9 @@ class mbar_compute_dos(object):
         if not compute_binedges:
             assert self.bootstrap
         if compute_binedges:
-            bin_edges = np.linspace(np.amin(np.append(self.timeseries, self.ts_sphere)),
-                                    np.amax(np.append(self.timeseries, self.ts_sphere)), self.nbins+1)
+            for sphere_number in range(self.number_nested_spheres):
+                bin_edges = np.linspace(np.amin(np.append(self.timeseries, self.ts_spheres[sphere_number])),
+                                        np.amax(np.append(self.timeseries, self.ts_spheres[sphere_number])), self.nbins+1)
         else:
             bin_edges = self.bin_edges - (self.bin_edges[1]-self.bin_edges[0])/2
 
@@ -375,8 +414,9 @@ class mbar_compute_dos(object):
 
     def _build_histogram_simple(self, bin_edges):
         hist_visits = []
-        hist = np.histogram(self.ts_sphere, bin_edges, density=True)[0]
-        hist_visits.append(hist)
+        for sphere_number in range(self.number_nested_spheres):
+            hist = np.histogram(self.ts_spheres[sphere_number], bin_edges, density=True)[0]
+            hist_visits.append(hist)
         results = Parallel(n_jobs=self.ncores)(delayed(np.histogram)(timeseries, bin_edges, density=True) for timeseries in self.timeseries)
         for hist in results:
             hist_visits.append(hist[0])
@@ -384,11 +424,12 @@ class mbar_compute_dos(object):
 
     def _build_histogram_kde(self, bin_edges):
         hist_visits = []
-        #hist = np.histogram(self.ts_sphere, bin_edges, normed=True)[0]
+        #hist = np.histogram(self.ts_spheres, bin_edges, normed=True)[0]
         kde_bin_edges = np.array(bin_edges[:-1])
         kde_bin_edges += (kde_bin_edges[1]-kde_bin_edges[0])/2
-        hist = get_kde_hist(self.ts_sphere, kde_bin_edges, kernel="epanechnikov", bw=0.001)
-        hist_visits.append(hist)
+        for sphere_number in range(self.number_nested_spheres):
+            hist = get_kde_hist(self.ts_spheres[sphere_number], kde_bin_edges, kernel="epanechnikov", bw=0.001)
+            hist_visits.append(hist)
         results = Parallel(n_jobs=max(1,self.ncores))(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
         logging.info(np.shape(results))
         for hist in results:
@@ -397,8 +438,10 @@ class mbar_compute_dos(object):
         return hist_visits
 
     def _unbias_histogram(self):
-        hist_unbiased = np.outer(0.5*self.karray[1:], self.bin_edges[:-1]**2)
-        hist_unbiased = np.vstack(((self.ndof-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[0]*self.bin_edges[:-1]**2, hist_unbiased))
+        # There are now several innerspheres here
+        hist_unbiased = np.outer(0.5*self.karray[self.number_nested_spheres:], self.bin_edges[:-1]**2)
+        for sphere_number in range(self.number_nested_spheres):
+            hist_unbiased = np.vstack(((self.ndof-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[sphere_number]*self.bin_edges[:-1]**2, hist_unbiased))
         self.hist_unbiased = hist_unbiased
         assert self.hist_visits.shape == self.hist_unbiased.shape
         assert self.hist_visits.shape[0] == self.karray.size
@@ -484,12 +527,12 @@ class mbar_compute_dos(object):
         for ts in self.timeseries:
             var.append(np.var(ts))
         var = np.array(var)
-        ax.plot(self.karray[1:], var)
+        ax.plot(self.karray[self.number_nested_spheres:], var)
         ax.set_xlabel(r'k')
         ax.set_ylabel('$var(r)$')
         plt.xlim((self.karray[-1],self.karray[1]))
         plt.savefig(self.base_directory + '/hist_var_k.eps')
-        write_csv_xy(self.karray[1:], var, fname=os.path.join(self.base_directory, 'hist_var_k.csv'))
+        write_csv_xy(self.karray[self.number_nested_spheres:], var, fname=os.path.join(self.base_directory, 'hist_var_k.csv'))
         if self.show:
             plt.show()
 
