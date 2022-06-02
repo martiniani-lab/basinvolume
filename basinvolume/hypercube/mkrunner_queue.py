@@ -204,7 +204,7 @@ if __name__ == "__main__":
         displ_k_min = sim_pt.displ_k_min
         var_displ_k_min = sim_pt.displ_k_min
         kmax = sim_pt.kmax
-        lownegk = -kmax #Used to be-2.5 #lownegk needs to be pretty low for hypercube exploration!
+        lownegk = -np.sqrt(numnegk) #Used to be-2.5 #lownegk needs to be pretty low for hypercube exploration!
         path = sim_pt.base_directory
         
         exchange_scheme = ExchangeScheme.NEIGHBOR_EXCHANGE
@@ -284,8 +284,6 @@ if __name__ == "__main__":
         innerspheres_done_flags = np.full(number_nested_spheres, False)
         alldone_spheres_flags = np.prod(innerspheres_done_flags)
         while alldone_spheres_flags == False:
-            print(innerspheres_done_flags)
-            print(alldone_spheres_flags)
             for i,sphere_number in enumerate(range(number_nested_spheres)):
                 if sphere_number%nprocs == rank and innerspheres_done_flags[sphere_number]==False:
                     # Configure_innersphere

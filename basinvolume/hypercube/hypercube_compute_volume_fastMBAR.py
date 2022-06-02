@@ -35,7 +35,7 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
         # There can be several innersphere runs, each with a config path
         self.innersphere_configpaths = []
         self.innersphere_timeseries_paths = [] # It's actually convenient to write down the time series paths as well right here
-        innersphere_dir_list = glob.glob(explore_dir+'/innersphere_*')
+        innersphere_dir_list = glob.glob(explore_dir+'/innersphere_*[!config]')
         if len(innersphere_dir_list) == 0: #Make this implementation safe to use with the older runs
             self.number_nested_spheres = 1
             innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + dname + '.config')

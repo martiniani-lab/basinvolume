@@ -14,6 +14,8 @@ import argparse
 import time
 import logging
 import glob
+from scipy.special import gammaln, gammainc
+import warnings
 from itertools import cycle
 try:
     import matplotlib
@@ -25,11 +27,11 @@ except ImportError as err:
     print(err)
 from scipy.integrate import simps
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, log_volume_nball, write_csv_xy, import_pt_time_series
+from basinvolume.utils import to_string, log_surface_nball, log_volume_nball, write_csv_xy, import_pt_time_series
 from basinvolume.post_processing import VolumeSanityCheck
 from configparser import ConfigParser
 # import configparser
-from pymbar.timeseries import detectEquilibration_binary_search
+from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from FastMBAR import *
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 from basinvolume.spheres import read_jammed_packing_config
@@ -174,7 +176,7 @@ class fastmbar_compute_dos(object):
         logging.info("importing innersphere time series")
         self._import_ts_spheres()
         # logging.info("subsampling time series")
-        self._build_flat_timeseries_no_subsampling()
+        self._build_flat_timeseries()
         # logging.info("building mbar")
         self._build_fastmbar()
         # logging.info("mbar computing volume")
@@ -201,7 +203,7 @@ class fastmbar_compute_dos(object):
         logging.info("importing innersphere time series")
         self._import_ts_spheres()
         # logging.info("subsampling time series")
-        self._build_flat_timeseries_no_subsampling()
+        self._build_flat_timeseries()
         # logging.info("building mbar")
         self._build_fastmbar()
         # logging.info("mbar computing volume")
@@ -262,8 +264,8 @@ class fastmbar_compute_dos(object):
         for innersphere_configpath in self.innersphere_configpaths:
             configf.read(str(innersphere_configpath))
             k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
-            ref_radius = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'stepsize')
-            ref_acceptance = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'acc_frac')
+            ref_radius = configf.getfloat('INNERSPHERE_MCRUNNER', 'stepsize')
+            ref_acceptance = configf.getfloat('INNERSPHERE_MCRUNNER_STATUS', 'acc_frac')
             self.ks_innersphere.append(k_innersphere)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
@@ -311,6 +313,31 @@ class fastmbar_compute_dos(object):
         assert N == u_kn.shape[1]
         return u_kn
 
+    def _subsample_timeseries(self, ts_spheres, timeseries):
+        """
+        returns a flatten timeseries of the uncorrelated data
+        """
+        K = self.karray.size
+        g = np.ones(K)
+        N_k = np.zeros(K, dtype='i')
+        flat_ts = np.empty(0)
+
+        # Split between innerspheres and pt time series here
+        # Start with inner spheres
+        for i in range(self.number_nested_spheres):   
+            g[i] = statisticalInefficiency_fft(ts_spheres[i])
+            indices = np.array(subsampleCorrelatedData(ts_spheres[i], g=g[i])) # indices of uncorrelated samples
+            N_k[i] = len(indices) # number of uncorrelated samples
+            flat_ts = np.append(flat_ts, ts_spheres[i][indices])
+        # Now loop through pt timeseries
+        for i in range(K-self.number_nested_spheres):  #subsample the energies
+            j = i+self.number_nested_spheres
+            g[j] = statisticalInefficiency_fft(timeseries[i])
+            indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
+            N_k[j] = len(indices) # number of uncorrelated samples
+            flat_ts = np.append(flat_ts, timeseries[i][indices])
+        return flat_ts, N_k, g
+
     def _concatenate_timeseries(self, ts_spheres, timeseries): #Not needed in FastMBAR
         """
         returns full flattened timeseries, without subsampling
@@ -341,6 +368,9 @@ class fastmbar_compute_dos(object):
             ts_sphere = np.trim_zeros(ts_sphere)
             self.ts_spheres.append(ts_sphere)
 
+    def _build_flat_timeseries(self):
+        self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_spheres, self.timeseries)
+
     def _build_flat_timeseries_no_subsampling(self):
         self.flat_timeseries, self.N_k = self._concatenate_timeseries(self.ts_spheres, self.timeseries)
 
@@ -366,6 +396,7 @@ class fastmbar_compute_dos(object):
         logging.info("rmin {}".format(rmin))
         logging.info("ref acceptance {}".format(self.ref_acceptances[0]))
         logvmin = log_volume_nball(rmin, self.ndof)
+        # logvmin = np.log( gammainc(self.ndof / 2, 0.5 )) # XXX DEBUG: here reference is actually truncated radial gaussian in a uniform d-sphere. BUT: huge errors in large d
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
         print("Fmin")
         print(Fmin)
@@ -571,7 +602,8 @@ class fastmbar_compute_dos(object):
         logn_E = np.array(logn_E - np.amax(logn_E))
         dos = np.exp(logn_E)
         dos /= simps(dos, bin_edges)
-        logn_E = np.log(dos)
+        SMALL = 0.
+        logn_E = np.where(dos==0, SMALL, np.log(dos))
 
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -582,7 +614,9 @@ class fastmbar_compute_dos(object):
         rg -= (self.ndof-1)*np.log(bin_edges)
         rg -= np.mean(rg[:3])
         # logging.info("mean(rg[:3]) = {}".format(np.mean([rg[finindx[0]],rg[finindx[1]],rg[finindx[2]]])))
-        assert(abs(np.mean(rg[:3])) < 1e-8)
+        # assert(abs(np.mean(rg[:3])) < 1e-8)
+        if abs(np.mean(rg[:3])) >= 1e-8:
+            warnings.warn("abs(np.mean(rg[:3])) >= 1e-8")
         ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=next(color_cycle), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")

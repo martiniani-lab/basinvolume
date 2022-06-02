@@ -14,6 +14,8 @@ import argparse
 import glob
 import time
 import logging
+from scipy.special import gammaln, gammainc
+import warnings
 from itertools import cycle
 try:
     import matplotlib
@@ -263,8 +265,8 @@ class mbar_compute_dos(object):
         for innersphere_configpath in self.innersphere_configpaths:
             configf.read(str(innersphere_configpath))
             k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
-            ref_radius = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'stepsize')
-            ref_acceptance = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'acc_frac')
+            ref_radius = configf.getfloat('INNERSPHERE_MCRUNNER', 'stepsize')
+            ref_acceptance = configf.getfloat('INNERSPHERE_MCRUNNER_STATUS', 'acc_frac')
             self.ks_innersphere.append(k_innersphere)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
@@ -364,6 +366,7 @@ class mbar_compute_dos(object):
         logging.info("rmin {}".format(rmin))
         logging.info("ref acceptance {}".format(self.ref_acceptances[0]))
         logvmin = log_volume_nball(rmin, self.ndof)
+        # logvmin = np.log( gammainc(self.ndof / 2, 0.5 ))
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
 
         u_lk = np.copy(self.u_kn[self.k0_index])
@@ -549,7 +552,8 @@ class mbar_compute_dos(object):
         logn_E = np.array(logn_E - np.amax(logn_E))
         dos = np.exp(logn_E)
         dos /= simps(dos, bin_edges)
-        logn_E = np.log(dos)
+        SMALL = 0.
+        logn_E = np.where(dos==0, SMALL, np.log(dos))
 
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -560,7 +564,9 @@ class mbar_compute_dos(object):
         rg -= (self.ndof-1)*np.log(bin_edges)
         rg -= np.mean(rg[:3])
         # logging.info("mean(rg[:3]) = {}".format(np.mean([rg[finindx[0]],rg[finindx[1]],rg[finindx[2]]])))
-        assert(abs(np.mean(rg[:3])) < 1e-8)
+        # assert(abs(np.mean(rg[:3])) < 1e-8)
+        if abs(np.mean(rg[:3])) >= 1e-8:
+            warnings.warn("abs(np.mean(rg[:3])) >= 1e-8")
         ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=next(color_cycle), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")

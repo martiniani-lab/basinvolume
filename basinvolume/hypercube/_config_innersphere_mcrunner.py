@@ -47,7 +47,11 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
             fraction_k = 0. 
         else:
             fraction_k = current_nested_sphere * 1./ (number_nested_spheres - 1.)
-        self.k = fraction_k * koutermost_spheres + (1 - fraction_k) * kinnermost_spheres
+        #Linearly spaced values
+        # self.k = fraction_k * koutermost_spheres + (1 - fraction_k) * kinnermost_spheres
+        #Log-spaced values
+        self.k = np.exp((1 - fraction_k) * np.log(kinnermost_spheres) +  fraction_k * np.log(koutermost_spheres))
+
         self.stepsize = 1./np.sqrt(self.k)
         
         self.coords = np.zeros(int(self.ndof)) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
