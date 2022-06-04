@@ -4,7 +4,7 @@ import numpy as np
 import sys
 
 from pele.potentials import Harmonic
-from mcpele.monte_carlo import _BaseMCRunner, NullPotential
+from mcpele.monte_carlo import _BaseMCRunner, NullPotential, UniformSphericalSampling
 from basinvolume.monte_carlo import RecordDisplacementTimeseries, CheckHyperCubicContainer, CheckHyperSphericalContainer, RecordStepsTimeseries, RecordDisp2Histogram
 from mcpele.monte_carlo import MetropolisTest, RandomCoordsDisplacement
 from basinvolume.monte_carlo import SampleUniformSphereGaussian
@@ -339,7 +339,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
     """
     def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
                  sidelength=1, hmin=0, hmax=1, hbinsize=0.001, ts_niter=None, ts_freq=1, seeds=None,
-                 record_histogram=False):
+                 record_histogram=False, gaussian_step=True):
         #construct base class
         super(HypercubeInnerSphereMCrunner, self).__init__(potential, full_coords, temperature, niter)
 
@@ -352,6 +352,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         self.sidelength = sidelength
         self.k = 1.0 / (stepsize * stepsize)
         self.equilibration_steps = 0
+        self.gaussian_step = gaussian_step
         if ts_niter is None:
             ts_niter = niter
 
@@ -377,7 +378,10 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         self.time_series = RecordDisplacementTimeseries(self.origin, self.ndof, ts_niter, ts_freq, fix_com=False)
 
         self.set_report_steps(0)
-        self.takestep = SampleUniformSphereGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
+        if self.gaussian_step == True:
+            self.takestep = SampleUniformSphereGaussian(self.seeds['seed_takestep'], stepsize, self.origin)
+        else:
+            self.takestep = UniformSphericalSampling(self.seeds['seed_takestep'], stepsize, origin=self.origin)
 
         #set up pele:MC
         self.set_takestep(self.takestep)
@@ -397,6 +401,14 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         k = 1.0 / (stepsize * stepsize)
         #k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
         return k
+
+    def get_status(self):
+        """
+        overloading the base class method to include stepsize
+        """
+        status = super(HypercubeInnerSphereMCrunner, self).get_status()
+        status.stepsize = self.get_stepsize()
+        return status
 
     def dump_histogram(self, fname):
         """write histogram to fname"""

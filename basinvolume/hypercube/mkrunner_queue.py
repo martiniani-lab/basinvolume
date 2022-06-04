@@ -204,7 +204,7 @@ if __name__ == "__main__":
         displ_k_min = sim_pt.displ_k_min
         var_displ_k_min = sim_pt.displ_k_min
         kmax = sim_pt.kmax
-        lownegk = -np.sqrt(numnegk) #Used to be-2.5 #lownegk needs to be pretty low for hypercube exploration!
+        lownegk = -numnegk# -np.sqrt(numnegk) #Used to be-2.5 #lownegk needs to be pretty low for hypercube exploration!
         path = sim_pt.base_directory
         
         exchange_scheme = ExchangeScheme.NEIGHBOR_EXCHANGE
@@ -285,7 +285,8 @@ if __name__ == "__main__":
         alldone_spheres_flags = np.prod(innerspheres_done_flags)
         while alldone_spheres_flags == False:
             for i,sphere_number in enumerate(range(number_nested_spheres)):
-                if sphere_number%nprocs == rank and innerspheres_done_flags[sphere_number]==False:
+                #It's convenient to shift indices by one because rank 0 is often busy generating the hdf5 file for a while
+                if (sphere_number+1)%nprocs == rank and innerspheres_done_flags[sphere_number]==False:
                     # Configure_innersphere
                     sim_innersphere = _hypercube_innersphere_mcrunner(directory_name, sphere_number, niter=min_tot_niter, seeds=seeds, number_nested_spheres=number_nested_spheres, verbose=False) # switched to min_tot_niter iterations to be consistent!
                     print('\n\nsimulation: Inner Sphere number {} started on rank {}'.format(sphere_number, rank))

@@ -21,11 +21,13 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
     def __call__(self, explore_dir, base_dir='analysis_fastMBAR', show=False, verbose=True):
         if not os.path.isabs(explore_dir):
             self.explore_dir = os.path.join(os.getcwd(), explore_dir)
+        else:
+            self.explore_dir = explore_dir
         self.base_directory = os.path.join(self.explore_dir, base_dir)
 
         dlist = explore_dir.split('_')
-        assert dlist[2] == 'hypercube'
-        dname = dlist[2]+'_'+dlist[3]+'_'+dlist[4]
+        assert dlist[-3] == 'hypercube'
+        dname = dlist[-3]+'_'+dlist[-2]+'_'+dlist[-1]
         self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + dname + '.config')
         assert os.path.isfile(self.pt_configpath)
         self.findk_configpath = os.path.join(self.explore_dir,'findk_'+dname+'.config')

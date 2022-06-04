@@ -250,8 +250,9 @@ class PT_Master(object):
             logging.info("Created checkpoint")
         else:
             self._print_data()
-            if self.print_status:
-                self._print_status()
+            #Always write status at the very end
+            # if self.print_status:
+            self._print_status()
             self._print_exchanges()
             self._flush_close_streams()
             logging.info("Master finished")
@@ -592,7 +593,7 @@ class PT_Master(object):
             else:
                 status['frac_acc_swaps'] = (self.replica_states[ireplica].swap_accepted_count
                                             / nswaps)
-            if self.ptiter == self.skip:
+            if self.ptiter == self.skip or self.print_status == False:
                 self.status_streams[ireplica].write('#')
                 for key, _ in list(status.items()):
                     self.status_streams[ireplica].write('{:<12}\t'.format(key))

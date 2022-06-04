@@ -14,6 +14,7 @@ import argparse
 import time
 import logging
 import glob
+import math
 from scipy.special import gammaln, gammainc
 import warnings
 from itertools import cycle
@@ -264,8 +265,8 @@ class fastmbar_compute_dos(object):
         for innersphere_configpath in self.innersphere_configpaths:
             configf.read(str(innersphere_configpath))
             k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
-            ref_radius = configf.getfloat('INNERSPHERE_MCRUNNER', 'stepsize')
-            ref_acceptance = configf.getfloat('INNERSPHERE_MCRUNNER_STATUS', 'acc_frac')
+            ref_radius = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'stepsize')
+            ref_acceptance = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'acc_frac')
             self.ks_innersphere.append(k_innersphere)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
@@ -396,10 +397,7 @@ class fastmbar_compute_dos(object):
         logging.info("rmin {}".format(rmin))
         logging.info("ref acceptance {}".format(self.ref_acceptances[0]))
         logvmin = log_volume_nball(rmin, self.ndof)
-        # logvmin = np.log( gammainc(self.ndof / 2, 0.5 )) # XXX DEBUG: here reference is actually truncated radial gaussian in a uniform d-sphere. BUT: huge errors in large d
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
-        print("Fmin")
-        print(Fmin)
 
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
@@ -419,8 +417,6 @@ class fastmbar_compute_dos(object):
             print(Deltaf_ij)
 
         delta_f = Deltaf_ij[0] - Deltaf_ij[1] #pyMBAR returned a MATRIX OF DIFFERENCES in the perturbed function, FastMBAR returns a VECTOR OF FREE ENERGY VALUES on the scale defined by the other runs
-        print("delta_f")
-        print(delta_f)
 
         self.F0 = (Fmin - delta_f) - np.log(self.vcavity)
         self.F0unc = (Fmin - delta_f)

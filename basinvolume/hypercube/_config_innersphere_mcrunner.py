@@ -53,6 +53,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         self.k = np.exp((1 - fraction_k) * np.log(kinnermost_spheres) +  fraction_k * np.log(koutermost_spheres))
 
         self.stepsize = 1./np.sqrt(self.k)
+        self.ref_radius = self.stepsize/2
         
         self.coords = np.zeros(int(self.ndof)) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if niter is not None:
@@ -73,13 +74,16 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         #construct mcrunner
         potential = NullPotential()
         self.mcrunner = HypercubeInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, 
-                                                     self.niter, self.coords, **kwargs)
+                                                     self.niter, self.coords, gaussian_step=True, **kwargs)
+        self.mcrunner_ballpick = HypercubeInnerSphereMCrunner(potential, self.coords, self.temperature, self.ref_radius, 
+                                                     self.niter, self.coords, gaussian_step=False, **kwargs)
         
         self._initialise()
         
     def run(self):
         try:
             self.mcrunner.run()
+            self.mcrunner_ballpick.run()
             self._print_results()
             self._print_success(True)
         except:
@@ -158,6 +162,10 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         status = self.mcrunner.get_status()
         for key, value in list(status.items()) :
             f.write('{}: {}\n'.format(key,value))
+        f.write('[INNERSPHERE_BALLPICK_MCRUNNER_STATUS]\n')
+        status = self.mcrunner_ballpick.get_status()
+        for key, value in list(status.items()) :
+            f.write('{}: {:.16f}\n'.format(key, value))
         f.close()
         path = os.path.join(self.output_directory, "inner_sphere.timeseries")
         self.mcrunner.dump_timeseries(path, clear=False)
@@ -167,7 +175,12 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n100_l1',2 , niter=5e5, seeds=seeds, verbose=False, number_nested_spheres=5)
+    directory_name='explore_bv_hypercube_n69_l1'
+    sphere_number = 0
+    number_nested_spheres = 3
+    output_directory = directory_name+'/innersphere_'+str(sphere_number)
+
+    sim = _hypercube_innersphere_mcrunner(directory_name, sphere_number , niter=5e5, seeds=seeds, verbose=False, number_nested_spheres=number_nested_spheres)
     print('simulation started')
     start=time.time()
     sim.run()
@@ -176,7 +189,7 @@ if __name__ == "__main__":
     status = sim.mcrunner.get_status()
     print(status)
     print('stepsize: ',sim.mcrunner.get_stepsize())
-    sim.mcrunner.show_histogram_analytical()
+    sim.mcrunner.show_histogram_analytical(output_directory)
     
     
         

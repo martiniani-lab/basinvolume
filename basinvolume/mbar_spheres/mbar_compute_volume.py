@@ -265,8 +265,8 @@ class mbar_compute_dos(object):
         for innersphere_configpath in self.innersphere_configpaths:
             configf.read(str(innersphere_configpath))
             k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
-            ref_radius = configf.getfloat('INNERSPHERE_MCRUNNER', 'stepsize')
-            ref_acceptance = configf.getfloat('INNERSPHERE_MCRUNNER_STATUS', 'acc_frac')
+            ref_radius = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'stepsize')
+            ref_acceptance = configf.getfloat('INNERSPHERE_BALLPICK_MCRUNNER_STATUS', 'acc_frac')
             self.ks_innersphere.append(k_innersphere)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
@@ -635,8 +635,8 @@ class mbar_compute_dos(object):
 
         dos = np.mean(dos_subs,axis=0)
         nsamples = dos_subs.shape[0]
-        low_dos =  np.sort(dos_subs, axis=0)[(alpha/2.0)*nsamples,:]
-        high_dos =  np.sort(dos_subs, axis=0)[(1-alpha/2.0)*nsamples,:]
+        low_dos =  np.sort(dos_subs, axis=0)[int((alpha/2.0)*nsamples),:]
+        high_dos =  np.sort(dos_subs, axis=0)[int((1-alpha/2.0)*nsamples),:]
 
         #biased estimate of the mean np.mean(self.logn_E_subs,axis=0)
         #unbiased estimate of the mean
@@ -644,8 +644,8 @@ class mbar_compute_dos(object):
         nsamples = self.logn_E_subs.shape[0]
         #these are the unbiased estimates of the error because log is a monotonic convex function
         #and the we pick the 2.5 and 97.5 percentiles to have 95% intervals of confidence
-        low_logn_E =  np.sort(self.logn_E_subs, axis=0)[(alpha/2.0)*nsamples,:]
-        high_logn_E =  np.sort(self.logn_E_subs, axis=0)[(1-alpha/2.0)*nsamples,:]
+        low_logn_E =  np.sort(self.logn_E_subs, axis=0)[int((alpha/2.0))*nsamples,:]
+        high_logn_E =  np.sort(self.logn_E_subs, axis=0)[int((1-alpha/2.0))*nsamples,:]
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
