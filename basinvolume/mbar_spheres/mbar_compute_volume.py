@@ -400,9 +400,10 @@ class mbar_compute_dos(object):
         if not compute_binedges:
             assert self.bootstrap
         if compute_binedges:
+            full_timeseries = self.timeseries
             for sphere_number in range(self.number_nested_spheres):
-                bin_edges = np.linspace(np.amin(np.append(self.timeseries, self.ts_spheres[sphere_number])),
-                                        np.amax(np.append(self.timeseries, self.ts_spheres[sphere_number])), self.nbins+1)
+                full_timeseries = np.append(full_timeseries, self.ts_spheres[sphere_number])
+            bin_edges = np.linspace(np.amin(full_timeseries), np.amax(full_timeseries), self.nbins+1)
         else:
             bin_edges = self.bin_edges - (self.bin_edges[1]-self.bin_edges[0])/2
 
@@ -549,11 +550,23 @@ class mbar_compute_dos(object):
         logn_E = np.array([self.logn_E[i] for i in finindx])
         bin_edges = np.array([self.bin_edges[i] for i in finindx])
 
+        logn_E = np.longdouble(logn_E) #the numbers can be RIDICULOUS, use larger precision for exponentials
         logn_E = np.array(logn_E - np.amax(logn_E))
-        dos = np.exp(logn_E)
+        dos = np.exp(logn_E) 
         dos /= simps(dos, bin_edges)
-        SMALL = 0.
+        SMALL=-1e70
         logn_E = np.where(dos==0, SMALL, np.log(dos))
+
+        color_cycle = get_color_cycle()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(bin_edges, dos, color=next(color_cycle), linewidth=2)
+        ax.set_xlabel(r'$\Delta r$')
+        ax.set_ylabel('DOS')
+        plt.savefig(self.base_directory + '/dos.eps')
+        write_csv_xy(bin_edges, dos, fname=os.path.join(self.base_directory, 'dos.csv'))
+        if self.show:
+            plt.show()
 
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -564,9 +577,7 @@ class mbar_compute_dos(object):
         rg -= (self.ndof-1)*np.log(bin_edges)
         rg -= np.mean(rg[:3])
         # logging.info("mean(rg[:3]) = {}".format(np.mean([rg[finindx[0]],rg[finindx[1]],rg[finindx[2]]])))
-        # assert(abs(np.mean(rg[:3])) < 1e-8)
-        if abs(np.mean(rg[:3])) >= 1e-8:
-            warnings.warn("abs(np.mean(rg[:3])) >= 1e-8")
+        assert(abs(np.mean(rg[:3])) < 1e-8)
         ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=next(color_cycle), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
@@ -611,17 +622,6 @@ class mbar_compute_dos(object):
 #        if self.show:
 #            plt.show()
 
-        color_cycle = get_color_cycle()
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(bin_edges, dos, color=next(color_cycle), linewidth=2)
-        ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel('DOS')
-        plt.savefig(self.base_directory + '/dos.eps')
-        write_csv_xy(bin_edges, dos, fname=os.path.join(self.base_directory, 'dos.csv'))
-        if self.show:
-            plt.show()
-
     def _plot_dos_bs(self, alpha=0.05):
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
@@ -629,6 +629,7 @@ class mbar_compute_dos(object):
         dos_subs = np.empty(self.logn_E_subs.shape)
         for i, logn_E in enumerate(self.logn_E_subs):
             #logn_E -= np.amax(logn_E)
+            logn_E = np.longdouble(logn_E)
             logn_E -= np.median(logn_E)
             self.logn_E_subs[i] = logn_E
             dos_subs[i] = np.exp(logn_E)

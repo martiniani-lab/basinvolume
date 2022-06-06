@@ -22,6 +22,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
     def __call__(self, explore_dir, base_dir='analysis', show=False, verbose=True):
         if not os.path.isabs(explore_dir):
             self.explore_dir = os.path.join(os.getcwd(), explore_dir)
+        else:
+            self.explore_dir = explore_dir
         self.base_directory = os.path.join(self.explore_dir, base_dir)
 
         dlist = explore_dir.split('_')
