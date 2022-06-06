@@ -97,9 +97,9 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         dlist = base_dir.split('_')
         assert dlist[2] == 'hypercube'
         if not os.path.isabs(base_dir):
-            base_directory = os.path.join(os.getcwd(), base_dir)
-            assert(os.path.exists(base_directory))
-        self.base_directory = base_directory
+            base_dir = os.path.join(os.getcwd(), base_dir)
+            assert(os.path.exists(base_dir))
+        self.base_directory = base_dir
         
         dname = dlist[2]+'_'+dlist[3]+'_'+dlist[4]
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')  
