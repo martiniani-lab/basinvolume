@@ -79,7 +79,7 @@ if __name__ == "__main__":
     print(f"hello from process {rank} on host {host}")
     
     # Create a string with the name of the relevant directory
-    directory_name=directory_prefix+'/explore_bv_hypercube_n'+str(ndof)+'_l1'# +'_numposk'+str(numposk)+'_numnegk'+str(numnegk)+'_mintotniter'+str(min_tot_niter)
+    directory_name=directory_prefix+'explore_bv_hypercube_n'+str(ndof)+'_l1'# +'_numposk'+str(numposk)+'_numnegk'+str(numnegk)+'_mintotniter'+str(min_tot_niter)
     print(directory_name)
 
     #Run the nested inner spheres

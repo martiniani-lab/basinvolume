@@ -504,6 +504,7 @@ class mbar_compute_dos(object):
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
             ax.errorbar(self.bin_edges[:-1], hist, linewidth=2, color=next(color_cycle),
                         label='{:.1f}'.format(self.karray[i])) #yerr=err
+            write_csv_xy(self.bin_edges[:-1], hist, fname=os.path.join(self.base_directory, 'hist_k_'+str(i)+'.csv'))
         ax.legend(frameon=False, loc="best", prop={'size':17}, numpoints=1, scatterpoints=1,
                   markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1, ncol=2)
         ax.set_xlabel(r'$r$', fontsize=28)

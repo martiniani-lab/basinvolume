@@ -53,7 +53,7 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         self.k = np.exp((1 - fraction_k) * np.log(kinnermost_spheres) +  fraction_k * np.log(koutermost_spheres))
 
         self.stepsize = 1./np.sqrt(self.k)
-        self.ref_radius = self.stepsize/2
+        self.ref_radius = self.stepsize
         
         self.coords = np.zeros(int(self.ndof)) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if niter is not None:

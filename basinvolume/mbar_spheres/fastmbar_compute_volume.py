@@ -398,6 +398,8 @@ class fastmbar_compute_dos(object):
         logging.info("ref acceptance {}".format(self.ref_acceptances[0]))
         logvmin = log_volume_nball(rmin, self.ndof)
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
+        print("Fmin")
+        print(Fmin)
 
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
