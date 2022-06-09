@@ -9,6 +9,47 @@ try:
 except:
     print("import error")
 
+def spring_constants_linspace(nr_points, k_max, k_min=0.0):
+    """
+    Given the number of points n,
+    and the maximum spring constant k_max;
+    computes linearly-spaced k values to use in PT.
+    """
+    k = np.linspace(k_min, k_max, num=nr_points)
+    k = k.tolist()
+    return k
+
+def spring_constants_logspace(nr_points, k_max, k_min=0.0):
+    """
+    Given the number of points n,
+    and the maximum spring constant k_max;
+    computes logarithmically-spaced k values, plus 0, to use in PT.
+    """
+    # k_min = 0 can't be used as is
+    # add a fudge constant to avoid computing silly values
+    fudge_constant = k_max / nr_points
+    k = np.exp(np.linspace(np.log(k_min + fudge_constant), np.log(k_max + fudge_constant), num =nr_points)) - fudge_constant
+    k = k.tolist()
+    return k
+
+def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0):
+    """
+    Given the number of points n,
+    and the maximum spring constant k_max;
+    computes k such that the modes of the various replicas are linearly spaced in real space
+    """
+
+    # First compute the estimated offset of spring constants due to the boundary at k = k_min
+    kappa = nr_particles * dimension / displ_k_min
+    # Then find the distance corresponding to k_max
+    r_k_max = nr_particles * dimension / (k_max + kappa)
+
+    #Deduce from the above the list of k's
+    k = nr_particles * dimension / (np.linspace(r_k_max, np.sqrt(displ_k_min), num=nr_points))**2 - kappa
+    k = k.tolist()
+    
+    return k
+
 def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0, kappa_const=1.0):
     """
     Given the number of points n,
@@ -16,7 +57,7 @@ def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_partic
     the average displacement squared at k=0,
     the number of particles,
     and the Ecuclidean dimension of the box;
-    computes the k values to use in PT.
+    computes the k values to use in PT to be able to use Gauss-Lobato integration.
     Reference: Daniel A. Asenjo-Andrews, PhD thesis,  p 34
     """
     t = Gauss_Lobatto_abscissas(nr_points)()

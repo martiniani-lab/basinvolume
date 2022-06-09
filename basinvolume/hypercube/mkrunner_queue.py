@@ -55,10 +55,16 @@ if __name__ == "__main__":
                         default: 5e5",default=5e5)
     parser.add_argument("-n_spheres", "--number_nested_spheres", type=int, help="number of nested inner spheres to use, \
                         default: 2", default=2)
+    parser.add_argument("-force_k", "--force_kmax_value", type=bool, help="Option to force k_max to reach the innersphere by hand, \
+                        default: False", default=False)
+    parser.add_argument("-k_sprd", "--k_spreading", type = str, help = "Set the way in which the k's are spread. Options: linspace, logspace, positionlinspace, gausslobato,\
+                        default = gausslobato", default="gausslobato")
+    parser.add_argument("--auto_replica_number", action='store_true', help="overrides --positivespringnumber and increases the number of replicas if needed", default=False)
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
 
     ndof = args.cubedim
+    override_replicas = args.auto_replica_number
     
     import time
 
@@ -67,10 +73,15 @@ if __name__ == "__main__":
     #build start configuration
     full_coords = np.array(origin)
     numposk = args.positivespringnumber
+    if override_replicas:
+        defaultnumber = int(ndof/10)
+        numposk = max(numposk, defaultnumber)
     numnegk = args.negativespringnumber
     nreplicas = numposk + numnegk
     min_tot_niter = int(args.min_tot_niter)
     number_nested_spheres = args.number_nested_spheres
+    force_kmax_value = args.force_kmax_value
+    k_spreading = args.k_spreading
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
     
@@ -91,9 +102,14 @@ if __name__ == "__main__":
     # First, run the findk routine
     if rank == 0:
         sidelength = 1.0
-        k_guess = 2.0 / (0.5 * sidelength)**2
+        k_guess = (ndof - 1) / (0.5 * sidelength)**2
         findk_niter = 1e8
-        sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=k_guess, ktarget=0.9, ktol=0.0025, knavg=1e5, niter=findk_niter,
+        ktarget = 0.9
+        if force_kmax_value:
+            ktol = 1.0 #The guess above brings to the right value, if the tolerance lets it pass it will be the final value
+        else: 
+            ktol = 0.0025
+        sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=k_guess, ktarget=ktarget, ktol=ktol, knavg=1e5, niter=findk_niter,
                                     seeds=seeds, verbose=True)
         print('\n\nsimulation: Find k started')
         start=time.time()
@@ -222,7 +238,8 @@ if __name__ == "__main__":
                     pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
                     fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
                     max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                    numnegk=numnegk, lownegk=lownegk, print_status=bv_pt_printstatus,
+                    numnegk=numnegk, lownegk=lownegk, k_spreading=k_spreading,
+                    print_status=bv_pt_printstatus,
                     base_directory=path, sleep_seconds=sleep_seconds,
                     exchange_scheme=exchange_scheme,
                     checkpoint_time=checkpoint_time)
@@ -244,7 +261,8 @@ if __name__ == "__main__":
             ptrunner = MPI_BV_PT_RLhandshake(mcrunner_pt, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1, pfreq=pfreq, skip=nskip,
                                         test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
                                         min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                                        numnegk=numnegk, lownegk=lownegk, base_directory=path,
+                                        numnegk=numnegk, lownegk=lownegk, k_spreading=k_spreading,
+                                        base_directory=path,
                                         fix_com=False)
             assert ptrunner.rank == rank, "rank id does not match"
             assert ptrunner.nprocs == nprocs, "number of processes does not match"
