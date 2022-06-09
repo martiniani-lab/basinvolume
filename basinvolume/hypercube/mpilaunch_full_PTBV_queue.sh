@@ -43,7 +43,7 @@ ln -s $ACTUALOUTPUTFOLDER $LINKTOFOLDER
 
 # Send back list of arguments to queue
 # sbatch script_slurm.sh "--jobs $CPUNUMBER $N $Phi $CPUNUMBER $FULLFOLDER";
-sbatch script_slurm.sh "mpirun -n $CPUNUMBER python $CODEFILENAMEBV ${NDIM} --positivespringnumber=$POSITIVESPRINGNUMBER --negativespringnumber=$NEGATIVESPRINGNUMBER --min_tot_niter=$MINTOTNITER";
+sbatch script_slurm.sh "mpirun -n $CPUNUMBER python $CODEFILENAMEBV ${NDIM} --positivespringnumber=$POSITIVESPRINGNUMBER --negativespringnumber=$NEGATIVESPRINGNUMBER --min_tot_niter=$MINTOTNITER -n_spheres=1 -force_k=True -k_sprd=positionlinspace --auto_replica_number";
 
 done
 
