@@ -40,14 +40,16 @@ def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particle
     """
 
     # First compute the estimated offset of spring constants due to the boundary at k = k_min
-    kappa = nr_particles * dimension / displ_k_min
+    kappa = (nr_particles * dimension - 1) / displ_k_min
     # Then find the distance corresponding to k_max
-    r_k_max = nr_particles * dimension / (k_max + kappa)
+    r_k_max = np.sqrt((nr_particles * dimension - 1) / (k_max + kappa))
 
     #Deduce from the above the list of k's
-    k = nr_particles * dimension / (np.linspace(r_k_max, np.sqrt(displ_k_min), num=nr_points))**2 - kappa
+    k = (nr_particles * dimension - 1) / (np.linspace(r_k_max, np.sqrt(displ_k_min), num=nr_points))**2 - kappa
     k = k.tolist()
-    
+    # Reverse k for backwards compatibility
+    k = k[::-1]
+
     return k
 
 def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0, kappa_const=1.0):
