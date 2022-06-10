@@ -109,6 +109,7 @@ class PT_Master(object):
         self.u2meank0 = u2meank0
         self.mcrunner_niter = example_mcrunner.niter
         self.mcrunner_eqsteps = int(example_mcrunner.equilibration_steps)
+        self.mcrunner_potential = example_mcrunner.potential
         self.test_convergence = test_convergence
         self.eq_time = 0  # time at which equilibration was reached
         self.fast_ct = fast_ct
@@ -221,7 +222,7 @@ class PT_Master(object):
             Karray = spring_constants_logspace(nposk+1, self.kmax, self.kmin)
         elif self.k_spreading == "positionlinspace":
             Karray = spring_constants_positionlinspace(nposk+1, self.kmax, self.u2meank0,
-                                                        self.nparticles, self.bdim, self.kmin)
+                                                        self.nparticles, self.bdim)
         else:
             raise NotImplementedError
         Karray = Karray[:-1]  # exclude kmax entry, no need to be simulated, mean is already available
@@ -596,7 +597,11 @@ class PT_Master(object):
             status['conf_reject_frac'] = counters[3] / counters[0]
             # Energy will be NaN at this point if the replica has been swapped,
             # since only the workers recalculate it.
-            status['energy'] = self.replica_states[ireplica].energy
+            # Since this is a rather uncommon print, energy can be recomputed if it is nan here
+            energy = self.replica_states[ireplica].energy
+            if np.isnan(energy):
+                energy = self.mcrunner_potential.getEnergy(self.replica_states[ireplica].coords)
+            status['energy'] = energy
             status['neval'] = counters[4]
 
             nswaps = (self.replica_states[ireplica].swap_accepted_count

@@ -32,7 +32,7 @@ def spring_constants_logspace(nr_points, k_max, k_min=0.0):
     k = k.tolist()
     return k
 
-def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0):
+def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particles, dimension):
     """
     Given the number of points n,
     and the maximum spring constant k_max;
@@ -46,9 +46,13 @@ def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particle
 
     #Deduce from the above the list of k's
     k = (nr_particles * dimension - 1) / (np.linspace(r_k_max, np.sqrt(displ_k_min), num=nr_points))**2 - kappa
+    #Make sure that the first value is 0 there, errors might arise
+    k[0] = k_max
     k = k.tolist()
     # Reverse k for backwards compatibility
     k = k[::-1]
+    #Make sure that the first value after reversal is k_max
+    k[0] = 0.0
 
     return k
 

@@ -25,7 +25,7 @@ echo "#SBATCH --nodes=1">>script_slurm.sh
 echo "#SBATCH --ntasks-per-node=$CPUNUMBER">>script_slurm.sh
 echo "#SBATCH --cpus-per-task=1">>script_slurm.sh
 echo "#SBATCH --mem=128GB">>script_slurm.sh
-echo "#SBATCH --time=1-0:00:00">>script_slurm.sh
+echo "#SBATCH --time=3-0:00:00">>script_slurm.sh
 
 echo "#SBATCH --mail-type=ALL">>script_slurm.sh
 echo "#SBATCH --mail-user=mc9287@nyu.edu">>script_slurm.sh
