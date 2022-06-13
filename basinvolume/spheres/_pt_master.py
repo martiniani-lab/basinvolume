@@ -16,7 +16,7 @@ from mpi4py import MPI
 from enum import Enum, unique  # Package enum34
 from pymbar.timeseries import detectEquilibration_binary_search
 from basinvolume.utils import trymakedir, integratedAutocorrelationTime_fft
-from basinvolume.post_processing import spring_constants_variable_transform, spring_constants_positionlinspace, spring_constants_linspace, spring_constants_logspace
+from basinvolume.post_processing import spring_constants_variable_transform, spring_constants_positionlinspace, neg_spring_constants_positionlinspace, spring_constants_linspace, spring_constants_logspace
 from basinvolume.monte_carlo import IndependenceSampling
 from basinvolume.spheres import BV_MCRunner_State
 
@@ -227,14 +227,17 @@ class PT_Master(object):
             raise NotImplementedError
         Karray = Karray[:-1]  # exclude kmax entry, no need to be simulated, mean is already available
         if self.numnegk > 0:
-            assert np.abs(self.lownegk) > 0
-            grid = -(np.abs(self.lownegk) + 1 -
-                     np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1),
-                                        self.numnegk+1))
-                     )[:-1]
-            assert len(grid) == self.numnegk
-            for x in grid[::-1]:
-                Karray.insert(0, x)
+            if self.k_spreading == "positionlinspace":
+                negKarray = neg_spring_constants_positionlinspace(self.numnegk, nposk+1, self.kmax, self.u2meank0,
+                                                                    self.nparticles, self.bdim)
+                for x in negKarray[::-1]:
+                    Karray.insert(0, x)
+            else:
+                assert np.abs(self.lownegk) > 0
+                grid = -(np.abs(self.lownegk)+1-(np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1), self.numnegk+1))))[:-1]
+                assert grid.size == self.numnegk
+                for x in grid[::-1]:
+                    Karray.insert(0, x)
         # Reverse Karray for backwards compatibility
         Karray = Karray[::-1]
         return Karray

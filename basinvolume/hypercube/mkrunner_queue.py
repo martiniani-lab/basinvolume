@@ -220,7 +220,6 @@ if __name__ == "__main__":
         displ_k_min = sim_pt.displ_k_min
         var_displ_k_min = sim_pt.displ_k_min
         kmax = sim_pt.kmax
-        lownegk = -numnegk# -np.sqrt(numnegk) #Used to be-2.5 #lownegk needs to be pretty low for hypercube exploration!
         path = sim_pt.base_directory
         
         exchange_scheme = ExchangeScheme.NEIGHBOR_EXCHANGE
@@ -238,7 +237,7 @@ if __name__ == "__main__":
                     pfreq=pfreq, skip=nskip, test_convergence=test_convergence_ts,
                     fast_ct=fast_ct, rel_std_err=rel_std_err, min_window=min_window,
                     max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                    numnegk=numnegk, lownegk=lownegk, k_spreading=k_spreading,
+                    numnegk=numnegk, k_spreading=k_spreading,
                     print_status=bv_pt_printstatus,
                     base_directory=path, sleep_seconds=sleep_seconds,
                     exchange_scheme=exchange_scheme,
@@ -261,7 +260,7 @@ if __name__ == "__main__":
             ptrunner = MPI_BV_PT_RLhandshake(mcrunner_pt, kmax, kmin, displ_k_min, max_ptiter=min_ptiter+1, pfreq=pfreq, skip=nskip,
                                         test_convergence=test_convergence_ts, fast_ct=fast_ct, rel_std_err=rel_std_err,
                                         min_window=min_window, max_eq_time=max_eq_time, eq_max_ptiter=int(max_tot_niter/niter),
-                                        numnegk=numnegk, lownegk=lownegk, k_spreading=k_spreading,
+                                        numnegk=numnegk, k_spreading=k_spreading,
                                         base_directory=path,
                                         fix_com=False)
             assert ptrunner.rank == rank, "rank id does not match"

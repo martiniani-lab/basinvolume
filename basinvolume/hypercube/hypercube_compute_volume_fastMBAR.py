@@ -106,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument("--cuda", action='store_true', help="run with cuda support, default: False", default=False)
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
-    parser.add_argument("--ncores", action='store_true', help="number of cores to use for the calculation", default=1)
+    parser.add_argument("--ncores", type = int, help="number of cores to use for the calculation", default=1)
     args = parser.parse_args()
     print(args)
 

@@ -35,7 +35,8 @@ def spring_constants_logspace(nr_points, k_max, k_min=0.0):
 def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particles, dimension):
     """
     Given the number of points n,
-    and the maximum spring constant k_max;
+    the maximum spring constant k_max,
+    and the MSD of the kmin walk;
     computes k such that the modes of the various replicas are linearly spaced in real space
     """
 
@@ -55,6 +56,33 @@ def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particle
     k[0] = 0.0
 
     return k
+
+def neg_spring_constants_positionlinspace(numnegk, nr_points, k_max, displ_k_min, nr_particles, dimension):
+    """
+    Given the number of points n,
+    the maximum spring constant k_max,
+    and the MSD of the kmin walk;
+    computes negative k's such that the modes of the various replicas are linearly spaced in real space
+    """
+
+    # First compute the estimated offset of spring constants due to the boundary at k = k_min
+    kappa = (nr_particles * dimension - 1) / displ_k_min
+    # Then find the distance corresponding to k_max
+    r_k_max = np.sqrt((nr_particles * dimension - 1) / (k_max + kappa))
+    # and the distance given by k_min
+    r_0 = np.sqrt(displ_k_min)
+    # This gives the value of the delta_r between two values
+    delta_r = (r_k_max - r_0)/nr_points
+
+    # The list is then given as above, as long as there should be negative values and that the squared value is positive
+    assert(numnegk > 0)
+    assert(r_0 - numnegk * delta_r >= 0.)
+    k = (nr_particles * dimension - 1) / (np.linspace(r_0 - numnegk * delta_r,r_0 - delta_r, num=numnegk))**2 - kappa
+
+    return k
+
+    #XXX DEBUG
+
 
 def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0, kappa_const=1.0):
     """

@@ -115,6 +115,8 @@ class mbar_compute_dos(object):
         if not os.path.isabs(explore_dir):
             number = int(re.findall('\d+', self.fname)[0])
             explore_dir = os.path.join(os.getcwd(),explore_dir+number)
+        if self.bootstrap:
+            base_dir = base_dir+'_bootstrap'
         self.explore_dir = explore_dir
         self.base_directory = os.path.join(self.explore_dir, base_dir)
         self.frozen = frozen

@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
 from basinvolume.utils import get_dist_com, integratedAutocorrelationTime_fft
-from basinvolume.post_processing import spring_constants_variable_transform, spring_constants_positionlinspace, spring_constants_linspace, spring_constants_logspace
+from basinvolume.post_processing import spring_constants_variable_transform, spring_constants_positionlinspace, neg_spring_constants_positionlinspace, spring_constants_linspace, spring_constants_logspace
 from basinvolume.spheres import BV_MCrunner
 from basinvolume.hypercube import HypercubeMCrunner
 from pymbar.timeseries import detectEquilibration_binary_search
@@ -268,11 +268,17 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 raise NotImplementedError
             Tarray = Tarray[:-1] #exclude kmax entry, no need to be simulated, mean is already available
             if self.numnegk > 0:
-                assert np.abs(self.lownegk) > 0
-                grid = -(np.abs(self.lownegk)+1-(np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1), self.numnegk+1))))[:-1]
-                assert grid.size == self.numnegk
-                for x in grid[::-1]:
-                    Tarray.insert(0, x)
+                if self.k_spreading == "positionlinspace":
+                    negTarray = neg_spring_constants_positionlinspace(self.numnegk, nposk+1, self.Tmax, self.u2meank0,
+                                                                        self.mcrunner.nparticles, self.mcrunner.bdim)
+                    for x in negTarray[::-1]:
+                        Tarray.insert(0, x)
+                else:
+                    assert np.abs(self.lownegk) > 0
+                    grid = -(np.abs(self.lownegk)+1-(np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1), self.numnegk+1))))[:-1]
+                    assert grid.size == self.numnegk
+                    for x in grid[::-1]:
+                        Tarray.insert(0, x)
             logging.info("len Tarray: {}".format(len(Tarray)))
             logging.info("Tarray: {}".format(Tarray))
             self.Tarray = np.array(Tarray[::-1],dtype='d')
