@@ -74,7 +74,7 @@ if __name__ == "__main__":
     full_coords = np.array(origin)
     numposk = args.positivespringnumber
     if override_replicas:
-        defaultnumber = int(ndof/10)
+        defaultnumber = int(ndof/5)
         numposk = max(numposk, defaultnumber)
     numnegk = args.negativespringnumber
     nreplicas = numposk + numnegk

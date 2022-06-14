@@ -79,9 +79,30 @@ def neg_spring_constants_positionlinspace(numnegk, nr_points, k_max, displ_k_min
     assert(r_0 - numnegk * delta_r >= 0.)
     k = (nr_particles * dimension - 1) / (np.linspace(r_0 - numnegk * delta_r,r_0 - delta_r, num=numnegk))**2 - kappa
 
+    # Consistency check
+    assert k.size == numnegk
+
     return k
 
-    #XXX DEBUG
+def neg_spring_constants_logspace(numnegk, lownegk):
+    """
+    Give the wanted number of values numnegk,
+    and the lowest wanted value lownegk,
+    generate a list of log-spaced negative values
+    """
+
+    # Assert that the output can make sense
+    assert(np.abs(lownegk) > 0)
+    assert(numnegk > 0)
+
+    # Create a log-spaced list, with the right order for it to be consistent with the rest
+    k = -(np.abs(lownegk)+1-(np.exp(np.linspace(np.log(1), np.log(np.abs(lownegk)+1), numnegk+1))))[:-1]
+
+    # Consistency check
+    assert k.size == numnegk
+
+    return k
+
 
 
 def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0, kappa_const=1.0):
