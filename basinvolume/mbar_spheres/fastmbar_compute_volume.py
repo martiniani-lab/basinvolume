@@ -11,9 +11,10 @@ import numpy as np
 import os
 import re
 import argparse
-import glob
 import time
 import logging
+import glob
+import math
 from scipy.special import gammaln, gammainc
 import warnings
 from itertools import cycle
@@ -27,12 +28,11 @@ except ImportError as err:
     print(err)
 from scipy.integrate import simps
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
+from basinvolume.utils import to_string, log_surface_nball, log_volume_nball, write_csv_xy, import_pt_time_series
 from basinvolume.post_processing import VolumeSanityCheck
 from configparser import ConfigParser
 # import configparser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
-from pymbar.mbar import MBAR
 from FastMBAR import *
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
 from basinvolume.spheres import read_jammed_packing_config
@@ -81,6 +81,7 @@ def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cros
 #    logging.info("kde pdf area {}".format(area))
     return hist
 
+
 def find_eqtime(ts):
     max_eq_time = ts.size // 2
     time = detectEquilibration_binary_search(ts, bs_nodes=30)[0]
@@ -89,19 +90,19 @@ def find_eqtime(ts):
 
 #def run_parallel(func, *args):
 
-
-class mbar_compute_dos(object):
+class fastmbar_compute_dos(object):
     """
     this is a class that implements _mbar_compute_dos class
     """
-    def __init__(self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=7):
+    def __init__(self, nbins=1000, cuda=False, bootstrap=False, kde=True, plot_dos_data=True, ncores=7):
         self.nbins = np.power(2, int(np.log2(nbins) + 0.5)) + 1#approximate to nearest power of 2 plus 1 (for rhomb integration)
+        self.cuda = cuda
         self.kde = kde
         self.bootstrap = bootstrap
         self.plot_dos_data = plot_dos_data
         self.ncores = ncores
 
-    def __call__(self, fname='jammed_packing0', base_dir='analysis',
+    def __call__(self, fname='jammed_packing0', base_dir='analysis_fastMBAR',
                  explore_dir='explore_bv_jammed_packing', packings_dir='packings',
                  jammed_packings_dir='jammed_packings', frozen=False, show=False,
                  verbose=True):
@@ -177,12 +178,12 @@ class mbar_compute_dos(object):
         self._subtract_eqtime()
         logging.info("importing innersphere time series")
         self._import_ts_spheres()
-        logging.info("subsampling time series")
+        # logging.info("subsampling time series")
         self._build_flat_timeseries()
-        logging.info("building mbar")
-        self._build_mbar()
-        logging.info("mbar computing volume")
-        self._mbar_compute_volume()
+        # logging.info("building mbar")
+        self._build_fastmbar()
+        # logging.info("mbar computing volume")
+        self._fastmbar_compute_volume()
         self._compute_hs_fluid_volume()
         self._print_volumes()
         if self.plot_dos_data:
@@ -204,12 +205,12 @@ class mbar_compute_dos(object):
         self._subtract_eqtime()
         logging.info("importing innersphere time series")
         self._import_ts_spheres()
-        logging.info("subsampling time series")
+        # logging.info("subsampling time series")
         self._build_flat_timeseries()
-        logging.info("building mbar")
-        self._build_mbar()
-        logging.info("mbar computing volume")
-        self._mbar_compute_volume()
+        # logging.info("building mbar")
+        self._build_fastmbar()
+        # logging.info("mbar computing volume")
+        self._fastmbar_compute_volume()
         self._compute_hs_fluid_volume()
         self._print_volumes()
         logging.info("plotting data all")
@@ -220,7 +221,6 @@ class mbar_compute_dos(object):
             #the timeseries after find_eqtime has already discared the burn out region
             full_flat_timeseries = np.copy(self.flat_timeseries)
             self.logn_E_subs = self.logn_E.copy()
-            initial_f_k = np.array(self.mbar.f_k)
             for iter in range(nr_subsamples):
                 logging.info("subsampling - iteration {}".format(iter))
                 j = 0
@@ -231,11 +231,11 @@ class mbar_compute_dos(object):
                     j+=n_k
                 start = time.time()
                 #self._build_mbar(verbose=False, maxiter=1000, reltol=1.0e-7, initial_f_k=initial_f_k, subsampling=16)
-                self._build_mbar(verbose=False, initial_f_k=initial_f_k)
+                self._build_fastmbar(verbose=False)
                 logging.info("t: {}".format(time.time() - start))
                 #compute the weights, skip the volume calculation
-                Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences(return_theta=True)
-                self.w_i_final = -Deltaf_ij[0]
+                Deltaf_ij = self.fastmbar.F
+                self.w_i_final = -Deltaf_ij
                 #now build histogram and compute dos
                 self._build_histogram(compute_binedges=False, kde=self.kde)
                 self._compute_dos()
@@ -341,6 +341,28 @@ class mbar_compute_dos(object):
             flat_ts = np.append(flat_ts, timeseries[i][indices])
         return flat_ts, N_k, g
 
+    def _concatenate_timeseries(self, ts_spheres, timeseries): #Not needed in FastMBAR
+        """
+        returns full flattened timeseries, without subsampling
+        """
+        K = self.karray.size
+        N_k = np.zeros(K, dtype='i')
+        flat_ts = np.empty(0)
+
+        # Split between innerspheres and pt time series here
+        # Start with inner spheres
+        for i in range(self.number_nested_spheres):
+            N_k[i] = len(ts_spheres[i])
+            flat_ts = np.append(flat_ts, ts_spheres[i])
+        # Now loop through pt timeseries
+        for i in range(K-self.number_nested_spheres):
+            j = i+self.number_nested_spheres
+            N_k[j] = len(timeseries[i]) # number of uncorrelated samples
+            flat_ts = np.append(flat_ts, timeseries[i])
+        print("FLAT TIMESERIES DIMENSIONS")
+        print(flat_ts.shape)
+        return flat_ts, N_k
+
     def _import_ts_spheres(self):
         #There can be several innerspheres now
         self.ts_spheres = []
@@ -352,15 +374,24 @@ class mbar_compute_dos(object):
     def _build_flat_timeseries(self):
         self.flat_timeseries, self.N_k, g = self._subsample_timeseries(self.ts_spheres, self.timeseries)
 
-    def _build_mbar(self, verbose=True, initial_f_k=None, maxiter=10000, reltol=1.0e-7): #subsampling=6 no longer supported
-        self.u_kn = self._build_u_kn(self.flat_timeseries)
-        self.mbar = MBAR(self.u_kn, self.N_k, maximum_iterations=maxiter, relative_tolerance=reltol,
-                         initial_f_k=initial_f_k, initialize='BAR', verbose=verbose) # subsampling=subsampling no longer supported
+    def _build_flat_timeseries_no_subsampling(self):
+        self.flat_timeseries, self.N_k = self._concatenate_timeseries(self.ts_spheres, self.timeseries)
 
-    def _mbar_compute_volume(self):
-        Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences(return_theta=True) #Default is now false for return_theta
-        self.w_i_final = -Deltaf_ij[0] #the free energy differences are nothing but the log weights that one would compute from wham
-        # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
+    def _build_fastmbar(self, verbose=True): #subsampling=6 no longer supported
+        self.u_kn = self._build_u_kn(self.flat_timeseries)
+        print("U_KN DIMENSIONS")
+        print(self.u_kn.shape)
+        self.fastmbar = FastMBAR(self.u_kn, self.N_k, cuda=self.cuda, bootstrap=self.bootstrap, verbose=verbose)
+
+    def _fastmbar_compute_volume(self): 
+        Deltaf_ij = self.fastmbar.F
+        print("RAW DELTAF's")
+        print(Deltaf_ij)
+        if self.bootstrap:
+            dDeltaf_ij = self.fastmbar.F_std
+        self.w_i_final = -Deltaf_ij #the free energy differences are nothing but the log weights that one would compute from wham
+        print("RAW W's")
+        print(self.w_i_final)
 
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
@@ -368,8 +399,9 @@ class mbar_compute_dos(object):
         logging.info("rmin {}".format(rmin))
         logging.info("ref acceptance {}".format(self.ref_acceptances[0]))
         logvmin = log_volume_nball(rmin, self.ndof)
-        # logvmin = np.log( gammainc(self.ndof / 2, 0.5 ))
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
+        print("Fmin")
+        print(Fmin)
 
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
@@ -377,17 +409,33 @@ class mbar_compute_dos(object):
         u_lk = np.where(r < rmin, u_lk, LARGE)
         u_lk = np.reshape(u_lk, (1, u_lk.size))
         u_lk = np.vstack((u_lk, self.u_kn[self.k0_index])) #measure free energy difference between k=0 and kw
-        Deltaf_ij, dDeltaf_ij = self.mbar.computePerturbedFreeEnergies(u_lk)
-        #vol = Deltaf_ij[1,0]
-        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1,0]) - np.log(self.vcavity), dDeltaf_ij[1,0]
-        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1,0]), dDeltaf_ij[1,0]
+        if self.bootstrap:
+            Deltaf_ij, dDeltaf_ij = self.fastmbar.calculate_free_energies_of_perturbed_states(u_lk)
+            self.sigF0 = dDeltaf_ij[1] - dDeltaf_ij[0]
+            self.sigF0unc = dDeltaf_ij[1] - dDeltaf_ij[0]
+            print("Deltaf, perturbed")
+            print(Deltaf_ij, dDeltaf_ij)
+        else:
+            Deltaf_ij,_= self.fastmbar.calculate_free_energies_of_perturbed_states(u_lk)
+            print("Deltaf, perturbed")
+            print(Deltaf_ij)
+
+        delta_f = Deltaf_ij[0] - Deltaf_ij[1] #pyMBAR returned a MATRIX OF DIFFERENCES in the perturbed function, FastMBAR returns a VECTOR OF FREE ENERGY VALUES on the scale defined by the other runs
+
+        self.F0 = (Fmin - delta_f) - np.log(self.vcavity)
+        self.F0unc = (Fmin - delta_f)
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
 
         if self.verbose:
-            logging.info('F0 {} F0unc {} +/- {}'.format(self.F0, self.F0unc, self.sigF0))
-            logging.info('unit_box_F0 {} unit_box_F0unc {} +/- {}'.format(self.unit_box_F0, self.unit_box_F0unc, self.sigF0))
+            if self.bootstrap:
+                logging.info('F0 {} F0unc {} +/- {}'.format(self.F0, self.F0unc, self.sigF0))
+                logging.info('unit_box_F0 {} unit_box_F0unc {} +/- {}'.format(self.unit_box_F0, self.unit_box_F0unc, self.sigF0))
+            else:
+                logging.info('F0 {} F0unc {}'.format(self.F0, self.F0unc))
+                logging.info('unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc))
+
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
         volume_sanity_check = VolumeSanityCheck(self.packing_configpath,
@@ -506,7 +554,6 @@ class mbar_compute_dos(object):
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
             ax.errorbar(self.bin_edges[:-1], hist, linewidth=2, color=next(color_cycle),
                         label='{:.1f}'.format(self.karray[i])) #yerr=err
-            write_csv_xy(self.bin_edges[:-1], hist, fname=os.path.join(self.base_directory, 'hist_k_'+str(i)+'.csv'))
         ax.legend(frameon=False, loc="best", prop={'size':17}, numpoints=1, scatterpoints=1,
                   markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1, ncol=2)
         ax.set_xlabel(r'$r$', fontsize=28)
@@ -553,12 +600,13 @@ class mbar_compute_dos(object):
         logn_E = np.array([self.logn_E[i] for i in finindx])
         bin_edges = np.array([self.bin_edges[i] for i in finindx])
 
-        logn_E = np.longdouble(logn_E) #the numbers can be RIDICULOUS, use larger precision for exponentials
+        logn_E = np.longdouble(logn_E)
         logn_E = np.array(logn_E - np.amax(logn_E))
-        dos = np.exp(logn_E) 
+        dos = np.exp(logn_E) #the numbers can be RIDICULOUS, use larger precision for exponentials
         dos /= simps(dos, bin_edges)
         SMALL=-1e70
         logn_E = np.where(dos==0, SMALL, np.log(dos))
+
 
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -611,20 +659,6 @@ class mbar_compute_dos(object):
         if self.show:
             plt.show()
 
-#        corey's S_n^gamma function
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        A = surface_nball(1.,self.ndof)
-#        Vrat = np.exp(self.F0 - self.nparticles*self.bdim*np.log(self.vcavity))
-#        ax.plot(bin_edges, np.exp(rg-np.amax(rg)) * (bin_edges**self.ndof)
-#        ax.set_xlabel(r'$\Delta r$')
-#        ax.set_ylabel(r'$S_n^{\Gamma}$')
-#        #ax.set_yscale('log')
-#        #ax.set_xscale('log')
-#        #plt.savefig(self.base_directory + '/wbp.eps')
-#        if self.show:
-#            plt.show()
-
     def _plot_dos_bs(self, alpha=0.05):
         lines = ["-", "--", "-."]
         linecycler = cycle(lines)
@@ -648,8 +682,8 @@ class mbar_compute_dos(object):
         nsamples = self.logn_E_subs.shape[0]
         #these are the unbiased estimates of the error because log is a monotonic convex function
         #and the we pick the 2.5 and 97.5 percentiles to have 95% intervals of confidence
-        low_logn_E =  np.sort(self.logn_E_subs, axis=0)[int((alpha/2.0))*nsamples,:]
-        high_logn_E =  np.sort(self.logn_E_subs, axis=0)[int((1-alpha/2.0))*nsamples,:]
+        low_logn_E =  np.sort(self.logn_E_subs, axis=0)[int((alpha/2.0)*nsamples),:]
+        high_logn_E =  np.sort(self.logn_E_subs, axis=0)[int(1 - (alpha/2.0)*nsamples),:]
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -722,7 +756,10 @@ class mbar_compute_dos(object):
         f.write('[VOLUME_MBAR]\n')
         if hasattr(self, "F0"):
             _to_file("F0", self.F0)
-            _to_file("sigF0", self.sigF0)
+            if self.bootstrap:
+                _to_file("sigF0", self.sigF0)
+            else:
+                _to_file("sigF0", "N/A")
             _to_file("unit_box_F0", self.unit_box_F0)
         f.close()
 
@@ -735,6 +772,7 @@ if __name__ == "__main__":
     parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir", default=os.getcwd())
     parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
     parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
+    parser.add_argument("--cuda", action='store_true', help="use cuda, default: False", default=False)
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
     args = parser.parse_args()
@@ -749,7 +787,7 @@ if __name__ == "__main__":
     wdir = args.workdir
     assert(os.path.isabs(wdir))
 
-    sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
+    sim = fastmbar_compute_dos(cuda = args.cuda, bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
     if (fname != None):
         if not os.path.isabs(fdir):
             fdir = os.path.join(wdir, fdir + fname)

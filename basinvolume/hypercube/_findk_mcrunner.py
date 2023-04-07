@@ -8,6 +8,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.utils import view_traceback
 from mcpele.monte_carlo import NullPotential
 from basinvolume.hypercube import HypercubeFindkMCrunner
+from basinvolume.monte_carlo import Findk
 import time
 import warnings
 
@@ -15,14 +16,14 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
     """
     """
 
-    def __init__(self, ndof, sidelength=1, k=100.0, niter=5e4,
+    def __init__(self, ndof, sidelength=1, k=100.0, niter=5e4, avgcount=1e4,
                  ktarget=0.9, knavg=1000, ktol=0.025, hmin=0, hmax=0.01,
                  hbinsize=0.0005, seeds=None, verbose=False, workspace=None):
 
         self.temperature=1.0
         self.ndof = ndof
         self.sidelength = sidelength
-        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
+        self.coords = np.zeros(self.ndof) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if workspace is None:
             self.workspace = os.getcwd()
         else:
@@ -32,7 +33,7 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
         stepsize = np.sqrt(1.0 / k) #stepsize plays the role of the standard deviation
 
         #self.mc_params = dict(k=k, temperature=temperature, )
-        kwargs = dict(ktarget=ktarget, knavg=knavg, ktol=ktol,
+        kwargs = dict(ktarget=ktarget, knavg=knavg, ktol=ktol, avgcount=avgcount,
                       hmin=hmin, hmax=hmax, hbinsize=hbinsize, sidelength=self.sidelength,
                       seeds=seeds)
 
@@ -111,8 +112,9 @@ if __name__ == "__main__":
     #sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
-    ndof = 93
-    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, k=50, ktarget=0.9, knavg=1e3,
+    ndof = 1000
+    kguess = 100
+    sim = _hypercube_findk_mcrunner(ndof, sidelength=1, avgcount=1e6, k=kguess,  ktarget=1.0, ktol=0.0025/ndof, knavg=1e5, niter=1e8,
                                     seeds=seeds, verbose=True)
     print('simulation started')
     start=time.time()
@@ -127,5 +129,5 @@ if __name__ == "__main__":
     print("self.var_displ_k_max:", sim.var_displ_k_max)
     #print "Nd/k: ", sim.nparticles * sim.bdim / sim.kmax
     print("(N-1)d/k", sim.ndof / sim.kmax)
-    #sim.mcrunner.show_histogram()
+    sim.mcrunner.show_histogram()
     print("entries in histogram:", sim.mcrunner.get_entries())

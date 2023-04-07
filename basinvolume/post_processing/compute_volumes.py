@@ -25,7 +25,7 @@ try:
     import re
     import logging
     import matplotlib
-    matplotlib.use('Agg', warn=False)
+    matplotlib.use('Agg') # matplotlib.use('Agg', warn=False)
     import matplotlib.pyplot as plt
     import traceback
     import copy

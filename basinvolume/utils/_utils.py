@@ -903,7 +903,7 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
                     adjustf_niter = 0
                 series = []
                 series.extend(read_txt(file_list[0], adjustf_niter, max_series_size).tolist() )
-                results = Parallel(n_jobs=ncores)(delayed(read_txt)(series_path, 0, other_max_size) for series_path in file_list[1:])
+                results = Parallel(n_jobs=ncores)(delayed(read_txt)(series_path, 0, other_max_size) for series_path in file_list[1:]) 
                 series.extend( list(chain.from_iterable(results)) )
                 timeseries.append(series)
     X = np.array(timeseries)

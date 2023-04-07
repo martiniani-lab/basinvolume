@@ -9,6 +9,102 @@ try:
 except:
     print("import error")
 
+def spring_constants_linspace(nr_points, k_max, k_min=0.0):
+    """
+    Given the number of points n,
+    and the maximum spring constant k_max;
+    computes linearly-spaced k values to use in PT.
+    """
+    k = np.linspace(k_min, k_max, num=nr_points)
+    k = k.tolist()
+    return k
+
+def spring_constants_logspace(nr_points, k_max, k_min=0.0):
+    """
+    Given the number of points n,
+    and the maximum spring constant k_max;
+    computes logarithmically-spaced k values, plus 0, to use in PT.
+    """
+    # k_min = 0 can't be used as is
+    # add a fudge constant to avoid computing silly values
+    fudge_constant = k_max / nr_points
+    k = np.exp(np.linspace(np.log(k_min + fudge_constant), np.log(k_max + fudge_constant), num =nr_points)) - fudge_constant
+    k = k.tolist()
+    return k
+
+def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particles, dimension):
+    """
+    Given the number of points n,
+    the maximum spring constant k_max,
+    and the MSD of the kmin walk;
+    computes k such that the modes of the various replicas are linearly spaced in real space
+    """
+
+    # First compute the estimated offset of spring constants due to the boundary at k = k_min
+    kappa = (nr_particles * dimension - 1) / displ_k_min
+    # Then find the distance corresponding to k_max
+    r_k_max = np.sqrt((nr_particles * dimension - 1) / (k_max + kappa))
+
+    #Deduce from the above the list of k's
+    k = (nr_particles * dimension - 1) / (np.linspace(r_k_max, np.sqrt(displ_k_min), num=nr_points))**2 - kappa
+    #Make sure that the first value is 0 there, errors might arise
+    k[0] = k_max
+    k = k.tolist()
+    # Reverse k for backwards compatibility
+    k = k[::-1]
+    #Make sure that the first value after reversal is k_max
+    k[0] = 0.0
+
+    return k
+
+def neg_spring_constants_positionlinspace(numnegk, nr_points, k_max, displ_k_min, nr_particles, dimension):
+    """
+    Given the number of points n,
+    the maximum spring constant k_max,
+    and the MSD of the kmin walk;
+    computes negative k's such that the modes of the various replicas are linearly spaced in real space
+    """
+
+    # First compute the estimated offset of spring constants due to the boundary at k = k_min
+    kappa = (nr_particles * dimension - 1) / displ_k_min
+    # Then find the distance corresponding to k_max
+    r_k_max = np.sqrt((nr_particles * dimension - 1) / (k_max + kappa))
+    # and the distance given by k_min
+    r_0 = np.sqrt(displ_k_min)
+    # This gives the value of the delta_r between two values
+    delta_r = (r_k_max - r_0)/nr_points
+
+    # The list is then given as above, as long as there should be negative values and that the squared value is positive
+    assert(numnegk > 0)
+    assert(r_0 - numnegk * delta_r >= 0.)
+    k = (nr_particles * dimension - 1) / (np.linspace(r_0 - numnegk * delta_r,r_0 - delta_r, num=numnegk))**2 - kappa
+
+    # Consistency check
+    assert k.size == numnegk
+
+    return k
+
+def neg_spring_constants_logspace(numnegk, lownegk):
+    """
+    Give the wanted number of values numnegk,
+    and the lowest wanted value lownegk,
+    generate a list of log-spaced negative values
+    """
+
+    # Assert that the output can make sense
+    assert(np.abs(lownegk) > 0)
+    assert(numnegk > 0)
+
+    # Create a log-spaced list, with the right order for it to be consistent with the rest
+    k = -(np.abs(lownegk)+1-(np.exp(np.linspace(np.log(1), np.log(np.abs(lownegk)+1), numnegk+1))))[:-1]
+
+    # Consistency check
+    assert k.size == numnegk
+
+    return k
+
+
+
 def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0, kappa_const=1.0):
     """
     Given the number of points n,
@@ -16,7 +112,7 @@ def spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_partic
     the average displacement squared at k=0,
     the number of particles,
     and the Ecuclidean dimension of the box;
-    computes the k values to use in PT.
+    computes the k values to use in PT to be able to use Gauss-Lobato integration.
     Reference: Daniel A. Asenjo-Andrews, PhD thesis,  p 34
     """
     t = Gauss_Lobatto_abscissas(nr_points)()

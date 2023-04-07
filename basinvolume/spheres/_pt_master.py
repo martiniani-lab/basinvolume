@@ -16,7 +16,7 @@ from mpi4py import MPI
 from enum import Enum, unique  # Package enum34
 from pymbar.timeseries import detectEquilibration_binary_search
 from basinvolume.utils import trymakedir, integratedAutocorrelationTime_fft
-from basinvolume.post_processing import spring_constants_variable_transform
+from basinvolume.post_processing import spring_constants_variable_transform, spring_constants_positionlinspace, spring_constants_linspace, spring_constants_logspace, neg_spring_constants_positionlinspace, neg_spring_constants_logspace
 from basinvolume.monte_carlo import IndependenceSampling
 from basinvolume.spheres import BV_MCRunner_State
 
@@ -80,8 +80,8 @@ class PT_Master(object):
     def __init__(self, nreplicas, example_mcrunner, kmax, kmin, u2meank0,
                  max_ptiter=10, pfreq=1, skip=0, test_convergence=True,
                  fast_ct=False, rel_std_err=0.03, min_window=2.5e5,
-                 max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False,
-                 base_directory=None, bs_nodes=100, eq_min_ptiter=None,
+                 max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, k_spreading="gausslobato",
+                 print_status=False, base_directory=None, bs_nodes=100, eq_min_ptiter=None,
                  eq_max_ptiter=None, sleep_seconds=0.0001, exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
                  checkpoint_time=None, checkpoint_file='checkpoint.dmp'):
         self.nreplicas = nreplicas
@@ -109,6 +109,7 @@ class PT_Master(object):
         self.u2meank0 = u2meank0
         self.mcrunner_niter = example_mcrunner.niter
         self.mcrunner_eqsteps = int(example_mcrunner.equilibration_steps)
+        self.mcrunner_potential = example_mcrunner.potential
         self.test_convergence = test_convergence
         self.eq_time = 0  # time at which equilibration was reached
         self.fast_ct = fast_ct
@@ -124,7 +125,8 @@ class PT_Master(object):
         self.max_eq_time = int(max_eq_time)
         self.bs_nodes = int(bs_nodes)
         self.numnegk = int(numnegk)
-        self.lownegk = int(lownegk)
+        self.lownegk = lownegk
+        self.k_spreading = k_spreading
         self._init_replicas(example_mcrunner)
         self._init_timeseries()
         self._init_print()
@@ -204,23 +206,36 @@ class PT_Master(object):
 
     def _get_ks(self):
         """
-        set up the spring constants (temperatures) by distributing them exponentially.
+        set up the spring constants (temperatures).
+        They can be distributed exponentially if the k_spreading option reads gausslobato.
+        The other options are linspace (linearly spaced) or logspace (log spaced).
         We order the spring constants from highest to lowest, to calculate the
         more costly replica first.
         """
         nposk = self.nreplicas - self.numnegk  # number of positive k
-        Karray = spring_constants_variable_transform(nposk+1, self.kmax, self.u2meank0,
-                                                     self.nparticles, self.bdim, self.kmin)
+        if self.k_spreading == "gausslobato":
+            Karray = spring_constants_variable_transform(nposk+1, self.kmax, self.u2meank0,
+                                                         self.nparticles, self.bdim, self.kmin)
+        elif self.k_spreading == "linspace":
+            Karray = spring_constants_linspace(nposk+1, self.kmax, self.kmin)
+        elif self.k_spreading == "logspace":
+            Karray = spring_constants_logspace(nposk+1, self.kmax, self.kmin)
+        elif self.k_spreading == "positionlinspace":
+            Karray = spring_constants_positionlinspace(nposk+1, self.kmax, self.u2meank0,
+                                                        self.nparticles, self.bdim)
+        else:
+            raise NotImplementedError
         Karray = Karray[:-1]  # exclude kmax entry, no need to be simulated, mean is already available
         if self.numnegk > 0:
-            assert np.abs(self.lownegk) > 0
-            grid = -(np.abs(self.lownegk) + 1 -
-                     np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1),
-                                        self.numnegk+1))
-                     )[:-1]
-            assert grid == self.numnegk
-            for x in grid[::-1]:
-                Karray.insert(0, x)
+            if self.k_spreading == "positionlinspace":
+                negKarray = neg_spring_constants_positionlinspace(self.numnegk, nposk+1, self.kmax, self.u2meank0,
+                                                                    self.nparticles, self.bdim)
+                for x in negKarray[::-1]:
+                    Karray.insert(0, x)
+            else:
+                negKarray = neg_spring_constants_logspace(self.numnegk, self.lownegk)
+                for x in negKarray[::-1]:
+                    Karray.insert(0, x)
         # Reverse Karray for backwards compatibility
         Karray = Karray[::-1]
         return Karray
@@ -250,8 +265,9 @@ class PT_Master(object):
             logging.info("Created checkpoint")
         else:
             self._print_data()
-            if self.print_status:
-                self._print_status()
+            #Always write status at the very end
+            # if self.print_status:
+            self._print_status()
             self._print_exchanges()
             self._flush_close_streams()
             logging.info("Master finished")
@@ -544,7 +560,8 @@ class PT_Master(object):
         logging.debug("self.mcrunner_eqsteps %s" % self.mcrunner_eqsteps)
         iteration = self.mcrunner_niter * (self.ptiter+1)
         for ireplica in range(self.nreplicas):
-            self._dump_timeseries(ireplica)
+            if len(self.replica_timeseries[ireplica]) > 0:         # DO NOT WRITE EMPTY FILES!
+                self._dump_timeseries(ireplica)
             if self.ptiter >= self.eq_min_ptiter and iteration > self.mcrunner_eqsteps:
                 self._dump_histogram(ireplica)
         logging.debug("_print_data -- END")
@@ -581,7 +598,11 @@ class PT_Master(object):
             status['conf_reject_frac'] = counters[3] / counters[0]
             # Energy will be NaN at this point if the replica has been swapped,
             # since only the workers recalculate it.
-            status['energy'] = self.replica_states[ireplica].energy
+            # Since this is a rather uncommon print, energy can be recomputed if it is nan here
+            energy = self.replica_states[ireplica].energy
+            if np.isnan(energy):
+                energy = self.mcrunner_potential.getEnergy(self.replica_states[ireplica].coords)
+            status['energy'] = energy
             status['neval'] = counters[4]
 
             nswaps = (self.replica_states[ireplica].swap_accepted_count
@@ -591,7 +612,7 @@ class PT_Master(object):
             else:
                 status['frac_acc_swaps'] = (self.replica_states[ireplica].swap_accepted_count
                                             / nswaps)
-            if self.ptiter == self.skip:
+            if self.ptiter == self.skip or self.print_status == False:
                 self.status_streams[ireplica].write('#')
                 for key, _ in list(status.items()):
                     self.status_streams[ireplica].write('{:<12}\t'.format(key))

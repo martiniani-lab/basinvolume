@@ -134,7 +134,7 @@ class _hypercube_kmin_mcrunner(_configure_mcrunner):
         f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
         f.write('mean_coord_dist: {:.16f}\n'.format(self.mean_coord_dist))
         f.write('var_coord_dist: {:.16f}\n'.format(self.var_coord_dist))
-        f.write('pca_asphericity: {:.16f}\n'.format(self.pca_asphericity))
+        f.write('pca_asphericity: {:.16f}\n'.format(self.asphericity))
         f.close()
         try:
             self._dump_trajectory()

@@ -1,6 +1,5 @@
 from __future__ import print_function
 from future import standard_library
-from numpy import inner
 standard_library.install_aliases()
 from builtins import str
 import os
@@ -8,18 +7,18 @@ import configparser
 import argparse
 import glob
 from basinvolume.utils import import_pt_time_series
-from basinvolume.mbar_spheres.mbar_compute_volume import mbar_compute_dos
+from basinvolume.mbar_spheres.fastmbar_compute_volume import fastmbar_compute_dos
 
-class hypercube_mbar_compute_dos(mbar_compute_dos):
+class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
     """
     this is a class that implements _mbar_compute_dos class
     """
-    def __init__(self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=7):
-        super(hypercube_mbar_compute_dos, self).__init__(nbins=nbins, bootstrap=bootstrap,
+    def __init__(self, nbins=1000, cuda=False, bootstrap=False, kde=True, plot_dos_data=True, ncores=7):
+        super(hypercube_fastmbar_compute_dos, self).__init__(nbins=nbins, cuda=cuda, bootstrap=bootstrap,
                                                    kde=kde, plot_dos_data=plot_dos_data,
                                                    ncores=ncores)
 
-    def __call__(self, explore_dir, base_dir='analysis', show=False, verbose=True):
+    def __call__(self, explore_dir, base_dir='analysis_fastMBAR', show=False, verbose=True):
         if not os.path.isabs(explore_dir):
             self.explore_dir = os.path.join(os.getcwd(), explore_dir)
         else:
@@ -27,8 +26,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         self.base_directory = os.path.join(self.explore_dir, base_dir)
 
         dlist = explore_dir.split('_')
-        assert dlist[2] == 'hypercube'
-        dname = dlist[2]+'_'+dlist[3]+'_'+dlist[4]
+        assert dlist[-3] == 'hypercube'
+        dname = dlist[-3]+'_'+dlist[-2]+'_'+dlist[-1]
         self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + dname + '.config')
         assert os.path.isfile(self.pt_configpath)
         self.findk_configpath = os.path.join(self.explore_dir,'findk_'+dname+'.config')
@@ -38,7 +37,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         # There can be several innersphere runs, each with a config path
         self.innersphere_configpaths = []
         self.innersphere_timeseries_paths = [] # It's actually convenient to write down the time series paths as well right here
-        innersphere_dir_list = glob.glob(self.explore_dir+'/innersphere_*[!config]')
+        innersphere_dir_list = glob.glob(explore_dir+'/innersphere_*[!config]')
         if len(innersphere_dir_list) == 0: #Make this implementation safe to use with the older runs
             self.number_nested_spheres = 1
             innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + dname + '.config')
@@ -104,13 +103,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     parser.add_argument("explore_dir", type=str, help="explore_dir")
     parser.add_argument("--show", action='store_true', help="show plots, default: False", default=False)
+    parser.add_argument("--cuda", action='store_true', help="run with cuda support, default: False", default=False)
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
-    parser.add_argument("--ncores", action='store_true', help="number of cores to use for the calculation", default=1)
+    parser.add_argument("--ncores", type = int, help="number of cores to use for the calculation", default=1)
     args = parser.parse_args()
     print(args)
 
-    sim = hypercube_mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1)
+    sim = hypercube_fastmbar_compute_dos(cuda=args.cuda, bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1)
 
     sim(args.explore_dir, show=args.show)
 #    else :

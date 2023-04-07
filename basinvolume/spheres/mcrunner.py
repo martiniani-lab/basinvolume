@@ -464,7 +464,7 @@ class BV_MCrunner(SpheresMCRunner):
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
 
-    def dump_timeseries(self, fname, clear=True):
+    def dump_timeseries(self, fname, clear=True): #Writes ABSOLUTE DISPLACEMENTS from the origin
         """write time series to fname, returns the timeseries"""
         timeseries = np.array(self.time_series.get_time_series())
         np.savetxt(fname, timeseries)
@@ -472,7 +472,7 @@ class BV_MCrunner(SpheresMCRunner):
             self.time_series.clear()
         return timeseries
 
-    def dump_steps_timeseries(self, fname, clear=True):
+    def dump_steps_timeseries(self, fname, clear=True): #Writes RELATIVE DISPLACEMENTS within the walk
         """write time series to fname, returns the timeseries"""
         for i, action in enumerate(self.steps_timeseries_list):
             timeseries = np.array(action.get_time_series())

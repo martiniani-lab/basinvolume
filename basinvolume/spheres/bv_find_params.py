@@ -7,8 +7,8 @@ import os
 import argparse
 import traceback
 import copy
-from ._findk_mcrunner import _findk_mcrunner
-from ._kmin_mcrunner import _kmin_mcrunner
+from _findk_mcrunner import _findk_mcrunner
+from _kmin_mcrunner import _kmin_mcrunner
 
 def worker_findk(fname, kwargs):
     try:

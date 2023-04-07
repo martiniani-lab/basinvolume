@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
 from basinvolume.utils import get_dist_com, integratedAutocorrelationTime_fft
-from basinvolume.post_processing import spring_constants_variable_transform
+from basinvolume.post_processing import spring_constants_variable_transform, spring_constants_positionlinspace, spring_constants_linspace, spring_constants_logspace, neg_spring_constants_positionlinspace, neg_spring_constants_logspace
 from basinvolume.spheres import BV_MCrunner
 from basinvolume.hypercube import HypercubeMCrunner
 from pymbar.timeseries import detectEquilibration_binary_search
@@ -29,7 +29,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     lownegk : float
         lowest negative k
     skip: int
-        number of pt iteration where swaps should be skipped. For instance while the stepsize is adjusted, pt swaps shuold be avoided
+        number of pt iteration where swaps should be skipped. For instance while the stepsize is adjusted, pt swaps should be avoided
     max_ptiter: int
         inherited max_ptiter, in this class it plays as the minimum number of pt_iter. In other words it's eq_min_ptiter
     eq_min_ptiter: int
@@ -45,8 +45,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         number of binary search nodes to use when computing the equilibration point
     """
     def __init__(self, mcrunner, Tmax, Tmin, u2meank0, max_ptiter=10, pfreq=1, skip=0, test_convergence=True, fast_ct=False,
-                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, print_status=False,
-                 base_directory=None, bs_nodes=100, eq_min_ptiter=None, eq_max_ptiter=None, fix_com=True):
+                 rel_std_err=0.03, min_window=2.5e5, max_eq_time=2.5e5, numnegk=0, lownegk=-2.5, k_spreading = "gausslobato",
+                 print_status=False, base_directory=None, bs_nodes=100, eq_min_ptiter=None, eq_max_ptiter=None, fix_com=True):
         super(MPI_BV_PT_RLhandshake,self).__init__(mcrunner, Tmax, Tmin, max_ptiter=max_ptiter, pfreq=pfreq, skip=skip,
                                                    print_status=print_status, base_directory=base_directory)
         self.u2meank0 = u2meank0
@@ -68,7 +68,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.max_eq_time = int(max_eq_time)
         self.bs_nodes = int(bs_nodes)
         self.numnegk = int(numnegk)
-        self.lownegk = int(lownegk)
+        self.lownegk = lownegk
+        self.k_spreading = k_spreading
         self.fix_com = fix_com
         assert(self.eq_min_ptiter > self.skip)
         assert(self.max_ptiter > self.eq_min_ptiter)
@@ -77,7 +78,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if not (self.min_window > self.mcrunner_eqsteps):
             logging.info("self.min_window: {}".format(self.min_window))
             logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
-        assert(self.min_window > self.mcrunner_eqsteps)
+        assert(self.min_window > self.mcrunner_eqsteps) #NB: All times are absolute values from the start of the simulation! Need the min_window to be done AFTER the equilibration steps
         assert(self.max_eq_time > self.mcrunner_eqsteps)
 
     def _print_initialise(self):
@@ -94,7 +95,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             self.permutations_stream = open(r'{0}/rem_permutations'.format(base_directory),'w')
 
     def _print_data(self):
-        self._all_dump_timeseries() #convergence is tested in this function
+        if len(self.timeseries2) > 0:
+            self._all_dump_timeseries() #convergence is tested in this function
         #the histogram depends on self.timeseries that is not empty only once the ts test is passed
         logging.info("_print_data -- BEGIN")
         logging.info("self.ptiter: {}".format(self.ptiter))
@@ -243,21 +245,38 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     #THIS _get_temps CAN DEAL WITH NEGATIVE Ks
     def _get_temps(self):
         """
-        set up the temperatures by distributing them exponentially. We give root the lowest temperature.
+        Set up the spring constants (temperatures).
+        They can be distributed exponentially if the k_spreading option reads gausslobato.
+        The other options are linspace (linearly spaced) or logspace (log spaced).
+        We give root the lowest temperature.
         This should increase performance when pair lists are used (they are updated less often at low temperature
         or when steps involve minimisation, as the low temperatures are closer to the minimum)
         """
         if (self.rank == 0):
             nposk = self.nprocs - self.numnegk #number of positive k
-            Tarray = spring_constants_variable_transform(nposk+1, self.Tmax, self.u2meank0,
-                                                         self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
+            if self.k_spreading == "gausslobato":
+                Tarray = spring_constants_variable_transform(nposk+1, self.Tmax, self.u2meank0,
+                                                             self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
+            elif self.k_spreading == "linspace":
+                Tarray = spring_constants_linspace(nposk+1, self.Tmax, self.Tmin)
+            elif self.k_spreading == "logspace":
+                Tarray = spring_constants_logspace(nposk+1, self.Tmax, self.Tmin)
+            elif self.k_spreading == "positionlinspace":
+                Tarray = spring_constants_positionlinspace(nposk+1, self.Tmax, self.u2meank0,
+                                                            self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
+            else:
+                raise NotImplementedError
             Tarray = Tarray[:-1] #exclude kmax entry, no need to be simulated, mean is already available
             if self.numnegk > 0:
-                assert np.abs(self.lownegk) > 0
-                grid = -(np.abs(self.lownegk)+1-(np.exp(np.linspace(np.log(1), np.log(np.abs(self.lownegk)+1), self.numnegk+1))))[:-1]
-                assert grid.size == self.numnegk
-                for x in grid[::-1]:
-                    Tarray.insert(0, x)
+                if self.k_spreading == "positionlinspace":
+                    negTarray = neg_spring_constants_positionlinspace(self.numnegk, nposk+1, self.Tmax, self.u2meank0,
+                                                                        self.mcrunner.nparticles, self.mcrunner.bdim)
+                    for x in negTarray[::-1]:
+                        Tarray.insert(0, x)
+                else:
+                    negTarray = neg_spring_constants_logspace(self.numnegk, self.lownegk)
+                    for x in negTarray[::-1]:
+                        Tarray.insert(0, x)
             logging.info("len Tarray: {}".format(len(Tarray)))
             logging.info("Tarray: {}".format(Tarray))
             self.Tarray = np.array(Tarray[::-1],dtype='d')

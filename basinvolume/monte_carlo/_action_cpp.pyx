@@ -114,7 +114,7 @@ cdef class _Cdef_Findk(_Cdef_Action):
     """
     cdef cbool fix_com
     cdef cppFindk* newptr
-    def __cinit__(self, origin, rattlers, bdim, target, navg, tol, min, max, bin, fix_com=True):
+    def __cinit__(self, origin, rattlers, bdim, avgcount, target, navg, tol, min, max, bin, fix_com=True):
         if len(origin) != len(rattlers):
             raise Exception("_Cdef_Findk: illegal input: origin, rattlers, bdim")
         if len(origin) % bdim != 0:
@@ -123,7 +123,7 @@ cdef class _Cdef_Findk(_Cdef_Action):
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
         self.thisptr = shared_ptr[cppAction](<cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size),
                                                 _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
-                                                bdim, target, navg, tol, min, max, bin, fix_com)
+                                                bdim, avgcount, target, navg, tol, min, max, bin, fix_com)
                                              )
         self.newptr = <cppFindk*> self.thisptr.get()
 
@@ -131,7 +131,7 @@ cdef class _Cdef_Findk(_Cdef_Action):
         """
         returns the probability of being in the basin at optimized kmax
         """
-        prob = self.newptr.get_prob()
+        cdef double prob = self.newptr.get_prob()
         return prob
 
     def get_entries(self):

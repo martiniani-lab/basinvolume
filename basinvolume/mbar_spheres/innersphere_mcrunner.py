@@ -215,7 +215,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
-    def show_histogram_analytical(self):
+    def show_histogram_analytical(self, output_directory=''):
         """
         shows the histogram against the analytical curve when k=kmax
         this function is useful for testing
@@ -232,5 +232,5 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         plt.xlabel(r'$|{\bf r}-{\bf r}_0|^2$')
         plt.ylabel(r'frequency $\times 10$')
         plt.tight_layout()
-        plt.savefig('innersphere_histogram.eps')
+        plt.savefig(output_directory+'/innersphere_histogram.eps')
         plt.show()

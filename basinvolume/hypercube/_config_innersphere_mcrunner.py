@@ -19,16 +19,43 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
     when niter=None, niter is set equal to exact number of PT niter
     """
         
-    def __init__(self, base_dir, niter=None, hmin=0, hmax=0.01, hbinsize=0.0005, 
+    def __init__(self, base_dir, current_nested_sphere, niter=None, hmin=0, hmax=0.01, hbinsize=0.0005, number_nested_spheres=2,
                  seeds=None, record_histogram=False, verbose=False):
                 
         self.temperature=1.0
+        self.current_nested_sphere = current_nested_sphere
         
         self._set_paths(base_dir)
         self._import_packing_config_files()
-        self.k = 1.0 / self.u2_k0
+    
+        # The inner-most sphere for cubic runs has radius half a sidelength
+        # For more general integrals: need some search algorithm!
+        stepsize_kinnermost_spheres = 0.5 * self.sidelength
+        kinnermost_spheres = 1. / stepsize_kinnermost_spheres**2
+        # The last one should be overlapping with kmax
+        koutermost_spheres = 1.0/self.u2_k0
+
+        # In low dimensions and/or depending on the choice of k, the order might be off
+        if koutermost_spheres > kinnermost_spheres:
+            largerk = koutermost_spheres
+            smallerk = kinnermost_spheres
+            kinnermost_spheres = largerk
+            koutermost_spheres = smallerk
+
+        #Use regularly spaced values between the two natural bounds
+        if number_nested_spheres == 1:
+            fraction_k = 0. 
+        else:
+            fraction_k = current_nested_sphere * 1./ (number_nested_spheres - 1.)
+        #Linearly spaced values
+        # self.k = fraction_k * koutermost_spheres + (1 - fraction_k) * kinnermost_spheres
+        #Log-spaced values
+        self.k = np.exp((1 - fraction_k) * np.log(kinnermost_spheres) +  fraction_k * np.log(koutermost_spheres))
+
         self.stepsize = 1./np.sqrt(self.k)
-        self.coords = np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
+        self.ref_radius = self.stepsize
+        
+        self.coords = np.zeros(int(self.ndof)) #np.ones(self.ndof)*0.32 #CHANGE THIS: I have shifted the centre to see the effect
         if niter is not None:
             self.niter = niter
         
@@ -47,13 +74,16 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         #construct mcrunner
         potential = NullPotential()
         self.mcrunner = HypercubeInnerSphereMCrunner(potential, self.coords, self.temperature, self.stepsize, 
-                                                     self.niter, self.coords, **kwargs)
+                                                     self.niter, self.coords, gaussian_step=True, **kwargs)
+        self.mcrunner_ballpick = HypercubeInnerSphereMCrunner(potential, self.coords, self.temperature, self.ref_radius, 
+                                                     self.niter, self.coords, gaussian_step=False, **kwargs)
         
         self._initialise()
         
     def run(self):
         try:
             self.mcrunner.run()
+            self.mcrunner_ballpick.run()
             self._print_results()
             self._print_success(True)
         except:
@@ -62,19 +92,24 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
     
     def _set_paths(self, base_dir):
         """
-        set base_directory, packings_directory and configpaths, configfile
+        set base_directory, output directory, packings_directory and configpaths, configfile
         """
         dlist = base_dir.split('_')
         assert dlist[2] == 'hypercube'
         if not os.path.isabs(base_dir):
-            base_directory = os.path.join(os.getcwd(), base_dir)
-            assert(os.path.exists(base_directory))
-        self.base_directory = base_directory
+            base_dir = os.path.join(os.getcwd(), base_dir)
+            assert(os.path.exists(base_dir))
+        self.base_directory = base_dir
         
         dname = dlist[2]+'_'+dlist[3]+'_'+dlist[4]
         self.findk_configpath = os.path.join(self.base_directory,'findk_'+dname+'.config')  
+
+        output_dir = self.base_directory+'/innersphere_'+str(self.current_nested_sphere)
+        trymakedir(output_dir)
+        self.output_directory = output_dir
+
         configfile = 'innersphere_' + dname
-        self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
+        self.configfile = '{}/{}.config'.format(self.output_directory,configfile)
     
     def _import_packing_config_files(self):
         configf = configparser.ConfigParser()
@@ -127,8 +162,12 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         status = self.mcrunner.get_status()
         for key, value in list(status.items()) :
             f.write('{}: {}\n'.format(key,value))
+        f.write('[INNERSPHERE_BALLPICK_MCRUNNER_STATUS]\n')
+        status = self.mcrunner_ballpick.get_status()
+        for key, value in list(status.items()) :
+            f.write('{}: {:.16f}\n'.format(key, value))
         f.close()
-        path = os.path.join(self.base_directory, "inner_sphere.timeseries")
+        path = os.path.join(self.output_directory, "inner_sphere.timeseries")
         self.mcrunner.dump_timeseries(path, clear=False)
     
 if __name__ == "__main__":
@@ -136,7 +175,12 @@ if __name__ == "__main__":
     pppn = [2,6,42,1806,47058,2214502422,52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     
-    sim = _hypercube_innersphere_mcrunner('explore_bv_hypercube_n93_l1', niter=1e5, seeds=seeds, verbose=False)
+    directory_name='explore_bv_hypercube_n69_l1'
+    sphere_number = 0
+    number_nested_spheres = 3
+    output_directory = directory_name+'/innersphere_'+str(sphere_number)
+
+    sim = _hypercube_innersphere_mcrunner(directory_name, sphere_number , niter=5e5, seeds=seeds, verbose=False, number_nested_spheres=number_nested_spheres)
     print('simulation started')
     start=time.time()
     sim.run()
@@ -145,7 +189,7 @@ if __name__ == "__main__":
     status = sim.mcrunner.get_status()
     print(status)
     print('stepsize: ',sim.mcrunner.get_stepsize())
-    sim.mcrunner.show_histogram_analytical()
+    sim.mcrunner.show_histogram_analytical(output_directory)
     
     
         

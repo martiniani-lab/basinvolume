@@ -18,6 +18,7 @@ namespace bv {
  * find k for an harmonic potential such that the acceptance is within some range
  * navg number of steps over which acceptance fraction is averaged
  * get_prob returns the probability (_acceptedf) associated with kmax
+ * avg_count is the number of steps over which the displacement squared is averaged
  *
  *note: this class does some hacky things to exploit the behaviour of MC to get it to do something
  *that it wasn't originally entirely designed for. Weird things:
@@ -39,6 +40,7 @@ protected:
     const double _tol;
     const size_t _ndim;
     const size_t _nparticles;
+    const size_t _avg_count;
     const size_t _navg;
     size_t _naccepted;
     size_t _nrejected;
@@ -51,18 +53,20 @@ private:
 
 public:
     Findk(pele::Array<double> origin, pele::Array<double> rattlers,
-            size_t ndim, double target,
+            size_t ndim, size_t avg_count, double target,
             size_t navg, double tol, double min, double max, double bin, const bool fix_com=true);
     virtual ~Findk() {}
     virtual void action(pele::Array<double> &coords, double energy, bool accepted, mcpele::MC* mc);
-  double get_prob() const { return static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected)); }
+  double get_prob() const { 
+    double prob = static_cast<double>(_naccepted) / (static_cast<double>(_naccepted) + static_cast<double>(_nrejected)); 
+    return prob;
+    }
   double get_k() const { return _k; }
   int get_entries() const { return _hist.get_count(); }
   double get_mean() const { return _hist.get_mean(); }
   double get_variance() const { return _hist.get_variance(); }
   pele::Array<double> get_histogram() const
-  { std::cout << "this \n" ;
-    std::vector<double> vecdata(_hist.get_vecdata());
+  { std::vector<double> vecdata(_hist.get_vecdata());
     pele::Array<double> histogram(vecdata);
     return histogram.copy();
   }

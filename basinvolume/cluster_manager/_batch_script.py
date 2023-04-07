@@ -181,7 +181,7 @@ class BatchScript(object):
         f.write('echo\n')
         f.write('echo \"Running ${SLURM_JOB_NAME}\"\n')
         f.write('echo\n')
-        f.write('mpirun {} {}\n'.format(self._get_mpi_flags(), self.command))
+        f.write('mpirun {} {}\n'.format(self._get_mpi_flags(), self.command)) # add singularity stuff there?
         f.write('echo\n')
         f.write('echo \"Job finished. SLURM details are:\"\n')
         f.write('echo\n')
