@@ -5,7 +5,7 @@ cimport numpy as np
 from pele.potentials import _pele
 cimport cython
 import sys
-from pymbar.timeseries import statisticalInefficiency_fft
+from pymbar.timeseries import statistical_inefficiency_fft
 from ctypes import c_size_t as size_t
 
 @cython.boundscheck(False)
@@ -50,7 +50,7 @@ def read_txt(fname, ncrop=0, nmax=0):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def statisticalInefficiency(A, B=None, cbool fast=True, size_t mintime=10):
+def statistical_inefficiency(A, B=None, cbool fast=True, size_t mintime=10):
     """Compute the (cross) statistical inefficiency of (two) timeseries.
     c++ implementation adapted from <`pymbar`, https://github.com/choderalab/pymbar>_
     
@@ -89,7 +89,7 @@ def statisticalInefficiency(A, B=None, cbool fast=True, size_t mintime=10):
     Compute statistical inefficiency of timeseries data with known correlation time.  
     >>> from pymbar.testsystems import correlated_timeseries_example
     >>> A_n = correlated_timeseries_example(N=100000, tau=5.0)
-    >>> g = statisticalInefficiency(A_n, fast=True)
+    >>> g = statistical_inefficiency(A_n, fast=True)
     """
     cdef np.ndarray[double, ndim=1] Ac = np.array(A, dtype=float)
     if B is None:
@@ -98,16 +98,16 @@ def statisticalInefficiency(A, B=None, cbool fast=True, size_t mintime=10):
         return g
     
     cdef np.ndarray[double, ndim=1] Bc = np.array(B, dtype=float)
-    g = statistical_inefficiency(_pele.Array[double](<double*> Ac.data, Ac.size),
-                                 _pele.Array[double](<double*> Bc.data, Bc.size),
-                                 fast, mintime)
+    g = statistical_inefficiency_cpp(_pele.Array[double](<double*> Ac.data, Ac.size),
+                                    _pele.Array[double](<double*> Bc.data, Bc.size),
+                                    fast, mintime)
     return g
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def integratedAutocorrelationTime(A_n, B_n=None, fast=True, mintime=10):
     """Estimate the integrated autocorrelation time."""
-    g = statisticalInefficiency(A_n, B_n, fast=fast, mintime=mintime)
+    g = statistical_inefficiency(A_n, B_n, fast=fast, mintime=mintime)
     tau = (g - 1.0) / 2.0
     return tau
 
@@ -115,7 +115,7 @@ def integratedAutocorrelationTime(A_n, B_n=None, fast=True, mintime=10):
 @cython.wraparound(False)
 def integratedAutocorrelationTime_fft(A_n, mintime=10):
     """Estimate the integrated autocorrelation time."""
-    g = statisticalInefficiency_fft(A_n, mintime=mintime)
+    g = statistical_inefficiency_fft(A_n, mintime=mintime)
     tau = (g - 1.0) / 2.0
     return tau
 

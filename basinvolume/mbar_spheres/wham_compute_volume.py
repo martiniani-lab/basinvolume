@@ -1,6 +1,7 @@
 from __future__ import division
 from __future__ import print_function
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import str
 from builtins import zip
@@ -13,10 +14,15 @@ import glob
 from basinvolume.utils import trymakedir
 from basinvolume.utils import to_string, read_txt, volume_nball
 import configparser
-from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
+from pymbar.timeseries import (
+    detect_equilibration_binary_search,
+    subsample_correlated_data,
+    statistical_inefficiency_fft,
+)
 from basinvolume.spheres import read_jammed_packing_config
 import argparse
 from itertools import cycle
+
 try:
     import pylab as plt
     from histogram_reweighting.wham_potential import WhamPotential
@@ -25,6 +31,7 @@ try:
 except ImportError as err:
     print(err)
 
+
 class wham_compute_dos(object):
     """
     this is a class that implements wham_compute_dos class
@@ -32,30 +39,51 @@ class wham_compute_dos(object):
     this method is here only for testing purposes, the mbar module should be preferred
     """
 
-    def __call__(self, fname='jammed_packing0', nbins=300, base_dir='analysis',
-                 explore_dir='explore_bv_', jammed_packings_dir='jammed_packings',
-                 plot_data=True, frozen=False, show=False, verbose=True):
+    def __call__(
+        self,
+        fname="jammed_packing0",
+        nbins=300,
+        base_dir="analysis",
+        explore_dir="explore_bv_",
+        jammed_packings_dir="jammed_packings",
+        plot_data=True,
+        frozen=False,
+        show=False,
+        verbose=True,
+    ):
 
         self.fname = fname
         self.nbins = nbins
         if not os.path.isabs(jammed_packings_dir):
-            jammed_packings_dir = os.path.join(os.getcwd(),jammed_packings_dir)
+            jammed_packings_dir = os.path.join(
+                os.getcwd(), jammed_packings_dir
+            )
         self.jammed_packings_dir = jammed_packings_dir
         if not os.path.isabs(explore_dir):
-            explore_dir = os.path.join(os.getcwd(),explore_dir+fname)
+            explore_dir = os.path.join(os.getcwd(), explore_dir + fname)
         self.explore_dir = explore_dir
-        self.base_directory = self.explore_dir + '/' + base_dir
+        self.base_directory = self.explore_dir + "/" + base_dir
         self.frozen = frozen
-        n = int(re.findall(r'\d+', self.fname)[0])
-        self.jammed_packing_configpath = os.path.join(jammed_packings_dir, '{}.config'.format(self.fname))
+        n = int(re.findall(r"\d+", self.fname)[0])
+        self.jammed_packing_configpath = os.path.join(
+            jammed_packings_dir, "{}.config".format(self.fname)
+        )
         assert os.path.isfile(self.jammed_packing_configpath)
-        self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + fname + '.config')
+        self.pt_configpath = os.path.join(
+            self.explore_dir, "explore_" + fname + ".config"
+        )
         assert os.path.isfile(self.pt_configpath)
-        self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + fname + '.config')
+        self.findk_configpath = os.path.join(
+            self.explore_dir, "findk_" + fname + ".config"
+        )
         assert os.path.isfile(self.findk_configpath)
-        self.kmin_configpath = os.path.join(self.explore_dir, 'kmin_' + fname + '.config')
+        self.kmin_configpath = os.path.join(
+            self.explore_dir, "kmin_" + fname + ".config"
+        )
         assert os.path.isfile(self.kmin_configpath)
-        self.innersphere_configpath = os.path.join(self.explore_dir, 'innersphere_' + fname + '.config')
+        self.innersphere_configpath = os.path.join(
+            self.explore_dir, "innersphere_" + fname + ".config"
+        )
         assert os.path.isfile(self.innersphere_configpath)
 
         self.plot_data = plot_data
@@ -70,7 +98,7 @@ class wham_compute_dos(object):
         """
         Full volume computation, assuming that PT data is available
         """
-        #try:
+        # try:
         print("importing k array")
         self._import_ks()
         print("importing time series")
@@ -87,7 +115,7 @@ class wham_compute_dos(object):
         self._compute_volume()
         print("plotting data")
         self._plot_data()
-        #except Exception as err:
+        # except Exception as err:
         #    print err
         """
         Print basin volumes for further processing
@@ -95,39 +123,43 @@ class wham_compute_dos(object):
         self._print_volumes()
 
     def _import_config_files(self):
-        imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath),
-                                                 self.frozen)
-        self.nparticles = imp_packing['nparticles']
-        self.packing_frac = imp_packing['packing_frac']
-        self.bdim = imp_packing['bdim']
-        self.ndim = imp_packing['ndim']
-        self.boxv = imp_packing['boxv'].copy()
-        self.vcavity = imp_packing['vcavity']
-        self.sca = imp_packing['sca']
+        imp_packing = read_jammed_packing_config(
+            str(self.jammed_packing_configpath), self.frozen
+        )
+        self.nparticles = imp_packing["nparticles"]
+        self.packing_frac = imp_packing["packing_frac"]
+        self.bdim = imp_packing["bdim"]
+        self.ndim = imp_packing["ndim"]
+        self.boxv = imp_packing["boxv"].copy()
+        self.vcavity = imp_packing["vcavity"]
+        self.sca = imp_packing["sca"]
         configf = configparser.ConfigParser()
         configf.read(str(self.pt_configpath))
-        self.adjustf_niter = configf.getint('MCRUNNER', 'adjustf_niter')
+        self.adjustf_niter = configf.getint("MCRUNNER", "adjustf_niter")
         configf.read(str(self.findk_configpath))
-        self.kmax = configf.getfloat('FINDK', 'kmax')
-        self.prob_kmax = configf.getfloat('FINDK', 'prob')
-        self.displ_k_max = 0.1 #configf.getfloat('FINDK', 'displ_k_max')
-        self.var_displ_k_max = configf.getfloat('FINDK', 'var_displ_k_max') #DEBUG
+        self.kmax = configf.getfloat("FINDK", "kmax")
+        self.prob_kmax = configf.getfloat("FINDK", "prob")
+        self.displ_k_max = 0.1  # configf.getfloat('FINDK', 'displ_k_max')
+        self.var_displ_k_max = configf.getfloat(
+            "FINDK", "var_displ_k_max"
+        )  # DEBUG
         configf.read(str(self.innersphere_configpath))
-        self.k_innersphere = configf.getfloat('INNERSPHERE_MCRUNNER', 'k')
-        self.ndof = (self.nparticles-1)*self.bdim
+        self.k_innersphere = configf.getfloat("INNERSPHERE_MCRUNNER", "k")
+        self.ndof = (self.nparticles - 1) * self.bdim
 
     def _import_ks(self):
         """
         must run before import u2
         """
         karray = []
-        path = os.path.join(self.explore_dir, 'temperatures')
+        path = os.path.join(self.explore_dir, "temperatures")
         f = open(path, "r")
         while True:
             k = f.readline()
-            if not k: break
+            if not k:
+                break
             karray.extend([float(k)])
-        #prepend k innersphere
+        # prepend k innersphere
         karray.insert(0, self.k_innersphere)
         self.karray = np.array(karray)
 
@@ -138,8 +170,10 @@ class wham_compute_dos(object):
             for dir in dirs:
                 if dir.isdigit():
                     path = os.path.join(self.explore_dir, dir)
-                    file_list = glob.glob(path + '/TimeSeries*')
-                    file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
+                    file_list = glob.glob(path + "/TimeSeries*")
+                    file_list = sorted(
+                        file_list, key=lambda x: int(x.split(".")[1])
+                    )
                     series_order.append(int(dir))
                     series = []
                     for series_path in file_list:
@@ -152,14 +186,18 @@ class wham_compute_dos(object):
     def _find_eqtime(self, full=False):
         if full:
             eq_time = 0
-            for i,ts in enumerate(self.timeseries):
+            for i, ts in enumerate(self.timeseries):
                 max_eq_time = ts.size // 2
-                time = detectEquilibration_binary_search(ts, bs_nodes=10)[0]
-                time = np.amin([max_eq_time, time]) #this should avoid detecting artifacts near the end of the series
-                new_eq_time = np.amax([time, self.adjustf_niter]) #guarantees that eq_time is larger than the mcrunner adapted number of steps
+                time = detect_equilibration_binary_search(ts, bs_nodes=10)[0]
+                time = np.amin(
+                    [max_eq_time, time]
+                )  # this should avoid detecting artifacts near the end of the series
+                new_eq_time = np.amax(
+                    [time, self.adjustf_niter]
+                )  # guarantees that eq_time is larger than the mcrunner adapted number of steps
                 if self.verbose:
                     print("eq_time{}: {}".format(i, new_eq_time))
-                #gather values, find largest, then broadcast it
+                # gather values, find largest, then broadcast it
                 if new_eq_time > eq_time:
                     eq_time = new_eq_time
         else:
@@ -167,11 +205,19 @@ class wham_compute_dos(object):
         self.eq_time = int(eq_time)
 
     def _build_histogram(self):
-        ts_sphere = np.genfromtxt(os.path.join(self.explore_dir,"inner_sphere.timeseries"))
-        ts_sphere = np.trim_zeros(ts_sphere)                #remove trailing 0s
-        self.timeseries = self.timeseries[:,self.eq_time:]  #remove equilibration region from timeseries
+        ts_sphere = np.genfromtxt(
+            os.path.join(self.explore_dir, "inner_sphere.timeseries")
+        )
+        ts_sphere = np.trim_zeros(ts_sphere)  # remove trailing 0s
+        self.timeseries = self.timeseries[
+            :, self.eq_time :
+        ]  # remove equilibration region from timeseries
         hist_visits = []
-        bin_edges = np.linspace(np.amin(np.append(self.timeseries,ts_sphere)), np.amax(np.append(self.timeseries,ts_sphere)), self.nbins+1)
+        bin_edges = np.linspace(
+            np.amin(np.append(self.timeseries, ts_sphere)),
+            np.amax(np.append(self.timeseries, ts_sphere)),
+            self.nbins + 1,
+        )
         hist = np.histogram(ts_sphere, bin_edges, normed=True)[0]
         hist_visits.append(hist)
         for timeseries in self.timeseries:
@@ -179,27 +225,42 @@ class wham_compute_dos(object):
             hist_visits.append(hist)
 
         self.hist_visits = np.array(hist_visits)
-        self.bin_edges = bin_edges + (bin_edges[1]-bin_edges[0])/2
+        self.bin_edges = bin_edges + (bin_edges[1] - bin_edges[0]) / 2
 
     def _unbias_histogram(self):
-        hist_unbiased = np.outer(0.5*self.karray[1:], self.bin_edges[:-1]**2)
-        hist_unbiased = np.vstack((((24-1)*3-1)*np.log(self.bin_edges[:-1])+0.5*self.karray[0]*self.bin_edges[:-1]**2, hist_unbiased))
+        hist_unbiased = np.outer(
+            0.5 * self.karray[1:], self.bin_edges[:-1] ** 2
+        )
+        hist_unbiased = np.vstack(
+            (
+                ((24 - 1) * 3 - 1) * np.log(self.bin_edges[:-1])
+                + 0.5 * self.karray[0] * self.bin_edges[:-1] ** 2,
+                hist_unbiased,
+            )
+        )
         self.hist_unbiased = hist_unbiased
         assert self.hist_visits.shape == self.hist_unbiased.shape
         assert self.hist_visits.shape[0] == self.karray.size
 
     def _wham_dos(self):
 
-        hist_visits, hist_unbiased, karray, bin_edges = self.hist_visits, self.hist_unbiased, self.karray, self.bin_edges
+        hist_visits, hist_unbiased, karray, bin_edges = (
+            self.hist_visits,
+            self.hist_unbiased,
+            self.karray,
+            self.bin_edges,
+        )
         nreps, nbins = hist_visits.shape
 
         whampot = WhamPotential(hist_visits, hist_unbiased)
         if False:
-            X = np.random.rand( nreps + nbins )
+            X = np.random.rand(nreps + nbins)
         else:
             # estimate an initial guess for the offsets and density of states
             # so the minimizer converges more rapidly
-            offsets_estimate, log_dos_estimate = wham_utils.estimate_dos(hist_visits, hist_unbiased)
+            offsets_estimate, log_dos_estimate = wham_utils.estimate_dos(
+                hist_visits, hist_unbiased
+            )
             X = np.concatenate((offsets_estimate, log_dos_estimate))
 
         E0, grad = whampot.getEnergyGradient(X)
@@ -207,24 +268,29 @@ class wham_compute_dos(object):
 
         try:
             from pele.optimize import lbfgs_cpp as quench
+
             if True:
                 print("minimizing with pele lbfgs")
-            ret = quench(X, whampot, tol=1e-5, maxstep=1e4, nsteps=10000, iprint=0)
+            ret = quench(
+                X, whampot, tol=1e-5, maxstep=1e4, nsteps=10000, iprint=0
+            )
         except ImportError:
             from wham_utils import lbfgs_scipy
+
             if True:
                 print("minimizing with scipy lbfgs")
             ret = lbfgs_scipy(X, whampot, tol=1e-5, nsteps=10000)
 
         if self.verbose:
-            print("chi^2 went from %g (rms %g) to %g (rms %g) in %d iterations" % (
-                E0, rms0, ret.energy, ret.rms, ret.nfev))
+            print(
+                "chi^2 went from %g (rms %g) to %g (rms %g) in %d iterations"
+                % (E0, rms0, ret.energy, ret.rms, ret.nfev)
+            )
 
         X = ret.coords
         self.logn_E = np.array(X[nreps:])
         self.w_i_final = np.array(X[:nreps])
         print("dF from w_i_final", self.w_i_final[0] - self.w_i_final)
-
 
     def _compute_volume(self):
         """
@@ -236,38 +302,46 @@ class wham_compute_dos(object):
         dx = self.bin_edges[1] - self.bin_edges[0]
         assert (dx - (self.bin_edges[-1] - self.bin_edges[-2])) < 1e-14
 
-        #recall the bin edges have been shifted by dx/2 at the beginning
+        # recall the bin edges have been shifted by dx/2 at the beginning
         bin_edges = self.bin_edges
         s = np.ceil(self.displ_k_max / dx)
-        self.rmin = (s-1)*dx + bin_edges[0]
+        self.rmin = (s - 1) * dx + bin_edges[0]
 
-        #compute the average for the prefactor
+        # compute the average for the prefactor
         Alist = []
         assert s > 2
-        for i in range(-2,2,1):
-            vmin = volume_nball(self.rmin+i*dx, self.ndof)
-            A = vmin / simps(self.dos[:s+i], dx=dx)
+        for i in range(-2, 2, 1):
+            vmin = volume_nball(self.rmin + i * dx, self.ndof)
+            A = vmin / simps(self.dos[: s + i], dx=dx)
             Alist.append(A)
         A, Astd = np.mean(Alist), np.std(Alist)
 
-        #compute volume
-        Vol = A*simps(self.dos, dx=dx) + volume_nball(bin_edges[0], self.ndof) #add the contribution from 0 to the first bin
+        # compute volume
+        Vol = A * simps(self.dos, dx=dx) + volume_nball(
+            bin_edges[0], self.ndof
+        )  # add the contribution from 0 to the first bin
 
         if self.verbose:
             print("A: {}+/-{} Vol: {}".format(A, Astd, Vol))
             print("F0: {}".format(-np.log(Vol) - np.log(self.vcavity)))
 
-        #print "const simpson", simps(np.ones(10), dx=dx) - dx*9
-        #currently don't have an estimate for the error
+        # print "const simpson", simps(np.ones(10), dx=dx) - dx*9
+        # currently don't have an estimate for the error
         self.F0, self.sigF0 = -np.log(Vol) - np.log(self.vcavity), 0
         self.F0unc, self.sigF0unc = -np.log(Vol), 0
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
-        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(
+            self.vcavity
+        )
 
         if self.verbose:
-            print('F0 {} F0unc {}'.format(self.F0, self.F0unc))
-            print('unit_box_F0 {} unit_box_F0unc {}'.format(self.unit_box_F0, self.unit_box_F0unc))
+            print("F0 {} F0unc {}".format(self.F0, self.F0unc))
+            print(
+                "unit_box_F0 {} unit_box_F0unc {}".format(
+                    self.unit_box_F0, self.unit_box_F0unc
+                )
+            )
 
     def _plot_data(self):
         if self.plot_data is False:
@@ -278,107 +352,145 @@ class wham_compute_dos(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(self.bin_edges[:-1], self.hist_visits.transpose(), linewidth=2)
-        ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel('Frequency')
-        plt.savefig(self.base_directory + '/wham_histograms.eps')
+        ax.set_xlabel(r"$\Delta r$")
+        ax.set_ylabel("Frequency")
+        plt.savefig(self.base_directory + "/wham_histograms.eps")
         if self.show:
             plt.show()
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for i in range(len(self.karray)):
-            y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] #hist(r)*exp(kx^2) (hist*unbiasing) -> dos up to free energy difference
+            y = (
+                np.log(self.hist_visits[i, :]) + self.hist_unbiased[i, :]
+            )  # hist(r)*exp(kx^2) (hist*unbiasing) -> dos up to free energy difference
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
-        ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel('WHAM')
-        plt.savefig(self.base_directory + '/wham_fragments.eps')
+        ax.set_xlabel(r"$\Delta r$")
+        ax.set_ylabel("WHAM")
+        plt.savefig(self.base_directory + "/wham_fragments.eps")
         if self.show:
             plt.show()
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for i in range(len(self.karray)):
-            y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
+            y = (
+                np.log(self.hist_visits[i, :])
+                + self.hist_unbiased[i, :]
+                + self.w_i_final[i]
+            )
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
-        ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel('WHAM')
-        plt.savefig(self.base_directory + '/wham.eps')
+        ax.set_xlabel(r"$\Delta r$")
+        ax.set_ylabel("WHAM")
+        plt.savefig(self.base_directory + "/wham.eps")
         if self.show:
             plt.show()
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.bin_edges[:-1], self.logn_E, label=r'$\log(g(r))$')
-        #dx = self.bin_edges[1] - self.bin_edges[0]
-        rg = self.logn_E - (self.ndof-1)*np.log(self.bin_edges[:-1])
-        ax.plot(self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
-        ax.set_xlabel(r'$\Delta r$')
+        ax.plot(self.bin_edges[:-1], self.logn_E, label=r"$\log(g(r))$")
+        # dx = self.bin_edges[1] - self.bin_edges[0]
+        rg = self.logn_E - (self.ndof - 1) * np.log(self.bin_edges[:-1])
+        ax.plot(self.bin_edges[:-1], rg, label=r"$\log(g(r)/r^{N-1})$")
+        ax.set_xlabel(r"$\Delta r$")
         ax.legend(frameon=False, loc="best")
-        plt.ylim((np.amin(rg),1.1*np.amax(rg)))
-        plt.savefig(self.base_directory + '/wham_log_dos.eps')
+        plt.ylim((np.amin(rg), 1.1 * np.amax(rg)))
+        plt.savefig(self.base_directory + "/wham_log_dos.eps")
         if self.show:
             plt.show()
 
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        ax.plot(1./self.bin_edges[:-1], self.logn_E, label=r'$\log(n_E)$')
-#        ax.plot(1./self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
-#        ax.set_xlabel(r'1/$\Delta r$')
-#        ax.legend(frameon=False, loc="best")
-#        plt.xlim((0,1))
-#        plt.savefig(self.base_directory + '/rec_log_dos.eps')
-#        if self.show:
-#            plt.show()
+        #        fig = plt.figure()
+        #        ax = fig.add_subplot(111)
+        #        ax.plot(1./self.bin_edges[:-1], self.logn_E, label=r'$\log(n_E)$')
+        #        ax.plot(1./self.bin_edges[:-1], rg, label=r'$\log(g(r)/r^{N-1})$')
+        #        ax.set_xlabel(r'1/$\Delta r$')
+        #        ax.legend(frameon=False, loc="best")
+        #        plt.xlim((0,1))
+        #        plt.savefig(self.base_directory + '/rec_log_dos.eps')
+        #        if self.show:
+        #            plt.show()
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(self.bin_edges[:-1], self.dos)
-        ax.set_xlabel(r'$\Delta r$')
-        ax.set_ylabel('DOS')
-        plt.savefig(self.base_directory + '/wham_dos.eps')
+        ax.set_xlabel(r"$\Delta r$")
+        ax.set_ylabel("DOS")
+        plt.savefig(self.base_directory + "/wham_dos.eps")
         if self.show:
             plt.show()
 
     def _print_volumes(self):
-        dname = 'wham_dos_volume_data'
-        fname = '{}/{}'.format(self.base_directory,dname)
-        f = open(fname, 'w')
-        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
+        dname = "wham_dos_volume_data"
+        fname = "{}/{}".format(self.base_directory, dname)
+        f = open(fname, "w")
+        f.write("#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n")
+
         def _to_file(name, value):
             f.write((name + ": {}\n").format(to_string(value)))
-        f.write('[VOLUME_DOS]\n')
+
+        f.write("[VOLUME_DOS]\n")
         if hasattr(self, "F0"):
             _to_file("F0", self.F0)
             _to_file("sigF0", self.sigF0)
             _to_file("unit_box_F0", self.unit_box_F0)
         f.close()
 
+
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
-    #parser.add_argument("nparticles", type=int, help="number of particles")
-    parser.add_argument("-f","--fname", type=str, help="specify packing to analyze",default=None)
-    parser.add_argument("-d","--fdir", type=str, help="directory containing file, if not absolute path by default: fdir+fname", default='explore_bv_')
-    parser.add_argument("-w","--workdir", type=str, help="directory containing PT data (all) must be absolute, default chwdir", default=os.getcwd())
-    parser.add_argument("--frozen", action='store_true', help="has frozen atoms, default: False", default=False)
+    parser = argparse.ArgumentParser(
+        description="analyze PT data from thermodynamic integration"
+    )
+    # parser.add_argument("nparticles", type=int, help="number of particles")
+    parser.add_argument(
+        "-f",
+        "--fname",
+        type=str,
+        help="specify packing to analyze",
+        default=None,
+    )
+    parser.add_argument(
+        "-d",
+        "--fdir",
+        type=str,
+        help="directory containing file, if not absolute path by default: fdir+fname",
+        default="explore_bv_",
+    )
+    parser.add_argument(
+        "-w",
+        "--workdir",
+        type=str,
+        help="directory containing PT data (all) must be absolute, default chwdir",
+        default=os.getcwd(),
+    )
+    parser.add_argument(
+        "--frozen",
+        action="store_true",
+        help="has frozen atoms, default: False",
+        default=False,
+    )
     args = parser.parse_args()
     print(args)
 
     fname = args.fname
     fdir = args.fdir
     wdir = args.workdir
-    assert(os.path.isabs(wdir))
+    assert os.path.isabs(wdir)
 
     if not os.path.isabs(fdir):
-        fdir = os.path.join(wdir,fdir + fname)
+        fdir = os.path.join(wdir, fdir + fname)
 
     sim = wham_compute_dos()
 
-    if (fname != None):
+    if fname != None:
         sim(fname=fname, explore_dir=fdir, frozen=args.frozen, show=False)
-    else :
+    else:
         for subdir, dirs, files in os.walk(wdir):
             for dir in dirs:
-                if dir is not 'packings' and dir is not 'jammed_packings' and dir is not 'analysis':
+                if (
+                    dir is not "packings"
+                    and dir is not "jammed_packings"
+                    and dir is not "analysis"
+                ):
                     path = os.path.join(wdir, dir)
                     sim(explore_dir=path, frozen=args.frozen)
