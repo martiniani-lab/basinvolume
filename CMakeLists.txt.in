@@ -6,6 +6,7 @@ set(PYTHON_LDFLAGS "__PYTHON_LDFLAGS__")
 set(pele_include __PELE_INCLUDE__)
 set(mcpele_include __MCPELE_INCLUDE__)
 set(py_cgdescent_include __PY_CGDESCENT_INCLUDE__)
+set(pele_dir __PELE_DIR__)
 
 message("python include dirs: ${PYTHON_INCLUDE_DIRS}")
 message("numpy include dirs: ${numpy_include}")
@@ -18,15 +19,31 @@ include_directories(${pele_include})
 include_directories(${mcpele_include})
 include_directories(${py_cgdescent_include})
 
+set(EXT_INSTALL_PATH "${pele_dir}/extern/install")
 
-# Hacky way to deal with sundials being a part of
-# the pele imports
+# lapacke.h comes with Eigen
+set(LAPACKE_INCLUDE_DIR
+  ${EXT_INSTALL_PATH}/include/Eigen/src/misc
+  CACHE PATH "Location of lapacke include")
+
+message("lapacke include directory: ${LAPACKE_INCLUDE_DIR}")
+
 set(SUNDIALS_INCLUDE_DIR
-  /home/mathias/Documents/basinvolumelibs_cluster/sunlib/include
+  ${EXT_INSTALL_PATH}/include
   CACHE PATH "Location of SUNDIALS header files")
-set(SUNDIALS_LIBRARY_DIR
-  /home/mathias/Documents/basinvolumelibs_cluster/sunlib/lib
-  CACHE PATH "Location of SUNDIALS libraries")
+
+if(EXISTS "${EXT_INSTALL_PATH}/lib")
+  set(SUNDIALS_LIBRARY_DIR
+    ${EXT_INSTALL_PATH}/lib
+    CACHE PATH "Location of SUNDIALS libraries")
+else()
+  set(SUNDIALS_LIBRARY_DIR
+    ${EXT_INSTALL_PATH}/lib64
+    CACHE PATH "Location of SUNDIALS libraries")
+endif()
+
+# print locations
+message("SUNDIALS include directory: ${SUNDIALS_INCLUDE_DIR}")
 
 # Find the SUNDIALS libraries
 find_library(SUNDIALS_SOLVER_LIB
@@ -48,7 +65,6 @@ set(SUNDIALS_LIBRARIES
   ${SUNDIALS_MANYVEC_LIB}
   ${SUNDIALS_EXTRA_LIBS})
 
-
 cmake_minimum_required(VERSION 2.8)
 
 enable_language(CXX)
@@ -57,13 +73,13 @@ SET(CMAKE_CXX_FLAGS __COMPILER_EXTRA_ARGS__)
 # BLAS and LAPACK
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
-# lapacke.h comes with Eigen
-set(LAPACKE_INCLUDE_DIR
-  /home/mathias/Documents/basinvolumelibs_cluster/pele/source/Eigen/src/misc
-  CACHE PATH "Location of lapacke include")
 
-#cmake_policy(SET CMP0015 NEW)
+# # lapacke.h comes with Eigen
+# set(LAPACKE_INCLUDE_DIR
+# /home/mathias/Documents/basinvolumelibs_cluster/pele/source/Eigen/src/misc
+# CACHE PATH "Location of lapacke include")
 
+# cmake_policy(SET CMP0015 NEW)
 # set the basinvolume include directory
 set(bv_include ${CMAKE_SOURCE_DIR}/source)
 include_directories(${bv_include})
@@ -88,5 +104,3 @@ function(make_cython_lib cython_cxx_source)
   set_target_properties(${library_name} PROPERTIES PREFIX "")
   message("making library ${library_name} from source ${cython_cxx_source}")
 endfunction(make_cython_lib)
-
-
