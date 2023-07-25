@@ -7,11 +7,11 @@
 
 #include <gtest/gtest.h>
 
-#include "pele/array.h"
-#include "pele/distance.h"
-#include "pele/harmonic.h"
-#include "pele/lbfgs.h"
-#include "pele/modified_fire.h"
+#include "pele/array.hpp"
+#include "pele/distance.hpp"
+#include "pele/harmonic.hpp"
+#include "pele/lbfgs.hpp"
+#include "pele/modified_fire.hpp"
 
 #include "mcpele/random_coords_displacement.h"
 

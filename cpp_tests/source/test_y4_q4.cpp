@@ -2,10 +2,10 @@
 
 #include <gtest/gtest.h>
 
-#include "pele/inversepower_stillinger.h"
-#include "pele/lbfgs.h"
-#include "pele/lj_cut.h"
-#include "pele/modified_fire.h"
+#include "pele/inversepower_stillinger.hpp"
+#include "pele/lbfgs.hpp"
+#include "pele/lj_cut.hpp"
+#include "pele/modified_fire.hpp"
 
 #include "basinvolume/check_minimum_is_hcp.h"
 

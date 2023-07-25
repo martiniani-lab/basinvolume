@@ -2,9 +2,9 @@
 
 #include <gtest/gtest.h>
 
-#include "pele/hs_wca.h"
-#include "pele/lbfgs.h"
-#include "pele/harmonic.h"
+#include "pele/hs_wca.hpp"
+#include "pele/lbfgs.hpp"
+#include "pele/harmonic.hpp"
 
 #include "mcpele/mc.h"
 #include "mcpele/gaussian_coords_displacement.h"

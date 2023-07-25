@@ -4,7 +4,7 @@
 #include <vector>
 #include <gtest/gtest.h>
 
-#include "pele/array.h"
+#include "pele/array.hpp"
 
 #include "basinvolume/minima_list.h"
 
