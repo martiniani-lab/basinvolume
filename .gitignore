@@ -28,3 +28,5 @@ cythonize.dat
 .pydevproject
 basinvolume/version.py
 CMakeLists.txt
+.cache
+**/compile_commands.json
