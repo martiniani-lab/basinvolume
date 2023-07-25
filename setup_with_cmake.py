@@ -60,6 +60,14 @@ parser.add_argument(
     help="Print optimization report (for Intel compiler). Default: False",
     default=False,
 )
+
+parser.add_argument(
+    "--build-type",
+    type=str,
+    default="Release",
+    help="Build type. Default: Release,  types Release, Debug, RelWithDebInfo, MemCheck, Coverage",
+)
+
 jargs, remaining_args = parser.parse_known_args(sys.argv)
 
 # record c compiler choice. use unix (gcc) by default
@@ -72,6 +80,54 @@ elif jargs.compiler in ("intelem", "intel", "icc", "icpc"):
     idcompiler = "intel"
     remaining_args += ["-c", idcompiler]
 
+
+build_type = jargs.build_type
+if build_type == "Release":
+    cmake_compiler_extra_args = [
+        "-std=c++2a",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-O3",
+        "-fPIC",
+        "-DNDEBUG",
+        "-march=native",
+    ]
+elif build_type == "Debug":
+    cmake_compiler_extra_args = [
+        "-std=c++2a",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-ggdb3",
+        "-O0",
+        "-fPIC",
+    ]
+elif build_type == "RelWithDebInfo":
+    cmake_compiler_extra_args = [
+        "-std=c++2a",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-g",
+        "-O3",
+        "-fPIC",
+    ]
+elif build_type == "MemCheck":
+    cmake_compiler_extra_args = [
+        "-std=c++2a",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-g",
+        "-O0",
+        "-fPIC",
+        "-fsanitize=address",
+        "-fsanitize=leak",
+    ]
+else:
+    raise ValueError("Unknown build type: " + build_type)
+
 # set the remaining args back as sys.argv
 sys.argv = remaining_args
 print(jargs, remaining_args)
@@ -80,27 +136,6 @@ if jargs.j is None:
 else:
     cmake_parallel_args = ["-j" + str(jargs.j)]
 
-# extra compiler args
-cmake_compiler_extra_args = [
-    "-std=c++1z",
-    "-Wall",
-    "-Wextra",
-    "-pedantic",
-    "-O3",
-    "-fPIC",
-]
-if idcompiler.lower() == "unix":
-    cmake_compiler_extra_args += ["-march=native", "-flto", "-fopenmp"]
-else:
-    cmake_compiler_extra_args += [
-        "-axCORE-AVX2",
-        "-ipo",
-        "-qopenmp",
-        "-ip",
-        "-unroll",
-    ]
-    if jargs.opt_report:
-        cmake_compiler_extra_args += ["-qopt-report=5"]
 
 #
 # Make the git revision visible.  Most of this is copied from scipy
