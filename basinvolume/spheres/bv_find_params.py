@@ -10,42 +10,83 @@ import copy
 from _findk_mcrunner import _findk_mcrunner
 from _kmin_mcrunner import _kmin_mcrunner
 
+
 def worker_findk(fname, kwargs):
     try:
         mcrunner = _findk_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:
-        print('find_k worker: %s' % (traceback.format_exc()))
+        print("find_k worker: %s" % (traceback.format_exc()))
+
 
 def worker_kmin(fname, kwargs):
     try:
         mcrunner = _kmin_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:
-        print('kmin worker: %s' % (traceback.format_exc()))
+        print("kmin worker: %s" % (traceback.format_exc()))
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="compute kmax and minimum average displacement for kmin for all jammed packings")
-    parser.add_argument("-n","--ncores", type=int, help="number of packings to produce",default=4)
-    parser.add_argument("-p","--packings-dir", type=str, help="protocol to generate packings", default="jammed_packings")
-    parser.add_argument("-c","--cell", type=bool, help="use cell lists, default: True",default=True)
+    parser = argparse.ArgumentParser(
+        description="compute kmax and minimum average displacement for kmin for all jammed packings"
+    )
+    parser.add_argument(
+        "-n", "--ncores", type=int, help="number of packings to produce", default=4
+    )
+    parser.add_argument(
+        "-p",
+        "--packings-dir",
+        type=str,
+        help="protocol to generate packings",
+        default="jammed_packings",
+    )
+    parser.add_argument(
+        "-c", "--cell", type=bool, help="use cell lists, default: True", default=True
+    )
     args = parser.parse_args()
     print(args)
 
     packings_dir = args.packings_dir
     if not os.path.isabs(packings_dir):
-        packings_dir = os.path.join(os.getcwd(),packings_dir)
+        packings_dir = os.path.join(os.getcwd(), packings_dir)
 
     ncores = args.ncores
 
-    findk_kwargs = dict(k=600, niter=1e8, dtol=1e-4, eps=1., ktarget=0.9,
-                        knavg=2000, ktol=0.025, opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4,
-                        packings_dir=packings_dir, use_cell_lists=args.cell)
+    findk_kwargs = dict(
+        k=600,
+        niter=1e8,
+        dtol=1e-4,
+        eps=1.0,
+        ktarget=0.9,
+        knavg=2000,
+        ktol=0.025,
+        opt_dtmax=1,
+        opt_tol=1e-7,
+        opt_nsteps=1e4,
+        packings_dir=packings_dir,
+        use_cell_lists=args.cell,
+    )
 
-    kmin_kwargs = dict(k=0, stepsize=1e-1, niter=1e5, dtol=1e-4, eps=1., hmin=0, hmax=1000, hbinsize=1,
-                       acceptance=0.2, adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100,
-                       opt_dtmax=1, opt_tol=1e-7, opt_nsteps=1e4, packings_dir=packings_dir,
-                       use_cell_lists=args.cell)
+    kmin_kwargs = dict(
+        k=0,
+        stepsize=1e-1,
+        niter=1e5,
+        dtol=1e-4,
+        eps=1.0,
+        hmin=0,
+        hmax=1000,
+        hbinsize=1,
+        acceptance=0.2,
+        adjustf=0.9,
+        adjustf_niter=1e4,
+        adjustf_navg=100,
+        opt_dtmax=1,
+        opt_tol=1e-7,
+        opt_nsteps=1e4,
+        packings_dir=packings_dir,
+        use_cell_lists=args.cell,
+    )
 
     mypool = mp.Pool(ncores)
 
@@ -53,16 +94,31 @@ if __name__ == "__main__":
     try:
         for fname in os.listdir(packings_dir):
             if ".xy" in fname:
-                #construct mcrunners in place and append them to pool
+                # construct mcrunners in place and append them to pool
                 seeds_dict = dict(seed_takestep=np.random.randint(i32max))
                 seeds = dict(seeds=seeds_dict)
-                findk_kwargs_s = copy.deepcopy(dict(findk_kwargs,**seeds))
-                mypool.apply_async(worker_findk, args=(fname,findk_kwargs_s,))
+                findk_kwargs_s = copy.deepcopy(dict(findk_kwargs, **seeds))
+                mypool.apply_async(
+                    worker_findk,
+                    args=(
+                        fname,
+                        findk_kwargs_s,
+                    ),
+                )
 
-                seeds_dict = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
+                seeds_dict = dict(
+                    seed_takestep=np.random.randint(i32max),
+                    seed_metropolis=np.random.randint(i32max),
+                )
                 seeds = dict(seeds=seeds_dict)
-                kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs,**seeds))
-                mypool.apply_async(worker_kmin, args=(fname,kmin_kwargs_s,))
+                kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs, **seeds))
+                mypool.apply_async(
+                    worker_kmin,
+                    args=(
+                        fname,
+                        kmin_kwargs_s,
+                    ),
+                )
     except:
         mypool.terminate()
         mypool.join()

@@ -30,3 +30,4 @@ basinvolume/version.py
 CMakeLists.txt
 .cache
 **/compile_commands.json
+**/explore_bv*

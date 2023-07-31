@@ -3,10 +3,12 @@ from builtins import map
 from builtins import object
 import numpy as np
 
+
 class ExpFileHandler(object):
     """
     Reads in experimental data file of positions, radii.
     """
+
     def __init__(self, data_file_path):
         self.data_file_path = data_file_path
         #
@@ -30,8 +32,14 @@ class ExpFileHandler(object):
         self.radii = list(map(float, self.radii))
         self.large = list(map(bool, self.large))
         self.nr_particles = len(self.x)
-        if len(self.y) != self.nr_particles or len(self.radii) != self.nr_particles or len(self.large) != self.nr_particles:
-            raise Exception("ExpFileHandler: data read in error: extracted arrays with mismatching lengths")
+        if (
+            len(self.y) != self.nr_particles
+            or len(self.radii) != self.nr_particles
+            or len(self.large) != self.nr_particles
+        ):
+            raise Exception(
+                "ExpFileHandler: data read in error: extracted arrays with mismatching lengths"
+            )
         self.x = np.asarray(self.x)
         self.y = np.asarray(self.y)
         self.radii = np.asarray(self.radii)

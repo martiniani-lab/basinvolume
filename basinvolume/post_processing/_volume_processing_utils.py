@@ -1,9 +1,11 @@
 from __future__ import division
 from __future__ import print_function
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
+
 try:
     import numpy as np
     import configparser
@@ -13,20 +15,26 @@ try:
 except ImportError as err:
     print(err)
 
+
 class PackingFailureStatistics(object):
     def __init__(self, total_nr):
         self.total_nr = total_nr
         self.total_count = 0
         self.success_count = 0
+
     def add_success(self):
         self.add_any()
         self.success_count += 1
+
     def add_failure(self):
         self.add_any()
+
     def add_any(self):
         self.total_count += 1
+
     def get_nr_failures(self):
         return self.total_count - self.success_count
+
     def print_failure_info(self):
         if self.total_nr == 0:
             return
@@ -34,26 +42,33 @@ class PackingFailureStatistics(object):
         print(self.get_nr_failures(), "out of", self.total_count, "failed")
         print("corresponding failure ratio", self.get_nr_failures() / self.total_count)
         print(100 * self.get_nr_failures() / self.total_count, "per-cent")
+
     def print_progress_info(self, packing_string):
-        print("done", self.total_count, "out of", self.total_nr) 
+        print("done", self.total_count, "out of", self.total_nr)
         print(to_string(self.total_count / self.total_nr * 100, 2), "per-cent")
         print("packing was", packing_string)
-        
+
+
 class PTFailures(object):
     def __init__(self):
         self.total_nr = 0
         self.success_nr = 0
         self.failed = []
+
     def add_success(self):
         self.add_any()
         self.success_nr += 1
+
     def add_any(self):
         self.total_nr += 1
+
     def add_failure(self, name):
         self.add_any()
         self.failed.append(name)
+
     def get_nr_failures(self):
         return self.total_nr - self.success_nr
+
     def print_failure_info(self):
         if self.total_nr == 0:
             return
@@ -63,6 +78,7 @@ class PTFailures(object):
         print(100 * self.get_nr_failures() / self.total_nr, "per-cent")
         print("packings with failed PT")
         print(self.failed)
+
 
 class VolumeSanityCheck(object):
     def __init__(self, v_acc_parameter_file, numerical_moments=False):
@@ -83,47 +99,73 @@ class VolumeSanityCheck(object):
         self.diameter_variance = (2 * radii_stdev) ** 2
         self.log_ideal_gas_V_acc = self.nr_particles * np.log(self.V_box)
         if not numerical_moments:
-            self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, self.diameter_mean, self.diameter_variance) 
+            self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(
+                self.phiHD,
+                self.V_box,
+                self.nr_particles,
+                self.box_dimension,
+                self.diameter_mean,
+                self.diameter_variance,
+            )
         else:
             self.get_diameter_file_0_path()
             self.read_diameters()
             diameter_mean_numerical = np.mean(self.diameters)
             diameter_variance_numerical = np.var(self.diameters)
-            self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(self.phiHD, self.V_box, self.nr_particles, self.box_dimension, diameter_mean_numerical, diameter_variance_numerical)
-        self.V_acc = np.exp(- self.F0_acc)
+            self.F0_acc = F_acc_Gaussian_Poly_HS_Fluid(
+                self.phiHD,
+                self.V_box,
+                self.nr_particles,
+                self.box_dimension,
+                diameter_mean_numerical,
+                diameter_variance_numerical,
+            )
+        self.V_acc = np.exp(-self.F0_acc)
         if (-self.F0_acc) > self.log_ideal_gas_V_acc:
             raise Exception("VolumeSanityCheck: polyHS fluid failure")
         print("VolumeSanityCheck: ")
         print("F0_acc, HS fluid", self.F0_acc)
-        print("F0_acc, ideal gas", - self.log_ideal_gas_V_acc)
-        
+        print("F0_acc, ideal gas", -self.log_ideal_gas_V_acc)
+
     def get_diameter_file_0_path(self):
         packings_dir = os.path.split(self.v_acc_parameter_file)[0]
-        self.diameter_file_0_path = os.path.join(packings_dir, [dir for dir in os.listdir(packings_dir) if "xy" in dir][0])
+        self.diameter_file_0_path = os.path.join(
+            packings_dir, [dir for dir in os.listdir(packings_dir) if "xy" in dir][0]
+        )
         print(("diameter file path", self.diameter_file_0_path))
+
     def read_diameters(self):
         f = open(self.diameter_file_0_path)
         packing_info = f.readlines()
         f.close()
         self.diameters = np.asarray([float(line.split()[-1]) for line in packing_info])
+
     def is_insane(self, F0):
         if F0 < self.F0_acc:
             return True
         else:
             return False
+
     def check(self, F0, F0_name, vf_path):
         if F0 < self.F0_acc:
             print("failed F0 value", F0)
             print("-log(V_acc)", self.F0_acc)
             print("failed F0 name", F0_name)
-            print("failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:])
+            print(
+                "failed packing",
+                ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:],
+            )
             raise Exception("VolumeSanityCheck: illegal free energy")
-        if F0 < - self.log_ideal_gas_V_acc:
+        if F0 < -self.log_ideal_gas_V_acc:
             print("failed F0 value -- failed ideal gas box test")
-            print("-log(V_acc, ideal)", - self.log_ideal_gas_V_acc)
+            print("-log(V_acc, ideal)", -self.log_ideal_gas_V_acc)
             print("failed F0 name", F0_name)
-            print("failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:])
+            print(
+                "failed packing",
+                ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:],
+            )
             raise Exception("VolumeSanityCheck: illegal free energy")
+
 
 class GLPTNotUsedStatistics(object):
     """
@@ -132,24 +174,31 @@ class GLPTNotUsedStatistics(object):
     In these cases the analytical intrgral approximation is used.
     The number of these cases should be realtively low.
     """
+
     def __init__(self):
         self.total_nr = 0
         self.used_approx = 0
+
     def add_PT_GL(self):
         self.add_any()
+
     def add_approx(self):
         self.add_any()
         self.used_approx += 1
+
     def add_any(self):
         self.total_nr += 1
+
     def get_approx_use_fraction(self):
         return self.used_approx / self.total_nr
+
     def print_statistics(self):
         print("GLPTNotUsedStatistics:")
         print("total number of F0 values:", self.total_nr)
         print("number of times GL failed:", self.used_approx)
         print("GL failure (approx usage) fraction:", self.get_approx_use_fraction())
-        
+
+
 class BestIntegrationSelection(object):
     """
     Handles part of the analysis of F0 values.
@@ -163,9 +212,12 @@ class BestIntegrationSelection(object):
     integral, fails the constraint given by the box size, we throw a warning
     and exception.
     """
-    def __init__(self, max_relative_GL_error = 0.2, kmax_threshold = 1000):
+
+    def __init__(self, max_relative_GL_error=0.2, kmax_threshold=1000):
         if max_relative_GL_error < 0:
-            raise Exception("BestIntegrationSelection: illegal input: max_relative_GL_error")
+            raise Exception(
+                "BestIntegrationSelection: illegal input: max_relative_GL_error"
+            )
         self.max_relative_GL_error = max_relative_GL_error
         if kmax_threshold < 0:
             raise Exception("BestIntegrationSelection: illegal input: kmax_threshold")
@@ -176,32 +228,40 @@ class BestIntegrationSelection(object):
         self.bad_volumes_failed_GL_integration = []
         self.bad_volumes_huge_kmax = []
         self.GLPT_not_used_statistics = GLPTNotUsedStatistics()
+
     def check_next_F0(self, volume_sanity_check, volume_data, volume_file_path):
         F0 = volume_data.F0[-1]
-        assert(F0 == F0)
-        assert(np.isfinite(F0))
+        assert F0 == F0
+        assert np.isfinite(F0)
         F0_error = volume_data.sigF0[-1]
-        assert(F0_error == F0_error)
-        assert(np.isfinite(F0_error))
+        assert F0_error == F0_error
+        assert np.isfinite(F0_error)
         F0_approx_PTu2k0 = volume_data.F0_approx_PTu2k0[-1]
-        assert(F0_approx_PTu2k0 == F0_approx_PTu2k0)
-        assert(np.isfinite(F0_approx_PTu2k0))
+        assert F0_approx_PTu2k0 == F0_approx_PTu2k0
+        assert np.isfinite(F0_approx_PTu2k0)
         F0_approx_PTu2k0_error = volume_data.F0_approx_PTu2k0_error[-1]
-        assert(F0_approx_PTu2k0_error == F0_approx_PTu2k0_error)
-        assert(np.isfinite(F0_approx_PTu2k0_error))
+        assert F0_approx_PTu2k0_error == F0_approx_PTu2k0_error
+        assert np.isfinite(F0_approx_PTu2k0_error)
         kmax = self.get_kmax(volume_file_path)
-        fail_information = "F0 from PT:", to_string(F0, 3), "kmax:", to_string(kmax, 3), "packing_label:", ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:]
+        fail_information = (
+            "F0 from PT:",
+            to_string(F0, 3),
+            "kmax:",
+            to_string(kmax, 3),
+            "packing_label:",
+            ([f for f in volume_file_path.split("/") if "jammed_packing" in f][0])[11:],
+        )
         if volume_sanity_check.is_insane(F0):
             self.bad_volumes_larger_than_Vacc.append(fail_information)
         if self.kmax_is_huge(kmax):
-            self.bad_volumes_huge_kmax.append(fail_information)     
-        
+            self.bad_volumes_huge_kmax.append(fail_information)
+
         def record_approximation():
             self.F0_final.append(F0_approx_PTu2k0)
             self.F0_error_final.append(F0_approx_PTu2k0_error)
             self.bad_volumes_failed_GL_integration.append(fail_information)
             self.GLPT_not_used_statistics.add_approx()
-        
+
         if volume_sanity_check.is_insane(F0):
             if self.kmax_is_huge(kmax):
                 if volume_sanity_check.is_insane(F0_approx_PTu2k0) == False:
@@ -210,51 +270,61 @@ class BestIntegrationSelection(object):
                     print("discarded packing: GL failed, approx failed, huge kmax")
             else:
                 print("GL failed, with reasonable kmax!")
-                assert(False)
+                assert False
         else:
             if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
                 if volume_sanity_check.is_insane(F0_approx_PTu2k0) == False:
                     record_approximation()
                 else:
                     print("GL failed, approx failed, with reasonable kmax!")
-                    assert(False)
+                    assert False
             else:
-                #this should be the default behaviour
+                # this should be the default behaviour
                 self.F0_final.append(F0)
                 self.F0_error_final.append(F0_error)
                 self.GLPT_not_used_statistics.add_PT_GL()
-                
-        assert(len(self.F0_final) == len(self.F0_error_final))
+
+        assert len(self.F0_final) == len(self.F0_error_final)
         if volume_sanity_check.is_insane(self.F0_final[-1]):
             print("fail_information")
             print(fail_information)
-            print("F0 ",F0)
-            print("F0_error ",F0_error)
-            print("kmax ",kmax)
-            print("F0_approx_PTu2k0 ",F0_approx_PTu2k0)
-            print("F0_approx_PTu2k0_error ",F0_approx_PTu2k0_error)
-            assert(False)
-            
+            print("F0 ", F0)
+            print("F0_error ", F0_error)
+            print("kmax ", kmax)
+            print("F0_approx_PTu2k0 ", F0_approx_PTu2k0)
+            print("F0_approx_PTu2k0_error ", F0_approx_PTu2k0_error)
+            assert False
+
     def get_kmax(self, volume_file):
         path_with_kmax_info_file = os.path.split(os.path.split(volume_file)[0])[0]
-        kmax_file = [path_with_kmax_info_file + "/" + f for f in os.listdir(path_with_kmax_info_file) if f.endswith(".config") and f.startswith("findk_jammed_packing")][0]
+        kmax_file = [
+            path_with_kmax_info_file + "/" + f
+            for f in os.listdir(path_with_kmax_info_file)
+            if f.endswith(".config") and f.startswith("findk_jammed_packing")
+        ][0]
         configf = configparser.ConfigParser()
         configf.read(str(kmax_file))
         return configf.getfloat("FINDK", "kmax")
+
     def kmax_is_huge(self, kmax):
         if kmax > self.kmax_threshold:
             return True
         else:
             return False
+
     def perform_sanity_check_on_final_F0(self, volume_sanity_check):
         self.GLPT_not_used_statistics.print_statistics()
         if len(self.F0_final) != len(self.F0_error_final):
-            raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: error handling failed")
+            raise Exception(
+                "BestIntegrationSelection: perform_sanity_check_on_final_F0: error handling failed"
+            )
         for F0_final in self.F0_final:
             if volume_sanity_check.is_insane(F0_final):
                 print(F0_final)
-                raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: F0 is insane")
-            
+                raise Exception(
+                    "BestIntegrationSelection: perform_sanity_check_on_final_F0: F0 is insane"
+                )
+
     def print_fail_information(self, packings_dir):
         def failed_to_file(path, info):
             if len(info) == 0:
@@ -266,9 +336,18 @@ class BestIntegrationSelection(object):
                     f.write(str(word) + " ")
                 f.write("\n")
             f.close()
-        failed_to_file(packings_dir + "/bad_volumes_larger_than_Vacc", self.bad_volumes_larger_than_Vacc)
-        failed_to_file(packings_dir + "/bad_volumes_failed_GL_integration", self.bad_volumes_failed_GL_integration)
-        failed_to_file(packings_dir + "/bad_volumes_huge_kmax", self.bad_volumes_huge_kmax)
+
+        failed_to_file(
+            packings_dir + "/bad_volumes_larger_than_Vacc",
+            self.bad_volumes_larger_than_Vacc,
+        )
+        failed_to_file(
+            packings_dir + "/bad_volumes_failed_GL_integration",
+            self.bad_volumes_failed_GL_integration,
+        )
+        failed_to_file(
+            packings_dir + "/bad_volumes_huge_kmax", self.bad_volumes_huge_kmax
+        )
 
 
 def assert_pt_success(path, fname):
@@ -279,10 +358,10 @@ def assert_pt_success(path, fname):
     configf = configparser.ConfigParser()
     try:
         configf.read(str(pt_path))
-        success_dict = dict(configf.items('STATUS'))
+        success_dict = dict(configf.items("STATUS"))
     except:
         return False
-    configf.read(str(kmax_path))    
+    configf.read(str(kmax_path))
     for key, value in list(success_dict.items()):
         if not (value == "True"):
             return False

@@ -7,11 +7,20 @@ import time
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest
 from mcpele.monte_carlo import GaussianCoordsDisplacement, CheckSphericalContainer
-from basinvolume.monte_carlo import RecordDisp2Histogram, CheckHyperSphericalContainer, Findk
-from basinvolume.post_processing import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM, Gauss_Lobatto_abscissas
+from basinvolume.monte_carlo import (
+    RecordDisp2Histogram,
+    CheckHyperSphericalContainer,
+    Findk,
+)
+from basinvolume.post_processing import (
+    F_Basin_From_MC_Data,
+    F_Basin_From_MC_Data_Free_COM,
+    Gauss_Lobatto_abscissas,
+)
 from basinvolume.post_processing import spring_constants_variable_transform as vt
 from basinvolume.utils import log_volume_nball
 import copy
+
 try:
     import pylab as plt
 except ImportError as err:
@@ -30,6 +39,7 @@ Specific implementations of MCrunners, generally they should follow this pattern
 * add other functionalities that you may find desirable, e.g. dump histogram to file
 """
 
+
 class ES_MCrunner(_BaseMCRunner):
     """Basin Volume MCrunner
     *coords: initial coordinates, can be the same as origin
@@ -47,12 +57,34 @@ class ES_MCrunner(_BaseMCRunner):
     *dtol: tolerance on the rms displacement of the minimised structure
      with respect to the origin coordinates
     """
-    def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, bdim, k=0.0, dtol=1e-3, eps=1., hmin=0, hmax=100, hbinsize=0.1, acceptance=0.2,
-                  adjustf=0.9, adjustf_niter = 1e4, adjustf_navg = 100, opt_dtmax=1, opt_maxstep=0.5,
-                  opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
-        #construct base class
-        super(ES_MCrunner,self).__init__(potential, coords, temperature, niter)
+
+    def __init__(
+        self,
+        potential,
+        coords,
+        temperature,
+        stepsize,
+        niter,
+        origin,
+        bdim,
+        k=0.0,
+        dtol=1e-3,
+        eps=1.0,
+        hmin=0,
+        hmax=100,
+        hbinsize=0.1,
+        acceptance=0.2,
+        adjustf=0.9,
+        adjustf_niter=1e4,
+        adjustf_navg=100,
+        opt_dtmax=1,
+        opt_maxstep=0.5,
+        opt_tol=1e-4,
+        opt_nsteps=1e5,
+        hyperradius=2.0,
+    ):
+        # construct base class
+        super(ES_MCrunner, self).__init__(potential, coords, temperature, niter)
 
         self.origin = origin
         self.set_control(k)
@@ -60,28 +92,45 @@ class ES_MCrunner(_BaseMCRunner):
         self.eps = eps
         self.bdim = bdim
 
-        #construct gradient optimizer
+        # construct gradient optimizer
 
-        #construct test/action classes
+        # construct test/action classes
         i32max = np.iinfo(np.int32).max
         self.rattlers = np.array([1.0 for _ in range(self.ndim)])
         self.binsize = hbinsize
-        self.histogram = RecordDisp2Histogram(self.origin, self.rattlers, self.bdim, hmin, hmax, self.binsize, adjustf_niter)
-        self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
-        #self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
-        #self.step = RandomCoordsDisplacement(np.random.randint(i32max))
+        self.histogram = RecordDisp2Histogram(
+            self.origin,
+            self.rattlers,
+            self.bdim,
+            hmin,
+            hmax,
+            self.binsize,
+            adjustf_niter,
+        )
+        self.conftest = CheckHyperSphericalContainer(
+            self.origin, hyperradius, self.bdim
+        )
+        # self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
+        # self.step = RandomCoordsDisplacement(np.random.randint(i32max))
         self.set_report_steps(adjustf_niter)
-        self.step = RandomCoordsDisplacement(123, stepsize, report_interval=adjustf_navg, factor=adjustf, min_acc_ratio=0.2, max_acc_ratio=0.5)
-        #self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
+        self.step = RandomCoordsDisplacement(
+            123,
+            stepsize,
+            report_interval=adjustf_navg,
+            factor=adjustf,
+            min_acc_ratio=0.2,
+            max_acc_ratio=0.5,
+        )
+        # self.step = GaussianCoordsDisplacement(np.random.randint(i32max))
         self.metropolis = MetropolisTest(np.random.randint(i32max))
 
-        #set up pele:MC
+        # set up pele:MC
         self.set_takestep(self.step)
         self.add_accept_test(self.metropolis)
-        #self.add_conf_test(self.conftest)
+        # self.add_conf_test(self.conftest)
         self.add_conf_test(self.conftest)
         self.add_action(self.histogram)
-        #self.add_action(self.adjust_step)
+        # self.add_action(self.adjust_step)
 
     def set_control(self, c):
         """set temperature, canonical control parameter"""
@@ -93,18 +142,21 @@ class ES_MCrunner(_BaseMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(Emin,Emax,num=len(hist),endpoint=False,retstep=True)
-        assert(abs(step - self.binsize) < old_div(self.binsize,100))
-        np.savetxt(fname, np.column_stack((Energies,hist)), delimiter='\t')
+        Energies, step = np.linspace(
+            Emin, Emax, num=len(hist), endpoint=False, retstep=True
+        )
+        assert abs(step - self.binsize) < old_div(self.binsize, 100)
+        np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
         mean = self.histogram.get_mean()
         return mean
 
     def show_histogram(self):
         """shows the histogram"""
         hist = self.histogram.get_histogram()
-        val = [i*self.binsize for i in range(len(hist))]
-        plt.hist(val, weights=hist,bins=len(hist))
+        val = [i * self.binsize for i in range(len(hist))]
+        plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
+
 
 class ES_Findk_MCrunner(_BaseMCRunner):
     """Findk MCrunner
@@ -127,11 +179,31 @@ class ES_Findk_MCrunner(_BaseMCRunner):
     *knavg: number of steps over findk averages the acceptance
     *ktol: when acceptance-ktarget<ktol the search for k terminates
     """
-    def __init__(self, potential, coords, temperature, stepsize, niter,
-                  origin, bdim, dtol=1e-3, eps=1., k=1.0, ktarget = 0.75, kfactor=0.7, knavg=10000, ktol=0.05,
-                  opt_dtmax=1, opt_maxstep=0.5, opt_tol=1e-4, opt_nsteps=1e5, hyperradius = 2.0):
-        #construct base class
-        super(ES_Findk_MCrunner,self).__init__(potential, coords, temperature, niter)
+
+    def __init__(
+        self,
+        potential,
+        coords,
+        temperature,
+        stepsize,
+        niter,
+        origin,
+        bdim,
+        dtol=1e-3,
+        eps=1.0,
+        k=1.0,
+        ktarget=0.75,
+        kfactor=0.7,
+        knavg=10000,
+        ktol=0.05,
+        opt_dtmax=1,
+        opt_maxstep=0.5,
+        opt_tol=1e-4,
+        opt_nsteps=1e5,
+        hyperradius=2.0,
+    ):
+        # construct base class
+        super(ES_Findk_MCrunner, self).__init__(potential, coords, temperature, niter)
 
         self.origin = origin
         self.set_control(k)
@@ -139,25 +211,36 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         self.eps = eps
         self.bdim = bdim
 
-        #findk parameters
+        # findk parameters
         self.ktarget = ktarget
-        self.kfactor=kfactor
-        self.knavg=knavg
-        self.ktol=ktol
-        self.rattlers = np.array([1. for _ in range(self.ndim)],dtype='d')
+        self.kfactor = kfactor
+        self.knavg = knavg
+        self.ktol = ktol
+        self.rattlers = np.array([1.0 for _ in range(self.ndim)], dtype="d")
 
-        #construct test/action classes
+        # construct test/action classes
         i32max = np.iinfo(np.int32).max
 
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max), stepsize)
-        self.conftest = CheckHyperSphericalContainer(self.origin,hyperradius,self.bdim)
+        self.conftest = CheckHyperSphericalContainer(
+            self.origin, hyperradius, self.bdim
+        )
         self.min = 0
         self.max = 10
         self.bin = 0.2
-        self.findk = Findk(self.origin, self.rattlers, self.bdim, self.ktarget, self.knavg, self.ktol, self.min, self.max, self.bin)
+        self.findk = Findk(
+            self.origin,
+            self.rattlers,
+            self.bdim,
+            self.ktarget,
+            self.knavg,
+            self.ktol,
+            self.min,
+            self.max,
+            self.bin,
+        )
 
-
-        #set up pele:MC
+        # set up pele:MC
         self.set_takestep(self.step)
         self.add_conf_test(self.conftest)
         self.add_action(self.findk)
@@ -171,98 +254,148 @@ class ES_Findk_MCrunner(_BaseMCRunner):
     def get_k(self):
         """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
-        k = 1.0/(stepsize*stepsize)
+        k = 1.0 / (stepsize * stepsize)
         return k
 
-def main():
-    #SYSTEM PARAMETERS
-    k0=0
-    r = 3 #hyperradius
-    n = 5   #number of particles along edge
-    dimension=3
-    nr_particles=np.power(n,dimension)
-    nr_points=10
 
-    #SIMULATION PARAMETERS
+def main():
+    # SYSTEM PARAMETERS
+    k0 = 0
+    r = 3  # hyperradius
+    n = 5  # number of particles along edge
+    dimension = 3
+    nr_particles = np.power(n, dimension)
+    nr_points = 10
+
+    # SIMULATION PARAMETERS
     stepsize = 1
     niter = 1e5
-    acceptance=0.2
+    acceptance = 0.2
 
-    #===========================================================================
+    # ===========================================================================
     # BUILD ORIGIN
-    #===========================================================================
+    # ===========================================================================
 
-    assert(nr_particles>1)
-    pos = np.linspace(-0.5,0.5,n)
+    assert nr_particles > 1
+    pos = np.linspace(-0.5, 0.5, n)
     origin = []
     for x in pos:
         for y in pos:
             for z in pos:
-                origin.append([x,y,z])
-                #origin.append([x,y])
+                origin.append([x, y, z])
+                # origin.append([x,y])
 
     origin = np.array(origin).flatten()
-    #print origin
+    # print origin
 
-    #===========================================================================
+    # ===========================================================================
     # POTENTIAL
-    #===========================================================================
-    potential = Harmonic(origin,k0,bdim=dimension,com=True)
+    # ===========================================================================
+    potential = Harmonic(origin, k0, bdim=dimension, com=True)
 
-    #===========================================================================
+    # ===========================================================================
     # COMPUTE <U2> FOR K0 (required to compute karray)0
-    #===========================================================================
+    # ===========================================================================
 
-    mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k0, adjustf_niter=1e4, hmin=0, hmax=10, hbinsize=0.01,
-                           acceptance=acceptance, hyperradius=r)
+    mcrunner = ES_MCrunner(
+        potential,
+        origin,
+        1.0,
+        stepsize,
+        niter,
+        origin,
+        dimension,
+        k=k0,
+        adjustf_niter=1e4,
+        hmin=0,
+        hmax=10,
+        hbinsize=0.01,
+        acceptance=acceptance,
+        hyperradius=r,
+    )
     mcrunner.run()
-    #end=time.time()
-    #print end-start
+    # end=time.time()
+    # print end-start
     status = mcrunner.get_status()
     print(status)
-    #mcrunner.show_histogram()
+    # mcrunner.show_histogram()
 
     displ_k_min, var_displ_k_min = mcrunner.histogram.get_mean_variance()
-    print('meanu2 k=0 and variance {} {}'.format(displ_k_min, var_displ_k_min))
-    #===========================================================================
+    print("meanu2 k=0 and variance {} {}".format(displ_k_min, var_displ_k_min))
+    # ===========================================================================
     # FIND K_MAX
-    #===========================================================================
-    #kstart = 20
+    # ===========================================================================
+    # kstart = 20
     kstart = 1000
-    #kstart = nr_particles*dimension/(r*r)
+    # kstart = nr_particles*dimension/(r*r)
     ktarget = 0.85
-    ktol=0.001
-    mcrunner = ES_Findk_MCrunner(potential, origin, 1.0, np.sqrt(1./kstart), 1e10, origin, dimension, k=kstart, ktarget=ktarget,
-                                 ktol=ktol, hyperradius=r)
-    mcrunner.set_control(kstart) #potential is entirely fictitious, there is no energy test
+    ktol = 0.001
+    mcrunner = ES_Findk_MCrunner(
+        potential,
+        origin,
+        1.0,
+        np.sqrt(1.0 / kstart),
+        1e10,
+        origin,
+        dimension,
+        k=kstart,
+        ktarget=ktarget,
+        ktol=ktol,
+        hyperradius=r,
+    )
+    mcrunner.set_control(
+        kstart
+    )  # potential is entirely fictitious, there is no energy test
     mcrunner.run()
-    #print mcrunner.potential.get_k() derive a
+    # print mcrunner.potential.get_k() derive a
     k_max = mcrunner.get_k()
     prob = mcrunner.findk.get_prob()
-    print('kmax ',k_max)
-    print('prob ',prob)
-    #k_max= nr_particles*dimension/(r*r) = 20.25
-    print('nr_particles*dimension/(r*r): ',old_div(nr_particles*dimension,(r*r)))
+    print("kmax ", k_max)
+    print("prob ", prob)
+    # k_max= nr_particles*dimension/(r*r) = 20.25
+    print("nr_particles*dimension/(r*r): ", old_div(nr_particles * dimension, (r * r)))
 
-    #===========================================================================
+    # ===========================================================================
     # COMPUTE k ARRAY
-    #===========================================================================
-    kappa_const=1
-    karray = vt(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k0, kappa_const=kappa_const)
-    print('karray',karray)
-    #===========================================================================
+    # ===========================================================================
+    kappa_const = 1
+    karray = vt(
+        nr_points,
+        k_max,
+        displ_k_min,
+        nr_particles,
+        dimension,
+        k_min=k0,
+        kappa_const=kappa_const,
+    )
+    print("karray", karray)
+    # ===========================================================================
     # COMPUTE <U2> FOR k ARRAY
-    #===========================================================================
+    # ===========================================================================
 
     meanu2 = []
     var_meanu2 = []
     karray = np.array(karray)
 
     for k in karray[:-1]:
-        mcrunner = ES_MCrunner(potential, origin, 1.0, stepsize, niter, origin, dimension, k=k, adjustf_niter=1e4, hmin=0, hmax=10,
-                               acceptance=acceptance, hbinsize=0.01,hyperradius=r)
+        mcrunner = ES_MCrunner(
+            potential,
+            origin,
+            1.0,
+            stepsize,
+            niter,
+            origin,
+            dimension,
+            k=k,
+            adjustf_niter=1e4,
+            hmin=0,
+            hmax=10,
+            acceptance=acceptance,
+            hbinsize=0.01,
+            hyperradius=r,
+        )
         mcrunner.run()
-        #mcrunner.show_histogram()
+        # mcrunner.show_histogram()
         print(mcrunner.potential.get_k())
         print(mcrunner.get_status())
         mean, var = mcrunner.histogram.get_mean_variance()
@@ -274,28 +407,53 @@ def main():
     print(meanu2)
     print(var_meanu2)
 
-    #===========================================================================
+    # ===========================================================================
     # COMPUTE VOLUMES
-    #===========================================================================
+    # ===========================================================================
 
     boxvol = 1.0
 
-    #analytical meanu2
-    meanu2_analytical = old_div((karray + old_div(kappa_const*(nr_particles*dimension),displ_k_min)), ((nr_particles)*dimension))
-    meanu2_analytical = 1.0/meanu2_analytical
-    #meanu2_analytical = (nr_particles*dimension)/karray
+    # analytical meanu2
+    meanu2_analytical = old_div(
+        (karray + old_div(kappa_const * (nr_particles * dimension), displ_k_min)),
+        ((nr_particles) * dimension),
+    )
+    meanu2_analytical = 1.0 / meanu2_analytical
+    # meanu2_analytical = (nr_particles*dimension)/karray
 
-    F0, sigF0, farray, sigfarray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2, boxvol, prob, kappa_const=kappa_const).get_free_energy_F0(var_meanu2)
-    aF0, asigF0, afarray, asigfarray = F_Basin_From_MC_Data(dimension, nr_particles, karray, meanu2_analytical, boxvol,
-                                                            prob, kappa_const=kappa_const).get_free_energy_F0(np.zeros(nr_points))
+    F0, sigF0, farray, sigfarray = F_Basin_From_MC_Data(
+        dimension, nr_particles, karray, meanu2, boxvol, prob, kappa_const=kappa_const
+    ).get_free_energy_F0(var_meanu2)
+    aF0, asigF0, afarray, asigfarray = F_Basin_From_MC_Data(
+        dimension,
+        nr_particles,
+        karray,
+        meanu2_analytical,
+        boxvol,
+        prob,
+        kappa_const=kappa_const,
+    ).get_free_energy_F0(np.zeros(nr_points))
 
-    print('meanu2 corrected vol {} {}'.format(F0,sigF0))
-    print('meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2,
-                                                                  prob, kappa_const=kappa_const).get_free_energy_F0(var_meanu2)[:2])
-    print('analytical meanu2 corrected vol {} {}'.format(aF0, asigF0))
-    print('analytical meanu2 uncorrected vol', F_Basin_From_MC_Data_Free_COM(dimension, nr_particles, karray, meanu2_analytical,
-                                                                             prob, kappa_const=kappa_const).get_free_energy_F0(np.zeros(nr_points))[0:2])
-    print('hypersphere vol',log_volume_nball(r,nr_particles*dimension))
+    print("meanu2 corrected vol {} {}".format(F0, sigF0))
+    print(
+        "meanu2 uncorrected vol",
+        F_Basin_From_MC_Data_Free_COM(
+            dimension, nr_particles, karray, meanu2, prob, kappa_const=kappa_const
+        ).get_free_energy_F0(var_meanu2)[:2],
+    )
+    print("analytical meanu2 corrected vol {} {}".format(aF0, asigF0))
+    print(
+        "analytical meanu2 uncorrected vol",
+        F_Basin_From_MC_Data_Free_COM(
+            dimension,
+            nr_particles,
+            karray,
+            meanu2_analytical,
+            prob,
+            kappa_const=kappa_const,
+        ).get_free_energy_F0(np.zeros(nr_points))[0:2],
+    )
+    print("hypersphere vol", log_volume_nball(r, nr_particles * dimension))
 
 
 #    tarray = Gauss_Lobatto_abscissas(nr_points)()
@@ -315,7 +473,7 @@ def main():
 
 
 if __name__ == "__main__":
-    start=time.time()
+    start = time.time()
     main()
-    end=time.time()
-    print(end-start)
+    end = time.time()
+    print(end - start)

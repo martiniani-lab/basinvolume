@@ -2,13 +2,26 @@ from __future__ import division
 from __future__ import print_function
 from builtins import object
 from math import pi
-from basinvolume.post_processing import calculate_GL_integral_with_transform, calculate_GL_integral_with_transform_get_error
+from basinvolume.post_processing import (
+    calculate_GL_integral_with_transform,
+    calculate_GL_integral_with_transform_get_error,
+)
 from basinvolume.post_processing import calculate_simple_integral
 from basinvolume.post_processing import calculate_simple_integral_get_error
 import numpy as np
 
+
 class Base_Compute_Integral(object):
-    def __init__(self, dimension, nr_particles, k_values, displacements, kappa_const=1.0, displ_k_min_trafo=None, simple_integrator=False):
+    def __init__(
+        self,
+        dimension,
+        nr_particles,
+        k_values,
+        displacements,
+        kappa_const=1.0,
+        displ_k_min_trafo=None,
+        simple_integrator=False,
+    ):
         """
         Compute the integral needed for the th. integration.
         This only computes in the integral over the squared displacements and does not apply corrections nor does it know about the Einstein crystal part.
@@ -28,7 +41,7 @@ class Base_Compute_Integral(object):
         self.displ_k_min_trafo = displ_k_min_trafo
         self.simple_integrator = simple_integrator
         self.k_max = self.k_values[-1]
-        if np.abs(self.k_max -  max(self.k_values)) > 1e-10:
+        if np.abs(self.k_max - max(self.k_values)) > 1e-10:
             print(("self.k_max", self.k_max))
             print(("max(self.k_values)", max(self.k_values)))
             raise Exception("Base_Compute_Integral: label mismatch")
@@ -36,54 +49,86 @@ class Base_Compute_Integral(object):
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
         if self.simple_integrator:
-            self.integral_over_displacements, self.f = calculate_simple_integral(self.displacements,
-                                                                                 self.k_max, 
-                                                                                 self.nr_particles,
-                                                                                 self.dimension,
-                                                                                 k_min=self.k_values[0],
-                                                                                 kappa_const=self.kappa_const,
-                                                                                 displ_k_min_trafo=self.displ_k_min_trafo)
+            self.integral_over_displacements, self.f = calculate_simple_integral(
+                self.displacements,
+                self.k_max,
+                self.nr_particles,
+                self.dimension,
+                k_min=self.k_values[0],
+                kappa_const=self.kappa_const,
+                displ_k_min_trafo=self.displ_k_min_trafo,
+            )
         else:
-            self.integral_over_displacements, self.f = calculate_GL_integral_with_transform(self.displacements,
-                                                                                            self.k_max, 
-                                                                                            self.nr_particles,
-                                                                                            self.dimension,
-                                                                                            k_min=self.k_values[0],
-                                                                                            kappa_const=self.kappa_const,
-                                                                                            displ_k_min_trafo=self.displ_k_min_trafo)
+            (
+                self.integral_over_displacements,
+                self.f,
+            ) = calculate_GL_integral_with_transform(
+                self.displacements,
+                self.k_max,
+                self.nr_particles,
+                self.dimension,
+                k_min=self.k_values[0],
+                kappa_const=self.kappa_const,
+                displ_k_min_trafo=self.displ_k_min_trafo,
+            )
+
     def _calculate_error_F0(self, displacements_variance):
         """
         calculate_GL_integral_with_transform_get_error(u_sq_k, u_sq_var_k, k_max, nr_particles, dimension, k_min=0.0, kappa_const=1.0)
         """
         if self.simple_integrator:
-            sigF0, sigIntegrand = calculate_simple_integral_get_error(self.displacements,
-                                                                      displacements_variance,
-                                                                      self.k_max, 
-                                                                      self.nr_particles,
-                                                                      self.dimension,
-                                                                      k_min=self.k_values[0],
-                                                                      kappa_const=self.kappa_const,
-                                                                      displ_k_min_trafo=self.displ_k_min_trafo)
+            sigF0, sigIntegrand = calculate_simple_integral_get_error(
+                self.displacements,
+                displacements_variance,
+                self.k_max,
+                self.nr_particles,
+                self.dimension,
+                k_min=self.k_values[0],
+                kappa_const=self.kappa_const,
+                displ_k_min_trafo=self.displ_k_min_trafo,
+            )
         else:
-            sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(self.displacements,
-                                                                                 displacements_variance,
-                                                                                 self.k_max, 
-                                                                                 self.nr_particles,
-                                                                                 self.dimension,
-                                                                                 k_min=self.k_values[0],
-                                                                                 kappa_const=self.kappa_const,
-                                                                                 displ_k_min_trafo=self.displ_k_min_trafo) 
-        return 0.5*sigF0, sigIntegrand
-    
+            sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(
+                self.displacements,
+                displacements_variance,
+                self.k_max,
+                self.nr_particles,
+                self.dimension,
+                k_min=self.k_values[0],
+                kappa_const=self.kappa_const,
+                displ_k_min_trafo=self.displ_k_min_trafo,
+            )
+        return 0.5 * sigF0, sigIntegrand
+
+
 class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
     """
     Computes the free energy F(0) = -log(v).
     Here there is no correction for the fixed c.o.m.
     """
-    def __init__(self, dimension, nr_particles, k_values, displacements, prob, kappa_const=1.0, displ_k_min_trafo=None, simple_integrator=False):
-        super(F_Basin_From_MC_Data_Free_COM, self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const, displ_k_min_trafo=displ_k_min_trafo, simple_integrator=simple_integrator)
+
+    def __init__(
+        self,
+        dimension,
+        nr_particles,
+        k_values,
+        displacements,
+        prob,
+        kappa_const=1.0,
+        displ_k_min_trafo=None,
+        simple_integrator=False,
+    ):
+        super(F_Basin_From_MC_Data_Free_COM, self).__init__(
+            dimension,
+            nr_particles,
+            k_values,
+            displacements,
+            kappa_const=kappa_const,
+            displ_k_min_trafo=displ_k_min_trafo,
+            simple_integrator=simple_integrator,
+        )
         self.prob = prob
-        
+
     def get_free_energy_F0(self, displacements_variance):
         """
         print("self.integral_over_displacements", self.integral_over_displacements)
@@ -92,11 +137,16 @@ class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
         print("self.k_max", self.k_max)
         print("self.prob", self.prob)
         """
-        F0 = -0.5 * self.integral_over_displacements - (self.nr_particles * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max) - np.log(self.prob) 
-        
+        F0 = (
+            -0.5 * self.integral_over_displacements
+            - (self.nr_particles * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max)
+            - np.log(self.prob)
+        )
+
         sigF0, sigf = self._calculate_error_F0(displacements_variance)
-        
+
         return F0, sigF0, self.f, sigf
+
 
 class F_Basin_From_MC_Data(Base_Compute_Integral):
     """
@@ -111,11 +161,29 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
     Reference: Xu et al., PRL 106, 245502 (2011)
     Daniel A. Asenjo-Andrews, PhD thesis
     """
-    def __init__(self, dimension, nr_particles, k_values, displacements, box_volume, prob, kappa_const=1.0, displ_k_min_trafo=None):
-        super(F_Basin_From_MC_Data,self).__init__(dimension, nr_particles, k_values, displacements, kappa_const=kappa_const, displ_k_min_trafo=displ_k_min_trafo)
+
+    def __init__(
+        self,
+        dimension,
+        nr_particles,
+        k_values,
+        displacements,
+        box_volume,
+        prob,
+        kappa_const=1.0,
+        displ_k_min_trafo=None,
+    ):
+        super(F_Basin_From_MC_Data, self).__init__(
+            dimension,
+            nr_particles,
+            k_values,
+            displacements,
+            kappa_const=kappa_const,
+            displ_k_min_trafo=displ_k_min_trafo,
+        )
         self.box_volume = box_volume
         self.prob = prob
-         
+
     def get_free_energy_F0(self, displacements_variance):
         """
         Computes the free energy F(0) = -log(v).
@@ -124,37 +192,58 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         we added a +log(self.nr_particles) term
         """
         ##############################INCL KINETIC TERM#########################################
-        #This way of correcting for fixed c.o.m. includes a term from the kinetic part of the Einstein crystal partition function.
-        #F0 = -np.log(self.box_volume) - np.log(self.prob) - (self.nr_particles*self.dimension/2.0)*np.log(2.0*pi/self.k_max) + \
-        #(self.dimension/2.0)*np.log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
-        
+        # This way of correcting for fixed c.o.m. includes a term from the kinetic part of the Einstein crystal partition function.
+        # F0 = -np.log(self.box_volume) - np.log(self.prob) - (self.nr_particles*self.dimension/2.0)*np.log(2.0*pi/self.k_max) + \
+        # (self.dimension/2.0)*np.log(2.0*pi/(self.nr_particles*self.k_max)) - 0.5*self.integral_over_displacements
+
         ##############################NO KINETIC TERM#########################################
-        F0 = -0.5 * self.integral_over_displacements - np.log(self.box_volume) - ((self.nr_particles - 1.0) * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max) - np.log(self.prob) 
-        
+        F0 = (
+            -0.5 * self.integral_over_displacements
+            - np.log(self.box_volume)
+            - ((self.nr_particles - 1.0) * self.dimension / 2.0)
+            * np.log(2.0 * pi / self.k_max)
+            - np.log(self.prob)
+        )
+
         sigF0, sigf = self._calculate_error_F0(displacements_variance)
-        
+
         return F0, sigF0, self.f, sigf
-    
-def F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(displ2_k0, error_displ_k0, kmax, box_volume, nr_particles, dimension, prob_kmax):
+
+
+def F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(
+    displ2_k0, error_displ_k0, kmax, box_volume, nr_particles, dimension, prob_kmax
+):
     """
     Compute free energy F(0) = -log(v), by assuming that the approximation
     used to make the integrand flat is the true integrand behavior.
     """
     xi = (nr_particles - 1) * dimension / displ2_k0
-    approx_integral_over_displacements = (nr_particles - 1) * dimension * (np.log(kmax + xi) - np.log(xi))
-    variance_on_displ2_k0 = error_displ_k0 ** 2
-    variance_on_xi = ((nr_particles - 1) * dimension / displ2_k0 ** 2) ** 2 * variance_on_displ2_k0
-    variance_on_integral = (((nr_particles - 1) * dimension * (1 - (kmax + xi) / xi)) / (kmax + xi)) ** 2 * variance_on_xi
+    approx_integral_over_displacements = (
+        (nr_particles - 1) * dimension * (np.log(kmax + xi) - np.log(xi))
+    )
+    variance_on_displ2_k0 = error_displ_k0**2
+    variance_on_xi = (
+        (nr_particles - 1) * dimension / displ2_k0**2
+    ) ** 2 * variance_on_displ2_k0
+    variance_on_integral = (
+        ((nr_particles - 1) * dimension * (1 - (kmax + xi) / xi)) / (kmax + xi)
+    ) ** 2 * variance_on_xi
     error_on_F0 = 0.5 * np.sqrt(variance_on_integral)
-    value_of_F0 = -0.5 * approx_integral_over_displacements - np.log(box_volume) - ((nr_particles - 1.0) * dimension / 2.0) * np.log(2.0 * pi / kmax) - np.log(prob_kmax)
+    value_of_F0 = (
+        -0.5 * approx_integral_over_displacements
+        - np.log(box_volume)
+        - ((nr_particles - 1.0) * dimension / 2.0) * np.log(2.0 * pi / kmax)
+        - np.log(prob_kmax)
+    )
     return value_of_F0, error_on_F0
-    
+
+
 if __name__ == "__main__":
     """
     Read in MC data for spring constants, displacements, probability to be in basin;
     plus parameters: nr particles, Euclidean dimension, Vbox
     """
-    #TODO: Read in parameters and output from MC simulation
-    #TODO: Compute F(0) and print output in reasonable way
-    #F_Basin_From_MC_Data...
-    ###################################  
+    # TODO: Read in parameters and output from MC simulation
+    # TODO: Compute F(0) and print output in reasonable way
+    # F_Basin_From_MC_Data...
+    ###################################

@@ -18,60 +18,124 @@ def get_immediate_subdirectories(dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute structural properties "
-                                     "for jammed packings.")
+    parser = argparse.ArgumentParser(
+        description="Compute structural properties " "for jammed packings."
+    )
 
-    parser.add_argument("--all", action='store_true', help="Run for all packing subdirectories.",
-                        default=False)
-    parser.add_argument("-j", "--ncores", type=int,
-                        help="Threads for parallel execution.", default=7)
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Run for all packing subdirectories.",
+        default=False,
+    )
+    parser.add_argument(
+        "-j", "--ncores", type=int, help="Threads for parallel execution.", default=7
+    )
 
-    parser.add_argument("-d", "--workspace-dir", type=str, help="Top-level dir containing "
-                        "the packings, e.g. 'n32_phi88_2D'.")
-    parser.add_argument("--force", action='store_true', help="Force to run on all packings.",
-                        default=False)
-    parser.add_argument("--nonex", action='store_false', help="Run also for packings "
-                        "for which there are no work folders ('explore_bv_[...]', "
-                        "created e.g. by parallel tempering).", default=True)
-    parser.add_argument("--prefix", type=str, help="Prefix for the work directory. "
-                        "Default: 'explore_bv_'", default='explore_bv_')
-    parser.add_argument("--input-dir", type=str, help="Directory containing the "
-                        "jammed packings. Default: 'jammed_packings'", default='jammed_packings')
-    parser.add_argument("--nocell", action='store_true', help="Don't use cell lists. "
-                        "Default: False", default=False)
+    parser.add_argument(
+        "-d",
+        "--workspace-dir",
+        type=str,
+        help="Top-level dir containing " "the packings, e.g. 'n32_phi88_2D'.",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force to run on all packings.",
+        default=False,
+    )
+    parser.add_argument(
+        "--nonex",
+        action="store_false",
+        help="Run also for packings "
+        "for which there are no work folders ('explore_bv_[...]', "
+        "created e.g. by parallel tempering).",
+        default=True,
+    )
+    parser.add_argument(
+        "--prefix",
+        type=str,
+        help="Prefix for the work directory. " "Default: 'explore_bv_'",
+        default="explore_bv_",
+    )
+    parser.add_argument(
+        "--input-dir",
+        type=str,
+        help="Directory containing the " "jammed packings. Default: 'jammed_packings'",
+        default="jammed_packings",
+    )
+    parser.add_argument(
+        "--nocell",
+        action="store_true",
+        help="Don't use cell lists. " "Default: False",
+        default=False,
+    )
 
     # bond-orientational order
-    parser.add_argument("--solid", action="store_true", help="Use solid angle method "
-                        "to find and weight neighbors.", default=False)
+    parser.add_argument(
+        "--solid",
+        action="store_true",
+        help="Use solid angle method " "to find and weight neighbors.",
+        default=False,
+    )
 
     # displacement
-    parser.add_argument("--packings-old", type=str, help="Directory containing the "
-                        "jammed packings with the particle positions to calculate the "
-                        "displacement from. Displacement calculation is turned off by default.",
-                        default=None)
-    parser.add_argument("--drift", action='store_true', help="Don't subtract the "
-                        "centre of mass displacement.", default=False)
-    parser.add_argument("--shear", type=float, help="Difference in shear between "
-                        "the two packings. Setting this triggers the additional "
-                        "calculation of non-affine displacements.", default=None)
+    parser.add_argument(
+        "--packings-old",
+        type=str,
+        help="Directory containing the "
+        "jammed packings with the particle positions to calculate the "
+        "displacement from. Displacement calculation is turned off by default.",
+        default=None,
+    )
+    parser.add_argument(
+        "--drift",
+        action="store_true",
+        help="Don't subtract the " "centre of mass displacement.",
+        default=False,
+    )
+    parser.add_argument(
+        "--shear",
+        type=float,
+        help="Difference in shear between "
+        "the two packings. Setting this triggers the additional "
+        "calculation of non-affine displacements.",
+        default=None,
+    )
 
     # neighbors
-    parser.add_argument("--restrict-neighbors", type=str, help="Prefix leading to "
-                        "a neighbor lists file. This string is analogous to the normal prefix. "
-                        "Only neighbors in these lists are considered.",
-                        default=None)
-    parser.add_argument("--cutoff", type=float, help="Multiple of particle radii "
-                        "defining the maximum neighbor distance. Default: 1", default=1.)
+    parser.add_argument(
+        "--restrict-neighbors",
+        type=str,
+        help="Prefix leading to "
+        "a neighbor lists file. This string is analogous to the normal prefix. "
+        "Only neighbors in these lists are considered.",
+        default=None,
+    )
+    parser.add_argument(
+        "--cutoff",
+        type=float,
+        help="Multiple of particle radii "
+        "defining the maximum neighbor distance. Default: 1",
+        default=1.0,
+    )
     args = parser.parse_args()
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
-                        datefmt='%d/%m/%Y %H:%M:%S',
-                        level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s: %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
 
     ncores = args.ncores
-    kwargs = dict(verbose=True, force=args.force, existing_only=args.nonex,
-                  jammed_packings_dir=args.input_dir, prefix=args.prefix,
-                  use_cell_lists=not args.nocell)
+    kwargs = dict(
+        verbose=True,
+        force=args.force,
+        existing_only=args.nonex,
+        jammed_packings_dir=args.input_dir,
+        prefix=args.prefix,
+        use_cell_lists=not args.nocell,
+    )
 
     structural_props = []
 
@@ -87,8 +151,12 @@ if __name__ == "__main__":
 
     # displacement
     if args.packings_old is not None:
-        disp_kwargs = dict(kwargs, packings_old=args.packings_old, shear=args.shear,
-                           sub_centre_mass=not args.drift)
+        disp_kwargs = dict(
+            kwargs,
+            packings_old=args.packings_old,
+            shear=args.shear,
+            sub_centre_mass=not args.drift,
+        )
         structural_props.append((worker_disp, disp_kwargs))
 
     # local inversion symmetry
@@ -96,8 +164,9 @@ if __name__ == "__main__":
     structural_props.append((worker_invsym, invsym_kwargs))
 
     # neighbors
-    neighbors_kwargs = dict(kwargs, restrict_neighbors=args.restrict_neighbors,
-                            cutoff=args.cutoff)
+    neighbors_kwargs = dict(
+        kwargs, restrict_neighbors=args.restrict_neighbors, cutoff=args.cutoff
+    )
     structural_props.append((worker_neighbors, neighbors_kwargs))
 
     # pressure tensor
@@ -122,8 +191,13 @@ if __name__ == "__main__":
             for folder in subdirs:
                 if folder[1].isdigit() and "phi" in folder and "D" in folder:
                     for prop in structural_props:
-                        mypool.apply_async(prop[0],
-                                           args=(os.path.abspath(folder), prop[1],))
+                        mypool.apply_async(
+                            prop[0],
+                            args=(
+                                os.path.abspath(folder),
+                                prop[1],
+                            ),
+                        )
         except Exception:
             mypool.terminate()
             mypool.join()

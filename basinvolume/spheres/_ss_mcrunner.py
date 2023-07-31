@@ -7,25 +7,51 @@ from mcpele.monte_carlo import _BaseMCRunner
 from basinvolume.monte_carlo import RecordDisp2Histogram
 from basinvolume.utils import reduce_coordinates
 
+
 class BaseSpheresMCrunner(_BaseMCRunner):
     """
     this class sets all the basic parameters for a soft spheres mcrunner class
     and basic functions.
     If you want the particle to be all soft set hs_radii = radii and sca=(ss/hs-1)=0
     """
-    def __init__(self, potential, full_coords, temperature, stepsize, niter, origin,
-                 hs_radii, boxv, sca, rattlers=None, k=1.0, dtol=1e-3, eps=1.,
-                 hmin=0, hmax=1, hbinsize=0.001, report_steps=0,
-                 pt_eq_niter=0, seeds=None, use_cell_lists=True,
-                 record_histogram=False, distance_method=Distance.PERIODIC, use_frozen=False,
-                 frozen_atoms=None, rcontainer=None):
+
+    def __init__(
+        self,
+        potential,
+        full_coords,
+        temperature,
+        stepsize,
+        niter,
+        origin,
+        hs_radii,
+        boxv,
+        sca,
+        rattlers=None,
+        k=1.0,
+        dtol=1e-3,
+        eps=1.0,
+        hmin=0,
+        hmax=1,
+        hbinsize=0.001,
+        report_steps=0,
+        pt_eq_niter=0,
+        seeds=None,
+        use_cell_lists=True,
+        record_histogram=False,
+        distance_method=Distance.PERIODIC,
+        use_frozen=False,
+        frozen_atoms=None,
+        rcontainer=None,
+    ):
         # construct base class
         if use_frozen:
             assert distance_method is Distance.CARTESIAN and frozen_atoms is not None
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         else:
             red_coords = full_coords
-        super(BaseSpheresMCrunner, self).__init__(potential, red_coords, temperature, niter)
+        super(BaseSpheresMCrunner, self).__init__(
+            potential, red_coords, temperature, niter
+        )
 
         self.boxv = boxv
         self.bdim = len(boxv)
@@ -35,7 +61,9 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         self.red_radii = np.array(hs_radii)
         if use_frozen:
             self.red_radii = np.delete(self.red_radii, frozen_atoms)
-            self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
+            self.red_origin = reduce_coordinates(
+                self.red_origin, frozen_atoms, self.bdim
+            )
             assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
             assert len(self.red_origin) == self.ndim
             assert rcontainer is not None
@@ -53,31 +81,33 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         self.hmax = hmax
         self.binsize = hbinsize
 
-        #manage array of rattlers, if not rattler: 1 -> jammed dof
+        # manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof
-        if (rattlers is None):
-            self.rattlers = np.array([1. for _ in range(self.ndim)], dtype='d')
+        if rattlers is None:
+            self.rattlers = np.array([1.0 for _ in range(self.ndim)], dtype="d")
         else:
-            self.rattlers = np.array(rattlers, dtype='d')
+            self.rattlers = np.array(rattlers, dtype="d")
         if self.use_frozen:
             self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
-        assert(len(self.rattlers) == self.ndim)
-        assert(self.rattlers.all() >= 0 and self.rattlers.all() <= 1)
+        assert len(self.rattlers) == self.ndim
+        assert self.rattlers.all() >= 0 and self.rattlers.all() <= 1
 
-        #rcut set to largest particle diameter
+        # rcut set to largest particle diameter
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
         if self.use_cell_lists:
             if np.amin(self.boxv) // self.rcut <= 3:
-                print ("warning: use_cell_lists flag was set, rcut is too large though")
-                print ("setting use_cell_lists to False")
+                print("warning: use_cell_lists flag was set, rcut is too large though")
+                print("setting use_cell_lists to False")
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
 
         # compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=random.randint(0, i32max),
-                    seed_metropolis=random.randint(0, i32max))
+            seeds = dict(
+                seed_takestep=random.randint(0, i32max),
+                seed_metropolis=random.randint(0, i32max),
+            )
         self.seeds = seeds
 
         # get potential and minimizer
@@ -96,8 +126,15 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         self._set_actions()
 
     def _set_record_histogram(self, hmin, hmax, binsize):
-        self.histogram = RecordDisp2Histogram(self.red_origin, self.rattlers, self.bdim, hmin, hmax,
-                                              binsize, self.equilibration_steps)
+        self.histogram = RecordDisp2Histogram(
+            self.red_origin,
+            self.rattlers,
+            self.bdim,
+            hmin,
+            hmax,
+            binsize,
+            self.equilibration_steps,
+        )
         self.add_action(self.histogram)
 
     def _set_takestep(self, stepsize):

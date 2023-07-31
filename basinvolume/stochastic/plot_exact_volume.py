@@ -32,7 +32,7 @@ if __name__ == "__main__":
     plt.ylabel(r"Volume")
     name = "u = " + str(u) + ", d = " + str(d)
     plt.title(name)
-    #plt.legend(loc=2, prop={'size':14})
-    #plt.show()
+    # plt.legend(loc=2, prop={'size':14})
+    # plt.show()
     p.out_name = name.replace(" ", "").replace("=", "-") + ".pdf"
     p.save_and_close(2)

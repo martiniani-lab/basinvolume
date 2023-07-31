@@ -6,6 +6,7 @@ import numpy as np
 from scipy.special import gamma
 from pele.distance import Distance
 
+
 def cround(r):
     if r > 0.0:
         r = np.floor(r + 0.5)
@@ -13,8 +14,8 @@ def cround(r):
         r = np.ceil(r - 0.5)
     return r
 
-class Histogram(object):
 
+class Histogram(object):
     def __init__(self, xmin, xmax, bin_size):
         self.xmax = np.floor((xmax / bin_size) + 1) * bin_size
         self.xmin = np.floor(xmin / bin_size) * bin_size
@@ -43,6 +44,7 @@ class PairDistHistogram(object):
     """
     Compute g(r) from input snapshots.
     """
+
     def __init__(self, boxvector, nr_bins):
         self.boxvector = boxvector
         self.boxdim = len(self.boxvector)
@@ -70,7 +72,13 @@ class PairDistHistogram(object):
         self.boxv = self.boxvector
         deltaij = np.zeros(self.boxdim)
         for k in range(self.boxdim):
-            deltaij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) - cround((coords[j*self.bdim+k] - coords[i*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
+            deltaij[k] = (
+                coords[j * self.bdim + k] - coords[i * self.bdim + k]
+            ) - cround(
+                (coords[j * self.bdim + k] - coords[i * self.bdim + k]) / self.boxv[k]
+            ) * self.boxv[
+                k
+            ]
         return np.sum(deltaij**2)
 
     def volume_nball(self, radius, n):
@@ -85,11 +93,14 @@ class PairDistHistogram(object):
         for i in range(self.nr_bins):
             r = self.histogram.get_position(i)
             delta_r = self.histogram.bin_size
-            shell_volume_r = self.volume_nball(r + 0.5 * delta_r, self.boxdim) - self.volume_nball(r - 0.5 * delta_r, self.boxdim)
+            shell_volume_r = self.volume_nball(
+                r + 0.5 * delta_r, self.boxdim
+            ) - self.volume_nball(r - 0.5 * delta_r, self.boxdim)
             nid = shell_volume_r * number_density
             normalization = 2 / (self.nr_configs * nr_particles * nid)
             result[i] = normalization * self.histogram.get_entry(i)
         return result
+
 
 import matplotlib.pyplot as plt
 from pele.potentials import HS_WCA
@@ -98,9 +109,11 @@ from mcpele.monte_carlo import _BaseMCRunner
 from mcpele.monte_carlo import RandomCoordsDisplacement
 from mcpele.monte_carlo import MetropolisTest
 
+
 class MC(_BaseMCRunner):
     def set_control(self, temp):
         self.set_temperature(temp)
+
     def run(self, nr_steps, gr_acc, eq_steps):
         for _ in range(int(nr_steps)):
             print(("_", _))
@@ -110,8 +123,16 @@ class MC(_BaseMCRunner):
 
 
 class ComputeGR(object):
-    def __init__(self, boxdim=2, nr_particles=100, hard_phi=0.4,
-             nr_steps=1e2, epsilon=1, alpha=0.1, verbose=False):
+    def __init__(
+        self,
+        boxdim=2,
+        nr_particles=100,
+        hard_phi=0.4,
+        nr_steps=1e2,
+        epsilon=1,
+        alpha=0.1,
+        verbose=False,
+    ):
         # Settings.
         np.random.seed(42)
         # Input parameters.
@@ -124,29 +145,44 @@ class ComputeGR(object):
         self.verbose = verbose
         # Derived quantities.
         self.hard_radii = np.ones(self.nr_particles)
+
         def volume_nball(radius, n):
             return np.power(np.pi, n / 2) * np.power(radius, n) / gamma(n / 2 + 1)
-        self.box_length = np.power(np.sum(np.asarray([volume_nball(r, self.boxdim) for r in self.hard_radii])) / self.hard_phi, 1 / self.boxdim)
+
+        self.box_length = np.power(
+            np.sum(np.asarray([volume_nball(r, self.boxdim) for r in self.hard_radii]))
+            / self.hard_phi,
+            1 / self.boxdim,
+        )
         self.box_vector = np.ones(self.boxdim) * self.box_length
         # HS-WCA potential.
-        self.potential = HS_WCA(distance_method=Distance.PERIODIC, use_cell_lists=True,
-                                ndim=self.boxdim, eps=self.epsilon,
-                                sca=self.alpha, radii=self.hard_radii,
-                                boxvec=self.box_vector)
+        self.potential = HS_WCA(
+            distance_method=Distance.PERIODIC,
+            use_cell_lists=True,
+            ndim=self.boxdim,
+            eps=self.epsilon,
+            sca=self.alpha,
+            radii=self.hard_radii,
+            boxvec=self.box_vector,
+        )
         # Initial configuration by minimization.
         self.nr_dof = self.boxdim * self.nr_particles
-        self.x = np.random.uniform(-0.5 * self.box_length, 0.5 * self.box_length, self.nr_dof)
+        self.x = np.random.uniform(
+            -0.5 * self.box_length, 0.5 * self.box_length, self.nr_dof
+        )
         optimizer = LBFGS_CPP(self.x, self.potential)
         optimizer.run()
         if not optimizer.get_result().success:
-            print ("warning: minimization has not converged")
+            print("warning: minimization has not converged")
         self.x = optimizer.get_result().coords.copy()
         # Potential and MC rules.
         self.temperature = 1
         self.mc = MC(self.potential, self.x, self.temperature, self.nr_steps)
-        self.step = RandomCoordsDisplacement(42, 1, single=True, nparticles=self.nr_particles, bdim=self.boxdim)
+        self.step = RandomCoordsDisplacement(
+            42, 1, single=True, nparticles=self.nr_particles, bdim=self.boxdim
+        )
         if self.verbose:
-            print ("initial MC stepsize")
+            print("initial MC stepsize")
             print(self.step.get_stepsize())
         self.gr = PairDistHistogram(self.box_vector, 50)
         self.mc.set_takestep(self.step)
@@ -161,7 +197,7 @@ class ComputeGR(object):
             self.mc.disable_input_warnings()
         self.mc.run(self.nr_steps, self.gr, self.eq_steps)
         if self.verbose:
-            print ("adapted MC stepsize")
+            print("adapted MC stepsize")
             print(self.step.get_stepsize())
 
     def show_result(self):
@@ -182,11 +218,13 @@ if __name__ == "__main__":
     nr_steps = 2e2
     alpha = 0.48
     verbose = False
-    simulation = ComputeGR(boxdim=box_dimension,
-                           nr_particles=nr_particles,
-                           hard_phi=hard_volume_fraction,
-                           nr_steps=nr_steps,
-                           alpha=alpha,
-                           verbose=verbose)
+    simulation = ComputeGR(
+        boxdim=box_dimension,
+        nr_particles=nr_particles,
+        hard_phi=hard_volume_fraction,
+        nr_steps=nr_steps,
+        alpha=alpha,
+        verbose=verbose,
+    )
     simulation.run()
     simulation.show_result()

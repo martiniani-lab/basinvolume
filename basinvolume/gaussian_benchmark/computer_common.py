@@ -12,15 +12,24 @@ from basinvolume.utils import trymakedir
 
 from .multi_gauss_wrap import MultiGaussWrap
 
+
 class ComputerCommon(object):
     """
     Common functionality of volume computers for benchmark purposes.
-    
+
     Basic structure for computing basin voulme as function of number of
     function calls and writing it to disk.
     """
-    def __init__(self, results_path, opt_parameters, pes_parameters,
-        vol_parameters, method_parameters, pot):
+
+    def __init__(
+        self,
+        results_path,
+        opt_parameters,
+        pes_parameters,
+        vol_parameters,
+        method_parameters,
+        pot,
+    ):
         self.results_path = results_path
         self.opt_parameters = opt_parameters
         self.pes_parameters = pes_parameters
@@ -30,7 +39,7 @@ class ComputerCommon(object):
         self.iterations = []
         self.evaluations = []
         self.volume = []
-        
+
     def compute_volume(self):
         if self.get_method_label() == "traj":
             """For the traj method it is the safest to use Shang's
@@ -42,18 +51,17 @@ class ComputerCommon(object):
             self.evaluations = self.traj_engine.evaluations
             self.ini_evals = self.traj_engine.ini_evals
         else:
-            """This only works for TI and brute force.
-            """
+            """This only works for TI and brute force."""
             for i in range(self.vol_parameters["max_iterations"]):
                 self.iterations.append(i + 1)
                 evaluations, volume = self.get_evaluations_volume_one_iteration()
                 self.evaluations.append(evaluations)
                 self.volume.append(volume)
-            
+
     def print_results(self, nr_gaussians, nr_dimensions, pot_index):
         """
         Print 3 arrays, iterations, evaluations, volume.
-        
+
         For all methods, volume should agree for large number of
         iterations.
         Evaluations should be different in general.
@@ -62,66 +70,102 @@ class ComputerCommon(object):
         asymptotic volume within, say, 2%.
         """
         trymakedir(self.this_path(nr_gaussians, nr_dimensions, pot_index))
-        np.savetxt(self.this_iterations_path(nr_gaussians, nr_dimensions, pot_index), self.iterations)
-        np.savetxt(self.this_evaluations_path(nr_gaussians, nr_dimensions, pot_index), self.evaluations)
-        np.savetxt(self.this_volume_path(nr_gaussians, nr_dimensions, pot_index), self.volume)
-        np.savetxt(self.this_ini_evals_path(nr_gaussians, nr_dimensions, pot_index), np.asarray([self.ini_evals]))
-    
+        np.savetxt(
+            self.this_iterations_path(nr_gaussians, nr_dimensions, pot_index),
+            self.iterations,
+        )
+        np.savetxt(
+            self.this_evaluations_path(nr_gaussians, nr_dimensions, pot_index),
+            self.evaluations,
+        )
+        np.savetxt(
+            self.this_volume_path(nr_gaussians, nr_dimensions, pot_index), self.volume
+        )
+        np.savetxt(
+            self.this_ini_evals_path(nr_gaussians, nr_dimensions, pot_index),
+            np.asarray([self.ini_evals]),
+        )
+
     def this_path(self, nr_gaussians, nr_dimensions, pot_index):
-        return os.path.join(self.results_path, str(nr_gaussians), str(nr_dimensions), str(pot_index))
-        
+        return os.path.join(
+            self.results_path, str(nr_gaussians), str(nr_dimensions), str(pot_index)
+        )
+
     def this_iterations_path(self, nr_gaussians, nr_dimensions, pot_index):
-        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_iterations.txt")
-        
+        return os.path.join(
+            self.this_path(nr_gaussians, nr_dimensions, pot_index),
+            self.get_method_label() + "_iterations.txt",
+        )
+
     def this_evaluations_path(self, nr_gaussians, nr_dimensions, pot_index):
-        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_evaluations.txt")
-        
+        return os.path.join(
+            self.this_path(nr_gaussians, nr_dimensions, pot_index),
+            self.get_method_label() + "_evaluations.txt",
+        )
+
     def this_volume_path(self, nr_gaussians, nr_dimensions, pot_index):
-        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_volume.txt")
-        
+        return os.path.join(
+            self.this_path(nr_gaussians, nr_dimensions, pot_index),
+            self.get_method_label() + "_volume.txt",
+        )
+
     def this_ini_evals_path(self, nr_gaussians, nr_dimensions, pot_index):
-        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, pot_index), self.get_method_label() + "_ini_evals.txt")
+        return os.path.join(
+            self.this_path(nr_gaussians, nr_dimensions, pot_index),
+            self.get_method_label() + "_ini_evals.txt",
+        )
 
 
-def run_computer(potential_dir, results_dir, large_or_small_flag,
-    nr_gaussians, nr_dimensions, pot_index, ComputerMethod,
-    opt_parameters, pes_parameters, vol_parameters, method_parameters, is_traj=False):
+def run_computer(
+    potential_dir,
+    results_dir,
+    large_or_small_flag,
+    nr_gaussians,
+    nr_dimensions,
+    pot_index,
+    ComputerMethod,
+    opt_parameters,
+    pes_parameters,
+    vol_parameters,
+    method_parameters,
+    is_traj=False,
+):
     """
     Run ComputerMethod volume computation on gaussian landscapes.
-    
+
     Computes volume by ComputerMethod as function of number of
     potential energy function calls.
-    
+
     Parameters
     ----------
-    
+
     potential_dir : string
         Directory from which the potentials shall be read.
         The file format is supposed to be as follows:
         potentials/nr_gaussians/nr_dimensions/pot_index/pot.txt
         potentials/nr_gaussians/nr_dimensions/pot_index/large_basin_index.txt
         potentials/nr_gaussians/nr_dimensions/pot_index/small_basin_index.txt
-        
+
     results_dir : string
         Directory where the results shall be written to.
         The file format is supposed to be as follows:
         results_dir/nr_gaussians/nr_dimensions/pot_index/label(ComputerMethod)_iterations.txt
         results_dir/nr_gaussians/nr_dimensions/pot_index/label(ComputerMethod)_evaluations.txt
         results_dir/nr_gaussians/nr_dimensions/pot_index/label(ComputerMethod)_volume.txt
-        
+
     large_or_small_flag : string
         Flag to indicate if the large or the small basin should be computed.
         Large means sampled uniformly at random (done before).
         Small means with fixed index (fixed to 0 for now).
-        
+
     nr_gaussians : integer
         Number of gaussians (i.e., number of minima) in the potential
         energy surface.
-        
+
     nr_dimensions : integer
         Euclidean dimension of the space mapping on the potential energy
         surface, i.e., number of degrees of freedom.
-        
+
     pot_index : integer
         Index of considered energy landscape sample.
     """
@@ -129,14 +173,22 @@ def run_computer(potential_dir, results_dir, large_or_small_flag,
     pot = None
     if is_traj:
         from trajectories.potential import SumGaussianPot
+
         m, c = pot_wrapper.get_mean_cov(nr_gaussians, nr_dimensions, pot_index)
         pot = SumGaussianPot(m, c, pot_wrapper.R)
     else:
         pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
     print(("pot", pot))
-    pes_parameters["origin"] = pot_wrapper.get_origin(nr_gaussians,
-        nr_dimensions, pot_index, large_or_small_flag)
-    computer = ComputerMethod(results_dir, opt_parameters,
-        pes_parameters, vol_parameters, method_parameters, pot)
+    pes_parameters["origin"] = pot_wrapper.get_origin(
+        nr_gaussians, nr_dimensions, pot_index, large_or_small_flag
+    )
+    computer = ComputerMethod(
+        results_dir,
+        opt_parameters,
+        pes_parameters,
+        vol_parameters,
+        method_parameters,
+        pot,
+    )
     computer.compute_volume()
     computer.print_results(nr_gaussians, nr_dimensions, pot_index)

@@ -1,6 +1,7 @@
 from __future__ import division
 from __future__ import print_function
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import str
 import numpy as np
@@ -14,10 +15,12 @@ from basinvolume.enums import Minimizer
 import configparser
 import time
 
+
 def _subtract_com(x):
-    x = x.reshape(-1,3)
+    x = x.reshape(-1, 3)
     com = x.mean(0)
     return (x - com[np.newaxis, :]).ravel()
+
 
 class _sphere_mcrunner(_configure_mcrunner):
     """
@@ -30,42 +33,74 @@ class _sphere_mcrunner(_configure_mcrunner):
     *dtol: tolerance on the rms displacement of the minimised structure with respect to the origin coordinates
     """
 
-    def __init__(self, fname, stepsize=1e-2, niter=5e4, dtol=1e-4, eps=1., hmin=0,
-                 hmax=0.01, hbinsize=0.0005, opt_dtmax=1, opt_maxstep=None, opt_tol=1e-5, opt_nsteps=1e5,
-                 perform_convergence_test=False, collect_minima_list=False,
-                 seeds=None, use_cell_lists=False, minimizer=Minimizer.FIRE, packings_dir='jammed_packings', verbose=False):
+    def __init__(
+        self,
+        fname,
+        stepsize=1e-2,
+        niter=5e4,
+        dtol=1e-4,
+        eps=1.0,
+        hmin=0,
+        hmax=0.01,
+        hbinsize=0.0005,
+        opt_dtmax=1,
+        opt_maxstep=None,
+        opt_tol=1e-5,
+        opt_nsteps=1e5,
+        perform_convergence_test=False,
+        collect_minima_list=False,
+        seeds=None,
+        use_cell_lists=False,
+        minimizer=Minimizer.FIRE,
+        packings_dir="jammed_packings",
+        verbose=False,
+    ):
 
         self.fname = fname
-        self.temperature=1.0
+        self.temperature = 1.0
         self.eps = eps
         k = 1.0 / (stepsize * stepsize)
 
         self._set_paths(packings_dir)
         imp_packing = read_jammed_packing_config(str(self.configpath))
-        self.nparticles = imp_packing['nparticles']
-        self.packing_frac = imp_packing['packing_frac']
-        self.bdim = imp_packing['bdim']
-        self.ndim = imp_packing['ndim']
-        self.boxv = imp_packing['boxv'].copy()
-        self.vcavity = imp_packing['vcavity']
-        self.sca = imp_packing['sca']
-        self.distance_method = imp_packing['distance_method']
-        self.interaction = imp_packing['interaction']
-        if hasattr(self, 'pot_kwargs') and self.pot_kwargs is not None:
-            self.pot_kwargs.update(imp_packing['pot_kwargs'])
+        self.nparticles = imp_packing["nparticles"]
+        self.packing_frac = imp_packing["packing_frac"]
+        self.bdim = imp_packing["bdim"]
+        self.ndim = imp_packing["ndim"]
+        self.boxv = imp_packing["boxv"].copy()
+        self.vcavity = imp_packing["vcavity"]
+        self.sca = imp_packing["sca"]
+        self.distance_method = imp_packing["distance_method"]
+        self.interaction = imp_packing["interaction"]
+        if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
+            self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
-            self.pot_kwargs = imp_packing['pot_kwargs'].copy()
-        self.opt_maxstep_factor = imp_packing['maxstep_factor']
+            self.pot_kwargs = imp_packing["pot_kwargs"].copy()
+        self.opt_maxstep_factor = imp_packing["maxstep_factor"]
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
 
-        #self.mc_params = dict(k=k, temperature=temperature, )
-        self.mc_params = {'k':k,'temperature':self.temperature,'niter':niter,'stepsize':stepsize,'dtol':dtol,
-                          'eps':eps,'hmin':hmin,'hmax':hmax,'hbinsize':hbinsize,
-                          'opt_dtmax':opt_dtmax,'opt_maxstep':opt_maxstep,'opt_tol':opt_tol,'opt_nsteps':opt_nsteps,
-                          'perform_convergence_test':perform_convergence_test,'collect_minima_list':collect_minima_list,
-                          'minimizer':minimizer, 'use_cell_lists':use_cell_lists}
-        #add seeds dictionary to mc_params
+        # self.mc_params = dict(k=k, temperature=temperature, )
+        self.mc_params = {
+            "k": k,
+            "temperature": self.temperature,
+            "niter": niter,
+            "stepsize": stepsize,
+            "dtol": dtol,
+            "eps": eps,
+            "hmin": hmin,
+            "hmax": hmax,
+            "hbinsize": hbinsize,
+            "opt_dtmax": opt_dtmax,
+            "opt_maxstep": opt_maxstep,
+            "opt_tol": opt_tol,
+            "opt_nsteps": opt_nsteps,
+            "perform_convergence_test": perform_convergence_test,
+            "collect_minima_list": collect_minima_list,
+            "minimizer": minimizer,
+            "use_cell_lists": use_cell_lists,
+        }
+        # add seeds dictionary to mc_params
         try:
             self.mc_params.update(seeds)
         except:
@@ -73,26 +108,48 @@ class _sphere_mcrunner(_configure_mcrunner):
 
         self._requench_coords(dtol, opt_maxstep, verbose)
 
-        #construct mcrunner
+        # construct mcrunner
         self.coords = _subtract_com(self.coords)
         potential = NullPotential()
         self.mcrunner = BVSphereMCrunner(
-            potential, self.coords, self.temperature, stepsize, niter,
-            self.coords, self.hs_radii, self.boxv, self.sca,
-            rattlers=self.rattlers, dtol=dtol, eps=eps, hmin=hmin, hmax=hmax,
-            hbinsize=hbinsize, opt_dtmax=opt_dtmax, opt_maxstep=opt_maxstep,
-            opt_tol=opt_tol, opt_nsteps=opt_nsteps,
+            potential,
+            self.coords,
+            self.temperature,
+            stepsize,
+            niter,
+            self.coords,
+            self.hs_radii,
+            self.boxv,
+            self.sca,
+            rattlers=self.rattlers,
+            dtol=dtol,
+            eps=eps,
+            hmin=hmin,
+            hmax=hmax,
+            hbinsize=hbinsize,
+            opt_dtmax=opt_dtmax,
+            opt_maxstep=opt_maxstep,
+            opt_tol=opt_tol,
+            opt_nsteps=opt_nsteps,
             perform_convergence_test=perform_convergence_test,
-            collect_minima_list=collect_minima_list, seeds=seeds,
-            use_cell_lists=use_cell_lists, record_histogram=True,
-            minimizer=minimizer, distance_method=self.distance_method,
-            use_frozen=False, pot_kwargs=self.pot_kwargs)
+            collect_minima_list=collect_minima_list,
+            seeds=seeds,
+            use_cell_lists=use_cell_lists,
+            record_histogram=True,
+            minimizer=minimizer,
+            distance_method=self.distance_method,
+            use_frozen=False,
+            pot_kwargs=self.pot_kwargs,
+        )
         self._initialise()
 
     def run(self):
         try:
             self.mcrunner.run()
-            self.displ_k_min, self.var_displ_k_min = self.mcrunner.histogram.get_mean_variance()
+            (
+                self.displ_k_min,
+                self.var_displ_k_min,
+            ) = self.mcrunner.histogram.get_mean_variance()
             self._print_results()
             self._print_success(True)
         except:
@@ -100,13 +157,13 @@ class _sphere_mcrunner(_configure_mcrunner):
 
     def _set_paths(self, packings_dir):
         dname = os.path.splitext(self.fname)[0]
-        self.base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
+        self.base_directory = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
         if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
-        self.configpath = os.path.join(packings_dir,'jammed_packings.config')
-        configfile = 'kmin_' + dname
-        self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
+        self.configpath = os.path.join(packings_dir, "jammed_packings.config")
+        configfile = "kmin_" + dname
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _initialise(self):
         self._print_initialise()
@@ -120,22 +177,22 @@ class _sphere_mcrunner(_configure_mcrunner):
         """
         write simulation parameters
         """
-        f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
-        f.write('#Explore_Jammed_Packings wrapper class input parameters\n')
-        f.write('[KMIN_IMPORTED_JAMMED_PACKING]\n')
-        f.write('nparticles: {}\n'.format(self.nparticles))
-        f.write('packing_fraction: {}\n'.format(self.packing_frac))
-        f.write('boxdim: {}\n'.format(self.bdim))
-        f.write('ndim: {}\n'.format(self.ndim))
-        f.write('boxv: ')
+        f.write("#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n")
+        f.write("#Explore_Jammed_Packings wrapper class input parameters\n")
+        f.write("[KMIN_IMPORTED_JAMMED_PACKING]\n")
+        f.write("nparticles: {}\n".format(self.nparticles))
+        f.write("packing_fraction: {}\n".format(self.packing_frac))
+        f.write("boxdim: {}\n".format(self.bdim))
+        f.write("ndim: {}\n".format(self.ndim))
+        f.write("boxv: ")
         for val in self.boxv:
-            f.write('{:.16f} '.format(val))
-        f.write('\n')
-        assert(self.sca >0)
-        f.write('sca: {:.16f}\n'.format(self.sca))
-        f.write('[KMIN_MCRUNNER]\n')
-        for key, value in list(self.mc_params.items()) :
-            f.write('{}: {}\n'.format(key,value))
+            f.write("{:.16f} ".format(val))
+        f.write("\n")
+        assert self.sca > 0
+        f.write("sca: {:.16f}\n".format(self.sca))
+        f.write("[KMIN_MCRUNNER]\n")
+        for key, value in list(self.mc_params.items()):
+            f.write("{}: {}\n".format(key, value))
 
     def _print_results(self):
         """
@@ -143,33 +200,44 @@ class _sphere_mcrunner(_configure_mcrunner):
         this is just an approximation
         """
         fname = self.configfile
-        f = open(fname,'a')
-        f.write('[KMIN_MCRUNNER_STATUS]\n')
+        f = open(fname, "a")
+        f.write("[KMIN_MCRUNNER_STATUS]\n")
         status = self.mcrunner.get_status()
-        for key, value in list(status.items()) :
-            f.write('{}: {}\n'.format(key,value))
-        f.write('[KMIN]\n')
-        f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
-        f.write('var_displ_k_min: {:.16f}\n'.format(self.var_displ_k_min))
+        for key, value in list(status.items()):
+            f.write("{}: {}\n".format(key, value))
+        f.write("[KMIN]\n")
+        f.write("displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25))  # note 1.25
+        f.write("var_displ_k_min: {:.16f}\n".format(self.var_displ_k_min))
         f.close()
+
 
 if __name__ == "__main__":
 
-    pppn = [2,6,42,1806,47058,2214502422,52495396602]
+    pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
-    sim = _sphere_mcrunner('jammed_packing1.xyzdr', niter=5e5, opt_tol=1e-4, seeds=seeds,
-                         stepsize=1/np.sqrt(11), use_cell_lists=False, verbose=False, minimizer=Minimizer.FIRE,
-                         hmax=0.1, hbinsize=0.001, opt_nsteps=1e6)
-    print('simulation started')
-    start=time.time()
+    sim = _sphere_mcrunner(
+        "jammed_packing1.xyzdr",
+        niter=5e5,
+        opt_tol=1e-4,
+        seeds=seeds,
+        stepsize=1 / np.sqrt(11),
+        use_cell_lists=False,
+        verbose=False,
+        minimizer=Minimizer.FIRE,
+        hmax=0.1,
+        hbinsize=0.001,
+        opt_nsteps=1e6,
+    )
+    print("simulation started")
+    start = time.time()
     sim.run()
-    end=time.time()
-    print('time elapsed', end-start)
+    end = time.time()
+    print("time elapsed", end - start)
     status = sim.mcrunner.get_status()
     print(status)
-    print('stepsize: ',sim.mcrunner.get_stepsize())
-    print('d2 kmin: ',sim.displ_k_min)
-    print('var: ',sim.var_displ_k_min)
+    print("stepsize: ", sim.mcrunner.get_stepsize())
+    print("d2 kmin: ", sim.displ_k_min)
+    print("var: ", sim.var_displ_k_min)
     sim.mcrunner.dump_timeseries("test_time_series_unif", clear=True)
     sim.mcrunner.show_histogram_kmax()

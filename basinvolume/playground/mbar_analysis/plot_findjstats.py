@@ -1,5 +1,6 @@
 from __future__ import division
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import zip
 from builtins import next
@@ -18,7 +19,10 @@ import pickle as pickle
 from itertools import cycle
 from cycler import cycler
 from sklearn.neighbors import KernelDensity
-from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
+from basinvolume.experiment_2d.cross_validation_bandwidth_selection import (
+    get_bandwidth_estimate,
+    get_pdf,
+)
 from basinvolume.spheres import SoftPackingDataset, SoftPackingData
 import scikits.bootstrap as bootstrap
 import argparse
@@ -28,55 +32,87 @@ from scipy.integrate import quad
 from scipy.optimize import curve_fit
 
 #######################SET LATEX OPTIONS###################
-rc('text', usetex=True)
-rc('font',**{'family':'serif','serif':['Computer Modern']})
-#rc('text.latex',preamble=r'\usepackage{times}')
-glob_fontsize=25
-plt.rcParams.update({'font.size': glob_fontsize})
-plt.rcParams['xtick.major.pad'] = 8
-plt.rcParams['ytick.major.pad'] = 8
-plt.rcParams.update({'figure.autolayout': True})
+rc("text", usetex=True)
+rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
+# rc('text.latex',preamble=r'\usepackage{times}')
+glob_fontsize = 25
+plt.rcParams.update({"font.size": glob_fontsize})
+plt.rcParams["xtick.major.pad"] = 8
+plt.rcParams["ytick.major.pad"] = 8
+plt.rcParams.update({"figure.autolayout": True})
 ##########################################################
+
 
 class FixedOrderFormatter(ScalarFormatter):
     """Formats axis ticks using scientific notation with a constant order of
     magnitude"""
+
     def __init__(self, order_of_mag=0, useOffset=True, useMathText=False):
         self._order_of_mag = order_of_mag
-        ScalarFormatter.__init__(self, useOffset=useOffset,
-                                 useMathText=useMathText)
+        ScalarFormatter.__init__(self, useOffset=useOffset, useMathText=useMathText)
+
     def _set_orderOfMagnitude(self, range):
         """Over-riding this to avoid having orderOfMagnitude reset elsewhere"""
         self.orderOfMagnitude = self._order_of_mag
 
+
 ####SET COLOUR MAP######
 def get_color_cycle(ncolors=20, reverse=True):
-    cm = plt.get_cmap('Paired')
+    cm = plt.get_cmap("Paired")
     if reverse:
-        color_cycle=cycle([cm(1. * (i+0.5) / float(ncolors)) for i in range(ncolors)][::-1])
+        color_cycle = cycle(
+            [cm(1.0 * (i + 0.5) / float(ncolors)) for i in range(ncolors)][::-1]
+        )
     else:
-        color_cycle = cycle([cm(1. * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
+        color_cycle = cycle(
+            [cm(1.0 * (i - 0.5) / float(ncolors)) for i in range(ncolors)]
+        )
     return color_cycle
+
+
 def get_marker_cycle():
-    markers = ["o","v","s","h","^","8","p","<","*","D",">",]
+    markers = [
+        "o",
+        "v",
+        "s",
+        "h",
+        "^",
+        "8",
+        "p",
+        "<",
+        "*",
+        "D",
+        ">",
+    ]
     markercycle = cycle(markers)
     return markercycle
+
+
 def get_line_cycle():
-    lines = ["--","-"]
+    lines = ["--", "-"]
     linecycle = cycle(lines)
     return linecycle
+
+
 def get_cycler(ncolors=20, reverse=True):
-    cm = plt.get_cmap('Paired')
+    cm = plt.get_cmap("Paired")
     if reverse:
-        color_cycler = cycler('color', [cm(1. * (i+0.5) / float(ncolors)) for i in range(ncolors)][::-1])
+        color_cycler = cycler(
+            "color",
+            [cm(1.0 * (i + 0.5) / float(ncolors)) for i in range(ncolors)][::-1],
+        )
     else:
-        color_cycler = cycler('color', [cm(1. * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
+        color_cycler = cycler(
+            "color", [cm(1.0 * (i - 0.5) / float(ncolors)) for i in range(ncolors)]
+        )
     return color_cycler
+
 
 ###########################################################
 
+
 def poly_fit(x, y, yerr=None, order=1):
-    w = 1./np.asarray(yerr) if yerr is not None else None
+    w = 1.0 / np.asarray(yerr) if yerr is not None else None
     if len(x) - order - 2 < 2 and order > 1:
         # this hack was taken from
         # https://stackoverflow.com/questions/27230285/numpy-polyfit-gives-useful-fit-but-infinite-covariance-matrix
@@ -90,11 +126,19 @@ def poly_fit(x, y, yerr=None, order=1):
     rho = pearsonr(x, y)[0]
     return fit_fn, fit_params, fit_err, rho
 
+
 def sigmoid(x, x0, k, ymax, ymin, v):
-    return ymax - (ymax-ymin)/np.power(1.+np.exp(-k*(x-x0)),1./v)
+    return ymax - (ymax - ymin) / np.power(1.0 + np.exp(-k * (x - x0)), 1.0 / v)
+
 
 def sigmoid_d1(x, x0, k, ymax, ymin, v):
-    return -(k/v) * (ymax-ymin) * np.exp(-k*(x-x0)) / np.power(1.+np.exp(-k*(x-x0)),1.+1./v)
+    return (
+        -(k / v)
+        * (ymax - ymin)
+        * np.exp(-k * (x - x0))
+        / np.power(1.0 + np.exp(-k * (x - x0)), 1.0 + 1.0 / v)
+    )
+
 
 def remove_outliers_cluster(x, p=0.5, D=4):
     x = np.array(x)
@@ -103,8 +147,10 @@ def remove_outliers_cluster(x, p=0.5, D=4):
     x = np.asarray(x)[np.asarray(non_outliers_indexes, dtype="i")]
     return x, non_outliers_indexes
 
-def collect_data_every_set_all(workspace=None,
-                               data_signature='jammed_packings_*D_mu*_sig*_sca*_phi*.pickle'):
+
+def collect_data_every_set_all(
+    workspace=None, data_signature="jammed_packings_*D_mu*_sig*_sca*_phi*.pickle"
+):
     if workspace is None:
         workspace = os.getcwd()
     listdir = glob.glob(os.path.join(workspace, data_signature))
@@ -118,6 +164,7 @@ def collect_data_every_set_all(workspace=None,
     gc.enable()
     return datasets
 
+
 def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=1e4):
     psuccess = []
     nrattlers = []
@@ -125,7 +172,9 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=1e4):
     pressure = []
     contacts = []
     contacts_all = []
-    phi_ss = np.unique([dataset.phi_ss for dataset in sorted(datasets, key=lambda data: data.phi_ss)])
+    phi_ss = np.unique(
+        [dataset.phi_ss for dataset in sorted(datasets, key=lambda data: data.phi_ss)]
+    )
     phi_ss = phi_ss[phi_ss < phi_max]
     bdim = bdim
     for phi_ in phi_ss:
@@ -133,8 +182,8 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=1e4):
         pressure_, contacts_, contacts_all_ = [], [], []
         l = 0
         for i, dataset in enumerate(sorted(datasets, key=lambda data: data.phi_ss)):
-            if phi_ == dataset.phi_ss and l<lmax:
-                tmp = np.asarray(dataset.success, dtype='int')
+            if phi_ == dataset.phi_ss and l < lmax:
+                tmp = np.asarray(dataset.success, dtype="int")
                 for data in dataset.packings_data:
                     N_contacts = int(np.sum(data.Z))
                     no_stable = len(data.Z)
@@ -157,12 +206,28 @@ def collect_data_plot(datasets, phi_max=0.871, bdim=2, lmax=1e4):
         pressure.append(pressure_)
         contacts.append(contacts_)
         contacts_all.append(contacts_all_)
-    return np.asarray(psuccess), np.asarray(phi_ss), np.asarray(nrattlers), np.asarray(energy), \
-           np.asarray(pressure), np.asarray(contacts), np.asarray(contacts_all)
+    return (
+        np.asarray(psuccess),
+        np.asarray(phi_ss),
+        np.asarray(nrattlers),
+        np.asarray(energy),
+        np.asarray(pressure),
+        np.asarray(contacts),
+        np.asarray(contacts_all),
+    )
+
 
 class DataPlot(object):
     def __init__(self, datasets, prob_min=0.01, bdim=2, nparticles=64):
-        psuccess, phi_ss, nrattlers, energy, pressure, contacts, contacts_all = collect_data_plot(datasets)
+        (
+            psuccess,
+            phi_ss,
+            nrattlers,
+            energy,
+            pressure,
+            contacts,
+            contacts_all,
+        ) = collect_data_plot(datasets)
         self.psuccess = np.asarray(psuccess)
         self.phi_ss = np.asarray(phi_ss)
         self.phi_ss_packed = self.phi_ss[self.psuccess > prob_min]
@@ -175,7 +240,7 @@ class DataPlot(object):
         self.nparticles = nparticles
         self.bw = []
         self.logp_mean, self.p_mean, self.logp_mode = [], [], []
-        self.logp_var,  self.p_var, self.p_rel_var= [], [], []
+        self.logp_var, self.p_var, self.p_rel_var = [], [], []
         self.log_pdf = []
         self.log_pdf_x = []
         self.initialized = False
@@ -183,7 +248,7 @@ class DataPlot(object):
     def compute_stats(self, n_samples=1e4, n_integrate=None):
         for i, p in enumerate(self.pressure):
             if n_integrate is None:
-                n_integrate = 2 ** 14 + 1
+                n_integrate = 2**14 + 1
             else:
                 n_integrate = n_integrate
             lnp = np.log(np.asarray(p))
@@ -191,7 +256,9 @@ class DataPlot(object):
             # x_integrate = np.linspace(np.amin(np.log(np.hstack(self.pressure))), np.amax(np.log(np.hstack(self.pressure))), n_integrate)
             x_integrate = np.linspace(np.amin(lnp), np.amax(lnp), n_integrate)
             # build kde histogram
-            bw = get_bandwidth_estimate(lnp, kernel="gaussian", method="cross_validation")
+            bw = get_bandwidth_estimate(
+                lnp, kernel="gaussian", method="cross_validation"
+            )
             self.bw.append(bw)
             kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(lnp[:, np.newaxis])
             log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
@@ -202,10 +269,12 @@ class DataPlot(object):
             # p_rel = p / np.exp(log_maxp)
             # build array of relative fluctuations around the mean
             p_rel = p / np.mean(p)
-            n = int(min(n_samples, lnp.size*25))
-            varCIs = bootstrap.ci(p, lambda x : np.var(x/np.mean(x)), n_samples=n, alpha=0.32)
+            n = int(min(n_samples, lnp.size * 25))
+            varCIs = bootstrap.ci(
+                p, lambda x: np.var(x / np.mean(x)), n_samples=n, alpha=0.32
+            )
             self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]])
-            #build array of logp mean, var and maxp
+            # build array of logp mean, var and maxp
             meanCIs = bootstrap.ci(lnp, np.mean, n_samples=n, alpha=0.32)
             varCIs = bootstrap.ci(lnp, np.var, n_samples=n, alpha=0.32)
             self.logp_mean.append([np.mean(lnp), meanCIs[0], meanCIs[1]])
@@ -216,15 +285,22 @@ class DataPlot(object):
             self.p_mean.append([np.mean(p), meanCIs[0], meanCIs[1]])
             self.p_var.append([np.var(p), varCIs[0], varCIs[1]])
 
-        self.logp_mean, self.p_mean = np.asarray(self.logp_mean), np.asarray(self.p_mean)
-        self.logp_var, self.p_var, self.p_rel_var = np.asarray(self.logp_var), np.asarray(self.p_var), np.asarray(self.p_rel_var)
+        self.logp_mean, self.p_mean = np.asarray(self.logp_mean), np.asarray(
+            self.p_mean
+        )
+        self.logp_var, self.p_var, self.p_rel_var = (
+            np.asarray(self.logp_var),
+            np.asarray(self.p_var),
+            np.asarray(self.p_rel_var),
+        )
         self.bw = np.asarray(self.bw)
         self.log_pdf = np.asarray(self.log_pdf)
         self.log_pdf_x = np.asarray(self.log_pdf_x)
         self.initialized = True
 
+
 def finite_size_scaling_collapse(x, y, L, phi_c, nu, alpha, yerr=None, abs=False):
-    inu = 1./nu
+    inu = 1.0 / nu
     if abs:
         xsc = np.power(L, inu) * np.abs((np.asarray(x) - phi_c) / phi_c)
     else:
@@ -236,6 +312,7 @@ def finite_size_scaling_collapse(x, y, L, phi_c, nu, alpha, yerr=None, abs=False
         ysc_err = None
     return xsc, ysc, ysc_err
 
+
 def plot(figdir="figures", bdim=2, nparticles=64):
     figdir = os.path.join(os.getcwd(), figdir)
     trymakedir(figdir)
@@ -245,7 +322,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         return a * x + b
 
     def ff2(x, a, b, c):
-        return a * x**2 + b*x + c
+        return a * x**2 + b * x + c
 
     try:
         with open(path, "rb") as f:
@@ -254,13 +331,33 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         datasets = collect_data_every_set_all()
         dp = DataPlot(datasets, bdim=bdim, nparticles=nparticles)
         dp.compute_stats()
-        pickle.dump(dp, open("findjstats.pickle", "wb"),protocol=-1)
+        pickle.dump(dp, open("findjstats.pickle", "wb"), protocol=-1)
 
-    psuccess, phi_ss, phi_ss_packed, nrattlers =  dp.psuccess, dp.phi_ss, dp.phi_ss_packed, dp.nrattlers
-    energy, pressure, contacts_mean, contacts_all = dp.energy, dp.pressure, dp.contacts, dp.contacts_all
+    psuccess, phi_ss, phi_ss_packed, nrattlers = (
+        dp.psuccess,
+        dp.phi_ss,
+        dp.phi_ss_packed,
+        dp.nrattlers,
+    )
+    energy, pressure, contacts_mean, contacts_all = (
+        dp.energy,
+        dp.pressure,
+        dp.contacts,
+        dp.contacts_all,
+    )
     assert dp.initialized == True
-    log_pdf, log_pdf_x, logp_mean, logp_var = dp.log_pdf, dp.log_pdf_x, dp.logp_mean, dp.logp_var
-    p_mean, p_var, p_rel_var, logp_mode = dp.p_mean, dp.p_var, dp.p_rel_var, dp.logp_mode
+    log_pdf, log_pdf_x, logp_mean, logp_var = (
+        dp.log_pdf,
+        dp.log_pdf_x,
+        dp.logp_mean,
+        dp.logp_var,
+    )
+    p_mean, p_var, p_rel_var, logp_mode = (
+        dp.p_mean,
+        dp.p_var,
+        dp.p_rel_var,
+        dp.logp_mode,
+    )
     bw = dp.bw
     assert nparticles == dp.nparticles
 
@@ -274,25 +371,44 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax = fig.add_subplot(111)
         left, bottom, width, eight = [0.56, 0.22, 0.35, 0.35]
         axinset = fig.add_axes([left, bottom, width, eight])
-        ax.plot(phi_ss, np.asarray(psuccess), marker='o', linestyle='', rasterized=True, color=color_marker,
-                markeredgecolor=color_marker)
-        spl = UnivariateSpline(phi_ss, psuccess, bbox=[phi_ss[0], phi_ss[-1]], s=7.5e-4, k=3)
-        pickle.dump(spl, open(os.path.join(os.getcwd(), "phi_psuccess_spline.pickle"), "wb"),protocol=-1)
+        ax.plot(
+            phi_ss,
+            np.asarray(psuccess),
+            marker="o",
+            linestyle="",
+            rasterized=True,
+            color=color_marker,
+            markeredgecolor=color_marker,
+        )
+        spl = UnivariateSpline(
+            phi_ss, psuccess, bbox=[phi_ss[0], phi_ss[-1]], s=7.5e-4, k=3
+        )
+        pickle.dump(
+            spl,
+            open(os.path.join(os.getcwd(), "phi_psuccess_spline.pickle"), "wb"),
+            protocol=-1,
+        )
         phi_ss_spl = np.linspace(phi_ss[0], phi_ss[-1], 1000)
         y = np.asarray(psuccess)
-        popt, pcov = curve_fit(sigmoid, phi_ss, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
+        popt, pcov = curve_fit(
+            sigmoid, phi_ss, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000
+        )
         yspl = np.vectorize(sigmoid)(phi_ss_spl, *popt)
         yder = np.vectorize(sigmoid_d1)(phi_ss_spl, *popt)
-        ax.plot(phi_ss_spl, yspl, marker='', linestyle='-', rasterized=True, color=color_fit)
-        axinset.plot(phi_ss_spl, yder, marker='', linestyle='-', rasterized=True, color=color_fit)
-        ax.set_xlim([phi_ss[0],phi_ss[-1]])
+        ax.plot(
+            phi_ss_spl, yspl, marker="", linestyle="-", rasterized=True, color=color_fit
+        )
+        axinset.plot(
+            phi_ss_spl, yder, marker="", linestyle="-", rasterized=True, color=color_fit
+        )
+        ax.set_xlim([phi_ss[0], phi_ss[-1]])
         ax.set_xlabel(r"$\phi$")
         ax.set_ylabel(r"$p_J$")
-        axinset.locator_params(axis='x', nbins=5)
+        axinset.locator_params(axis="x", nbins=5)
         axinset.yaxis.set_ticks([])
         axinset.set_xlim([phi_ss[0], phi_ss[-1]])
-        axinset.set_xlabel(r'$\phi$')
-        axinset.set_ylabel(r'$\partial_\phi p_J$')
+        axinset.set_xlabel(r"$\phi$")
+        axinset.set_ylabel(r"$\partial_\phi p_J$")
         axinset.xaxis.set_label_position("top")
         fig.savefig("{}/{}".format(figdir, "phi_ppack{}.pdf".format(nparticles)))
 
@@ -301,16 +417,41 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax1 = fig1.add_subplot(111)
         left, bottom, width, eight = [0.18, 0.22, 0.35, 0.35]
         # ax1inset = fig1.add_axes([left, bottom, width, eight])
-        ax1.plot(phi_ss_packed, np.asarray(nrattlers), marker='o', linestyle='', rasterized=True, color=color_marker,
-                markeredgecolor=color_marker)
-        spl = UnivariateSpline(phi_ss_packed, nrattlers, bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=0.05, k=3)
-        pickle.dump(spl, open(os.path.join(os.getcwd(), "phi_nrattlers_spline.pickle"), "wb"),protocol=-1)
+        ax1.plot(
+            phi_ss_packed,
+            np.asarray(nrattlers),
+            marker="o",
+            linestyle="",
+            rasterized=True,
+            color=color_marker,
+            markeredgecolor=color_marker,
+        )
+        spl = UnivariateSpline(
+            phi_ss_packed,
+            nrattlers,
+            bbox=[phi_ss_packed[0], phi_ss_packed[-1]],
+            s=0.05,
+            k=3,
+        )
+        pickle.dump(
+            spl,
+            open(os.path.join(os.getcwd(), "phi_nrattlers_spline.pickle"), "wb"),
+            protocol=-1,
+        )
         phi_ss_spl = np.linspace(phi_ss_packed[0], phi_ss_packed[-1], 1000)
         y = np.asarray(nrattlers)
-        popt, pcov = curve_fit(sigmoid, phi_ss_packed, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
+        popt, pcov = curve_fit(
+            sigmoid,
+            phi_ss_packed,
+            y,
+            p0=[0.845, 1, np.amax(y), np.amin(y), 1],
+            maxfev=3000,
+        )
         yspl = np.vectorize(sigmoid)(phi_ss_spl, *popt)
         yder = np.vectorize(sigmoid_d1)(phi_ss_spl, *popt)
-        ax1.plot(phi_ss_spl, yspl, marker='', linestyle='-', rasterized=True, color=color_fit)
+        ax1.plot(
+            phi_ss_spl, yspl, marker="", linestyle="-", rasterized=True, color=color_fit
+        )
         # ax1inset.plot(phi_ss_spl, yder, marker='', linestyle='-', rasterized=True, color=color_fit)
         ax1.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
         ax1.set_xlabel(r"$\phi$")
@@ -328,30 +469,69 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
         color_cycle = get_color_cycle(ncolors=len(energy))
-        for e,p in zip(energy, pressure):
+        for e, p in zip(energy, pressure):
             assert len(e) == len(p)
             color = next(color_cycle)
             ax2.scatter(np.log(e), np.log(p), color=next(color_cycle), rasterized=True)
-        flat_energy, flat_pressure = np.log(np.hstack(energy)), np.log(np.hstack(pressure))
+        flat_energy, flat_pressure = np.log(np.hstack(energy)), np.log(
+            np.hstack(pressure)
+        )
         # linear fit low P
         xnew = np.linspace(np.amin(flat_energy), np.amax(flat_energy), 10)
 
-        fit_fn, fit_params, fit_err, rho = poly_fit(flat_energy[flat_energy<-5], flat_pressure[flat_energy<-5], order=1)
-        ax2.plot(xnew, fit_fn(xnew), color='k', linewidth=2.5, linestyle='--',
-                 label="ln(p) = {:.3f} ln(E) + {:.3f}".format(fit_params[0], fit_params[1]), rasterized=True)
+        fit_fn, fit_params, fit_err, rho = poly_fit(
+            flat_energy[flat_energy < -5], flat_pressure[flat_energy < -5], order=1
+        )
+        ax2.plot(
+            xnew,
+            fit_fn(xnew),
+            color="k",
+            linewidth=2.5,
+            linestyle="--",
+            label="ln(p) = {:.3f} ln(E) + {:.3f}".format(fit_params[0], fit_params[1]),
+            rasterized=True,
+        )
         # linear fit high P
         xnew = np.linspace(2.3, 10, 10)
-        fit_fn, fit_params, fit_err, rho = poly_fit(flat_energy[flat_energy > 5], flat_pressure[flat_energy > 5], order=1)
-        ax2.plot(xnew, fit_fn(xnew), color='r', linewidth=2.5, linestyle='--',
-                 label="ln(p) = {:.3f} ln(E) + {:.3f}".format(fit_params[0], fit_params[1]), rasterized=True)
+        fit_fn, fit_params, fit_err, rho = poly_fit(
+            flat_energy[flat_energy > 5], flat_pressure[flat_energy > 5], order=1
+        )
+        ax2.plot(
+            xnew,
+            fit_fn(xnew),
+            color="r",
+            linewidth=2.5,
+            linestyle="--",
+            label="ln(p) = {:.3f} ln(E) + {:.3f}".format(fit_params[0], fit_params[1]),
+            rasterized=True,
+        )
         # quadratic fit
         xnew = np.linspace(-0.5, 10, 10)
-        fit_fn, fit_params, fit_err, rho = poly_fit(flat_energy[flat_energy > -0.5], flat_pressure[flat_energy > -0.5], order=2)
-        ax2.plot(xnew, fit_fn(xnew), color='b', linewidth=2.5, linestyle=':',
-                 label="ln(p) = {:.3f} ln(E)**2 + {:.3f} ln(E) + {:.3f}".format(fit_params[0], fit_params[1], fit_params[2]),
-                 rasterized=True)
-        ax2.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        fit_fn, fit_params, fit_err, rho = poly_fit(
+            flat_energy[flat_energy > -0.5], flat_pressure[flat_energy > -0.5], order=2
+        )
+        ax2.plot(
+            xnew,
+            fit_fn(xnew),
+            color="b",
+            linewidth=2.5,
+            linestyle=":",
+            label="ln(p) = {:.3f} ln(E)**2 + {:.3f} ln(E) + {:.3f}".format(
+                fit_params[0], fit_params[1], fit_params[2]
+            ),
+            rasterized=True,
+        )
+        ax2.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         ax2.set_xlabel(r"$\ln(E)$")
         ax2.set_ylabel(r"$\ln(P)$")
         fig2.savefig("{}/{}".format(figdir, "lnE_lnP{}.pdf".format(nparticles)))
@@ -364,34 +544,61 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             assert len(p) == len(z)
             col = next(color)
             ax3.scatter(np.log(p), z, color=col, markeredgecolor=col, rasterized=True)
-        ax3.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax3.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         ax3.set_xlabel(r"$\ln(P)$")
         ax3.set_ylabel(r"$\ln(\langle Z \rangle )$")
         fig3.savefig("{}/{}".format(figdir, "lnP_lnZ{}.pdf".format(nparticles)))
 
     if True:
         import itertools
+
         fig31 = plt.figure()
         ax31 = fig31.add_subplot(111)
         y = [[item for sublist in x for item in sublist] for x in contacts_all]
         yy = list(itertools.chain(*y))
         color = get_color_cycle(ncolors=int(np.amax(yy)))
-        for i in range(int(np.amin(yy)),int(np.amax(yy))):
-            yy = np.asarray([np.sum(np.asarray(x) == i)/len(x) for x in y])
+        for i in range(int(np.amin(yy)), int(np.amax(yy))):
+            yy = np.asarray([np.sum(np.asarray(x) == i) / len(x) for x in y])
             col = next(color)
-            ax31.plot(phi_ss_packed, yy, color=col, markeredgecolor=col, linestyle='-', marker='o', label='Z={}'.format(i))
+            ax31.plot(
+                phi_ss_packed,
+                yy,
+                color=col,
+                markeredgecolor=col,
+                linestyle="-",
+                marker="o",
+                label="Z={}".format(i),
+            )
         # for i, x in enumerate(contacts_all):
         #     label = "{}".format(phi_ss_packed[i])
         #     xx = [item for sublist in x for item in sublist]
         #     hist, bin_edges = np.histogram(xx, bins=np.unique(xx), density=True)
         #     ax31.plot(bin_edges[:-1], hist, color=color.next(), linestyle='-', marker='o')
-        ax31.set_ylim((0,0.5))
-        ax31.set_ylabel(r'$N_{Z}/N$')
-        ax31.set_xlabel(r'$\phi$')
-        ax31.set_xlim((0.81,0.87))
-        ax31.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax31.set_ylim((0, 0.5))
+        ax31.set_ylabel(r"$N_{Z}/N$")
+        ax31.set_xlabel(r"$\phi$")
+        ax31.set_xlim((0.81, 0.87))
+        ax31.legend(
+            frameon=False,
+            loc=2,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         fig31.savefig("{}/{}".format(figdir, "Zhist{}.pdf".format(nparticles)))
 
     if True:
@@ -399,15 +606,42 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax32 = fig32.add_subplot(111)
         y = [[item for sublist in x for item in sublist] for x in contacts_all]
         color = next(get_color_cycle(ncolors=2))
-        ax32.plot(phi_ss_packed, [np.mean(x) for x in y], color=color, linestyle='', marker='o', markeredgecolor=color, )
-        spl = UnivariateSpline(phi_ss_packed, [np.mean(x) for x in y],
-                                   bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=5e-4, k=1)
-        pickle.dump(spl, open(os.path.join(os.getcwd(), "phi_meanZ_spline.pickle"), "wb"),protocol=-1)
-        pickle.dump(np.asarray([phi_ss_packed, [np.mean(x) for x in y]]), open(os.path.join(os.getcwd(), "phi_meanZ_data.pickle"), "wb"),protocol=-1)
+        ax32.plot(
+            phi_ss_packed,
+            [np.mean(x) for x in y],
+            color=color,
+            linestyle="",
+            marker="o",
+            markeredgecolor=color,
+        )
+        spl = UnivariateSpline(
+            phi_ss_packed,
+            [np.mean(x) for x in y],
+            bbox=[phi_ss_packed[0], phi_ss_packed[-1]],
+            s=5e-4,
+            k=1,
+        )
+        pickle.dump(
+            spl,
+            open(os.path.join(os.getcwd(), "phi_meanZ_spline.pickle"), "wb"),
+            protocol=-1,
+        )
+        pickle.dump(
+            np.asarray([phi_ss_packed, [np.mean(x) for x in y]]),
+            open(os.path.join(os.getcwd(), "phi_meanZ_data.pickle"), "wb"),
+            protocol=-1,
+        )
         phi_ss_spl = np.linspace(0.81, phi_ss_packed[-1], 1000)
-        ax32.plot(phi_ss_spl, spl(phi_ss_spl), marker='', linestyle='-', color=color, rasterized=True)
-        ax32.set_ylabel(r'$\langle z \rangle_{\mathcal{B}}$')
-        ax32.set_xlabel(r'$\phi$')
+        ax32.plot(
+            phi_ss_spl,
+            spl(phi_ss_spl),
+            marker="",
+            linestyle="-",
+            color=color,
+            rasterized=True,
+        )
+        ax32.set_ylabel(r"$\langle z \rangle_{\mathcal{B}}$")
+        ax32.set_xlabel(r"$\phi$")
         fig32.savefig("{}/{}".format(figdir, "phi_meanZ{}.pdf".format(nparticles)))
 
     if True:
@@ -421,7 +655,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         ax52 = fig52.add_subplot(111)
         ax522 = ax52.twinx()
         color_cycle = get_color_cycle(ncolors=phi_ss_packed.size)
-        ikappa = lambda phi : 2.71431676132 * phi - 2.23776770087
+        ikappa = lambda phi: 2.71431676132 * phi - 2.23776770087
         c = lambda phi: -7.25204514516 * phi + 6.92383942465
         v_mean_bias, v_mean = [], []
         v_var_bias, v_var = [], []
@@ -432,8 +666,20 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             log_maxp = log_pdf_x[i][np.argmax(log_pdf[i])]
             color, label = next(color_cycle), phi_ss_packed[i]
             # ax4.plot(np.log(x_integrate)-np.log(maxp), log_pdf, color=color, label=label, rasterized=True)
-            ax4.plot(log_pdf_x[i]-log_maxp, np.exp(log_pdf[i]), color=color, label=label, rasterized=True)
-            ax5.plot(log_pdf_x[i]-log_maxp, log_pdf[i] - np.amax(log_pdf[i]), color=color, label=label, rasterized=True)
+            ax4.plot(
+                log_pdf_x[i] - log_maxp,
+                np.exp(log_pdf[i]),
+                color=color,
+                label=label,
+                rasterized=True,
+            )
+            ax5.plot(
+                log_pdf_x[i] - log_maxp,
+                log_pdf[i] - np.amax(log_pdf[i]),
+                color=color,
+                label=label,
+                rasterized=True,
+            )
 
             # bias = 1./np.exp(np.log(pressure[i]) * ikappa(phi_ss_packed[i]) + c(phi_ss_packed[i]))
             logging.info("len pressure {}".format(len(pressure[i])))
@@ -447,24 +693,72 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             v_var_bias.append(sig_B)
             # v_mean.append(mu_U)
             # v_var.append(sig_U)
-            ax52.plot(phi_ss_packed[i], np.mean(np.log(pressure[i]))*ikappa(phi_ss_packed[i]), color=color, marker='o',
-                      linestyle='', markeredgecolor=color, rasterized=True)
-            ax522.plot(phi_ss_packed[i], np.var(np.log(pressure[i])), color=color, marker='^',
-                       markeredgecolor=color, linestyle='', rasterized=True)
+            ax52.plot(
+                phi_ss_packed[i],
+                np.mean(np.log(pressure[i])) * ikappa(phi_ss_packed[i]),
+                color=color,
+                marker="o",
+                linestyle="",
+                markeredgecolor=color,
+                rasterized=True,
+            )
+            ax522.plot(
+                phi_ss_packed[i],
+                np.var(np.log(pressure[i])),
+                color=color,
+                marker="^",
+                markeredgecolor=color,
+                linestyle="",
+                rasterized=True,
+            )
 
         ax43 = ax42.twinx()
-        ax42.plot(phi_ss_packed, v_mean_bias, color='b', marker='o', linestyle='',
-                  markeredgecolor=color, rasterized=True, label=r"$E_B(v)$")
-        ax43.plot(phi_ss_packed, v_var_bias, color='r', marker='o', linestyle='',
-                  markeredgecolor=color, rasterized=True, label=r"$Var_B(v)$")
+        ax42.plot(
+            phi_ss_packed,
+            v_mean_bias,
+            color="b",
+            marker="o",
+            linestyle="",
+            markeredgecolor=color,
+            rasterized=True,
+            label=r"$E_B(v)$",
+        )
+        ax43.plot(
+            phi_ss_packed,
+            v_var_bias,
+            color="r",
+            marker="o",
+            linestyle="",
+            markeredgecolor=color,
+            rasterized=True,
+            label=r"$Var_B(v)$",
+        )
         # ax42.plot(phi_ss_packed, v_mean, color='b', marker='^', linestyle='',
         #           rasterized=True, label=r"$E_U(v)$")
         # ax43.plot(phi_ss_packed, v_var, color='r', marker='^', linestyle='',
         #           rasterized=True, label=r"$Var_U(v)$")
-        ax42.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax43.legend(frameon=False, loc=3, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax42.legend(
+            frameon=False,
+            loc=2,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax43.legend(
+            frameon=False,
+            loc=3,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         ax4.set_xlabel(r"$\ln(P/P_{peak})$")
         ax4.set_ylabel(r"$pdf/\max(pdf)$")
         ax4.set_xlabel(r"$ \Lambda - \langle \Lambda \rangle_{\mathcal{B}}$")
@@ -479,7 +773,6 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         fig42.savefig("{}/{}".format(figdir, "muv_varv{}.pdf".format(nparticles)))
         fig5.savefig("{}/{}".format(figdir, "lnP_lnpdf{}.pdf".format(nparticles)))
         fig52.savefig("{}/{}".format(figdir, "muP_kappa{}.pdf".format(nparticles)))
-
 
     def ff(x, a, b):
         return a * x + b
@@ -496,34 +789,61 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         spl = UnivariateSpline(phi_ss_packed, y, s=1e7, k=5, w=weights)
         xx = np.linspace(np.amin(phi_ss_packed), np.amax(phi_ss_packed), 1e4)
         yspl = spl(xx)
-        ax7.errorbar(phi_ss_packed, y, marker='o', linestyle='', label='N={}'.format(nparticles),
-                      color=color, markeredgecolor=color, rasterized=True)
+        ax7.errorbar(
+            phi_ss_packed,
+            y,
+            marker="o",
+            linestyle="",
+            label="N={}".format(nparticles),
+            color=color,
+            markeredgecolor=color,
+            rasterized=True,
+        )
         ax7.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
 
-        phi_c = xx[np.argmax(yspl)] #phi_ss[np.argmin(np.abs(np.asarray(psuccess) - 0.5))]
+        phi_c = xx[
+            np.argmax(yspl)
+        ]  # phi_ss[np.argmin(np.abs(np.asarray(psuccess) - 0.5))]
         logging.info(phi_c)
         logx = np.abs(1 - phi_ss_packed / phi_c)
         color_cycle = get_color_cycle(ncolors=3)
         color = next(color_cycle)
         logy = logp_var[:, 0]
-        yerr = (logp_var[:,2]-logp_var[:,1])/(2*logp_var[:, 0])
-        ax6.errorbar(logx[phi_ss_packed>phi_c], logy[phi_ss_packed>phi_c], yerr=yerr[phi_ss_packed>phi_c], marker='o',
-                     color=color, markeredgecolor=color, rasterized=True)
+        yerr = (logp_var[:, 2] - logp_var[:, 1]) / (2 * logp_var[:, 0])
+        ax6.errorbar(
+            logx[phi_ss_packed > phi_c],
+            logy[phi_ss_packed > phi_c],
+            yerr=yerr[phi_ss_packed > phi_c],
+            marker="o",
+            color=color,
+            markeredgecolor=color,
+            rasterized=True,
+        )
         color = next(color_cycle)
-        ax6.errorbar(logx[phi_ss_packed <= phi_c], logy[phi_ss_packed <= phi_c], yerr=yerr[phi_ss_packed <= phi_c], marker='o',
-                     color=color, markeredgecolor=color, rasterized=True)
+        ax6.errorbar(
+            logx[phi_ss_packed <= phi_c],
+            logy[phi_ss_packed <= phi_c],
+            yerr=yerr[phi_ss_packed <= phi_c],
+            marker="o",
+            color=color,
+            markeredgecolor=color,
+            rasterized=True,
+        )
 
         ax6.set_xlabel(r"$|1-\phi/\phi_c^{(N)}|$")
         ax6.set_ylabel(r"$\sigma^2_{\Lambda}$")
         fig6.savefig("{}/{}".format(figdir, "phi_varlnP{}.pdf".format(nparticles)))
 
+
 def plot_all(figdir="figures", bdim=2):
     figdir = os.path.join(os.getcwd(), figdir)
     trymakedir(figdir)
-    datasets = collect_data_every_set_all(data_signature='n[0-9]*/findjstats.pickle')
+    datasets = collect_data_every_set_all(data_signature="n[0-9]*/findjstats.pickle")
     for dp in datasets:
         assert dp.initialized == True
-    nparticles = np.asarray([dp.nparticles for dp in sorted(datasets, key=lambda data: data.nparticles)])
+    nparticles = np.asarray(
+        [dp.nparticles for dp in sorted(datasets, key=lambda data: data.nparticles)]
+    )
 
     def ff(x, a, b):
         return a * x + b
@@ -538,47 +858,110 @@ def plot_all(figdir="figures", bdim=2):
         # fig01b = plt.figure()
         # ax01b = fig01b.add_subplot(111)
         color_cycle = get_color_cycle(ncolors=len(datasets))
-        for i,dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
+        for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
             color = next(color_cycle)
             phi_ss_packed, psuccess = dp.phi_ss_packed, dp.psuccess
             contacts_all = dp.contacts_all
             y = [[item for sublist in x for item in sublist] for x in contacts_all]
             yy = [np.mean(x) for x in y]
-            ax0.plot(phi_ss_packed, yy, color=color, linestyle='', marker='o',
-                     label=nparticles[i], rasterized=True)
-            spl = UnivariateSpline(phi_ss_packed, yy,
-                                   bbox=[phi_ss_packed[0], phi_ss_packed[-1]], s=5e-4, k=1)
+            ax0.plot(
+                phi_ss_packed,
+                yy,
+                color=color,
+                linestyle="",
+                marker="o",
+                label=nparticles[i],
+                rasterized=True,
+            )
+            spl = UnivariateSpline(
+                phi_ss_packed,
+                yy,
+                bbox=[phi_ss_packed[0], phi_ss_packed[-1]],
+                s=5e-4,
+                k=1,
+            )
             phi_ss_spl = np.linspace(0.81, 0.87, 1000)
-            ax0.plot(phi_ss_spl, spl(phi_ss_spl), marker='', linestyle='-', color=color, rasterized=True)
+            ax0.plot(
+                phi_ss_spl,
+                spl(phi_ss_spl),
+                marker="",
+                linestyle="-",
+                color=color,
+                rasterized=True,
+            )
             # finite size scaling of <z>
-            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, yy, np.sqrt(nparticles[i]),
-                                                             0.844, 2, -0.01, abs=False)
-            ax0b.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(
+                phi_ss_packed, yy, np.sqrt(nparticles[i]), 0.844, 2, -0.01, abs=False
+            )
+            ax0b.plot(
+                xsc,
+                ysc,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             # var(z)
             yy = np.array([np.var(x) for x in y])
-            ax01.plot(phi_ss_packed, yy, color=color, linestyle='-', marker='o',
-                      label=nparticles[i], markeredgecolor=color, rasterized=True)
+            ax01.plot(
+                phi_ss_packed,
+                yy,
+                color=color,
+                linestyle="-",
+                marker="o",
+                label=nparticles[i],
+                markeredgecolor=color,
+                rasterized=True,
+            )
             # # finite size scaling of var(z)
             # xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, yy, np.sqrt(nparticles[i]), 0.844, 2, -0.125)
             # ax01b.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
-        ax0.set_xlabel(r'$\phi$')
-        ax0.set_ylabel(r'$\langle Z \rangle_{\mathcal{B}}$')
-        ax0.set_ylim((4,4.5))
-        ax0.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax0.set_xlabel(r"$\phi$")
+        ax0.set_ylabel(r"$\langle Z \rangle_{\mathcal{B}}$")
+        ax0.set_ylim((4, 4.5))
+        ax0.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         fig0.savefig("{}/{}".format(figdir, "phi_meanZ_all.pdf"))
         ax0b.set_xlabel(r"$\varepsilon L^{1/\nu}$")
         ax0b.set_ylabel(r"$\langle z \rangle L^{\xi/\nu}$")
         # ax0b.set_yscale('log')
         # ax0b.set_xscale('log')
         # ax0b.autoscale(enable=True, tight=True)
-        ax0b.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax0b.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         fig0b.savefig("{}/{}".format(figdir, "phi_meanZ_fss_all.pdf"))
-        ax01.set_xlabel(r'$\phi$')
-        ax01.set_ylabel(r'$\sigma^2_{\mathcal{B}}(Z)$')
-        ax01.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax01.set_xlabel(r"$\phi$")
+        ax01.set_ylabel(r"$\sigma^2_{\mathcal{B}}(Z)$")
+        ax01.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         fig01.savefig("{}/{}".format(figdir, "phi_stdZ_all.pdf"))
 
     if True:
@@ -613,72 +996,196 @@ def plot_all(figdir="figures", bdim=2):
         color_cycle = get_color_cycle(ncolors=len(datasets))
         for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
             color = next(color_cycle)
-            phi_ss, psuccess = dp.phi_ss[dp.phi_ss<phi_max], dp.psuccess[dp.phi_ss<phi_max]
+            phi_ss, psuccess = (
+                dp.phi_ss[dp.phi_ss < phi_max],
+                dp.psuccess[dp.phi_ss < phi_max],
+            )
             phi_ss_packed, nrattlers = dp.phi_ss_packed, dp.nrattlers
-            ax.plot(phi_ss, np.asarray(psuccess), marker='o', linestyle='', color=color, markeredgecolor=color,
-                    rasterized=True, label=nparticles[i])
-            ax11cinset.plot(phi_ss, np.asarray(psuccess), marker='o', linestyle='', color=color, markeredgecolor=color,
-                            rasterized=True, label=nparticles[i])
+            ax.plot(
+                phi_ss,
+                np.asarray(psuccess),
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+                label=nparticles[i],
+            )
+            ax11cinset.plot(
+                phi_ss,
+                np.asarray(psuccess),
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+                label=nparticles[i],
+            )
             y = np.asarray(psuccess)
-            popt, pcov = curve_fit(sigmoid, phi_ss, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
+            popt, pcov = curve_fit(
+                sigmoid,
+                phi_ss,
+                y,
+                p0=[0.845, 1, np.amax(y), np.amin(y), 1],
+                maxfev=3000,
+            )
             ysig = np.vectorize(sigmoid)(xspl, *popt)
             yder = np.vectorize(sigmoid_d1)(xspl, *popt)
             ysig_list.append(ysig)
             yder_list.append(yder)
-            ax.plot(xspl, ysig, marker='', linestyle='-', rasterized=True, color=color)
-            ax11cinset.plot(xspl, ysig, marker='', linestyle='-', rasterized=True, color=color)
-            ax04.plot(xspl, yder, marker='None', linestyle='-', linewidth=2, color=color,
-                      label=nparticles[i], rasterized=True)
-            avg = quad(lambda x : x * sigmoid_d1(x, *popt), 0.815, 0.845)[0]/quad(lambda x: sigmoid_d1(x, *popt), 0.815, 0.845)[0]
+            ax.plot(xspl, ysig, marker="", linestyle="-", rasterized=True, color=color)
+            ax11cinset.plot(
+                xspl, ysig, marker="", linestyle="-", rasterized=True, color=color
+            )
+            ax04.plot(
+                xspl,
+                yder,
+                marker="None",
+                linestyle="-",
+                linewidth=2,
+                color=color,
+                label=nparticles[i],
+                rasterized=True,
+            )
+            avg = (
+                quad(lambda x: x * sigmoid_d1(x, *popt), 0.815, 0.845)[0]
+                / quad(lambda x: sigmoid_d1(x, *popt), 0.815, 0.845)[0]
+            )
             yder_argavg.append(avg)
-            yder_avg.append(ysig[np.argmin(np.abs(xspl-avg))])
-            yder_argmid.append(xspl[np.argmin(np.abs(ysig-0.5))])
+            yder_avg.append(ysig[np.argmin(np.abs(xspl - avg))])
+            yder_argmid.append(xspl[np.argmin(np.abs(ysig - 0.5))])
 
             # finite size scaling of p_J
-            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss, y, np.sqrt(nparticles[i]), 0.844, 1, 0)
-            ax05.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
-            axinset.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(
+                phi_ss, y, np.sqrt(nparticles[i]), 0.844, 1, 0
+            )
+            ax05.plot(
+                xsc,
+                ysc,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
+            axinset.plot(
+                xsc,
+                ysc,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
 
             # nrattlers plot all
-            y = np.asarray(nrattlers)/nparticles[i]
-            ax02.plot(phi_ss_packed, y, marker='o', linestyle='', color=color,
-                      markeredgecolor=color, label=nparticles[i], rasterized=True)
-            popt, pcov = curve_fit(sigmoid, phi_ss_packed, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
+            y = np.asarray(nrattlers) / nparticles[i]
+            ax02.plot(
+                phi_ss_packed,
+                y,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                label=nparticles[i],
+                rasterized=True,
+            )
+            popt, pcov = curve_fit(
+                sigmoid,
+                phi_ss_packed,
+                y,
+                p0=[0.845, 1, np.amax(y), np.amin(y), 1],
+                maxfev=3000,
+            )
             phi_ss_spl = np.linspace(phi_ss_packed[0], phi_ss_packed[-1], 1000)
             ysig = np.vectorize(sigmoid)(phi_ss_spl, *popt)
             yder = np.vectorize(sigmoid_d1)(phi_ss_spl, *popt)
             ratl_list.append(np.vectorize(sigmoid)(xspl, *popt))
-            ax02.plot(phi_ss_spl, ysig, marker='', linestyle='-', color=color, rasterized=True)
-            ax07.plot(phi_ss_spl, yder, marker='None', linestyle='-', linewidth=2, color=color, rasterized=True)
+            ax02.plot(
+                phi_ss_spl, ysig, marker="", linestyle="-", color=color, rasterized=True
+            )
+            ax07.plot(
+                phi_ss_spl,
+                yder,
+                marker="None",
+                linestyle="-",
+                linewidth=2,
+                color=color,
+                rasterized=True,
+            )
 
             # finite size scaling of n_r
-            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y, np.sqrt(nparticles[i]), 0.844, 2, -0.5)
-            ax06.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
-            ax02inset.plot(xsc, ysc, marker='o', linestyle='', color=color, markeredgecolor=color, rasterized=True)
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(
+                phi_ss_packed, y, np.sqrt(nparticles[i]), 0.844, 2, -0.5
+            )
+            ax06.plot(
+                xsc,
+                ysc,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
+            ax02inset.plot(
+                xsc,
+                ysc,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
         logging.info("yder_argavg {}".format(yder_argavg))
-        ax.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                  columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax02.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax04.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1, columnspacing=0.25, labelspacing=0.25)
+        ax.legend(
+            frameon=False,
+            loc=2,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax02.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax04.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+        )
         ax.set_xlim((0.81, 0.87))
         ax.set_ylim((-0.01, 1.01))
         axinset.set_ylim((-0.01, 1.01))
         ax.set_xlabel(r"$\phi$")
         ax.set_ylabel(r"$p_J$")
-        axinset.locator_params(axis='x', nbins=6)
-        axinset.locator_params(axis='y', nbins=5)
+        axinset.locator_params(axis="x", nbins=6)
+        axinset.locator_params(axis="y", nbins=5)
         axinset.xaxis.set_label_position("top")
-        axinset.autoscale(enable=True, axis='x', tight=True)
+        axinset.autoscale(enable=True, axis="x", tight=True)
         axinset.set_xlabel(r"$\varepsilon L^{1/\nu}$")
         axinset.set_ylabel(r"$p_J L^{\beta/\nu}$")
         fig.savefig("{}/{}".format(figdir, "phi_ppack_all.pdf"))
         ax02.set_xlabel(r"$\phi$")
         ax02.set_ylabel(r"$N_{r}/N$")
-        ax02.set_xlim((0.81,0.87))
-        ax02inset.locator_params(axis='x', nbins=5)
-        ax02inset.locator_params(axis='y', nbins=5)
+        ax02.set_xlim((0.81, 0.87))
+        ax02inset.locator_params(axis="x", nbins=5)
+        ax02inset.locator_params(axis="y", nbins=5)
         ax02inset.xaxis.set_label_position("top")
         ax02inset.yaxis.set_label_position("right")
         ax02inset.yaxis.set_major_formatter(FixedOrderFormatter(-2))
@@ -686,7 +1193,7 @@ def plot_all(figdir="figures", bdim=2):
         ax02inset.set_xlabel(r"$\varepsilon L^{1/\nu}$")
         ax02inset.set_ylabel(r"$(N_r/N) L^{-\delta/\nu}$")
         fig02.savefig("{}/{}".format(figdir, "phi_nrattlers_all.pdf"))
-        ax04.set_xlim((0.81,0.86))
+        ax04.set_xlim((0.81, 0.86))
         ax04.set_xlabel(r"$\phi$")
         ax04.set_ylabel(r"$\partial_\phi p_J$")
         fig04.savefig("{}/{}".format(figdir, "phi_ppack_d1_all.pdf"))
@@ -705,35 +1212,107 @@ def plot_all(figdir="figures", bdim=2):
         ax2 = fig2.add_subplot(111)
         color_cycle = get_color_cycle(ncolors=4)
         x = np.log(np.sqrt(nparticles))
-        xnew = np.log(np.sqrt(np.linspace(np.amin(nparticles), np.amax(nparticles), 100)))
+        xnew = np.log(
+            np.sqrt(np.linspace(np.amin(nparticles), np.amax(nparticles), 100))
+        )
         color = next(color_cycle)
         y = np.log(0.845 - np.asarray(yder_argavg))
-        ax2.plot(x, y, marker='o', linestyle='None', color=color, markeredgecolor=color, rasterized=True)
+        ax2.plot(
+            x,
+            y,
+            marker="o",
+            linestyle="None",
+            color=color,
+            markeredgecolor=color,
+            rasterized=True,
+        )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
-        ax2.plot(xnew, fit_fn(xnew), color=color, linewidth=2,
-                 label="argavg: : ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(fit_params[0], fit_params[1]), rasterized=True)
-        popt, pcov = curve_fit(lambda L, a, b, c: a - b*(L**(-1/c)), np.sqrt(nparticles), np.asarray(yder_argavg), p0=[0.845,1,1])
-        logging.info("ppack_argavg phi_c, c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
+        ax2.plot(
+            xnew,
+            fit_fn(xnew),
+            color=color,
+            linewidth=2,
+            label="argavg: : ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(
+                fit_params[0], fit_params[1]
+            ),
+            rasterized=True,
+        )
+        popt, pcov = curve_fit(
+            lambda L, a, b, c: a - b * (L ** (-1 / c)),
+            np.sqrt(nparticles),
+            np.asarray(yder_argavg),
+            p0=[0.845, 1, 1],
+        )
+        logging.info(
+            "ppack_argavg phi_c, c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov)))
+        )
         color = next(color_cycle)
         y = np.log(0.845 - np.asarray(yder_argmid))
-        ax2.plot(x, y, marker='o', linestyle='None', color=color, markeredgecolor=color, rasterized=True)
+        ax2.plot(
+            x,
+            y,
+            marker="o",
+            linestyle="None",
+            color=color,
+            markeredgecolor=color,
+            rasterized=True,
+        )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
-        ax2.plot(xnew, fit_fn(xnew), color=color, linewidth=2,
-                 label="argmid: ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(fit_params[0], fit_params[1]), rasterized=True)
+        ax2.plot(
+            xnew,
+            fit_fn(xnew),
+            color=color,
+            linewidth=2,
+            label="argmid: ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(
+                fit_params[0], fit_params[1]
+            ),
+            rasterized=True,
+        )
         ax2.set_xlabel(r"$\ln(N^{1/2})$")
-        ax2.legend(frameon=False, loc='best', prop={'size':glob_fontsize}, numpoints=1, scatterpoints=1,
-                   markerscale=1, columnspacing=0.25, labelspacing=0.25)
+        ax2.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+        )
         fig2.savefig("{}/{}".format(figdir, "lnphi_lnppack_scaling.pdf"))
 
         color = next(color_cycle)
         y = np.log(np.asarray(yder_avg))
-        ax03.plot(x, y, marker='o', linestyle='None', color=color, markeredgecolor=color, rasterized=True)
+        ax03.plot(
+            x,
+            y,
+            marker="o",
+            linestyle="None",
+            color=color,
+            markeredgecolor=color,
+            rasterized=True,
+        )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
-        ax03.plot(xnew, fit_fn(xnew), color=color, linewidth=2,
-                 label="y(phiavg): ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(fit_params[0], fit_params[1]),
-                 rasterized=True)
-        ax03.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                   markerscale=1, columnspacing=0.25, labelspacing=0.25)
+        ax03.plot(
+            xnew,
+            fit_fn(xnew),
+            color=color,
+            linewidth=2,
+            label="y(phiavg): ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(
+                fit_params[0], fit_params[1]
+            ),
+            rasterized=True,
+        )
+        ax03.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+        )
         ax03.set_xlabel(r"$\ln(N^{1/2})$")
         fig03.savefig("{}/{}".format(figdir, "lnphi_lnppack_beta_scaling.pdf"))
         # ax2.set_ylim([0, 1./(np.amin(nparticles)-5)])
@@ -742,6 +1321,7 @@ def plot_all(figdir="figures", bdim=2):
 
     if False:
         import fssa
+
         l = np.sqrt(nparticles)
         rho = xspl
         # rho = rho[30:-30]
@@ -764,18 +1344,28 @@ def plot_all(figdir="figures", bdim=2):
         ax3 = fig3.add_subplot(111)
         ax3.set_prop_cycle(get_cycler(ncolors=len(nparticles)))
         for i, (x, y) in enumerate(zip(auto_scaled_data.x, auto_scaled_data.y)):
-            ax3.plot(x, y, '.', label=nparticles[i], rasterized=True)
-        ax3.set_ylabel(r'$\ln (p_{pack} (N^{1/d})^{\beta})$')
-        ax3.set_xlabel(r'$\ln(\varepsilon N^{1/d})$')
+            ax3.plot(x, y, ".", label=nparticles[i], rasterized=True)
+        ax3.set_ylabel(r"$\ln (p_{pack} (N^{1/d})^{\beta})$")
+        ax3.set_xlabel(r"$\ln(\varepsilon N^{1/d})$")
         # ax3.set_ylabel(r'$\ln (p_{pack} (N^{1/d})^{\beta/\nu})$')
         # ax3.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
         # ax3.set_title(r'$\phi_c \approx 0.847;~\nu \approx 1;~\beta \approx 1/20$')
-        ax3.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax3.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         fig3.savefig("{}/{}".format(figdir, "phi_ppack_rescaling.pdf"))
 
         if False:
             import fssa
+
             l = np.sqrt(nparticles)
             rho = xspl
             # rho = rho[30:-30]
@@ -798,15 +1388,23 @@ def plot_all(figdir="figures", bdim=2):
             ax3a = fig3a.add_subplot(111)
             ax3a.set_prop_cycle(get_cycler(ncolors=len(nparticles)))
             for i, (x, y) in enumerate(zip(auto_scaled_data.x, auto_scaled_data.y)):
-                ax3a.plot(x, y, '.', label=nparticles[i], rasterized=True)
-            ax3a.set_ylabel(r'$\ln ((N_r/N) (N^{1/d})^{\beta})$')
-            ax3a.set_xlabel(r'$\ln(\varepsilon N^{1/d})$')
+                ax3a.plot(x, y, ".", label=nparticles[i], rasterized=True)
+            ax3a.set_ylabel(r"$\ln ((N_r/N) (N^{1/d})^{\beta})$")
+            ax3a.set_xlabel(r"$\ln(\varepsilon N^{1/d})$")
             # ax3.set_ylabel(r'$\ln (p_{pack} (N^{1/d})^{\beta/\nu})$')
             # ax3.set_xlabel(r'$\ln(\varepsilon (N^{1/d})^{1/\nu})$')
             # ax3.set_title(r'$\phi_c \approx 0.847;~\nu \approx 1;~\beta \approx 1/20$')
-            ax3a.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                       markerscale=1,
-                       columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+            ax3a.legend(
+                frameon=False,
+                loc="best",
+                prop={"size": glob_fontsize},
+                numpoints=1,
+                scatterpoints=1,
+                markerscale=1,
+                columnspacing=0.25,
+                labelspacing=0.25,
+                handletextpad=0,
+            )
             fig3a.savefig("{}/{}".format(figdir, "phi_nrattlers_rescaling.pdf"))
 
         # rho = rho[15:-15]
@@ -840,8 +1438,8 @@ def plot_all(figdir="figures", bdim=2):
         logging.info(a.shape)
         da = np.ones(a.shape) * 1e-1
         rho_c0 = 0.84
-        nu0 = 1. / 2
-        zeta0 = 1. / 3
+        nu0 = 1.0 / 2
+        zeta0 = 1.0 / 3
         ret = fssa.autoscale(l, rho, a, da, rho_c0, nu0, zeta0)
         logging.info("rho: {} +/- {}".format(ret.rho, ret.drho))
         logging.info("nu: {} +/- {}".format(ret.nu, ret.dnu))
@@ -852,11 +1450,17 @@ def plot_all(figdir="figures", bdim=2):
         fig8 = plt.figure()
         ax8 = fig8.add_subplot(111)
         ax8.set_prop_cycle(get_cycler(ncolors=len(nparticles)))
-        ax8.plot(np.log(auto_scaled_data.x.T), np.log(auto_scaled_data.y.T), '.', rasterized=True)
+        ax8.plot(
+            np.log(auto_scaled_data.x.T),
+            np.log(auto_scaled_data.y.T),
+            ".",
+            rasterized=True,
+        )
         fig8.savefig("{}/{}".format(figdir, "lnphi_lnpvar_rescaling.pdf"))
 
     if True:
         from scipy.stats import moment
+
         # computation of the fourth order cumulants
         fig9 = plt.figure()
         ax9 = fig9.add_subplot(111)
@@ -898,22 +1502,26 @@ def plot_all(figdir="figures", bdim=2):
         varlnp_max, varprel_max = [], []
         weights_all = []
         for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
-            phi_ss_packed, logp_var, prel_var, logp_mean = dp.phi_ss_packed[dp.phi_ss_packed < phi_max], \
-                                                           dp.logp_var[dp.phi_ss_packed < phi_max], \
-                                                           dp.p_rel_var[dp.phi_ss_packed < phi_max], \
-                                                           dp.logp_mean[dp.phi_ss_packed < phi_max]
-            p_var, p_mean = dp.p_var[dp.phi_ss_packed < phi_max], \
-                            dp.p_mean[dp.phi_ss_packed < phi_max]
+            phi_ss_packed, logp_var, prel_var, logp_mean = (
+                dp.phi_ss_packed[dp.phi_ss_packed < phi_max],
+                dp.logp_var[dp.phi_ss_packed < phi_max],
+                dp.p_rel_var[dp.phi_ss_packed < phi_max],
+                dp.logp_mean[dp.phi_ss_packed < phi_max],
+            )
+            p_var, p_mean = (
+                dp.p_var[dp.phi_ss_packed < phi_max],
+                dp.p_mean[dp.phi_ss_packed < phi_max],
+            )
             lnp_u4_list, p_u4_list = [], []
             weights = []
             for phi_ss, pressure in zip(phi_ss_packed, dp.pressure):
                 if phi_ss < phi_max:
                     lnp = np.log(pressure)
-                    relp = np.asarray(pressure)/ np.mean(pressure)
-                    m2c= moment(lnp, 2)
+                    relp = np.asarray(pressure) / np.mean(pressure)
+                    m2c = moment(lnp, 2)
                     m4c = moment(lnp, 4)
-                    lnp_u4 = 1 - m4c/(3*(m2c**2))
-                    p_u4 = 1 - moment(relp, 4)/(3*(moment(relp, 2)**2))
+                    lnp_u4 = 1 - m4c / (3 * (m2c**2))
+                    p_u4 = 1 - moment(relp, 4) / (3 * (moment(relp, 2) ** 2))
                     lnp_u4_list.append(lnp_u4)
                     p_u4_list.append(p_u4)
                     weights.append(np.sqrt(len(pressure)))
@@ -923,96 +1531,253 @@ def plot_all(figdir="figures", bdim=2):
             color = next(color_cycle)
             x = np.asarray(phi_ss_packed)
             xx = np.linspace(np.amin(x), np.amax(x), 10000)
-            xx_der = np.linspace(0.9*np.amin(x), 1.1*np.amax(x), 10000)
+            xx_der = np.linspace(0.9 * np.amin(x), 1.1 * np.amax(x), 10000)
             y, yerr = np.asarray(lnp_u4_list), []
             spl = UnivariateSpline(x, y, s=1e3, k=3, w=weights)
-            ax9.errorbar(x, y, marker='o', linestyle='', label='{}'.format(nparticles[i]), color=color, rasterized=True)
-            ax9.plot(xx, spl(xx), linewidth=2, color=color, markeredgecolor=color, rasterized=True)
+            ax9.errorbar(
+                x,
+                y,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                rasterized=True,
+            )
+            ax9.plot(
+                xx,
+                spl(xx),
+                linewidth=2,
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             # ax9inset.errorbar(x[x>0.84], y[x>0.84], fmt='o', label='{}'.format(nparticles[i]), rasterized=True)
             y, yerr = np.asarray(p_u4_list), []
             spl = UnivariateSpline(x, y, s=1e6, k=5, w=weights)
-            ax16.errorbar(x, y, marker='o', linestyle='', label='{}'.format(nparticles[i]), color=color,
-                          markeredgecolor=color, rasterized=True)
+            ax16.errorbar(
+                x,
+                y,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             ax16.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
             # mean of lnP
-            y = logp_mean[:,0]
+            y = logp_mean[:, 0]
             yerr = np.abs(np.asarray([logp_mean[:, 1], logp_mean[:, 2]]) - y)
-            #w = 0.5*(logp_mean[:, 2]-logp_mean[:, 1])/weights
-            popt, pcov = curve_fit(sigmoid, x, y, p0=[0.842, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
+            # w = 0.5*(logp_mean[:, 2]-logp_mean[:, 1])/weights
+            popt, pcov = curve_fit(
+                sigmoid, x, y, p0=[0.842, 1, np.amax(y), np.amin(y), 1], maxfev=3000
+            )
             yspl = np.vectorize(sigmoid)(xx, *popt)
-            ax11.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
-                          color=color, markeredgecolor=color, rasterized=True)
+            ax11.errorbar(
+                x,
+                y,
+                yerr=yerr,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             ax11.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
-            ax11c.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
-                          color=color, markeredgecolor=color, rasterized=True)
+            ax11c.errorbar(
+                x,
+                y,
+                yerr=yerr,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             ax11c.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
             # finite size scaling of < lnP >
-            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y, np.sqrt(nparticles[i]),
-                                                             0.841, 0.5, 0.625, yerr=yerr, abs=False)
-            ax11b.errorbar(xsc, ysc, yerr=ysc_err, marker='o', linestyle='', color=color, markeredgecolor=color,
-                           label='{}'.format(nparticles[i]), rasterized=True)
-            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y, np.sqrt(nparticles[i]),
-                                                             0.841, 0.5, 0.625, yerr=yerr, abs=True)
-            ax11binset.errorbar(xsc, ysc, yerr=ysc_err, marker='o', linestyle='', color=color, markeredgecolor=color,
-                                label='{}'.format(nparticles[i]), rasterized=True)
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(
+                phi_ss_packed,
+                y,
+                np.sqrt(nparticles[i]),
+                0.841,
+                0.5,
+                0.625,
+                yerr=yerr,
+                abs=False,
+            )
+            ax11b.errorbar(
+                xsc,
+                ysc,
+                yerr=ysc_err,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+            )
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(
+                phi_ss_packed,
+                y,
+                np.sqrt(nparticles[i]),
+                0.841,
+                0.5,
+                0.625,
+                yerr=yerr,
+                abs=True,
+            )
+            ax11binset.errorbar(
+                xsc,
+                ysc,
+                yerr=ysc_err,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+            )
             # var of lnP
-            y = logp_var[:,0]*nparticles[i]
-            yerr = np.abs(np.asarray([logp_var[:, 2]*nparticles[i], logp_var[:, 2]*nparticles[i]]) - y)
-            #w = 0.5*(logp_var[:, 2]-logp_var[:, 1])/weights
+            y = logp_var[:, 0] * nparticles[i]
+            yerr = np.abs(
+                np.asarray(
+                    [logp_var[:, 2] * nparticles[i], logp_var[:, 2] * nparticles[i]]
+                )
+                - y
+            )
+            # w = 0.5*(logp_var[:, 2]-logp_var[:, 1])/weights
             # spl = UnivariateSpline(x, y, s=1.5e6, k=5, w=weights)
             # yspl = spl(xx)
-            popt, pcov = curve_fit(sigmoid, x, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
+            popt, pcov = curve_fit(
+                sigmoid, x, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000
+            )
             logging.info(popt)
             yspl = np.vectorize(sigmoid)(xx, *popt)
             yder = np.vectorize(sigmoid_d1)(xx_der, *popt)
-            ax12.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
-                          color=color, markeredgecolor=color, rasterized=True)
+            ax12.errorbar(
+                x,
+                y,
+                yerr=yerr,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             ax12.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
             ax18inset.plot(xx_der, yder, linewidth=2, color=color, rasterized=True)
-            ax14inset.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
-                          color=color, markeredgecolor=color, rasterized=True)
+            ax14inset.errorbar(
+                x,
+                y,
+                yerr=yerr,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             ax14inset.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
             # varlnp_argmax.append(xx[np.argmax(yspl)])
-            arg = np.argmax(yspl/np.amax(yspl) < 0.8)
+            arg = np.argmax(yspl / np.amax(yspl) < 0.8)
             varlnp_argmax.append(xx[arg])
             varlnp_max.append(yspl[arg])
             # mean of P
-            y = p_mean[:,0]
+            y = p_mean[:, 0]
             yerr = np.abs(np.asarray([p_mean[:, 1], p_mean[:, 2]]) - y)
-            #w = 0.5 * (p_mean[:, 2] - p_mean[:, 1]) / weights
+            # w = 0.5 * (p_mean[:, 2] - p_mean[:, 1]) / weights
             spl = UnivariateSpline(x, y, s=1, k=1, w=weights)
-            ax13.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
-                          color=color, markeredgecolor=color, rasterized=True)
+            ax13.errorbar(
+                x,
+                y,
+                yerr=yerr,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             ax13.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
-            ax13.set_yscale('log')
+            ax13.set_yscale("log")
             # finite size scaling of < P >
-            xsc, ysc, ysc_err = finite_size_scaling_collapse(phi_ss_packed, y * nparticles[i], np.sqrt(nparticles[i]),
-                                                             0.841, 2, 1, yerr=yerr * nparticles[i], abs=False)
-            ax13b.errorbar(xsc, ysc, yerr=ysc_err, marker='o', linestyle='', color=color, markeredgecolor=color,
-                           label='{}'.format(nparticles[i]), rasterized=True)
+            xsc, ysc, ysc_err = finite_size_scaling_collapse(
+                phi_ss_packed,
+                y * nparticles[i],
+                np.sqrt(nparticles[i]),
+                0.841,
+                2,
+                1,
+                yerr=yerr * nparticles[i],
+                abs=False,
+            )
+            ax13b.errorbar(
+                xsc,
+                ysc,
+                yerr=ysc_err,
+                marker="o",
+                linestyle="",
+                color=color,
+                markeredgecolor=color,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+            )
             # var of P
             y = p_var[:, 0]
             yerr = np.abs(np.asarray([p_var[:, 1], p_var[:, 2]]) - y)
             # w = 0.5 * (p_mean[:, 2] - p_mean[:, 1]) / weights
             spl = UnivariateSpline(x, y, s=1, k=1, w=weights)
-            ax19.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
-                          color=color, markeredgecolor=color, rasterized=True)
+            ax19.errorbar(
+                x,
+                y,
+                yerr=yerr,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             ax19.plot(xx, spl(xx), linewidth=2, color=color, rasterized=True)
-            ax19.set_yscale('log')
+            ax19.set_yscale("log")
             # var of rel P
-            y = nparticles[i] * prel_var[:,0]
-            yerr = np.abs(nparticles[i] * np.asarray([prel_var[:, 1], prel_var[:, 2]]) - y)
-            #w = 0.5 * (p_mean[:, 2] - p_mean[:, 1]) / weights
+            y = nparticles[i] * prel_var[:, 0]
+            yerr = np.abs(
+                nparticles[i] * np.asarray([prel_var[:, 1], prel_var[:, 2]]) - y
+            )
+            # w = 0.5 * (p_mean[:, 2] - p_mean[:, 1]) / weights
             # spl = UnivariateSpline(x, y, s=1e7, k=5, w=weights)
             # yspl = spl(xx)
-            popt, pcov = curve_fit(sigmoid, x, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000)
+            popt, pcov = curve_fit(
+                sigmoid, x, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000
+            )
             logging.info(popt)
             yspl = np.vectorize(sigmoid)(xx, *popt)
             yder = np.vectorize(sigmoid_d1)(xx_der, *popt)
-            ax14.errorbar(x, y, yerr=yerr, marker='o', linestyle='', label='{}'.format(nparticles[i]),
-                          color=color, markeredgecolor=color, rasterized=True)
+            ax14.errorbar(
+                x,
+                y,
+                yerr=yerr,
+                marker="o",
+                linestyle="",
+                label="{}".format(nparticles[i]),
+                color=color,
+                markeredgecolor=color,
+                rasterized=True,
+            )
             ax14.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
-            ax18.plot(xx_der, yder, linewidth=2, color=color, label='{}'.format(nparticles[i]), rasterized=True)
+            ax18.plot(
+                xx_der,
+                yder,
+                linewidth=2,
+                color=color,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+            )
             # varprel_argmax.append(xx[np.argmax(yspl)])
             arg = np.argmax(yspl / np.amax(yspl) < 0.8)
             varprel_argmax.append(xx[arg])
@@ -1022,44 +1787,94 @@ def plot_all(figdir="figures", bdim=2):
         x = np.log(np.sqrt(nparticles))
         y = np.log(0.841 - np.asarray(varlnp_argmax))
         logging.info("varlnp_argmax: {}".format(varlnp_argmax))
-        ax15.plot(x, y, marker='o', color=color, markeredgecolor=color, label=r'$\sigma^2_{\Lambda}$')
+        ax15.plot(
+            x,
+            y,
+            marker="o",
+            color=color,
+            markeredgecolor=color,
+            label=r"$\sigma^2_{\Lambda}$",
+        )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
-        ax15.plot(x, fit_fn(x), marker='', linewidth=2, color=color)
+        ax15.plot(x, fit_fn(x), marker="", linewidth=2, color=color)
         varlnp_argmax_fn = fit_fn
-        logging.info("varlnP_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err))
+        logging.info(
+            "varlnP_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err)
+        )
         f = lambda L, b, c: 0.841 + b * (L ** (-1 / c))
-        popt, pcov = curve_fit(f, np.sqrt(nparticles), np.asarray(varlnp_argmax),
-                               p0=[-2, 0.5], maxfev=10000)
-        logging.info("varlnP_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
+        popt, pcov = curve_fit(
+            f,
+            np.sqrt(nparticles),
+            np.asarray(varlnp_argmax),
+            p0=[-2, 0.5],
+            maxfev=10000,
+        )
+        logging.info(
+            "varlnP_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov)))
+        )
         # ax18.plot(np.sqrt(nparticles), np.asarray(varlnp_argmax), marker='o', color='b')
         # ax18.plot(np.exp(xnew), f(np.exp(xnew), popt[0],popt[1],popt[2]), linestyle='--', color='b')
         color = next(color_cycle)
         y = np.log(0.841 - np.asarray(varprel_argmax))
         logging.info("varprel_argmax: {}".format(varprel_argmax))
-        ax15.plot(x, y, marker='s', color=color, markeredgecolor=color, label=r'$\sigma^2_{P}/\langle P \rangle^2$')
+        ax15.plot(
+            x,
+            y,
+            marker="s",
+            color=color,
+            markeredgecolor=color,
+            label=r"$\sigma^2_{P}/\langle P \rangle^2$",
+        )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
-        ax15.plot(x, fit_fn(x), marker='', linewidth=2, color=color)
-        logging.info("varprel_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err))
-        popt, pcov = curve_fit(f, np.sqrt(nparticles), np.asarray(varprel_argmax),
-                               p0=[-2, 0.5], maxfev=10000)
-        logging.info("varprel_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
+        ax15.plot(x, fit_fn(x), marker="", linewidth=2, color=color)
+        logging.info(
+            "varprel_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err)
+        )
+        popt, pcov = curve_fit(
+            f,
+            np.sqrt(nparticles),
+            np.asarray(varprel_argmax),
+            p0=[-2, 0.5],
+            maxfev=10000,
+        )
+        logging.info(
+            "varprel_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov)))
+        )
         # ax18.plot(np.sqrt(nparticles), np.asarray(varprel_argmax), marker='o', color='r')
         # ax18.plot(np.exp(xnew), f(np.exp(xnew), popt[0], popt[1], popt[2]), linestyle='--', color='r')
         color_cycle = get_color_cycle(ncolors=3)
         color = next(color_cycle)
         x = np.log(np.sqrt(nparticles))
         y = np.log(varlnp_max)
-        ax17.plot(x, y, marker='o', color=color, markeredgecolor=color, label=r'$\sigma^2_{\Lambda}$')
+        ax17.plot(
+            x,
+            y,
+            marker="o",
+            color=color,
+            markeredgecolor=color,
+            label=r"$\sigma^2_{\Lambda}$",
+        )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
-        ax17.plot(x, fit_fn(x), marker='', linewidth=2, color=color)
-        logging.info("varlnP_max fit params: {}, fit_err: {}".format(fit_params, fit_err))
+        ax17.plot(x, fit_fn(x), marker="", linewidth=2, color=color)
+        logging.info(
+            "varlnP_max fit params: {}, fit_err: {}".format(fit_params, fit_err)
+        )
         color = next(color_cycle)
         y = np.log(varprel_max)
-        ax17.plot(x, y, marker='s', color=color, markeredgecolor=color, label=r'$\sigma^2_{P}/\langle P \rangle^2$')
+        ax17.plot(
+            x,
+            y,
+            marker="s",
+            color=color,
+            markeredgecolor=color,
+            label=r"$\sigma^2_{P}/\langle P \rangle^2$",
+        )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
-        ax17.plot(x, fit_fn(x), marker='', linewidth=2, color=color)
+        ax17.plot(x, fit_fn(x), marker="", linewidth=2, color=color)
         varprel_argmax_fn = fit_fn
-        logging.info("varprel_max fit params: {}, fit_err: {}".format(fit_params, fit_err))
+        logging.info(
+            "varprel_max fit params: {}, fit_err: {}".format(fit_params, fit_err)
+        )
 
         # ax9inset.set_xlim((0.84,0.87))
         ax9.set_xlim((0.81, phi_max))
@@ -1069,92 +1884,204 @@ def plot_all(figdir="figures", bdim=2):
         ax14.set_xlim((0.81, phi_max))
         ax14inset.set_xlim((0.81, phi_max))
         ax14inset.set_ylim((0, 250))
-        ax14inset.locator_params(axis='x', nbins=5)
-        ax14inset.locator_params(axis='y', nbins=3)
+        ax14inset.locator_params(axis="x", nbins=5)
+        ax14inset.locator_params(axis="y", nbins=3)
         ax16.set_xlim((0.81, phi_max))
         ax18.set_xlim((0.795, phi_max))
         ax18inset.set_xlim((0.81, phi_max))
-        ax18inset.autoscale(enable=True, axis='y', tight=True)
-        ax18inset.locator_params(axis='x', nbins=5)
+        ax18inset.autoscale(enable=True, axis="y", tight=True)
+        ax18inset.locator_params(axis="x", nbins=5)
         ax18inset.yaxis.set_ticks([])
         ax18.yaxis.set_major_formatter(FixedOrderFormatter(3))
         ax19.set_xlim((0.81, phi_max))
         ax11b.autoscale(enable=True, tight=True)
         ax11b.set_xlim(xmax=4.5)
-        ax11binset.set_yscale('log')
-        ax11binset.set_xscale('log')
+        ax11binset.set_yscale("log")
+        ax11binset.set_xscale("log")
         ax11binset.autoscale(enable=True, tight=True)
         # ax11binset.locator_params(axis='x', nbins=5)
         # ax11binset.locator_params(axis='y', nbins=3)
-        ax11c.autoscale(enable=True, axis='y', tight=True)
+        ax11c.autoscale(enable=True, axis="y", tight=True)
         ax11c.set_xlim((0.8, 0.87))
         ax11c.set_ylim(ymax=6.5)
         ax11cinset.set_xlim((0.81, 0.86))
         ax11cinset.set_ylim((-0.02, 1.02))
-        ax11cinset.locator_params(axis='x', nbins=4)
-        ax11cinset.locator_params(axis='y', nbins=4)
+        ax11cinset.locator_params(axis="x", nbins=4)
+        ax11cinset.locator_params(axis="y", nbins=4)
 
-        ax9.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax11.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax11b.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax11c.legend(frameon=False, loc=4, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                     markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax12.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax13.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax13b.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax14.legend(frameon=False, loc=2, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax15.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25)
-        ax16.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax17.legend(frameon=False, loc='best', prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax18.legend(frameon=False, loc=4, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1, columnspacing=0.25, labelspacing=0.25)
-        ax19.legend(frameon=False, loc=4, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1, columnspacing=0.25, labelspacing=0.25)
-        ax9.set_ylabel(r'$V_N(\Lambda)$')
-        ax9.set_xlabel(r'$\phi$')
-        ax16.set_ylabel(r'$V_N(P/\langle P \rangle)$')
-        ax16.set_xlabel(r'$\phi$')
-        ax11.set_xlabel(r'$\phi$')
-        ax11.set_ylabel(r'$\langle \Lambda \rangle_\mathcal{B}$')
-        ax12.set_xlabel(r'$\phi$')
-        ax12.set_ylabel(r'$\chi_{\Lambda}$')
-        ax14inset.set_xlabel(r'$\phi$')
-        ax14inset.set_ylabel(r'$\chi_{\Lambda}$')
-        ax13.set_xlabel(r'$\phi$')
-        ax13.set_ylabel(r'$\langle P \rangle$')
-        ax14.set_xlabel(r'$\phi$')
-        ax14.set_ylabel(r'$\chi_P$')
-        ax15.set_xlabel(r'$\ln(N^{1/d})$')
-        ax15.set_ylabel(r'$\ln(\phi_{\arg \max y})$')
-        ax17.set_xlabel(r'$\ln(N^{1/d})$')
-        ax17.set_ylabel(r'$\ln(y_{max})$')
-        ax18.set_xlabel(r'$\phi$')
-        ax18.set_ylabel(r'$\partial_\phi \chi_{P}$')
-        ax18inset.set_xlabel(r'$\phi$')
-        ax18inset.set_ylabel(r'$\partial_\phi \chi_{\Lambda}$')
+        ax9.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax11.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax11b.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax11c.legend(
+            frameon=False,
+            loc=4,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax12.legend(
+            frameon=False,
+            loc=2,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax13.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax13b.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax14.legend(
+            frameon=False,
+            loc=2,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax15.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+        )
+        ax16.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax17.legend(
+            frameon=False,
+            loc="best",
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax18.legend(
+            frameon=False,
+            loc=4,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+        )
+        ax19.legend(
+            frameon=False,
+            loc=4,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+        )
+        ax9.set_ylabel(r"$V_N(\Lambda)$")
+        ax9.set_xlabel(r"$\phi$")
+        ax16.set_ylabel(r"$V_N(P/\langle P \rangle)$")
+        ax16.set_xlabel(r"$\phi$")
+        ax11.set_xlabel(r"$\phi$")
+        ax11.set_ylabel(r"$\langle \Lambda \rangle_\mathcal{B}$")
+        ax12.set_xlabel(r"$\phi$")
+        ax12.set_ylabel(r"$\chi_{\Lambda}$")
+        ax14inset.set_xlabel(r"$\phi$")
+        ax14inset.set_ylabel(r"$\chi_{\Lambda}$")
+        ax13.set_xlabel(r"$\phi$")
+        ax13.set_ylabel(r"$\langle P \rangle$")
+        ax14.set_xlabel(r"$\phi$")
+        ax14.set_ylabel(r"$\chi_P$")
+        ax15.set_xlabel(r"$\ln(N^{1/d})$")
+        ax15.set_ylabel(r"$\ln(\phi_{\arg \max y})$")
+        ax17.set_xlabel(r"$\ln(N^{1/d})$")
+        ax17.set_ylabel(r"$\ln(y_{max})$")
+        ax18.set_xlabel(r"$\phi$")
+        ax18.set_ylabel(r"$\partial_\phi \chi_{P}$")
+        ax18inset.set_xlabel(r"$\phi$")
+        ax18inset.set_ylabel(r"$\partial_\phi \chi_{\Lambda}$")
         ax18inset.yaxis.set_label_position("right")
         ax18inset.xaxis.set_label_position("top")
-        ax19.set_xlabel(r'$\phi$')
-        ax19.set_ylabel(r'$\sigma^2(P)$')
+        ax19.set_xlabel(r"$\phi$")
+        ax19.set_ylabel(r"$\sigma^2(P)$")
         ax11b.set_xlabel(r"$\varepsilon L^{1/\nu}$")
         ax11b.set_ylabel(r"$\langle \Lambda \rangle_\mathcal{B} L^{\xi/\nu}$")
         ax11binset.xaxis.set_label_position("top")
         ax11binset.set_xlabel(r"$|\varepsilon| L^{1/\nu}$")
         ax11binset.set_ylabel(r"$\langle \Lambda \rangle_\mathcal{B} L^{\xi/\nu}$")
-        ax11c.set_xlabel(r'$\phi$')
-        ax11c.set_ylabel(r'$\langle \Lambda \rangle_{\mathcal{B}}$')
+        ax11c.set_xlabel(r"$\phi$")
+        ax11c.set_ylabel(r"$\langle \Lambda \rangle_{\mathcal{B}}$")
         ax11cinset.yaxis.set_label_position("right")
         ax11cinset.set_xlabel(r"$\phi$")
         ax11cinset.set_ylabel(r"$p_J$")
@@ -1177,6 +2104,7 @@ def plot_all(figdir="figures", bdim=2):
 
     if True:
         import matplotlib.gridspec as gridspec
+
         phi_max = 0.87
         # fig5 = plt.figure(figsize=(8, 8))
         # gs = gridspec.GridSpec(7, 2)
@@ -1197,50 +2125,147 @@ def plot_all(figdir="figures", bdim=2):
         color_cycle2 = get_color_cycle(ncolors=len(datasets))
         fss = Result()
         fss.nparticles = nparticles
-        fss.pressure = [dp.pressure for dp in sorted(datasets, key=lambda data: data.nparticles)]
-        fss.phi_ss_packed = [dp.phi_ss_packed for dp in sorted(datasets, key=lambda data: data.nparticles)]
+        fss.pressure = [
+            dp.pressure for dp in sorted(datasets, key=lambda data: data.nparticles)
+        ]
+        fss.phi_ss_packed = [
+            dp.phi_ss_packed
+            for dp in sorted(datasets, key=lambda data: data.nparticles)
+        ]
         fss.phi_c_lnp = np.exp([varlnp_argmax_fn(0.5 * np.log(n)) for n in nparticles])
-        fss.phi_c_prel = np.exp([varprel_argmax_fn(0.5 * np.log(n)) for n in nparticles])
-        pickle.dump(fss, open(os.path.join(os.getcwd(), "pressure_fss.pickle"), "wb"),protocol=-1)
+        fss.phi_c_prel = np.exp(
+            [varprel_argmax_fn(0.5 * np.log(n)) for n in nparticles]
+        )
+        pickle.dump(
+            fss,
+            open(os.path.join(os.getcwd(), "pressure_fss.pickle"), "wb"),
+            protocol=-1,
+        )
         for i, dp in enumerate(sorted(datasets, key=lambda data: data.nparticles)):
-            phi_ss_packed, logp_var, prel_var, logp_mean = dp.phi_ss_packed[dp.phi_ss_packed < phi_max], \
-                                                           dp.logp_var[dp.phi_ss_packed < phi_max], \
-                                                           dp.p_rel_var[dp.phi_ss_packed < phi_max], \
-                                                           dp.logp_mean[dp.phi_ss_packed < phi_max]
-            inu = 2.
+            phi_ss_packed, logp_var, prel_var, logp_mean = (
+                dp.phi_ss_packed[dp.phi_ss_packed < phi_max],
+                dp.logp_var[dp.phi_ss_packed < phi_max],
+                dp.p_rel_var[dp.phi_ss_packed < phi_max],
+                dp.logp_mean[dp.phi_ss_packed < phi_max],
+            )
+            inu = 2.0
             zeta = -0.89
             # lambda
-            phi_c = 0.841 #np.exp(varlnp_argmax_fn(0.5 * np.log(nparticles[i])))  #DEBUG
-            xabs = np.power(np.sqrt(nparticles[i]), inu) * np.abs(np.asarray(phi_ss_packed) - np.asarray(phi_c)) / phi_c
-            x = np.power(np.sqrt(nparticles[i]), inu) * (np.asarray(phi_ss_packed) - np.asarray(phi_c)) / phi_c
-            y = np.power(np.sqrt(nparticles[i]), zeta * inu) * logp_var[:, 0] * nparticles[i] #[phi_ss_packed > phi_c]
-            y_err = np.abs(np.asarray([logp_var[:, 1], logp_var[:, 2]]) - logp_var[:, 0]) * np.power(np.sqrt(nparticles[i]), zeta * inu) * nparticles[i]  #* logp_var[:, 0])
+            phi_c = (
+                0.841  # np.exp(varlnp_argmax_fn(0.5 * np.log(nparticles[i])))  #DEBUG
+            )
+            xabs = (
+                np.power(np.sqrt(nparticles[i]), inu)
+                * np.abs(np.asarray(phi_ss_packed) - np.asarray(phi_c))
+                / phi_c
+            )
+            x = (
+                np.power(np.sqrt(nparticles[i]), inu)
+                * (np.asarray(phi_ss_packed) - np.asarray(phi_c))
+                / phi_c
+            )
+            y = (
+                np.power(np.sqrt(nparticles[i]), zeta * inu)
+                * logp_var[:, 0]
+                * nparticles[i]
+            )  # [phi_ss_packed > phi_c]
+            y_err = (
+                np.abs(np.asarray([logp_var[:, 1], logp_var[:, 2]]) - logp_var[:, 0])
+                * np.power(np.sqrt(nparticles[i]), zeta * inu)
+                * nparticles[i]
+            )  # * logp_var[:, 0])
             # np.log(p_rel_var[:, 0]c)
             # ax6.errorbar(phi, logp_mean[:, 0], yerr=[logp_mean[:, 1], logp_mean[:, 2]])
             # yerr = [np.log(p_rel_var[:, 1]), np.log(p_rel_var[:, 2])]
             color = next(color_cycle)
             # ax5.errorbar(logx, logy, fmt='o', color=color, yerr=logy_err, rasterized=True)
-            ax51.errorbar(x, y, fmt='o', color=color, yerr=y_err,
-                          label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
-            ax51inset.errorbar(xabs, y, fmt='o', color=color, yerr=y_err,
-                          label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
-            ax54inset.errorbar(xabs, y, fmt='o', color=color, yerr=y_err,
-                          label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
-            #prel
-            phi_c = 0.841 #np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
-            inu = 1./0.5
+            ax51.errorbar(
+                x,
+                y,
+                fmt="o",
+                color=color,
+                yerr=y_err,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+                markeredgecolor=color,
+            )
+            ax51inset.errorbar(
+                xabs,
+                y,
+                fmt="o",
+                color=color,
+                yerr=y_err,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+                markeredgecolor=color,
+            )
+            ax54inset.errorbar(
+                xabs,
+                y,
+                fmt="o",
+                color=color,
+                yerr=y_err,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+                markeredgecolor=color,
+            )
+            # prel
+            phi_c = (
+                0.841  # np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
+            )
+            inu = 1.0 / 0.5
             zeta = -0.47
-            xabs = np.power(np.sqrt(nparticles[i]), inu) * np.abs(np.asarray(phi_ss_packed) - np.asarray(phi_c)) / phi_c
-            x = np.power(np.sqrt(nparticles[i]), inu) * (np.asarray(phi_ss_packed) - np.asarray(phi_c)) / phi_c
-            y = np.power(np.sqrt(nparticles[i]), zeta * inu) * prel_var[:,0] * nparticles[i]
-            yerr = np.abs(np.asarray([prel_var[:, 1], prel_var[:, 2]]) - prel_var[:, 0]) * nparticles[i] * np.power(np.sqrt(nparticles[i]), zeta * inu)
+            xabs = (
+                np.power(np.sqrt(nparticles[i]), inu)
+                * np.abs(np.asarray(phi_ss_packed) - np.asarray(phi_c))
+                / phi_c
+            )
+            x = (
+                np.power(np.sqrt(nparticles[i]), inu)
+                * (np.asarray(phi_ss_packed) - np.asarray(phi_c))
+                / phi_c
+            )
+            y = (
+                np.power(np.sqrt(nparticles[i]), zeta * inu)
+                * prel_var[:, 0]
+                * nparticles[i]
+            )
+            yerr = (
+                np.abs(np.asarray([prel_var[:, 1], prel_var[:, 2]]) - prel_var[:, 0])
+                * nparticles[i]
+                * np.power(np.sqrt(nparticles[i]), zeta * inu)
+            )
             color = next(color_cycle2)
-            ax52.errorbar(x, y, fmt='o', color=color, yerr=yerr,
-                          label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
-            ax52inset.errorbar(xabs, y, fmt='o', color=color, yerr=y_err,
-                               label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
-            ax54.errorbar(xabs, y, fmt='o', color=color, yerr=yerr,
-                          label='{}'.format(nparticles[i]), rasterized=True, markeredgecolor=color)
+            ax52.errorbar(
+                x,
+                y,
+                fmt="o",
+                color=color,
+                yerr=yerr,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+                markeredgecolor=color,
+            )
+            ax52inset.errorbar(
+                xabs,
+                y,
+                fmt="o",
+                color=color,
+                yerr=y_err,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+                markeredgecolor=color,
+            )
+            ax54.errorbar(
+                xabs,
+                y,
+                fmt="o",
+                color=color,
+                yerr=yerr,
+                label="{}".format(nparticles[i]),
+                rasterized=True,
+                markeredgecolor=color,
+            )
             # idx = np.argmax(logy < 0.5 * np.amax(logy))  # int(len(logx)*0.2)
             # fit_fn, fit_params, fit_err, rho = poly_fit(logx[idx:], logy[idx:], yerr=None, order=1)
             # ax52.plot(logx[idx:], fit_fn(logx[idx:]), color=color, linewidth=2,
@@ -1248,45 +2273,71 @@ def plot_all(figdir="figures", bdim=2):
             # logging.info("nparticles: {}; ({}+/-{}) x + ({}+/-{})".format(dp.nparticles, fit_params[0], fit_err[0],
             #                                                        fit_params[1], fit_err[1]))
 
-        ax51.set_ylabel(r'$\chi_{\Lambda} L^{-\gamma/\nu}$')
-        ax51.set_xlabel(r'$\varepsilon L^{1/\nu}$')
-        ax51.legend(frameon=False, loc=3, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1, markerscale=1,
-                   columnspacing=0.25, labelspacing=0.25, handletextpad=0)
-        ax51inset.set_yscale('log')
-        ax51inset.set_xscale('log')
+        ax51.set_ylabel(r"$\chi_{\Lambda} L^{-\gamma/\nu}$")
+        ax51.set_xlabel(r"$\varepsilon L^{1/\nu}$")
+        ax51.legend(
+            frameon=False,
+            loc=3,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
+        ax51inset.set_yscale("log")
+        ax51inset.set_xscale("log")
         ax51inset.autoscale(enable=True, tight=True)
-        ax51inset.set_ylabel(r'$\chi_{\Lambda} L^{-\gamma/\nu}$')
-        ax51inset.set_xlabel(r'$|\varepsilon| L^{1/\nu}$')
+        ax51inset.set_ylabel(r"$\chi_{\Lambda} L^{-\gamma/\nu}$")
+        ax51inset.set_xlabel(r"$|\varepsilon| L^{1/\nu}$")
 
-        ax52.set_ylabel(r'$\chi_P L^{-\gamma/\nu}$')
-        ax52.set_xlabel(r'$\varepsilon L^{1/\nu}$')
-        ax52.legend(frameon=False, loc=3, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1,
-                    columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax52.set_ylabel(r"$\chi_P L^{-\gamma/\nu}$")
+        ax52.set_xlabel(r"$\varepsilon L^{1/\nu}$")
+        ax52.legend(
+            frameon=False,
+            loc=3,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
 
-        ax52inset.set_yscale('log')
-        ax52inset.set_xscale('log')
+        ax52inset.set_yscale("log")
+        ax52inset.set_xscale("log")
         ax52inset.autoscale(enable=True, tight=True)
-        ax52inset.set_ylabel(r'$\chi_{P} L^{-\gamma/\nu}$')
-        ax52inset.set_xlabel(r'$|\varepsilon| L^{1/\nu}$')
+        ax52inset.set_ylabel(r"$\chi_{P} L^{-\gamma/\nu}$")
+        ax52inset.set_xlabel(r"$|\varepsilon| L^{1/\nu}$")
 
-        ax54inset.set_yscale('log')
-        ax54inset.set_xscale('log')
+        ax54inset.set_yscale("log")
+        ax54inset.set_xscale("log")
         ax54inset.autoscale(enable=True, tight=True)
-        ax54inset.set_ylabel(r'$\chi_{\Lambda} L^{-\gamma/\nu}$')
-        ax54inset.set_xlabel(r'$|\varepsilon| L^{1/\nu}$')
+        ax54inset.set_ylabel(r"$\chi_{\Lambda} L^{-\gamma/\nu}$")
+        ax54inset.set_xlabel(r"$|\varepsilon| L^{1/\nu}$")
         ax54inset.yaxis.set_label_position("right")
         ax54inset.xaxis.set_label_position("top")
 
-        ax54.set_yscale('log')
-        ax54.set_xscale('log')
+        ax54.set_yscale("log")
+        ax54.set_xscale("log")
         # ax54.autoscale(enable=True, axis='y', tight=True)
         ax54.set_xlim(xmax=10)
-        ax54.set_ylim((1,25))
-        ax54.set_ylabel(r'$\chi_P L^{-\gamma/\nu}$')
-        ax54.set_xlabel(r'$|\varepsilon| L^{1/\nu}$')
-        ax54.legend(frameon=False, loc=1, prop={'size': glob_fontsize}, numpoints=1, scatterpoints=1,
-                    markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0)
+        ax54.set_ylim((1, 25))
+        ax54.set_ylabel(r"$\chi_P L^{-\gamma/\nu}$")
+        ax54.set_xlabel(r"$|\varepsilon| L^{1/\nu}$")
+        ax54.legend(
+            frameon=False,
+            loc=1,
+            prop={"size": glob_fontsize},
+            numpoints=1,
+            scatterpoints=1,
+            markerscale=1,
+            columnspacing=0.25,
+            labelspacing=0.25,
+            handletextpad=0,
+        )
         fig51.savefig("{}/{}".format(figdir, "phi_lnpvar.pdf"))
         fig52.savefig("{}/{}".format(figdir, "phi_prelvar.pdf"))
         fig54.savefig("{}/{}".format(figdir, "lnphi_prelvar.pdf"))
@@ -1327,16 +2378,20 @@ def plot_all(figdir="figures", bdim=2):
         # fig5.savefig("{}/{}".format(figdir, "lnphi_lnpvar_sub.pdf"))
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="plot findjstats")
     parser.add_argument("-n", "--nparticles", type=int, help="number of particles")
-    parser.add_argument("--all", action='store_true', help="run over all packings", default=False)
-    parser.add_argument("--show", action='store_true', help="show plots", default=False)
+    parser.add_argument(
+        "--all", action="store_true", help="run over all packings", default=False
+    )
+    parser.add_argument("--show", action="store_true", help="show plots", default=False)
     args = parser.parse_args()
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
-                        datefmt='%d/%m/%Y %H:%M:%S',
-                        level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s: %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
     logging.info(args)
 
     if args.all:

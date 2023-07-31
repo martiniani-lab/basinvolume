@@ -6,6 +6,7 @@ from pele.distance import get_distance, Distance
 import numpy as np
 from numpy import linalg as la
 
+
 class SimpleSolidAngleNeighbors(object):
     def __init__(self, center, coords, nparticles, boxv):
         self.center = center
@@ -26,7 +27,13 @@ class SimpleSolidAngleNeighbors(object):
         count = self.nparticles - 1
         if count < 3:
             raise Exception("SimpleSolidAngleNeighbors: too few particles")
-        d = dict([(self.get_distance(k), k) for k in range(self.nparticles) if k != self.center])
+        d = dict(
+            [
+                (self.get_distance(k), k)
+                for k in range(self.nparticles)
+                if k != self.center
+            ]
+        )
         distance_sum = 0
         sk = sorted(d.keys())
         for s in sk[0:3]:
@@ -45,14 +52,21 @@ class SimpleSolidAngleNeighbors(object):
             raise Exception("SimpleSolidAngleNeighbors: too few particles")
         self.weight = np.asarray([1 - s / radius for s in sk])
         self.nr_neighbors = i
-        assert(self.center not in self.neighbor_labels)
+        assert self.center not in self.neighbor_labels
 
     def get_delta_vector(self, j):
-        return np.linalg.norm(get_distance(
-            self.coords[j * self.boxdim : (j + 1) * self.boxdim],
-            self.coords[self.center * self.boxdim : (self.center + 1) * self.boxdim],
-            self.boxdim, Distance.PERIODIC, box=self.boxv))
+        return np.linalg.norm(
+            get_distance(
+                self.coords[j * self.boxdim : (j + 1) * self.boxdim],
+                self.coords[
+                    self.center * self.boxdim : (self.center + 1) * self.boxdim
+                ],
+                self.boxdim,
+                Distance.PERIODIC,
+                box=self.boxv,
+            )
+        )
 
     def get_distance(self, k):
-        assert(k != self.center)
+        assert k != self.center
         return la.norm(self.get_delta_vector(k))

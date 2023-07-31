@@ -5,23 +5,53 @@ from basinvolume.spheres import HS_Generate_Packing
 import unittest
 import logging
 
-class Test_HS_Generate_Packing(unittest.TestCase):
 
+class Test_HS_Generate_Packing(unittest.TestCase):
     def setUp(self):
         print("setUp")
-        self.seeds = dict(seed_takestep=42, seed_generate_packing=43, seed_swap=44, seed_probability_step_pattern=46)
+        self.seeds = dict(
+            seed_takestep=42,
+            seed_generate_packing=43,
+            seed_swap=44,
+            seed_probability_step_pattern=46,
+        )
         self.nparticles = 16
         self.bdim = 3
         self.packing_frac = 0.4
         self.sig = 0.2
-        self.hs_radii = None #np.random.normal(1,self.sig,self.nparticles)
-        self.gp_nocell = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                             packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
-                                             max_iter = 1e3, use_cell_lists=False, seeds=self.seeds, single=True)
+        self.hs_radii = None  # np.random.normal(1,self.sig,self.nparticles)
+        print("did segfault happen?")
+        self.gp_nocell = HS_Generate_Packing(
+            self.nparticles,
+            method="quench",
+            bdim=self.bdim,
+            boxv=None,
+            packing_frac=self.packing_frac,
+            hs_radii=self.hs_radii,
+            mu=1,
+            sig=self.sig,
+            hsf_stepsize=1e-3,
+            max_iter=1e3,
+            use_cell_lists=False,
+            seeds=self.seeds,
+            single=True,
+        )
 
-        self.gp_cell = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-                                           packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu=1, sig=self.sig, hsf_stepsize=1e-3,
-                                           max_iter=1e3, use_cell_lists=True, seeds=self.seeds, single=True)
+        self.gp_cell = HS_Generate_Packing(
+            self.nparticles,
+            method="quench",
+            bdim=self.bdim,
+            boxv=None,
+            packing_frac=self.packing_frac,
+            hs_radii=self.hs_radii,
+            mu=1,
+            sig=self.sig,
+            hsf_stepsize=1e-3,
+            max_iter=1e3,
+            use_cell_lists=True,
+            seeds=self.seeds,
+            single=True,
+        )
         print("setup done")
 
     # def test_seed_initialise_nocell(self):
@@ -35,8 +65,8 @@ class Test_HS_Generate_Packing(unittest.TestCase):
     #     gp._initialise()
     #     coords_nocell1 = gp.coords
     #     gp = HS_Generate_Packing(self.nparticles, method='quench', bdim=self.bdim, boxv=None,
-    #                                      packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3, 
-    #                                      max_iter = 1, use_cell_lists=False, seeds=self.seeds) 
+    #                                      packing_frac=self.packing_frac, hs_radii=self.hs_radii, mu = 1, sig = self.sig, hsf_stepsize = 1e-3,
+    #                                      max_iter = 1, use_cell_lists=False, seeds=self.seeds)
     #     gp._initialise()
     #     coords_nocell2 = gp.coords
 
@@ -108,7 +138,7 @@ class Test_HS_Generate_Packing(unittest.TestCase):
     #     gp2._initialise()
     #     gp2._generate_packing_coords()
     #     coords_nocell2 = gp.coords
-        
+
     #     self.assertTrue(np.array_equal(coords_nocell1, coords_nocell2))
 
     # def test_cell_iter(self):
@@ -141,7 +171,7 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         # print(self.gp_cell.coords)
         # print(self.gp_nocell.coords)
         self.gp_cell.coords = self.gp_nocell.coords
-        
+
         print("hello world 0")
         self.gp_cell.run()
         print("wait")
@@ -150,8 +180,8 @@ class Test_HS_Generate_Packing(unittest.TestCase):
         # print(self.gp_cell.coords, "coords True")
         # print(self.gp_nocell.coords, "coords False")
         self.assertTrue(np.array_equal(self.gp_nocell.coords, self.gp_cell.coords))
-        print("hello world 1")
+
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='Test_HS_Generate_Packing.log',level=logging.DEBUG)
+    logging.basicConfig(filename="Test_HS_Generate_Packing.log", level=logging.DEBUG)
     unittest.main()

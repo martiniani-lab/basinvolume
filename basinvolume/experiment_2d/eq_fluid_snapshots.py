@@ -11,9 +11,11 @@ from basinvolume.monte_carlo import CheckOverlapPeriodicCellLists
 from basinvolume.spheres import HS_MCrunnerOptDiffusion
 from pele.distance import put_in_box, Distance
 
+
 class MC(_BaseMCRunner):
     def set_control(self, temp):
         self.set_temperature(temp)
+
 
 class EqFluidSnapshots(object):
     """
@@ -21,7 +23,16 @@ class EqFluidSnapshots(object):
     and initial conditions.
     This should also print snapshots at equal and specified intervals.
     """
-    def __init__(self, radii, coordinates, boxvec, step_seed=4242, nr_images=42, base_out_file_name="exp_reference_packing"):
+
+    def __init__(
+        self,
+        radii,
+        coordinates,
+        boxvec,
+        step_seed=4242,
+        nr_images=42,
+        base_out_file_name="exp_reference_packing",
+    ):
         self.radii = np.array(radii)
         self.coordinates = np.array(coordinates)
         self.boxvec = np.array(boxvec)
@@ -30,26 +41,50 @@ class EqFluidSnapshots(object):
         self.base_out_file_name = base_out_file_name
         #
         self.nr_particles = self.radii.size
-        self.eq_steps = 0 # Adapting stepsize and finding nr of decorrelation steps should be done by the diffusion test MC. Therefore, we do not need eq_steps (report steps) in the 'second' MC (which prints the fluid snapshots).
+        self.eq_steps = 0  # Adapting stepsize and finding nr of decorrelation steps should be done by the diffusion test MC. Therefore, we do not need eq_steps (report steps) in the 'second' MC (which prints the fluid snapshots).
         self.overlap_check = CheckOverlapPeriodicCellLists(self.radii, self.boxvec)
         self.temperature = 1
-        self.mock_potential = Harmonic(self.coordinates, 42, bdim=2) # This is not used.
+        self.mock_potential = Harmonic(
+            self.coordinates, 42, bdim=2
+        )  # This is not used.
         self.stepsize = 1
         self.find_nr_decorrelation_steps()
-        self.mc = MC(self.mock_potential, self.coordinates, self.temperature, self.nr_steps)
-        self.step = RandomCoordsDisplacement(self.step_seed, self.stepsize, single=True, nparticles=self.nr_particles, bdim=2)
+        self.mc = MC(
+            self.mock_potential, self.coordinates, self.temperature, self.nr_steps
+        )
+        self.step = RandomCoordsDisplacement(
+            self.step_seed,
+            self.stepsize,
+            single=True,
+            nparticles=self.nr_particles,
+            bdim=2,
+        )
         self.mc.set_report_steps(self.eq_steps)
         self.mc.set_takestep(self.step)
         self.mc.add_conf_test(self.overlap_check)
         self.printed_images = 0
+
     def run(self):
         print("running reference fluid")
         while self.printed_images < self.nr_images:
             self.print_next_image()
         print("running reference fluid -- done")
+
     def find_nr_decorrelation_steps(self):
         print("finding number of decorrelation steps")
-        diffusion_test_mc = HS_MCrunnerOptDiffusion(self.mock_potential, self.coordinates, self.temperature, self.stepsize, 1e9, self.radii, self.boxvec, adjustf=0.9, acceptance=0.15, adjustf_niter=1e6, single=True)
+        diffusion_test_mc = HS_MCrunnerOptDiffusion(
+            self.mock_potential,
+            self.coordinates,
+            self.temperature,
+            self.stepsize,
+            1e9,
+            self.radii,
+            self.boxvec,
+            adjustf=0.9,
+            acceptance=0.15,
+            adjustf_niter=1e6,
+            single=True,
+        )
         diffusion_test_mc.run()
         self.stepsize = diffusion_test_mc.get_stepsize()
         self.nr_decorrelation_steps = diffusion_test_mc.get_nr_decorrelation_steps()
@@ -59,21 +94,26 @@ class EqFluidSnapshots(object):
         print(("stepsize", self.stepsize))
         print(("nr decorrelation steps", self.nr_decorrelation_steps))
         print(("maximum total nr steps", self.nr_steps))
+
     def print_next_image(self):
         print(("printing image", self.printed_images + 1, "out of", self.nr_images))
         for _ in range(self.nr_decorrelation_steps):
             self.mc.one_iteration()
         self.print_Lorenzo_style()
         print(("printed image", self.printed_images, "out of", self.nr_images))
+
     def print_Lorenzo_style(self):
         print(("number of MC steps", self.mc.get_iterations_count()))
         self.coordinates = self.mc.get_coords()
-        self.coordinates = put_in_box(self.coordinates, 2, Distance.PERIODIC, self.boxvec)
+        self.coordinates = put_in_box(
+            self.coordinates, 2, Distance.PERIODIC, self.boxvec
+        )
         out_file = open(self.base_out_file_name + "_" + str(self.printed_images), "w")
         for particle_index in range(self.nr_particles):
             out_file.write(self.get_Lorenzo_style_string(particle_index) + "\n")
         out_file.close()
         self.printed_images += 1
+
     def get_Lorenzo_style_string(self, particle_index):
         """
         Lorenzo's file format, for his images of jammed experimental
@@ -105,12 +145,16 @@ class EqFluidSnapshots(object):
         r = self.get_r(particle_index)
         large_particle_flag = self.get_large_particle_flag(particle_index)
         return ",".join([str(x), str(y), str(r), str(large_particle_flag)])
-        #return " ".join([str(x), str(y), str(r), str(large_particle_flag)])
+        # return " ".join([str(x), str(y), str(r), str(large_particle_flag)])
+
     def get_x(self, particle):
         return self.coordinates[particle * 2]
+
     def get_y(self, particle):
         return self.coordinates[particle * 2 + 1]
+
     def get_r(self, particle):
         return self.radii[particle]
+
     def get_large_particle_flag(self, particle):
         return 1

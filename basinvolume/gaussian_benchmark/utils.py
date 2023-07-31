@@ -71,27 +71,27 @@ Means:				Cov:
 [-4.05591073 -2.68413407 -1.57041468 -2.86256183 -1.76696633]	[ 2.72835102  2.72835102  2.72835102  2.72835102  2.72835102]
 """
 
+
 class LineStitcher(object):
-    
     def __init__(self, raw_lines):
         self.raw_lines = raw_lines
         self.lines = []
         self.stitch_lines()
-    
+
     def stitch_lines(self):
         skip = True
         self.open_count = 0
         self.closed_count = 0
         for l in self.raw_lines:
             if not skip:
-                if l in ['\n', '\r\n']:
+                if l in ["\n", "\r\n"]:
                     skip = True
                     break
                 for c in l:
                     self.process_character(c)
             if l.startswith("Means:"):
                 skip = False
-    
+
     def process_character(self, c):
         close_line = False
         if c == "[":
@@ -109,21 +109,26 @@ class LineStitcher(object):
         self.add_char_to_current_line(c)
         if close_line:
             self.close_current_line()
-    
+
     def open_new_line(self):
         self.current_line = str()
-        
+
     def close_current_line(self):
         self.lines.append(self.current_line)
         self.open_count = 0
         self.closed_count = 0
-        
+
     def add_char_to_current_line(self, c):
         if c in ["\n", "\t"]:
             return
         self.current_line += c
-        if self.closed_count == 1 and self.open_count == 1 and not self.current_line.endswith("\t"):
+        if (
+            self.closed_count == 1
+            and self.open_count == 1
+            and not self.current_line.endswith("\t")
+        ):
             self.current_line += "\t"
+
 
 def get_means_cov(gauss_path):
     print("reading means, cov from the following gauss path")
@@ -133,17 +138,37 @@ def get_means_cov(gauss_path):
     f = open(gauss_path, "r")
     stitched_lines = LineStitcher(f.readlines())
     for line in stitched_lines.lines:
-    #for line in f.readlines():
+        # for line in f.readlines():
         if line.startswith("["):
             m = None
             c = None
             print(("line", line))
             if "," in line:
-                m = list(map(float, (line.split(",")[0].replace("[", "")).replace("]", "").split()))
-                c = list(map(float, (line.split(",")[1].replace("[", "")).replace("]", "").split()))
+                m = list(
+                    map(
+                        float,
+                        (line.split(",")[0].replace("[", "")).replace("]", "").split(),
+                    )
+                )
+                c = list(
+                    map(
+                        float,
+                        (line.split(",")[1].replace("[", "")).replace("]", "").split(),
+                    )
+                )
             else:
-                m = list(map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split()))
-                c = list(map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split()))
+                m = list(
+                    map(
+                        float,
+                        (line.split("\t")[0].replace("[", "")).replace("]", "").split(),
+                    )
+                )
+                c = list(
+                    map(
+                        float,
+                        (line.split("\t")[1].replace("[", "")).replace("]", "").split(),
+                    )
+                )
             mean.append(m)
             cov.append(c)
     f.close()
