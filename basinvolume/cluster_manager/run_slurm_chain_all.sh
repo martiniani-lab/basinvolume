@@ -9,8 +9,8 @@
 batch_system=SLURM
 mpi_implementation=Intel
 ndim=2
-workdir=${SLURM_SUBMIT_DIR}
-path_to_script="/home/mc9287/basinvolumelibs/basinvolume/basinvolume/spheres/"
+workdir="/home/praharsh/test_basin"
+path_to_script="/home/praharsh/research/bv-libraries/basinvolume/basinvolume/"
 job_label="100_16"
 k_walltime=12
 pt_walltime=12
@@ -38,7 +38,7 @@ squeue -j ${SLURM_JOBID} -O nodelist | tail -n +2
 echo
 echo "Running ${SLURM_JOB_NAME}"
 echo
-python ~/basinvolumelibs/basinvolume/basinvolume/cluster_manager/submit_bv.py chain \
+python /home/praharsh/research/bv-libraries/basinvolume/basinvolume/cluster_manager/submit_bv.py chain \
 $ndim $workdir $path_to_script $job_label $k_walltime $pt_walltime \
 --batch-system $batch_system --mpi-implementation $mpi_implementation \
 --cores-per-node $cores_per_node --threads $threads --pt-threads $pt_threads \
@@ -50,6 +50,6 @@ $ndim $workdir $path_to_script $job_label $k_walltime $pt_walltime \
 echo
 echo "Job finished. SLURM details are:"
 echo
-scontrol show job ${SLURM_JOBID}
+#scontrol show job ${SLURM_JOBID}
 echo
 echo Finished at `date`
