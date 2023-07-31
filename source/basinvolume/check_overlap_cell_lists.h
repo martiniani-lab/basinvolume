@@ -151,9 +151,10 @@ public:
         merge_last_and_current_changes(changed_atoms, changed_coords_old);
       }
 
-      m_cell_lists->update_specific(trial_coords, changed_atoms,
-                                    changed_coords_old);
-
+      // TODO: update specific is too slow, change to update
+      // m_cell_lists->update_specific(trial_coords, changed_atoms,
+      //                               changed_coords_old);
+      m_cell_lists->update(trial_coords);
       // std::cout << changed_atoms << "\n";
       // std::cout << changed_coords_old << "\n";
       // std::cout << "atom looper pair" << "\n";
