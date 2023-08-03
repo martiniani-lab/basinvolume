@@ -9,7 +9,7 @@ import os
 import argparse
 import traceback
 import copy
-from ._kmin_mcrunner import _kmin_mcrunner
+from ._kmin_mcrunner import KminMCRunner
 import glob
 import re
 from basinvolume.enums import Minimizer
@@ -17,7 +17,7 @@ from basinvolume.enums import Minimizer
 
 def worker_kmin(fname, kwargs):
     try:
-        mcrunner = _kmin_mcrunner(fname, **kwargs)
+        mcrunner = KminMCRunner(fname, **kwargs)
         mcrunner.run()
     except:
         print("kmin worker: %s" % (traceback.format_exc()))
@@ -28,10 +28,18 @@ if __name__ == "__main__":
         description="compute kmax and minimum average displacement for kmin for all jammed packings"
     )
     parser.add_argument(
-        "-j", "--ncores", type=int, help="number of packings to produce", default=4
+        "-j",
+        "--ncores",
+        type=int,
+        help="number of packings to produce",
+        default=4,
     )
     parser.add_argument(
-        "-n", "--niter", type=int, help="number of iterations", default=int(1e7)
+        "-n",
+        "--niter",
+        type=int,
+        help="number of iterations",
+        default=int(1e7),
     )
     parser.add_argument(
         "-f", "--force", action="store_true", help="run all", default=False
@@ -55,7 +63,9 @@ if __name__ == "__main__":
         for dir_path in listdir:
             dir_name = os.path.split(dir_path)[1]
             str_values = re.findall("\d+", dir_name)
-            nparticles, hs_phi = float(str_values[0]), float("0." + str_values[1])
+            nparticles, hs_phi = float(str_values[0]), float(
+                "0." + str_values[1]
+            )
             ss_phi, bdim = float("0." + str_values[2]), float(str_values[3])
             packings_dir = os.path.join(dir_path, "jammed_packings")
             explore_dir_list = listdir = glob.glob(
@@ -121,7 +131,10 @@ if __name__ == "__main__":
                             kmin_kwargs_s,
                         ),
                     )
-                    print("performing diffusion measurement for: \n", explore_dir_path)
+                    print(
+                        "performing diffusion measurement for: \n",
+                        explore_dir_path,
+                    )
     except:
         mypool.terminate()
         mypool.join()

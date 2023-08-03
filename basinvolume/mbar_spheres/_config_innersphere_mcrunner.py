@@ -7,7 +7,7 @@ from builtins import str
 import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential
-from basinvolume.spheres import _configure_mcrunner
+from basinvolume.spheres import ConfigMCRunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.mbar_spheres import BVInnerSphereMCrunner
@@ -23,7 +23,7 @@ def _subtract_com(x, ndim=3):
     return (x - com[np.newaxis, :]).ravel()
 
 
-class _config_innersphere_mcrunner(_configure_mcrunner):
+class ConfigInnerSphereMCRunner(ConfigMCRunner):
     """this is a class that implements a mcrunner that samples the inner sphere of a basin
 
     when niter=None, niter is set equal to exact number of PT niter
@@ -148,16 +148,22 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
+        self.base_directory = os.path.join(
+            os.getcwd(), explore_dir + packing_nr
+        )
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
-        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
+        self.packing_configpath = os.path.join(
+            packings_dir, "{}.config".format(dname)
+        )
         self.findk_configpath = os.path.join(
             self.base_directory, "findk_" + dname + ".config"
         )
         configfile = "innersphere_" + dname
-        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.base_directory, configfile
+        )
 
     def _import_packing_config_files(self):
         imp_packing = read_jammed_packing_config(str(self.packing_configpath))
@@ -256,7 +262,7 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
-    sim = _config_innersphere_mcrunner(
+    sim = ConfigInnerSphereMCRunner(
         "jammed_packing1.xyzdr",
         niter=1e5,
         opt_tol=1e-4,

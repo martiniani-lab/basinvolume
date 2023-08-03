@@ -8,7 +8,7 @@ from builtins import range
 import numpy as np
 import os
 from pele.potentials import Harmonic
-from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
+from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
 from basinvolume.utils import (
     trymakedir,
     view_traceback,
@@ -24,7 +24,7 @@ import warnings
 import time
 
 
-class _kmin_mcrunner(_configure_mcrunner):
+class KminMCRunner(ConfigMCRunner):
     """
     this is a class that implements a kmin_mcrunner class
     *nparticles: number of particles
@@ -196,7 +196,10 @@ class _kmin_mcrunner(_configure_mcrunner):
             self._print_success(False)
 
     def _collect_trajectory(self, fix_com=True):
-        mean_coord, var_coord = self.mcrunner.get_mean_variance_coordinate_vector()
+        (
+            mean_coord,
+            var_coord,
+        ) = self.mcrunner.get_mean_variance_coordinate_vector()
         self.mean_coord_dist, self.var_coord_dist = get_dist_com(
             mean_coord, self.mcrunner.origin, self.bdim
         ), np.sum(var_coord)
@@ -214,7 +217,9 @@ class _kmin_mcrunner(_configure_mcrunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
+        self.base_directory = os.path.join(
+            os.getcwd(), explore_dir + packing_nr
+        )
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(self.workspace, packings_dir)
         self.packings_dir = packings_dir
@@ -223,9 +228,13 @@ class _kmin_mcrunner(_configure_mcrunner):
             self.base_directory, "findk_" + dname + ".config"
         )
         configfile = "kmin_" + dname
-        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.base_directory, configfile
+        )
         trajectory_fname = "kmin_trajectory_" + dname
-        self.trajectory_path = "{}/{}.h5".format(self.base_directory, trajectory_fname)
+        self.trajectory_path = "{}/{}.h5".format(
+            self.base_directory, trajectory_fname
+        )
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = "diffusion_" + dname
         self.diffusion_configfname = "{}/{}".format(
@@ -284,7 +293,9 @@ class _kmin_mcrunner(_configure_mcrunner):
         for key, value in list(status.items()):
             f.write("{}: {}\n".format(key, value))
         f.write("[KMIN]\n")
-        f.write("displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25))  # note 1.25
+        f.write(
+            "displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25)
+        )  # note 1.25
         f.write("var_displ_k_min: {:.16f}\n".format(self.var_displ_k_min))
         f.write("mean_coord_dist: {:.16f}\n".format(self.mean_coord_dist))
         f.write("var_coord_dist: {:.16f}\n".format(self.var_coord_dist))
@@ -337,14 +348,16 @@ if __name__ == "__main__":
 
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
-    sim = _kmin_mcrunner(
+    sim = KminMCRunner(
         "jammed_packing0.xydr",
         niter=1e4,
         k=0,
         opt_tol=1e-4,
         seeds=seeds,
         record_steps_timeseries=True,
-        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
+        record_steps_timeseries_every=[
+            int(np.ceil(1.5**n)) for n in range(22)
+        ],
         single=True,
         use_cell_lists=True,
         verbose=True,

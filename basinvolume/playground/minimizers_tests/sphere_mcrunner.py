@@ -193,8 +193,13 @@ class BVSphereMCrunner(_BaseMCRunner):
     ):
         # construct base class
         if use_frozen:
-            assert distance_method is Distance.CARTESIAN and frozen_atoms is not None
-            red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
+            assert (
+                distance_method is Distance.CARTESIAN
+                and frozen_atoms is not None
+            )
+            red_coords = reduce_coordinates(
+                full_coords, frozen_atoms, len(boxv)
+            )
         else:
             red_coords = full_coords
         # potential = as_cpp_potential(NullPotential())
@@ -213,7 +218,9 @@ class BVSphereMCrunner(_BaseMCRunner):
             self.red_origin = reduce_coordinates(
                 self.red_origin, frozen_atoms, self.bdim
             )
-            assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
+            assert len(self.red_radii) == (
+                len(self.hs_radii) - len(frozen_atoms)
+            )
             assert len(self.red_origin) == self.ndim
             assert rcontainer is not None
         self.sca = sca
@@ -235,11 +242,15 @@ class BVSphereMCrunner(_BaseMCRunner):
         # manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof
         if rattlers is None:
-            self.rattlers = np.array([1.0 for _ in range(self.ndim)], dtype="d")
+            self.rattlers = np.array(
+                [1.0 for _ in range(self.ndim)], dtype="d"
+            )
         else:
             self.rattlers = np.array(rattlers, dtype="d")
         if self.use_frozen:
-            self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
+            self.rattlers = reduce_coordinates(
+                self.rattlers, frozen_atoms, self.bdim
+            )
         assert len(self.rattlers) == self.ndim
         assert self.rattlers.all() >= 0 and self.rattlers.all() <= 1
 
@@ -248,7 +259,9 @@ class BVSphereMCrunner(_BaseMCRunner):
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
         if self.use_cell_lists:
             if np.amin(self.boxv) // self.rcut <= 3:
-                print("warning: use_cell_lists flag was set, rcut is too large though")
+                print(
+                    "warning: use_cell_lists flag was set, rcut is too large though"
+                )
                 print("setting use_cell_lists to False")
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
@@ -377,7 +390,9 @@ class BVSphereMCrunner(_BaseMCRunner):
                     frozen_atoms=self.frozen_atoms,
                 )
         else:
-            raise NotImplementedError("Specified distance method " "not implemented.")
+            raise NotImplementedError(
+                "Specified distance method " "not implemented."
+            )
         use_cgd = self.minimizer is Minimizer.CG
         self.conftest2 = CheckSameMinimum(
             self.pot_optimizer,
@@ -405,7 +420,9 @@ class BVSphereMCrunner(_BaseMCRunner):
         # set up pele:MC
         self.set_takestep(self.takestep)
         if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
+            self.conftest0 = CheckSphericalContainer(
+                self.rcontainer, self.bdim
+            )
             self.add_conf_test(self.conftest0)
         self.add_late_conf_test(self.conftest1)
         self.add_late_conf_test(
@@ -457,7 +474,9 @@ class BVSphereMCrunner(_BaseMCRunner):
         timeseries = np.array(self.time_series.get_time_series())
         return timeseries
 
-    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
+    def check_convergence(
+        self, nr_steps_to_check=10000, rel_std_threshold=0.05
+    ):
         return self.time_series.check_convergence(
             nr_steps_to_check=nr_steps_to_check,
             rel_std_threshold=rel_std_threshold,
@@ -503,7 +522,8 @@ class BVSphereMCrunner(_BaseMCRunner):
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
@@ -515,7 +535,8 @@ class BVSphereMCrunner(_BaseMCRunner):
         """
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
 
         n, bins, patches = plt.hist(
@@ -530,12 +551,16 @@ class BVSphereMCrunner(_BaseMCRunner):
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
         # and2 = vec_analytical_d2(val,self.k, self.nparticles) / quad(vec_analytical_d2, bincenters[0], bincenters[-1], args=(self.k, self.nparticles))[0]
-        k = old_div(self.k * self.ndim, (self.ndim - 1))  # adjust for fixed com
+        k = old_div(
+            self.k * self.ndim, (self.ndim - 1)
+        )  # adjust for fixed com
         and2 = old_div(
             np.exp(-0.5 * k * bincenters) * np.sqrt(k),
             np.sqrt(2 * np.pi * bincenters),
         )
-        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
+        plt.plot(
+            bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1]
+        )
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")

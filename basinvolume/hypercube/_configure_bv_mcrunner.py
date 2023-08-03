@@ -8,7 +8,7 @@ from builtins import range
 import numpy as np
 import os
 from pele.potentials import Harmonic
-from basinvolume.spheres import _configure_mcrunner
+from basinvolume.spheres import ConfigMCRunner
 from basinvolume.hypercube import HypercubeMCrunner
 from basinvolume.utils import trymakedir
 import configparser
@@ -16,7 +16,7 @@ import time
 import warnings
 
 
-class _hypercube_bv_mcrunner(_configure_mcrunner):
+class _hypercube_bv_mcrunner(ConfigMCRunner):
     """ """
 
     def __init__(self, rank, nprocs):
@@ -117,7 +117,9 @@ class _hypercube_bv_mcrunner(_configure_mcrunner):
         self.kmin_configpath = os.path.join(
             self.base_directory, "kmin_" + dname + ".config"
         )
-        self.configfile = "{}/explore_{}.config".format(self.base_directory, dname)
+        self.configfile = "{}/explore_{}.config".format(
+            self.base_directory, dname
+        )
 
     def _get_histogram_bin(self, k):
         """automatically estimate size of histogram"""
@@ -192,7 +194,9 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
     sim = _hypercube_bv_mcrunner(0, 1)
-    mcrunner = sim("explore_bv_hypercube_n100_l1", seeds=seeds, verbose=True, niter=1e6)
+    mcrunner = sim(
+        "explore_bv_hypercube_n100_l1", seeds=seeds, verbose=True, niter=1e6
+    )
     print("simulation started")
     start = time.time()
     mcrunner.run()

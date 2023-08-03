@@ -20,6 +20,8 @@ Note that this module will not be able to capture the volume. We will need to
 run longer jobs on the cluster. However it serves as a template for job scripts
 """
 
+import numpy as np
+
 
 class BaseBasinVolumeCalculator:
     def __init__():
@@ -50,11 +52,37 @@ class BaseBasinVolumeCalculator:
 
 
 class SoftSphereRunner(BaseBasinVolumeCalculator):
-    def __init__(foldpath):
-        self.foldpath = foldpath
+    def __init__(
+        self,
+        base_folder,
+        attractor_path,
+    ):
+        self.attractor_path = attractor_path
+        self.attractor = np.load(attractor_path)
+
+    def load_system_config(self):
+        return 0
 
     def run(self):
-        self.jammed_run()
+        self.find_kmax()
+        self.find_kmin()
+        self.run_parallel_tempering()
+        self.calculate_volumes()
+
+
+class SoftSphereRunner(BaseBasinVolumeCalculator):
+    def __init__(
+        self,
+        base_folder,
+        attractor_path,
+    ):
+        self.attractor_path = attractor_path
+        self.attractor = np.load(attractor_path)
+
+    def load_system_config(self):
+        return 0
+
+    def run(self):
         self.find_kmax()
         self.find_kmin()
         self.run_parallel_tempering()

@@ -9,7 +9,7 @@ import numpy as np
 import os
 from pele.potentials import Harmonic
 from pele.distance import Distance
-from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
+from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir
 from basinvolume.enums import Minimizer
 import configparser
@@ -17,7 +17,7 @@ import time
 import pickle as pickle
 
 
-class configure_bv_exp_mcrunner(_configure_mcrunner):
+class configure_bv_exp_mcrunner(ConfigMCRunner):
     """
     this is an abstract class that implements the basic components of a configure bv_mcrunner class,
     and declares a number of abstract methods which should be implemented in all inheriting classes
@@ -80,7 +80,10 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         for i in range(len(self.hs_radii)):
             r2 = 0
             for j in range(self.bdim):
-                r2 += self.coords[i * self.bdim + j] * self.coords[i * self.bdim + j]
+                r2 += (
+                    self.coords[i * self.bdim + j]
+                    * self.coords[i * self.bdim + j]
+                )
             if r2 > (rcontainer * rcontainer):
                 rcontainer = np.sqrt(r2)
                 index = i
@@ -183,7 +186,9 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         dname = os.path.splitext(self.fname)[0]
 
         if base_dir is None:
-            base_directory = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
+            base_directory = os.path.join(
+                os.getcwd(), "explore_bv_" + str(dname)
+            )
             assert os.path.exists(base_directory)
         else:
             if not os.path.isabs(base_dir):
@@ -194,14 +199,18 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
 
-        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
+        self.packing_configpath = os.path.join(
+            packings_dir, "{}.config".format(dname)
+        )
         self.findk_configpath = os.path.join(
             self.base_directory, "findk_" + dname + ".config"
         )
         self.kmin_configpath = os.path.join(
             self.base_directory, "kmin_" + dname + ".config"
         )
-        self.configfile = "{}/explore_{}.config".format(self.base_directory, dname)
+        self.configfile = "{}/explore_{}.config".format(
+            self.base_directory, dname
+        )
 
     def _get_histogram_bin(self, k):
         """automatically estimate size of histogram"""
@@ -250,13 +259,15 @@ class configure_bv_exp_mcrunner(_configure_mcrunner):
         configf.read(str(self.packing_configpath))
         self.nparticles = configf.getint("JAMMED_PACKING", "nparticles")
         self.bdim = configf.getint("JAMMED_PACKING", "boxdim")
-        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(
-            self.bdim
-        )
+        assert (
+            self.bdim == 2 or self.bdim == 3
+        ), "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get("JAMMED_PACKING", "boxv")
         self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat("JAMMED_PACKING", "packing_fraction")
+        self.imp_packing_frac = configf.getfloat(
+            "JAMMED_PACKING", "packing_fraction"
+        )
         self.sca = configf.getfloat("JAMMED_PACKING", "sca")
         self.mobile_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"

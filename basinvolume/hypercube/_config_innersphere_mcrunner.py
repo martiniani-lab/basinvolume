@@ -7,7 +7,7 @@ from builtins import str
 import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential
-from basinvolume.spheres import _configure_mcrunner
+from basinvolume.spheres import ConfigMCRunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.hypercube import HypercubeInnerSphereMCrunner
 import configparser
@@ -15,7 +15,7 @@ import time
 import warnings
 
 
-class _hypercube_innersphere_mcrunner(_configure_mcrunner):
+class _hypercube_innersphere_mcrunner(ConfigMCRunner):
     """this is a class that implements a mcrunner that samples the inner sphere of a basin
 
     when niter=None, niter is set equal to exact number of PT niter
@@ -59,7 +59,9 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         if number_nested_spheres == 1:
             fraction_k = 0.0
         else:
-            fraction_k = current_nested_sphere * 1.0 / (number_nested_spheres - 1.0)
+            fraction_k = (
+                current_nested_sphere * 1.0 / (number_nested_spheres - 1.0)
+            )
         # Linearly spaced values
         # self.k = fraction_k * koutermost_spheres + (1 - fraction_k) * kinnermost_spheres
         # Log-spaced values
@@ -150,13 +152,17 @@ class _hypercube_innersphere_mcrunner(_configure_mcrunner):
         )
 
         output_dir = (
-            self.base_directory + "/innersphere_" + str(self.current_nested_sphere)
+            self.base_directory
+            + "/innersphere_"
+            + str(self.current_nested_sphere)
         )
         trymakedir(output_dir)
         self.output_directory = output_dir
 
         configfile = "innersphere_" + dname
-        self.configfile = "{}/{}.config".format(self.output_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.output_directory, configfile
+        )
 
     def _import_packing_config_files(self):
         configf = configparser.ConfigParser()

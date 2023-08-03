@@ -3,7 +3,7 @@ from __future__ import print_function
 from builtins import str
 import numpy as np
 import os
-from basinvolume.spheres import _configure_mcrunner
+from basinvolume.spheres import ConfigMCRunner
 from basinvolume.utils import trymakedir
 from basinvolume.utils import view_traceback
 from mcpele.monte_carlo import NullPotential
@@ -12,7 +12,7 @@ import time
 import warnings
 
 
-class _hypercube_findk_mcrunner(_configure_mcrunner):
+class HypercubeFindKMCRunner(ConfigMCRunner):
     """ """
 
     def __init__(
@@ -44,7 +44,9 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
             self.workspace = os.path.abspath(workspace)
 
         self._set_paths()
-        stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(
+            1.0 / k
+        )  # stepsize plays the role of the standard deviation
 
         # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
@@ -97,9 +99,13 @@ class _hypercube_findk_mcrunner(_configure_mcrunner):
 
     def _set_paths(self):
         dname = "hypercube_n" + str(self.ndof) + "_l" + str(self.sidelength)
-        self.base_directory = os.path.join(self.workspace, "explore_bv_" + dname)
+        self.base_directory = os.path.join(
+            self.workspace, "explore_bv_" + dname
+        )
         configfile = "findk_" + dname
-        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.base_directory, configfile
+        )
 
     def _initialise(self):
         self._print_initialise()
@@ -147,8 +153,14 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
     ndof = 93
-    sim = _hypercube_findk_mcrunner(
-        ndof, sidelength=1, k=50, ktarget=0.9, knavg=1e3, seeds=seeds, verbose=True
+    sim = HypercubeFindKMCRunner(
+        ndof,
+        sidelength=1,
+        k=50,
+        ktarget=0.9,
+        knavg=1e3,
+        seeds=seeds,
+        verbose=True,
     )
     print("simulation started")
     start = time.time()

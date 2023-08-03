@@ -7,7 +7,7 @@ from builtins import str
 import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential
-from basinvolume.spheres import _configure_mcrunner
+from basinvolume.spheres import ConfigMCRunner
 from basinvolume.utils import trymakedir
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.playground.minimizers_tests import BVSphereMCrunner
@@ -22,7 +22,7 @@ def _subtract_com(x):
     return (x - com[np.newaxis, :]).ravel()
 
 
-class _sphere_mcrunner(_configure_mcrunner):
+class _sphere_mcrunner(ConfigMCRunner):
     """
     this is a class that implements a kmin_mcrunner class
     *nparticles: number of particles
@@ -157,13 +157,17 @@ class _sphere_mcrunner(_configure_mcrunner):
 
     def _set_paths(self, packings_dir):
         dname = os.path.splitext(self.fname)[0]
-        self.base_directory = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
+        self.base_directory = os.path.join(
+            os.getcwd(), "explore_bv_" + str(dname)
+        )
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "jammed_packings.config")
         configfile = "kmin_" + dname
-        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.base_directory, configfile
+        )
 
     def _initialise(self):
         self._print_initialise()
@@ -206,7 +210,9 @@ class _sphere_mcrunner(_configure_mcrunner):
         for key, value in list(status.items()):
             f.write("{}: {}\n".format(key, value))
         f.write("[KMIN]\n")
-        f.write("displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25))  # note 1.25
+        f.write(
+            "displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25)
+        )  # note 1.25
         f.write("var_displ_k_min: {:.16f}\n".format(self.var_displ_k_min))
         f.close()
 

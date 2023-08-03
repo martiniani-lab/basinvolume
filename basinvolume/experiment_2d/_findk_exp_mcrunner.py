@@ -10,7 +10,7 @@ import abc
 import os
 from pele.potentials import Harmonic, HS_WCA
 from pele.distance import Distance
-from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
+from basinvolume.spheres import Findk_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir
 from basinvolume.utils import (
     get_git_version,
@@ -23,7 +23,7 @@ import time
 import copy
 
 
-class _findk_exp_mcrunner(_configure_mcrunner):
+class _findk_exp_mcrunner(ConfigMCRunner):
     """
     this is a class that implements configure_findk_mcrunner class,
     *k: harmonic spring constant
@@ -69,7 +69,10 @@ class _findk_exp_mcrunner(_configure_mcrunner):
         for i in range(len(self.hs_radii)):
             r2 = 0
             for j in range(self.bdim):
-                r2 += self.coords[i * self.bdim + j] * self.coords[i * self.bdim + j]
+                r2 += (
+                    self.coords[i * self.bdim + j]
+                    * self.coords[i * self.bdim + j]
+                )
             if r2 > (rcontainer * rcontainer):
                 rcontainer = np.sqrt(r2)
                 index = i
@@ -109,7 +112,9 @@ class _findk_exp_mcrunner(_configure_mcrunner):
             self.red_coords, 0, bdim=self.bdim, com=False
         )  # set the potential to 0, the potential is completely fictitious here (there's no energy test),
         # k is entirely controlled by the stepsize
-        stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(
+            1.0 / k
+        )  # stepsize plays the role of the standard deviation
         # stepsize = np.sqrt(self.ndim/k)  #####################
         #####
         self.mcrunner = Findk_MCrunner(
@@ -156,26 +161,32 @@ class _findk_exp_mcrunner(_configure_mcrunner):
 
     def _set_paths(self, packings_dir):
         dname = os.path.splitext(self.fname)[0]
-        self.base_directory = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
+        self.base_directory = os.path.join(
+            os.getcwd(), "explore_bv_" + str(dname)
+        )
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
         configfile = "findk_" + dname
-        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.base_directory, configfile
+        )
 
     def _import_packing_config_files(self):
         configf = configparser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint("JAMMED_PACKING", "nparticles")
         self.bdim = configf.getint("JAMMED_PACKING", "boxdim")
-        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(
-            self.bdim
-        )
+        assert (
+            self.bdim == 2 or self.bdim == 3
+        ), "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get("JAMMED_PACKING", "boxv")
         self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat("JAMMED_PACKING", "packing_fraction")
+        self.imp_packing_frac = configf.getfloat(
+            "JAMMED_PACKING", "packing_fraction"
+        )
         self.sca = configf.getfloat("JAMMED_PACKING", "sca")
         self.mobile_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"

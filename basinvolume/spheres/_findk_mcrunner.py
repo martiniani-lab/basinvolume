@@ -7,7 +7,7 @@ from builtins import str
 import numpy as np
 import os
 from pele.potentials import Harmonic
-from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
+from basinvolume.spheres import Findk_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.enums import Minimizer
@@ -16,7 +16,7 @@ import time
 import warnings
 
 
-class _findk_mcrunner(_configure_mcrunner):
+class _findk_mcrunner(ConfigMCRunner):
     """
     this is a class that implements configure_findk_mcrunner class,
     *k: harmonic spring constant
@@ -91,7 +91,9 @@ class _findk_mcrunner(_configure_mcrunner):
             self.coords, 0, bdim=self.bdim, com=False
         )  # set the potential to 0, the potential is completely fictitious here (there's no energy test),
         # k is entirely controlled by the stepsize
-        stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(
+            1.0 / k
+        )  # stepsize plays the role of the standard deviation
         # stepsize = np.sqrt(self.ndim/k)  #####################
         #####
 
@@ -157,13 +159,17 @@ class _findk_mcrunner(_configure_mcrunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
+        self.base_directory = os.path.join(
+            os.getcwd(), explore_dir + packing_nr
+        )
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
         configfile = "findk_" + dname
-        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.base_directory, configfile
+        )
 
     def _initialise(self):
         self._print_initialise()
@@ -213,7 +219,7 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
     sim = _findk_mcrunner(
-        "jammed_packing0.xydr",
+        "jammed_packing0.xyzdr",
         avgcount=1e4,
         k=759,
         opt_tol=1e-5,

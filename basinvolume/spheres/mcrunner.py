@@ -113,6 +113,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         hmin=0,
         hmax=1,
         hbinsize=0.001,
+        avgcount=int(1e4),
         report_steps=0,
         pt_eq_niter=0,
         opt_dtmax=1,
@@ -156,6 +157,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             hs_radii,
             boxv,
             sca,
+            avgcount=avgcount,
             rattlers=rattlers,
             k=k,
             dtol=dtol,
@@ -258,12 +260,15 @@ class SpheresMCRunner(BaseSpheresMCrunner):
 
     def _set_conf_tests(self):
         if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
+            self.conftest0 = CheckSphericalContainer(
+                self.rcontainer, self.bdim
+            )
             self.add_conf_test(self.conftest0)
         if self.interaction is Interaction.HS_WCA:
             if self.distance_method is Distance.PERIODIC:
                 if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None
+                    and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapPeriodicCellLists(
                         self.hs_radii,
@@ -283,7 +288,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     )
             elif self.distance_method is Distance.CARTESIAN:
                 if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None
+                    and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapCartesianCellLists(
                         self.hs_radii,
@@ -303,7 +309,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     )
             elif self.distance_method is Distance.LEES_EDWARDS:
                 if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None
+                    and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapLeesEdwardsCellLists(
                         self.hs_radii,
@@ -368,7 +375,9 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     m["coords"] = full_coordinates(
                         redcoords, self.origin, self.frozen_atoms, self.bdim
                     )
-            assert len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1
+            assert (
+                len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1
+            )
             logging.info("Number of minima: %i" % len(minima_dicts))
             size_estimate = len(minima_dicts) * len(self.origin)
             if size_estimate > 1e8:
@@ -640,7 +649,9 @@ class BV_MCrunner(SpheresMCRunner):
 
     def _set_accept_tests(self):
         self.metropolis = MetropolisTest(self.seeds["seed_metropolis"])
-        self.add_accept_test(self.metropolis)  # metropolis uses the harmonic potential
+        self.add_accept_test(
+            self.metropolis
+        )  # metropolis uses the harmonic potential
 
     def _set_actions(self):
         self.time_series = RecordDisplacementTimeseries(
@@ -714,7 +725,8 @@ class BV_MCrunner(SpheresMCRunner):
         for i, action in enumerate(self.steps_timeseries_list):
             timeseries = np.array(action.get_time_series())
             np.savetxt(
-                fname + ".every{}".format(self.record_steps_timeseries_every[i]),
+                fname
+                + ".every{}".format(self.record_steps_timeseries_every[i]),
                 timeseries,
             )
             if clear:
@@ -727,7 +739,9 @@ class BV_MCrunner(SpheresMCRunner):
             self.time_series.clear()
         return timeseries
 
-    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
+    def check_convergence(
+        self, nr_steps_to_check=10000, rel_std_threshold=0.05
+    ):
         return self.time_series.check_convergence(
             nr_steps_to_check=nr_steps_to_check,
             rel_std_threshold=rel_std_threshold,
@@ -736,7 +750,8 @@ class BV_MCrunner(SpheresMCRunner):
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
@@ -748,7 +763,8 @@ class BV_MCrunner(SpheresMCRunner):
         """
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
         n, bins, patches = plt.hist(
             val,
@@ -770,7 +786,9 @@ class BV_MCrunner(SpheresMCRunner):
                 args=(self.k, self.nparticles),
             )[0],
         )
-        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
+        plt.plot(
+            bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1]
+        )
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")
@@ -820,7 +838,9 @@ class BV_MCrunner(SpheresMCRunner):
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)
-        self.takestep.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
+        self.takestep.set_adaptation_counters(
+            mcrunner_state.step_adaptation_counters
+        )
 
 
 class Findk_MCrunner(SpheresMCRunner):
@@ -862,6 +882,7 @@ class Findk_MCrunner(SpheresMCRunner):
         eps=1.0,
         ktarget=0.75,
         knavg=500,
+        avgcount=int(1e4),
         ktol=0.05,
         opt_dtmax=1,
         opt_maxstep=0.6,
@@ -900,6 +921,7 @@ class Findk_MCrunner(SpheresMCRunner):
             rattlers=rattlers,
             k=1,
             dtol=dtol,
+            avgcount=avgcount,
             eps=eps,
             hmin=hmin,
             hmax=hmax,
@@ -935,6 +957,7 @@ class Findk_MCrunner(SpheresMCRunner):
             self.red_origin,
             self.rattlers,
             self.bdim,
+            self.avgcount,
             self.ktarget,
             self.knavg,
             self.ktol,
@@ -968,7 +991,8 @@ class Findk_MCrunner(SpheresMCRunner):
         """shows the histogram"""
         hist = self.findk.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
         n, bins, patches = plt.hist(
             val,
@@ -990,7 +1014,9 @@ class Findk_MCrunner(SpheresMCRunner):
                 args=(self.get_k(), self.nparticles, self.bdim),
             )[0],
         )
-        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
+        plt.plot(
+            bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1]
+        )
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")

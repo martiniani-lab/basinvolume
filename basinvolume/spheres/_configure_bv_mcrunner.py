@@ -9,7 +9,7 @@ import numpy as np
 import os
 import logging
 from pele.potentials import Harmonic
-from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
+from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.enums import Minimizer
@@ -18,7 +18,7 @@ import time
 import warnings
 
 
-class configure_bv_mcrunner(_configure_mcrunner):
+class ConfigBVMCRunner(ConfigMCRunner):
     """
     this is an abstract class that implements the basic components of a configure bv_mcrunner class,
     and declares a number of abstract methods which should be implemented in all inheriting classes
@@ -113,7 +113,9 @@ class configure_bv_mcrunner(_configure_mcrunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
+        self.mc_params = dict(
+            temperature=temperature, niter=niter, stepsize=stepsize
+        )
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
@@ -159,11 +161,15 @@ class configure_bv_mcrunner(_configure_mcrunner):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
 
-        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
+        self.packing_configpath = os.path.join(
+            packings_dir, "{}.config".format(dname)
+        )
         self.findk_configpath = os.path.join(
             self.base_dir, "findk_" + dname + ".config"
         )
-        self.kmin_configpath = os.path.join(self.base_dir, "kmin_" + dname + ".config")
+        self.kmin_configpath = os.path.join(
+            self.base_dir, "kmin_" + dname + ".config"
+        )
         self.configfile = "{}/explore_{}.config".format(self.base_dir, dname)
 
     def _get_histogram_bin(self, k):
@@ -265,7 +271,7 @@ if __name__ == "__main__":
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
-    sim = configure_bv_mcrunner(0, 1)
+    sim = ConfigBVMCRunner(0, 1)
     mcrunner = sim(
         "jammed_packing0.xydr", seeds=seeds, use_cell_lists=True, verbose=True
     )

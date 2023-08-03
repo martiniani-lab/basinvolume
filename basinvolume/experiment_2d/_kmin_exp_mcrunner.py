@@ -10,14 +10,14 @@ import os
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from pele.distance import Distance
-from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
+from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir
 from basinvolume.enums import Minimizer
 import configparser
 import time
 
 
-class _kmin_exp_mcrunner(_configure_mcrunner):
+class _kmin_exp_mcrunner(ConfigMCRunner):
     """
     this is an abstract class that implements the basic components of a k0_mcrunner class
     *nparticles: number of particles
@@ -71,7 +71,10 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         for i in range(len(self.hs_radii)):
             r2 = 0
             for j in range(self.bdim):
-                r2 += self.coords[i * self.bdim + j] * self.coords[i * self.bdim + j]
+                r2 += (
+                    self.coords[i * self.bdim + j]
+                    * self.coords[i * self.bdim + j]
+                )
             if r2 > (rcontainer * rcontainer):
                 rcontainer = np.sqrt(r2)
                 index = i
@@ -171,7 +174,9 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
 
     def _set_paths(self, packings_dir):
         dname = os.path.splitext(self.fname)[0]
-        self.base_directory = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
+        self.base_directory = os.path.join(
+            os.getcwd(), "explore_bv_" + str(dname)
+        )
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
@@ -180,20 +185,24 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
             self.base_directory, "findk_" + dname + ".config"
         )
         configfile = "kmin_" + dname
-        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.base_directory, configfile
+        )
 
     def _import_packing_config_files(self):
         configf = configparser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint("JAMMED_PACKING", "nparticles")
         self.bdim = configf.getint("JAMMED_PACKING", "boxdim")
-        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(
-            self.bdim
-        )
+        assert (
+            self.bdim == 2 or self.bdim == 3
+        ), "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get("JAMMED_PACKING", "boxv")
         self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat("JAMMED_PACKING", "packing_fraction")
+        self.imp_packing_frac = configf.getfloat(
+            "JAMMED_PACKING", "packing_fraction"
+        )
         self.sca = configf.getfloat("JAMMED_PACKING", "sca")
         self.mobile_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"

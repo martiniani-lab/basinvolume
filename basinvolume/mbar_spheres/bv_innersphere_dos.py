@@ -6,7 +6,7 @@ import argparse
 import logging
 import traceback
 import copy
-from _config_innersphere_mcrunner import _config_innersphere_mcrunner
+from _config_innersphere_mcrunner import ConfigInnerSphereMCRunner
 from basinvolume.enums import Minimizer
 
 
@@ -17,7 +17,7 @@ def worker_innersphere(fname, kwargs):
             raise NotImplementedError("innersphere_mcrunner not implemented!")
         else:
             logging.info("Found numerical packing")
-            mcrunner = _config_innersphere_mcrunner(fname, **kwargs)
+            mcrunner = ConfigInnerSphereMCRunner(fname, **kwargs)
         mcrunner.run()
     except:
         logging.error("innersphere worker: %s" % (traceback.format_exc()))

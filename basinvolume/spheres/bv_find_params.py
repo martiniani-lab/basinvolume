@@ -8,7 +8,7 @@ import argparse
 import traceback
 import copy
 from _findk_mcrunner import _findk_mcrunner
-from _kmin_mcrunner import _kmin_mcrunner
+from _kmin_mcrunner import KminMCRunner
 
 
 def worker_findk(fname, kwargs):
@@ -21,7 +21,7 @@ def worker_findk(fname, kwargs):
 
 def worker_kmin(fname, kwargs):
     try:
-        mcrunner = _kmin_mcrunner(fname, **kwargs)
+        mcrunner = KminMCRunner(fname, **kwargs)
         mcrunner.run()
     except:
         print("kmin worker: %s" % (traceback.format_exc()))
@@ -32,7 +32,11 @@ if __name__ == "__main__":
         description="compute kmax and minimum average displacement for kmin for all jammed packings"
     )
     parser.add_argument(
-        "-n", "--ncores", type=int, help="number of packings to produce", default=4
+        "-n",
+        "--ncores",
+        type=int,
+        help="number of packings to produce",
+        default=4,
     )
     parser.add_argument(
         "-p",
@@ -42,7 +46,11 @@ if __name__ == "__main__":
         default="jammed_packings",
     )
     parser.add_argument(
-        "-c", "--cell", type=bool, help="use cell lists, default: True", default=True
+        "-c",
+        "--cell",
+        type=bool,
+        help="use cell lists, default: True",
+        default=True,
     )
     args = parser.parse_args()
     print(args)
