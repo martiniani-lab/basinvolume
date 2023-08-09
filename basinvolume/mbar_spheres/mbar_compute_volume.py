@@ -186,7 +186,14 @@ class mbar_compute_dos(object):
         self.pt_configpath = os.path.join(
             self.explore_dir, "explore_" + fname + ".config"
         )
-        assert os.path.isfile(self.pt_configpath)
+        # HACK this takes care of issues with files running
+        if not os.path.isfile(self.pt_configpath):
+            # use the base of the explore directory to find the config file
+            self.explore_dir = os.path.dirname(self.explore_dir)
+            self.pt_configpath = os.path.join(
+                self.explore_dir, "explore_" + fname + ".config"
+            )
+
         self.findk_configpath = os.path.join(
             self.explore_dir, "findk_" + fname + ".config"
         )
@@ -441,10 +448,12 @@ class mbar_compute_dos(object):
             N_k[i] = len(indices)  # number of uncorrelated samples
             flat_ts = np.append(flat_ts, ts_spheres[i][indices])
         # Now loop through pt timeseries
+        print(K - self.number_nested_spheres, "pt timeseries")
         for i in range(
             K - self.number_nested_spheres
         ):  # subsample the energies
             j = i + self.number_nested_spheres
+            print(timeseries)
             g[j] = statistical_inefficiency_fft(timeseries[i])
             indices = np.array(
                 subsample_correlated_data(timeseries[i], g=g[j])

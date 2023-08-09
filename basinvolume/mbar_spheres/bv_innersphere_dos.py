@@ -27,7 +27,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="compute dos for inner sphere of basin"
     )
-    parser.add_argument("fname", type=str, help="packing file name")
+    parser.add_argument(
+        "fname",
+        type=str,
+        help="packing file name, example fname jammed_packing0.xydr",
+    )
     parser.add_argument(
         "-p",
         "--packings-dir",

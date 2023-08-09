@@ -148,6 +148,17 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
             )
             res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
+        elif self.interaction is Interaction.INVERSE_POWER:
+            power = self.pot_kwargs["power"]
+            eps = self.pot_kwargs["eps"]
+            pot_optimizer = InversePower(
+                power,
+                eps,
+                ndim=self.bdim,
+                boxvec=self.boxv,
+                radii=self.hs_radii,
+            )
+
         else:
             raise NotImplementedError
 

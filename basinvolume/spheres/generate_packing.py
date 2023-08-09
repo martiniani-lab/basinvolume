@@ -50,7 +50,9 @@ def read_packing_config(configpath, frozen=False):
     )
     parameters["method"] = configf.get("PACKING", "method")
     parameters["nparticles"] = configf.getint("PACKING", "nparticles")
-    parameters["packing_frac"] = configf.getfloat("PACKING", "packing_fraction")
+    parameters["packing_frac"] = configf.getfloat(
+        "PACKING", "packing_fraction"
+    )
     parameters["boxdim"] = configf.getint("PACKING", "boxdim")
     assert (
         parameters["boxdim"] == 2 or parameters["boxdim"] == 3
@@ -73,7 +75,9 @@ def read_packing_config(configpath, frozen=False):
     )
     if parameters["method"] == "quench":
         parameters["hsf_niter"] = configf.getint("PACKING", "hsf_niter")
-        parameters["hsf_stepsize"] = configf.getfloat("PACKING", "hsf_stepsize")
+        parameters["hsf_stepsize"] = configf.getfloat(
+            "PACKING", "hsf_stepsize"
+        )
     return parameters
 
 
@@ -175,7 +179,9 @@ class _Generate_Packing(with_metaclass(abc.ABCMeta, object)):
 
     def _print_parameters(self):
         """writes the simulation parameters"""
-        fname = "{}/packing{}.config".format(self.base_directory, self.iteration)
+        fname = "{}/packing{}.config".format(
+            self.base_directory, self.iteration
+        )
         f = open(fname, "w")
         f.write("#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n")
         f.write("#Generate_Packings base class input parameters\n")
@@ -192,7 +198,9 @@ class _Generate_Packing(with_metaclass(abc.ABCMeta, object)):
         f.write("\n")
         # print software version
         f.write("[CODEVERSION]\n")
-        f.write("basinvolume_version: {}\n".format(get_git_version("basinvolume")))
+        f.write(
+            "basinvolume_version: {}\n".format(get_git_version("basinvolume"))
+        )
         f.write("mcpele_version: {}\n".format(get_git_version("mcpele")))
         f.write("pele_version: {}\n".format(get_git_version("pele")))
         f.write("python_version: {}\n".format(get_python_version()))
@@ -323,7 +331,8 @@ class HS_Generate_Packing(_Generate_Packing):
         if (
             self.method == self.precalc_config["method"]
             and self.nparticles == self.precalc_config["nparticles"]
-            and abs(self.packing_frac - self.precalc_config["packing_frac"]) < 1e-10
+            and abs(self.packing_frac - self.precalc_config["packing_frac"])
+            < 1e-10
             and self.bdim == self.precalc_config["boxdim"]
             and abs(self.mu - self.precalc_config["radii_mean"]) < 1e-10
             and abs(self.sig - self.precalc_config["radii_stddev"]) < 1e-10
@@ -383,7 +392,9 @@ class HS_Generate_Packing(_Generate_Packing):
                     self.mu, self.sig, n_outside
                 )
         elif (self.hs_radii is None or new_poly) and self.sig <= 1e-8:
-            logging.info("Sampling hs_radii, setting to ones because sig <= 1e-8")
+            logging.info(
+                "Sampling hs_radii, setting to ones because sig <= 1e-8"
+            )
             self.hs_radii = np.ones(self.nparticles) * self.mu
         else:
             self.hs_radii = np.array(self.hs_radii, dtype="d")
@@ -428,7 +439,9 @@ class HS_Generate_Packing(_Generate_Packing):
                     dmin = self.hs_radii[i] + self.hs_radii[j]
                     if dij - dmin <= 0:
                         logging.warning("Invalid configuration")
-                        logging.warning("Atoms {} {} are overlapping".format(i, j))
+                        logging.warning(
+                            "Atoms {} {} are overlapping".format(i, j)
+                        )
                         logging.warning("Real distance {}".format(dij))
                         logging.warning("Min distance {}".format(dmin))
                         return False
@@ -517,7 +530,9 @@ class HS_Generate_Packing(_Generate_Packing):
             hsf_niter = dif_mcrunner.get_nr_decorrelation_steps()
             self.hsf_niter = max(hsf_niter, 2 * self.nparticles)
             self.coords, self.energy = dif_mcrunner.get_config()
-        logging.debug("Stepsize {}, niter {}".format(self.hsf_stepsize, self.hsf_niter))
+        logging.debug(
+            "Stepsize {}, niter {}".format(self.hsf_stepsize, self.hsf_niter)
+        )
 
         self.mcrunner = HS_MCrunner(
             self.null_potential,
@@ -539,7 +554,9 @@ class HS_Generate_Packing(_Generate_Packing):
         )
 
     def create_potential(self, pot_sca, packing_fraction):
-        radius_sca = np.power(packing_fraction / self.packing_frac, 1.0 / self.bdim)
+        radius_sca = np.power(
+            packing_fraction / self.packing_frac, 1.0 / self.bdim
+        )
         if self.use_cell_lists:
             return HS_WCA(
                 use_cell_lists=True,
@@ -585,13 +602,17 @@ class HS_Generate_Packing(_Generate_Packing):
                 current_frac = 0.3
             while current_frac < self.packing_frac:
                 self.potential = self.create_potential(0.05, current_frac)
-                res = modifiedfire_cpp(coords, self.potential, nsteps=1e4, tol=1e-5)
+                res = modifiedfire_cpp(
+                    coords, self.potential, nsteps=1e4, tol=1e-5
+                )
                 coords = res.coords
 
                 # print((coords, "coords in"))
                 current_frac += 0.02
             self.potential = self.create_potential(0.05, self.packing_frac)
-            res = modifiedfire_cpp(coords, self.potential, nsteps=1e5, tol=1e-5)
+            res = modifiedfire_cpp(
+                coords, self.potential, nsteps=1e5, tol=1e-5
+            )
             # res = lbfgs_cpp(coords, self.potential, nsteps=10000)
             # assert(res.success is True) #checks that a minimum configuration
             # has been found
@@ -617,7 +638,9 @@ class HS_Generate_Packing(_Generate_Packing):
         overlap = True
         while overlap:
             coords = self._sample_random_coords()
-            res = lbfgs_cpp(coords, self.potential, nsteps=1e4, tol=1e-5, iprint=0)
+            res = lbfgs_cpp(
+                coords, self.potential, nsteps=1e4, tol=1e-5, iprint=0
+            )
             self.coords = np.array(res.coords)
             # check that no two particles are overlapping (using nearest image
             # convention)
@@ -669,7 +692,9 @@ class HS_Generate_Packing(_Generate_Packing):
         Put discs in triangular lattice.
         """
         n = int(np.power(self.nparticles / 2, 1.0 / self.bdim))
-        assert (n - np.power(int(n), self.bdim)) < 1e-8, "Nparticles is not (N/2)^2"
+        assert (
+            n - np.power(int(n), self.bdim)
+        ) < 1e-8, "Nparticles is not (N/2)^2"
         boxx = self.boxv[0]
         boxy = self.boxv[1]
         if boxx / boxy != 1:
@@ -727,9 +752,15 @@ class HS_Generate_Packing(_Generate_Packing):
             for iy in range(NY):
                 for ix in range(NX):
                     coords.extend([ix * d[0], iy * d[1], iz * d[2]])
-                    coords.extend([(ix + 0.5) * d[0], (iy + 0.5) * d[1], iz * d[2]])
-                    coords.extend([ix * d[0], (iy + 0.5) * d[1], (iz + 0.5) * d[2]])
-                    coords.extend([(ix + 0.5) * d[0], iy * d[1], (iz + 0.5) * d[2]])
+                    coords.extend(
+                        [(ix + 0.5) * d[0], (iy + 0.5) * d[1], iz * d[2]]
+                    )
+                    coords.extend(
+                        [ix * d[0], (iy + 0.5) * d[1], (iz + 0.5) * d[2]]
+                    )
+                    coords.extend(
+                        [(ix + 0.5) * d[0], iy * d[1], (iz + 0.5) * d[2]]
+                    )
         self.coords = np.array(coords)
 
     def _generate_coords_bcc_lattice_3d(self):
@@ -738,7 +769,9 @@ class HS_Generate_Packing(_Generate_Packing):
         See e.g. here: Frenkel and Smit: Understanding Molecular Simulation, page 252
         """
         n = int(np.power(self.nparticles / 2, 1.0 / self.bdim))
-        assert (n - np.power(int(n), self.bdim)) < 1e-8, "Nparticles is not (N/2)^3"
+        assert (
+            n - np.power(int(n), self.bdim)
+        ) < 1e-8, "Nparticles is not (N/2)^3"
         # assuming that box is cubic
         L_cube = int((self.nparticles / 2) ** (1 / 3))
         NX = L_cube
@@ -857,7 +890,9 @@ class HS_Generate_Packing(_Generate_Packing):
                 self.pot_kwargs["shear"],
             )
         else:
-            return put_in_box(self.coords, self.bdim, self.distance_method, self.boxv)
+            return put_in_box(
+                self.coords, self.bdim, self.distance_method, self.boxv
+            )
 
     def _dump_configuration(self):
         """write coordinates to file .xyzd"""
@@ -887,7 +922,9 @@ class HS_Generate_Packing(_Generate_Packing):
                     )
                 )
         else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            raise NotImplementedError(
+                "bdim={} not implemented".format(self.bdim)
+            )
         f.close()
 
     def _write_opengl_input(self):
@@ -902,7 +939,9 @@ class HS_Generate_Packing(_Generate_Packing):
 
         if self.bdim == 2:
             f.write(
-                "{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii))
+                "{} {} {}\n".format(
+                    -boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii)
+                )
             )
             f.write("{} \t 0.0 \t 0.0\n".format(boxv[0]))
             f.write("0.0 \t {} \t 0.0\n".format(boxv[1]))
@@ -914,7 +953,9 @@ class HS_Generate_Packing(_Generate_Packing):
                 f.write("{}\t".format(self.hs_radii[i] * 2))
                 f.write("{}\n".format(colour))
         elif self.bdim == 3:
-            f.write("{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -boxv[2] / 2))
+            f.write(
+                "{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -boxv[2] / 2)
+            )
             f.write("{} \t 0.0 \t 0.0\n".format(boxv[0]))
             f.write("0.0 \t {} \t 0.0\n".format(boxv[1]))
             f.write("0.0 \t 0.0 \t {}\n".format(boxv[2]))
@@ -924,12 +965,16 @@ class HS_Generate_Packing(_Generate_Packing):
                 f.write("{}\t".format(self.hs_radii[i] * 2))
                 f.write("{}\n".format(colour))
         else:
-            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
+            raise NotImplementedError(
+                "bdim={} not implemented".format(self.bdim)
+            )
         f.close()
 
     def _print_parameters(self):
         """writes the simulation parameters"""
-        fname = "{}/packing{}.config".format(self.base_directory, self.iteration)
+        fname = "{}/packing{}.config".format(
+            self.base_directory, self.iteration
+        )
         f = open(fname, "w")
         f.write("#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n")
         f.write("#Generate_Packings base class input parameters\n")
@@ -957,7 +1002,9 @@ class HS_Generate_Packing(_Generate_Packing):
             f.write("hsf_stepsize: {}\n".format(self.hsf_stepsize))
         # print software version
         f.write("[CODEVERSION]\n")
-        f.write("basinvolume_version: {}\n".format(get_git_version("basinvolume")))
+        f.write(
+            "basinvolume_version: {}\n".format(get_git_version("basinvolume"))
+        )
         f.write("mcpele_version: {}\n".format(get_git_version("mcpele")))
         f.write("pele_version: {}\n".format(get_git_version("pele")))
         f.write("python_version: {}\n".format(get_python_version()))
@@ -985,7 +1032,9 @@ if __name__ == "__main__":
         help="number of packings to produce",
         default=1,
     )
-    parser.add_argument("-d", "--boxdim", type=int, help="box dimensions", default=3)
+    parser.add_argument(
+        "-d", "--boxdim", type=int, help="box dimensions", default=3
+    )
     parser.add_argument(
         "-p",
         "--density",
@@ -1100,7 +1149,9 @@ if __name__ == "__main__":
     if args.distance_method.upper() in Distance.__members__:
         dist_method = Distance[args.distance_method.upper()]
     else:
-        raise ValueError("Unknown distance method: {}".format(args.distance_method))
+        raise ValueError(
+            "Unknown distance method: {}".format(args.distance_method)
+        )
 
     if dist_method is Distance.LEES_EDWARDS:
         pot_kwargs = {"shear": args.shear}

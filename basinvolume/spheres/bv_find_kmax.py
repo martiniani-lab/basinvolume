@@ -68,7 +68,10 @@ if __name__ == "__main__":
         "-v", "--verbose", action="store_true", help="verbosity", default=False
     )
     parser.add_argument(
-        "--seed-takestep", type=int, help="Seed for the takestep method", default=None
+        "--seed-takestep",
+        type=int,
+        help="Seed for the takestep method",
+        default=None,
     )
     args = parser.parse_args()
 

@@ -157,9 +157,7 @@ if __name__ == "__main__":
         minimizer=minimizer,
         verbose=args.verbose,
         record_steps_timeseries=args.rsts,
-        record_steps_timeseries_every=[
-            int(np.ceil(1.5**n)) for n in range(22)
-        ],
+        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
         print_diffusion_only=args.rsts_only,
         record_trajectory_npoints=int(1e4),
     )
@@ -173,9 +171,7 @@ if __name__ == "__main__":
         seed_metropolis = random.randint(0, i32max)
     else:
         seed_metropolis = args.seed_metropolis
-    seeds_dict = dict(
-        seed_takestep=seed_takestep, seed_metropolis=seed_metropolis
-    )
+    seeds_dict = dict(seed_takestep=seed_takestep, seed_metropolis=seed_metropolis)
     seeds = dict(seeds=seeds_dict)
     kmin_kwargs_s = copy.deepcopy(dict(kmin_kwargs, **seeds))
 

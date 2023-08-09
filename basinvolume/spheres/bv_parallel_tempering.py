@@ -317,6 +317,7 @@ if __name__ == "__main__":
 
     start = time.time()
     exit_on_checkpoint = False
+    logging.info("path: {}".format(path))
     if nprocs < nreplicas:
         if rank == 0:
             logging.info("Using job queue with {} workers.".format(nprocs - 1))

@@ -1,5 +1,6 @@
 from __future__ import division
 from __future__ import print_function
+from genericpath import isfile
 from future import standard_library
 
 standard_library.install_aliases()
@@ -199,7 +200,18 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         # import mean displacement of replica with largest k
-        path = os.path.join(self.base_directory, "0/hist_mean")
+        check_path = os.path.join(self.base_directory, "0", "hist_mean")
+
+        # HACK this is a temporary fix for the file path handling
+        if not os.path.isfile(check_path):
+            check_path = os.path.join(
+                self.base_directory,
+                os.path.basename(self.base_directory),
+                "0",
+                "hist_mean",
+            )
+
+        path = os.path.join(check_path)
         fileHandle = open(path, "r")
         lineList = fileHandle.readlines()
         fileHandle.close()

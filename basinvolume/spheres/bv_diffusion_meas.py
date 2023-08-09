@@ -63,9 +63,7 @@ if __name__ == "__main__":
         for dir_path in listdir:
             dir_name = os.path.split(dir_path)[1]
             str_values = re.findall("\d+", dir_name)
-            nparticles, hs_phi = float(str_values[0]), float(
-                "0." + str_values[1]
-            )
+            nparticles, hs_phi = float(str_values[0]), float("0." + str_values[1])
             ss_phi, bdim = float("0." + str_values[2]), float(str_values[3])
             packings_dir = os.path.join(dir_path, "jammed_packings")
             explore_dir_list = listdir = glob.glob(

@@ -8,7 +8,7 @@ import sys
 import warnings
 import logging
 from pele.potentials import Harmonic, HS_WCA, InversePowerStillingerCut
-from pele.optimize import ModifiedFireCPP, LBFGS_CPP
+from pele.optimize import ModifiedFireCPP, LBFGS_CPP, CVODEBDFOptimizer
 from pele.optimize._quench import modifiedfire_cpp
 from pele.storage.database import Minimum
 from pele.distance import Distance
@@ -222,9 +222,9 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 maxErise=0,
             )
         elif self.minimizer is Minimizer.CVODE:
-            self.optimizer = CVODEBDFOptimizer(
-                self.start_coords,
+            optimizer = CVODEBDFOptimizer(
                 self.pot_optimizer,
+                self.start_coords,
                 tol=self.opt_tol,
                 atol=1e-7,
                 rtol=1e-7,
@@ -356,7 +356,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             )
             db = system.create_database(fname)
             minima_dicts = []
-            # add origin to database, with _id == 0, to make post processing possible
+            # add origin to database, with _id == 0, to make post processing
+            # possible
             # for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
             # distance should be zero because it is distance to itself
             mindict0 = dict(
@@ -856,7 +857,7 @@ class Findk_MCrunner(SpheresMCRunner):
     *niter: number of MC takesteps to perform
     *
     *stepsize
-    *Etol: tolerance with which a minimised structure is accepted
+    *Etol: tolerance with which a mini mised structure is accepted
      when compared to origin energy
     *dtol: tolerance on the rms displacement of the minimised structure
      with respect to the origin coordinates
@@ -870,7 +871,7 @@ class Findk_MCrunner(SpheresMCRunner):
         self,
         potential,
         full_coords,
-        temperature,
+        temperature,  # always set to 1.0 #TODO: remove
         stepsize,
         niter,
         origin,
@@ -917,7 +918,7 @@ class Findk_MCrunner(SpheresMCRunner):
             origin,
             hs_radii,
             boxv,
-            sca,
+            sca=0.0,
             rattlers=rattlers,
             k=1,
             dtol=dtol,
@@ -1044,7 +1045,7 @@ if __name__ == "__main__":
     res = modifiedfire_cpp(start_coords, Harmonic(origin, 1))
     print(res)
 
-    #    print res.coords
+    # print(res.coords)
 
     # Parallel Tempering
     # test = BV_MCrunner(

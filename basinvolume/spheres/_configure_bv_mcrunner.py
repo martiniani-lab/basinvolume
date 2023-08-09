@@ -245,7 +245,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
                     "negatively impact performance."
                 )
         configf = configparser.ConfigParser()
+        print(self.findk_configpath)
         configf.read(str(self.findk_configpath))
+        # fails if Success is false
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         configf.read(str(self.kmin_configpath))
@@ -261,7 +263,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
             configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
             for i in range(self.nprocs):
-                configf.set("STATUS", "success_rank{}".format(str(i)), success)
+                configf.set(
+                    "STATUS", "success_rank{}".format(str(i)), str(success)
+                )
             configf.write(open(str(self.configfile), "w"))
 
 

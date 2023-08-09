@@ -230,7 +230,7 @@ if __name__ == "__main__":
         verbose=True,
         minimizer=Minimizer.FIRE,
     )
-    print("simulation started")
+    # print("simulation started")
     start = time.time()
     sim.run()
     frac = sim.mcrunner.conftest2.get_failed_quench_frac()
