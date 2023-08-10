@@ -38,6 +38,9 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
 
     def _get_opt_maxstep(self, opt_maxstep):
         """returns opt max step"""
+        if self.interaction is Interaction.INVERSE_POWER:
+            return np.amin(self.red_radii) * 0.25 * self.opt_maxstep_factor
+
         if opt_maxstep is None:
             # opt_maxstep = self.boxv[0] * 0.01
             opt_maxstep = (
