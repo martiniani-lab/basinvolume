@@ -45,6 +45,11 @@ from future.utils import with_metaclass
 # except:
 #     pass
 
+from basinvolume.inverse_power_soft.soft_sphere_ensemble import (
+    setup_bidisperse,
+    BINARY_SOFT_SPHERE_DEFAULTS,
+)
+
 
 def cartesian_to_polar2d(vector):
     vector = np.array(vector)
@@ -251,7 +256,10 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         f.write("distance_method: {}\n".format(self.distance_method.name))
         f.write("interaction: {}\n".format(self.interaction.name))
         f.write("pot_kwargs: {}\n".format(self.pot_kwargs))
-        assert self.sca > 0
+        if self.sca < 0:
+            logging.warning(
+                "WARNING: sca is < 0, this does not make sense for hard sphere configurations"
+            )
         f.write("sca: {:.16f}\n".format(self.sca))
         f.write("sorted: {}\n".format(self.sort_atoms))
         f.write("sorted_nsubdoms: {}\n".format(os.environ["OMP_NUM_THREADS"]))
@@ -439,6 +447,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 rcut=rcut,
                 use_cell_lists=True,
             )
+
         else:
             raise NotImplementedError
 
@@ -600,13 +609,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             from pele.optimize import CVODEBDFOptimizer
 
             self.optimizer = CVODEBDFOptimizer(
-                self.coords,
                 self.potential,
+                self.coords,
                 tol=tol,
                 nsteps=1e7,
                 atol=1e-7,
                 rtol=1e-7,
             )
+            res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
             res = lbfgs_cpp(
                 self.coords,
@@ -890,6 +900,230 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     #         pylab.show()
 
 
+class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
+    """Generate soft sphere jammed packings for potential
+
+    Note that this class is a hacky way of getting the basin volume workflow running for
+    inverse power potentials. There are no hard sphere packings in the workflow
+    This workflow should be refactored to better reflect the generality of the method
+    """
+
+    def __init__(
+        self,
+        target_packing_frac=0.7,
+        tol=1e-9,
+        maxstep_factor=1.0,
+        packings_dir="packings",  # not necessary: exists for compatibility reasons
+        packing_nrs=None,
+        import_jammed=False,
+        outdir="jammed_packings",
+        use_cell_lists=False,
+        show=False,
+        interaction=Interaction.HS_WCA,
+        override_pot_kwargs=None,
+        minimizer=Minimizer.FIRE,
+        logging_tag="",
+        write_opengl=False,
+        check_packing=True,
+        sort_atoms=False,
+        eps=1.0,
+        power=2.5,  # Hertzian exponent
+        r1=1.0,
+        r2=1.4,
+        rstd1=0.05,
+        rstd2=0.05 * 1.4,
+        seed=0,
+    ):
+        super().__init__(
+            target_packing_frac=target_packing_frac,
+            tol=tol,
+            maxstep_factor=maxstep_factor,
+            packings_dir=packings_dir,
+            packing_nrs=packing_nrs,
+            import_jammed=import_jammed,
+            outdir=outdir,
+            use_cell_lists=use_cell_lists,
+            show=show,
+            interaction=interaction,
+            override_pot_kwargs=override_pot_kwargs,
+            minimizer=minimizer,
+            logging_tag=logging_tag,
+            write_opengl=write_opengl,
+            check_packing=check_packing,
+            sort_atoms=sort_atoms,
+        )
+        self.parameters = BINARY_SOFT_SPHERE_DEFAULTS.copy()
+
+        self.parameters["eps"] = eps
+        self.parameters["power"] = power
+        self.parameters["phi"] = target_packing_frac
+        self.parameters["r1"] = r1
+        self.parameters["r2"] = r2
+        self.parameters["rstd1"] = rstd1
+        self.parameters["rstd2"] = rstd2
+        self.seed = seed
+
+    def one_iteration(self, fname):
+        """perform one iteration"""
+        self._import_single_config_file(fname)
+        self.parameters["n_part"] = self.nparticles
+        self.parameters["ndim"] = self.bdim
+        self.rattlers = np.empty(self.nparticles, dtype="d")
+        self.rattlers_draw = np.empty(self.nparticles, dtype="d")
+        print("ndim", self.ndim)
+        result_dict = setup_bidisperse(self.parameters, seed=self.seed)
+        radii = result_dict["radii"]
+        box_length = result_dict["box_length"]
+        self._import_packing_configuration(fname)
+        self.max_nrattlers = int(self.nparticles * 0.5)
+        self.hs_radii = radii
+        self.sca = 0.0  # no sca for inverse power
+        self.boxv = np.array([box_length] * self.bdim)
+        self.boxl = box_length
+        self.pot_kwargs = self.parameters.copy()
+        # assert that largest soft particle is not > 1/2 of smallest box size
+        if np.amax(self.hs_radii) * 2 >= np.amin(self.boxv) / 2:
+            logging.warning(self._log("Max soft diameter >= 1/2 box side!"))
+        if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
+            raise Exception("WARNING: particle does not fit the box")
+
+        # potential needs to be called because self.coords is an input argument
+        # of HS_WCAPeriodicCellLists
+        # rut set to largest particle diameter
+
+        self.parameters["radii"] = self.hs_radii
+        self.parameters["box_length"] = self.boxl
+        self.potential = setup_bidisperse(self.parameters, seed=0)["potential"]
+
+        success = self._generate_packing_coords()  # returns false if saddle
+
+        n = int(re.search(r"\d+", fname).group())
+        if success:
+            self._print(n)
+        else:
+            path_list = glob.glob(
+                "{0}/jammed_packing{1}.*".format(self.base_directory, n)
+            )
+            if len(path_list) > 0:
+                with open(
+                    "{0}/mismatching_rattlers.txt".format(self.base_directory),
+                    "a",
+                ) as f:
+                    f.write("jammed_packing{}\n".format(n))
+            for path_ in path_list:
+                p = subprocess.call(shlex.split("rm {}".format(path_)))
+        self.iteration += 1
+        return success
+
+    def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
+        """quenches the imported structure"""
+
+        opt_maxstep = np.amin(self.hs_radii) * 0.5 * self.maxstep_factor
+        if self.minimizer is Minimizer.FIRE:
+            res = modifiedfire_cpp(
+                self.coords,
+                self.potential,
+                maxstep=opt_maxstep,
+                nsteps=1e6,
+                tol=tol,
+                iprint=iprint,
+            )
+        elif self.minimizer is Minimizer.CG:
+            optimizer = CGDescent(
+                self.coords,
+                self.potential,
+                tol=tol,
+                nsteps=1e6,
+                print_level=iprint,
+            )
+            res = optimizer.run()
+        elif self.minimizer is Minimizer.CVODE:
+            from pele.optimize import CVODEBDFOptimizer
+
+            self.optimizer = CVODEBDFOptimizer(
+                self.potential,
+                self.coords,
+                tol=tol,
+                nsteps=1e7,
+                atol=1e-7,
+                rtol=1e-7,
+            )
+            res = self.optimizer.run()
+        elif self.minimizer is Minimizer.LBFGS:
+            res = lbfgs_cpp(
+                self.coords,
+                self.potential,
+                maxstep=opt_maxstep,
+                tol=tol,
+                nsteps=1e6,
+                maxErise=0,
+                iprint=iprint,
+            )
+        else:
+            raise NotImplementedError
+
+        if not res.success:
+            print(res)
+            logging.warning(self._log("Quench failed"))
+            return False
+
+        self.coords = res.coords
+        self.energy = res.energy
+
+        # test that on re-minimisation the structure does not change
+        if __debug__ and self.check_packing:
+            if self.minimizer is Minimizer.FIRE:
+                res2 = modifiedfire_cpp(
+                    self.coords,
+                    self.potential,
+                    maxstep=opt_maxstep,
+                    nsteps=1e6,
+                    tol=tol,
+                )
+            elif self.minimizer is Minimizer.CG:
+                optimizer = CGDescent(
+                    self.coords,
+                    self.potential,
+                    tol=tol,
+                    nsteps=1e6,
+                    print_level=iprint,
+                )
+                res2 = optimizer.run()
+            elif self.minimizer is Minimizer.CVODE:
+                from pele.optimize import CVODEBDFOptimizer
+
+                self.optimizer = CVODEBDFOptimizer(
+                    self.coords,
+                    self.potential,
+                    tol=tol,
+                    nsteps=1e7,
+                    atol=1e-7,
+                    rtol=1e-7,
+                )
+            elif self.minimizer is Minimizer.LBFGS:
+                res2 = lbfgs_cpp(
+                    self.coords,
+                    self.potential,
+                    maxstep=opt_maxstep,
+                    tol=tol,
+                    nsteps=1e6,
+                    maxErise=0,
+                    iprint=iprint,
+                )
+            else:
+                raise NotImplementedError
+            if res2.nfev > 1:
+                logging.warning(
+                    self._log(
+                        "Quench failed (structure changed at "
+                        "second minimisation)"
+                    )
+                )
+                return False
+
+        return self._find_rattlers()
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
@@ -1033,20 +1267,38 @@ if __name__ == "__main__":
     if args.balance_omp is not None:
         override_pot_kwargs["balance_omp"] = args.balance_omp
 
-    sim = HS_Generate_Jammed_Packing(
-        target_packing_frac=args.density,
-        packings_dir=args.packingsdir,
-        packing_nrs=args.packing_nrs,
-        import_jammed=args.import_jammed,
-        outdir=args.outdir,
-        tol=args.tol,
-        maxstep_factor=args.maxstep,
-        use_cell_lists=not args.nocell,
-        show=args.show,
-        interaction=interaction,
-        minimizer=minimizer,
-        override_pot_kwargs=override_pot_kwargs,
-        write_opengl=args.write_opengl,
-        sort_atoms=args.sort,
-    )
+    if interaction is Interaction.INVERSE_POWER:
+        sim = InversePowerGeneratePackings(
+            target_packing_frac=args.density,
+            packings_dir=args.packingsdir,
+            packing_nrs=args.packing_nrs,
+            import_jammed=args.import_jammed,
+            outdir=args.outdir,
+            tol=args.tol,
+            maxstep_factor=args.maxstep,
+            use_cell_lists=not args.nocell,
+            show=args.show,
+            interaction=interaction,
+            minimizer=minimizer,
+            override_pot_kwargs=override_pot_kwargs,
+            write_opengl=args.write_opengl,
+            sort_atoms=args.sort,
+        )
+    else:
+        sim = HS_Generate_Jammed_Packing(
+            target_packing_frac=args.density,
+            packings_dir=args.packingsdir,
+            packing_nrs=args.packing_nrs,
+            import_jammed=args.import_jammed,
+            outdir=args.outdir,
+            tol=args.tol,
+            maxstep_factor=args.maxstep,
+            use_cell_lists=not args.nocell,
+            show=args.show,
+            interaction=interaction,
+            minimizer=minimizer,
+            override_pot_kwargs=override_pot_kwargs,
+            write_opengl=args.write_opengl,
+            sort_atoms=args.sort,
+        )
     sim.run()

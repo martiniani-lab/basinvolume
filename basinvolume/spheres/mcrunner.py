@@ -7,7 +7,12 @@ import numpy as np
 import sys
 import warnings
 import logging
-from pele.potentials import Harmonic, HS_WCA, InversePowerStillingerCut
+from pele.potentials import (
+    Harmonic,
+    HS_WCA,
+    InversePowerStillingerCut,
+    InversePower,
+)
 from pele.optimize import ModifiedFireCPP, LBFGS_CPP, CVODEBDFOptimizer
 from pele.optimize._quench import modifiedfire_cpp
 from pele.storage.database import Minimum
@@ -34,6 +39,7 @@ from basinvolume.monte_carlo import (
     CheckOverlapLeesEdwardsCellLists,
 )
 from basinvolume.enums import Minimizer, Interaction
+
 
 try:
     from mcpele.monte_carlo import RecordCoordsTimeseries
@@ -203,6 +209,21 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 boxvec=self.boxv,
                 rcut=rcut,
                 use_cell_lists=True,
+            )
+        elif self.interaction is Interaction.INVERSE_POWER:
+            power = self.pot_kwargs["power"]
+            eps = self.pot_kwargs["eps"]
+            if len(self.hs_radii) * self.bdim > 100:
+                use_cell_lists = True
+            else:
+                use_cell_lists = False
+            pot_optimizer = InversePower(
+                power,
+                eps,
+                ndim=self.bdim,
+                boxvec=self.boxv,
+                radii=self.hs_radii,
+                use_cell_lists=use_cell_lists,
             )
         else:
             raise NotImplementedError

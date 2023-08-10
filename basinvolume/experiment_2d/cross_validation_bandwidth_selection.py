@@ -28,14 +28,16 @@ class CrossValidationBandwidthSelection(object):
         optimizer = LBFGS(np.asarray([h_initial]), pot)
         logging.info("run bandwidth optimization")
         result = optimizer.run()
-        logging.info("done")
+        # logging.info("done")
         self.opt_bandwidth = result.coords
 
 
 def get_bandwidth_estimate(data, kernel="gaussian", method="cross_validation"):
     nr_samples = len(data)
     std_samples = np.std(data)
-    silverman_bandwidth = ((4 * std_samples**5) / (3 * nr_samples)) ** (1 / 5)
+    silverman_bandwidth = ((4 * std_samples**5) / (3 * nr_samples)) ** (
+        1 / 5
+    )
     if method == "Silverman":
         return np.asarray([silverman_bandwidth])
     loocv = CrossValidationBandwidthSelection(
@@ -45,7 +47,9 @@ def get_bandwidth_estimate(data, kernel="gaussian", method="cross_validation"):
 
 
 def get_pdf(data, x_sample_positions, bandwidth=2, kernel="gaussian"):
-    kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
+    kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(
+        data[:, np.newaxis]
+    )
     log_pdf = kde.score_samples(x_sample_positions[:, np.newaxis])
     return np.exp(log_pdf)
 
@@ -53,7 +57,9 @@ def get_pdf(data, x_sample_positions, bandwidth=2, kernel="gaussian"):
 def sample_from_pdf(
     data, nr_samples, bandwidth=2, kernel="gaussian", random_state=None
 ):
-    kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
+    kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(
+        data[:, np.newaxis]
+    )
     return kde.sample(nr_samples, random_state=random_state)[:, 0]
 
 
@@ -71,7 +77,10 @@ def compute_central_moment(pdf_x, pdf_pdf, exponent=0):
         raise Exception("illegal input")
     mu = compute_raw_moment(pdf_x, pdf_pdf, exponent=1)
     return integrate.romb(
-        [pdf_pdfi * (xi - mu) ** exponent for (pdf_pdfi, xi) in zip(pdf_pdf, pdf_x)],
+        [
+            pdf_pdfi * (xi - mu) ** exponent
+            for (pdf_pdfi, xi) in zip(pdf_pdf, pdf_x)
+        ],
         dx=pdf_x[1] - pdf_x[0],
     )
 

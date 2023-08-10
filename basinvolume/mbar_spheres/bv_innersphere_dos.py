@@ -56,7 +56,7 @@ if __name__ == "__main__":
         "--minimizer",
         type=str,
         help="Energy minimization algorithm "
-        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS', CVODE "
         "Default: 'FIRE'",
         default="FIRE",
     )

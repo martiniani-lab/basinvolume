@@ -131,10 +131,6 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
 
     def _print_initialise(self):
         base_directory = self.base_directory
-        current_dir = os.getcwd()
-        if os.path.basename(current_dir) == self.base_directory:
-            base_directory = current_dir
-
         trymakedir(base_directory)
         directory = "{0}/{1}".format(base_directory, self.rank)
         trymakedir(directory)

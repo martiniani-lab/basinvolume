@@ -1,5 +1,6 @@
 from __future__ import division
 from __future__ import print_function
+import logging
 from future import standard_library
 
 standard_library.install_aliases()
@@ -194,7 +195,7 @@ class _findk_mcrunner(ConfigMCRunner):
         for val in self.boxv:
             f.write("{:.16f} ".format(val))
         f.write("\n")
-        assert self.sca > 0
+        assert self.sca >= 0.0, "sca must be positive"
         f.write("sca: {:.16f}\n".format(self.sca))
         f.write("[FINDK_MCRUNNER]\n")
         for key, value in list(self.mc_params.items()):

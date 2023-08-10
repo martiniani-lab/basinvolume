@@ -243,7 +243,7 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         for val in self.boxv:
             f.write("{:.16f} ".format(val))
         f.write("\n")
-        assert self.sca > 0
+        assert self.sca >= 0
         f.write("sca: {:.16f}\n".format(self.sca))
         f.write("[INNERSPHERE_MCRUNNER]\n")
         for key, value in list(self.mc_params.items()):

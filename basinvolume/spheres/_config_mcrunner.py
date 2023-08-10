@@ -5,7 +5,7 @@ from builtins import object
 import numpy as np
 import os
 import abc
-from pele.potentials import HS_WCA, InversePowerStillinger
+from pele.potentials import HS_WCA, InversePowerStillinger, InversePower
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import (
     get_git_version,
@@ -104,7 +104,7 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
         self, dtol, opt_maxstep, verbose, gtol=1e-7, frozen=False
     ):
         """re-quench origin to avoid rounding errors"""
-        quench = lambda red_coords, pot_optmizer: modifiedfire_cpp(
+        quench = lambda red_coords, pot_optimizer: modifiedfire_cpp(
             red_coords,
             pot_optimizer,
             maxstep=opt_maxstep,
@@ -158,6 +158,8 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
                 boxvec=self.boxv,
                 radii=self.hs_radii,
             )
+            res = quench(self.red_coords, pot_optimizer)
+            new_coords = res.coords
 
         else:
             raise NotImplementedError
