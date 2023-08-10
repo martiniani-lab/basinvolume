@@ -1,5 +1,6 @@
 from __future__ import division
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
@@ -13,15 +14,26 @@ import shlex
 import subprocess
 import logging
 from basinvolume.enums import Interaction
-from basinvolume.cluster_manager import BatchScript, BatchSystem, MPI_Implementation
+from basinvolume.cluster_manager import (
+    BatchScript,
+    BatchSystem,
+    MPI_Implementation,
+)
 from basinvolume.utils import trymakedir, check_kmax_reasonable
 from basinvolume.enums import Minimizer
-from basinvolume.spheres import (HS_Generate_Jammed_Packing,
-                                 read_jammed_packing_config, ExchangeScheme)
+from basinvolume.spheres import (
+    HS_Generate_Jammed_Packing,
+    read_jammed_packing_config,
+    ExchangeScheme,
+)
 
 
 def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
+    return [
+        name
+        for name in os.listdir(dir)
+        if os.path.isdir(os.path.join(dir, name))
+    ]
 
 
 class SubmitBV(object):
@@ -36,25 +48,49 @@ class SubmitBV(object):
     *nodays if true use walltime HH:MM:SS format (necessary for some clusters)
     *numnegk is the number of negative ks to use during PT
     """
-    def __init__(self, ndim, batch_system=BatchSystem.SLURM, workdir=None,
-                 job_label='32_70_88_2D',
-                 explore_dir='explore_bv_jammed_packing',
-                 kmax_config='findk_jammed_packing',
-                 kmin_config='kmin_jammed_packing',
-                 innersphere_dos_config='innersphere_jammed_packing',
-                 pt_config='explore_jammed_packing',
-                 packing_naming='jammed_packing',
-                 structures_dir='jammed_packings', pt_structures_dir='jammed_packings',
-                 nojmin=0, nojmax=1e6, nodays=False, experimental=False,
-                 minimizer=Minimizer.FIRE, record_steps_timeseries=False,
-                 kmax_start=500, mintotniter=5e5, maxtotniter=2e6, adjustf_niter=5e4,
-                 relstderr=0.05, numnegk=0, lownegk=-2.5, nocell=False, delraw=False,
-                 cores_per_node=16, nthreads=1, pt_nthreads=1, pt_workers=4,
-                 pt_replicas=16, pt_adjustf_navg=100,
-                 pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
-                 pt_sleep_seconds=0.0001, pt_collect_minima=False,
-                 pt_checkpoint_time=None, mpi_impl=MPI_Implementation.OPENMPI,
-                 verbose=False):
+
+    def __init__(
+        self,
+        ndim,
+        batch_system=BatchSystem.SLURM,
+        workdir=None,
+        job_label="32_70_88_2D",
+        explore_dir="explore_bv_jammed_packing",
+        kmax_config="findk_jammed_packing",
+        kmin_config="kmin_jammed_packing",
+        innersphere_dos_config="innersphere_jammed_packing",
+        pt_config="explore_jammed_packing",
+        packing_naming="jammed_packing",
+        structures_dir="jammed_packings",
+        pt_structures_dir="jammed_packings",
+        nojmin=0,
+        nojmax=1e6,
+        nodays=False,
+        experimental=False,
+        minimizer=Minimizer.FIRE,
+        record_steps_timeseries=False,
+        kmax_start=500,
+        mintotniter=5e5,
+        maxtotniter=2e6,
+        adjustf_niter=5e4,
+        relstderr=0.05,
+        numnegk=0,
+        lownegk=-2.5,
+        nocell=False,
+        delraw=False,
+        cores_per_node=16,
+        nthreads=1,
+        pt_nthreads=1,
+        pt_workers=4,
+        pt_replicas=16,
+        pt_adjustf_navg=100,
+        pt_exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
+        pt_sleep_seconds=0.0001,
+        pt_collect_minima=False,
+        pt_checkpoint_time=None,
+        mpi_impl=MPI_Implementation.OPENMPI,
+        verbose=False,
+    ):
         if not workdir:
             workdir = os.getcwd()
         if not os.path.isabs(workdir):
@@ -86,8 +122,14 @@ class SubmitBV(object):
         self.nocell = nocell
         self.delraw = delraw
         self.cores_per_node = cores_per_node
-        self.checkpoint_file = 'checkpoint.dmp'
-        self.pt_output_files = ["exchanges", "rem_permutations", "temperatures", "stepsizes", self.checkpoint_file]
+        self.checkpoint_file = "checkpoint.dmp"
+        self.pt_output_files = [
+            "exchanges",
+            "rem_permutations",
+            "temperatures",
+            "stepsizes",
+            self.checkpoint_file,
+        ]
         self.pt_workers = pt_workers
         self.pt_replicas = pt_replicas
         self.pt_adjustf_navg = pt_adjustf_navg
@@ -101,22 +143,24 @@ class SubmitBV(object):
         self.verbose = verbose
         if ndim == 2:
             if not self.experimental:
-                self.ext = '.xydr'
+                self.ext = ".xydr"
             else:
-                self.ext = '.xydfr'
+                self.ext = ".xydfr"
         else:
             if not self.experimental:
-                self.ext = '.xyzdr'
+                self.ext = ".xyzdr"
             else:
-                self.ext = '.xyzdfr'
+                self.ext = ".xyzdfr"
         if self.batch_system == BatchSystem.PBS:
-            self.submit_cmd = 'qsub'
-            self.workdir_var = 'PBS_O_WORKDIR'
+            self.submit_cmd = "qsub"
+            self.workdir_var = "PBS_O_WORKDIR"
         elif self.batch_system == BatchSystem.SLURM:
-            self.submit_cmd = 'sbatch'
-            self.workdir_var = 'SLURM_SUBMIT_DIR'
+            self.submit_cmd = "sbatch"
+            self.workdir_var = "SLURM_SUBMIT_DIR"
         else:
-            raise ValueError("Batch system not implemented: {}".format(self.batch_system))
+            raise ValueError(
+                "Batch system not implemented: {}".format(self.batch_system)
+            )
 
     def _check_kmax_config_file_ready(self, kmax_configpath):
         """
@@ -128,9 +172,9 @@ class SubmitBV(object):
         configf = configparser.ConfigParser()
         try:
             configf.read(str(kmax_configpath))
-            kmax = configf.getfloat('FINDK', 'kmax')
-            prob_kmax = configf.getfloat('FINDK', 'prob')
-            success = configf.getboolean('STATUS', 'success')
+            kmax = configf.getfloat("FINDK", "kmax")
+            prob_kmax = configf.getfloat("FINDK", "prob")
+            success = configf.getboolean("STATUS", "success")
         except:
             return False
         return success
@@ -145,9 +189,9 @@ class SubmitBV(object):
         configf = configparser.ConfigParser()
         try:
             configf.read(str(kmin_configpath))
-            displ_k_min = configf.getfloat('KMIN', 'displ_k_min')
-            var_displ_k_min = configf.getfloat('KMIN', 'var_displ_k_min')
-            success = configf.getboolean('STATUS', 'success')
+            displ_k_min = configf.getfloat("KMIN", "displ_k_min")
+            var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")
+            success = configf.getboolean("STATUS", "success")
         except:
             return False
         return success
@@ -162,7 +206,7 @@ class SubmitBV(object):
         configf = configparser.ConfigParser()
         try:
             configf.read(str(pt_configpath))
-            success_dict = dict(configf.items('STATUS'))
+            success_dict = dict(configf.items("STATUS"))
         except:
             return False
         for key, value in list(success_dict.items()):
@@ -170,7 +214,9 @@ class SubmitBV(object):
                 return False
         return True
 
-    def _check_innersphere_dos_config_file_ready(self, innersphere_dos_configpath):
+    def _check_innersphere_dos_config_file_ready(
+        self, innersphere_dos_configpath
+    ):
         """
         checks whether config files are ready (hence the necessary calculations have already been launched or have terminated),
         returns false if they are not
@@ -180,7 +226,7 @@ class SubmitBV(object):
         configf = configparser.ConfigParser()
         try:
             configf.read(str(innersphere_dos_configpath))
-            success = configf.getboolean('STATUS', 'success')
+            success = configf.getboolean("STATUS", "success")
         except:
             return False
         return success
@@ -190,24 +236,40 @@ class SubmitBV(object):
 
     def _remove_bv_output(self, explore_dir_path, output_signature):
         p = subprocess.call(
-            shlex.split("find {} -maxdepth 1 -type f -name \"{}\" -exec rm -vf '{{}}' \;"
-                        .format(explore_dir_path, output_signature)))
+            shlex.split(
+                "find {} -maxdepth 1 -type f -name \"{}\" -exec rm -vf '{{}}' \;".format(
+                    explore_dir_path, output_signature
+                )
+            )
+        )
         if p != 0:
             raise Exception("removing BV output file failed")
 
-    def _remove_innersphere_dos_old_data(self, explore_dir_path, config_fname,
-                                         output_signature="bv*innersphere_dos*.o*",
-                                         rmdata="inner_sphere.timeseries"):
+    def _remove_innersphere_dos_old_data(
+        self,
+        explore_dir_path,
+        config_fname,
+        output_signature="bv*innersphere_dos*.o*",
+        rmdata="inner_sphere.timeseries",
+    ):
         try:
             os.remove(os.path.join(explore_dir_path, rmdata))
-            logging.info("Removed {}".format(os.path.join(explore_dir_path, rmdata)))
+            logging.info(
+                "Removed {}".format(os.path.join(explore_dir_path, rmdata))
+            )
         except OSError:
             pass  # nothing to remove
         # remove config file and bv output
         self._remove_bv_output(explore_dir_path, output_signature)
         self._remove_bv_output(explore_dir_path, config_fname + "*.config")
 
-    def _remove_pt_old_data(self, explore_dir_path, config_fname, output_signature="bv*pt*.o*", pt=False):
+    def _remove_pt_old_data(
+        self,
+        explore_dir_path,
+        config_fname,
+        output_signature="bv*pt*.o*",
+        pt=False,
+    ):
         for root, dirs, files in os.walk(explore_dir_path):
             for dir in dirs:
                 if dir.isdigit():
@@ -221,20 +283,28 @@ class SubmitBV(object):
         self._remove_bv_output(explore_dir_path, output_signature)
         self._remove_bv_output(explore_dir_path, config_fname + "*.config")
 
-    def _get_findk_command(self, noj, path_to_script, script='bv_find_kmin.py', record_steps_timeseries=False):
+    def _get_findk_command(
+        self,
+        noj,
+        path_to_script,
+        script="bv_find_kmin.py",
+        record_steps_timeseries=False,
+    ):
         """
         this function returns the correct command line
         """
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
-        command = 'python {0} {1}'.format(findk_script, packing)
-        command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir))
+        command = "python {0} {1}".format(findk_script, packing)
+        command += " -p ${{{0}}}/{1}".format(
+            self.workdir_var, self.structures_dir
+        )
 
         command += " --explore-dir {}".format(self.explore_dir)
         command += " --minimizer {}".format(self.minimizer.name)
         if record_steps_timeseries:
             command += " --rsts"
-        if script == 'bv_find_kmax.py':
+        if script == "bv_find_kmax.py":
             command += " --kstart {}".format(self.kmax_start)
         if self.nocell:
             command += " --nocell"
@@ -242,7 +312,9 @@ class SubmitBV(object):
             command += " --verbose"
         return command
 
-    def _get_innersphere_dos_command(self, noj, path_to_script, script='bv_innersphere_dos.py'):
+    def _get_innersphere_dos_command(
+        self, noj, path_to_script, script="bv_innersphere_dos.py"
+    ):
         """
         this function returns the correct command line.
 
@@ -250,9 +322,15 @@ class SubmitBV(object):
         so it goes up one folder from path_to_script and replaces 'spheres' with  'mbar_spheres'
         """
         packing = self.packing_naming + noj + self.ext
-        innersphere_dos_script = os.path.join(os.path.dirname(os.path.dirname(path_to_script)), 'mbar_spheres', script)
-        command = 'python {0} {1}'.format(innersphere_dos_script, packing)
-        command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir))
+        innersphere_dos_script = os.path.join(
+            os.path.dirname(os.path.dirname(path_to_script)),
+            "mbar_spheres",
+            script,
+        )
+        command = "python {0} {1}".format(innersphere_dos_script, packing)
+        command += " -p ${{{0}}}/{1}".format(
+            self.workdir_var, self.structures_dir
+        )
         command += " --explore-dir {}".format(self.explore_dir)
         command += " --minimizer {}".format(self.minimizer.name)
         if self.nocell:
@@ -261,7 +339,9 @@ class SubmitBV(object):
             command += " --verbose"
         return command
 
-    def submit_kmin_calculations(self, queue_or_partition, walltime, path_to_script, force):
+    def submit_kmin_calculations(
+        self, queue_or_partition, walltime, path_to_script, force
+    ):
         """
         launch kmin calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present,
@@ -269,86 +349,157 @@ class SubmitBV(object):
         as the calculation might have already been launched and it is in the queue)
         *batch_script object of type BatchScript
         *path_to_script, excluding the filename with .py extension
+
+        This is a wrapper around basinvolume/spheres/bv_find_kmin.py
         """
         subdirs = get_immediate_subdirectories(self.workdir)
-        assert (self.structures_dir in subdirs)
+        assert self.structures_dir in subdirs
         structures_dir_path = os.path.join(self.workdir, self.structures_dir)
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]  # extract packing number
+                    noj = re.findall(r"\d+", file)[0]  # extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
-                        explore_dir = self.explore_dir + noj  # build explore_dir name
+                        explore_dir = (
+                            self.explore_dir + noj
+                        )  # build explore_dir name
                         if not os.path.isfile(
-                                os.path.join(self.workdir, explore_dir + ".tar.gz")):  # check if there's a tar version
-                            path = os.path.join(self.workdir, explore_dir)  # build a full path for explore dir
-                            if (explore_dir) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
+                            os.path.join(self.workdir, explore_dir + ".tar.gz")
+                        ):  # check if there's a tar version
+                            path = os.path.join(
+                                self.workdir, explore_dir
+                            )  # build a full path for explore dir
+                            if (
+                                explore_dir
+                            ) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
                                 trymakedir(path)
-                            kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
-                            if not self._check_kmin_config_file_ready(kmin_path) or force:
+                            kmin_path = os.path.join(
+                                path, self.kmin_config + noj + ".config"
+                            )
+                            if (
+                                not self._check_kmin_config_file_ready(
+                                    kmin_path
+                                )
+                                or force
+                            ):
                                 #########remove old BV output#######
-                                self._remove_bv_output(explore_dir, "bv_{}_kmin{}.o*".format(self.label, noj))
+                                self._remove_bv_output(
+                                    explore_dir,
+                                    "bv_{}_kmin{}.o*".format(self.label, noj),
+                                )
                                 #####################################
                                 if not os.path.isabs(path_to_script):
-                                    path_to_script = os.path.abspath(path_to_script)
-                                command = self._get_findk_command(noj, path_to_script, script='bv_find_kmin.py',
-                                                                  record_steps_timeseries=self.record_steps_timeseries)
+                                    path_to_script = os.path.abspath(
+                                        path_to_script
+                                    )
+                                command = self._get_findk_command(
+                                    noj,
+                                    path_to_script,
+                                    script="bv_find_kmin.py",
+                                    record_steps_timeseries=self.record_steps_timeseries,
+                                )
                                 batch_script = BatchScript(
-                                    self.batch_system, queue_or_partition, walltime, command,
-                                    mpi_procs=1, mpi_oversubscribe=0,
+                                    self.batch_system,
+                                    queue_or_partition,
+                                    walltime,
+                                    command,
+                                    mpi_procs=1,
+                                    mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
-                                    outdir=path, nodays=self.nodays,
-                                    mpi_impl=self.mpi_impl)
-                                batch_script.submit('bv_kmin' + noj + '.sh',
-                                                    'bv_' + self.label + '_kmin' + noj)
+                                    outdir=path,
+                                    nodays=self.nodays,
+                                    mpi_impl=self.mpi_impl,
+                                )
+                                batch_script.submit(
+                                    "bv_kmin" + noj + ".sh",
+                                    "bv_" + self.label + "_kmin" + noj,
+                                )
                             else:
                                 pass
 
-    def submit_kmax_calculations(self, queue_or_partition, walltime, path_to_script, force):
+    def submit_kmax_calculations(
+        self, queue_or_partition, walltime, path_to_script, force
+    ):
         """
         launch kmax calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present,
-        hence this method should only be used when there are no calculations running,
-        as the calculation might have already been launched and it is in the queue)
+        hence this method should only be used when there are no calculations
+        running, as the calculation might have already been launched and
+        it is in the queue)
         *batch_script object of type BatchScript
         *path_to_script, excluding the filename with .py extension
+
+        This is a wrapper around basinvolume/spheres/bv_find_kmax.py
         """
         subdirs = get_immediate_subdirectories(self.workdir)
-        assert (self.structures_dir in subdirs)
+        assert self.structures_dir in subdirs
         structures_dir_path = os.path.join(self.workdir, self.structures_dir)
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]  # extract packing number
+                    noj = re.findall(r"\d+", file)[0]  # extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
-                        explore_dir = self.explore_dir + noj  # build explore_dir name
+                        explore_dir = (
+                            self.explore_dir + noj
+                        )  # build explore_dir name
                         if not os.path.isfile(
-                                os.path.join(self.workdir, explore_dir + ".tar.gz")):  # check if there's a tar version
-                            path = os.path.join(self.workdir, explore_dir)  # build a full path for explore dir
-                            if (explore_dir) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
+                            os.path.join(self.workdir, explore_dir + ".tar.gz")
+                        ):  # check if there's a tar version
+                            path = os.path.join(
+                                self.workdir, explore_dir
+                            )  # build a full path for explore dir
+                            if (explore_dir) not in subdirs:
+                                # check is explore_dir is a
+                                # subfolder of self.workdir
                                 trymakedir(path)
-                            kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
-                            if not self._check_kmax_config_file_ready(kmax_path) or force:
+                            kmax_path = os.path.join(
+                                path, self.kmax_config + noj + ".config"
+                            )
+                            if (
+                                not self._check_kmax_config_file_ready(
+                                    kmax_path
+                                )
+                                or force
+                            ):
                                 #########remove old BV output#######
-                                self._remove_bv_output(explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                self._remove_bv_output(
+                                    explore_dir,
+                                    "bv_{}_kmax{}.o*".format(self.label, noj),
+                                )
                                 #####################################
                                 if not os.path.isabs(path_to_script):
-                                    path_to_script = os.path.abspath(path_to_script)
-                                command = self._get_findk_command(noj, path_to_script, script='bv_find_kmax.py')
+                                    path_to_script = os.path.abspath(
+                                        path_to_script
+                                    )
+                                command = self._get_findk_command(
+                                    noj,
+                                    path_to_script,
+                                    script="bv_find_kmax.py",
+                                )
                                 batch_script = BatchScript(
-                                    self.batch_system, queue_or_partition, walltime, command,
-                                    mpi_procs=1, mpi_oversubscribe=0,
+                                    self.batch_system,
+                                    queue_or_partition,
+                                    walltime,
+                                    command,
+                                    mpi_procs=1,
+                                    mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
-                                    outdir=path, nodays=self.nodays,
-                                    mpi_impl=self.mpi_impl)
-                                batch_script.submit('bv_kmax' + noj + '.sh',
-                                                    'bv_' + self.label + '_kmax' + noj)
+                                    outdir=path,
+                                    nodays=self.nodays,
+                                    mpi_impl=self.mpi_impl,
+                                )
+                                batch_script.submit(
+                                    "bv_kmax" + noj + ".sh",
+                                    "bv_" + self.label + "_kmax" + noj,
+                                )
                             else:
                                 pass
 
-    def submit_innersphere_dos_calculations(self, queue_or_partition, walltime, path_to_script, force):
+    def submit_innersphere_dos_calculations(
+        self, queue_or_partition, walltime, path_to_script, force
+    ):
         """
         launch innersphere_dos bv_innersphere_dos calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present,
@@ -358,62 +509,119 @@ class SubmitBV(object):
         *path_to_script, excluding the filename with .py extension
         """
         subdirs = get_immediate_subdirectories(self.workdir)
-        assert (self.structures_dir in subdirs)
+        assert self.structures_dir in subdirs
         structures_dir_path = os.path.join(self.workdir, self.structures_dir)
         for root, dirs, files in os.walk(structures_dir_path):
             for file in files:
                 if self.ext in file:
-                    noj = re.findall(r'\d+', file)[0]  # extract packing number
+                    noj = re.findall(r"\d+", file)[0]  # extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
-                        explore_dir = self.explore_dir + noj  # build explore_dir name
+                        explore_dir = (
+                            self.explore_dir + noj
+                        )  # build explore_dir name
                         if not os.path.isfile(
-                                os.path.join(self.workdir, explore_dir + ".tar.gz")):  # check if there's a tar version
-                            path = os.path.join(self.workdir, explore_dir)  # build a full path for explore dir
-                            if (explore_dir) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
+                            os.path.join(self.workdir, explore_dir + ".tar.gz")
+                        ):  # check if there's a tar version
+                            path = os.path.join(
+                                self.workdir, explore_dir
+                            )  # build a full path for explore dir
+                            if (
+                                explore_dir
+                            ) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
                                 trymakedir(path)
-                            innersphere_dos_path = os.path.join(path, self.innersphere_dos_config + noj + '.config')
-                            kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
-                            pt_path = os.path.join(path, self.pt_config + noj + '.config')
-                            if (self._check_pt_config_file_ready(pt_path) \
-                                        and self._check_kmax_config_file_ready(kmax_path)) \
-                                    and (not self._check_innersphere_dos_config_file_ready(
-                                        innersphere_dos_path) or force):
+                            innersphere_dos_path = os.path.join(
+                                path,
+                                self.innersphere_dos_config + noj + ".config",
+                            )
+                            kmax_path = os.path.join(
+                                path, self.kmax_config + noj + ".config"
+                            )
+                            pt_path = os.path.join(
+                                path, self.pt_config + noj + ".config"
+                            )
+                            if (
+                                self._check_pt_config_file_ready(pt_path)
+                                and self._check_kmax_config_file_ready(
+                                    kmax_path
+                                )
+                            ) and (
+                                not self._check_innersphere_dos_config_file_ready(
+                                    innersphere_dos_path
+                                )
+                                or force
+                            ):
                                 #########remove old innersphere data#######
-                                self._remove_innersphere_dos_old_data(explore_dir, self.innersphere_dos_config + noj,
-                                                                      output_signature="bv_{}_innersphere_dos{}.o*".format(
-                                                                          self.label, noj))
+                                self._remove_innersphere_dos_old_data(
+                                    explore_dir,
+                                    self.innersphere_dos_config + noj,
+                                    output_signature="bv_{}_innersphere_dos{}.o*".format(
+                                        self.label, noj
+                                    ),
+                                )
                                 #####################################
                                 if not os.path.isabs(path_to_script):
-                                    path_to_script = os.path.abspath(path_to_script)
-                                command = self._get_innersphere_dos_command(noj, path_to_script,
-                                                                            script='bv_innersphere_dos.py')
+                                    path_to_script = os.path.abspath(
+                                        path_to_script
+                                    )
+                                command = self._get_innersphere_dos_command(
+                                    noj,
+                                    path_to_script,
+                                    script="bv_innersphere_dos.py",
+                                )
                                 batch_script = BatchScript(
-                                    self.batch_system, queue_or_partition, walltime, command,
-                                    mpi_procs=1, mpi_oversubscribe=0,
+                                    self.batch_system,
+                                    queue_or_partition,
+                                    walltime,
+                                    command,
+                                    mpi_procs=1,
+                                    mpi_oversubscribe=0,
                                     omp_threads=self.nthreads,
                                     cores_per_node=self.cores_per_node,
-                                    outdir=path, nodays=self.nodays,
-                                    mpi_impl=self.mpi_impl)
-                                batch_script.submit('bv_innersphere_dos' + noj + '.sh',
-                                                    'bv_' + self.label + '_innersphere_dos' + noj)
+                                    outdir=path,
+                                    nodays=self.nodays,
+                                    mpi_impl=self.mpi_impl,
+                                )
+                                batch_script.submit(
+                                    "bv_innersphere_dos" + noj + ".sh",
+                                    "bv_"
+                                    + self.label
+                                    + "_innersphere_dos"
+                                    + noj,
+                                )
                             else:
                                 pass
 
-    def _get_pt_command(self, noj, path_to_script, script='bv_parallel_tempering.py',
-                        load_checkpoint=False):
+    def _get_pt_command(
+        self,
+        noj,
+        path_to_script,
+        script="bv_parallel_tempering.py",
+        load_checkpoint=False,
+    ):
         """
         this function returns the correct command line for the parallel tempering calculation
         """
         packing = self.packing_naming + noj + self.ext
         explore_dir = self.explore_dir + noj
         pt_script = os.path.join(path_to_script, script)
-        command = ("python {0} {1} ${{{2}}}/{3} "
-                   "--mintotniter {4} --maxtotniter {5} --adjustf-niter {6} "
-                   "--relstderr {7} --nreplicas {8}"
-                   .format(pt_script, packing, self.workdir_var, explore_dir,
-                           self.mintotniter, self.maxtotniter, self.adjustf_niter,
-                           self.relstderr, self.pt_replicas))
-        command += (" -p ${{{0}}}/{1}".format(self.workdir_var, self.pt_structures_dir))
+        command = (
+            "python {0} {1} ${{{2}}}/{3} "
+            "--mintotniter {4} --maxtotniter {5} --adjustf-niter {6} "
+            "--relstderr {7} --nreplicas {8}".format(
+                pt_script,
+                packing,
+                self.workdir_var,
+                explore_dir,
+                self.mintotniter,
+                self.maxtotniter,
+                self.adjustf_niter,
+                self.relstderr,
+                self.pt_replicas,
+            )
+        )
+        command += " -p ${{{0}}}/{1}".format(
+            self.workdir_var, self.pt_structures_dir
+        )
         if self.nocell:
             command += " --nocell"
         command += " --minimizer {}".format(self.minimizer.name)
@@ -423,7 +631,9 @@ class SubmitBV(object):
         if self.pt_collect_minima:
             command += " --collect-minima"
         if self.numnegk > 0:
-            command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
+            command += " --numnegk {0} --lownegk {1}".format(
+                self.numnegk, self.lownegk
+            )
         if self.pt_checkpoint_time is not None:
             command += " --checkpoint-time {}".format(self.pt_checkpoint_time)
         if load_checkpoint:
@@ -434,7 +644,9 @@ class SubmitBV(object):
             command += " --verbose"
         return command
 
-    def submit_pt_calculations(self, queue_or_partition, walltime, path_to_script, force):
+    def submit_pt_calculations(
+        self, queue_or_partition, walltime, path_to_script, force
+    ):
         """
         launch pt calculations manually if they have not been launched yet
         (this method only checks that the config files are not ready or present,
@@ -442,72 +654,142 @@ class SubmitBV(object):
         as the calculation might have already been launched and it is in the queue)
         *batch_script object of type BatchScript
         *path_to_script, excluding the filename with .py extension
+
+        Finds a bv_parallel_tempering script and runs it
         """
         for root, dirs, files in os.walk(self.workdir):
             for dir in dirs:
-                if self.explore_dir in dir:  # PT requires that the explore_dir has already been created
+                if (
+                    self.explore_dir in dir
+                ):  # PT requires that the explore_dir has already been created
                     if not os.path.isfile(
-                            os.path.join(self.workdir, dir + ".tar.gz")):  # check if there's a tar version
-                        noj = re.findall(r'\d+', dir)[0]  # extract packing number from explor_dir string
+                        os.path.join(self.workdir, dir + ".tar.gz")
+                    ):  # check if there's a tar version
+                        noj = re.findall(r"\d+", dir)[
+                            0
+                        ]  # extract packing number from explor_dir string
                         if self.nojmin <= int(noj) <= self.nojmax:
                             path = os.path.join(root, dir)  # build a full path
-                            kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
-                            kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
-                            pt_path = os.path.join(path, self.pt_config + noj + '.config')
-                            if (self._check_kmax_config_file_ready(kmax_path) \
-                                        and self._check_kmin_config_file_ready(kmin_path)) \
-                                    and (not self._check_pt_config_file_ready(pt_path) or force):
+                            kmax_path = os.path.join(
+                                path, self.kmax_config + noj + ".config"
+                            )
+                            kmin_path = os.path.join(
+                                path, self.kmin_config + noj + ".config"
+                            )
+                            pt_path = os.path.join(
+                                path, self.pt_config + noj + ".config"
+                            )
+                            if (
+                                self._check_kmax_config_file_ready(kmax_path)
+                                and self._check_kmin_config_file_ready(
+                                    kmin_path
+                                )
+                            ) and (
+                                not self._check_pt_config_file_ready(pt_path)
+                                or force
+                            ):
                                 #############remove old pt data##############
-                                self._remove_pt_old_data(dir, self.pt_config + noj,
-                                                         output_signature="bv_{}_pt{}.o*".format(self.label, noj))
+                                self._remove_pt_old_data(
+                                    dir,
+                                    self.pt_config + noj,
+                                    output_signature="bv_{}_pt{}.o*".format(
+                                        self.label, noj
+                                    ),
+                                )
                                 ##############################################
                                 ##now check that kmax has a reasonable value##
                                 if check_kmax_reasonable(kmax_path):
                                     if not os.path.isabs(path_to_script):
-                                        path_to_script = os.path.abspath(path_to_script)
-                                    mpi_procs = min(self.pt_workers+1, self.pt_replicas)
+                                        path_to_script = os.path.abspath(
+                                            path_to_script
+                                        )
+                                    mpi_procs = min(
+                                        self.pt_workers + 1, self.pt_replicas
+                                    )
                                     if mpi_procs == self.pt_replicas:
                                         mpi_oversubscribe = 0
                                     else:
                                         mpi_oversubscribe = 1
-                                    pt_fname = 'bv_pt' + noj + '.sh'
-                                    pt_load_fname = 'bv_pt_load' + noj + '.sh'
-                                    command = self._get_pt_command(noj, path_to_script)
+                                    pt_fname = "bv_pt" + noj + ".sh"
+                                    pt_load_fname = "bv_pt_load" + noj + ".sh"
+                                    # points to a bv_parallel_tempering.py script
+                                    command = self._get_pt_command(
+                                        noj,
+                                        path_to_script,
+                                        script="bv_parallel_tempering.py",
+                                    )
                                     if self.pt_checkpoint_time is not None:
-                                        command += (' && if [ -f ${{{0}}}/{1}/{4} ]; '
-                                                       'then {2} ${{{0}}}/{3}; fi'.format(
-                                            self.workdir_var, explore_dir, self.submit_cmd,
-                                            pt_load_fname, self.checkpoint_file))
-                                        load_command = self._get_pt_command(noj, path_to_script,
-                                                                            load_checkpoint=True)
-                                        load_command += (' && if [ -f ${{{0}}}/{1}/{4} ]; '
-                                                         'then {2} ${{{0}}}/{3}; fi'.format(
-                                            self.workdir_var, explore_dir, self.submit_cmd,
-                                            pt_load_fname, self.checkpoint_file))
+                                        command += (
+                                            " && if [ -f ${{{0}}}/{1}/{4} ]; "
+                                            "then {2} ${{{0}}}/{3}; fi".format(
+                                                self.workdir_var,
+                                                explore_dir,
+                                                self.submit_cmd,
+                                                pt_load_fname,
+                                                self.checkpoint_file,
+                                            )
+                                        )
+                                        load_command = self._get_pt_command(
+                                            noj,
+                                            path_to_script,
+                                            load_checkpoint=True,
+                                        )
+                                        load_command += (
+                                            " && if [ -f ${{{0}}}/{1}/{4} ]; "
+                                            "then {2} ${{{0}}}/{3}; fi".format(
+                                                self.workdir_var,
+                                                explore_dir,
+                                                self.submit_cmd,
+                                                pt_load_fname,
+                                                self.checkpoint_file,
+                                            )
+                                        )
                                     pt_script = BatchScript(
-                                        self.batch_system, queue_or_partition, walltime, command,
+                                        self.batch_system,
+                                        queue_or_partition,
+                                        walltime,
+                                        command,
                                         mpi_procs=mpi_procs,
                                         mpi_oversubscribe=mpi_oversubscribe,
                                         omp_threads=self.pt_nthreads,
                                         cores_per_node=self.cores_per_node,
-                                        outdir=path, nodays=self.nodays,
-                                        mpi_impl=self.mpi_impl)
+                                        outdir=path,
+                                        nodays=self.nodays,
+                                        mpi_impl=self.mpi_impl,
+                                    )
                                     if self.pt_checkpoint_time is not None:
                                         pt_load_script = BatchScript(
-                                            self.batch_system, queue_or_partition, walltime, load_command,
+                                            self.batch_system,
+                                            queue_or_partition,
+                                            walltime,
+                                            load_command,
                                             mpi_procs=mpi_procs,
                                             mpi_oversubscribe=mpi_oversubscribe,
                                             omp_threads=self.pt_nthreads,
                                             cores_per_node=self.cores_per_node,
-                                            outdir=path, nodays=self.nodays,
-                                            mpi_impl=self.mpi_impl)
-                                        pt_load_script.write(pt_load_fname, 'bv_' + self.label + '_pt' + noj)
-                                    pt_script.submit(pt_fname, 'bv_' + self.label + '_pt' + noj)
+                                            outdir=path,
+                                            nodays=self.nodays,
+                                            mpi_impl=self.mpi_impl,
+                                        )
+                                        pt_load_script.write(
+                                            pt_load_fname,
+                                            "bv_" + self.label + "_pt" + noj,
+                                        )
+                                    pt_script.submit(
+                                        pt_fname,
+                                        "bv_" + self.label + "_pt" + noj,
+                                    )
                             else:
                                 pass
 
-    def submit_chain_calculations(self, k_queue_or_partition, k_walltime, pt_queue_or_partition,
-                                  pt_walltime, path_to_script):
+    def submit_chain_calculations(
+        self,
+        k_queue_or_partition,
+        k_walltime,
+        pt_queue_or_partition,
+        pt_walltime,
+        path_to_script,
+    ):
         """
         launch a chain of calculations. The strategy is to create all 3 bash files at the start and
         then submit them in the following order: kmin -> kmax -> pt.
@@ -516,444 +798,851 @@ class SubmitBV(object):
         *path_to_script, excluding the filename with .py extension
         """
         subdirs = get_immediate_subdirectories(self.workdir)
-        assert (self.structures_dir in subdirs)
-        assert (self.pt_structures_dir in subdirs)
+        assert self.structures_dir in subdirs
+        assert self.pt_structures_dir in subdirs
         structures_dir_path = os.path.join(self.workdir, self.structures_dir)
         for _, _, files in os.walk(structures_dir_path):
             for file in files:
-                noj = re.findall(r'\d+', file)[0]  # extract packing number
+                noj = re.findall(r"\d+", file)[0]  # extract packing number
                 explore_dir = self.explore_dir + noj  # build explore_dir name
-                if (self.ext in file
+                if (
+                    self.ext in file
                     and self.nojmin <= int(noj) <= self.nojmax
                     and not os.path.isfile(
-                            os.path.join(self.workdir, explore_dir + ".tar.gz"))):
+                        os.path.join(self.workdir, explore_dir + ".tar.gz")
+                    )
+                ):
 
-                    path = os.path.join(self.workdir, explore_dir)  # build a full path for explore dir
-                    if (explore_dir) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
+                    path = os.path.join(
+                        self.workdir, explore_dir
+                    )  # build a full path for explore dir
+                    if (
+                        explore_dir
+                    ) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
                         trymakedir(path)
-                    kmax_path = os.path.join(path, self.kmax_config + noj + '.config')
-                    kmin_path = os.path.join(path, self.kmin_config + noj + '.config')
-                    pt_path = os.path.join(path, self.pt_config + noj + '.config')
+                    kmax_path = os.path.join(
+                        path, self.kmax_config + noj + ".config"
+                    )
+                    kmin_path = os.path.join(
+                        path, self.kmin_config + noj + ".config"
+                    )
+                    pt_path = os.path.join(
+                        path, self.pt_config + noj + ".config"
+                    )
                     innersphere_dos_path = os.path.join(
-                        path, self.innersphere_dos_config + noj + '.config')
+                        path, self.innersphere_dos_config + noj + ".config"
+                    )
 
-                    if not self._check_innersphere_dos_config_file_ready(innersphere_dos_path):
+                    if not self._check_innersphere_dos_config_file_ready(
+                        innersphere_dos_path
+                    ):
                         #########remove old innersphere data#######
                         self._remove_innersphere_dos_old_data(
-                            explore_dir, self.innersphere_dos_config + noj,
-                            output_signature="bv_{}_innersphere_dos{}.o*".format(self.label, noj))
+                            explore_dir,
+                            self.innersphere_dos_config + noj,
+                            output_signature="bv_{}_innersphere_dos{}.o*".format(
+                                self.label, noj
+                            ),
+                        )
                         #####################################
                         if not os.path.isabs(path_to_script):
                             path_to_script = os.path.abspath(path_to_script)
                         # kmax_fname = 'bv_kmax'+noj+'.sh' #unused
-                        kmin_fname = 'bv_kmin' + noj + '.sh'
-                        pt_fname = 'bv_pt' + noj + '.sh'
-                        pt_load_fname = 'bv_pt_load' + noj + '.sh'
-                        innersphere_dos_fname = 'bv_innersphere_dos' + noj + '.sh'
-                        innersphere_dos_command = self._get_innersphere_dos_command(
-                            noj, path_to_script, script='bv_innersphere_dos.py')
+                        kmin_fname = "bv_kmin" + noj + ".sh"
+                        pt_fname = "bv_pt" + noj + ".sh"
+                        pt_load_fname = "bv_pt_load" + noj + ".sh"
+                        innersphere_dos_fname = (
+                            "bv_innersphere_dos" + noj + ".sh"
+                        )
+                        innersphere_dos_command = (
+                            self._get_innersphere_dos_command(
+                                noj,
+                                path_to_script,
+                                script="bv_innersphere_dos.py",
+                            )
+                        )
                         innersphere_script = BatchScript(
-                            self.batch_system, k_queue_or_partition, k_walltime,
-                            innersphere_dos_command, mpi_procs=1, mpi_oversubscribe=0,
-                            omp_threads=self.nthreads, cores_per_node=self.cores_per_node,
-                            outdir=path, nodays=self.nodays, mpi_impl=self.mpi_impl)
+                            self.batch_system,
+                            k_queue_or_partition,
+                            k_walltime,
+                            innersphere_dos_command,
+                            mpi_procs=1,
+                            mpi_oversubscribe=0,
+                            omp_threads=self.nthreads,
+                            cores_per_node=self.cores_per_node,
+                            outdir=path,
+                            nodays=self.nodays,
+                            mpi_impl=self.mpi_impl,
+                        )
                         if self._check_pt_config_file_ready(pt_path):
-                            innersphere_script.submit('bv_innersphere_dos' + noj + '.sh',
-                                                      'bv_' + self.label + '_innersphere_dos' + noj)
+                            innersphere_script.submit(
+                                "bv_innersphere_dos" + noj + ".sh",
+                                "bv_" + self.label + "_innersphere_dos" + noj,
+                            )
                         else:
-                            innersphere_script.write(innersphere_dos_fname,
-                                                     'bv_' + self.label + '_innersphere_dos' + noj)
+                            innersphere_script.write(
+                                innersphere_dos_fname,
+                                "bv_" + self.label + "_innersphere_dos" + noj,
+                            )
                             #########remove old pt data#######
-                            self._remove_pt_old_data(explore_dir, self.pt_config + noj,
-                                                     output_signature="bv_{}_pt{}.o*"
-                                                                      .format(self.label, noj))
+                            self._remove_pt_old_data(
+                                explore_dir,
+                                self.pt_config + noj,
+                                output_signature="bv_{}_pt{}.o*".format(
+                                    self.label, noj
+                                ),
+                            )
                             ##################################
-                            kmax_ready = self._check_kmax_config_file_ready(kmax_path)
-                            kmin_ready = self._check_kmin_config_file_ready(kmin_path)
+                            kmax_ready = self._check_kmax_config_file_ready(
+                                kmax_path
+                            )
+                            kmin_ready = self._check_kmin_config_file_ready(
+                                kmin_path
+                            )
                             # prepare PT command
-                            pt_mpi_procs = min(self.pt_workers+1, self.pt_replicas)
+                            pt_mpi_procs = min(
+                                self.pt_workers + 1, self.pt_replicas
+                            )
                             if pt_mpi_procs == self.pt_replicas:
                                 pt_mpi_oversubscribe = 0
                             else:
                                 pt_mpi_oversubscribe = 1
-                            pt_command = self._get_pt_command(noj, path_to_script)
+                            pt_command = self._get_pt_command(
+                                noj, path_to_script
+                            )
                             if self.pt_checkpoint_time is None:
-                                pt_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
-                                                                         self.workdir_var,
-                                                                         innersphere_dos_fname)
+                                pt_command += " && {} ${{{}}}/{}".format(
+                                    self.submit_cmd,
+                                    self.workdir_var,
+                                    innersphere_dos_fname,
+                                )
                             else:
-                                pt_command += (' && if [ -f ${{{0}}}/{1}/{5} ]; '
-                                               'then {2} ${{{0}}}/{3}; '
-                                               'else {2} ${{{0}}}/{4}; fi'.format(
-                                    self.workdir_var, explore_dir, self.submit_cmd,
-                                    pt_load_fname, innersphere_dos_fname,
-                                    self.checkpoint_file))
-                                pt_load_command = self._get_pt_command(noj, path_to_script,
-                                                                       load_checkpoint=True)
-                                pt_load_command += (' && if [ -f ${{{0}}}/{1}/{5} ]; '
-                                                    'then {2} ${{{0}}}/{3}; '
-                                                    'else {2} ${{{0}}}/{4}; fi'.format(
-                                    self.workdir_var, explore_dir, self.submit_cmd,
-                                    pt_load_fname, innersphere_dos_fname,
-                                    self.checkpoint_file))
+                                pt_command += (
+                                    " && if [ -f ${{{0}}}/{1}/{5} ]; "
+                                    "then {2} ${{{0}}}/{3}; "
+                                    "else {2} ${{{0}}}/{4}; fi".format(
+                                        self.workdir_var,
+                                        explore_dir,
+                                        self.submit_cmd,
+                                        pt_load_fname,
+                                        innersphere_dos_fname,
+                                        self.checkpoint_file,
+                                    )
+                                )
+                                pt_load_command = self._get_pt_command(
+                                    noj, path_to_script, load_checkpoint=True
+                                )
+                                pt_load_command += (
+                                    " && if [ -f ${{{0}}}/{1}/{5} ]; "
+                                    "then {2} ${{{0}}}/{3}; "
+                                    "else {2} ${{{0}}}/{4}; fi".format(
+                                        self.workdir_var,
+                                        explore_dir,
+                                        self.submit_cmd,
+                                        pt_load_fname,
+                                        innersphere_dos_fname,
+                                        self.checkpoint_file,
+                                    )
+                                )
                             pt_script = BatchScript(
-                                self.batch_system, pt_queue_or_partition, pt_walltime, pt_command,
+                                self.batch_system,
+                                pt_queue_or_partition,
+                                pt_walltime,
+                                pt_command,
                                 mpi_procs=pt_mpi_procs,
                                 mpi_oversubscribe=pt_mpi_oversubscribe,
                                 omp_threads=self.pt_nthreads,
                                 cores_per_node=self.cores_per_node,
-                                outdir=path, nodays=self.nodays,
-                                mpi_impl=self.mpi_impl)
+                                outdir=path,
+                                nodays=self.nodays,
+                                mpi_impl=self.mpi_impl,
+                            )
                             if self.pt_checkpoint_time is not None:
                                 pt_load_script = BatchScript(
-                                    self.batch_system, pt_queue_or_partition, pt_walltime, pt_load_command,
+                                    self.batch_system,
+                                    pt_queue_or_partition,
+                                    pt_walltime,
+                                    pt_load_command,
                                     mpi_procs=pt_mpi_procs,
                                     mpi_oversubscribe=pt_mpi_oversubscribe,
                                     omp_threads=self.pt_nthreads,
                                     cores_per_node=self.cores_per_node,
-                                    outdir=path, nodays=self.nodays,
-                                    mpi_impl=self.mpi_impl)
+                                    outdir=path,
+                                    nodays=self.nodays,
+                                    mpi_impl=self.mpi_impl,
+                                )
                             # if kmax is either not terminated or is reasonable then continue
                             if check_kmax_reasonable(kmax_path):
                                 # if kmin and kmax terminated
                                 if self.pt_checkpoint_time is not None:
-                                    pt_load_script.write(pt_load_fname,
-                                                         'bv_' + self.label + '_pt' + noj)
+                                    pt_load_script.write(
+                                        pt_load_fname,
+                                        "bv_" + self.label + "_pt" + noj,
+                                    )
                                 if kmax_ready and kmin_ready:
-                                    pt_script.submit(pt_fname,
-                                                     'bv_' + self.label + '_pt' + noj)
+                                    pt_script.submit(
+                                        pt_fname,
+                                        "bv_" + self.label + "_pt" + noj,
+                                    )
                                 else:
-                                    pt_script.write(pt_fname, 'bv_' + self.label + '_pt' + noj)
+                                    pt_script.write(
+                                        pt_fname,
+                                        "bv_" + self.label + "_pt" + noj,
+                                    )
                                     if not kmin_ready:
                                         #########remove old BV output#######
-                                        self._remove_bv_output(explore_dir,
-                                                               "bv_{}_kmin{}.o*".format(self.label, noj))
+                                        self._remove_bv_output(
+                                            explore_dir,
+                                            "bv_{}_kmin{}.o*".format(
+                                                self.label, noj
+                                            ),
+                                        )
                                         #####################################
                                         kmin_command = self._get_findk_command(
-                                            noj, path_to_script, script='bv_find_kmin.py',
-                                            record_steps_timeseries=self.record_steps_timeseries)
-                                        kmin_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
-                                                                                   self.workdir_var,
-                                                                                   pt_fname)
+                                            noj,
+                                            path_to_script,
+                                            script="bv_find_kmin.py",
+                                            record_steps_timeseries=self.record_steps_timeseries,
+                                        )
+                                        kmin_command += (
+                                            " && {} ${{{}}}/{}".format(
+                                                self.submit_cmd,
+                                                self.workdir_var,
+                                                pt_fname,
+                                            )
+                                        )
                                         kmin_script = BatchScript(
-                                            self.batch_system, k_queue_or_partition, k_walltime,
-                                            kmin_command, mpi_procs=1,
+                                            self.batch_system,
+                                            k_queue_or_partition,
+                                            k_walltime,
+                                            kmin_command,
+                                            mpi_procs=1,
                                             mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
                                             cores_per_node=self.cores_per_node,
-                                            outdir=path, nodays=self.nodays,
-                                            mpi_impl=self.mpi_impl)
+                                            outdir=path,
+                                            nodays=self.nodays,
+                                            mpi_impl=self.mpi_impl,
+                                        )
                                         if kmax_ready:
-                                            kmin_script.submit('bv_kmin' + noj + '.sh',
-                                                               'bv_' + self.label + '_kmin' + noj)
+                                            kmin_script.submit(
+                                                "bv_kmin" + noj + ".sh",
+                                                "bv_"
+                                                + self.label
+                                                + "_kmin"
+                                                + noj,
+                                            )
                                         else:
                                             #########remove old BV output#######
                                             self._remove_bv_output(
-                                                explore_dir, "bv_{}_kmax{}.o*".format(self.label, noj))
+                                                explore_dir,
+                                                "bv_{}_kmax{}.o*".format(
+                                                    self.label, noj
+                                                ),
+                                            )
                                             #####################################
-                                            kmin_script.write(kmin_fname,
-                                                              'bv_' + self.label + '_kmin' + noj)
-                                            kmax_command = self._get_findk_command(
-                                                noj, path_to_script, script='bv_find_kmax.py')
-                                            kmax_command += (' && {} ${{{}}}/{}'
-                                                             .format(self.submit_cmd,
-                                                                     self.workdir_var,
-                                                                     kmin_fname))
+                                            kmin_script.write(
+                                                kmin_fname,
+                                                "bv_"
+                                                + self.label
+                                                + "_kmin"
+                                                + noj,
+                                            )
+                                            kmax_command = (
+                                                self._get_findk_command(
+                                                    noj,
+                                                    path_to_script,
+                                                    script="bv_find_kmax.py",
+                                                )
+                                            )
+                                            kmax_command += (
+                                                " && {} ${{{}}}/{}".format(
+                                                    self.submit_cmd,
+                                                    self.workdir_var,
+                                                    kmin_fname,
+                                                )
+                                            )
                                             kmax_script = BatchScript(
-                                                self.batch_system, k_queue_or_partition, k_walltime,
-                                                kmax_command, mpi_procs=1,
+                                                self.batch_system,
+                                                k_queue_or_partition,
+                                                k_walltime,
+                                                kmax_command,
+                                                mpi_procs=1,
                                                 mpi_oversubscribe=0,
                                                 omp_threads=self.nthreads,
                                                 cores_per_node=self.cores_per_node,
-                                                outdir=path, nodays=self.nodays,
-                                                mpi_impl=self.mpi_impl)
-                                            kmax_script.submit('bv_kmax' + noj + '.sh',
-                                                               'bv_' + self.label + '_kmax' + noj)
+                                                outdir=path,
+                                                nodays=self.nodays,
+                                                mpi_impl=self.mpi_impl,
+                                            )
+                                            kmax_script.submit(
+                                                "bv_kmax" + noj + ".sh",
+                                                "bv_"
+                                                + self.label
+                                                + "_kmax"
+                                                + noj,
+                                            )
                                     else:
                                         kmax_command = self._get_findk_command(
-                                            noj, path_to_script, script='bv_find_kmax.py')
-                                        kmax_command += ' && {} ${{{}}}/{}'.format(self.submit_cmd,
-                                                                                   self.workdir_var,
-                                                                                   pt_fname)
+                                            noj,
+                                            path_to_script,
+                                            script="bv_find_kmax.py",
+                                        )
+                                        kmax_command += (
+                                            " && {} ${{{}}}/{}".format(
+                                                self.submit_cmd,
+                                                self.workdir_var,
+                                                pt_fname,
+                                            )
+                                        )
                                         kmax_script = BatchScript(
-                                            self.batch_system, k_queue_or_partition, k_walltime,
-                                            kmax_command, mpi_procs=1,
+                                            self.batch_system,
+                                            k_queue_or_partition,
+                                            k_walltime,
+                                            kmax_command,
+                                            mpi_procs=1,
                                             mpi_oversubscribe=0,
                                             omp_threads=self.nthreads,
                                             cores_per_node=self.cores_per_node,
-                                            outdir=path, nodays=self.nodays,
-                                            mpi_impl=self.mpi_impl)
-                                        kmax_script.submit('bv_kmax' + noj + '.sh',
-                                                           'bv_' + self.label + '_kmax' + noj)
+                                            outdir=path,
+                                            nodays=self.nodays,
+                                            mpi_impl=self.mpi_impl,
+                                        )
+                                        kmax_script.submit(
+                                            "bv_kmax" + noj + ".sh",
+                                            "bv_" + self.label + "_kmax" + noj,
+                                        )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="perform parallel tempering for basin volume method")
-    subparsers = parser.add_subparsers(help="Choose a subparser: single to "
-                                            "submit jobs individually, "
-                                            "chain to submit a bv jobs chain", dest='mode')
-    single_parser = subparsers.add_parser('single', help='submit individual jobs')
-    chain_parser = subparsers.add_parser('chain', help='submit a bv chain')
+        description="perform parallel tempering for basin volume method"
+    )
+    subparsers = parser.add_subparsers(
+        help="Choose a subparser: single to "
+        "submit jobs individually, "
+        "chain to submit a bv jobs chain",
+        dest="mode",
+    )
+    single_parser = subparsers.add_parser(
+        "single", help="submit individual jobs"
+    )
+    chain_parser = subparsers.add_parser("chain", help="submit a bv chain")
 
     single_parser.add_argument("ndim", type=int, help="dimensionality")
-    single_parser.add_argument("workdir", type=str,
-                               help="working directory (folder containing the "
-                                    "packings and jammed_packings subfolders)")
-    single_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
-    single_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
-    single_parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
-    single_parser.add_argument("--batch-system", type=str,
-                               help="Batch system. Supported: PBS, SLURM. "
-                                    "Default: 'SLURM'", default='SLURM')
-    single_parser.add_argument("--mpi-implementation", type=str,
-                               help="MPI implementation. Supported: OpenMPI, Intel. "
-                                    "Default: 'OpenMPI'", default='OPENMPI')
-    single_parser.add_argument("-qp", "--queue-or-partition", type=str,
-                               help="Queue type (PBS) or partition (Slurm). "
-                                    "Default: Default partition of cluster (Slurm) "
-                                    "or derive from walltime (PBS, works on Dexter)",
-                               default=None)
-    single_parser.add_argument("--kmin", action='store_true', help="compute kmin", default=False)
-    single_parser.add_argument("--kmax", action='store_true', help="compute kmax", default=False)
-    single_parser.add_argument("--mbar", action='store_true',
-                               help="compute innersphere dos", default=False)
-    single_parser.add_argument("--pt", action='store_true',
-                               help="perform parallel tempering", default=False)
-    single_parser.add_argument("--cores-per-node", type=int,
-                               help="Number of cores per node. Default: 16",
-                               default=16)
-    single_parser.add_argument("--nojmin", type=int,
-                               help="number of minimum job ID to submit (to "
-                                    "selectively submit a range of jobs)",
-                               default=0)
-    single_parser.add_argument("--nojmax", type=int,
-                               help="number of maximum job ID to submit (to "
-                                    "selectively submit a range of jobs)",
-                               default=1e6)
-    single_parser.add_argument("--nodays", action='store_true',
-                               help="don't use days in walltime format", default=False)
-    single_parser.add_argument("--experimental", action='store_true',
-                               help="read experimental data format",
-                               default=False)
-    single_parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
-                               "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
-                               "Default: 'FIRE'", default='FIRE')
-    single_parser.add_argument("--rsts", action='store_true',
-                               help="record steps timeseries for diffusion studies, default: False",
-                               default=False)
-    single_parser.add_argument("--kmax-start", type=float,
-                               help="starting value for kmax calculation", default=500)
-    single_parser.add_argument("--mintotniter", type=float,
-                               help="minimum number of energy evaluation per replica, "
-                                    "before checking for convergence default: 5e5. "
-                                    "This sets a lower bound", default=5e5)
-    single_parser.add_argument("--maxtotniter", type=float,
-                               help="maximum number of energy evaluation per replica, "
-                                    "This sets an upper bound default: 2e6", default=2e6)
-    single_parser.add_argument("--adjustf-niter", type=float,
-                               help="Number of steps to adjust the stepsize. "
-                                    "Default: 0.1 * mintotniter", default=None)
-    single_parser.add_argument("--relstderr", type=float,
-                               help="relative standard error to test convergence, "
-                               "default 0.05", default=0.05)
-    single_parser.add_argument("--numnegk", type=int,
-                               help="number of negative ks to use", default=0)
-    single_parser.add_argument("--lownegk", type=float,
-                               help="lowest value of negative k's to use, default -2.5",
-                               default=-2.5)
-    single_parser.add_argument("--force", action='store_true', help="force run", default=False)
-    single_parser.add_argument("--nocell", action='store_true',
-                               help="don't use cell lists, default: False",
-                               default=False)
-    single_parser.add_argument("--delraw", action='store_true',
-                               help="Delete raw timeseries textfiles after parallel "
-                               "tempering and only use the HDF5 format.", default=False)
-    single_parser.add_argument("--explore-dir", type=str,
-                               help="Start of the directory name for the basinvolume data. "
-                                    "Default: 'explore_bv_jammed_packing'",
-                               default='explore_bv_jammed_packing')
-    single_parser.add_argument('-p', "--packings-dir", type=str,
-                               help="Directory containing the jammed packings. "
-                                    "Default: 'jammed_packings'",
-                               default='jammed_packings')
-    single_parser.add_argument("--threads", type=int,
-                               help="Number of OpenMP threads to use. Default: 1",
-                               default=1)
-    single_parser.add_argument("--pt-threads", type=int,
-                               help="Number of OpenMP threads to use for parallel "
-                                    "tempering. Default: Set by THREADS",
-                               default=None)
-    single_parser.add_argument("--pt-workers", type=int,
-                               help="Number of workers to use for parallel tempering. "
-                                    "Default: 4",
-                               default=4)
-    single_parser.add_argument("--pt-replicas", type=int,
-                               help="Number of replicas to use for "
-                                    "parallel tempering. Default: 16",
-                               default=16)
-    single_parser.add_argument("--pt-adjustf-navg", type=int,
-                               help="Number of steps to average over when adjusting the stepsize "
-                                    "during PT. Default: 100",
-                               default=100)
-    single_parser.add_argument("--pt-sleep-seconds", type=float,
-                               help="Waiting time between MPI probes for the "
-                                    "parallel tempering job queue master. "
-                                    "Default: 0.0001 (100us)",
-                               default=0.0001)
-    single_parser.add_argument("--pt-exchange-scheme", type=str,
-                               help="Exchange scheme used in parallel tempering. "
-                                    "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
-                                    "Default: 'NEIGHBOR_EXCHANGE'",
-                               default='NEIGHBOR_EXCHANGE')
-    single_parser.add_argument("--pt-collect-minima", action='store_true',
-                               help="Collect a database of minima.",
-                               default=False)
-    single_parser.add_argument("--pt-checkpoint-time", type=int,
-                               help="Minutes after which PT creates a checkpoint "
-                                    "and submits a new job.",
-                               default=None)
-    single_parser.add_argument("--sort", action='store_true',
-                               help="Sort the atoms before running PT. This "
-                                    "improves performance, especially in combination "
-                                    "with multithreading. Default: False",
-                               default=False)
-    single_parser.add_argument("-v","--verbose", action='store_true',
-                               help="More verbose logging (debug level).", default=False)
+    single_parser.add_argument(
+        "workdir",
+        type=str,
+        help="working directory (folder containing the "
+        "packings and jammed_packings subfolders)",
+    )
+    single_parser.add_argument(
+        "path_to_script", type=str, help="path to the file to execute"
+    )
+    single_parser.add_argument(
+        "job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D"
+    )
+    single_parser.add_argument(
+        "walltime_hours", type=float, help="wall-time in hours"
+    )
+    single_parser.add_argument(
+        "--batch-system",
+        type=str,
+        help="Batch system. Supported: PBS, SLURM. " "Default: 'SLURM'",
+        default="SLURM",
+    )
+    single_parser.add_argument(
+        "--mpi-implementation",
+        type=str,
+        help="MPI implementation. Supported: OpenMPI, Intel. "
+        "Default: 'OpenMPI'",
+        default="OPENMPI",
+    )
+    single_parser.add_argument(
+        "-qp",
+        "--queue-or-partition",
+        type=str,
+        help="Queue type (PBS) or partition (Slurm). "
+        "Default: Default partition of cluster (Slurm) "
+        "or derive from walltime (PBS, works on Dexter)",
+        default=None,
+    )
+    single_parser.add_argument(
+        "--kmin", action="store_true", help="compute kmin", default=False
+    )
+    single_parser.add_argument(
+        "--kmax", action="store_true", help="compute kmax", default=False
+    )
+    single_parser.add_argument(
+        "--mbar",
+        action="store_true",
+        help="compute innersphere dos",
+        default=False,
+    )
+    single_parser.add_argument(
+        "--pt",
+        action="store_true",
+        help="perform parallel tempering",
+        default=False,
+    )
+    single_parser.add_argument(
+        "--cores-per-node",
+        type=int,
+        help="Number of cores per node. Default: 16",
+        default=16,
+    )
+    single_parser.add_argument(
+        "--nojmin",
+        type=int,
+        help="number of minimum job ID to submit (to "
+        "selectively submit a range of jobs)",
+        default=0,
+    )
+    single_parser.add_argument(
+        "--nojmax",
+        type=int,
+        help="number of maximum job ID to submit (to "
+        "selectively submit a range of jobs)",
+        default=1e6,
+    )
+    single_parser.add_argument(
+        "--nodays",
+        action="store_true",
+        help="don't use days in walltime format",
+        default=False,
+    )
+    single_parser.add_argument(
+        "--experimental",
+        action="store_true",
+        help="read experimental data format",
+        default=False,
+    )
+    single_parser.add_argument(
+        "--minimizer",
+        type=str,
+        help="Energy minimization algorithm "
+        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+        "Default: 'FIRE'",
+        default="FIRE",
+    )
+    single_parser.add_argument(
+        "--rsts",
+        action="store_true",
+        help="record steps timeseries for diffusion studies, default: False",
+        default=False,
+    )
+    single_parser.add_argument(
+        "--kmax-start",
+        type=float,
+        help="starting value for kmax calculation",
+        default=500,
+    )
+    single_parser.add_argument(
+        "--mintotniter",
+        type=float,
+        help="minimum number of energy evaluation per replica, "
+        "before checking for convergence default: 5e5. "
+        "This sets a lower bound",
+        default=5e5,
+    )
+    single_parser.add_argument(
+        "--maxtotniter",
+        type=float,
+        help="maximum number of energy evaluation per replica, "
+        "This sets an upper bound default: 2e6",
+        default=2e6,
+    )
+    single_parser.add_argument(
+        "--adjustf-niter",
+        type=float,
+        help="Number of steps to adjust the stepsize. "
+        "Default: 0.1 * mintotniter",
+        default=None,
+    )
+    single_parser.add_argument(
+        "--relstderr",
+        type=float,
+        help="relative standard error to test convergence, " "default 0.05",
+        default=0.05,
+    )
+    single_parser.add_argument(
+        "--numnegk", type=int, help="number of negative ks to use", default=0
+    )
+    single_parser.add_argument(
+        "--lownegk",
+        type=float,
+        help="lowest value of negative k's to use, default -2.5",
+        default=-2.5,
+    )
+    single_parser.add_argument(
+        "--force", action="store_true", help="force run", default=False
+    )
+    single_parser.add_argument(
+        "--nocell",
+        action="store_true",
+        help="don't use cell lists, default: False",
+        default=False,
+    )
+    single_parser.add_argument(
+        "--delraw",
+        action="store_true",
+        help="Delete raw timeseries textfiles after parallel "
+        "tempering and only use the HDF5 format.",
+        default=False,
+    )
+    single_parser.add_argument(
+        "--explore-dir",
+        type=str,
+        help="Start of the directory name for the basinvolume data. "
+        "Default: 'explore_bv_jammed_packing'",
+        default="explore_bv_jammed_packing",
+    )
+    single_parser.add_argument(
+        "-p",
+        "--packings-dir",
+        type=str,
+        help="Directory containing the jammed packings. "
+        "Default: 'jammed_packings'",
+        default="jammed_packings",
+    )
+    single_parser.add_argument(
+        "--threads",
+        type=int,
+        help="Number of OpenMP threads to use. Default: 1",
+        default=1,
+    )
+    single_parser.add_argument(
+        "--pt-threads",
+        type=int,
+        help="Number of OpenMP threads to use for parallel "
+        "tempering. Default: Set by THREADS",
+        default=None,
+    )
+    single_parser.add_argument(
+        "--pt-workers",
+        type=int,
+        help="Number of workers to use for parallel tempering. " "Default: 4",
+        default=4,
+    )
+    single_parser.add_argument(
+        "--pt-replicas",
+        type=int,
+        help="Number of replicas to use for "
+        "parallel tempering. Default: 16",
+        default=16,
+    )
+    single_parser.add_argument(
+        "--pt-adjustf-navg",
+        type=int,
+        help="Number of steps to average over when adjusting the stepsize "
+        "during PT. Default: 100",
+        default=100,
+    )
+    single_parser.add_argument(
+        "--pt-sleep-seconds",
+        type=float,
+        help="Waiting time between MPI probes for the "
+        "parallel tempering job queue master. "
+        "Default: 0.0001 (100us)",
+        default=0.0001,
+    )
+    single_parser.add_argument(
+        "--pt-exchange-scheme",
+        type=str,
+        help="Exchange scheme used in parallel tempering. "
+        "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
+        "Default: 'NEIGHBOR_EXCHANGE'",
+        default="NEIGHBOR_EXCHANGE",
+    )
+    single_parser.add_argument(
+        "--pt-collect-minima",
+        action="store_true",
+        help="Collect a database of minima.",
+        default=False,
+    )
+    single_parser.add_argument(
+        "--pt-checkpoint-time",
+        type=int,
+        help="Minutes after which PT creates a checkpoint "
+        "and submits a new job.",
+        default=None,
+    )
+    single_parser.add_argument(
+        "--sort",
+        action="store_true",
+        help="Sort the atoms before running PT. This "
+        "improves performance, especially in combination "
+        "with multithreading. Default: False",
+        default=False,
+    )
+    single_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="More verbose logging (debug level).",
+        default=False,
+    )
 
     chain_parser.add_argument("ndim", type=int, help="dimensionality")
-    chain_parser.add_argument("workdir", type=str,
-                              help="working directory (folder containing the "
-                                   "packings and jammed_packings subfolders)")
-    chain_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
-    chain_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
-    chain_parser.add_argument("k_walltime_hours", type=float, help="wall-time in hours")
-    chain_parser.add_argument("pt_walltime_hours", type=float, help="wall-time in hours")
-    chain_parser.add_argument("--batch-system", type=str,
-                              help="Batch system. Supported: PBS, SLURM. "
-                                   "Default: 'PBS'", default='PBS')
-    chain_parser.add_argument("--mpi-implementation", type=str,
-                              help="MPI implementation. Supported: OpenMPI, Intel. "
-                                   "Default: 'OpenMPI'", default='OPENMPI')
-    chain_parser.add_argument("-k-qp", "--k-queue-or-partition", type=str,
-                              help="Queue type (PBS) or partition (Slurm) for k. "
-                                   "Default: Default partition of cluster (Slurm) "
-                                   "or derive from k-walltime (PBS, works on Dexter)",
-                              default=None)
-    chain_parser.add_argument("-pt-qp", "--pt-queue-or-partition", type=str,
-                              help="Queue type (PBS) or partition (Slurm) for PT. "
-                                   "Default: Default partition of cluster (Slurm) "
-                                   "or derive from PT-walltime (PBS, works on Dexter)",
-                              default=None)
-    chain_parser.add_argument("--cores-per-node", type=int,
-                              help="Number of cores per node. Default: 16",
-                              default=16)
-    chain_parser.add_argument("--nojmin", type=int,
-                              help="number of minimum job ID to submit (to "
-                                   "selectively submit a range of jobs)",
-                              default=0)
-    chain_parser.add_argument("--nojmax", type=int,
-                              help="number of maximum job ID to submit (to "
-                                   "selectively submit a range of jobs)",
-                              default=1e6)
-    chain_parser.add_argument("--nodays", action='store_true',
-                              help="don't use days in walltime format", default=False)
-    chain_parser.add_argument("--minimizer", type=str, help="Energy minimization algorithm "
-                              "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
-                              "Default: 'FIRE'", default='FIRE')
-    chain_parser.add_argument("--rsts", action='store_true',
-                              help="record steps timeseries for diffusion studies, default: False",
-                              default=False)
-    chain_parser.add_argument("--kmax-start", type=float,
-                              help="starting value for kmax calculation", default=500)
-    chain_parser.add_argument("--mintotniter", type=float,
-                              help="minimum number of energy evaluation per replica, "
-                              "before checking for convergence default: 5e5. "
-                              "This sets a lower bound", default=5e5)
-    chain_parser.add_argument("--maxtotniter", type=float,
-                              help="maximum number of energy evaluation per replica, "
-                              "This sets an upper bound default: 2e6", default=2e6)
-    chain_parser.add_argument("--adjustf-niter", type=float,
-                              help="Number of steps to adjust the stepsize. "
-                                   "Default: 0.1 * mintotniter", default=None)
-    chain_parser.add_argument("--relstderr", type=float,
-                              help="relative standard error to test convergence, default 0.05",
-                              default=0.05)
-    chain_parser.add_argument("--numnegk", type=int, help="number of negative ks to use", default=0)
-    chain_parser.add_argument("--lownegk", type=float,
-                              help="lowest value of negative k's to use, default -2.5",
-                              default=-2.5)
-    chain_parser.add_argument("--experimental", action='store_true',
-                              help="read experimental data format",
-                              default=False)
-    chain_parser.add_argument("--nocell", action='store_true',
-                              help="don't use cell lists, default: False",
-                              default=False)
-    chain_parser.add_argument("--delraw", action='store_true',
-                              help="Delete raw timeseries textfiles after parallel "
-                              "tempering and only use the HDF5 format.", default=False)
-    chain_parser.add_argument("--explore-dir", type=str,
-                              help="Start of the directory name for the basinvolume data. "
-                                   "Default: 'explore_bv_jammed_packing'",
-                              default='explore_bv_jammed_packing')
-    chain_parser.add_argument('-p', "--packings-dir", type=str,
-                              help="Directory containing the jammed packings. "
-                                   "Default: 'jammed_packings'",
-                              default='jammed_packings')
-    chain_parser.add_argument("--threads", type=int,
-                              help="Number of OpenMP threads to use. Default: 1",
-                              default=1)
-    chain_parser.add_argument("--pt-threads", type=int,
-                              help="Number of OpenMP threads to use for parallel "
-                                   "tempering. Default: Set by THREADS",
-                              default=None)
-    chain_parser.add_argument("--pt-workers", type=int,
-                              help="Number of workers to use for parallel tempering. "
-                                   "PT handshake is used instead of the job queue if "
-                                   "PT_WORKERS = PT_REPLICAS. Default: 4",
-                              default=4)
-    chain_parser.add_argument("--pt-replicas", type=int,
-                              help="Number of replicas to use for "
-                                   "parallel tempering. Default: 16",
-                              default=16)
-    chain_parser.add_argument("--pt-adjustf-navg", type=int,
-                              help="Number of steps to average over when adjusting the stepsize "
-                                   "during PT. Default: 100",
-                              default=100)
-    chain_parser.add_argument("--pt-sleep-seconds", type=float,
-                              help="Waiting time between MPI probes for the "
-                                   "parallel tempering job queue master. "
-                                   "Default: 0.0001 (100us)",
-                              default=0.0001)
-    chain_parser.add_argument("--pt-exchange-scheme", type=str,
-                              help="Exchange scheme used in parallel tempering. "
-                                   "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
-                                   "Default: 'NEIGHBOR_EXCHANGE'",
-                              default='NEIGHBOR_EXCHANGE')
-    chain_parser.add_argument("--pt-collect-minima", action='store_true',
-                              help="Collect a database of minima.",
-                              default=False)
-    chain_parser.add_argument("--pt-checkpoint-time", type=int,
-                              help="Minutes after which PT creates a checkpoint "
-                                   "and submits a new job.",
-                              default=None)
-    chain_parser.add_argument("--sort", action='store_true',
-                              help="Sort the atoms before running PT. This "
-                                   "improves performance, especially in combination "
-                                   "with multithreading. Default: False",
-                              default=False)
-    chain_parser.add_argument("-v","--verbose", action='store_true',
-                              help="More verbose logging (debug level).", default=False)
+
+    chain_parser.add_argument(
+        "workdir",
+        type=str,
+        help="working directory (folder containing the "
+        "packings and jammed_packings subfolders)",
+    )
+    chain_parser.add_argument(
+        "path_to_script", type=str, help="path to the file to execute"
+    )
+    chain_parser.add_argument(
+        "job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D"
+    )
+    chain_parser.add_argument(
+        "k_walltime_hours", type=float, help="wall-time in hours"
+    )
+    chain_parser.add_argument(
+        "pt_walltime_hours", type=float, help="wall-time in hours"
+    )
+    chain_parser.add_argument(
+        "--batch-system",
+        type=str,
+        help="Batch system. Supported: PBS, SLURM. " "Default: 'PBS'",
+        default="PBS",
+    )
+    chain_parser.add_argument(
+        "--mpi-implementation",
+        type=str,
+        help="MPI implementation. Supported: OpenMPI, Intel. "
+        "Default: 'OpenMPI'",
+        default="OPENMPI",
+    )
+    chain_parser.add_argument(
+        "-k-qp",
+        "--k-queue-or-partition",
+        type=str,
+        help="Queue type (PBS) or partition (Slurm) for k. "
+        "Default: Default partition of cluster (Slurm) "
+        "or derive from k-walltime (PBS, works on Dexter)",
+        default=None,
+    )
+    chain_parser.add_argument(
+        "-pt-qp",
+        "--pt-queue-or-partition",
+        type=str,
+        help="Queue type (PBS) or partition (Slurm) for PT. "
+        "Default: Default partition of cluster (Slurm) "
+        "or derive from PT-walltime (PBS, works on Dexter)",
+        default=None,
+    )
+    chain_parser.add_argument(
+        "--cores-per-node",
+        type=int,
+        help="Number of cores per node. Default: 16",
+        default=16,
+    )
+    chain_parser.add_argument(
+        "--nojmin",
+        type=int,
+        help="number of minimum job ID to submit (to "
+        "selectively submit a range of jobs)",
+        default=0,
+    )
+    chain_parser.add_argument(
+        "--nojmax",
+        type=int,
+        help="number of maximum job ID to submit (to "
+        "selectively submit a range of jobs)",
+        default=1e6,
+    )
+    chain_parser.add_argument(
+        "--nodays",
+        action="store_true",
+        help="don't use days in walltime format",
+        default=False,
+    )
+    chain_parser.add_argument(
+        "--minimizer",
+        type=str,
+        help="Energy minimization algorithm "
+        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS', 'CVODE'. "
+        "Default: 'FIRE'",
+        default="FIRE",
+    )
+    chain_parser.add_argument(
+        "--rsts",
+        action="store_true",
+        help="record steps timeseries for diffusion studies, default: False",
+        default=False,
+    )
+    chain_parser.add_argument(
+        "--kmax-start",
+        type=float,
+        help="starting value for kmax calculation",
+        default=500,
+    )
+    chain_parser.add_argument(
+        "--mintotniter",
+        type=float,
+        help="minimum number of energy evaluation per replica, "
+        "before checking for convergence default: 5e5. "
+        "This sets a lower bound",
+        default=5e5,
+    )
+    chain_parser.add_argument(
+        "--maxtotniter",
+        type=float,
+        help="maximum number of energy evaluation per replica, "
+        "This sets an upper bound default: 2e6",
+        default=2e6,
+    )
+    chain_parser.add_argument(
+        "--adjustf-niter",
+        type=float,
+        help="Number of steps to adjust the stepsize. "
+        "Default: 0.1 * mintotniter",
+        default=None,
+    )
+    chain_parser.add_argument(
+        "--relstderr",
+        type=float,
+        help="relative standard error to test convergence, default 0.05",
+        default=0.05,
+    )
+    chain_parser.add_argument(
+        "--numnegk", type=int, help="number of negative ks to use", default=0
+    )
+    chain_parser.add_argument(
+        "--lownegk",
+        type=float,
+        help="lowest value of negative k's to use, default -2.5",
+        default=-2.5,
+    )
+    chain_parser.add_argument(
+        "--experimental",
+        action="store_true",
+        help="read experimental data format",
+        default=False,
+    )
+    chain_parser.add_argument(
+        "--nocell",
+        action="store_true",
+        help="don't use cell lists, default: False",
+        default=False,
+    )
+    chain_parser.add_argument(
+        "--delraw",
+        action="store_true",
+        help="Delete raw timeseries textfiles after parallel "
+        "tempering and only use the HDF5 format.",
+        default=False,
+    )
+    chain_parser.add_argument(
+        "--explore-dir",
+        type=str,
+        help="Start of the directory name for the basinvolume data. "
+        "Default: 'explore_bv_jammed_packing'",
+        default="explore_bv_jammed_packing",
+    )
+    chain_parser.add_argument(
+        "-p",
+        "--packings-dir",
+        type=str,
+        help="Directory containing the jammed packings. "
+        "Default: 'jammed_packings'",
+        default="jammed_packings",
+    )
+    chain_parser.add_argument(
+        "--threads",
+        type=int,
+        help="Number of OpenMP threads to use. Default: 1",
+        default=1,
+    )
+    chain_parser.add_argument(
+        "--pt-threads",
+        type=int,
+        help="Number of OpenMP threads to use for parallel "
+        "tempering. Default: Set by THREADS",
+        default=None,
+    )
+    chain_parser.add_argument(
+        "--pt-workers",
+        type=int,
+        help="Number of workers to use for parallel tempering. "
+        "PT handshake is used instead of the job queue if "
+        "PT_WORKERS = PT_REPLICAS. Default: 4",
+        default=4,
+    )
+    chain_parser.add_argument(
+        "--pt-replicas",
+        type=int,
+        help="Number of replicas to use for "
+        "parallel tempering. Default: 16",
+        default=16,
+    )
+    chain_parser.add_argument(
+        "--pt-adjustf-navg",
+        type=int,
+        help="Number of steps to average over when adjusting the stepsize "
+        "during PT. Default: 100",
+        default=100,
+    )
+    chain_parser.add_argument(
+        "--pt-sleep-seconds",
+        type=float,
+        help="Waiting time between MPI probes for the "
+        "parallel tempering job queue master. "
+        "Default: 0.0001 (100us)",
+        default=0.0001,
+    )
+    chain_parser.add_argument(
+        "--pt-exchange-scheme",
+        type=str,
+        help="Exchange scheme used in parallel tempering. "
+        "Options: 'NEIGHBOR_EXCHANGE', 'INDEPENDENCE_SAMPLING'. "
+        "Default: 'NEIGHBOR_EXCHANGE'",
+        default="NEIGHBOR_EXCHANGE",
+    )
+    chain_parser.add_argument(
+        "--pt-collect-minima",
+        action="store_true",
+        help="Collect a database of minima.",
+        default=False,
+    )
+    chain_parser.add_argument(
+        "--pt-checkpoint-time",
+        type=int,
+        help="Minutes after which PT creates a checkpoint "
+        "and submits a new job.",
+        default=None,
+    )
+    chain_parser.add_argument(
+        "--sort",
+        action="store_true",
+        help="Sort the atoms before running PT. This "
+        "improves performance, especially in combination "
+        "with multithreading. Default: False",
+        default=False,
+    )
+    chain_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="More verbose logging (debug level).",
+        default=False,
+    )
 
     args = parser.parse_args()
+    print("sort", args.sort)
 
     if args.verbose:
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
-                        datefmt='%d/%m/%Y %H:%M:%S',
-                        level=loglevel)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s: %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S",
+        level=loglevel,
+    )
     logging.info(args)
 
     if args.batch_system.upper() in BatchSystem.__members__:
@@ -964,7 +1653,9 @@ if __name__ == "__main__":
     if args.mpi_implementation.upper() in MPI_Implementation.__members__:
         mpi_impl = MPI_Implementation[args.mpi_implementation.upper()]
     else:
-        raise ValueError("Unknown MPI implementation: {}".format(args.mpi_implementation))
+        raise ValueError(
+            "Unknown MPI implementation: {}".format(args.mpi_implementation)
+        )
 
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
@@ -974,91 +1665,154 @@ if __name__ == "__main__":
     if args.pt_exchange_scheme.upper() in ExchangeScheme.__members__:
         pt_exchange_scheme = ExchangeScheme[args.pt_exchange_scheme.upper()]
     else:
-        raise ValueError("Unknown exchange scheme: {}".format(args.pt_exchange_scheme))
+        raise ValueError(
+            "Unknown exchange scheme: {}".format(args.pt_exchange_scheme)
+        )
 
     if args.adjustf_niter is None:
-        adjustf_niter = int(args.mintotniter * 0.1)  # equilibrate for the first 1/10th of total steps
+        adjustf_niter = int(
+            args.mintotniter * 0.1
+        )  # equilibrate for the first 1/10th of total steps
     else:
         adjustf_niter = int(args.adjustf_niter)
 
     if args.pt_threads is None:
         args.pt_threads = args.threads
 
-
     pt_packings_dir = args.packings_dir
 
     if args.sort:
         if args.nocell:
             logging.warning("Sorting without cell lists does not do anything.")
+
         def sort_packings(target_dir, config, nthreads, remove_old=False):
             target_path = os.path.join(args.workdir, target_dir)
-            if (not os.path.isdir(target_path)
-                or not config['sorted']
-                or (config['sorted_nsubdoms'] != nthreads
-                    and config['pot_kwargs']['balance_omp'])):
+            if (
+                not os.path.isdir(target_path)
+                or not config["sorted"]
+                or (
+                    config["sorted_nsubdoms"] != nthreads
+                    and config["pot_kwargs"]["balance_omp"]
+                )
+            ):
                 # Only sort when directory doesn't exist or packings have not yet been sorted
                 logging.info("Sorting jammed packings")
-                unsorted_path = os.path.join(os.path.dirname(target_path), 'jammed_unsorted')
+                unsorted_path = os.path.join(
+                    os.path.dirname(target_path), "jammed_unsorted"
+                )
                 if os.path.isdir(target_path):
                     if remove_old:
                         shutil.rmtree(target_path)
                     else:
                         shutil.move(target_path, unsorted_path)
-                os.environ['OMP_NUM_THREADS'] = str(nthreads)
-                sorter = HS_Generate_Jammed_Packing(target_packing_frac=config['packing_frac'],
-                                                    tol=1e30, maxstep_factor=config['maxstep_factor'],
-                                                    use_cell_lists=not args.nocell,
-                                                    show=False, interaction=Interaction.HS_WCA,
-                                                    minimizer=minimizer, packings_dir=unsorted_path,
-                                                    outdir=target_path, sort_atoms=True,
-                                                    import_jammed=True, check_packing=False)
+                os.environ["OMP_NUM_THREADS"] = str(nthreads)
+                sorter = HS_Generate_Jammed_Packing(
+                    target_packing_frac=config["packing_frac"],
+                    tol=1e30,
+                    maxstep_factor=config["maxstep_factor"],
+                    use_cell_lists=not args.nocell,
+                    show=False,
+                    interaction=Interaction.HS_WCA,
+                    minimizer=minimizer,
+                    packings_dir=unsorted_path,
+                    outdir=target_path,
+                    sort_atoms=True,
+                    import_jammed=True,
+                    check_packing=False,
+                )
                 sorter.run()
+
         packings_path = os.path.join(args.workdir, args.packings_dir)
         packing_files = os.listdir(packings_path)
-        first_config = sorted([f for f in packing_files if '.config' in f])[0]
-        packing_config = read_jammed_packing_config(os.path.join(packings_path, first_config))
+        first_config = sorted([f for f in packing_files if ".config" in f])[0]
+        packing_config = read_jammed_packing_config(
+            os.path.join(packings_path, first_config)
+        )
         sort_packings(args.packings_dir, packing_config, args.threads)
         if args.pt_threads != args.threads:
-            pt_packings_dir = 'jammed_packings_pt'
-            sort_packings(pt_packings_dir, packing_config, args.pt_threads, remove_old=True)
+            pt_packings_dir = "jammed_packings_pt"
+            sort_packings(
+                pt_packings_dir,
+                packing_config,
+                args.pt_threads,
+                remove_old=True,
+            )
 
-    submit_bv = SubmitBV(args.ndim, batch_system=batch_system,
-                         workdir=args.workdir, job_label=args.job_label,
-                         nojmin=args.nojmin, nojmax=args.nojmax, nodays=args.nodays,
-                         experimental=args.experimental, minimizer=minimizer,
-                         record_steps_timeseries=args.rsts,
-                         kmax_start=args.kmax_start, mintotniter=args.mintotniter,
-                         maxtotniter=args.maxtotniter, adjustf_niter=adjustf_niter,
-                         relstderr=args.relstderr, numnegk=args.numnegk,
-                         lownegk=args.lownegk, nocell=args.nocell, delraw=args.delraw,
-                         explore_dir=args.explore_dir,
-                         structures_dir=args.packings_dir,
-                         pt_structures_dir=pt_packings_dir,
-                         cores_per_node=args.cores_per_node, nthreads=args.threads,
-                         pt_nthreads=args.pt_threads,
-                         pt_workers=args.pt_workers, pt_replicas=args.pt_replicas,
-                         pt_adjustf_navg=args.pt_adjustf_navg,
-                         pt_exchange_scheme=pt_exchange_scheme,
-                         pt_sleep_seconds=args.pt_sleep_seconds,
-                         pt_collect_minima=args.pt_collect_minima,
-                         pt_checkpoint_time=args.pt_checkpoint_time,
-                         mpi_impl=mpi_impl, verbose=args.verbose)
+    submit_bv = SubmitBV(
+        args.ndim,
+        batch_system=batch_system,
+        workdir=args.workdir,
+        job_label=args.job_label,
+        nojmin=args.nojmin,
+        nojmax=args.nojmax,
+        nodays=args.nodays,
+        experimental=args.experimental,
+        minimizer=minimizer,
+        record_steps_timeseries=args.rsts,
+        kmax_start=args.kmax_start,
+        mintotniter=args.mintotniter,
+        maxtotniter=args.maxtotniter,
+        adjustf_niter=adjustf_niter,
+        relstderr=args.relstderr,
+        numnegk=args.numnegk,
+        lownegk=args.lownegk,
+        nocell=args.nocell,
+        delraw=args.delraw,
+        explore_dir=args.explore_dir,
+        structures_dir=args.packings_dir,
+        pt_structures_dir=pt_packings_dir,
+        cores_per_node=args.cores_per_node,
+        nthreads=args.threads,
+        pt_nthreads=args.pt_threads,
+        pt_workers=args.pt_workers,
+        pt_replicas=args.pt_replicas,
+        pt_adjustf_navg=args.pt_adjustf_navg,
+        pt_exchange_scheme=pt_exchange_scheme,
+        pt_sleep_seconds=args.pt_sleep_seconds,
+        pt_collect_minima=args.pt_collect_minima,
+        pt_checkpoint_time=args.pt_checkpoint_time,
+        mpi_impl=mpi_impl,
+        verbose=args.verbose,
+    )
 
-    if args.mode == 'chain':
-        submit_bv.submit_chain_calculations(args.k_queue_or_partition, args.k_walltime_hours,
-                                            args.pt_queue_or_partition, args.pt_walltime_hours,
-                                            args.path_to_script)
+    if args.mode == "chain":
+        submit_bv.submit_chain_calculations(
+            args.k_queue_or_partition,
+            args.k_walltime_hours,
+            args.pt_queue_or_partition,
+            args.pt_walltime_hours,
+            args.path_to_script,
+        )
     else:
-        assert (not ((args.kmin is True or args.kmax is True) and args.pt is True))
+        assert not (
+            (args.kmin is True or args.kmax is True) and args.pt is True
+        )
         if args.kmin:
-            submit_bv.submit_kmin_calculations(args.queue_or_partition, args.walltime_hours,
-                                               args.path_to_script, args.force)
+            submit_bv.submit_kmin_calculations(
+                args.queue_or_partition,
+                args.walltime_hours,
+                args.path_to_script,
+                args.force,
+            )
         if args.kmax:
-            submit_bv.submit_kmax_calculations(args.queue_or_partition, args.walltime_hours,
-                                               args.path_to_script, args.force)
+            submit_bv.submit_kmax_calculations(
+                args.queue_or_partition,
+                args.walltime_hours,
+                args.path_to_script,
+                args.force,
+            )
         if args.pt:
-            submit_bv.submit_pt_calculations(args.queue_or_partition, args.walltime_hours,
-                                             args.path_to_script, args.force)
+            submit_bv.submit_pt_calculations(
+                args.queue_or_partition,
+                args.walltime_hours,
+                args.path_to_script,
+                args.force,
+            )
         if args.mbar:
-            submit_bv.submit_innersphere_dos_calculations(args.queue_or_partition, args.walltime_hours,
-                                                          args.path_to_script, args.force)
+            submit_bv.submit_innersphere_dos_calculations(
+                args.queue_or_partition,
+                args.walltime_hours,
+                args.path_to_script,
+                args.force,
+            )
+    print("submit_bv.py completed successfully.")

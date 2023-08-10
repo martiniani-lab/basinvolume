@@ -186,7 +186,14 @@ class mbar_compute_dos(object):
         self.pt_configpath = os.path.join(
             self.explore_dir, "explore_" + fname + ".config"
         )
-        assert os.path.isfile(self.pt_configpath)
+        # HACK this takes care of issues with files running
+        if not os.path.isfile(self.pt_configpath):
+            # use the base of the explore directory to find the config file
+            self.explore_dir = os.path.dirname(self.explore_dir)
+            self.pt_configpath = os.path.join(
+                self.explore_dir, "explore_" + fname + ".config"
+            )
+
         self.findk_configpath = os.path.join(
             self.explore_dir, "findk_" + fname + ".config"
         )
@@ -316,11 +323,13 @@ class mbar_compute_dos(object):
                 self._build_mbar(verbose=False, initial_f_k=initial_f_k)
                 logging.info("t: {}".format(time.time() - start))
                 # compute the weights, skip the volume calculation
-                (
-                    Deltaf_ij,
-                    dDeltaf_ij,
-                    Theta_ij,
-                ) = self.mbar.getFreeEnergyDifferences(return_theta=True)
+                result_dict = self.mbar.compute_free_energy_differences(
+                    return_theta=True
+                )
+                Deltaf_ij = result_dict["Delta_f"]
+                dDeltaf_ij = result_dict["dDelta_f"]
+                Theta_ij = result_dict["Theta"]
+
                 self.w_i_final = -Deltaf_ij[0]
                 # now build histogram and compute dos
                 self._build_histogram(compute_binedges=False, kde=self.kde)
@@ -439,10 +448,12 @@ class mbar_compute_dos(object):
             N_k[i] = len(indices)  # number of uncorrelated samples
             flat_ts = np.append(flat_ts, ts_spheres[i][indices])
         # Now loop through pt timeseries
+        print(K - self.number_nested_spheres, "pt timeseries")
         for i in range(
             K - self.number_nested_spheres
         ):  # subsample the energies
             j = i + self.number_nested_spheres
+            print(timeseries)
             g[j] = statistical_inefficiency_fft(timeseries[i])
             indices = np.array(
                 subsample_correlated_data(timeseries[i], g=g[j])
@@ -479,9 +490,13 @@ class mbar_compute_dos(object):
         )  # subsampling=subsampling no longer supported
 
     def _mbar_compute_volume(self):
-        Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences(
+        result_dict = self.mbar.compute_free_energy_differences(
             return_theta=True
         )  # Default is now false for return_theta
+        Deltaf_ij = result_dict["Delta_f"]
+        dDeltaf_ij = result_dict["dDelta_f"]
+        Theta_ij = result_dict["Theta"]
+
         self.w_i_final = -Deltaf_ij[
             0
         ]  # the free energy differences are nothing but the log weights that one would compute from wham
@@ -504,7 +519,11 @@ class mbar_compute_dos(object):
         u_lk = np.vstack(
             (u_lk, self.u_kn[self.k0_index])
         )  # measure free energy difference between k=0 and kw
-        Deltaf_ij, dDeltaf_ij = self.mbar.computePerturbedFreeEnergies(u_lk)
+        # Deltaf_ij, dDeltaf_ij = self.mbar.compute_perturbed_free_energies(u_lk)
+        result_dict = self.mbar.compute_perturbed_free_energies(u_lk)
+        Deltaf_ij = result_dict["Delta_f"]
+        dDeltaf_ij = result_dict["dDelta_f"]
+
         # vol = Deltaf_ij[1,0]
         self.F0, self.sigF0 = (Fmin - Deltaf_ij[1, 0]) - np.log(
             self.vcavity
@@ -731,7 +750,7 @@ class mbar_compute_dos(object):
             ncol=2,
         )
         ax.set_xlabel(r"$r$", fontsize=28)
-        plt.savefig(self.base_directory + "/histograms.eps")
+        plt.savefig(self.base_directory + "/histograms.")
         if self.show:
             plt.show()
 
@@ -750,7 +769,7 @@ class mbar_compute_dos(object):
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel("logDOS")
-        plt.savefig(self.base_directory + "/raw_log_dos.eps")
+        plt.savefig(self.base_directory + "/raw_log_dos.pdf")
         if self.show:
             plt.show()
 
@@ -765,7 +784,7 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r"k")
         ax.set_ylabel("$var(r)$")
         plt.xlim((self.karray[-1], self.karray[1]))
-        plt.savefig(self.base_directory + "/hist_var_k.eps")
+        plt.savefig(self.base_directory + "/hist_var_k.pdf")
         write_csv_xy(
             self.karray[self.number_nested_spheres :],
             var,
@@ -799,7 +818,7 @@ class mbar_compute_dos(object):
         ax.plot(bin_edges, dos, color=next(color_cycle), linewidth=2)
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel("DOS")
-        plt.savefig(self.base_directory + "/dos.eps")
+        plt.savefig(self.base_directory + "/dos.pdf")
         write_csv_xy(
             bin_edges, dos, fname=os.path.join(self.base_directory, "dos.csv")
         )
@@ -837,7 +856,7 @@ class mbar_compute_dos(object):
                 max(np.amax(rg), np.amax(logn_E)),
             )
         )
-        plt.savefig(self.base_directory + "/log_dos.eps")
+        plt.savefig(self.base_directory + "/log_dos.pdf")
         write_csv_xy(
             bin_edges,
             logn_E,
@@ -856,7 +875,7 @@ class mbar_compute_dos(object):
         ax.plot(bin_edges, np.exp(rg))  # -np.amax(rg)
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel(r"$\xi(r)/r^{N-1}$")
-        plt.savefig(self.base_directory + "/ratio_g.eps")
+        plt.savefig(self.base_directory + "/ratio_g.pdf")
         write_csv_xy(
             bin_edges,
             np.exp(rg),
@@ -871,7 +890,7 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel(r"$\log(\xi(r)/r^{N-1})$")
         ax.set_xscale("log")
-        plt.savefig(self.base_directory + "/ratio_g_loglog.eps")
+        plt.savefig(self.base_directory + "/ratio_g_loglog.pdf")
         if self.show:
             plt.show()
 
@@ -885,7 +904,7 @@ class mbar_compute_dos(object):
     #        ax.set_ylabel(r'$S_n^{\Gamma}$')
     #        #ax.set_yscale('log')
     #        #ax.set_xscale('log')
-    #        #plt.savefig(self.base_directory + '/wbp.eps')
+    #        #plt.savefig(self.base_directory + '/wbp.pdf')
     #        if self.show:
     #            plt.show()
 
@@ -938,7 +957,7 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r"$\Delta r$")
         ax.legend(frameon=False, loc="best")
         plt.ylim((np.amin(rg), 1.1 * np.amax(rg)))
-        plt.savefig(self.base_directory + "/log_dos_bs.eps")
+        plt.savefig(self.base_directory + "/log_dos_bs.pdf")
         # write_csv_xy(self.bin_edges[:-1], logn_E, fname=os.path.join(self.base_directory, 'log_gr_bs.csv'))
         # write_csv_xy(self.bin_edges[:-1], rg, fname=os.path.join(self.base_directory, 'log_gr_ratio_bs.csv'))
         if self.show:
@@ -951,7 +970,7 @@ class mbar_compute_dos(object):
         ax.plot(self.bin_edges[:-1], np.exp(high_rg - np.amax(rg)), color="r")
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel(r"$g(r)/r^{N-1}$")
-        plt.savefig(self.base_directory + "/ratio_g_bs.eps")
+        plt.savefig(self.base_directory + "/ratio_g_bs.pdf")
         # write_csv_xy(self.bin_edges[:-1], np.exp(rg-np.amax(rg)), fname=os.path.join(self.base_directory, 'gr_ratio.csv'))
         if self.show:
             plt.show()
@@ -964,7 +983,7 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel(r"$\log(g(r)/r^{N-1})$")
         ax.set_xscale("log")
-        plt.savefig(self.base_directory + "/ratio_g_loglog_bs.eps")
+        plt.savefig(self.base_directory + "/ratio_g_loglog_bs.pdf")
         if self.show:
             plt.show()
 
@@ -975,7 +994,7 @@ class mbar_compute_dos(object):
         ax.plot(self.bin_edges[:-1], high_dos, color="r")
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel("DOS")
-        plt.savefig(self.base_directory + "/dos_bs.eps")
+        plt.savefig(self.base_directory + "/dos_bs.pdf")
         # write_csv_xy(self.bin_edges[:-1], dos, fname=os.path.join(self.base_directory, 'dos.csv'))
         if self.show:
             plt.show()
@@ -1002,7 +1021,6 @@ class mbar_compute_dos(object):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="analyze PT data from thermodynamic integration"
     )

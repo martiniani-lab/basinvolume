@@ -33,8 +33,10 @@ PDF description.
 from __future__ import division
 from __future__ import print_function
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import object
+
 try:
     import numpy as np
     import argparse
@@ -63,6 +65,7 @@ try:
 except ImportError as err:
     print(err)
 
+
 def _entropy(name, out_path, sanity_check, free_energies):
     computer = name(free_energies, sanity_check)
     try:
@@ -71,62 +74,128 @@ def _entropy(name, out_path, sanity_check, free_energies):
         print(("Exception occured in ", name))
         print(ex)
 
+
 def _compute_write_entropies(data_set):
     print(("compute and write entropies for dataset with name", data_set.set_name))
-    entropy_base_output_path = os.path.join(data_set.set_path, 'entropy_analysis_all')
+    entropy_base_output_path = os.path.join(data_set.set_path, "entropy_analysis_all")
     print(("entropy_base_output_path", entropy_base_output_path))
     trymakedir(entropy_base_output_path)
     volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
-    outliers = OutlierDetection(data_set.free_energies, p=0.5, D=3*np.std(data_set.free_energies))
-    free_energies = np.array(data_set.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-    unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(free_energies, entropy_base_output_path)
+    outliers = OutlierDetection(
+        data_set.free_energies, p=0.5, D=3 * np.std(data_set.free_energies)
+    )
+    free_energies = np.array(data_set.free_energies)[
+        np.array(outliers.non_outliers_indexes, dtype="i")
+    ]
+    unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(
+        free_energies, entropy_base_output_path
+    )
     try:
         unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
     except Exception as ex:
         print(("Exception occured in unbiasing for log omega:", ex))
-    _entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, free_energies)
-    _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, free_energies)
-    _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)
+    _entropy(
+        APFEntropy,
+        os.path.join(entropy_base_output_path, "entropy_APF"),
+        volume_sanity_check,
+        free_energies,
+    )
+    _entropy(
+        KernelDensityLogOmegaJackKnife,
+        os.path.join(entropy_base_output_path, "entropy_kernel_density"),
+        volume_sanity_check,
+        free_energies,
+    )
+    _entropy(
+        MLLogOmega,
+        os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"),
+        volume_sanity_check,
+        free_energies,
+    )
+
 
 def _compute_write_entropies_msf(data_set, ik=0.1834006350297304, a=0.9671020810552969):
     """
     compute free energy from pressure and use these to compute entropy
     """
     print(("compute and write entropies for dataset with name", data_set.set_name))
-    entropy_base_output_path = os.path.join(data_set.set_path, 'msf_entropy_analysis_all')
+    entropy_base_output_path = os.path.join(
+        data_set.set_path, "msf_entropy_analysis_all"
+    )
     print(("entropy_base_output_path", entropy_base_output_path))
     trymakedir(entropy_base_output_path)
     volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
-    outliers = OutlierDetection(data_set.free_energies, p=0.5, D=3*np.std(data_set.free_energies))
-    gamma = np.array(data_set.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
-    #msf relation
-    free_energies = (data_set.nparticles*ik)*np.log(gamma) + a*data_set.nparticles
-    unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(free_energies, entropy_base_output_path)
+    outliers = OutlierDetection(
+        data_set.free_energies, p=0.5, D=3 * np.std(data_set.free_energies)
+    )
+    gamma = np.array(data_set.pressures)[
+        np.array(outliers.non_outliers_indexes, dtype="i")
+    ]
+    # msf relation
+    free_energies = (data_set.nparticles * ik) * np.log(gamma) + a * data_set.nparticles
+    unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(
+        free_energies, entropy_base_output_path
+    )
     try:
         unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
     except Exception as ex:
         print(("Exception occured in unbiasing for log omega:", ex))
-    _entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, free_energies)
-    _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, free_energies)
-    _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)
+    _entropy(
+        APFEntropy,
+        os.path.join(entropy_base_output_path, "entropy_APF"),
+        volume_sanity_check,
+        free_energies,
+    )
+    _entropy(
+        KernelDensityLogOmegaJackKnife,
+        os.path.join(entropy_base_output_path, "entropy_kernel_density"),
+        volume_sanity_check,
+        free_energies,
+    )
+    _entropy(
+        MLLogOmega,
+        os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"),
+        volume_sanity_check,
+        free_energies,
+    )
+
 
 class ComputeEntropy(object):
     """
     Read free energies with data set tools.
     Compute different entropies from them.
     """
+
     def __init__(self, workspace, ncores=7):
         #
         self.workspace = os.path.abspath(workspace)
         #
         self.analysis = BasinAnalysis(workspace=self.workspace)
         self.analysis.collect_data_every_set_all(no_pickle=True)
-        results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies)(data_set) for data_set in self.analysis.packing_datasets)
-        #results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies_msf)(data_set) for data_set in self.analysis.packing_datasets)
+        results = Parallel(n_jobs=ncores)(
+            delayed(_compute_write_entropies)(data_set)
+            for data_set in self.analysis.packing_datasets
+        )
+        # results = Parallel(n_jobs=ncores)(delayed(_compute_write_entropies_msf)(data_set) for data_set in self.analysis.packing_datasets)
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute entropy from F0 data obtained via independent compute_volumes script")
-    parser.add_argument("-w", "--workspace", type=str, help="top-level dir containing the packings folders of format n32_phi88_2D", default=os.getcwd())
-    parser.add_argument("-j", "--ncores", type=int, help="number of parallel jobs to run, default 6", default=7)
+    parser = argparse.ArgumentParser(
+        description="Compute entropy from F0 data obtained via independent compute_volumes script"
+    )
+    parser.add_argument(
+        "-w",
+        "--workspace",
+        type=str,
+        help="top-level dir containing the packings folders of format n32_phi88_2D",
+        default=os.getcwd(),
+    )
+    parser.add_argument(
+        "-j",
+        "--ncores",
+        type=int,
+        help="number of parallel jobs to run, default 6",
+        default=7,
+    )
     args = parser.parse_args()
     ComputeEntropy(args.workspace, ncores=args.ncores)

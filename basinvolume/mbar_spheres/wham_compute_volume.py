@@ -55,9 +55,7 @@ class wham_compute_dos(object):
         self.fname = fname
         self.nbins = nbins
         if not os.path.isabs(jammed_packings_dir):
-            jammed_packings_dir = os.path.join(
-                os.getcwd(), jammed_packings_dir
-            )
+            jammed_packings_dir = os.path.join(os.getcwd(), jammed_packings_dir)
         self.jammed_packings_dir = jammed_packings_dir
         if not os.path.isabs(explore_dir):
             explore_dir = os.path.join(os.getcwd(), explore_dir + fname)
@@ -140,9 +138,7 @@ class wham_compute_dos(object):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.displ_k_max = 0.1  # configf.getfloat('FINDK', 'displ_k_max')
-        self.var_displ_k_max = configf.getfloat(
-            "FINDK", "var_displ_k_max"
-        )  # DEBUG
+        self.var_displ_k_max = configf.getfloat("FINDK", "var_displ_k_max")  # DEBUG
         configf.read(str(self.innersphere_configpath))
         self.k_innersphere = configf.getfloat("INNERSPHERE_MCRUNNER", "k")
         self.ndof = (self.nparticles - 1) * self.bdim
@@ -171,9 +167,7 @@ class wham_compute_dos(object):
                 if dir.isdigit():
                     path = os.path.join(self.explore_dir, dir)
                     file_list = glob.glob(path + "/TimeSeries*")
-                    file_list = sorted(
-                        file_list, key=lambda x: int(x.split(".")[1])
-                    )
+                    file_list = sorted(file_list, key=lambda x: int(x.split(".")[1]))
                     series_order.append(int(dir))
                     series = []
                     for series_path in file_list:
@@ -228,9 +222,7 @@ class wham_compute_dos(object):
         self.bin_edges = bin_edges + (bin_edges[1] - bin_edges[0]) / 2
 
     def _unbias_histogram(self):
-        hist_unbiased = np.outer(
-            0.5 * self.karray[1:], self.bin_edges[:-1] ** 2
-        )
+        hist_unbiased = np.outer(0.5 * self.karray[1:], self.bin_edges[:-1] ** 2)
         hist_unbiased = np.vstack(
             (
                 ((24 - 1) * 3 - 1) * np.log(self.bin_edges[:-1])
@@ -271,9 +263,7 @@ class wham_compute_dos(object):
 
             if True:
                 print("minimizing with pele lbfgs")
-            ret = quench(
-                X, whampot, tol=1e-5, maxstep=1e4, nsteps=10000, iprint=0
-            )
+            ret = quench(X, whampot, tol=1e-5, maxstep=1e4, nsteps=10000, iprint=0)
         except ImportError:
             from wham_utils import lbfgs_scipy
 
@@ -331,9 +321,7 @@ class wham_compute_dos(object):
         self.F0unc, self.sigF0unc = -np.log(Vol), 0
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
-        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(
-            self.vcavity
-        )
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
 
         if self.verbose:
             print("F0 {} F0unc {}".format(self.F0, self.F0unc))

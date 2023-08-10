@@ -9,6 +9,7 @@ from scipy.spatial.distance import cdist
 
 # code imported from http://nbviewer.jupyter.org/gist/tillahoffmann/f844bce2ec264c1c8cb5
 
+
 class weighted_gaussian_kde(object):
     """Representation of a kernel-density estimate using Gaussian kernels.
 
@@ -145,6 +146,7 @@ class weighted_gaussian_kde(object):
     >>> plt.show()
 
     """
+
     def __init__(self, dataset, bw_method=None, weights=None):
         self.dataset = np.atleast_2d(dataset)
         if not self.dataset.size > 1:
@@ -158,7 +160,7 @@ class weighted_gaussian_kde(object):
 
         # Compute the effective sample size
         # http://surveyanalysis.org/wiki/Design_Effects_and_Effective_Sample_Size#Kish.27s_approximate_formula_for_computing_effective_sample_size
-        self.neff = 1.0 / np.sum(self.weights ** 2)
+        self.neff = 1.0 / np.sum(self.weights**2)
 
         self.set_bandwidth(bw_method=bw_method)
 
@@ -191,24 +193,25 @@ class weighted_gaussian_kde(object):
                 points = np.reshape(points, (self.d, 1))
                 m = 1
             else:
-                msg = "points have dimension %s, dataset has dimension %s" % (d,
-                    self.d)
+                msg = "points have dimension %s, dataset has dimension %s" % (d, self.d)
                 raise ValueError(msg)
 
         # compute the normalised residuals
-        chi2 = cdist(points.T, self.dataset.T, 'mahalanobis', VI=self.inv_cov) ** 2
+        chi2 = cdist(points.T, self.dataset.T, "mahalanobis", VI=self.inv_cov) ** 2
         # compute the pdf
-        result = old_div(np.sum(np.exp(-.5 * chi2) * self.weights, axis=1), self._norm_factor)
+        result = old_div(
+            np.sum(np.exp(-0.5 * chi2) * self.weights, axis=1), self._norm_factor
+        )
 
         return result
 
     __call__ = evaluate
 
     def scotts_factor(self):
-        return np.power(self.neff, old_div(-1.,(self.d+4)))
+        return np.power(self.neff, old_div(-1.0, (self.d + 4)))
 
     def silverman_factor(self):
-        return np.power(self.neff*(self.d+2.0)/4.0, old_div(-1.,(self.d+4)))
+        return np.power(self.neff * (self.d + 2.0) / 4.0, old_div(-1.0, (self.d + 4)))
 
     #  Default method to calculate bandwidth, can be overwritten by subclass
     covariance_factor = scotts_factor
@@ -257,19 +260,20 @@ class weighted_gaussian_kde(object):
         """
         if bw_method is None:
             pass
-        elif bw_method == 'scott':
+        elif bw_method == "scott":
             self.covariance_factor = self.scotts_factor
-        elif bw_method == 'silverman':
+        elif bw_method == "silverman":
             self.covariance_factor = self.silverman_factor
         elif np.isscalar(bw_method) and not isinstance(bw_method, basestring):
-            self._bw_method = 'use constant'
+            self._bw_method = "use constant"
             self.covariance_factor = lambda: bw_method
         elif callable(bw_method):
             self._bw_method = bw_method
             self.covariance_factor = lambda: self._bw_method(self)
         else:
-            msg = "`bw_method` should be 'scott', 'silverman', a scalar " \
-                  "or a callable."
+            msg = (
+                "`bw_method` should be 'scott', 'silverman', a scalar " "or a callable."
+            )
             raise ValueError(msg)
 
         self._compute_covariance()
@@ -280,19 +284,23 @@ class weighted_gaussian_kde(object):
         """
         self.factor = self.covariance_factor()
         # Cache covariance and inverse covariance of the data
-        if not hasattr(self, '_data_inv_cov'):
+        if not hasattr(self, "_data_inv_cov"):
             # Compute the mean and residuals
             _mean = np.sum(self.weights * self.dataset, axis=1)
-            _residual = (self.dataset - _mean[:, None])
+            _residual = self.dataset - _mean[:, None]
             # Compute the biased covariance
-            self._data_covariance = np.atleast_2d(np.dot(_residual * self.weights, _residual.T))
+            self._data_covariance = np.atleast_2d(
+                np.dot(_residual * self.weights, _residual.T)
+            )
             # Correct for bias (http://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_covariance)
-            self._data_covariance /= (1 - np.sum(self.weights ** 2))
+            self._data_covariance /= 1 - np.sum(self.weights**2)
             self._data_inv_cov = np.linalg.inv(self._data_covariance)
 
         self.covariance = self._data_covariance * self.factor**2
         self.inv_cov = old_div(self._data_inv_cov, self.factor**2)
-        self._norm_factor = np.sqrt(np.linalg.det(2*np.pi*self.covariance)) #* self.n
+        self._norm_factor = np.sqrt(
+            np.linalg.det(2 * np.pi * self.covariance)
+        )  # * self.n
 
     def resample(self, size=None):
         """
@@ -309,15 +317,22 @@ class weighted_gaussian_kde(object):
         """
         if size is None:
             size = self.n
-        norm = np.transpose(np.random.multivariate_normal(np.zeros((self.d,), dtype=np.float64),
-                                                          self.covariance, size=int(size)))
-        indices = np.random.choice(list(range(0, self.n)), p=old_div(self.weights,np.sum(self.weights)), size=size)
+        norm = np.transpose(
+            np.random.multivariate_normal(
+                np.zeros((self.d,), dtype=np.float64), self.covariance, size=int(size)
+            )
+        )
+        indices = np.random.choice(
+            list(range(0, self.n)),
+            p=old_div(self.weights, np.sum(self.weights)),
+            size=size,
+        )
         means = self.dataset[:, indices]
 
         return means + norm
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from scipy import stats
 
@@ -331,27 +346,41 @@ if __name__=="__main__":
     weights = old_div(np.ones(num_samples), num_samples)
 
     # Plot a histogram
-    plt.hist(samples, bins, (-xmax, xmax), histtype='stepfilled',
-             alpha=.2, normed=True, color='k', label='histogram')
+    plt.hist(
+        samples,
+        bins,
+        (-xmax, xmax),
+        histtype="stepfilled",
+        alpha=0.2,
+        normed=True,
+        color="k",
+        label="histogram",
+    )
 
     # Construct a KDE and plot it
     pdf = weighted_gaussian_kde(samples)
     x = np.linspace(-xmax, xmax, 200)
     y = pdf(x)
-    plt.plot(x, y, label='kde')
+    plt.plot(x, y, label="kde")
 
     # Plot the samples
-    plt.scatter(samples, np.zeros_like(samples), marker='x',
-                color='k', alpha=.1, label='samples')
+    plt.scatter(
+        samples,
+        np.zeros_like(samples),
+        marker="x",
+        color="k",
+        alpha=0.1,
+        label="samples",
+    )
 
     # Plot the true pdf
     y = stats.norm().pdf(x)
-    plt.plot(x, y, label='true PDF')
+    plt.plot(x, y, label="true PDF")
 
     # Boiler plate
-    plt.xlabel('Variable')
-    plt.ylabel('Density')
-    plt.legend(loc='best', frameon=False)
+    plt.xlabel("Variable")
+    plt.ylabel("Density")
+    plt.legend(loc="best", frameon=False)
     plt.tight_layout()
     plt.show()
 
@@ -365,14 +394,16 @@ if __name__=="__main__":
     gaussian_means = np.array([-1, 1])
     gaussian_std = np.array([2, 1])
     # Observation probability of each mixture
-    gaussian_observation = np.array([1, .5])
+    gaussian_observation = np.array([1, 0.5])
 
     # How many samples belong to each mixture?
     gaussian_samples = np.random.multinomial(num_samples, gaussian_weights)
     samples = []
     weights = []
     # Generate samples and observed samples for each mixture component
-    for n, m, s, o in zip(gaussian_samples, gaussian_means, gaussian_std, gaussian_observation):
+    for n, m, s, o in zip(
+        gaussian_samples, gaussian_means, gaussian_std, gaussian_observation
+    ):
         _samples = np.random.normal(m, s, n)
         _samples = _samples[o > np.random.uniform(size=n)]
         samples.extend(_samples)
@@ -390,29 +421,44 @@ if __name__=="__main__":
         true_pdf = true_pdf + w * stats.norm(m, s).pdf(x)
 
     # Plot a histogram
-    plt.hist(samples, bins, (xmin, xmax), histtype='stepfilled',
-             alpha=.2, normed=True, color='k', label='histogram', weights=weights)
+    plt.hist(
+        samples,
+        bins,
+        (xmin, xmax),
+        histtype="stepfilled",
+        alpha=0.2,
+        normed=True,
+        color="k",
+        label="histogram",
+        weights=weights,
+    )
 
     # Construct a KDE and plot it
     pdf = weighted_gaussian_kde(samples, weights=weights)
     y = pdf(x)
-    plt.plot(x, y, label='weighted kde')
+    plt.plot(x, y, label="weighted kde")
 
     # Compare with a naive kde
     pdf = stats.gaussian_kde(samples)
     y = pdf(x)
-    plt.plot(x, y, label='unweighted kde')
+    plt.plot(x, y, label="unweighted kde")
 
     # Plot the samples
-    plt.scatter(samples, np.zeros_like(samples), marker='x',
-                color='k', alpha=.02, label='samples')
+    plt.scatter(
+        samples,
+        np.zeros_like(samples),
+        marker="x",
+        color="k",
+        alpha=0.02,
+        label="samples",
+    )
 
     # Plot the true pdf
-    plt.plot(x, true_pdf, label='true PDF')
+    plt.plot(x, true_pdf, label="true PDF")
 
     # Boiler plate
-    plt.xlabel('Variable')
-    plt.ylabel('Density')
-    plt.legend(loc='best', frameon=False)
+    plt.xlabel("Variable")
+    plt.ylabel("Density")
+    plt.legend(loc="best", frameon=False)
     plt.tight_layout()
     plt.show()

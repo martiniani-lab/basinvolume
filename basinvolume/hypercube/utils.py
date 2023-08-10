@@ -3,6 +3,7 @@ from builtins import map
 from builtins import object
 import numpy as np
 
+
 class LineStitcher(object):
     def __init__(self, raw_lines):
         self.raw_lines = raw_lines
@@ -10,7 +11,8 @@ class LineStitcher(object):
         self.lines = []
         self.stitch_lines()
         print(("self.lines", self.lines))
-        assert(False)
+        assert False
+
     def stitch_lines(self):
         status = []
         in_line = False
@@ -26,7 +28,7 @@ class LineStitcher(object):
                     tmp = [s.replace("]", "],") for s in tmp]
                     tmp = np.asarray(tmp)
                     tmp = tmp.flatten()
-                    
+
                     self.lines.append(tmp.squeeze())
                     tmp = []
             else:
@@ -34,25 +36,46 @@ class LineStitcher(object):
                     in_line = True
                     tmp.append(l)
 
+
 def get_means_cov(gauss_path):
     print("reading means, cov from the following gauss path")
     print(("gauss_path", gauss_path))
     mean = []
     cov = []
     f = open(gauss_path, "r")
-    #stitched_lines = LineStitcher(f.readlines())
-    #for line in stitched_lines.lines:
+    # stitched_lines = LineStitcher(f.readlines())
+    # for line in stitched_lines.lines:
     for line in f.readlines():
         if line.startswith("["):
             m = None
             c = None
             print(("line", line))
             if "," in line:
-                m = list(map(float, (line.split(",")[0].replace("[", "")).replace("]", "").split()))
-                c = list(map(float, (line.split(",")[1].replace("[", "")).replace("]", "").split()))
+                m = list(
+                    map(
+                        float,
+                        (line.split(",")[0].replace("[", "")).replace("]", "").split(),
+                    )
+                )
+                c = list(
+                    map(
+                        float,
+                        (line.split(",")[1].replace("[", "")).replace("]", "").split(),
+                    )
+                )
             else:
-                m = list(map(float, (line.split("\t")[0].replace("[", "")).replace("]", "").split()))
-                c = list(map(float, (line.split("\t")[1].replace("[", "")).replace("]", "").split()))
+                m = list(
+                    map(
+                        float,
+                        (line.split("\t")[0].replace("[", "")).replace("]", "").split(),
+                    )
+                )
+                c = list(
+                    map(
+                        float,
+                        (line.split("\t")[1].replace("[", "")).replace("]", "").split(),
+                    )
+                )
             mean.append(m)
             cov.append(c)
     f.close()

@@ -6,8 +6,8 @@ from mpi4py import MPI
 from basinvolume.utils import get_dist_com
 from basinvolume.spheres import ReplicaState
 
-class PT_Worker(object):
 
+class PT_Worker(object):
     def __init__(self, mcrunner, fix_com=True):
         self.comm = MPI.COMM_WORLD
         self.mcrunner = mcrunner
@@ -34,11 +34,12 @@ class PT_Worker(object):
             self.mcrunner.set_config(state.coords, state.energy)
         self.mcrunner.run()
 
-        #collect the results
+        # collect the results
         state.set_mc_state(self.mcrunner.get_complete_state())
         if self.fix_com:
-            state.dx = get_dist_com(state.coords, self.mcrunner.red_origin,
-                                    self.mcrunner.bdim)
+            state.dx = get_dist_com(
+                state.coords, self.mcrunner.red_origin, self.mcrunner.bdim
+            )
         else:
             state.dx = np.linalg.norm(state.coords - self.mcrunner.red_origin)
         return self.mcrunner.get_timeseries(clear=True)

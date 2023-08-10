@@ -15,6 +15,7 @@ from basinvolume.hypercube import HypercubeMCrunner
 from pymbar.timeseries import detect_equilibration_binary_search
 import time
 import logging
+import os
 
 try:
     from basinvolume.gaussian_benchmark import GaussianBenchmarkKminRun

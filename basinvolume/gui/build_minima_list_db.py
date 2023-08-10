@@ -1,5 +1,6 @@
 from __future__ import division
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
@@ -19,6 +20,7 @@ from pele.gui import run_gui
 import argparse
 import sys
 
+
 class build_minima_list_db(object):
     """
     *nparticles: number of particles
@@ -28,38 +30,46 @@ class build_minima_list_db(object):
     *boxv: an array of size bdim that contains the vectors defining the box
     """
 
-    def __init__(self, fname, db_path='minima_list.sqlite', packings_dir='jammed_packings', base_dir=None):
+    def __init__(
+        self,
+        fname,
+        db_path="minima_list.sqlite",
+        packings_dir="jammed_packings",
+        base_dir=None,
+    ):
         self.fname = fname
         dname = os.path.splitext(fname)[0]
 
         if base_dir is None:
-            base_directory = os.path.join(os.getcwd(),'explore_bv_'+str(dname))
-            assert(os.path.exists(base_directory))
+            base_directory = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
+            assert os.path.exists(base_directory)
         else:
             if not os.path.isabs(base_dir):
-                base_directory = os.path.join(os.getcwd(),packings_dir)
+                base_directory = os.path.join(os.getcwd(), packings_dir)
         self.base_directory = base_directory
 
         if not os.path.isabs(db_path):
-            db_path = os.path.join(base_directory,db_path)
+            db_path = os.path.join(base_directory, db_path)
         self.db_path = db_path
 
         if not os.path.isabs(packings_dir):
-            packings_dir = os.path.join(os.getcwd(),packings_dir)
+            packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
 
-        self.packing_configpath = os.path.join(packings_dir,'jammed_packings.config')
+        self.packing_configpath = os.path.join(packings_dir, "jammed_packings.config")
 
         imp_packing = read_jammed_packing_config(str(self.packing_configpath))
-        self.nparticles = imp_packing['nparticles']
-        self.bdim = imp_packing['bdim']
-        self.ndim = imp_packing['ndim']
-        self.boxv = imp_packing['boxv'].copy()
-        self.packing_frac = imp_packing['packing_frac']
-        self.sca = imp_packing['sca']
+        self.nparticles = imp_packing["nparticles"]
+        self.bdim = imp_packing["bdim"]
+        self.ndim = imp_packing["ndim"]
+        self.boxv = imp_packing["boxv"].copy()
+        self.packing_frac = imp_packing["packing_frac"]
+        self.sca = imp_packing["sca"]
 
         self.eps = 1
-        self.system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim)
+        self.system = HSWCASystem(
+            self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim
+        )
         self.potential = self.system.get_potential()
         self.db = self.system.create_database(self.db_path)
 
@@ -69,26 +79,26 @@ class build_minima_list_db(object):
         here is of size self.ndim but in generate_jammed_packings is of size self.nparticles.
         This should be run in initialise()
         """
-        path = os.path.join(self.packings_dir,self.fname)
+        path = os.path.join(self.packings_dir, self.fname)
         packing = import_packing(path, True, self.bdim)
-        self.coords = packing['coords']
-        self.hs_radii = packing['hs_radii']
-        self.rattlers = packing['stable_atoms_float_bdim']
+        self.coords = packing["coords"]
+        self.hs_radii = packing["hs_radii"]
+        self.rattlers = packing["stable_atoms_float_bdim"]
+
 
 def main():
-#    parser = argparse.ArgumentParser(description="analyse hard disks/spheres packings")
-#    parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
-#    parser.add_argument("--show", action='store_true', help="show histograms",default=False)
-#    parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="jammed_packings")
-#    args = parser.parse_args()
-#    print args
+    #    parser = argparse.ArgumentParser(description="analyse hard disks/spheres packings")
+    #    parser.add_argument("-e","--etol", type=float, help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",default=1.0)
+    #    parser.add_argument("--show", action='store_true', help="show histograms",default=False)
+    #    parser.add_argument("--packingsdir", type=str, help="name of directory with packings, must be in cwd", default="jammed_packings")
+    #    args = parser.parse_args()
+    #    print args
 
-    analyse = build_minima_list_db('jammed_packing0.xyzdr')
-    #run_gui(analyse.system, analyse.db)
+    analyse = build_minima_list_db("jammed_packing0.xyzdr")
+    # run_gui(analyse.system, analyse.db)
 
     system = analyse.system
     db = analyse.db
-
 
     from PyQt4.QtGui import QApplication
 
@@ -139,13 +149,15 @@ def main():
     if False:
         from pele.gui.graph_viewer import GraphViewDialog
         from OpenGL.GLUT import glutInit
+
         app = QApplication(sys.argv)
 
         wnd = GraphViewDialog(db, app=app, minima_color_value=get_distance)
-        #decrunner = DECRunner(system, db, min1, min2, outstream=wnd.textEdit_writer)
+        # decrunner = DECRunner(system, db, min1, min2, outstream=wnd.textEdit_writer)
         glutInit()
         wnd.show()
         from PyQt4.QtCore import QTimer
+
         def start():
             wnd.start()
 
@@ -154,7 +166,9 @@ def main():
 
     if True:
         from pele.gui import run_gui
+
         run_gui(system, db)
+
 
 #    m1, m2 = db.minima()[:2]
 #

@@ -247,6 +247,11 @@ class PT_Master(object):
         self.replica_timeseries2 = [[] for _ in range(self.nreplicas)]
 
     def _init_print(self, append=False):
+
+        current_dir = os.getcwd()
+        if os.path.basename(current_dir) == self.base_directory:
+            self.base_directory = current_dir
+
         if append:
             mode = "a"
         else:

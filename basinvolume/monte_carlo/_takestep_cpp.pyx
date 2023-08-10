@@ -58,7 +58,7 @@ class SampleUniformSphereGaussian(_Cdef_SampleUniformSphereGaussian):
     
     this class is the Python interface for the c++ SampleUniformSphereGaussian implementation.
     Sample uniformly a direction from unit sphere centered at ``origin`` and select distance 
-    from N(0,``stepsize``) 
+    from N(0,``stepsize``)
     
     Parameters
     ----------

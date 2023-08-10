@@ -22,14 +22,17 @@ from basinvolume.utils import to_string
 from basinvolume.utils import volume_nball
 from basinvolume.utils import trymakedir
 from .brute_force_2d import BruteForce2D
+
 try:
     from .utils import *
 except Exception as e:
     print(e)
 
+
 class EvalCounter(object):
     def __init__(self):
         self.count = 0
+
 
 def compute_volume(minimum_index=None, means=None, cov=None):
     if minimum_index >= means.shape[0] or minimum_index < 0:
@@ -37,7 +40,7 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     if not means.shape == cov.shape:
         raise Exception("illegal input: means shape is not cov shape")
     res = []
-    config = 'config{}.gauss'.format(minimum_index)
+    config = "config{}.gauss".format(minimum_index)
     # Brute force rejection sampling computation of volume i.
     bf = BruteForce2D(means=means, cov=cov, minimum_index=minimum_index)
     bf.compute_volume()
@@ -46,12 +49,17 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     print(("bf.basin_volume", bf.basin_volume))
     print(("bf.error_basin_volume", bf.error_basin_volume))
     # Print all volumes to file.
-    fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison_brute{}".format(minimum_index)))
+    fout = ResultsFile(
+        os.path.join(
+            os.getcwd(), "volume_method_comparison_brute{}".format(minimum_index)
+        )
+    )
     fout.set_heading("DIRECT REJECTION SAMPLING")
     fout.to_file("bf.basin_volume", bf.basin_volume)
     fout.to_file("bf.error_basin_volume", bf.error_basin_volume)
     fout.to_file("bf.nfev", int(bf.nfev))
     fout.close()
+
 
 if __name__ == "__main__":
     """
@@ -65,7 +73,7 @@ if __name__ == "__main__":
     [ 1.26304236,  8.80647431],
     [ 7.82900305,  2.89542514],
     [ 5.35866288, -7.17580499],
-    [-5.16164399, -7.13075119]        
+    [-5.16164399, -7.13075119]
     ])
     cov = np.asarray([
     [ 2.89579414,  2.89579414],
@@ -80,7 +88,9 @@ if __name__ == "__main__":
     [ 1.62236091,  1.62236091]
     ])
     """
-    parser = argparse.ArgumentParser(description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method")
+    parser = argparse.ArgumentParser(
+        description="Compute gaussian landscape volumes with TI and rejection sampling to compare to trajectories method"
+    )
     parser.add_argument("--gauss_path", type=str, default=os.getcwd())
     parser.add_argument("--index", type=int, default=0)
     args = parser.parse_args()
@@ -88,4 +98,3 @@ if __name__ == "__main__":
     print(("means", means))
     print(("cov", cov))
     compute_volume(minimum_index=args.index, means=means, cov=cov)
-    

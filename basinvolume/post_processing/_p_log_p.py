@@ -1,8 +1,10 @@
 from __future__ import division
 from __future__ import print_function
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import object
+
 try:
     import numpy as np
     import argparse
@@ -18,15 +20,18 @@ try:
 except ImportError as err:
     print(err)
 
+
 class F0MeanError(object):
     """
     The mean is not weithed by the error because we want to have the mean as
     sampled with bias, see APFEntropy below.
     """
+
     def __init__(self, F0):
         F0 = np.array(F0)
         self.mean = np.mean(F0)
         self.sample_variance_error = np.sqrt(np.var(F0) / len(F0))
+
 
 class APFEntropy(object):
     def __init__(self, F0, volume_sanity_check):
@@ -34,6 +39,7 @@ class APFEntropy(object):
         self.F0_acc = volume_sanity_check.F0_acc
         self.V_acc = volume_sanity_check.V_acc
         self.nr_particles = volume_sanity_check.nr_particles
+
     def compute_and_write_entropy(self, entropy_file_path):
         """
         Granular entropy according to Asenjo14: 10.1103/PhysRevLett.112.098002
@@ -43,14 +49,17 @@ class APFEntropy(object):
         F0_stat = F0MeanError(self.F0)
         self.S_star = F0_stat.mean - self.F0_acc
         if self.S_star < 0:
-            raise Exception("APFEntropy: compute_and_write_entropy: entropy computation failed")
+            raise Exception(
+                "APFEntropy: compute_and_write_entropy: entropy computation failed"
+            )
         self.S = self.S_star - log_factorial(self.nr_particles)
         self.error_S_star = F0_stat.sample_variance_error
         self.error_S = self.error_S_star
         print("Granular entropy according to APF:")
-        print("S_star:", self.S_star, "+/-", self.error_S_star) 
+        print("S_star:", self.S_star, "+/-", self.error_S_star)
         print("S:", self.S, "+/-", self.error_S)
         self.write_to_file(entropy_file_path)
+
     def write_to_file(self, entropy_file_path):
         f = ResultsFile(entropy_file_path)
         f.set_heading("ENTROPY_APF")
