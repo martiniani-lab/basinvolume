@@ -108,6 +108,22 @@ if __name__ == "__main__":
         help="Seed for the metropolis algorithm",
         default=None,
     )
+    
+    # TODO: add description for these arguments
+    parser.add_argument("--k", type=int, default=0, help="Description for k.")
+    parser.add_argument("--stepsize", type=float, default=1e-1, help="Description for stepsize.")
+    parser.add_argument("--dtol", type=float, default=1e-4, help="Description for dtol.")
+    parser.add_argument("--eps", type=float, default=1.0, help="Description for eps.")
+    parser.add_argument("--hmin", type=int, default=0, help="Description for hmin.")
+    parser.add_argument("--hmax", type=int, default=1000, help="Description for hmax.")
+    parser.add_argument("--hbinsize", type=int, default=1, help="Description for hbinsize.")
+    parser.add_argument("--acceptance", type=float, default=0.2, help="Description for acceptance.")
+    parser.add_argument("--adjustf", type=float, default=0.9, help="Description for adjustf.")
+    parser.add_argument("--opt_dtmax", type=int, default=1, help="Description for opt_dtmax.")
+    parser.add_argument("--opt_tol", type=float, default=1e-10, help="optimizer tolerance")
+    parser.add_argument("--opt_nsteps", type=float, default=1e5, help="number of steps for optimizer")
+    parser.add_argument("--record_trajectory_npoints", type=int, default=int(1e4), help="Description for record_trajectory_npoints.")
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -135,31 +151,31 @@ if __name__ == "__main__":
         args.rsts = True
 
     kmin_kwargs = dict(
-        k=0,
-        stepsize=1e-1,
-        niter=args.niter,
-        dtol=1e-4,
-        eps=1.0,
-        hmin=0,
-        hmax=1000,
-        hbinsize=1,
-        acceptance=0.2,
-        adjustf=0.9,
-        adjustf_niter=args.adjustf_niter,
-        adjustf_navg=100,
-        opt_dtmax=1,
-        opt_tol=1e-5,
-        opt_nsteps=1e5,
-        packings_dir=packings_dir,
-        explore_dir=args.explore_dir,
-        use_cell_lists=not args.nocell,
-        single=single,
-        minimizer=minimizer,
-        verbose=args.verbose,
-        record_steps_timeseries=args.rsts,
-        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
-        print_diffusion_only=args.rsts_only,
-        record_trajectory_npoints=int(1e4),
+    k=args.k,
+    stepsize=args.stepsize,
+    niter=args.niter,
+    dtol=args.dtol,
+    eps=args.eps,
+    hmin=args.hmin,
+    hmax=args.hmax,
+    hbinsize=args.hbinsize,
+    acceptance=args.acceptance,
+    adjustf=args.adjustf,
+    adjustf_niter=args.adjustf_niter,
+    adjustf_navg=100,
+    opt_dtmax=args.opt_dtmax,
+    opt_tol=args.opt_tol,
+    opt_nsteps=args.opt_nsteps,
+    packings_dir=packings_dir,
+    explore_dir=args.explore_dir,
+    use_cell_lists=not args.nocell,
+    single=single,
+    minimizer=minimizer,
+    verbose=args.verbose,
+    record_steps_timeseries=args.rsts,
+    record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
+    print_diffusion_only=args.rsts_only,
+    record_trajectory_npoints=args.record_trajectory_npoints,
     )
 
     i32max = np.iinfo(np.int32).max
