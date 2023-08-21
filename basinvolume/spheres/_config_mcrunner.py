@@ -9,8 +9,8 @@ from pele.potentials import (
     HS_WCA,
     InversePowerStillinger,
     InversePower,
-    NegativeCos,
 )
+from pele.potentials import NegativeCosProduct as NegativeCos
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import (
     get_git_version,
