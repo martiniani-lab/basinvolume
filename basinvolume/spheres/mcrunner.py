@@ -13,7 +13,12 @@ from pele.potentials import (
     InversePowerStillingerCut,
     InversePower,
 )
-from pele.optimize import ModifiedFireCPP, LBFGS_CPP, CVODEBDFOptimizer
+from pele.optimize import (
+    ModifiedFireCPP,
+    LBFGS_CPP,
+    CVODEBDFOptimizer,
+    ExtendedMixedOptimizer,
+)
 from pele.optimize._quench import modifiedfire_cpp
 from pele.storage.database import Minimum
 from pele.distance import Distance
@@ -250,6 +255,19 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 tol=self.opt_tol,
                 atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
                 rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+            )
+        elif self.minimizer is Minimizer.MXD:
+            ratol = (
+                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                * 1e-1
+            )
+            self.optimizer = ExtendedMixedOptimizer(
+                self.potential,
+                self.coords,
+                tol=self.opt_tol,
+                nsteps=1e7,
+                atol=ratol,
+                rtol=ratol,
             )
         else:
             optimizer = ModifiedFireCPP(
