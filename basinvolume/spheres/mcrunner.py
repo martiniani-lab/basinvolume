@@ -39,6 +39,7 @@ from basinvolume.monte_carlo import (
     CheckOverlapLeesEdwardsCellLists,
 )
 from basinvolume.enums import Minimizer, Interaction
+from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC
 
 
 try:
@@ -247,8 +248,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 self.pot_optimizer,
                 self.start_coords,
                 tol=self.opt_tol,
-                atol=1e-7,
-                rtol=1e-7,
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
         else:
             optimizer = ModifiedFireCPP(

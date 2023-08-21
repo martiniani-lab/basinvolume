@@ -39,6 +39,7 @@ import glob
 import ast
 import logging
 from future.utils import with_metaclass
+from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC
 
 # try:
 #     import pylab
@@ -613,8 +614,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 self.coords,
                 tol=tol,
                 nsteps=1e7,
-                atol=1e-7,
-                rtol=1e-7,
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
@@ -665,8 +666,12 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     self.potential,
                     tol=tol,
                     nsteps=1e7,
-                    atol=1e-7,
-                    rtol=1e-7,
+                    atol=INVERSE_POWER_CVODE_95_ACC[
+                        len(self.coords) // self.bdim
+                    ],
+                    rtol=INVERSE_POWER_CVODE_95_ACC[
+                        len(self.coords) // self.bdim
+                    ],
                 )
             elif self.minimizer is Minimizer.LBFGS:
                 res2 = lbfgs_cpp(
@@ -1045,8 +1050,8 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 self.coords,
                 tol=tol,
                 nsteps=1e7,
-                atol=1e-7,
-                rtol=1e-7,
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
@@ -1097,8 +1102,12 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                     self.potential,
                     tol=tol,
                     nsteps=1e7,
-                    atol=1e-7,
-                    rtol=1e-7,
+                    atol=INVERSE_POWER_CVODE_95_ACC[
+                        len(self.coords) // self.bdim
+                    ],
+                    rtol=INVERSE_POWER_CVODE_95_ACC[
+                        len(self.coords) // self.bdim
+                    ],
                 )
             elif self.minimizer is Minimizer.LBFGS:
                 res2 = lbfgs_cpp(
@@ -1243,8 +1252,8 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
                 self.coords,
                 tol=tol,
                 nsteps=1e7,
-                atol=1e-7,
-                rtol=1e-7,
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
