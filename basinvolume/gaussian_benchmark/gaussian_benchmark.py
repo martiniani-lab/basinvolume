@@ -420,7 +420,9 @@ class GaussianBenchmark(object):
             "gaussian_benchmark_pt_run.py",
         )
         cmd_base_str = (
-            "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4}"
+            "mpiexec -n {0} python "
+            + full_path_to_pt_run_script
+            + " {1} {2} {3} {4}"
         )
         cmd = cmd_base_str.format(
             self.nprocs,
@@ -444,7 +446,9 @@ class GaussianBenchmark(object):
     def print_gaussian_sum_config_file(self):
         print(("trymakedir", self.basic_config_path))
         trymakedir(self.basic_config_path)
-        f = ResultsFile(os.path.join(self.basic_config_path, "gaussian_sum.config"))
+        f = ResultsFile(
+            os.path.join(self.basic_config_path, "gaussian_sum.config")
+        )
         f.set_heading("GAUSSIAN_SUM")
         print(("ngaussians", self.ngaussians))
         f.to_file_plain("ngaussians", self.ngaussians)
@@ -464,7 +468,9 @@ class GaussianBenchmark(object):
 
     def print_findk_config_file(self, configuration_name="config0.gauss"):
         dname = configuration_name[0:-6]
-        basic_findk_config_path = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
+        basic_findk_config_path = os.path.join(
+            os.getcwd(), "explore_bv_" + str(dname)
+        )
         trymakedir(basic_findk_config_path)
         findk_config_name = os.path.join(
             basic_findk_config_path, "findk_" + dname + ".config"
@@ -480,7 +486,9 @@ class GaussianBenchmark(object):
 
     def print_kmin_config_file(self, configuration_name="config0.gauss"):
         dname = configuration_name[0:-6]
-        basic_kmin_config_path = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
+        basic_kmin_config_path = os.path.join(
+            os.getcwd(), "explore_bv_" + str(dname)
+        )
         trymakedir(basic_kmin_config_path)
         kmin_config_name = os.path.join(
             basic_kmin_config_path, "kmin_" + dname + ".config"
@@ -507,7 +515,9 @@ class GaussianBenchmark(object):
             os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])
         )
         self.base_directory = os.path.join(
-            os.path.join(os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])),
+            os.path.join(
+                os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])
+            ),
             "analysis",
         )
         base_directory = self.base_directory
@@ -539,7 +549,9 @@ class GaussianBenchmark(object):
             os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])
         )
         self.base_directory = os.path.join(
-            os.path.join(os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])),
+            os.path.join(
+                os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])
+            ),
             "analysis",
         )
         base_directory = self.base_directory
@@ -613,7 +625,9 @@ class GaussianBenchmark(object):
         f.write("#{:>15}\t{:>15}\n".format("<u2>", "var(<u2>)"))
         for i in range(len(self.u2_array)):
             f.write(
-                "{:>15.15e}\t{:>15.15e}\n".format(self.u2_array[i], self.var_array[i])
+                "{:>15.15e}\t{:>15.15e}\n".format(
+                    self.u2_array[i], self.var_array[i]
+                )
             )
         f.close()
 
@@ -697,7 +711,9 @@ def plot_potential(means, cov):
     plt.plot(X_circ1, Y_circ1_pos, "c")
     plt.plot(X_circ1, Y_circ1_neg, "c")
     plt.show()
-    plt.savefig(str(means.shape[0]) + "-Gaussian_Potential.png", bbox_inches="tight")
+    plt.savefig(
+        str(means.shape[0]) + "-Gaussian_Potential.png", bbox_inches="tight"
+    )
 
 
 def compute_volume(
@@ -751,7 +767,9 @@ def compute_volume(
     print(("error TI volume", e_ti_vol))
     # Print all volumes to file.
     fout = ResultsFile(
-        os.path.join(os.getcwd(), "volume_method_comparison_ti{}".format(minimum_index))
+        os.path.join(
+            os.getcwd(), "volume_method_comparison_ti{}".format(minimum_index)
+        )
     )
     fout.set_heading("THERMODYNAMIC INTEGRATION")
     fout.to_file("TI volume", ti_vol)
