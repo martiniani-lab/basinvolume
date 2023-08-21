@@ -5,7 +5,12 @@ from builtins import object
 import numpy as np
 import os
 import abc
-from pele.potentials import HS_WCA, InversePowerStillinger, InversePower
+from pele.potentials import (
+    HS_WCA,
+    InversePowerStillinger,
+    InversePower,
+    NegativeCos,
+)
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import (
     get_git_version,
@@ -161,6 +166,10 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
                 boxvec=self.boxv,
                 radii=self.hs_radii,
             )
+            res = quench(self.red_coords, pot_optimizer)
+            new_coords = res.coords
+        elif self.interaction is Interaction.NEGATIVE_COS:
+            pot_optimizer = NegativeCos(dim=self.ndim, period=1)
             res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
 
