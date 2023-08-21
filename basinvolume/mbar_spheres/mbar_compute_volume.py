@@ -47,7 +47,7 @@ from pymbar.timeseries import (
     statistical_inefficiency_fft,
 )
 from pymbar.mbar import MBAR
-from FastMBAR import *
+#from FastMBAR import *
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import (
     get_bandwidth_estimate,
     get_pdf,
