@@ -618,6 +618,22 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
             res = self.optimizer.run()
+        elif self.minimizer is Minimizer.MXD:
+            from pele.optimize import ExtendedMixedOptimizer
+
+            ratol = (
+                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                * 1e-1
+            )
+            self.optimizer = ExtendedMixedOptimizer(
+                self.potential,
+                self.coords,
+                tol=tol,
+                nsteps=1e7,
+                atol=ratol,
+                rtol=ratol,
+            )
+            res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
             res = lbfgs_cpp(
                 self.coords,
@@ -673,6 +689,25 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                         len(self.coords) // self.bdim
                     ],
                 )
+
+                res2 = self.optimizer.run()
+            elif self.minimizer is Minimizer.MXD:
+                from pele.optimize import ExtendedMixedOptimizer
+
+                ratol = (
+                    INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                    * 1e-1
+                )
+                self.optimizer = ExtendedMixedOptimizer(
+                    self.potential,
+                    self.coords,
+                    tol=tol,
+                    nsteps=1e7,
+                    atol=ratol,
+                    rtol=ratol,
+                )
+
+                res2 = self.optimizer.run()
             elif self.minimizer is Minimizer.LBFGS:
                 res2 = lbfgs_cpp(
                     self.coords,
@@ -1054,6 +1089,22 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
             res = self.optimizer.run()
+        elif self.minimizer is Minimizer.MXD:
+            from pele.optimize import ExtendedMixedOptimizer
+
+            ratol = (
+                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                * 1e-1
+            )
+            self.optimizer = ExtendedMixedOptimizer(
+                self.potential,
+                self.coords,
+                tol=tol,
+                nsteps=1e7,
+                atol=ratol,
+                rtol=ratol,
+            )
+            res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
             res = lbfgs_cpp(
                 self.coords,
@@ -1109,6 +1160,23 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                         len(self.coords) // self.bdim
                     ],
                 )
+                res2 = self.optimizer.run()
+            elif self.minimizer is Minimizer.MXD:
+                from pele.optimize import ExtendedMixedOptimizer
+
+                ratol = (
+                    INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                    * 1e-1
+                )
+                self.optimizer = ExtendedMixedOptimizer(
+                    self.potential,
+                    self.coords,
+                    tol=tol,
+                    nsteps=1e7,
+                    atol=ratol,
+                    rtol=ratol,
+                )
+                res2 = self.optimizer.run()
             elif self.minimizer is Minimizer.LBFGS:
                 res2 = lbfgs_cpp(
                     self.coords,
@@ -1254,6 +1322,22 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
                 nsteps=1e7,
                 atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
                 rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+            )
+            res = self.optimizer.run()
+        elif self.minimizer is Minimizer.MXD:
+            from pele.optimize import ExtendedMixedOptimizer
+
+            ratol = (
+                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                * 1e-1
+            )
+            self.optimizer = ExtendedMixedOptimizer(
+                self.potential,
+                self.coords,
+                tol=tol,
+                nsteps=1e7,
+                atol=ratol,
+                rtol=ratol,
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
