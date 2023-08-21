@@ -345,6 +345,7 @@ def setup_compute_volume(simulation_folder):
     cpus_per_task = 1
     script_location = os.path.join(BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py")
     
+    out_folder=os.path.join(simulation_folder, "job_out")
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str="01:00:00",
         mem_str="4GB",
@@ -352,7 +353,7 @@ def setup_compute_volume(simulation_folder):
         cpus_per_task=cpus_per_task,
         job_name="bv_compute_volume",
         run_command=f"python {script_location}",
-        out_file=os.path.join(simulation_folder, "compute_volume"),
+        out_file=os.path.join(out_folder, "compute_volume"),
         simulation_folder=simulation_folder
     )
     script_save_folder = os.path.join(simulation_folder, "job_scripts")
