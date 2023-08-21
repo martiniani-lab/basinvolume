@@ -81,7 +81,6 @@ def calculate_volume(simulation_folder, packing_file, simulation_type, submit=Tr
         opt_tol = 1e-10,
         opt_nsteps = 1e5,
         dtol = 1e-4,
-        eps = 1.0,
         opt_dtmax = 1,
         minimizer="LBFGS",
     )
@@ -213,13 +212,15 @@ def submit_job(simulation_folder,
     args_str = format_args_from_dict(script_kwargs)
     script_location = os.path.join(BASINVOLUME_PATH, script_subpath)
     
-    packing_file = os.path.splitext(packing_file)[0]
+    packing_file_name = os.path.splitext(packing_file)[0]
     run_command = f"{script_run_prefix} {script_location} {packing_file} {extra_args} {args_str}"
     # replace spaces with underscores
     args_str = args_str.replace(" ", "_")
     scripts_folder = os.path.join(simulation_folder, "job_scripts")
+    out_folder = os.path.join(simulation_folder, "job_out")
     os.makedirs(scripts_folder, exist_ok=True)
-    out_file  = f"{scripts_folder}/{job_name_prefix}_{args_str}"
+    os.makedirs(out_folder, exist_ok=True)
+    out_file  = f"{out_folder}/{job_name_prefix}_{packing_file_name}"
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str=time_str,
         ntasks=ntasks,
@@ -230,7 +231,7 @@ def submit_job(simulation_folder,
         simulation_folder=simulation_folder
     )
     
-    script_path = os.path.join(simulation_folder, f"{job_name_prefix}_{packing_file}.sh")
+    script_path = os.path.join(scripts_folder, f"{job_name_prefix}_{packing_file_name}.sh")
     # write the script
     with open(script_path, "w") as script_file:
         script_file.write(script)
@@ -243,7 +244,6 @@ def setup_parallel_tempering(simulation_folder, global_kwargs, packing_file, sub
     mpi_procs = 8
     ntasks = 1
     cpus_per_task = mpi_procs
-    script_location = os.path.join(BASINVOLUME_PATH, "spheres/bv_parallel_tempering.py")
     pt_kwargs = {
     "mintotniter": 5e5,
     "maxtotniter": 2e6,
@@ -266,8 +266,8 @@ def setup_parallel_tempering(simulation_folder, global_kwargs, packing_file, sub
     "load-checkpoint": None,
     "stepsize": 1e-1,
     "dtol": 1e-4,
-    "opt-tol": 1e-5,
-    "opt-nsteps": 1e5,
+    "opt_tol": 1e-10,
+    "opt_nsteps": 1e5,
     "hmin": 0,
     "hmax": 1000,
     "hbinsize": 1e-1,
@@ -296,7 +296,7 @@ def setup_parallel_tempering(simulation_folder, global_kwargs, packing_file, sub
                 time_str,
                 mem_str,
                 job_name_prefix,
-                script_run_prefix=f"mpirun -np {mpi_procs}",
+                script_run_prefix=f"mpiexec -n {mpi_procs} python",
                 extra_args=explore_dir, submit=submit)
     return 0
 
@@ -305,8 +305,8 @@ def setup_inner_sphere(simulation_folder, global_kwargs, packing_file, submit=Tr
     ntasks = 1
     cpus_per_task = 1
     inner_sphere_kwargs = {
-    "packings_dir": "jammed_packings",
-    "explore_dir": "explore_bv_jammed_packing",
+    "packings-dir": "jammed_packings",
+    "explore-dir": "explore_bv_jammed_packing",
     "nocell": False,
     "minimizer": "FIRE",
     "verbose": False,
@@ -314,7 +314,7 @@ def setup_inner_sphere(simulation_folder, global_kwargs, packing_file, submit=Tr
     "dtol": 1e4,
     "eps": 1.0,
     "opt_dtmax": 1,
-    "opt_tol": 1e-5,
+    "opt_tol": 1e-10,
     "opt_nsteps": 1e5
     }
     script_subpath = "mbar_spheres/bv_innersphere_dos.py"
@@ -345,6 +345,7 @@ def setup_compute_volume(simulation_folder):
     cpus_per_task = 1
     script_location = os.path.join(BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py")
     
+    out_folder=os.path.join(simulation_folder, "job_out")
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str="01:00:00",
         mem_str="4GB",
@@ -352,10 +353,11 @@ def setup_compute_volume(simulation_folder):
         cpus_per_task=cpus_per_task,
         job_name="bv_compute_volume",
         run_command=f"python {script_location}",
-        out_file=os.path.join(simulation_folder, "compute_volume"),
+        out_file=os.path.join(out_folder, "compute_volume"),
         simulation_folder=simulation_folder
     )
-    with open(os.path.join(simulation_folder, "compute_volume.sh"), "w") as script_file:
+    script_save_folder = os.path.join(simulation_folder, "job_scripts")
+    with open(os.path.join(script_save_folder, "compute_volume.sh"), "w") as script_file:
         script_file.write(script)
     return 0
 

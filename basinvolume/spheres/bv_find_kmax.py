@@ -117,7 +117,7 @@ if __name__ == "__main__":
         ktol=args.ktol,
         opt_dtmax=args.opt_dtmax,
         opt_tol=args.opt_tol,
-        opt_nsteps=args.nsteps,
+        opt_nsteps=args.opt_nsteps,
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,
         use_cell_lists=not args.nocell,
