@@ -39,7 +39,7 @@ import glob
 import ast
 import logging
 from future.utils import with_metaclass
-from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC
+from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t
 
 # try:
 #     import pylab
@@ -621,10 +621,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         elif self.minimizer is Minimizer.MXD:
             from pele.optimize import ExtendedMixedOptimizer
 
-            ratol = (
-                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
-                * 1e-1
-            )
+            ratol = INVERSE_POWER_CVODE_95_ACC[self.nparticles] * 1e-1
             self.optimizer = ExtendedMixedOptimizer(
                 self.potential,
                 self.coords,
@@ -632,6 +629,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 nsteps=1e7,
                 atol=ratol,
                 rtol=ratol,
+                T=get_mxd_t(self.nparticles),
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
@@ -705,6 +703,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     nsteps=1e7,
                     atol=ratol,
                     rtol=ratol,
+                    T=get_mxd_t(self.nparticles),
                 )
 
                 res2 = self.optimizer.run()
@@ -1103,6 +1102,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 nsteps=1e7,
                 atol=ratol,
                 rtol=ratol,
+                T=get_mxd_t(self.nparticles),
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
@@ -1175,6 +1175,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                     nsteps=1e7,
                     atol=ratol,
                     rtol=ratol,
+                    T=get_mxd_t(self.nparticles),
                 )
                 res2 = self.optimizer.run()
             elif self.minimizer is Minimizer.LBFGS:
@@ -1338,6 +1339,7 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
                 nsteps=1e7,
                 atol=ratol,
                 rtol=ratol,
+                T=get_mxd_t(self.nparticles),
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:

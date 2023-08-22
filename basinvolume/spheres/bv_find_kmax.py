@@ -73,16 +73,46 @@ if __name__ == "__main__":
         help="Seed for the takestep method",
         default=None,
     )
-    parser.add_argument("--niter", type=float, default=1e8, help="number of iterations")
-    parser.add_argument("--dtol", type=float, default=1e-4, help="for a minimum A, and a minimimization result B, if |d_A-d_B|^2<dtol, then A and B are considered the same ")
-    parser.add_argument("--eps", type=float, default=1.0, help="softness of the potential (but this is hacked around enough so it's not used for some potentials)")
-    parser.add_argument("--ktarget", type=float, default=0.9, help="Target acceptance ration")
-    parser.add_argument("--knavg", type=float, default=1e4, help="number of iterations to average for acceptance")
-    parser.add_argument("--ktol", type=float, default=0.025, help="tolerance for knavg")
-    parser.add_argument("--opt_dtmax", type=float, default=1, help="For FIRE, max time step")
-    parser.add_argument("--opt_tol", type=float, default=1e-5, help="tolerance for optimizer")
-    parser.add_argument("--opt_nsteps", type=float, default=1e5, help="number of steps for optimizer")
-    
+    parser.add_argument(
+        "--niter", type=float, default=1e8, help="number of iterations"
+    )
+    parser.add_argument(
+        "--dtol",
+        type=float,
+        default=1e-2,
+        help="for a minimum A, and a minimimization result B, if |d_A-d_B|^2<dtol, then A and B are considered the same ",
+    )
+    parser.add_argument(
+        "--eps",
+        type=float,
+        default=1.0,
+        help="softness of the potential (but this is hacked around enough so it's not used for some potentials)",
+    )
+    parser.add_argument(
+        "--ktarget", type=float, default=0.9, help="Target acceptance ration"
+    )
+    parser.add_argument(
+        "--knavg",
+        type=float,
+        default=1e4,
+        help="number of iterations to average for acceptance",
+    )
+    parser.add_argument(
+        "--ktol", type=float, default=0.025, help="tolerance for knavg"
+    )
+    parser.add_argument(
+        "--opt_dtmax", type=float, default=1, help="For FIRE, max time step"
+    )
+    parser.add_argument(
+        "--opt_tol", type=float, default=1e-5, help="tolerance for optimizer"
+    )
+    parser.add_argument(
+        "--opt_nsteps",
+        type=float,
+        default=1e5,
+        help="number of steps for optimizer",
+    )
+
     args = parser.parse_args()
 
     if args.verbose:

@@ -54,26 +54,34 @@ def get_means_cov(gauss_path):
                 m = list(
                     map(
                         float,
-                        (line.split(",")[0].replace("[", "")).replace("]", "").split(),
+                        (line.split(",")[0].replace("[", ""))
+                        .replace("]", "")
+                        .split(),
                     )
                 )
                 c = list(
                     map(
                         float,
-                        (line.split(",")[1].replace("[", "")).replace("]", "").split(),
+                        (line.split(",")[1].replace("[", ""))
+                        .replace("]", "")
+                        .split(),
                     )
                 )
             else:
                 m = list(
                     map(
                         float,
-                        (line.split("\t")[0].replace("[", "")).replace("]", "").split(),
+                        (line.split("\t")[0].replace("[", ""))
+                        .replace("]", "")
+                        .split(),
                     )
                 )
                 c = list(
                     map(
                         float,
-                        (line.split("\t")[1].replace("[", "")).replace("]", "").split(),
+                        (line.split("\t")[1].replace("[", ""))
+                        .replace("]", "")
+                        .split(),
                     )
                 )
             mean.append(m)

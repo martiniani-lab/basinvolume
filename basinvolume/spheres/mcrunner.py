@@ -44,7 +44,7 @@ from basinvolume.monte_carlo import (
     CheckOverlapLeesEdwardsCellLists,
 )
 from basinvolume.enums import Minimizer, Interaction
-from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC
+from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t
 
 
 try:
@@ -253,21 +253,26 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 self.pot_optimizer,
                 self.start_coords,
                 tol=self.opt_tol,
-                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
-                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                atol=INVERSE_POWER_CVODE_95_ACC[
+                    len(self.start_coords) // self.bdim
+                ],
+                rtol=INVERSE_POWER_CVODE_95_ACC[
+                    len(self.start_coords) // self.bdim
+                ],
             )
         elif self.minimizer is Minimizer.MXD:
             ratol = (
-                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
                 * 1e-1
             )
-            self.optimizer = ExtendedMixedOptimizer(
+            optimizer = ExtendedMixedOptimizer(
                 self.potential,
-                self.coords,
+                self.start_coords,
                 tol=self.opt_tol,
                 nsteps=1e7,
                 atol=ratol,
                 rtol=ratol,
+                T=get_mxd_t(self.nparticles),
             )
         else:
             optimizer = ModifiedFireCPP(
