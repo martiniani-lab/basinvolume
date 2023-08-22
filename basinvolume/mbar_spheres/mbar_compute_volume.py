@@ -47,7 +47,7 @@ from pymbar.timeseries import (
     statistical_inefficiency_fft,
 )
 from pymbar.mbar import MBAR
-from FastMBAR import *
+#from FastMBAR import *
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import (
     get_bandwidth_estimate,
     get_pdf,
@@ -55,8 +55,8 @@ from basinvolume.experiment_2d.cross_validation_bandwidth_selection import (
 from basinvolume.spheres import read_jammed_packing_config
 
 #######################SET LATEX OPTIONS###################
-rc("text", usetex=True)
-rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
+rc("text", usetex=False)
+#rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
 # rc('text.latex',preamble=r'\usepackage{times}')
 plt.rcParams.update({"font.size": 28})
 plt.rcParams["xtick.major.pad"] = 8

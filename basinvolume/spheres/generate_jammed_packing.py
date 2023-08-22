@@ -39,6 +39,7 @@ import glob
 import ast
 import logging
 from future.utils import with_metaclass
+from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t
 
 # try:
 #     import pylab
@@ -613,8 +614,22 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 self.coords,
                 tol=tol,
                 nsteps=1e7,
-                atol=1e-7,
-                rtol=1e-7,
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+            )
+            res = self.optimizer.run()
+        elif self.minimizer is Minimizer.MXD:
+            from pele.optimize import ExtendedMixedOptimizer
+
+            ratol = INVERSE_POWER_CVODE_95_ACC[self.nparticles] * 1e-1
+            self.optimizer = ExtendedMixedOptimizer(
+                self.potential,
+                self.coords,
+                tol=tol,
+                nsteps=1e7,
+                atol=ratol,
+                rtol=ratol,
+                T=get_mxd_t(self.nparticles),
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
@@ -665,9 +680,33 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     self.potential,
                     tol=tol,
                     nsteps=1e7,
-                    atol=1e-7,
-                    rtol=1e-7,
+                    atol=INVERSE_POWER_CVODE_95_ACC[
+                        len(self.coords) // self.bdim
+                    ],
+                    rtol=INVERSE_POWER_CVODE_95_ACC[
+                        len(self.coords) // self.bdim
+                    ],
                 )
+
+                res2 = self.optimizer.run()
+            elif self.minimizer is Minimizer.MXD:
+                from pele.optimize import ExtendedMixedOptimizer
+
+                ratol = (
+                    INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                    * 1e-1
+                )
+                self.optimizer = ExtendedMixedOptimizer(
+                    self.potential,
+                    self.coords,
+                    tol=tol,
+                    nsteps=1e7,
+                    atol=ratol,
+                    rtol=ratol,
+                    T=get_mxd_t(self.nparticles),
+                )
+
+                res2 = self.optimizer.run()
             elif self.minimizer is Minimizer.LBFGS:
                 res2 = lbfgs_cpp(
                     self.coords,
@@ -1045,8 +1084,25 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 self.coords,
                 tol=tol,
                 nsteps=1e7,
-                atol=1e-7,
-                rtol=1e-7,
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+            )
+            res = self.optimizer.run()
+        elif self.minimizer is Minimizer.MXD:
+            from pele.optimize import ExtendedMixedOptimizer
+
+            ratol = (
+                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                * 1e-1
+            )
+            self.optimizer = ExtendedMixedOptimizer(
+                self.potential,
+                self.coords,
+                tol=tol,
+                nsteps=1e7,
+                atol=ratol,
+                rtol=ratol,
+                T=get_mxd_t(self.nparticles),
             )
             res = self.optimizer.run()
         elif self.minimizer is Minimizer.LBFGS:
@@ -1097,9 +1153,31 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                     self.potential,
                     tol=tol,
                     nsteps=1e7,
-                    atol=1e-7,
-                    rtol=1e-7,
+                    atol=INVERSE_POWER_CVODE_95_ACC[
+                        len(self.coords) // self.bdim
+                    ],
+                    rtol=INVERSE_POWER_CVODE_95_ACC[
+                        len(self.coords) // self.bdim
+                    ],
                 )
+                res2 = self.optimizer.run()
+            elif self.minimizer is Minimizer.MXD:
+                from pele.optimize import ExtendedMixedOptimizer
+
+                ratol = (
+                    INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                    * 1e-1
+                )
+                self.optimizer = ExtendedMixedOptimizer(
+                    self.potential,
+                    self.coords,
+                    tol=tol,
+                    nsteps=1e7,
+                    atol=ratol,
+                    rtol=ratol,
+                    T=get_mxd_t(self.nparticles),
+                )
+                res2 = self.optimizer.run()
             elif self.minimizer is Minimizer.LBFGS:
                 res2 = lbfgs_cpp(
                     self.coords,
@@ -1122,6 +1200,169 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 return False
 
         return self._find_rattlers()
+
+
+class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
+    """Hacky way to keep the interface the same while providing
+    the correct initial condition for negative cosine position
+    Generates [0]*ndim and saves it as coords
+    All the arguments don't matter. just keeps the interface the same
+    """
+
+    def __init__(
+        self,
+        target_packing_frac=0.7,
+        tol=1e-9,
+        maxstep_factor=1,
+        packings_dir="packings",
+        packing_nrs=None,
+        import_jammed=False,
+        outdir="jammed_packings",
+        use_cell_lists=False,
+        show=False,
+        interaction=Interaction.HS_WCA,
+        override_pot_kwargs=None,
+        minimizer=Minimizer.FIRE,
+        logging_tag="",
+        write_opengl=False,
+        check_packing=True,
+        sort_atoms=False,
+    ):
+        super().__init__(
+            target_packing_frac,
+            tol,
+            maxstep_factor,
+            packings_dir,
+            packing_nrs,
+            import_jammed,
+            outdir,
+            use_cell_lists,
+            show,
+            interaction,
+            override_pot_kwargs,
+            minimizer,
+            logging_tag,
+            write_opengl,
+            check_packing,
+            sort_atoms,
+        )
+
+    def one_iteration(self, fname):
+        """perform one iteration"""
+        self._import_single_config_file(fname)
+        self.parameters["n_part"] = self.nparticles
+        self.parameters["ndim"] = self.bdim
+        self.rattlers = np.empty(self.nparticles, dtype="d")
+        self.rattlers_draw = np.empty(self.nparticles, dtype="d")
+        print("ndim", self.ndim)
+        radii = np.array([1.0] * self.nparticles)  # no radiii
+        # periodic anyway
+        box_length = 4.0
+
+        self._import_packing_configuration(fname)
+        self.max_nrattlers = int(self.nparticles)
+        self.hs_radii = radii
+        self.sca = 0.0  # no sca for inverse power
+        self.boxv = np.array([box_length] * self.bdim)
+        self.boxl = box_length
+        self.pot_kwargs = dict(dim=1.0, period=1.0)
+
+        self.parameters["radii"] = self.hs_radii
+        self.parameters["box_length"] = self.boxl
+        self.potential = setup_bidisperse(self.parameters, seed=0)["potential"]
+
+        success = self._generate_packing_coords()  # returns false if saddle
+
+        n = int(re.search(r"\d+", fname).group())
+        if success:
+            self._print(n)
+        else:
+            path_list = glob.glob(
+                "{0}/jammed_packing{1}.*".format(self.base_directory, n)
+            )
+            if len(path_list) > 0:
+                with open(
+                    "{0}/mismatching_rattlers.txt".format(self.base_directory),
+                    "a",
+                ) as f:
+                    f.write("jammed_packing{}\n".format(n))
+            for path_ in path_list:
+                p = subprocess.call(shlex.split("rm {}".format(path_)))
+        self.iteration += 1
+        return success
+
+    def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
+        """quenches the imported structure"""
+
+        opt_maxstep = np.amin(self.hs_radii) * 0.5 * self.maxstep_factor
+        if self.minimizer is Minimizer.FIRE:
+            res = modifiedfire_cpp(
+                self.coords,
+                self.potential,
+                maxstep=opt_maxstep,
+                nsteps=1e6,
+                tol=tol,
+                iprint=iprint,
+            )
+        elif self.minimizer is Minimizer.CG:
+            optimizer = CGDescent(
+                self.coords,
+                self.potential,
+                tol=tol,
+                nsteps=1e6,
+                print_level=iprint,
+            )
+            res = optimizer.run()
+        elif self.minimizer is Minimizer.CVODE:
+            from pele.optimize import CVODEBDFOptimizer
+
+            self.optimizer = CVODEBDFOptimizer(
+                self.potential,
+                self.coords,
+                tol=tol,
+                nsteps=1e7,
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+            )
+            res = self.optimizer.run()
+        elif self.minimizer is Minimizer.MXD:
+            from pele.optimize import ExtendedMixedOptimizer
+
+            ratol = (
+                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                * 1e-1
+            )
+            self.optimizer = ExtendedMixedOptimizer(
+                self.potential,
+                self.coords,
+                tol=tol,
+                nsteps=1e7,
+                atol=ratol,
+                rtol=ratol,
+                T=get_mxd_t(self.nparticles),
+            )
+            res = self.optimizer.run()
+        elif self.minimizer is Minimizer.LBFGS:
+            res = lbfgs_cpp(
+                self.coords,
+                self.potential,
+                maxstep=opt_maxstep,
+                tol=tol,
+                nsteps=1e6,
+                maxErise=0,
+                iprint=iprint,
+            )
+        else:
+            raise NotImplementedError
+
+        if not res.success:
+            print(res)
+            logging.warning(self._log("Quench failed"))
+            return False
+
+        self.coords = np.array([0.0] * self.ndim)
+        self.energy = -1.0
+        return True
 
 
 if __name__ == "__main__":
@@ -1205,7 +1446,8 @@ if __name__ == "__main__":
         "--interaction",
         type=str,
         help="Particle interaction potential. "
-        "Options: 'HS_WCA', 'INVERSE_POWER_STILLINGER', INVERSE_POWER "
+        "Options: 'HS_WCA', 'INVERSE_POWER_STILLINGER', INVERSE_POWER, \
+            'NEGATIVE_COS'. "
         "Default: 'HS_WCA'",
         default="HS_WCA",
     )
@@ -1284,6 +1526,23 @@ if __name__ == "__main__":
             write_opengl=args.write_opengl,
             sort_atoms=args.sort,
         )
+    elif interaction is Interaction.NEGATIVE_COS:
+        sim = NegativeCosGeneratePackings(
+            packings_dir=args.packingsdir,
+            packing_nrs=args.packing_nrs,
+            import_jammed=args.import_jammed,
+            outdir=args.outdir,
+            tol=args.tol,
+            maxstep_factor=args.maxstep,
+            use_cell_lists=not args.nocell,
+            show=args.show,
+            interaction=interaction,
+            minimizer=minimizer,
+            override_pot_kwargs=override_pot_kwargs,
+            write_opengl=args.write_opengl,
+            sort_atoms=args.sort,
+        )
+
     else:
         sim = HS_Generate_Jammed_Packing(
             target_packing_frac=args.density,

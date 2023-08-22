@@ -5,7 +5,7 @@ from past.utils import old_div
 import numpy as np
 import sys
 from pele.potentials import Harmonic, HS_WCA
-from pele.optimize import ModifiedFireCPP, LBFGS_CPP
+from pele.optimize import ModifiedFireCPP, LBFGS_CPP, CVODEBDFOptimizer
 from pele.storage import Database
 from pele.storage.database import Minimum
 from pele.distance import Distance
@@ -24,6 +24,7 @@ from basinvolume.enums import Minimizer
 # for plotting histogram
 from itertools import cycle
 from scipy.integrate import quad
+from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC
 
 try:
     import matplotlib.pyplot as plt
@@ -296,8 +297,8 @@ class BVSphereMCrunner(_BaseMCRunner):
                 self.pot_optimizer,
                 tol=opt_tol,
                 nsteps=opt_nsteps,
-                rtol=1e-7,
-                atol=1e-7,
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
         else:
             self.optimizer = ModifiedFireCPP(

@@ -172,6 +172,18 @@ if __name__ == "__main__":
         help="File from which to load a saved checkpoint.",
         default=None,
     )
+    
+    
+    parser.add_argument("--stepsize", type=float, default=1e-1, help="Step size for the MCRunner.")
+    parser.add_argument("--dtol", type=float, default=1e-4, help="D-tolerance for the MCRunner.")
+    parser.add_argument("--opt_tol", type=float, default=1e-5, help="Optimization tolerance")
+    parser.add_argument("--opt_nsteps", type=float, default=1e5, help="Optimization runs")
+    parser.add_argument("--hmin", type=float, default=0, help="Minimum H value for the MCRunner.")
+    parser.add_argument("--hmax", type=float, default=1000, help="Maximum H value for the MCRunner.")
+    parser.add_argument("--hbinsize", type=float, default=1e-1, help="H bin size for the MCRunner.")
+    parser.add_argument("--acceptance", type=float, default=0.2, help="Acceptance value for the MCRunner.")
+    parser.add_argument("--adjustf", type=float, default=0.9, help="Adjust F value for the MCRunner.")
+    parser.add_argument("--opt_dtmax", type=float, default=1, help="Optimization max time step")
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
@@ -279,15 +291,15 @@ if __name__ == "__main__":
     mcrunner = sim(
         fname,
         niter=niter,
-        stepsize=1e-1,
-        dtol=1e-4,
-        opt_tol=1e-5,
-        opt_nsteps=1e5,
-        hmin=0,
-        hmax=1000,
-        hbinsize=1e-1,
-        acceptance=0.2,
-        adjustf=0.9,
+        stepsize=args.stepsize,
+        dtol=args.dtol,
+        opt_tol=args.opt_tol,
+        opt_nsteps=args.opt_nsteps,
+        hmin=args.hmin,
+        hmax=args.hmax,
+        hbinsize=args.hbinsize,
+        acceptance=args.acceptance,
+        adjustf=args.adjustf,
         adjustf_niter=adjustf_niter,
         adjustf_navg=args.adjustf_navg,
         pt_eq_niter=pt_eq_niter,

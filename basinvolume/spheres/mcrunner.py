@@ -13,7 +13,12 @@ from pele.potentials import (
     InversePowerStillingerCut,
     InversePower,
 )
-from pele.optimize import ModifiedFireCPP, LBFGS_CPP, CVODEBDFOptimizer
+from pele.optimize import (
+    ModifiedFireCPP,
+    LBFGS_CPP,
+    CVODEBDFOptimizer,
+    ExtendedMixedOptimizer,
+)
 from pele.optimize._quench import modifiedfire_cpp
 from pele.storage.database import Minimum
 from pele.distance import Distance
@@ -39,6 +44,7 @@ from basinvolume.monte_carlo import (
     CheckOverlapLeesEdwardsCellLists,
 )
 from basinvolume.enums import Minimizer, Interaction
+from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t
 
 
 try:
@@ -247,8 +253,26 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 self.pot_optimizer,
                 self.start_coords,
                 tol=self.opt_tol,
-                atol=1e-7,
-                rtol=1e-7,
+                atol=INVERSE_POWER_CVODE_95_ACC[
+                    len(self.start_coords) // self.bdim
+                ],
+                rtol=INVERSE_POWER_CVODE_95_ACC[
+                    len(self.start_coords) // self.bdim
+                ],
+            )
+        elif self.minimizer is Minimizer.MXD:
+            ratol = (
+                INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
+                * 1e-1
+            )
+            optimizer = ExtendedMixedOptimizer(
+                self.potential,
+                self.start_coords,
+                tol=self.opt_tol,
+                nsteps=1e7,
+                atol=ratol,
+                rtol=ratol,
+                T=get_mxd_t(self.nparticles),
             )
         else:
             optimizer = ModifiedFireCPP(

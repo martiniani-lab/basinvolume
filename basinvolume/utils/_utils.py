@@ -37,6 +37,30 @@ except ImportError as err:
     print(err)
 
 
+# given the number of particles
+# return the corresponding tolerance for 95 percent accuracy
+# for the CVODE integrator for mapping basins of attraction
+# for the inversepower potential
+INVERSE_POWER_CVODE_95_ACC = {
+    8: 1e-4,
+    16: 1e-4,
+    32: 1e-5,
+    64: 1e-6,
+    128: 1e-7,
+    256: 1e-8,
+    512: 1e-9,
+    1024: 1e-10,
+}
+
+
+def get_mxd_t(ndim):
+    """Get number for checking convergence for mixed descent."""
+    if ndim < 600:
+        return 50
+    else:
+        return 200
+
+
 class Bunch(dict):
     def __init__(self, *args, **kwds):
         super(Bunch, self).__init__(*args, **kwds)

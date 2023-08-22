@@ -63,6 +63,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="verbosity", default=False
     )
+    parser.add_argument('--niter', type=float, default=1e5, help='Number of iterations.')
+    parser.add_argument('--dtol', type=float, default=1e4, help='D tolerance.')
+    parser.add_argument('--eps', type=float, default=1.0, help='Epsilon value.')
+    parser.add_argument('--opt_dtmax', type=int, default=1, help='Maximum dt for optimization.')
+    parser.add_argument('--opt_tol', type=float, default=1e-5, help='Optimization tolerance.')
+    parser.add_argument('--opt_nsteps', type=float, default=1e5, help='Number of optimization steps.')
     args = parser.parse_args()
 
     if args.verbose:
@@ -87,12 +93,12 @@ if __name__ == "__main__":
 
     # when niter=None, niter is set equal to exact number of PT niter
     innersphere_kwargs = dict(
-        niter=1e5,
-        dtol=1e-4,
-        eps=1.0,
-        opt_dtmax=1,
-        opt_tol=1e-5,
-        opt_nsteps=1e5,
+        niter=args.niter,
+        dtol=args.dtol,
+        eps=args.eps,
+        opt_dtmax=args.opt_dtmax,
+        opt_tol=args.opt_tol,
+        opt_nsteps=args.opt_nsteps,
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,
         use_cell_lists=not args.nocell,
