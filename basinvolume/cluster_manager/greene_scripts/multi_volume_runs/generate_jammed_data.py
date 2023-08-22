@@ -23,6 +23,8 @@ def main():
 
 
 
+
+
 def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ensemble):
     
     # generate a directory for the experiment
@@ -32,6 +34,8 @@ def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ense
     os.chdir(experiment_dir)
     job_script_dir = os.path.join(experiment_dir, "job_scripts")
     job_out_dir = os.path.join(experiment_dir, "job_out")
+    os.makedirs(job_script_dir, exist_ok=True)
+    os.makedirs(job_out_dir, exist_ok=True)
     # note that these arguments are placeholders since the code was written for HS_WCA
     pack_comm = f"python /home/ps4586/bv_lib/basinvolume/basinvolume/spheres/generate_packing.py"
     pack_comm += f" {n_particles} -n {n_ensemble} -d 2 -p 0.7 -u 1 -s 0.1"
@@ -47,7 +51,7 @@ def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ense
         cpus_per_task=1,
         out_file=os.path.join(job_out_dir, "generate_packing.out"),
         simulation_folder=experiment_dir,
-        command=full_command,
+        run_command=full_command,
     )
     with open(os.path.join(job_script_dir, "generate_packing.sh"), "w") as f:
         f.write(script)
@@ -56,27 +60,6 @@ def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ense
     return
 
 
-    
-    
-    
+
 if __name__ == "__main__":
     main()
-    
-    
-    
-    
-    
-    
-    
-    
-            
-    
-    
-    
-    
-    
-    
-
-
-
-

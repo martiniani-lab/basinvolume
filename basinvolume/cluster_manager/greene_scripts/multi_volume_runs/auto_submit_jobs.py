@@ -53,3 +53,12 @@ def submit_jobs(simulation_dir):
             continue
         calculate_volume(simulation_dir, jammed_packing_fname, simstage, submit=True)
     return
+
+
+def main():
+    folder = "/scratch/ps4586/volume_runs_single_packing"
+    for simfolder in os.listdir(folder):
+        submit_jobs(os.path.join(folder, simfolder))
+        
+if __name__ == "__main__":
+    main()

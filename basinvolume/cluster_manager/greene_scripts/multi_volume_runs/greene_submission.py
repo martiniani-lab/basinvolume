@@ -13,14 +13,15 @@ BASINVOLUME_PATH = "/home/ps4586/bv_lib/basinvolume/basinvolume"
 
 
 @unique
-class RunScript(Enum):
+class SimStage(Enum):
     """Enum for the different types of runs that can be submitted."""
-
+    JAMMED_PACKING = 0
     KMAX = 1
     KMIN = 2
-    PARALLEL_TEMPERING = 3  # parallel tempering
+    PT = 3  # parallel tempering
     INNER_SPHERE = 4
-    COMPUTE_VOLUME = 5
+    ANALYSIS = 5
+    COMPLETE = 6
 
 
 GREENE_SCRIPT_TEMPLATE = """#!/bin/bash
@@ -86,23 +87,23 @@ def calculate_volume(
         opt_dtmax=1,
         minimizer="LBFGS",
     )
-    if simulation_type == RunScript.KMAX:
+    if simulation_type == SimStage.KMAX:
         setup_kmax(
             simulation_folder, global_kwargs, packing_file, submit=submit
         )
-    elif simulation_type == RunScript.KMIN:
+    elif simulation_type == SimStage.KMIN:
         setup_kmin(
             simulation_folder, global_kwargs, packing_file, submit=submit
         )
-    elif simulation_type == RunScript.PARALLEL_TEMPERING:
+    elif simulation_type == SimStage.PT:
         setup_parallel_tempering(
             simulation_folder, global_kwargs, packing_file, submit=submit
         )
-    elif simulation_type == RunScript.INNER_SPHERE:
+    elif simulation_type == SimStage.INNER_SPHERE:
         setup_inner_sphere(
             simulation_folder, global_kwargs, packing_file, submit=submit
         )
-    elif simulation_type == RunScript.COMPUTE_VOLUME:
+    elif simulation_type == SimStage.ANALYSIS:
         setup_compute_volume(simulation_folder)
     else:
         raise NotImplementedError("simulation type not implemented")
@@ -405,26 +406,26 @@ def setup_compute_volume(simulation_folder):
 if __name__ == "__main__":
     test_folder = "/scratch/ps4586/test_volume"
     calculate_volume(
-        test_folder, "jammed_packing0.xydr", RunScript.KMAX, submit=False
+        test_folder, "jammed_packing0.xydr", SimStage.KMAX, submit=False
     )
     calculate_volume(
-        test_folder, "jammed_packing0.xydr", RunScript.KMIN, submit=False
+        test_folder, "jammed_packing0.xydr", SimStage.KMIN, submit=False
     )
     calculate_volume(
         test_folder,
         "jammed_packing0.xydr",
-        RunScript.PARALLEL_TEMPERING,
+        SimStage.PT,
         submit=False,
     )
     calculate_volume(
         test_folder,
         "jammed_packing0.xydr",
-        RunScript.INNER_SPHERE,
+        SimStage.INNER_SPHERE,
         submit=False,
     )
     calculate_volume(
         test_folder,
         "jammed_packing0.xydr",
-        RunScript.COMPUTE_VOLUME,
+        SimStage.ANALYSIS,
         submit=False,
     )
