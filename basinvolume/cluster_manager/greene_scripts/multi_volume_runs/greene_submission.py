@@ -76,17 +76,15 @@ def format_args_from_dict(arg_dict):
 
 
 def calculate_volume(
-    simulation_folder, packing_file, simulation_type, submit=True
-):
-    # global args that should be the same across scripts
-
-    global_kwargs = dict(
+    simulation_folder, packing_file, simulation_type, submit=True, global_kwargs=dict(
         opt_tol=1e-10,
         opt_nsteps=1e5,
         dtol=1e-2,
         opt_dtmax=1,
         minimizer="LBFGS",
     )
+):
+    # global args that should be the same across scripts
     if simulation_type == SimStage.KMAX:
         setup_kmax(
             simulation_folder, global_kwargs, packing_file, submit=submit

@@ -676,8 +676,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 from pele.optimize import CVODEBDFOptimizer
 
                 self.optimizer = CVODEBDFOptimizer(
-                    self.coords,
                     self.potential,
+                    self.coords,
                     tol=tol,
                     nsteps=1e7,
                     atol=INVERSE_POWER_CVODE_95_ACC[
@@ -1151,8 +1151,8 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 from pele.optimize import CVODEBDFOptimizer
 
                 self.optimizer = CVODEBDFOptimizer(
-                    self.coords,
                     self.potential,
+                    self.coords,
                     tol=tol,
                     nsteps=1e7,
                     atol=INVERSE_POWER_CVODE_95_ACC[

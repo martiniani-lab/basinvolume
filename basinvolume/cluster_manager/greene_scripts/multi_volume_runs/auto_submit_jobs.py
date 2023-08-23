@@ -5,6 +5,7 @@ and submits the appropriate jobs to the cluster.
 from enum import Enum, unique
 from greene_submission import SimStage, calculate_volume
 import os
+from basinvolume.enums import Minimizer
 
 
 def get_calculation_stage(simulation_dir, jammed_packing_fname):
@@ -46,6 +47,18 @@ def submit_jobs(simulation_dir):
     jammed_packing_fnames = os.listdir(jammed_packings_dir)
     jammed_packing_fnames = [fname for fname in jammed_packing_fnames if fname.endswith(".xydr") or fname.endswith(".xyzdr")]
     n_analysis = 0
+    # simulation dir is assumed to be of the form {minimizer}_{n_particles}_{packing_fraction}
+    minimizer_name = simulation_dir_name.split("_")[0]
+    minimizer = Minimizer[minimizer_name]
+    global_kwargs=dict(
+        opt_tol=1e-10,
+        opt_nsteps=1e5,
+        dtol=1e-2,
+        opt_dtmax=1,
+        minimizer=minimizer,
+    )
+    
+    
     for jammed_packing_fname in jammed_packing_fnames:
         simstage = get_calculation_stage(simulation_dir, jammed_packing_fname)
         print(f"{simulation_dir_name} in stage {simstage.name}")
@@ -57,8 +70,6 @@ def submit_jobs(simulation_dir):
             print(f"analysis waiting for {simulation_dir_name}")
             continue
         calculate_volume(simulation_dir, jammed_packing_fname, simstage, submit=True)
-    print(n_analysis)
-    print(len(jammed_packing_fnames))
     if n_analysis == len(jammed_packing_fnames):
         print(f"Submitting analysis for {simulation_dir_name}")
         calculate_volume(simulation_dir, jammed_packing_fnames[0], SimStage.ANALYSIS, submit=True)
@@ -66,7 +77,7 @@ def submit_jobs(simulation_dir):
 
 
 def main():
-    folder = "/scratch/ps4586/volume_runs_single_packing"
+    folder = "/scratch/ps4586/volume_runs_multi_packing"
     for simfolder in os.listdir(folder):
         submit_jobs(os.path.join(folder, simfolder))
         
