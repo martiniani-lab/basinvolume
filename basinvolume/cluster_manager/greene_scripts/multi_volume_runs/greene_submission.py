@@ -104,7 +104,7 @@ def calculate_volume(
             simulation_folder, global_kwargs, packing_file, submit=submit
         )
     elif simulation_type == SimStage.ANALYSIS:
-        setup_compute_volume(simulation_folder)
+        setup_compute_volume(simulation_folder, submit=submit)
     else:
         raise NotImplementedError("simulation type not implemented")
 
@@ -377,7 +377,7 @@ def setup_inner_sphere(
     return 0
 
 
-def setup_compute_volume(simulation_folder):
+def setup_compute_volume(simulation_folder, submit=True):
     ntasks = 1
     cpus_per_task = 1
     script_location = os.path.join(
@@ -400,6 +400,10 @@ def setup_compute_volume(simulation_folder):
         os.path.join(script_save_folder, "compute_volume.sh"), "w"
     ) as script_file:
         script_file.write(script)
+    if submit:
+        os.system(
+            f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}"
+        )
     return 0
 
 

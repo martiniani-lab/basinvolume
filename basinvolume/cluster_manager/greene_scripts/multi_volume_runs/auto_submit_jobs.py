@@ -33,7 +33,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         return SimStage.KMIN
     elif not os.path.exists(os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")):
         return SimStage.PT
-    elif not os.path.exists(os.path.join(explore_dir, f"inner_sphere_{fname_wo_ext}.config")):
+    elif not os.path.exists(os.path.join(explore_dir, f"innersphere_{fname_wo_ext}.config")):
         return SimStage.INNER_SPHERE
     elif not os.path.isdir(os.path.join(explore_dir, "analysis")):
         return SimStage.ANALYSIS
@@ -45,13 +45,23 @@ def submit_jobs(simulation_dir):
     jammed_packings_dir = os.path.join(simulation_dir, "jammed_packings")
     jammed_packing_fnames = os.listdir(jammed_packings_dir)
     jammed_packing_fnames = [fname for fname in jammed_packing_fnames if fname.endswith(".xydr") or fname.endswith(".xyzdr")]
+    n_analysis = 0
     for jammed_packing_fname in jammed_packing_fnames:
         simstage = get_calculation_stage(simulation_dir, jammed_packing_fname)
         print(f"{simulation_dir_name} in stage {simstage.name}")
         if simstage == SimStage.COMPLETE:
             print(f"{simulation_dir_name} is complete")
             continue
+        if simstage == SimStage.ANALYSIS:
+            n_analysis += 1
+            print(f"analysis waiting for {simulation_dir_name}")
+            continue
         calculate_volume(simulation_dir, jammed_packing_fname, simstage, submit=True)
+    print(n_analysis)
+    print(len(jammed_packing_fnames))
+    if n_analysis == len(jammed_packing_fnames):
+        print(f"Submitting analysis for {simulation_dir_name}")
+        calculate_volume(simulation_dir, jammed_packing_fnames[0], SimStage.ANALYSIS, submit=True)
     return
 
 

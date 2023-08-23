@@ -1033,6 +1033,8 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         self.parameters["radii"] = self.hs_radii
         self.parameters["box_length"] = self.boxl
         self.potential = setup_bidisperse(self.parameters, seed=0)["potential"]
+        self.parameters.pop("radii")
+        self.parameters.pop("box_length")
 
         success = self._generate_packing_coords()  # returns false if saddle
 
