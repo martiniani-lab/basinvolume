@@ -36,7 +36,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         return SimStage.PT
     elif not os.path.exists(os.path.join(explore_dir, f"innersphere_{fname_wo_ext}.config")):
         return SimStage.INNER_SPHERE
-    elif not os.path.isdir(os.path.join(explore_dir, "analysis")):
+    elif not os.path.isfile(os.path.join(explore_dir, "analysis", "mbar_volume_data")):
         return SimStage.ANALYSIS
     else:
         return SimStage.COMPLETE
