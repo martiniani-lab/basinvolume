@@ -265,7 +265,7 @@ def submit_job(
 def setup_parallel_tempering(
     simulation_folder, global_kwargs, packing_file, submit=True
 ):
-    replicas = 16
+    replicas = 24
     mpi_procs = 8
     ntasks = 1
     cpus_per_task = mpi_procs
@@ -273,7 +273,7 @@ def setup_parallel_tempering(
         "mintotniter": 5e5,
         "maxtotniter": 2e6,
         "adjustf-niter": None,
-        "numnegk": 0,
+        "numnegk": 8,
         "lownegk": -2.5,
         "relstderr": 0.05,
         "nocell": False,
@@ -385,7 +385,7 @@ def setup_compute_volume(simulation_folder, submit=True):
     out_folder = os.path.join(simulation_folder, "job_out")
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str="01:00:00",
-        mem_str="4GB",
+        mem_str="16GB",
         ntasks=ntasks,
         cpus_per_task=cpus_per_task,
         job_name="bv_compute_volume",
@@ -424,7 +424,7 @@ if __name__ == "__main__":
         "jammed_packing0.xydr",
         SimStage.INNER_SPHERE,
         submit=False,
-    )
+    ) 
     calculate_volume(
         test_folder,
         "jammed_packing0.xydr",
