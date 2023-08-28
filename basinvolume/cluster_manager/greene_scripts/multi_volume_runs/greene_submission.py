@@ -274,7 +274,7 @@ def setup_parallel_tempering(
         "maxtotniter": 2e6,
         "adjustf-niter": None,
         "numnegk": 8,
-        "lownegk": -2.5,
+        "lownegk": -0.5,
         "relstderr": 0.05,
         "nocell": False,
         "moveall": False,
@@ -384,7 +384,7 @@ def setup_compute_volume(simulation_folder, submit=True):
 
     out_folder = os.path.join(simulation_folder, "job_out")
     script = GREENE_SCRIPT_TEMPLATE.format(
-        time_str="01:00:00",
+        time_str="04:00:00",
         mem_str="16GB",
         ntasks=ntasks,
         cpus_per_task=cpus_per_task,
