@@ -292,12 +292,14 @@ bool CheckSameMinimum<distance_policy, OPT_T>::_quench(pele::Array<double> &tria
  * done for each distance_policy when using CG
  */
 template <>
-bool CheckSameMinimum<pele::cartesian_distance<2UL>, BvCGDescent<pele::cartesian_distance<2UL>>>::_quench(pele::Array<double> &trial_coords){
-    _optimizer->reset(trial_coords);
-    _optimizer->run();
-    _dmax = sqrt(_optimizer->get_d2_max());
-    _d = sqrt(_optimizer->get_d2());
-    return _optimizer->success();
+inline bool CheckSameMinimum<pele::cartesian_distance<2UL>,
+                      BvCGDescent<pele::cartesian_distance<2UL>>>::
+    _quench(pele::Array<double> &trial_coords) {
+  _optimizer->reset(trial_coords);
+  _optimizer->run();
+  _dmax = sqrt(_optimizer->get_d2_max());
+  _d = sqrt(_optimizer->get_d2());
+  return _optimizer->success();
 }
 template <>
 bool CheckSameMinimum<pele::cartesian_distance<3UL>, BvCGDescent<pele::cartesian_distance<3UL>>>::_quench(pele::Array<double> &trial_coords){
