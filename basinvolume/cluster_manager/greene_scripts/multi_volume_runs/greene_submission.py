@@ -132,10 +132,7 @@ def setup_kmax(simulation_folder, global_kwargs, packing_file, submit=True):
         "opt_nsteps": 1e5,
     }
     mem_str = "4GB"
-    if kmax_kwargs["minimizer"] == "CVODE":
-        time_str = "04:00:00"
-    else:
-        time_str = "01:00:00"
+    time_str = make_time_str(kmax_kwargs["minimizer"], simulation_folder)
 
     # update defaults with global kwargs
     script_subpath = "spheres/bv_find_kmax.py"
@@ -191,10 +188,7 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, submit=True):
     script_subpath = "spheres/bv_find_kmin.py"
     job_name_prefix = "bv_kmin"
     # TODO: set these times based on problem dimension
-    if kmin_kwargs["minimizer"] == "CVODE":
-        time_str = "04:00:00"
-    else:
-        time_str = "01:00:00"
+    time_str = make_time_str(kmin_kwargs["minimizer"], simulation_folder)
     mem_str = "4GB"
 
     submit_job(
@@ -212,6 +206,59 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, submit=True):
     )
     return 0
 
+def make_time_str(minimizer, simulation_folder, parallel_tempering=False):
+    slurm_time_dict = {
+        32 : 1,
+        64 : 4,
+        128 : 16,
+        256 : 32,
+    }
+    sim_folder = os.path.basename(simulation_folder)
+    sim_folder_parts = sim_folder.split("_")
+    n_particles = int(sim_folder_parts[1])
+    time = slurm_time_dict[n_particles]
+    
+    if minimizer == "CVODE":
+        time *= 4
+    
+    if parallel_tempering:
+        time *= 4
+    
+    # max job time
+    if time > 168:
+        time = 168
+    return hours_to_slurm_time(time)
+
+
+def hours_to_slurm_time(hours):
+    """
+    Convert hours to a SLURM time string in the format "days-hours:minutes:seconds".
+
+    Parameters:
+    hours (float): The number of hours.
+
+    Returns:
+    str: A SLURM time string.
+    """
+    
+    if hours <= 0:
+        raise ValueError("Hours must be a positive number.")
+
+    # Convert hours to seconds
+    total_seconds = int(hours * 3600)
+    
+    # Calculate days, hours, minutes, and seconds
+    days = total_seconds // 86400
+    total_seconds %= 86400
+    hours = total_seconds // 3600
+    total_seconds %= 3600
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    
+    # Create a SLURM time string
+    slurm_time_str = f"{days}-{hours:02}:{minutes:02}:{seconds:02}"
+    
+    return slurm_time_str
 
 def submit_job(
     simulation_folder,
@@ -265,15 +312,15 @@ def submit_job(
 def setup_parallel_tempering(
     simulation_folder, global_kwargs, packing_file, submit=True
 ):
-    replicas = 24
-    mpi_procs = 8
+    replicas = 40
+    mpi_procs = 10
     ntasks = 1
     cpus_per_task = mpi_procs
     pt_kwargs = {
         "mintotniter": 5e5,
         "maxtotniter": 2e6,
         "adjustf-niter": None,
-        "numnegk": 8,
+        "numnegk": 24,
         "lownegk": -0.5,
         "relstderr": 0.05,
         "nocell": False,
@@ -302,12 +349,9 @@ def setup_parallel_tempering(
     pt_kwargs["nreplicas"] = replicas
     script_subpath = "spheres/bv_parallel_tempering.py"
     job_name_prefix = "bv_pt"
-    # TODO: set these times based on problem dimension
-    if pt_kwargs["minimizer"] == "CVODE":
-        time_str = "16:00:00"
-    else:
-        time_str = "04:00:00"
-    mem_str = "8GB"
+    time_str = make_time_str(pt_kwargs["minimizer"], simulation_folder, parallel_tempering=True)
+
+    mem_str = "16GB"
     # give the explore directory as the argument
     packing_fname = os.path.splitext(packing_file)[0]
     explore_dir = f" explore_bv_{packing_fname}"
@@ -351,10 +395,7 @@ def setup_inner_sphere(
     script_subpath = "mbar_spheres/bv_innersphere_dos.py"
     job_name_prefix = "bv_inner_sphere"
     # TODO: set these times based on problem dimension
-    if inner_sphere_kwargs["minimizer"] == "CVODE":
-        time_str = "04:00:00"
-    else:
-        time_str = "01:00:00"
+    time_str = make_time_str(inner_sphere_kwargs["minimizer"], simulation_folder)
     mem_str = "8GB"
     # give the explore directory as an argument
     packing_fname = os.path.splitext(packing_file)[0]
