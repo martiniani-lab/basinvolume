@@ -184,7 +184,11 @@ if __name__ == "__main__":
     parser.add_argument("--acceptance", type=float, default=0.2, help="Acceptance value for the MCRunner.")
     parser.add_argument("--adjustf", type=float, default=0.9, help="Adjust F value for the MCRunner.")
     parser.add_argument("--opt_dtmax", type=float, default=1, help="Optimization max time step")
+    parser.add_argument("--k_spreading", type=str, default="linspace", help="K spreading method, options: \
+        gausslobato, linspace, logspace, positionlinspace")
     args = parser.parse_args()
+    
+    
 
     comm = MPI.COMM_WORLD
     nprocs = comm.Get_size()
@@ -357,6 +361,7 @@ if __name__ == "__main__":
                         eq_max_ptiter=int(max_tot_niter / niter),
                         numnegk=args.numnegk,
                         lownegk=args.lownegk,
+                        k_spreading=args.k_spreading,
                         print_status=args.verbose,
                         base_directory=path,
                         sleep_seconds=args.sleep_seconds,
@@ -426,6 +431,7 @@ if __name__ == "__main__":
             eq_max_ptiter=int(max_tot_niter / niter),
             numnegk=args.numnegk,
             lownegk=args.lownegk,
+            k_spreading=args.k_spreading,
             base_directory=path,
         )
         assert ptreplica.rank == rank, "rank id does not match"
