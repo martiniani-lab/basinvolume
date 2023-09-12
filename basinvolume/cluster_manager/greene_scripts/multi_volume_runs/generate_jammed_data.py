@@ -29,7 +29,7 @@ def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ense
     # generate a directory for the experiment
     experiment_dir = os.path.join(base_dir, f"{minimizer}_{n_particles}_{packing_fraction}")
     os.makedirs(experiment_dir, exist_ok=True)
-    n_ensemble = 4
+    n_ensemble = n_ensemble
     os.chdir(experiment_dir)
     job_script_dir = os.path.join(experiment_dir, "job_scripts")
     job_out_dir = os.path.join(experiment_dir, "job_out")
