@@ -58,28 +58,30 @@ def submit_jobs(simulation_dir):
         minimizer=minimizer,
     )
     
-    
+    n_prev_stages = 0
     for jammed_packing_fname in jammed_packing_fnames:
         simstage = get_calculation_stage(simulation_dir, jammed_packing_fname)
         print(f"{simulation_dir_name} in stage {simstage.name}")
         if simstage == SimStage.COMPLETE:
             print(f"{simulation_dir_name} is complete")
             continue
+        if simstage != SimStage.ANALYSIS and SimStage != SimStage.COMPLETE:
+            n_prev_stages += 1
+        
         if simstage == SimStage.ANALYSIS:
             n_analysis += 1
             print(f"analysis waiting for {simulation_dir_name}")
             continue
         calculate_volume(simulation_dir, jammed_packing_fname, simstage, submit=True)
-    if n_analysis == len(jammed_packing_fnames):
+    if n_prev_stages == 0 and n_analysis != 0:
         print(f"Submitting analysis for {simulation_dir_name}")
         calculate_volume(simulation_dir, jammed_packing_fnames[0], SimStage.ANALYSIS, submit=True)
     return
 
 
 def main():
-    folder = "/scratch/ps4586/volume_runs_multi_packing"
+    folder = "/scratch/ps4586/multi_number/"
     for simfolder in os.listdir(folder):
         submit_jobs(os.path.join(folder, simfolder))
-        
 if __name__ == "__main__":
     main()
