@@ -129,7 +129,7 @@ class _findk_mcrunner(ConfigMCRunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, gtol=opt_tol)
 
         self.mcrunner = Findk_MCrunner(
             potential,

@@ -109,14 +109,14 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
         f.write("cython_version: {}\n".format(get_cython_version()))
 
     def _requench_coords(
-        self, dtol, opt_maxstep, verbose, gtol=1e-7, frozen=False
+        self, dtol, opt_maxstep, verbose, gtol=1e-10, frozen=False
     ):
         """re-quench origin to avoid rounding errors"""
         quench = lambda red_coords, pot_optimizer: modifiedfire_cpp(
             red_coords,
             pot_optimizer,
             maxstep=opt_maxstep,
-            nsteps=1e6,
+            nsteps=1e8,
             tol=gtol,
         )
         if self.interaction is Interaction.HS_WCA:
@@ -177,7 +177,8 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
             raise NotImplementedError
 
         if not res.success:
-            assert False
+            print("result", res)
+            raise Exception("Quenching failed")
         elif res.nfev > 1:
             warnings.warn(
                 "Configuration has moved on re-quenching, this should not happen"

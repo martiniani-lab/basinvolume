@@ -15,6 +15,7 @@ BASINVOLUME_PATH = "/home/ps4586/bv_lib/basinvolume/basinvolume"
 @unique
 class SimStage(Enum):
     """Enum for the different types of runs that can be submitted."""
+
     JAMMED_PACKING = 0
     KMAX = 1
     KMIN = 2
@@ -76,13 +77,17 @@ def format_args_from_dict(arg_dict):
 
 
 def calculate_volume(
-    simulation_folder, packing_file, simulation_type, submit=True, global_kwargs=dict(
+    simulation_folder,
+    packing_file,
+    simulation_type,
+    submit=True,
+    global_kwargs=dict(
         opt_tol=1e-10,
         opt_nsteps=1e5,
         dtol=1e-2,
         opt_dtmax=1,
         minimizer="LBFGS",
-    )
+    ),
 ):
     # global args that should be the same across scripts
     if simulation_type == SimStage.KMAX:
@@ -274,7 +279,7 @@ def setup_parallel_tempering(
         "maxtotniter": 2e6,
         "adjustf-niter": None,
         "numnegk": 8,
-        "lownegk": -2.5,
+        "lownegk": -0.5,
         "relstderr": 0.05,
         "nocell": False,
         "moveall": False,
@@ -424,7 +429,7 @@ if __name__ == "__main__":
         "jammed_packing0.xydr",
         SimStage.INNER_SPHERE,
         submit=False,
-    ) 
+    )
     calculate_volume(
         test_folder,
         "jammed_packing0.xydr",
