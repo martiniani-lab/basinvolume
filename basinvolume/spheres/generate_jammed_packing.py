@@ -1079,11 +1079,12 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         elif self.minimizer is Minimizer.CVODE:
             from pele.optimize import CVODEBDFOptimizer
 
+            print("this should be what I'm searching for")
             self.optimizer = CVODEBDFOptimizer(
                 self.potential,
                 self.coords,
                 tol=tol,
-                nsteps=1e7,
+                nsteps=int(1e7),
                 atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
                 rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
@@ -1091,6 +1092,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         elif self.minimizer is Minimizer.MXD:
             from pele.optimize import ExtendedMixedOptimizer
 
+            print("here")
             ratol = (
                 INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
                 * 1e-1
@@ -1353,7 +1355,7 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
             )
         else:
             raise NotImplementedError
-
+        print("after")
         if not res.success:
             print(res)
             logging.warning(self._log("Quench failed"))

@@ -15,6 +15,7 @@ BASINVOLUME_PATH = "/home/ps4586/bv_lib/basinvolume/basinvolume"
 @unique
 class SimStage(Enum):
     """Enum for the different types of runs that can be submitted."""
+
     JAMMED_PACKING = 0
     KMAX = 1
     KMIN = 2
@@ -76,13 +77,17 @@ def format_args_from_dict(arg_dict):
 
 
 def calculate_volume(
-    simulation_folder, packing_file, simulation_type, submit=True, global_kwargs=dict(
+    simulation_folder,
+    packing_file,
+    simulation_type,
+    submit=True,
+    global_kwargs=dict(
         opt_tol=1e-10,
         opt_nsteps=1e5,
         dtol=1e-2,
         opt_dtmax=1,
         minimizer="LBFGS",
-    )
+    ),
 ):
     # global args that should be the same across scripts
     if simulation_type == SimStage.KMAX:
@@ -206,24 +211,25 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, submit=True):
     )
     return 0
 
+
 def make_time_str(minimizer, simulation_folder, parallel_tempering=False):
     slurm_time_dict = {
-        32 : 1,
-        64 : 4,
-        128 : 16,
-        256 : 32,
+        32: 1,
+        64: 4,
+        128: 16,
+        256: 32,
     }
     sim_folder = os.path.basename(simulation_folder)
     sim_folder_parts = sim_folder.split("_")
     n_particles = int(sim_folder_parts[1])
     time = slurm_time_dict[n_particles]
-    
+
     if minimizer == "CVODE":
         time *= 4
-    
+
     if parallel_tempering:
         time *= 4
-    
+
     # max job time
     if time > 168:
         time = 168
@@ -240,13 +246,13 @@ def hours_to_slurm_time(hours):
     Returns:
     str: A SLURM time string.
     """
-    
+
     if hours <= 0:
         raise ValueError("Hours must be a positive number.")
 
     # Convert hours to seconds
     total_seconds = int(hours * 3600)
-    
+
     # Calculate days, hours, minutes, and seconds
     days = total_seconds // 86400
     total_seconds %= 86400
@@ -254,11 +260,12 @@ def hours_to_slurm_time(hours):
     total_seconds %= 3600
     minutes = total_seconds // 60
     seconds = total_seconds % 60
-    
+
     # Create a SLURM time string
     slurm_time_str = f"{days}-{hours:02}:{minutes:02}:{seconds:02}"
-    
+
     return slurm_time_str
+
 
 def submit_job(
     simulation_folder,
@@ -320,7 +327,7 @@ def setup_parallel_tempering(
         "mintotniter": 5e5,
         "maxtotniter": 2e6,
         "adjustf-niter": None,
-        "numnegk": 24,
+        "numnegk": 23,
         "lownegk": -0.5,
         "relstderr": 0.05,
         "nocell": False,
@@ -350,7 +357,9 @@ def setup_parallel_tempering(
     pt_kwargs["nreplicas"] = replicas
     script_subpath = "spheres/bv_parallel_tempering.py"
     job_name_prefix = "bv_pt"
-    time_str = make_time_str(pt_kwargs["minimizer"], simulation_folder, parallel_tempering=True)
+    time_str = make_time_str(
+        pt_kwargs["minimizer"], simulation_folder, parallel_tempering=True
+    )
 
     mem_str = "20GB"
     # give the explore directory as the argument
@@ -396,7 +405,9 @@ def setup_inner_sphere(
     script_subpath = "mbar_spheres/bv_innersphere_dos.py"
     job_name_prefix = "bv_inner_sphere"
     # TODO: set these times based on problem dimension
-    time_str = make_time_str(inner_sphere_kwargs["minimizer"], simulation_folder)
+    time_str = make_time_str(
+        inner_sphere_kwargs["minimizer"], simulation_folder
+    )
     mem_str = "8GB"
     # give the explore directory as an argument
     packing_fname = os.path.splitext(packing_file)[0]
@@ -466,7 +477,7 @@ if __name__ == "__main__":
         "jammed_packing0.xydr",
         SimStage.INNER_SPHERE,
         submit=False,
-    ) 
+    )
     calculate_volume(
         test_folder,
         "jammed_packing0.xydr",
