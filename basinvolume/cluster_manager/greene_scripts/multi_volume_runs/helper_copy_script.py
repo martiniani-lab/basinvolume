@@ -6,14 +6,14 @@ import os
 import shutil
 
 # Assuming the directories are in the current working directory
-base_directory = "/scratch/ps4586/volume_runs_multi_packing_new"
+base_directory = "/scratch/ps4586/num_256"
 
 # Given directory list
 directory_list = os.listdir(base_directory)
 
 # minimizer list
 name_list = ["MXD", "LBFGS", "FIRE", "CG"]
-n_copies = 14
+n_copies = 1
 
 def create_copies(src_name, n, cwd):
     for i in range(n):
