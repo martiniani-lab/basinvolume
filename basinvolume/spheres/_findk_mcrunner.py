@@ -151,6 +151,10 @@ class _findk_mcrunner(ConfigMCRunner):
             self.mcrunner.run()
             self.kmax = self.mcrunner.get_k()
             self.prob = self.mcrunner.findk.get_prob()
+            (
+                self.displ_k_max,
+                self.var_displ_k_max,
+            ) = self.mcrunner.findk.get_mean_variance()
             self._print_results()
             self._print_success(True)
         except:
@@ -211,6 +215,8 @@ class _findk_mcrunner(ConfigMCRunner):
         f.write("[FINDK]\n")
         f.write("kmax: {:.16f}\n".format(self.kmax))
         f.write("prob: {:.16f}\n".format(self.prob))
+        f.write("displ_k_max: {:.16f}\n".format(self.displ_k_max))
+        f.write("var_displ_k_max: {:.16f}\n".format(self.var_displ_k_max))
         f.close()
 
 
