@@ -6,14 +6,15 @@ import os
 
 
 def main():
-    BASE_DIR = "/scratch/ps4586/volume_runs_multi_packing2"
+    BASE_DIR = "/scratch/ps4586/num_256/"
     minimizer_list = ["FIRE", "CG", "CVODE", "LBFGS", "MXD"]
-    minimizer_list = ["CVODE"]
+    #minimizer_list = ["CVODE"]
     packing_fraction_list = [0.85, 0.86, 0.87, 0.88, 0.90]
-    packing_fraction_list = [0.85]
-    n_particles_list = [32]
-    n_ensemble = 4
-
+    packing_fraction_list = [0.87]
+    n_particles_list = [256]
+    n_ensemble = 13
+    
+    
     for minimizer in minimizer_list:
         for packing_fraction in packing_fraction_list:
             for n_particles in n_particles_list:
@@ -48,10 +49,10 @@ def generate_packings(
     jpack_com = f"python /home/ps4586/bv_lib/basinvolume/basinvolume/spheres/generate_jammed_packing.py"
     jpack_com += f" -p {packing_fraction} --minimizer CVODE --interaction INVERSE_POWER"  # keep the minimizer same for all
     full_command = f"{pack_comm};\n{jpack_com}"
-    time_str = "00:15:00"
+    time_str = "00:30:00"
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str=time_str,
-        mem_str="2GB",
+        mem_str="4GB",
         ntasks=1,
         cpus_per_task=1,
         out_file=os.path.join(job_out_dir, "generate_packing.out"),

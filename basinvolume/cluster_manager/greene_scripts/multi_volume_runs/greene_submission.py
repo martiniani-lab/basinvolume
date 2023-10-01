@@ -319,8 +319,8 @@ def submit_job(
 def setup_parallel_tempering(
     simulation_folder, global_kwargs, packing_file, submit=True
 ):
-    replicas = 40
-    mpi_procs = 10
+    replicas = 64
+    mpi_procs = 16
     ntasks = 1
     cpus_per_task = mpi_procs
     pt_kwargs = {
@@ -352,6 +352,7 @@ def setup_parallel_tempering(
         "hbinsize": 1e-1,
         "acceptance": 0.2,
         "adjustf": 0.9,
+        "k_spreading": "positionlinspace",
     }
     pt_kwargs["nreplicas"] = replicas
     script_subpath = "spheres/bv_parallel_tempering.py"
@@ -360,7 +361,7 @@ def setup_parallel_tempering(
         pt_kwargs["minimizer"], simulation_folder, parallel_tempering=True
     )
 
-    mem_str = "16GB"
+    mem_str = "20GB"
     # give the explore directory as the argument
     packing_fname = os.path.splitext(packing_file)[0]
     explore_dir = f" explore_bv_{packing_fname}"
