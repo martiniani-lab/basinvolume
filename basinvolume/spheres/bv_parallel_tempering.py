@@ -172,23 +172,66 @@ if __name__ == "__main__":
         help="File from which to load a saved checkpoint.",
         default=None,
     )
-    
-    
-    parser.add_argument("--stepsize", type=float, default=1e-1, help="Step size for the MCRunner.")
-    parser.add_argument("--dtol", type=float, default=1e-4, help="D-tolerance for the MCRunner.")
-    parser.add_argument("--opt_tol", type=float, default=1e-5, help="Optimization tolerance")
-    parser.add_argument("--opt_nsteps", type=float, default=1e5, help="Optimization runs")
-    parser.add_argument("--hmin", type=float, default=0, help="Minimum H value for the MCRunner.")
-    parser.add_argument("--hmax", type=float, default=1000, help="Maximum H value for the MCRunner.")
-    parser.add_argument("--hbinsize", type=float, default=1e-1, help="H bin size for the MCRunner.")
-    parser.add_argument("--acceptance", type=float, default=0.2, help="Acceptance value for the MCRunner.")
-    parser.add_argument("--adjustf", type=float, default=0.9, help="Adjust F value for the MCRunner.")
-    parser.add_argument("--opt_dtmax", type=float, default=1, help="Optimization max time step")
-    parser.add_argument("--k_spreading", type=str, default="linspace", help="K spreading method, options: \
-        gausslobato, linspace, logspace, positionlinspace")
+
+    parser.add_argument(
+        "--stepsize",
+        type=float,
+        default=1e-1,
+        help="Step size for the MCRunner.",
+    )
+    parser.add_argument(
+        "--dtol",
+        type=float,
+        default=1e-4,
+        help="D-tolerance for the MCRunner.",
+    )
+    parser.add_argument(
+        "--opt_tol", type=float, default=1e-5, help="Optimization tolerance"
+    )
+    parser.add_argument(
+        "--opt_nsteps", type=float, default=1e5, help="Optimization runs"
+    )
+    parser.add_argument(
+        "--hmin",
+        type=float,
+        default=0,
+        help="Minimum H value for the MCRunner.",
+    )
+    parser.add_argument(
+        "--hmax",
+        type=float,
+        default=1000,
+        help="Maximum H value for the MCRunner.",
+    )
+    parser.add_argument(
+        "--hbinsize",
+        type=float,
+        default=1e-1,
+        help="H bin size for the MCRunner.",
+    )
+    parser.add_argument(
+        "--acceptance",
+        type=float,
+        default=0.2,
+        help="Acceptance value for the MCRunner.",
+    )
+    parser.add_argument(
+        "--adjustf",
+        type=float,
+        default=0.9,
+        help="Adjust F value for the MCRunner.",
+    )
+    parser.add_argument(
+        "--opt_dtmax", type=float, default=1, help="Optimization max time step"
+    )
+    parser.add_argument(
+        "--k_spreading",
+        type=str,
+        default="linspace",
+        help="K spreading method, options: \
+        gausslobato, linspace, logspace, positionlinspace",
+    )
     args = parser.parse_args()
-    
-    
 
     comm = MPI.COMM_WORLD
     nprocs = comm.Get_size()
@@ -381,21 +424,21 @@ if __name__ == "__main__":
                     os.remove(args.load_checkpoint)
                 if not exit_on_checkpoint:
                     sim.print_success_all(True)
+                logging.info(
+                    "ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}".format(
+                        master.ptiter,
+                        mcrunner.niter,
+                        adjustf_niter,
+                        master.skip,
+                        master.pfreq,
+                    )
+                )
             except Exception:
                 view_traceback()
                 for iworker in range(1, nprocs):
                     comm.Isend(np.array([-1], dtype="d"), dest=iworker)
                 sim.print_success_all(False)
 
-            logging.info(
-                "ptiter: {} niter: {} adjustf_niter: {} skip: {} pfreq: {}".format(
-                    master.ptiter,
-                    mcrunner.niter,
-                    adjustf_niter,
-                    master.skip,
-                    master.pfreq,
-                )
-            )
         else:
             worker = PT_Worker(mcrunner)
             worker.run()
