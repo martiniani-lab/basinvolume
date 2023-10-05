@@ -19,7 +19,12 @@ import os
 import re
 import glob
 from basinvolume.utils import trymakedir
-from basinvolume.utils import to_string, read_txt, write_csv_xy, import_pt_time_series
+from basinvolume.utils import (
+    to_string,
+    read_txt,
+    write_csv_xy,
+    import_pt_time_series,
+)
 import configparser
 from basinvolume.post_processing import F_Basin_From_MC_Data
 from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
@@ -78,7 +83,9 @@ class _collect_u2_vs_k(object):
 
         self.fname = fname
         if not os.path.isabs(jammed_packings_dir):
-            jammed_packings_dir = os.path.join(os.getcwd(), jammed_packings_dir)
+            jammed_packings_dir = os.path.join(
+                os.getcwd(), jammed_packings_dir
+            )
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.jammed_packings_dir = jammed_packings_dir
         self.packings_dir = packings_dir
@@ -111,7 +118,12 @@ class _collect_u2_vs_k(object):
         self.verbose = verbose
         if self.verbose:
             print(("self.packing_configpath", self.packing_configpath))
-            print(("self.jammed_packing_configpath", self.jammed_packing_configpath))
+            print(
+                (
+                    "self.jammed_packing_configpath",
+                    self.jammed_packing_configpath,
+                )
+            )
             print(("self.findk_configpath", self.findk_configpath))
             print(("self.kmin_configpath", self.kmin_configpath))
 
@@ -164,7 +176,9 @@ class _collect_u2_vs_k(object):
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.displ_k_max = configf.getfloat("FINDK", "displ_k_max")
         self.var_displ_k_max = configf.getfloat("FINDK", "var_displ_k_max")
-        self.kmax_iteration = configf.getfloat("FINDK_MCRUNNER_STATUS", "iteration")
+        self.kmax_iteration = configf.getfloat(
+            "FINDK_MCRUNNER_STATUS", "iteration"
+        )
         self.std_error_kmax = np.sqrt(
             self.var_displ_k_max / (self.prob_kmax * self.kmax_iteration)
         )
@@ -217,7 +231,9 @@ class _collect_u2_vs_k(object):
 
     def _remove_negative_k(self):
         try:
-            k0_idx = next(idx for idx, value in enumerate(self.karray) if value == 0)
+            k0_idx = next(
+                idx for idx, value in enumerate(self.karray) if value == 0
+            )
         except Exception:
             k0_idx = -1
         if k0_idx >= 0:
@@ -264,11 +280,19 @@ class _collect_u2_vs_k(object):
             nsubs = step_timeseries[0][eqtime:].size // n
             for j in range(nsubs):
                 mean_arr.append(
-                    np.sum(step_timeseries[0][eqtime + j * n : eqtime + (j + 1) * n])
+                    np.sum(
+                        step_timeseries[0][
+                            eqtime + j * n : eqtime + (j + 1) * n
+                        ]
+                    )
                 )
-            mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
+            mean, stdev = np.mean(np.array(mean_arr)), np.std(
+                np.array(mean_arr)
+            )
             step_timeseries_mean_path.append(mean)
-            step_timeseries_mean_path_std.append(stdev / np.sqrt(len(mean_arr)))
+            step_timeseries_mean_path_std.append(
+                stdev / np.sqrt(len(mean_arr))
+            )
             step_timeseries_mean_eucdist.append(
                 np.mean(step_timeseries[i + 1][eqtime // n :])
             )
@@ -289,10 +313,12 @@ class _collect_u2_vs_k(object):
         fname = "{}/{}".format(self.base_directory, dname)
         f = open(fname, "w")
         f.write("#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n")
-        f.write("#{:>15}\t{:>15}\n".format("<u2>", "var(<u2>)"))
+        f.write("#{:>15}\t{:>15}\t{:>15}\n".format("<u2>", "var(<u2>)", "k"))
         for i in range(len(self.u2_array)):
             f.write(
-                "{:>15.15e}\t{:>15.15e}\n".format(self.u2_array[i], self.var_array[i])
+                "{:>15.15e}\t{:>15.15e}\t{:>15.15e}\n".format(
+                    self.u2_array[i], self.var_array[i], self.karray[i]
+                )
             )
         f.close()
 
@@ -306,7 +332,12 @@ class _collect_u2_vs_k(object):
         # sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
         sqared_std_errors = self.std_error_array**2
 
-        self.F0, self.sigF0, self.farray, self.sigfarray = F_Basin_From_MC_Data(
+        (
+            self.F0,
+            self.sigF0,
+            self.farray,
+            self.sigfarray,
+        ) = F_Basin_From_MC_Data(
             self.bdim,
             self.nparticles,
             self.karray,
@@ -314,7 +345,9 @@ class _collect_u2_vs_k(object):
             self.vcavity,
             self.prob_kmax,
             displ_k_min_trafo=self.displ_k_min,
-        ).get_free_energy_F0(sqared_std_errors)
+        ).get_free_energy_F0(
+            sqared_std_errors
+        )
 
         (
             self.F0unc,
@@ -335,7 +368,9 @@ class _collect_u2_vs_k(object):
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
-        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(
+            self.vcavity
+        )
         print(
             "unit_box_F0 {} unit_box_F0unc {}".format(
                 self.unit_box_F0, self.unit_box_F0unc
@@ -359,20 +394,29 @@ class _collect_u2_vs_k(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.errorbar(np.log(x), np.log(y), fmt="o", xerr=dx / x, yerr=dy / y)
-        ax.plot(np.log(x), pol(np.log(x)), "-", label="a={} b={}".format(w[0], w[1]))
+        ax.plot(
+            np.log(x),
+            pol(np.log(x)),
+            "-",
+            label="a={} b={}".format(w[0], w[1]),
+        )
         ax.set_ylabel(r"$\log(\Delta r)$")
         ax.set_xlabel(r"$\log (\Delta s)$")
         # plt.yscale('log')
         # plt.xscale('log')
         ax.legend(frameon=False, loc=1)
-        plt.savefig(os.path.join(self.base_directory, "diffusion_logr_vs_logt.pdf"))
+        plt.savefig(
+            os.path.join(self.base_directory, "diffusion_logr_vs_logt.pdf")
+        )
         write_csv_xy(
             np.log(x),
             np.log(y),
             xerr=dx / x,
             yerr=dy / y,
             fit=pol(np.log(x)),
-            fname=os.path.join(self.base_directory, "diffusion_logr_vs_logt.csv"),
+            fname=os.path.join(
+                self.base_directory, "diffusion_logr_vs_logt.csv"
+            ),
         )
         if self.show:
             plt.show()
@@ -388,13 +432,17 @@ class _collect_u2_vs_k(object):
         ax.set_ylabel(r"$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$")
         ax.set_xlabel(r"$\log (\Delta s)$")
         ax.legend(frameon=False, loc=1)
-        plt.savefig(os.path.join(self.base_directory, "diffusion_red_logr_vs_logt.pdf"))
+        plt.savefig(
+            os.path.join(self.base_directory, "diffusion_red_logr_vs_logt.pdf")
+        )
         write_csv_xy(
             np.log(x),
             np.log(y) - 0.5 * np.log(x),
             xerr=dx / x + dy / y,
             yerr=dy / y,
-            fname=os.path.join(self.base_directory, "diffusion_red_logr_vs_logt.csv"),
+            fname=os.path.join(
+                self.base_directory, "diffusion_red_logr_vs_logt.csv"
+            ),
         )
         if self.show:
             plt.show()
@@ -477,7 +525,13 @@ class _collect_u2_vs_k(object):
             cap.set_zorder(100)
         line.set_zorder(100)
 
-        ax2.plot(cont_karray, u2_array_app, "--", linewidth=2, color=next(color_cycle))
+        ax2.plot(
+            cont_karray,
+            u2_array_app,
+            "--",
+            linewidth=2,
+            color=next(color_cycle),
+        )
         ax2.set_xlabel(r"$k$")
         ax2.set_ylabel(r"$\langle |\mathbf{r} - \mathbf{r}_0|^2\rangle_k $")
         ax2.set_ylim(bottom=0)
@@ -544,7 +598,11 @@ if __name__ == "__main__":
     )
     # parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
-        "-f", "--fname", type=str, help="specify packing to analyze", default=None
+        "-f",
+        "--fname",
+        type=str,
+        help="specify packing to analyze",
+        default=None,
     )
     parser.add_argument(
         "-d",
@@ -573,7 +631,10 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
-        "--show", action="store_true", help="show plots, default: False", default=False
+        "--show",
+        action="store_true",
+        help="show plots, default: False",
+        default=False,
     )
     args = parser.parse_args()
     print(args)

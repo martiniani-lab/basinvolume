@@ -49,7 +49,10 @@ class Base_Compute_Integral(object):
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
         if self.simple_integrator:
-            self.integral_over_displacements, self.f = calculate_simple_integral(
+            (
+                self.integral_over_displacements,
+                self.f,
+            ) = calculate_simple_integral(
                 self.displacements,
                 self.k_max,
                 self.nr_particles,
@@ -88,7 +91,10 @@ class Base_Compute_Integral(object):
                 displ_k_min_trafo=self.displ_k_min_trafo,
             )
         else:
-            sigF0, sigIntegrand = calculate_GL_integral_with_transform_get_error(
+            (
+                sigF0,
+                sigIntegrand,
+            ) = calculate_GL_integral_with_transform_get_error(
                 self.displacements,
                 displacements_variance,
                 self.k_max,
@@ -139,7 +145,8 @@ class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
         """
         F0 = (
             -0.5 * self.integral_over_displacements
-            - (self.nr_particles * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max)
+            - (self.nr_particles * self.dimension / 2.0)
+            * np.log(2.0 * pi / self.k_max)
             - np.log(self.prob)
         )
 
@@ -211,7 +218,13 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
 
 
 def F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(
-    displ2_k0, error_displ_k0, kmax, box_volume, nr_particles, dimension, prob_kmax
+    displ2_k0,
+    error_displ_k0,
+    kmax,
+    box_volume,
+    nr_particles,
+    dimension,
+    prob_kmax,
 ):
     """
     Compute free energy F(0) = -log(v), by assuming that the approximation
