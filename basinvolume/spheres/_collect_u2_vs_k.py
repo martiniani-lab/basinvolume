@@ -164,12 +164,9 @@ class _collect_u2_vs_k(object):
             str(self.jammed_packing_configpath), self.frozen
         )
         self.nparticles = imp_packing["nparticles"]
-        self.packing_frac = imp_packing["packing_frac"]
         self.bdim = imp_packing["bdim"]
         self.ndim = imp_packing["ndim"]
-        self.boxv = imp_packing["boxv"].copy()
         self.vcavity = imp_packing["vcavity"]
-        self.sca = imp_packing["sca"]
         configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat("FINDK", "kmax")
