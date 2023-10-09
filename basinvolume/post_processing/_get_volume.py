@@ -44,7 +44,9 @@ class Base_Compute_Integral(object):
         if np.abs(self.k_max - max(self.k_values)) > 1e-10:
             print(("self.k_max", self.k_max))
             print(("max(self.k_values)", max(self.k_values)))
-            raise Exception("Base_Compute_Integral: label mismatch")
+            raise Exception(
+                "Base_Compute_Integral: kmax not equal to max(k_values)"
+            )
         self.nr_points = len(self.k_values)
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
