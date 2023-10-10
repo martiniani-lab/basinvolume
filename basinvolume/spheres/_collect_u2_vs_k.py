@@ -356,8 +356,7 @@ class _collect_u2_vs_k(object):
             self.nparticles,
             self.karray,
             self.u2_array,
-            self.vcavity,
-            self.prob_kmax,
+            prob=self.prob_kmax,
             displ_k_min_trafo=self.displ_k_min,
         ).get_free_energy_F0(
             sqared_std_errors
