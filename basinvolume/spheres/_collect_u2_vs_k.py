@@ -584,6 +584,9 @@ class _collect_u2_vs_k(object):
             _to_file("F0", self.F0)
             _to_file("sigF0", self.sigF0)
             _to_file("unit_box_F0", self.unit_box_F0)
+            _to_file("F0_unc", self.F0unc)
+            _to_file("sigF0_unc", self.sigF0unc)
+            _to_file("unit_box_F0_unc", self.unit_box_F0unc)
         f.close()
 
 
