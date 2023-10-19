@@ -63,12 +63,25 @@ if __name__ == "__main__":
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="verbosity", default=False
     )
-    parser.add_argument('--niter', type=float, default=1e5, help='Number of iterations.')
-    parser.add_argument('--dtol', type=float, default=1e4, help='D tolerance.')
-    parser.add_argument('--eps', type=float, default=1.0, help='Epsilon value.')
-    parser.add_argument('--opt_dtmax', type=int, default=1, help='Maximum dt for optimization.')
-    parser.add_argument('--opt_tol', type=float, default=1e-5, help='Optimization tolerance.')
-    parser.add_argument('--opt_nsteps', type=float, default=1e5, help='Number of optimization steps.')
+    parser.add_argument(
+        "--niter", type=float, default=1e5, help="Number of iterations."
+    )
+    parser.add_argument("--dtol", type=float, default=1e4, help="D tolerance.")
+    parser.add_argument(
+        "--eps", type=float, default=1.0, help="Epsilon value."
+    )
+    parser.add_argument(
+        "--opt_dtmax", type=int, default=1, help="Maximum dt for optimization."
+    )
+    parser.add_argument(
+        "--opt_tol", type=float, default=1e-5, help="Optimization tolerance."
+    )
+    parser.add_argument(
+        "--opt_nsteps",
+        type=float,
+        default=1e5,
+        help="Number of optimization steps.",
+    )
     args = parser.parse_args()
 
     if args.verbose:

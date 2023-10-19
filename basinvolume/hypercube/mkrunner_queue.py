@@ -265,7 +265,9 @@ if __name__ == "__main__":
         adjustf_niter = int(
             min_tot_niter * 0.1
         )  # equilibrate for the first 1/10th of total steps
-        nskip = int(adjustf_niter / niter)  # don't swap while adjusting the step-size
+        nskip = int(
+            adjustf_niter / niter
+        )  # don't swap while adjusting the step-size
         # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
         # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
         pt_eq_niter = 0  # set to 0
@@ -280,16 +282,16 @@ if __name__ == "__main__":
         assert (
             record_histogram == False and pt_eq_niter == 0 and ts_freq == 1
         )  # ts_freq must be 1 with current output implementation (all based on timeseries)
-        rel_std_err = (
-            0.05  # relative standard error in the mean used by convergence test
-        )
+        rel_std_err = 0.05  # relative standard error in the mean used by convergence test
         min_window = int(
             min_tot_niter * 0.5
         )  # minimum amount of data before trying to check convergence
         max_eq_time = int(
             min_tot_niter * 0.5
         )  # maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
-        fast_ct = False  # if false skip heuristic search for equilibration point
+        fast_ct = (
+            False  # if false skip heuristic search for equilibration point
+        )
         i32max = np.iinfo(np.int32).max
         seeds = dict(
             seed_takestep=np.random.randint(i32max),
@@ -325,7 +327,9 @@ if __name__ == "__main__":
         )
         if not check_kmax_reasonable(sim_pt.findk_configpath):
             print("bv_parallel_tempering: kmax is unreasonable, exiting")
-            logging.error("bv_parallel_tempering: kmax is unreasonable, exiting")
+            logging.error(
+                "bv_parallel_tempering: kmax is unreasonable, exiting"
+            )
             sys.exit()
 
         # prepare PT runner
@@ -410,7 +414,9 @@ if __name__ == "__main__":
                 fix_com=False,
             )
             assert ptrunner.rank == rank, "rank id does not match"
-            assert ptrunner.nprocs == nprocs, "number of processes does not match"
+            assert (
+                ptrunner.nprocs == nprocs
+            ), "number of processes does not match"
 
             # run simulation
             try:
@@ -460,7 +466,9 @@ if __name__ == "__main__":
         while alldone_spheres_flags == False:
             for i, sphere_number in enumerate(range(number_nested_spheres)):
                 # It's convenient to shift indices by one because rank 0 is often busy generating the hdf5 file for a while
-                if (sphere_number + 1) % nprocs == rank and innerspheres_done_flags[
+                if (
+                    sphere_number + 1
+                ) % nprocs == rank and innerspheres_done_flags[
                     sphere_number
                 ] == False:
                     # Configure_innersphere
@@ -483,11 +491,15 @@ if __name__ == "__main__":
                     print("time elapsed", end - start)
                     status = sim_innersphere.mcrunner.get_status()
                     print(status)
-                    print("stepsize: ", sim_innersphere.mcrunner.get_stepsize())
+                    print(
+                        "stepsize: ", sim_innersphere.mcrunner.get_stepsize()
+                    )
                     output_directory = (
                         directory_name + "/innersphere_" + str(sphere_number)
                     )
-                    sim_innersphere.mcrunner.show_histogram_analytical(output_directory)
+                    sim_innersphere.mcrunner.show_histogram_analytical(
+                        output_directory
+                    )
                     # This run is done!
                     innerspheres_done_flags[sphere_number] = True
 
@@ -498,7 +510,9 @@ if __name__ == "__main__":
                     source_rank = k + 1
                     innerspheres_done_flags += comm.recv(source=source_rank)
 
-            innerspheres_done_flags = comm.bcast(innerspheres_done_flags, root=0)
+            innerspheres_done_flags = comm.bcast(
+                innerspheres_done_flags, root=0
+            )
             alldone_spheres_flags = np.prod(innerspheres_done_flags)
 
         if rank == 0:

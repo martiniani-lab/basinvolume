@@ -126,7 +126,13 @@ def neg_spring_constants_logspace(numnegk, lownegk):
     k = -(
         np.abs(lownegk)
         + 1
-        - (np.exp(np.linspace(np.log(1), np.log(np.abs(lownegk) + 1), numnegk + 1)))
+        - (
+            np.exp(
+                np.linspace(
+                    np.log(1), np.log(np.abs(lownegk) + 1), numnegk + 1
+                )
+            )
+        )
     )[:-1]
 
     # Consistency check
@@ -136,7 +142,13 @@ def neg_spring_constants_logspace(numnegk, lownegk):
 
 
 def spring_constants_variable_transform(
-    nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=0.0, kappa_const=1.0
+    nr_points,
+    k_max,
+    displ_k_min,
+    nr_particles,
+    dimension,
+    k_min=0.0,
+    kappa_const=1.0,
 ):
     """
     Given the number of points n,
@@ -150,13 +162,17 @@ def spring_constants_variable_transform(
     t = Gauss_Lobatto_abscissas(nr_points)()
     kappa = nr_particles * dimension / displ_k_min * kappa_const
     k = [
-        k_min - kappa + kappa * (1.0 + (k_max - k_min) / kappa) ** ((1.0 + ti) / 2.0)
+        k_min
+        - kappa
+        + kappa * (1.0 + (k_max - k_min) / kappa) ** ((1.0 + ti) / 2.0)
         for ti in t
     ]
     return k
 
 
-def test_variable_transform(k, displ_k_min, nr_particles, dimension, kappa_const=1.0):
+def test_variable_transform(
+    k, displ_k_min, nr_particles, dimension, kappa_const=1.0
+):
     """
     Computes the GL abscissas from the given kvalues.
     Consistency check only.
@@ -165,7 +181,8 @@ def test_variable_transform(k, displ_k_min, nr_particles, dimension, kappa_const
     kmax = max(k)
     kmin = min(k)
     t = [
-        2 * np.log(1 + (ki - kmin) / kappa) / np.log(1 + (kmax - kmin) / kappa) - 1
+        2 * np.log(1 + (ki - kmin) / kappa) / np.log(1 + (kmax - kmin) / kappa)
+        - 1
         for ki in k
     ]
     return t
@@ -204,7 +221,10 @@ def calculate_GL_integral_with_transform(
     )
     f = np.array(
         [
-            u_sq_ki * 0.5 * (ki - k_min + kappa) * np.log(1.0 + (k_max - k_min) / kappa)
+            u_sq_ki
+            * 0.5
+            * (ki - k_min + kappa)
+            * np.log(1.0 + (k_max - k_min) / kappa)
             for (u_sq_ki, ki) in zip(u_sq_k, k)
         ]
     )
@@ -343,7 +363,9 @@ if __name__ == "__main__":
     print(k)
     delta_k = [k[i + 1] - k[i] for i in range(len(k) - 1)]
     print(delta_k)
-    t = test_variable_transform(k, displ_k0, nr_particles, dimension, kappa_const)
+    t = test_variable_transform(
+        k, displ_k0, nr_particles, dimension, kappa_const
+    )
     print(t)
     print(Gauss_Lobatto_abscissas(nr_points)())
     import matplotlib.pyplot as plt

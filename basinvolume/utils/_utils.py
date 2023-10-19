@@ -1153,12 +1153,10 @@ def import_pt_time_series_raw(
                     path = os.path.join(
                         explore_dir, os.path.basename(explore_dir), dir
                     )
-                print("path list", os.listdir(path))
                 file_list = glob.glob(path + "/TimeSeries*")
                 file_list = sorted(
                     file_list, key=lambda x: int(x.split(".")[-1])
                 )
-                print("file_list", file_list)
                 tot_size = int(file_list[-1].split(".")[-1]) - adjustf_niter
                 print(tot_size)
                 init_size = int(file_list[0].split(".")[-1]) - adjustf_niter
