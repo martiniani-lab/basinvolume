@@ -74,6 +74,7 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
         packings_dir="packings",
         jammed_packings_dir="jammed_packings",
         volume_title="VOLUME_FULL_PT",
+        set_explore_dir=None,
     ):
 
         # Begin: store input parameters.
@@ -89,7 +90,7 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
         self.jammed_packings_dir = jammed_packings_dir
         self.volume_file = volume_file
         self.volume_title = volume_title
-
+        self.set_explore_dir = set_explore_dir
         self.set_up_directories()
 
     @abc.abstractmethod
@@ -117,11 +118,15 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
                         try:
                             volf = configparser.ConfigParser()
                             volf.read(
-                                os.path.join(path, self.analysis_dir, self.volume_file)
+                                os.path.join(
+                                    path, self.analysis_dir, self.volume_file
+                                )
                             )
                             F0 = volf.getfloat(self.volume_title, "F0")
                         except Exception as e:
-                            logging.info("run_analysis Exception: {}".format(e))
+                            logging.info(
+                                "run_analysis Exception: {}".format(e)
+                            )
                             self._compute_volume(fname, path)
                     else:
                         self._compute_volume(fname, path)
@@ -134,13 +139,22 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
         self.pt_failures.print_failure_info()
 
     def set_up_directories(self):
+        if self.set_explore_dir is not None:
+            self.explore_dirs = [self.set_explore_dir]
+            self.packing_strings = os.path.basename(self.set_explore_dir)
+            # remove the explore_bv_ part
+            self.packing_strings = [self.packing_strings[len("explore_bv_") :]]
+            return
+
         self.explore_dirs = [
             os.path.join(self.workspace_dir, f)
             for f in os.listdir(self.workspace_dir)
             if (
                 f.startswith(self.explore_bv_dir)
                 and os.path.isfile(
-                    os.path.join(self.workspace_dir, f, "inner_sphere.timeseries")
+                    os.path.join(
+                        self.workspace_dir, f, "inner_sphere.timeseries"
+                    )
                 )
             )
         ]
@@ -154,7 +168,8 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
                 )
             assert len(self.explore_dirs) == self.nr_volume_points
         self.packing_strings = [
-            "jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs
+            "jammed_" + (s.split("/")[-1]).split("_")[3]
+            for s in self.explore_dirs
         ]
 
 
@@ -236,6 +251,7 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
         explore_bv_dir="explore_bv_jammed_packing",
         packings_dir="packings",
         jammed_packings_dir="jammed_packings",
+        set_explore_dir=None,
     ):
         super(ComputeVolumesTINTMultiConfigFile, self).__init__(
             workspace_dir,
@@ -247,16 +263,22 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
             explore_bv_dir=explore_bv_dir,
             packings_dir=packings_dir,
             jammed_packings_dir=jammed_packings_dir,
+            set_explore_dir=set_explore_dir,
         )
         self.series_collector = _collect_u2_vs_k()
 
     def _compute_volume(self, fname, explore_dir):
+        print("---- is this even called")
         jammed_packings_path = os.path.abspath(
             os.path.join(self.workspace_dir, self.jammed_packings_dir)
         )
         packings_path = os.path.abspath(
             os.path.join(self.workspace_dir, self.packings_dir)
         )
+        print(explore_dir)
+        print("jammed_packings_path", jammed_packings_path)
+        print("packings_dir", packings_path)
+        print(explore_dir)
         self.series_collector(
             frozen=self.experimental,
             fname=fname,
@@ -283,6 +305,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
         explore_bv_dir="explore_bv_jammed_packing",
         packings_dir="packings",
         jammed_packings_dir="jammed_packings",
+        set_explore_dir=None,
     ):
         super(ComputeVolumesMBARMultiConfigFile, self).__init__(
             workspace_dir,
@@ -294,8 +317,10 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
             explore_bv_dir=explore_bv_dir,
             packings_dir=packings_dir,
             jammed_packings_dir=jammed_packings_dir,
+            set_explore_dir=set_explore_dir,
         )
         self.plot_dos_data = False
+        print("we are here")
         self.series_collector = mbar_compute_dos(
             nbins=1000,
             bootstrap=True,
@@ -311,6 +336,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
         packings_path = os.path.abspath(
             os.path.join(self.workspace_dir, self.packings_dir)
         )
+        print("series collector")
         self.series_collector(
             fname=fname,
             explore_dir=explore_dir,
@@ -339,23 +365,31 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                     if (
                         not self.force_run
                         and os.path.isfile(
-                            os.path.join(path, self.analysis_dir, self.volume_file)
+                            os.path.join(
+                                path, self.analysis_dir, self.volume_file
+                            )
                         )
                         and (
                             not self.plot_dos_data
                             or os.path.isfile(
-                                os.path.join(path, self.analysis_dir, log_gr_ratio_file)
+                                os.path.join(
+                                    path, self.analysis_dir, log_gr_ratio_file
+                                )
                             )
                         )
                     ):
                         try:
                             volf = configparser.ConfigParser()
                             volf.read(
-                                os.path.join(path, self.analysis_dir, self.volume_file)
+                                os.path.join(
+                                    path, self.analysis_dir, self.volume_file
+                                )
                             )
                             F0 = volf.getfloat(self.volume_title, "F0")
                         except Exception as e:
-                            logging.info("run_analysis Exception: {}".format(e))
+                            logging.info(
+                                "run_analysis Exception: {}".format(e)
+                            )
                             self._compute_volume(fname, path)
                     else:
                         self._compute_volume(fname, path)
@@ -378,6 +412,7 @@ class ComputeVolumes(object):
         explore_bv_dir="explore_bv_jammed_packing",
         packings_dir="packings",
         jammed_packings_dir="jammed_packings",
+        set_explore_dir=None,
     ):
         self.method = method
         self.experimental = "exp" in workspace_dir  # THIS SHOULD BE IMPROVED
@@ -391,9 +426,11 @@ class ComputeVolumes(object):
                 explore_bv_dir=explore_bv_dir,
                 packings_dir=packings_dir,
                 jammed_packings_dir=jammed_packings_dir,
+                set_explore_dir=set_explore_dir,
             )
         elif self.method == "tint":
             logging.info("using thermodynamic integration method")
+            print("are we going in")
             self.computer = ComputeVolumesTINTMultiConfigFile(
                 workspace_dir,
                 nr_volume_points,
@@ -402,10 +439,13 @@ class ComputeVolumes(object):
                 explore_bv_dir=explore_bv_dir,
                 packings_dir=packings_dir,
                 jammed_packings_dir=jammed_packings_dir,
+                set_explore_dir=set_explore_dir,
             )
+            print("are we going out")
         else:
             raise Exception(
-                "ComputeVolumes: illegal choice of method, " "should be MBAR or TINT"
+                "ComputeVolumes: illegal choice of method, "
+                "should be MBAR or TINT"
             )
 
     def __call__(self):
@@ -414,14 +454,20 @@ class ComputeVolumes(object):
 
 def worker(workspace_dir, kwargs):
     try:
+        print("here")
         cv = ComputeVolumes(workspace_dir, **kwargs)
+        print("done")
         cv()
     except Exception:
         logging.info("find_k worker: %s" % (traceback.format_exc()))
 
 
 def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
+    return [
+        name
+        for name in os.listdir(dir)
+        if os.path.isdir(os.path.join(dir, name))
+    ]
 
 
 if __name__ == "__main__":
@@ -447,7 +493,8 @@ if __name__ == "__main__":
         "--nr_vpoints",
         type=int,
         default=-1,
-        help="number of volume points, by default all " "otherwise select n at random",
+        help="number of volume points, by default all "
+        "otherwise select n at random",
     )
     parser.add_argument(
         "--force",
@@ -485,9 +532,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--jammed_packings_dir",
         type=str,
-        help="Directory containing the jammed packings. " "Default: 'jammed_packings'",
+        help="Directory containing the jammed packings. "
+        "Default: 'jammed_packings'",
         default="jammed_packings",
     )
+
+    parser.add_argument(
+        "--set_explore_dir",
+        type=str,
+        help="Explore dir to calculate volumes for, overrides all other \
+            directory settings. \
+            For cases like hypercubes where no packings exist",
+    )
+
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -504,7 +561,9 @@ if __name__ == "__main__":
         explore_bv_dir=args.explore_dirs,
         packings_dir=args.packings_dir,
         jammed_packings_dir=args.jammed_packings_dir,
+        set_explore_dir=args.set_explore_dir,
     )
+    print("args.all: {}".format(args.all))
     if not args.all:
         workspace_dir = os.path.abspath(args.workspace_dir)
         worker(workspace_dir, kwargs)
@@ -530,6 +589,8 @@ if __name__ == "__main__":
             mypool.join()
         else:
             for folder in subdirs:
+                print("what")
                 cv = ComputeVolumes(os.path.abspath(folder), **kwargs)
+                print("kwargs")
                 cv()
                 del cv

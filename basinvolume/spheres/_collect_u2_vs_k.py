@@ -90,7 +90,10 @@ class _collect_u2_vs_k(object):
         self.jammed_packings_dir = jammed_packings_dir
         self.packings_dir = packings_dir
         if not os.path.isabs(explore_dir):
-            explore_dir = os.path.join(os.getcwd(), explore_dir + fname)
+            if explore_dir.endswith(fname):
+                explore_dir = os.path.join(os.getcwd(), explore_dir)
+            else:
+                explore_dir = os.path.join(os.getcwd(), explore_dir + fname)
         self.explore_dir = explore_dir
         self.base_directory = self.explore_dir + "/" + base_dir
         self.frozen = frozen
@@ -98,14 +101,21 @@ class _collect_u2_vs_k(object):
         self.packing_configpath = os.path.join(
             packings_dir, "packing{}.config".format(n)
         )
-        assert os.path.isfile(self.packing_configpath)
+        # assert os.path.isfile(self.packing_configpath)
+
         self.jammed_packing_configpath = os.path.join(
             jammed_packings_dir, "{}.config".format(self.fname)
         )
-        assert os.path.isfile(self.jammed_packing_configpath)
+
         self.findk_configpath = os.path.join(
             self.explore_dir, "findk_" + fname + ".config"
         )
+        if os.path.isfile(self.packing_configpath):
+            self.problem_type = "packing"
+            assert os.path.isfile(self.jammed_packing_configpath)
+        else:
+            # hack to run same code on hypercube
+            self.problem_type = "hypercube"
         assert os.path.isfile(self.findk_configpath)
         self.kmin_configpath = os.path.join(
             self.explore_dir, "kmin_" + fname + ".config"
@@ -117,13 +127,6 @@ class _collect_u2_vs_k(object):
         assert os.path.isfile(self.pt_configpath)
         self.verbose = verbose
         if self.verbose:
-            print(("self.packing_configpath", self.packing_configpath))
-            print(
-                (
-                    "self.jammed_packing_configpath",
-                    self.jammed_packing_configpath,
-                )
-            )
             print(("self.findk_configpath", self.findk_configpath))
             print(("self.kmin_configpath", self.kmin_configpath))
 
@@ -160,17 +163,25 @@ class _collect_u2_vs_k(object):
         self._print_volumes()
 
     def _import_config_files(self):
-        imp_packing = read_jammed_packing_config(
-            str(self.jammed_packing_configpath), self.frozen
-        )
-        self.nparticles = imp_packing["nparticles"]
-        self.bdim = imp_packing["bdim"]
-        self.ndim = imp_packing["ndim"]
-        self.vcavity = imp_packing["vcavity"]
+
+        if self.problem_type == "packing":
+            imp_packing = read_jammed_packing_config(
+                str(self.jammed_packing_configpath), self.frozen
+            )
+            self.nparticles = imp_packing["nparticles"]
+            self.bdim = imp_packing["bdim"]
+            self.ndim = imp_packing["ndim"]
+            self.vcavity = imp_packing["vcavity"]
+        elif self.problem_type == "hypercube":
+            self.nparticles = int(self.explore_dir.split("_")[-2][1:])
+            self.bdim = 1
+            self.ndim = self.nparticles * self.bdim
+            self.vcavity = 1
         configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
+        print("prob_kmax {}".format(self.prob_kmax))
         self.displ_k_max = configf.getfloat("FINDK", "displ_k_max")
         self.var_displ_k_max = configf.getfloat("FINDK", "var_displ_k_max")
         self.kmax_iteration = configf.getfloat(
@@ -374,11 +385,15 @@ class _collect_u2_vs_k(object):
         )
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
-        volume_sanity_check = VolumeSanityCheck(
-            self.packing_configpath, numerical_moments=numerical_moments
-        )
-        self.F0_acc = volume_sanity_check.F0_acc
-        self.ideal_gas_F_acc = -self.nparticles * np.log(self.vcavity)
+        if self.problem_type == "packing":
+            volume_sanity_check = VolumeSanityCheck(
+                self.packing_configpath, numerical_moments=numerical_moments
+            )
+            self.F0_acc = volume_sanity_check.F0_acc
+            self.ideal_gas_F_acc = -self.nparticles * np.log(self.vcavity)
+        else:
+            self.F0_acc = 0
+            self.ideal_gas_F_acc = 0
 
     def _plot_diffusion(self):
         x, dx, y, dy = self._import_steps_time_series_diffusion()
