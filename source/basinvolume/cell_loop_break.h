@@ -12,29 +12,42 @@ namespace pele {
  * This is used to have a cell-list-based overlap check.
  */
 template <class visitor_t, size_t ndim>
-class CellListsLoopBreak : public CellListsLoop<visitor_t, ndim> {
+class CellListsLoopBreak
+    : public CellListsLoop<visitor_t, periodic_distance<ndim>> {
 public:
-    virtual ~CellListsLoopBreak() {}
-    CellListsLoopBreak(visitor_t& visitor, CellListsContainer<ndim> const& container)
-        : CellListsLoop<visitor_t, ndim>(visitor, container)
-    {}
-    void loop_through_atom_pairs()
-    {
-        typename CellListsContainer<ndim>::const_iterator iiter, jiter, iend, jend;
-        iend = CellListsLoop<visitor_t, ndim>::m_container.end();
-        for (auto const& ijpair : CellListsLoop<visitor_t, ndim>::m_container.m_cell_neighbor_pairs) {
-            const size_t icell = ijpair.first;
-            const size_t jcell = ijpair.second;
-            for (iiter = CellListsLoop<visitor_t, ndim>::m_container.begin(icell); iiter != iend; ++iiter) {
-                jend = (icell == jcell) ? iiter : CellListsLoop<visitor_t, ndim>::m_container.end();
-                for (jiter = CellListsLoop<visitor_t, ndim>::m_container.begin(jcell); jiter != jend; ++jiter) {
-                    if (CellListsLoop<visitor_t, ndim>::m_visitor.insert_atom_pair(*iiter, *jiter)) {
-                        return;
-                    }
-                }
-            }
+  virtual ~CellListsLoopBreak() {}
+  CellListsLoopBreak(visitor_t &visitor,
+                     CellListsContainer<ndim> const &container)
+      : CellListsLoop<visitor_t, periodic_distance<ndim>>(visitor, container) {}
+  void loop_through_atom_pairs() {
+    typename CellListsContainer<ndim>::const_iterator iiter, jiter, iend, jend;
+    iend = CellListsLoop<visitor_t, periodic_distance<ndim>>::m_container.end();
+    for (auto const &ijpair :
+         CellListsLoop<visitor_t, periodic_distance<ndim>>::m_container
+             .m_cell_neighbor_pairs) {
+      const size_t icell = ijpair.first;
+      const size_t jcell = ijpair.second;
+      for (iiter =
+               CellListsLoop<visitor_t, periodic_distance<ndim>>::m_container
+                   .begin(icell);
+           iiter != iend; ++iiter) {
+        jend =
+            (icell == jcell)
+                ? iiter
+                : CellListsLoop<visitor_t, periodic_distance<ndim>>::m_container
+                      .end();
+        for (jiter =
+                 CellListsLoop<visitor_t, periodic_distance<ndim>>::m_container
+                     .begin(jcell);
+             jiter != jend; ++jiter) {
+          if (CellListsLoop<visitor_t, periodic_distance<ndim>>::m_visitor
+                  .insert_atom_pair(*iiter, *jiter)) {
+            return;
+          }
         }
+      }
     }
+  }
 };
 
 } // namespace pele
