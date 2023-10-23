@@ -1,9 +1,15 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import zip
+from builtins import range
 import numpy as np
 from basinvolume.mbar_spheres import mbar_compute_dos
 from basinvolume.mbar_spheres.mbar_compute_volume import find_eqtime
 import os
-import ConfigParser
+import configparser
 import argparse
 from basinvolume.utils import import_pt_cloud_drops_time_series_raw
 from basinvolume.mbar_spheres.mbar_compute_volume import dos_from_offsets, get_kde_hist
@@ -31,7 +37,7 @@ class hyperelem_mbar_compute_dos(mbar_compute_dos):
 
         base_name = os.path.basename(os.path.normpath(self.explore_dir))
         dname = str(base_name).replace('explore_bv_', '')
-        print dname
+        print(dname)
         self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + dname + '.config')
         assert os.path.isfile(self.pt_configpath)
         self.findk_configpath = os.path.join(self.explore_dir,'findk_'+dname+'.config')
@@ -50,7 +56,7 @@ class hyperelem_mbar_compute_dos(mbar_compute_dos):
             self.run_bs()
     
     def _import_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.report_steps = configf.getfloat('MCRUNNER', 'report_steps')
         configf.read(str(self.findk_configpath))
@@ -99,10 +105,10 @@ class hyperelem_mbar_compute_dos(mbar_compute_dos):
         results *= np.array([min(self.timeseries.shape[2],
                                  len(x.flatten())/len(x.flatten()[x.flatten() > 0]))
                              for x in self.timeseries])
-        print "eq_times: ", results
+        print("eq_times: ", results)
         eq_time = max(eq_time_min, int(np.amax(results)) // self.timeseries.shape[2])
-        print "cloud eq_time_min: ", eq_time_min
-        print "cloud eq time: ", eq_time
+        print("cloud eq_time_min: ", eq_time_min)
+        print("cloud eq time: ", eq_time)
         self.timeseries = self.timeseries[:,eq_time:,:]
 
     def _subsample_timeseries(self, ts_sphere, timeseries):
@@ -124,22 +130,22 @@ class hyperelem_mbar_compute_dos(mbar_compute_dos):
         # self.tss = np.array(tss.tolist())
         # N_k[0] = self.tss.size #len(indices)  # number of uncorrelated samples
         # now loop through pt timeseries
-        for i in xrange(K):  # subsample the energies
-            print timeseries[i].shape
+        for i in range(K):  # subsample the energies
+            print(timeseries[i].shape)
             j = i
             x = timeseries[i].flatten()
             si = statisticalInefficiency_fft(x[x>0]) # should we do this on the backbone?
             si *= min(timeseries.shape[2], x.size/x[x>0].size) #rescale by the fraction of zero values
-            print "statistical inefficiency: ",si
+            print("statistical inefficiency: ",si)
             g[j] = max(1, int(si // float(self.timeseries.shape[2])))
             indices = np.array(subsampleCorrelatedData(np.ones(timeseries[i].shape[0]), g=g[j]))  # indices of uncorrelated samples
-            print len(indices)
+            print(len(indices))
             self.subsample_indices.append(indices)
             ts = timeseries[i][indices].flatten()
             ts = ts[ts>0]
             N_k[j] = ts.size  # number of uncorrelated samples > 0
             flat_ts.append(ts.tolist())
-        print "flat_ts shape", np.shape(flat_ts)
+        print("flat_ts shape", np.shape(flat_ts))
         return np.array(flatten(flat_ts)), N_k, g
 
     def _compute_ow(self):
@@ -189,7 +195,7 @@ class hyperelem_mbar_compute_dos(mbar_compute_dos):
         ow = _flatten_ow(ow)
         # ow = np.where(ow>0, np.log(ow), -1e70)
 
-        for i in xrange(K):
+        for i in range(K):
             # if i == 0:
             #     u_kn[i] = (self.ndof - 1) * np.log(flat_timeseries) + \
             #               0.5 * self.karray[i] * flat_timeseries ** 2
@@ -252,10 +258,10 @@ class hyperelem_mbar_compute_dos(mbar_compute_dos):
         results = Parallel(n_jobs=max(1, self.ncores))(
             delayed(get_kde_hist)(timeseries[timeseries>0], kde_bin_edges, weights=ow[timeseries>0])
             for timeseries, ow in zip(self.timeseries, self.ow))
-        print np.shape(results)
+        print(np.shape(results))
         for hist in results:
             hist_visits.append(hist)
-        print np.shape(hist_visits)
+        print(np.shape(hist_visits))
         return hist_visits
 
     def _unbias_histogram(self):
@@ -277,7 +283,7 @@ if __name__ == "__main__":
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
     parser.add_argument("-j", "--ncores", type=int, help="number of cores", default=7)
     args = parser.parse_args()
-    print args
+    print(args)
     
     sim = hyperelem_mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=args.ncores)
     

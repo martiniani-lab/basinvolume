@@ -1,4 +1,12 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 import copy
 import numpy as np
 from scipy.special import sph_harm
@@ -8,12 +16,10 @@ import abc
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 import argparse
 import multiprocessing as mp
-from simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
+from .simple_solid_angle_neighbors import SimpleSolidAngleNeighbors
+from future.utils import with_metaclass
 
-class StructuralAnalysis(object):
-    __metaclass__ = abc.ABCMeta
-    #@abc.abstractmethod
-    
+class StructuralAnalysis(with_metaclass(abc.ABCMeta, object)):
     def __init__(self, workspace, packings_dir='packings', jammed_packings_dir='jammed_packings', analysis_dir='analysis',
                  force=False, existing_only=True):
         if not os.path.isabs(workspace):
@@ -74,7 +80,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         super(BondOrientationalOrder,self).__init__(workspace, packings_dir=packings_dir, jammed_packings_dir=jammed_packings_dir, 
                                                     analysis_dir=analysis_dir, force=force, existing_only=existing_only)
         self.solid_angle_weighted = solid_angle_weighted
-        print("self.solid_angle_weighted", self.solid_angle_weighted)
+        print(("self.solid_angle_weighted", self.solid_angle_weighted))
         
     def run(self, deg=6, pinit=True):
         """compute boo for packings. we exclude rattlers from the computation of the global structure factors
@@ -105,7 +111,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                     except Exception:
                         compute = True
                     if compute or self.force:
-                        print dname
+                        print(dname)
                         trymakedir(analysis_dir_path)
                         coords, hs_radii, ss_radii = self._import_packing_configuration(fname)
                         boo_list, z_list = self.bond_orientation_order_all(coords, ss_radii, ndim=self.bdim, deg=deg)
@@ -181,7 +187,7 @@ class BondOrientationalOrder(StructuralAnalysis):
     
     def _bond_orientational_order3d(self, nnatoms_vec, deg=6, weights=None):
         q = 0.
-        for m in xrange(-deg,deg+1):
+        for m in range(-deg,deg+1):
             c = self._qsum(nnatoms_vec, m, ndim=3, deg=deg, weights=weights)
             q += np.absolute(c)**2
         return np.sqrt(q * 4 * np.pi / (2*deg+1))
@@ -200,12 +206,12 @@ class BondOrientationalOrder(StructuralAnalysis):
     
     def find_nearest_neighbors(self, coords, hs_radii):
         nparticles = hs_radii.size
-        nnatoms_list = [[] for _ in xrange(nparticles)]
-        for i in xrange(nparticles):
-            for j in xrange(i, nparticles):
+        nnatoms_list = [[] for _ in range(nparticles)]
+        for i in range(nparticles):
+            for j in range(i, nparticles):
                 if i != j:
                     dij = np.zeros(self.bdim)
-                    for k in xrange(self.bdim):
+                    for k in range(self.bdim):
                         #use distances to nearest image convention
                         dij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) -
                                            cround((coords[j*self.bdim+k] - coords[i*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
@@ -218,15 +224,15 @@ class BondOrientationalOrder(StructuralAnalysis):
     
     def find_nearest_neighbors_solid_angle(self, coords, hs_radii):
         nparticles = hs_radii.size
-        nnatoms_list = [[] for _ in xrange(nparticles)]
+        nnatoms_list = [[] for _ in range(nparticles)]
         weights_all = copy.deepcopy(nnatoms_list)
-        for i in xrange(nparticles):
+        for i in range(nparticles):
             """
             Note that if i has neighbor j it is not obvious that j has
             neighbor i, in contrast to fixed distance cutoff.
             """
             sann = SimpleSolidAngleNeighbors(i, coords, nparticles, self.boxv)
-            for j in xrange(sann.nr_neighbors):
+            for j in range(sann.nr_neighbors):
                 nnatoms_list[i].append(sann.nn_vector[j])
                 weights_all[i].append(sann.weight[j])
         return nnatoms_list, weights_all
@@ -253,7 +259,7 @@ class BondOrientationalOrder(StructuralAnalysis):
 
         boo_list = []
         z_list = []
-        for i in xrange(hs_radii.size):
+        for i in range(hs_radii.size):
             contacts_vec = contacts_list[i]
             nnatoms_vec = nnatoms_list[i]
             weights = None
@@ -378,7 +384,7 @@ if __name__ == "__main__":
         pass
     elif opt_pot_str == 'inverse_power_stillinger':
         extra_pot_kwargs.update(dict(pow=3, rcut=1.5))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+        print('setting inverse_power_stillinger parameters: ', extra_pot_kwargs)
     else:
         raise NotImplementedError
     

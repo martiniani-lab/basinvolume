@@ -1,11 +1,16 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
+from builtins import str
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 
 from basinvolume.utils import trymakedir
 
-from multi_gauss_wrap import MultiGaussWrap
+from .multi_gauss_wrap import MultiGaussWrap
 
 class ComputerCommon(object):
     """
@@ -39,7 +44,7 @@ class ComputerCommon(object):
         else:
             """This only works for TI and brute force.
             """
-            for i in xrange(self.vol_parameters["max_iterations"]):
+            for i in range(self.vol_parameters["max_iterations"]):
                 self.iterations.append(i + 1)
                 evaluations, volume = self.get_evaluations_volume_one_iteration()
                 self.evaluations.append(evaluations)
@@ -128,7 +133,7 @@ def run_computer(potential_dir, results_dir, large_or_small_flag,
         pot = SumGaussianPot(m, c, pot_wrapper.R)
     else:
         pot = pot_wrapper.get_pot(nr_gaussians, nr_dimensions, pot_index)
-    print("pot", pot)
+    print(("pot", pot))
     pes_parameters["origin"] = pot_wrapper.get_origin(nr_gaussians,
         nr_dimensions, pot_index, large_or_small_flag)
     computer = ComputerMethod(results_dir, opt_parameters,

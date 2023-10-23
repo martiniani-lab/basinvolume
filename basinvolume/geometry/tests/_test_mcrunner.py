@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import object
 import numpy as np
 from basinvolume.geometry.point_sampling import HyperElemMCrunner
 from basinvolume.geometry.cloud_sampling import HyperElemOracleMCrunner
@@ -43,19 +45,19 @@ class TestMCrunnerStochastic(object):
         self.mcrunner.run()
         drops_ts = self.mcrunner.get_timeseries()
         cloud = self.mcrunner.cloud_test.get_old_cloud()
-        print cloud.x
-        print cloud.oracle
-        print cloud.bias
-        print "cloud 1 ",cloud[0]
+        print(cloud.x)
+        print(cloud.oracle)
+        print(cloud.bias)
+        print("cloud 1 ",cloud[0])
         cloud[0] = (np.ones(2) * 2, True, 10)
         self.mcrunner.cloud_test.set_cloud(cloud)
         cloud2 = self.mcrunner.cloud_test.get_old_cloud()
-        print "cloud 2 ", cloud2[0]
-        print "cloud 2.bias ", cloud2.bias
+        print("cloud 2 ", cloud2[0])
+        print("cloud 2.bias ", cloud2.bias)
         cloud2.bias = np.ones(cloud2.size)*10
         self.mcrunner.cloud_test.set_cloud_bias(cloud2)
         cloud3 = self.mcrunner.cloud_test.get_old_cloud()
-        print "cloud3.bias: ", cloud3.bias
+        print("cloud3.bias: ", cloud3.bias)
         # print "len(cloud): ", len(cloud)
         # print "cloud.size: ", cloud.size
         # print "cloud.ndof: ", cloud.ndof
@@ -104,12 +106,12 @@ if __name__=="__main__":
         drops_ts, (r2mean, r2var) = test.run()
         r2mean_ts = get_drops_ts_r2_mean(drops_ts, k)
         r2mean_exact = get_r2_mean(geometry, geom_params)
-        print test.mcrunner.get_status()
-        print "geometry: {}".format(geometry)
-        print "num_r2mean: {} exact_r2mean: {}".format(r2mean, r2mean_exact)
-        print "are close : {} (rel_tol={})".format(isClose(r2mean, r2mean_exact, rel_tol=rel_tol), rel_tol)
-        print "ts_r2mean: {} exact_r2mean: {}".format(r2mean_ts, r2mean_exact)
-        print "are close : {} (rel_tol={})".format(isClose(r2mean_ts, r2mean_exact, rel_tol=rel_tol), rel_tol)
+        print(test.mcrunner.get_status())
+        print("geometry: {}".format(geometry))
+        print("num_r2mean: {} exact_r2mean: {}".format(r2mean, r2mean_exact))
+        print("are close : {} (rel_tol={})".format(isClose(r2mean, r2mean_exact, rel_tol=rel_tol), rel_tol))
+        print("ts_r2mean: {} exact_r2mean: {}".format(r2mean_ts, r2mean_exact))
+        print("are close : {} (rel_tol={})".format(isClose(r2mean_ts, r2mean_exact, rel_tol=rel_tol), rel_tol))
     for geom in geom_list:
         geometry = geom[0]
         geom_params = geom[1]
@@ -117,11 +119,11 @@ if __name__=="__main__":
         drops_ts, (r2mean, r2var) = test.run()
         r2mean_ts = get_drops_ts_r2_mean(drops_ts, k)
         r2mean_exact = get_r2_mean(geometry, geom_params)
-        print "geometry: {}".format(geometry)
-        print "num_r2mean: {} exact_r2mean: {}".format(r2mean, r2mean_exact)
-        print "are close : {} (rel_tol={})".format(isClose(r2mean, r2mean_exact, rel_tol=rel_tol), rel_tol)
-        print "ts_r2mean: {} exact_r2mean: {}".format(r2mean_ts, r2mean_exact)
-        print "are close : {} (rel_tol={})".format(isClose(r2mean_ts, r2mean_exact, rel_tol=rel_tol), rel_tol)
+        print("geometry: {}".format(geometry))
+        print("num_r2mean: {} exact_r2mean: {}".format(r2mean, r2mean_exact))
+        print("are close : {} (rel_tol={})".format(isClose(r2mean, r2mean_exact, rel_tol=rel_tol), rel_tol))
+        print("ts_r2mean: {} exact_r2mean: {}".format(r2mean_ts, r2mean_exact))
+        print("are close : {} (rel_tol={})".format(isClose(r2mean_ts, r2mean_exact, rel_tol=rel_tol), rel_tol))
 
 
 

@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import print_function
 import numpy as np
 
 from mcpele.monte_carlo import _BaseMCRunner
@@ -59,10 +60,10 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         self.suppress_histogram = True
     def run_kmin(self):
         print("run kmin")
-        print("coords initial", self.get_coords())
+        print(("coords initial", self.get_coords()))
         self.set_print_progress()
         self.run()
-        print("coords final", self.get_coords())
+        print(("coords final", self.get_coords()))
     def get_displ2_kmin(self):
         #print("recorded steps for displ2", self.action_record_displ.get_count())
         return self.action_record_displ.get_mean_variance()

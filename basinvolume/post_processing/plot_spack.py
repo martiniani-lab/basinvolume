@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import division
+from past.utils import old_div
 import numpy as np
 import os
 from spack import Packing
@@ -18,21 +21,21 @@ class GenerateSpackPlot(StructuralAnalysis):
         assert 'xyzd' in fname or 'xyd' in fname
         dname = self._get_dname(fname)
         jammed_packing_configpath = os.path.join(self.jammed_packings_dir, dname + '.config')
-        print jammed_packing_configpath
+        print(jammed_packing_configpath)
         self._import_packing_config_file(jammed_packing_configpath)
         hs_coords, hs_radii, ss_radii = self._import_packing_configuration(fname)
         hs_coords = np.reshape(hs_coords, (-1,self.bdim))
         
         #packing
         pack = Packing(hs_coords, hs_radii*2, L=self.boxv[0])
-        sc = pack.scene(rot=-np.pi/4, camera_dist=2, cmap=cmap, floatercolor=None, lightstrength=1.1, glass=glass)
-        print os.path.join(os.getcwd(),'{}.png'.format(dname[7:]+'marble'))
+        sc = pack.scene(rot=old_div(-np.pi,4), camera_dist=2, cmap=cmap, floatercolor=None, lightstrength=1.1, glass=glass)
+        print(os.path.join(os.getcwd(),'{}.png'.format(dname[7:]+'marble')))
         sc.render(os.path.join(os.getcwd(),'{}.png'.format(dname[7:]+'marble')), width=size, height=size, antialiasing=0.000001)
         
         #jammed packing
         pack = Packing(hs_coords, ss_radii*2, L=self.boxv[0])
-        sc = pack.scene(rot=-np.pi/4, camera_dist=2, cmap=cmap, lightstrength=1.1, glass=glass)
-        print os.path.join(os.getcwd(),'{}.png'.format(dname+'marble'))
+        sc = pack.scene(rot=old_div(-np.pi,4), camera_dist=2, cmap=cmap, lightstrength=1.1, glass=glass)
+        print(os.path.join(os.getcwd(),'{}.png'.format(dname+'marble')))
         sc.render(os.path.join(os.getcwd(),'{}.png'.format(dname+'marble')), width=size, height=size, antialiasing=0.000001)
         
 if __name__ == "__main__":

@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import object
 import argparse
 import numpy as np
 from basinvolume.parallel_tempering import MPI_BV_PT_RLhandshake
@@ -25,9 +27,9 @@ class GaussianBenchmarkPTRun(object):
                  ):
         print("construct: GaussianBenchmarkPTRun")
         self.configuration_name = configuration_name
-        print("self.configuration_name", self.configuration_name)
+        print(("self.configuration_name", self.configuration_name))
         self.base_directory = base_directory
-        print("self.base_directory", self.base_directory)
+        print(("self.base_directory", self.base_directory))
         self.totniter = totniter
         self.nocell = nocell
         self.nocollectminima = nocollectminima
@@ -53,8 +55,8 @@ class GaussianBenchmarkPTRun(object):
         ts_freq = 1        
         ts_niter = int(niter * pfreq / ts_freq)        
         print("################")
-        print("pfreq", pfreq, "---------------------------------------------------------")
-        print("ts_niter", ts_niter, "---------------------------------------------------------")
+        print(("pfreq", pfreq, "---------------------------------------------------------"))
+        print(("ts_niter", ts_niter, "---------------------------------------------------------"))
         print("#-#-#-#-#-#-#-#-")
         perform_minimisation_convergence_test = False        
         test_convergence_ts = True        
@@ -67,7 +69,7 @@ class GaussianBenchmarkPTRun(object):
         collect_minima_list = False       
         i32max = np.iinfo(np.int32).max
         seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
-        print seeds
+        print(seeds)
         # mc run setup
         comm = MPI.COMM_WORLD   
         nprocs = comm.Get_size()
@@ -130,19 +132,19 @@ class GaussianBenchmarkPTRun(object):
             ptrunner.run()
             sim.print_success_all(True)
         except Exception as e:
-            print("self.configuration_name", self.configuration_name)
-            print("self.base_directory", self.base_directory)
-            print("Exception", e)
+            print(("self.configuration_name", self.configuration_name))
+            print(("self.base_directory", self.base_directory))
+            print(("Exception", e))
             view_traceback()
             try:
                 sim.print_success_all(False)
             except:
                 view_traceback()
         end = time.time()
-        print 'core: {} ptiter: {} niter: {} report_steps: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
+        print('core: {} ptiter: {} niter: {} report_steps: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
                                                                                        ptrunner.ptiter, report_steps,
-                                                                                       ptrunner.skip, ptrunner.pfreq)
-        print ("elapsed time", end - start)
+                                                                                       ptrunner.skip, ptrunner.pfreq))
+        print(("elapsed time", end - start))
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="pt runs for gaussian bv benchmark")
@@ -157,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_lbfgs", action="store_true", help="flag for use of lbfgs opt", default=False)
     #parser.add_argument("harmonic_well", type=bool)
     args = parser.parse_args()
-    print("args", args)
+    print(("args", args))
     GaussianBenchmarkPTRun(configuration_name=args.configuration_name,
                            base_directory=args.base_directory,
                            totniter=args.totniter,

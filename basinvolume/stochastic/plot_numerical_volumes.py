@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 import matplotlib
 matplotlib.use('Agg')
 import argparse
@@ -7,7 +10,7 @@ import numpy as np
 import os
 import glob
 import re
-import ConfigParser
+import configparser
 import pickle
 from basinvolume.utils import BasicPlot, sort_pair, log_volume_nball
 from basinvolume.monte_carlo import CheckExponentiallyDecayingProfile, CheckPowerDecayingProfile
@@ -32,7 +35,7 @@ def plot_numerical(system_str, workspace=None, listdir="cloud_radius*_points*"):
         if not os.path.isfile(os.path.join(workspace, dir + ".pickle")):
             listdir2 = glob.glob(os.path.join(dir, "explore_bv_*"))
             tmp = re.findall("[-+]?\d*\.\d+|\d+", os.path.basename(os.path.normpath(dir)))
-            print tmp
+            print(tmp)
             b = Bunch()
             b.ndim_list = []
             b.f_list = []
@@ -49,17 +52,17 @@ def plot_numerical(system_str, workspace=None, listdir="cloud_radius*_points*"):
                 ndim = int(tmp[0])
                 geom_params = [float(x) for x in tmp[1:]]
                 b.geom_params_list.append(geom_params)
-                configf = ConfigParser.ConfigParser()
+                configf = configparser.ConfigParser()
                 try:
                     configf.read(os.path.join(workspace, dir2, 'analysis/mbar_volume_data'))
                     f = configf.getfloat('VOLUME_MBAR', 'F0')
                     ferr = configf.getfloat('VOLUME_MBAR', 'sigF0')
-                    print dir, ndim, f, ferr
+                    print(dir, ndim, f, ferr)
                     b.ndim_list.append(ndim)
                     b.f_list.append(f)
                     b.ferr_list.append(ferr)
-                except Exception, e:
-                    print "volume not found: {}".format(dir2)
+                except Exception as e:
+                    print("volume not found: {}".format(dir2))
                 try:
                     with open(os.path.join(workspace, dir2, '14/hist_mean'), "r") as fileHandle:
                         lineList = fileHandle.readlines()
@@ -70,9 +73,9 @@ def plot_numerical(system_str, workspace=None, listdir="cloud_radius*_points*"):
                     b.mean_r2_list.append(mean)
                     b.var_r2_list.append(var)
                     b.std_err_r2_list.append(std_err)
-                except Exception, e:
-                    print e
-                    print "<r2> not found: {}".format(dir2)
+                except Exception as e:
+                    print(e)
+                    print("<r2> not found: {}".format(dir2))
             pickle.dump(b, open(os.path.join(workspace, dir + ".pickle"), 'wb'), protocol=-1)
         else:
             b = pickle.load(open(os.path.join(workspace, dir + ".pickle"), 'r'))

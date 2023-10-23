@@ -1,5 +1,9 @@
 from __future__ import division
+from __future__ import absolute_import
 
+from builtins import str
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 
@@ -28,7 +32,7 @@ def MinGenerator(nmeans, dimension, System_R, Ref_R, min_sep=None):
 
         acceptable = True
         i = 0
-        while i in xrange(len(meanlist)) and acceptable:  # Not too close to another min
+        while i in range(len(meanlist)) and acceptable:  # Not too close to another min
             acceptable = np.linalg.norm(new_mean - meanlist[i]) > min_sep
             i += 1
 
@@ -75,12 +79,12 @@ class MultiGaussWrap(object):
     def generate(self, nr_gaussians, nr_dimensions, index):
         means = MinGenerator(nr_gaussians, nr_dimensions, self.R, self.RefRadius, min_sep=5 * self.RefRadius)
         covMatrixDiags = []
-        for i in xrange(len(means)):
+        for i in range(len(means)):
             covMatrixDiags.append(np.absolute(np.random.normal(loc=4, scale=2)) * np.ones(nr_dimensions))
         trymakedir(self.this_path(nr_gaussians, nr_dimensions, index))
         f = open(self.this_pot_path(nr_gaussians, nr_dimensions, index), "w")
         f.write('\n\nMeans:\t\t\t\tCov:\n')
-        for i in xrange(len(means)):
+        for i in range(len(means)):
             f.write(str(means[i]) + '\t' + str(covMatrixDiags[i]) + '\n')
         f.close()
         
@@ -124,7 +128,7 @@ class MultiGaussWrap(object):
         return SumGaussianPot(means, cov)
         
     def get_mean_cov(self, nr_gaussians, nr_dimensions, index):
-        from utils import get_means_cov
+        from .utils import get_means_cov
         return get_means_cov(self.this_pot_path(nr_gaussians, nr_dimensions, index))
         
     def get_basin_index(self, nr_gaussians, nr_dimensions, index, end):
@@ -135,8 +139,8 @@ class MultiGaussWrap(object):
         has smallest euclidean distance to 'end'.
         """
         means, cov = self.get_mean_cov(nr_gaussians, nr_dimensions, index)
-        minima = [self.get_local_minimum(nr_gaussians, nr_dimensions, index, means[i][:]) for i in xrange(nr_gaussians)]
-        distances = [np.linalg.norm(minima[i][:] - end) for i in xrange(nr_gaussians)]
+        minima = [self.get_local_minimum(nr_gaussians, nr_dimensions, index, means[i][:]) for i in range(nr_gaussians)]
+        distances = [np.linalg.norm(minima[i][:] - end) for i in range(nr_gaussians)]
         basin_index = np.argmin(distances)
         return basin_index
         

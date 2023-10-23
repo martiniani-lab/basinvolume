@@ -1,7 +1,12 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import os
 import re
-import ConfigParser
+import configparser
 import numpy as np
 import argparse
 from basinvolume.cluster_manager import BuildPBSScript
@@ -74,7 +79,7 @@ class BVSubmitPBS(object):
         """
         if not self._check_config_file_exist(kmax_configpath):
             return False
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         try:
             configf.read(str(kmax_configpath))
             kmax = configf.getfloat('FINDK','kmax')
@@ -93,7 +98,7 @@ class BVSubmitPBS(object):
         """
         if not self._check_config_file_exist(kmin_configpath):
             return False
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         try:
             configf.read(str(kmin_configpath))
             displ_k_min = configf.getfloat('KMIN','displ_k_min')
@@ -110,13 +115,13 @@ class BVSubmitPBS(object):
         """
         if not self._check_config_file_exist(pt_configpath):
             return False
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         try:
             configf.read(str(pt_configpath))
             success_dict = dict(configf.items('STATUS'))
         except:
             return False
-        for key, value in success_dict.iteritems():
+        for key, value in list(success_dict.items()):
             if not (value == "True"):
                 return False
         return True
@@ -128,7 +133,7 @@ class BVSubmitPBS(object):
         """
         if not self._check_config_file_exist(innersphere_dos_configpath):
             return False
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         try:
             configf.read(str(innersphere_dos_configpath))
             success = configf.getboolean('STATUS','success')
@@ -149,7 +154,7 @@ class BVSubmitPBS(object):
                                          rmdata="inner_sphere.timeseries"):
         try:
             os.remove(os.path.join(explore_dir_path, rmdata))
-            print "removed {}".format(os.path.join(explore_dir_path, rmdata))
+            print("removed {}".format(os.path.join(explore_dir_path, rmdata)))
         except OSError:
             pass #nothing to remove
         #remove config file and pbs output
@@ -160,11 +165,11 @@ class BVSubmitPBS(object):
         for root, dirs, files in os.walk(explore_dir_path):
             for dir in dirs:
                 if dir.isdigit():
-                    print "removing ", os.path.join(root,dir)
+                    print("removing ", os.path.join(root,dir))
                     shutil.rmtree(os.path.join(root, dir))
             for file in files:
                 if file in self.pt_output_files:
-                    print "removing ", os.path.join(root,file)
+                    print("removing ", os.path.join(root,file))
                     os.remove(os.path.join(root, file))
         #remove config file and pbs output
         self._remove_pbs_output(explore_dir_path, output_signature)
@@ -519,7 +524,7 @@ if __name__ == "__main__":
     chain_parser.add_argument("--experimental", action='store_true', help="read experimental data format",default=False)
     
     args = parser.parse_args()
-    print args
+    print(args)
     bvpbs = BVSubmitPBS(args.ndim, workdir=args.workdir, job_label=args.job_label, nojmin=args.nojmin, 
                         nojmax=args.nojmax, nodays=args.nodays, experimental=args.experimental, use_cgd=not args.fire,
                         record_steps_timeseries=args.rsts, mintotniter=args.mintotniter, maxtotniter=args.maxtotniter, 

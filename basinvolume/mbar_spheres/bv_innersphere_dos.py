@@ -1,17 +1,19 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import numpy as np
 import os
 import argparse
 import traceback
 import copy
-from _config_innersphere_mcrunner import _config_innersphere_mcrunner
+from ._config_innersphere_mcrunner import _config_innersphere_mcrunner
 
 def worker_innersphere(fname, kwargs):
     try:
         if ".xydfr" in fname or ".xyzdfr" in fname:
-            print "found experimental packing"
+            print("found experimental packing")
             raise Exception("innersphere_mcurnner not implemented!")
         else:
-            print "found numerical packing"
+            print("found numerical packing")
             mcrunner = _config_innersphere_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:
@@ -41,7 +43,7 @@ if __name__ == "__main__":
         pass
     elif opt_pot_str == 'inverse_power_stillinger':
         extra_pot_kwargs.update(dict(pow=3, a=1))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+        print('setting inverse_power_stillinger parameters: ', extra_pot_kwargs)
     else:
         raise NotImplementedError
 

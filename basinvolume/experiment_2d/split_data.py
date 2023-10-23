@@ -1,4 +1,10 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import map
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 from math import sqrt, floor, pi
 import numpy as np
 from numpy import linalg as la
@@ -44,7 +50,7 @@ class Splitting_Grid_0(object):
         self.spacing_y = (self.delta_yg/self.nr_of_cells_one_direction)
         self.center_x[0] = self.min_xg + 0.5*self.spacing_x
         self.center_y[0] = self.min_yg + 0.5*self.spacing_y
-        for i in xrange(1,self.nr_of_cells):
+        for i in range(1,self.nr_of_cells):
             self.center_x[i] = self.center_x[0] + (i%self.nr_of_cells_one_direction)*self.spacing_x
             self.center_y[i] = self.center_y[0] + (i//self.nr_of_cells_one_direction)*self.spacing_y
     
@@ -61,7 +67,7 @@ class Splitting_Grid_1(object):
         #shift right and up
         self.center_x[0] = base.min_xg + base.spacing_x
         self.center_y[0] = base.min_yg + base.spacing_y
-        for i in xrange(1,self.nr_of_cells):
+        for i in range(1,self.nr_of_cells):
             self.center_x[i] = self.center_x[0] + (i%self.nr_of_cells_one_direction)*base.spacing_x
             self.center_y[i] = self.center_y[0] + (i//self.nr_of_cells_one_direction)*base.spacing_y
 
@@ -79,7 +85,7 @@ class Splitting_Grid_2(object):
         #shift right
         self.center_x[0] = base.min_xg + base.spacing_x
         self.center_y[0] = base.min_yg + 0.5*base.spacing_y
-        for i in xrange(1,self.nr_of_cells):
+        for i in range(1,self.nr_of_cells):
             self.center_x[i] = self.center_x[0] + (i%nr_of_cells_x)*base.spacing_x
             self.center_y[i] = self.center_y[0] + (i//nr_of_cells_x)*base.spacing_y
 
@@ -97,7 +103,7 @@ class Splitting_Grid_3(object):
         #shift up
         self.center_x[0] = base.min_xg + 0.5*base.spacing_x
         self.center_y[0] = base.min_yg + base.spacing_y
-        for i in xrange(1,self.nr_of_cells):
+        for i in range(1,self.nr_of_cells):
             self.center_x[i] = self.center_x[0] + (i%nr_of_cells_x)*base.spacing_x
             self.center_y[i] = self.center_y[0] + (i//nr_of_cells_x)*base.spacing_y
     
@@ -134,7 +140,7 @@ class Splitting_Grid(object):
         self.nr_of_cells = 0
         self.center_x = []
         self.center_y = []
-        for i in xrange(len(grids)):
+        for i in range(len(grids)):
             self.nr_of_cells += grids[i].nr_of_cells;
             self.center_x.extend(grids[i].center_x)
             self.center_y.extend(grids[i].center_y)
@@ -188,21 +194,21 @@ class Experimental_Packing(object):
             self.r.append(line_contents[2])
             self.large.append(line_contents[3].strip())
         self.input_file.close()
-        self.x = map(float, self.x)
-        self.y = map(float, self.y)
-        self.r = map(float, self.r)
-        self.large = map(bool, self.large)
+        self.x = list(map(float, self.x))
+        self.y = list(map(float, self.y))
+        self.r = list(map(float, self.r))
+        self.large = list(map(bool, self.large))
         self.total_nr_of_particles = len(self.x)
         self.average_particle_radius = np.mean(self.r)
         
     def print_particles(self, output_name):
         out_file = open(output_name,"w")
-        for i in xrange(self.total_nr_of_particles):
+        for i in range(self.total_nr_of_particles):
             out_file.write(str(self.x[i])+"\t"+str(self.y[i])+"\n")
         
     def print_grid(self, output_name):
         out_file = open(output_name,"w")
-        for i in xrange(self.grid.nr_of_cells):
+        for i in range(self.grid.nr_of_cells):
             out_file.write(str(self.grid.center_x[i])+"\t"+str(self.grid.center_y[i])+"\n")
     
     def _extract_neighborhood(self, packing_index, particle_indices, particle_frozen):
@@ -225,7 +231,7 @@ class Experimental_Packing(object):
         #note that self.mobile_particle_radius and self.frozen_particle_radius are instantiated as members
         self.mobile_particle_radius = mobile_particle_radius
         self.frozen_particle_radius = self.mobile_particle_radius + self.frozen_shell_thickness*(2*self.average_particle_radius)
-        for i in xrange(self.total_nr_of_particles):
+        for i in range(self.total_nr_of_particles):
             dd = la.norm([self.x[i] - center_x, self.y[i] - center_y])
             if dd <= self.frozen_particle_radius:
                 particle_indices.append(i)
@@ -323,7 +329,7 @@ class Cut_Out_Packings(object):
     
     def _split_packings(self):
         self.small_packings = []
-        for i in xrange(self.nr_of_packings):
+        for i in range(self.nr_of_packings):
             self._find_one_small_packing(i)
             print("found packing %d of %d" % (i+1, self.nr_of_packings))
     
@@ -339,7 +345,7 @@ class Cut_Out_Packings(object):
     
     def _dump_packings(self):
         self.path_to_output_small_packings = "/".join([self.path_to_data,"output"])
-        for i in xrange(len(self.small_packings)):
+        for i in range(len(self.small_packings)):
             self._print_small_packing(i, self.small_packings[i])
             
     def _print_small_packing(self, packing_index, packing_information):
@@ -351,7 +357,7 @@ class Cut_Out_Packings(object):
         output_file = open("/".join([self.path_to_output_small_packings,"packing_"+str(packing_index)+"_nr_particles_"+str(self.nr_of_particles)+"_exp_file_"+str(self.data_set_index)+"_grid_option_"+self.grid_descriptor+".xydf"]), "w")
         #here one could print an extra file with only the frozen particles of the packing
         #output_file_f = open("/".join([self.path_to_output_small_packings,"frozen_only_split_packing_"+str(packing_index)+".xyzdf"]), "w")
-        for i in xrange(len(packing_information.x)):
+        for i in range(len(packing_information.x)):
             output_file.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(packing_information.x[i], packing_information.y[i], packing_information.d[i], packing_information.f[i]))
             #if packing_information.f[i]==True:
             #    output_file_f.write('{:<12}\t{:<12}\t{:<12}\t{:<12}\t{:<12}\n'.format(packing_information.x[i], packing_information.y[i], packing_information.z[i], packing_information.d[i], packing_information.f[i]))

@@ -1,5 +1,9 @@
 from __future__ import division
 
+from builtins import next
+from builtins import str
+from builtins import range
+from builtins import object
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,9 +41,9 @@ class FixedOrderFormatter(ScalarFormatter):
 def get_color_cycle(ncolors=20, reverse=True):
     cm = plt.get_cmap('Paired')
     if reverse:
-        color_cycle=cycle([cm(1. * (i+0.5) / float(ncolors)) for i in xrange(ncolors)][::-1])
+        color_cycle=cycle([cm(1. * (i+0.5) / float(ncolors)) for i in range(ncolors)][::-1])
     else:
-        color_cycle = cycle([cm(1. * (i - 0.5) / float(ncolors)) for i in xrange(ncolors)])
+        color_cycle = cycle([cm(1. * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
     return color_cycle
 def get_marker_cycle():
     markers = ["s","o","v","^","<",">","*","D","h","8","p"]
@@ -52,9 +56,9 @@ def get_line_cycle():
 def get_cycler(ncolors=20, reverse=True):
     cm = plt.get_cmap('Paired')
     if reverse:
-        color_cycler = cycler('color', [cm(1. * (i+0.5) / float(ncolors)) for i in xrange(ncolors)][::-1])
+        color_cycler = cycler('color', [cm(1. * (i+0.5) / float(ncolors)) for i in range(ncolors)][::-1])
     else:
-        color_cycler = cycler('color', [cm(1. * (i - 0.5) / float(ncolors)) for i in xrange(ncolors)])
+        color_cycler = cycler('color', [cm(1. * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
     return color_cycler
 
 class BarrierCrossingMC(object):
@@ -122,11 +126,11 @@ class BarrierCrossingPlot(BasicPlot):
         sigma = np.sqrt(self.cross_pars["ss"])
         color_cycle = get_color_cycle(len(self.drop_numbers)+1, reverse=False)
         for i, n in enumerate(self.drop_numbers):
-            self.ax.plot(xrange(1, len(self.instant_r2[i]) + 1), self.instant_r2[i]/sigma, "-",
-                     label="$k = {}$".format(str(n)), color=color_cycle.next(), linewidth=1.8)
-            self.ax.plot(xrange(1, len(self.instant_r2[0]) + 1), np.ones(len(self.instant_r2[0])), "--", color="k")
-            self.ax.plot(xrange(1, len(self.instant_r2[0]) + 1), -np.ones(len(self.instant_r2[0])), "--", color="k")
-            self.ax.plot(xrange(1, len(self.instant_r2[0]) + 1), np.zeros(len(self.instant_r2[0])), "-", color="k")
+            self.ax.plot(list(range(1, len(self.instant_r2[i]) + 1)), self.instant_r2[i]/sigma, "-",
+                     label="$k = {}$".format(str(n)), color=next(color_cycle), linewidth=1.8)
+            self.ax.plot(list(range(1, len(self.instant_r2[0]) + 1)), np.ones(len(self.instant_r2[0])), "--", color="k")
+            self.ax.plot(list(range(1, len(self.instant_r2[0]) + 1)), -np.ones(len(self.instant_r2[0])), "--", color="k")
+            self.ax.plot(list(range(1, len(self.instant_r2[0]) + 1)), np.zeros(len(self.instant_r2[0])), "-", color="k")
         axbox = self.ax.get_position()
         loc = (axbox.x0-0.1, axbox.y0-0.1)
         self.save_and_close(loc=loc)

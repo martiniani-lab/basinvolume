@@ -1,11 +1,15 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import _configure_mcrunner
 from basinvolume.utils import *
 from basinvolume.mbar_spheres import BVInnerSphereMCrunner
-import ConfigParser
+import configparser
 import time
 import warnings
 
@@ -93,7 +97,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)  
     
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
@@ -144,7 +148,7 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[INNERSPHERE_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
 
     def _print_results(self):
@@ -156,11 +160,11 @@ class _config_innersphere_mcrunner(_configure_mcrunner):
         f = open(fname, 'a')
         f.write('[INNERSPHERE_GAUSSIAN_MCRUNNER_STATUS]\n')
         status = self.mcrunner_gaussian.get_status()
-        for key, value in status.iteritems():
+        for key, value in list(status.items()):
             f.write('{}: {:.16f}\n'.format(key, value))
         f.write('[INNERSPHERE_BALLPICK_MCRUNNER_STATUS]\n')
         status = self.mcrunner_ballpick.get_status()
-        for key, value in status.iteritems():
+        for key, value in list(status.items()):
             f.write('{}: {:.16f}\n'.format(key, value))
         f.close()
         path = os.path.join(self.base_directory, "inner_sphere.timeseries")
@@ -173,19 +177,19 @@ if __name__ == "__main__":
     
     sim = _config_innersphere_mcrunner('jammed_packing1.xyzdr', niter=1e5, opt_tol=1e-4, seeds=seeds, 
                                 use_cell_lists=False, verbose=False, use_cgd=True, opt_nsteps=1e5)
-    print 'simulation started'
+    print('simulation started')
     start = time.time()
     sim.run()
     end = time.time()
-    print 'time elapsed', end - start
-    print "gaussian"
+    print('time elapsed', end - start)
+    print("gaussian")
     status = sim.mcrunner_gaussian.get_status()
-    print status
-    print 'stepsize: ', sim.mcrunner_gaussian.get_stepsize()
-    print "ballpick"
+    print(status)
+    print('stepsize: ', sim.mcrunner_gaussian.get_stepsize())
+    print("ballpick")
     status = sim.mcrunner_ballpick.get_status()
-    print status
-    print 'stepsize: ', sim.mcrunner_ballpick.get_stepsize()
+    print(status)
+    print('stepsize: ', sim.mcrunner_ballpick.get_stepsize())
     sim.mcrunner_gaussian.show_histogram_analytical()
     
     

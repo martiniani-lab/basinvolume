@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import numpy as np
 import multiprocessing as mp
 import pele.utils.fix_multiprocessing
@@ -5,8 +7,8 @@ import os
 import argparse
 import traceback
 import copy
-from _findk_mcrunner import _findk_mcrunner
-from _kmin_mcrunner import _kmin_mcrunner
+from ._findk_mcrunner import _findk_mcrunner
+from ._kmin_mcrunner import _kmin_mcrunner
 
 def worker_findk(fname, kwargs):
     try:
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--opt-pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
-    print args
+    print(args)
     
     packings_dir = args.packingsdir
     if not os.path.isabs(packings_dir):
@@ -46,7 +48,7 @@ if __name__ == "__main__":
         pass
     elif opt_pot_str == 'inverse_power_stillinger':
         extra_pot_kwargs.update(dict(pow=3, rcut=1.5))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+        print('setting inverse_power_stillinger parameters: ', extra_pot_kwargs)
     else:
         raise NotImplementedError
     

@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import zip
+from builtins import range
 from basinvolume.post_processing import Gauss_Lobatto_abscissas, Gauss_Lobatto_weights, calculate_GL_integral
 import numpy as np
 try:
@@ -58,7 +61,7 @@ def calculate_simple_integral(u_sq_k, k_max, nr_particles, dimension, k_min=0.0,
     else:
         displ_k_min = displ_k_min_trafo
     k = spring_constants_variable_transform(nr_points, k_max, displ_k_min, nr_particles, dimension, k_min=k_min, kappa_const=kappa_const)
-    print("integral", simps(u_sq_k, x=k))
+    print(("integral", simps(u_sq_k, x=k)))
     return simps(u_sq_k, x=k), u_sq_k
 
 
@@ -109,12 +112,12 @@ if __name__ == "__main__":
     k_min = 0
     kappa_const = 1
     k = spring_constants_variable_transform(nr_points, k_max, displ_k0, nr_particles, dimension, k_min, kappa_const)
-    print k
-    delta_k = [k[i + 1] - k[i] for i in xrange(len(k) - 1)]
-    print delta_k
+    print(k)
+    delta_k = [k[i + 1] - k[i] for i in range(len(k) - 1)]
+    print(delta_k)
     t = test_variable_transform(k, displ_k0, nr_particles, dimension, kappa_const)
-    print t
-    print Gauss_Lobatto_abscissas(nr_points)()
+    print(t)
+    print(Gauss_Lobatto_abscissas(nr_points)())
     import matplotlib.pyplot as plt
     plt.plot(k, k, "o")
     plt.show()

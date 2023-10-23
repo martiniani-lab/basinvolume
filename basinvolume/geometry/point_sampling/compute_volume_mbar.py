@@ -1,7 +1,11 @@
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import numpy as np
 from basinvolume.mbar_spheres import mbar_compute_dos
 import os
-import ConfigParser
+import configparser
 import argparse
 from basinvolume.utils import import_pt_time_series
 
@@ -42,7 +46,7 @@ class hyperelem_mbar_compute_dos(mbar_compute_dos):
             self.run_bs()
     
     def _import_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.report_steps = configf.getfloat('MCRUNNER', 'report_steps')
         configf.read(str(self.findk_configpath))
@@ -77,7 +81,7 @@ if __name__ == "__main__":
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
     parser.add_argument("-j", "--ncores", type=int, help="number of cores", default=7)
     args = parser.parse_args()
-    print args
+    print(args)
     
     sim = hyperelem_mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=args.ncores)
     

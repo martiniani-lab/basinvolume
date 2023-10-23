@@ -1,10 +1,15 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import re
 from basinvolume.utils import *
 try:
     import matplotlib.pyplot as plt
 except ImportError as err:
-    print err
+    print(err)
 
 class PackingDataSet(object):
     """
@@ -124,7 +129,7 @@ class PackingData(object):
             self.F, self.Ferr = configf.getfloat(title, 'F0'), configf.getfloat(title, 'sigF0')
             try:
                 self.Facc = configf.getfloat(vfluid_title, 'F0_acc')
-            except Exception,e:
+            except Exception as e:
                 pass
             
     def import_pressure_data(self, path, title="PRESSURE"):

@@ -1,6 +1,7 @@
-from mcrunner import HyperElemFindkMCrunner, HyperElemMCrunner, HyperElemInnerSphereMCrunner
-from _configure_bv_mcrunner import _hyperelem_bv_mcrunner
-from _findk_mcrunner import _hyperelem_findk_mcrunner
-from _kmin_mcrunner import _hyperelem_kmin_mcrunner
-from _config_innersphere_mcrunner import _hyperelem_innersphere_mcrunner
-from compute_volume_mbar import hyperelem_mbar_compute_dos
+from __future__ import absolute_import
+from .mcrunner import HyperElemFindkMCrunner, HyperElemMCrunner, HyperElemInnerSphereMCrunner
+from ._configure_bv_mcrunner import _hyperelem_bv_mcrunner
+from ._findk_mcrunner import _hyperelem_findk_mcrunner
+from ._kmin_mcrunner import _hyperelem_kmin_mcrunner
+from ._config_innersphere_mcrunner import _hyperelem_innersphere_mcrunner
+from .compute_volume_mbar import hyperelem_mbar_compute_dos

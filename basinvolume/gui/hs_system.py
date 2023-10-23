@@ -1,3 +1,7 @@
+from __future__ import division
+from builtins import next
+from builtins import range
+from past.utils import old_div
 from pele.systems import BaseSystem
 from pele.landscape import smoothPath
 from basinvolume.utils import put_in_box
@@ -71,7 +75,7 @@ class HSWCASystem(BaseSystem):
     def _find_zero_modes(self, coords):
         hess = self.potential.getHessian(coords)
         vall = []
-        for i in xrange(self.natoms):
+        for i in range(self.natoms):
             i1 = self.bdim*i
             hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
             wlist, vlist = np.linalg.eig(hess_block)
@@ -119,7 +123,7 @@ class HSWCASystem(BaseSystem):
         given translational symmetries
         """
         mindist = self.get_mindist()
-        return lambda x1, x2: mindist(x1, x2)[0]/np.sqrt(self.natoms) < self.dtol
+        return lambda x1, x2: old_div(mindist(x1, x2)[0],np.sqrt(self.natoms)) < self.dtol
 
     def smooth_path(self, path, **kwargs):
         mindist = self.get_mindist()
@@ -129,7 +133,7 @@ class HSWCASystem(BaseSystem):
     def find_rattlers(self, coords):
         hess = self.potential.getHessian(coords)
         rattlers = np.ones(self.natoms)
-        for i in xrange(self.natoms):
+        for i in range(self.natoms):
             i1 = self.bdim*i
             hess_block = hess[i1:i1+self.bdim,i1:i1+self.bdim]
             w, v = np.linalg.eig(hess_block)

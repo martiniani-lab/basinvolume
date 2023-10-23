@@ -1,5 +1,8 @@
 from __future__ import division
+from __future__ import print_function
 
+from builtins import str
+from builtins import object
 import copy as c
 import numpy as np
 import matplotlib.pyplot as plt
@@ -77,9 +80,9 @@ class OracleMCR2(object):
     def run(self):
         self.mc.run()
         if self.verbose:
-            print("common_pars", self.common_pars)
-            print("cloud_pars", self.cloud_pars)
-            print("Backbone step size:", self.random_walk.get_stepsize())
+            print(("common_pars", self.common_pars))
+            print(("cloud_pars", self.cloud_pars))
+            print(("Backbone step size:", self.random_walk.get_stepsize()))
     def get_r2(self):
         return self.cloud_measure_r2.get_mean()
         

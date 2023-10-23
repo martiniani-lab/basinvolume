@@ -1,4 +1,9 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
+from builtins import object
 import argparse
 import os
 import copy
@@ -26,10 +31,10 @@ from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import Gauss_Lobatto_abscissas
 from basinvolume.post_processing import spring_constants_variable_transform
 try:
-    from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
-    from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
-    from gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
-    from utils import *
+    from .gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
+    from .gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
+    from .gaussian_benchmark_pt_run import GaussianBenchmarkPTRun
+    from .utils import *
 except:
     print("gaussian import failed")
     
@@ -114,9 +119,9 @@ class GaussianBenchmark(object):
         else:
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
-            print "Energy", self.pot_optimizer.getEnergy(minimum)
+            print("Energy", self.pot_optimizer.getEnergy(minimum))
         if self.bdim == 2:
-            print("ENERGY", self.pot_optimizer.getEnergy(np.asarray([10.0, 10.0])))
+            print(("ENERGY", self.pot_optimizer.getEnergy(np.asarray([10.0, 10.0]))))
         #self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         #####
         if self.use_cgd:
@@ -139,7 +144,7 @@ class GaussianBenchmark(object):
                                              tol=self.opt_tol, 
                                              nsteps=opt_nsteps, verbosity=0)
         self.find_origin()
-        print("self.origin.size", self.origin.size)
+        print(("self.origin.size", self.origin.size))
         self.rattlers = np.ones(self.origin.size)
         self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
         self.conftest_check_same_minimum = CheckSameMinimumConfig(self.pot_optimizer,
@@ -169,21 +174,21 @@ class GaussianBenchmark(object):
     def find_origin(self):
         print("initial quench")
         self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
-        print("Gaussian center coords", self.means[self.minimum_index][:])
-        print("corresponding mimimum position (origin)", self.origin)
+        print(("Gaussian center coords", self.means[self.minimum_index][:]))
+        print(("corresponding mimimum position (origin)", self.origin))
         self.print_minimum_coords_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def get_local_minimum(self, mean_index=0):
         initial_position = self.means[self.minimum_index][:]
-        print("initial_position", initial_position)
+        print(("initial_position", initial_position))
         self.optimizer.reset(initial_position)
         result = self.optimizer.run()
-        print("initial optimization", result.success)
+        print(("initial optimization", result.success))
         origin_result = result.coords
         self.optimizer.reset(origin_result)
         return origin_result
     def find_kmax(self):
         print("find kmax")
-        print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        print(("self.optimizer.get_niter()", self.optimizer.get_niter()))
         hmin = 0
         hmax = 1
         hbinsize = 0.001
@@ -223,18 +228,18 @@ class GaussianBenchmark(object):
         self.prob_kmax = self.kmax_run.get_prob_kmax()
         self.var_displ_kmax = self.kmax_run.get_var_displ_kmax()
         self.kmax_displ2_nr_samples = self.kmax_run.get_entries()
-        print("kmax", self.kmax)
-        print("kmax_displ2", self.kmax_displ2)
-        print("self.kmax_run.get_entries()", self.kmax_run.get_entries())
-        print("self.optimizer.get_niter()", self.optimizer.get_niter())
-        print("kmax_run.get_nfev()", self.kmax_run.get_neval())
+        print(("kmax", self.kmax))
+        print(("kmax_displ2", self.kmax_displ2))
+        print(("self.kmax_run.get_entries()", self.kmax_run.get_entries()))
+        print(("self.optimizer.get_niter()", self.optimizer.get_niter()))
+        print(("kmax_run.get_nfev()", self.kmax_run.get_neval()))
         #self.nfev.count += self.kmax_run.get_neval() #That is included in the nfev count as obtained from the config test.
         self.total_neval += self.kmax_run.get_neval()
         self.harmonic_energy_calls += self.kmax_run.get_iterations_count()
         self.print_findk_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def run_kmin(self):
         print("run kmin")
-        print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        print(("self.optimizer.get_niter()", self.optimizer.get_niter()))
         hmin = 0
         hmax = 1
         hbinsize = 0.1
@@ -268,13 +273,13 @@ class GaussianBenchmark(object):
         ###
         kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = kmin_run.get_displ2_kmin()
-        print("displ2_kmin", self.displ2_kmin_mean)
-        print("displ2_kmin_variance", self.displ2_kmin_variance)
-        print("self.optimizer.get_niter()", self.optimizer.get_niter())
+        print(("displ2_kmin", self.displ2_kmin_mean))
+        print(("displ2_kmin_variance", self.displ2_kmin_variance))
+        print(("self.optimizer.get_niter()", self.optimizer.get_niter()))
         #self.nfev.count += kmin_run.get_neval() #Contribution is contained in nfev as obtained from config test, should not be added here.
         self.total_neval += kmin_run.get_neval()
         self.harmonic_energy_calls += kmin_run.get_iterations_count()
-        print("self.total_neval, kmin, kmax", self.total_neval)
+        print(("self.total_neval, kmin, kmax", self.total_neval))
         self.print_kmin_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
     def run_PT(self):
         #This is not PT because the basins here are not glassy and our PT implementation is hard to understand.
@@ -288,9 +293,9 @@ class GaussianBenchmark(object):
         for i, k in enumerate(self.direct_k_values):
             self.run_biased_random_walk_in_basin(i)
         self.nfev.count += self.conftest_check_same_minimum.get_nfev()
-        print("self.direct_k_values", self.direct_k_values)
-        print("self.direct_k_u2_means", self.direct_k_u2_means)
-        print("self.direct_k_u2_variances", self.direct_k_u2_variances)
+        print(("self.direct_k_values", self.direct_k_values))
+        print(("self.direct_k_u2_means", self.direct_k_u2_means))
+        print(("self.direct_k_u2_variances", self.direct_k_u2_variances))
     def run_biased_random_walk_in_basin(self, k_index):
         k_value = self.direct_k_values[k_index]
         hmin = 0
@@ -342,14 +347,14 @@ class GaussianBenchmark(object):
             raise Exception("gauss pt run failed")
     def compute_volume(self):
         print("compute volume")
-        print("k", self.k)
-        print("displ2", self.displ2)
+        print(("k", self.k))
+        print(("displ2", self.displ2))
     def print_gaussian_sum_config_file(self):
-        print("trymakedir", self.basic_config_path)
+        print(("trymakedir", self.basic_config_path))
         trymakedir(self.basic_config_path)
         f = ResultsFile(os.path.join(self.basic_config_path, "gaussian_sum.config"))
         f.set_heading("GAUSSIAN_SUM")
-        print("ngaussians", self.ngaussians)
+        print(("ngaussians", self.ngaussians))
         f.to_file_plain("ngaussians", self.ngaussians)
         f.to_file_plain("bdim", self.bdim)
         f.to_file_plain("gdim", self.gdim)
@@ -363,7 +368,7 @@ class GaussianBenchmark(object):
         basic_findk_config_path = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
         trymakedir(basic_findk_config_path)
         findk_config_name = os.path.join(basic_findk_config_path, "findk_" + dname + ".config")
-        print("findk_config_name", findk_config_name)
+        print(("findk_config_name", findk_config_name))
         f = ResultsFile(findk_config_name)
         f.set_heading("FINDK")
         f.to_file("kmax", self.kmax)
@@ -445,12 +450,12 @@ class GaussianBenchmark(object):
         #prepend kmax
         karray.insert(0, self.kmax)
         self.karray = np.array(karray[::-1], dtype='d')
-        print("self.karray", self.karray)
+        print(("self.karray", self.karray))
     def _import_u2_reverse(self):
         n = len(self.karray)-1
-        self.u2_array = [0 for _ in xrange(n)]
-        self.var_array = [0 for _ in xrange(n)] 
-        self.std_error_array = [0 for _ in xrange(n)]
+        self.u2_array = [0 for _ in range(n)]
+        self.var_array = [0 for _ in range(n)] 
+        self.std_error_array = [0 for _ in range(n)]
         for subdir, dirs, files in os.walk(self.explore_dir):
             for dir in dirs:
                 if dir.isdigit():
@@ -479,7 +484,7 @@ class GaussianBenchmark(object):
         f = open(fname,'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         f.write('#{:>15}\t{:>15}\n'.format('<u2>', 'var(<u2>)'))
-        for i in xrange(len(self.u2_array)):
+        for i in range(len(self.u2_array)):
             f.write('{:>15.15e}\t{:>15.15e}\n'.format(self.u2_array[i], self.var_array[i])) 
         f.close()
     def _compute_volume(self):
@@ -491,9 +496,9 @@ class GaussianBenchmark(object):
         #sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
         sqared_std_errors = self.std_error_array ** 2
         print("data for integral")
-        print("self.u2_array", self.u2_array)
-        print("self.karray", self.karray)
-        print("self.prob_kmax", self.prob_kmax)
+        print(("self.u2_array", self.u2_array))
+        print(("self.karray", self.karray))
+        print(("self.prob_kmax", self.prob_kmax))
         print("data for integral -- END")
         self.F0unc, self.sigF0unc, self.farrayunc, self.sigfarrayunc = F_Basin_From_MC_Data_Free_COM(self.bdim,
                                                                                                     self.nparticles,
@@ -506,7 +511,7 @@ class GaussianBenchmark(object):
     def _print_volumes(self):
         dname = 'volume_data'
         fname = '{}/{}'.format(self.base_directory, dname)
-        print("writing volume data to the following path", fname)
+        print(("writing volume data to the following path", fname))
         f = open(fname, 'w')
         f.write('#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n')
         def _to_file(name, value):
@@ -526,8 +531,8 @@ def plot_potential(means, cov):
     pot = SumGaussianPot(means, cov)
     R = 10
     
-    for i in xrange(0, N):
-        for j in xrange(0, N):
+    for i in range(0, N):
+        for j in range(0, N):
             U[i, j] = pot.getEnergy(np.array([xx[j], xx[i]]))
 
     plot_axes = R + 1
@@ -570,21 +575,21 @@ def compute_volume(minimum_index=None, means=None, cov=None, harmonic_well=False
     f = open(volume_data_path)
     lf = list(f)
     F0 = lf[2]
-    print("F0", F0)
+    print(("F0", F0))
     eF0 = lf[3]
-    print("eF0", eF0)
+    print(("eF0", eF0))
     F0 = float(F0.split()[1])
     eF0 = float(eF0.split()[1])
     f.close()
-    print("F0", F0)
-    print("eF0", eF0)
+    print(("F0", F0))
+    print(("eF0", eF0))
     ti_vol = np.exp(-F0)
     e_ti_vol = ti_vol * eF0
     ti_nfev = bm.nfev.count
     # Print all volumes to screen.
     print("---Thermodynamic integration result---")
-    print("TI volume", ti_vol)
-    print("error TI volume", e_ti_vol)
+    print(("TI volume", ti_vol))
+    print(("error TI volume", e_ti_vol))
     # Print all volumes to file.
     fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison_ti{}".format(minimum_index)))
     fout.set_heading("THERMODYNAMIC INTEGRATION")
@@ -628,7 +633,7 @@ if __name__ == "__main__":
     parser.add_argument("--index", type=int, default=0)
     args = parser.parse_args()
     means, cov = get_means_cov(args.gauss_path)
-    print("means", means)
-    print("cov", cov)
+    print(("means", means))
+    print(("cov", cov))
     compute_volume(minimum_index=args.index, means=means, cov=cov, harmonic_well=harmonic_well, use_cgd=use_cgd, use_lbfgs=use_lbfgs)
     

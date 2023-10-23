@@ -1,1 +1,2 @@
-from _base_geom_mcrunner import _BaseGeomMCrunner
+from __future__ import absolute_import
+from ._base_geom_mcrunner import _BaseGeomMCrunner

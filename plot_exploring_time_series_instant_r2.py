@@ -1,5 +1,8 @@
 from __future__ import division
 
+from builtins import zip
+from builtins import str
+from builtins import range
 import numpy as np
 
 from basinvolume.utils import *
@@ -18,7 +21,7 @@ class TSPlot(BasicPlot):
         plt.tick_params(labelsize=18)
     def plot(self):
         for d, n in zip(self.data, self.n):
-            plt.plot(xrange(1, len(d) + 1), d, "-", label=r"$n_d=$" + str(n))
+            plt.plot(range(1, len(d) + 1), d, "-", label=r"$n_d=$" + str(n))
         self.save_and_close()
 
         

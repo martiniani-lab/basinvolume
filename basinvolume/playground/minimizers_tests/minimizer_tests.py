@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import zip
+from builtins import range
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 import matplotlib.pyplot as plt
@@ -28,11 +31,11 @@ def _check_no_overlaps(coords, hs_radii, boxv):
     no_overlap = True
     bdim = len(boxv)
     nparticles = len(coords) // bdim
-    for i in xrange(nparticles):
+    for i in range(nparticles):
         if no_overlap == True:
-            for j in xrange(i, nparticles):
+            for j in range(i, nparticles):
                 dij = 0
-                for k in xrange(bdim):
+                for k in range(bdim):
                     #use distances to nearest image convention
                     dij += np.square((coords[i*bdim+k] - coords[j*bdim+k]) -
                                       cround((coords[i*bdim+k] - coords[j*bdim+k]) / boxv[k]) * boxv[k])
@@ -52,30 +55,30 @@ def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(2e5)):
                          seeds=seeds, niter=5e3, report_steps=5e3, single=True, use_cell_lists=False,
                          use_cgd=True, verbose=False)
     try:
-        print "loading data...",
+        print("loading data...", end=' ')
         data = np.load(fname)
         X_success = data['X_success']
         X_out = data['X_out']
         X_overlap = data['X_overlap']
-        print "done"
-    except Exception, e:
-        print "failed"
-        print e
+        print("done")
+    except Exception as e:
+        print("failed")
+        print(e)
         mcrunner = sim.mcrunner
         adjust_niter = sim.mc_params['report_steps'] = 5e3
         
         #equilibrate
-        print "Equilibrating for {}...".format(adjust_niter),
+        print("Equilibrating for {}...".format(adjust_niter), end=' ')
         mcrunner.run()
-        print "done"
+        print("done")
         
         #get training data
         X_success = np.empty([0,64])
         X_out = np.empty([0,64])
         X_overlap = np.empty([0,64])
         
-        print "Generating training samples...",
-        for _ in xrange(nconf):
+        print("Generating training samples...", end=' ')
+        for _ in range(nconf):
             mcrunner.one_iteration()
             success = mcrunner.get_success() 
             coords = mcrunner.get_trial_coords()
@@ -89,7 +92,7 @@ def get_X(fname="test_data.npz", pppn=[2,6], nconf=int(2e5)):
                 else:
                     coords = np.reshape(coords, [1,64])
                     X_overlap = np.concatenate((X_overlap, coords), axis=0)
-        print "done"
+        print("done")
         np.savez(fname, X_success=X_success, X_out=X_out, X_overlap=X_overlap)
     
     return X_success, X_out, X_overlap, sim
@@ -137,7 +140,7 @@ def test_minimizer_single(minimizer, potential, coords, origin, Etol=1e-6, dtol=
     return test_same_minimum(res.coords, res.energy)
     
 def test1(X, potential, origin, nconf, maxstep, fname="test"):
-    print "test1 nconf", nconf
+    print("test1 nconf", nconf)
     
     fire_Xbool, fire_count, fire_nfev = test_minimizer(modifiedfire_cpp, potential, X[:nconf], origin, 
                                              tol=1e-7, maxstep=maxstep, nsteps=int(1e6))
@@ -147,18 +150,18 @@ def test1(X, potential, origin, nconf, maxstep, fname="test"):
     cgd_Xbool, cgd_count, cgd_nfev = test_minimizer(CGDescent, potential, X[:nconf], origin,
                                              tol=1e-7, nsteps=int(1e6))
     
-    print "accuracy: fire {} lbfgs {} cgd {} ".format(fire_count/nconf, 
+    print("accuracy: fire {} lbfgs {} cgd {} ".format(fire_count/nconf, 
                                                      lbfgs_count/nconf, 
-                                                     cgd_count/nconf)
+                                                     cgd_count/nconf))
     
-    print "nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(fire_nfev, lbfgs_nfev, cgd_nfev)
+    print("nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(fire_nfev, lbfgs_nfev, cgd_nfev))
     
     np.savez("xbool_n{}_{}.npz".format(nconf, fname), X=X[:nconf], 
              fire_Xbool=fire_Xbool, lbfgs_Xbool=lbfgs_Xbool, 
              cgd_Xbool=cgd_Xbool)
 
 def _plot_simple_projection(X, Xbool=None, color='b', pair=[0,2], plt_density=False):
-    print len(X)
+    print(len(X))
     if Xbool is None:
         Xbool = np.ones(len(X))
         Xpos = X
@@ -171,7 +174,7 @@ def _plot_simple_projection(X, Xbool=None, color='b', pair=[0,2], plt_density=Fa
         plt.scatter(x, y, color=color, marker='s', s=10, edgecolor='none') 
     
 def plot_file_simple(fname, array_name='fire_Xbool', pair=[7,3], plt_density=False):
-    print "loading data...",
+    print("loading data...", end=' ')
     data = np.load(fname)
     X = data['X']
     try:
@@ -185,7 +188,7 @@ def _plot_eig_projection(sim, X, Xbool=None, origin=None, marker='s', color='b',
     plot a projection along the largest and smallest eigenvector of the difference between origin and configuration
     """
     from pele.utils.hessian import get_sorted_eig
-    print len(X)
+    print(len(X))
     if Xbool is None:
         Xbool = np.ones(len(X))
         Xpos = X
@@ -211,7 +214,7 @@ def _plot_dist_projection(sim, X, origin=None, orth='min', marker='s', color='b'
     plot a projection along a vector connecting the two structures and a vector perpendicular to it and an eigenvector
     """
     from pele.utils.hessian import get_sorted_eig
-    print len(X)
+    print(len(X))
     if origin is None:
         origin = sim.mcrunner.origin
     hess = sim.mcrunner.pot_optimizer.getEnergyGradientHessian(origin)[2]
@@ -241,7 +244,7 @@ def _plot_dist_projection(sim, X, origin=None, orth='min', marker='s', color='b'
     
 def plot_file_eig(raw_fname, req_fname, array_name='fire_Xbool', plt_density=False):
     X_success, X_out, X_overlap, sim = get_X(fname=raw_fname, pppn=[3,6], nconf=int(1e5))
-    print "loading data...",
+    print("loading data...", end=' ')
     data = np.load(req_fname)
     X = data['X']
     try:
@@ -256,9 +259,9 @@ def _hist_nnb_midpoint(fname, Xin, Xout):
     note: should check that midpoint is inside the basin!
     """
     array_dist = []
-    for i in xrange(len(Xin)):
+    for i in range(len(Xin)):
         dx = 1e100
-        for j in xrange(i+1, len(Xin)):
+        for j in range(i+1, len(Xin)):
             dx_trial = np.linalg.norm(Xin[i] - Xin[j])
             if dx_trial < dx:
                 nnb_in = (i,j)
@@ -291,11 +294,11 @@ def _hist_nnb(fname, Xin, Xout):
 
 def hist_nnb(fname, Xin, Xout):
     try:
-        print "loading data...",
+        print("loading data...", end=' ')
         f = fname[:-4]+"_array_dist"
         data = np.load(f)
         array_dist= data['array_dist']
-        print "done"
+        print("done")
     except:
         array_dist = _hist_nnb(fname, Xin, Xout)
     
@@ -314,9 +317,9 @@ def plot_density(x,y):
     # fit the model
     X_train = np.column_stack((x,y))
     clf = svm.OneClassSVM(nu=0.01, kernel="rbf", gamma=30)
-    print "fitting...",
+    print("fitting...", end=' ')
     clf.fit(X_train)
-    print "done"
+    print("done")
     Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
     plt.title("Basin One class fit")
@@ -361,7 +364,7 @@ def _walk_eig_direction(sim, index_evec=-1, stepsize=0.001, distance_array=[], t
     w, v = get_sorted_eig(hess)
     w = np.real(w)
     if w[index_evec] < 1e-3:
-        print "rattler eigenvector"
+        print("rattler eigenvector")
         return 0
     evec = v[index_evec]/np.linalg.norm(v[index_evec])
     out = False
@@ -394,7 +397,7 @@ def _walk_eig_direction(sim, index_evec=-1, stepsize=0.001, distance_array=[], t
     distance_array.append(d)
     ev_array.append(w[index_evec])
     te_array.append(sim.mcrunner.pot_optimizer.getEnergy(x))
-    print d
+    print(d)
 
 def _walk_eig_loop(fname, ndim=128, npackings=250):
     pppn=[3,6]
@@ -402,8 +405,8 @@ def _walk_eig_loop(fname, ndim=128, npackings=250):
     distance_array = []
     te_array = [] #transition state energy (energy at point where we fall out from basin)
     ev_array = []
-    for i in xrange(ndim):
-        for j in xrange(npackings):
+    for i in range(ndim):
+        for j in range(npackings):
             try:
                 sim = _kmin_mcrunner('jammed_packing{}.xydr'.format(j), k=0, hmax=10, hbinsize=0.5, opt_tol=1e-5, opt_nsteps=1e5, 
                                      seeds=seeds, niter=5e3, report_steps=5e3, single=True, use_cell_lists=False,
@@ -416,13 +419,13 @@ def _walk_eig_loop(fname, ndim=128, npackings=250):
 
 def walk_eig(fname):
     try:
-        print "loading data...",
+        print("loading data...", end=' ')
         f = fname[:-4]+"_walk_eig.npz"
         data = np.load(f)
         distance_array, te_array, ev_array = data["distance_array"], data["te_array"], data["ev_array"]
-        print "done"
+        print("done")
     except:
-        print "failed"
+        print("failed")
         distance_array, te_array, ev_array = _walk_eig_loop(fname)
         np.savez(fname[:-4]+"_walk_eig", distance_array=distance_array, te_array=te_array, ev_array=ev_array)
     plt.figure()
@@ -436,7 +439,7 @@ def walk_eig(fname):
     from scipy.stats import binned_statistic
     plt.figure()
     dx_means, bin_edges, binnumber = binned_statistic(ev_array, distance_array, statistic='mean', bins=20)
-    bin_means = [(bin_edges[i]+bin_edges[i+1])/2 for i in xrange(len(dx_means))]
+    bin_means = [(bin_edges[i]+bin_edges[i+1])/2 for i in range(len(dx_means))]
     plt.plot(bin_means, dx_means, marker='o')
     plt.xscale('log')
     plt.yscale('log')
@@ -454,7 +457,7 @@ def walk_eig(fname):
     
     plt.figure()
     te_means, bin_edges, binnumber = binned_statistic(ev_array, te_array, statistic='mean', bins=8)
-    bin_means = [(bin_edges[i]+bin_edges[i+1])/2 for i in xrange(len(te_means))]
+    bin_means = [(bin_edges[i]+bin_edges[i+1])/2 for i in range(len(te_means))]
     plt.plot(bin_means, te_means, marker='o')
     plt.xlabel(r'$\lambda$')
     plt.ylabel(r'$\Delta E$')
@@ -515,7 +518,7 @@ def main(fname="test_data20k.npz"):
     maxstep = sim.mc_params['opt_maxstep']
     origin = sim.mcrunner.origin
     nconf = len(X_success)
-    print "nconf ",len(X_overlap)
+    print("nconf ",len(X_overlap))
     #align com to 0
     xmean, ymean = np.mean(origin[::2]), np.mean(origin[1::2])
     origin[::2] -= xmean

@@ -1,9 +1,14 @@
 from __future__ import division
+from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import time
 import warnings
 import os
-import ConfigParser
+import configparser
 import numpy as np
 
 from pele.potentials import Harmonic
@@ -72,7 +77,7 @@ class _hyperelem_bv_mcrunner(_configure_mcrunner):
 
         base_name = os.path.basename(os.path.normpath(self.base_directory))
         dname = str(base_name).replace('explore_bv_', '')
-        print "dname: ", dname
+        print("dname: ", dname)
         self.findk_configpath = os.path.join(self.base_directory, 'findk_' + dname + '.config')
         self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
         self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
@@ -109,14 +114,14 @@ class _hyperelem_bv_mcrunner(_configure_mcrunner):
             f.write('{:.16f} '.format(val))
         f.write('\n')
         f.write('[MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
         f.write('[STATUS]\n')
-        for i in xrange(self.nprocs):
+        for i in range(self.nprocs):
             f.write('success_rank{}: {}\n'.format(str(i), "False"))
     
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         kmax_ndof = configf.getfloat('FINDK_HYPERELEM','ndof')
         kmax_geometry = configf.get('FINDK_HYPERELEM', 'geometry')
@@ -146,9 +151,9 @@ class _hyperelem_bv_mcrunner(_configure_mcrunner):
         """
         assert(hasattr(self, 'configfile'))
         if self.rank == 0:
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
-            for i in xrange(self.nprocs):
+            for i in range(self.nprocs):
                 configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
             configf.write(open(str(self.configfile),'w'))        
     
@@ -160,13 +165,13 @@ if __name__ == "__main__":
     
     sim = _hyperelem_bv_mcrunner(0, 1)
     mcrunner = sim('explore_bv_oracle_hypersphere_n2_r1.0', seeds=seeds, verbose=True, niter=1e6)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     mcrunner.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = mcrunner.get_status()
-    print status
+    print(status)
     
         
                 

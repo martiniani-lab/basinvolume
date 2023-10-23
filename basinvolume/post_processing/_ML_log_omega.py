@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import object
 try:
     import numpy as np
     from scipy import integrate
@@ -10,7 +12,7 @@ try:
     from scipy.special import gamma
     import matplotlib.pyplot as plt
 except ImportError as err:
-    print err
+    print(err)
 
 class MLMethodGenGauss(object):
     """
@@ -23,15 +25,15 @@ class MLMethodGenGauss(object):
         initial_zeta = 1.5
         initial_alpha = np.sqrt(gamma(1 / initial_zeta) / gamma(3 / initial_zeta) * np.var(self.F0))
         self.x = np.array([initial_mu, initial_alpha, initial_zeta])
-        print "xinitial", self.x
+        print("xinitial", self.x)
         self.pot = MLCost(self.F0, log_probf=log_gen_gauss)
         optimizer = LBFGS_CPP(self.x, self.pot, tol=1e-4)
         result = optimizer.run()
         if result.success:
             self.opt_x = result.coords
-            print "xfinal", self.opt_x
+            print("xfinal", self.opt_x)
             self.error_opt_x = self.pot.get_error_estimate(self.opt_x)
-            print "xerror", self.error_opt_x
+            print("xerror", self.error_opt_x)
             return self.opt_x
         else:
             raise Exception("MLMethodGenGauss: optimization did not converge")
@@ -64,13 +66,13 @@ class LogOmegaBase(object):
         f.to_file("alpha", self.alpha)
         f.to_file("zeta", self.zeta)
         f.close()
-        print title
-        print "S_star", self.S_star
-        print "S", self.S
-        print "Generalised Gaussian parameters:"
-        print "mu", self.mu
-        print "alpha", self.alpha
-        print "zeta", self.zeta
+        print(title)
+        print("S_star", self.S_star)
+        print("S", self.S)
+        print("Generalised Gaussian parameters:")
+        print("mu", self.mu)
+        print("alpha", self.alpha)
+        print("zeta", self.zeta)
         plot_name = file_name + "_plot.pdf"
         plt.hist(self.F0, bins=14, normed=True, label="Data")
         xr = np.linspace(np.amin(self.F0), np.amax(self.F0), 500)

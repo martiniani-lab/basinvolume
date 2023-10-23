@@ -1,3 +1,7 @@
+from __future__ import print_function
+from builtins import str
+from past.builtins import basestring
+from builtins import object
 import glob
 import os
 import sys
@@ -59,7 +63,7 @@ elif jargs.compiler in ("intel", "icc", "icpc"):
 
 # set the remaining args back as sys.argv
 sys.argv = remaining_args
-print(jargs, remaining_args)
+print((jargs, remaining_args))
 if jargs.j is None:
     cmake_parallel_args = []
 else:
@@ -125,7 +129,7 @@ generate_cython()
 # compile fortran extension modules
 #
 
-class ModuleList:
+class ModuleList(object):
     def __init__(self, **kwargs):
         self.module_list = []
         self.kwargs = kwargs
@@ -233,7 +237,7 @@ def set_compiler_env(compiler_id):
 def run_cmake(compiler_id="unix"):
     if not os.path.isdir(cmake_build_dir):
         os.makedirs(cmake_build_dir)
-    print("\nrunning cmake in directory", cmake_build_dir)
+    print(("\nrunning cmake in directory", cmake_build_dir))
     cwd = os.path.abspath(os.path.dirname(__file__))
     env, cmake_compiler_args = set_compiler_env(compiler_id)
     
@@ -242,7 +246,7 @@ def run_cmake(compiler_id="unix"):
         raise Exception("running cmake failed")
     print("\nbuilding files in cmake directory")
     if len(cmake_parallel_args) > 0:
-        print("make flags:", cmake_parallel_args)
+        print(("make flags:", cmake_parallel_args))
     p = subprocess.call(["make"] + cmake_parallel_args, cwd=cmake_build_dir)
     if p != 0:
         raise Exception("building libraries with CMake Makefile failed")
@@ -270,7 +274,7 @@ class build_ext_precompiled(old_build_ext):
             raise RuntimeError("library is not a .so file: " + pre_compiled_library)
         if not os.path.isfile(pre_compiled_library):
             raise RuntimeError("file does not exist: " + pre_compiled_library + " Did CMake not run correctly")
-        print("copying", pre_compiled_library, "to", ext_path)
+        print(("copying", pre_compiled_library, "to", ext_path))
         shutil.copy2(pre_compiled_library, ext_path)
 
 # Construct extension modules for all the cxx files

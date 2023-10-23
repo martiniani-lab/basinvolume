@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import range
+from builtins import object
 import numpy as np
 import copy
 from pele.potentials import SumGaussianPot
@@ -17,7 +20,7 @@ class MC(_BaseMCRunner):
     def set_control(self, temp):
         self.set_temperature(temp)
     def run(self, nr_iterations):
-        for _ in xrange(nr_iterations):
+        for _ in range(nr_iterations):
             self.one_iteration()
 
 class BruteForce2D(object):
@@ -90,20 +93,20 @@ class BruteForce2D(object):
         self.mc.add_conf_test(self.conftest_check_same_minimum)
     def find_origin(self):
         self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
-        print("Gaussian center coords", self.means[self.minimum_index][:])
-        print("corresponding mimimum position (origin)", self.origin)
+        print(("Gaussian center coords", self.means[self.minimum_index][:]))
+        print(("corresponding mimimum position (origin)", self.origin))
     def get_local_minimum(self, mean_index=0):
         initial_position = self.means[self.minimum_index][:]
-        print("initial_position", initial_position)
+        print(("initial_position", initial_position))
         self.optimizer.reset(initial_position)
         result = self.optimizer.run()
-        print("initial optimization", result.success)
+        print(("initial optimization", result.success))
         origin_result = result.coords
-        print("self.optimizer.get_niter()", self.optimizer.get_niter())
-        print("self.optimizer.get_result().nfev", self.optimizer.get_result().nfev)
+        print(("self.optimizer.get_niter()", self.optimizer.get_niter()))
+        print(("self.optimizer.get_result().nfev", self.optimizer.get_result().nfev))
         #self.nr_evaluations.count += self.optimizer.get_result().nfev
         self.optimizer.reset(origin_result)
-        print("reset: self.optimizer.get_result().nfev", self.optimizer.get_result().nfev)
+        print(("reset: self.optimizer.get_result().nfev", self.optimizer.get_result().nfev))
         return origin_result 
     def compute_volume(self):
         print("compute volume")
@@ -112,24 +115,24 @@ class BruteForce2D(object):
         keep_running = True
         while keep_running:
             self.mc.run(self.nr_samples_increment)
-            print("self.mc.get_accepted_fraction()", self.mc.get_accepted_fraction())
+            print(("self.mc.get_accepted_fraction()", self.mc.get_accepted_fraction()))
             p = self.mc.get_accepted_fraction()
-            print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+            print(("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev()))
             self.basin_volume = p * volume_nball(self.radius_container, self.bdim)
             self.error_basin_volume = np.sqrt(p * (1 - p) / self.mc.get_iterations_count()) * self.basin_volume
-            print("self.basin_volume", self.basin_volume)
-            print("self.error_basin_volume", self.error_basin_volume)
+            print(("self.basin_volume", self.basin_volume))
+            print(("self.error_basin_volume", self.error_basin_volume))
             keep_running = self.check_not_converged()
         self.nr_evaluations.count += self.conftest_check_same_minimum.get_nfev()
         self.nfev = self.nr_evaluations.count
-        print("basin volume", self.basin_volume)
-        print("error bar", self.error_basin_volume)
-        print("nr evaluations", self.nfev)
+        print(("basin volume", self.basin_volume))
+        print(("error bar", self.error_basin_volume))
+        print(("nr evaluations", self.nfev))
         print("done")
     def check_not_converged(self):
         delta = np.absolute(self.basin_volume - self.prev_basin_volume) / self.basin_volume
         self.prev_basin_volume = self.basin_volume
-        print("delta", delta)
+        print(("delta", delta))
         not_converged = None
         if self.basin_volume == 0:
             not_converged = True

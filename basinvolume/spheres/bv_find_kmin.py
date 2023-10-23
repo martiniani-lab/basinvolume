@@ -1,19 +1,22 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import range
 import numpy as np
 import os
 import argparse
 import traceback
 import copy
-from _kmin_mcrunner import _kmin_mcrunner
+from ._kmin_mcrunner import _kmin_mcrunner
 from basinvolume.experiment_2d import _kmin_exp_mcrunner
 from basinvolume.utils import check_kmax_reasonable 
 
 def worker_kmin(fname, kwargs):
     try:
         if ".xydfr" in fname or ".xyzdfr" in fname:
-            print "found experimental packing"
+            print("found experimental packing")
             mcrunner = _kmin_exp_mcrunner(fname, **kwargs)
         else:
-            print "found numerical packing"
+            print("found numerical packing")
             mcrunner = _kmin_mcrunner(fname, **kwargs)
         if check_kmax_reasonable(mcrunner.findk_configpath):
             mcrunner.run()
@@ -55,7 +58,7 @@ if __name__ == "__main__":
         pass
     elif opt_pot_str == 'inverse_power_stillinger':
         extra_pot_kwargs.update(dict(pow=3, a=1))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+        print('setting inverse_power_stillinger parameters: ', extra_pot_kwargs)
     else:
         raise NotImplementedError
 
@@ -63,7 +66,7 @@ if __name__ == "__main__":
                        acceptance=0.2, adjustf=0.9, report_steps=args.adjustf_niter, adjustf_navg=100,
                        opt_dtmax=1, opt_tol=1e-5, opt_nsteps=1e5, packings_dir=packings_dir,
                        use_cell_lists=args.nocell, single=single, use_cgd=args.cgd, verbose=args.verbose,
-                       record_steps_timeseries=args.rsts, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
+                       record_steps_timeseries=args.rsts, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
                        print_diffusion_only=args.rsts_only, record_trajectory_npoints=int(1e4),
                        opt_pot_str=opt_pot_str, **extra_pot_kwargs)
     

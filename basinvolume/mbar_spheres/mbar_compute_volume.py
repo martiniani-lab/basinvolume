@@ -1,11 +1,19 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import next
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 import re
 from basinvolume.utils import trymakedir, weighted_gaussian_kde
 from basinvolume.utils import to_string, log_volume_nball, surface_nball, write_csv_xy, import_pt_time_series
 from basinvolume.post_processing import VolumeSanityCheck
-import ConfigParser
+import configparser
 from pymbar.timeseries import detectEquilibration_binary_search, subsampleCorrelatedData, statisticalInefficiency_fft
 from pymbar.mbar import MBAR
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
@@ -19,7 +27,7 @@ try:
     from matplotlib import rc
     from joblib import Parallel, delayed
 except ImportError as err:
-    print err
+    print(err)
 import time
 # #######################SET LATEX OPTIONS###################
 rc('text', usetex=False)
@@ -34,7 +42,7 @@ plt.rcParams['figure.figsize'] = 10, 7.7
 ####SET COLOUR MAP######                                                               
 def get_color_cycle(ncol=7):
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / ncol) for i in xrange(ncol)])
+    color_cycle=cycle([cm(1. * i / ncol) for i in range(ncol)])
     return color_cycle
 ########################
 #####################LINE STYLE CYCLER####################                             
@@ -56,7 +64,7 @@ def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cros
         if method == "cross_validation":
             skip = int(max(1, len(timeseries)//1e4))
         bw = get_bandwidth_estimate(np.array(timeseries[::skip]), kernel="gaussian", method=method)
-        print "bandwidth ", bw
+        print("bandwidth ", bw)
         #bw *= 3
     if weights is None:
         hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
@@ -64,7 +72,7 @@ def get_kde_hist(timeseries, bin_edges, kernel="gaussian", bw=0.02, method="cros
         pdf = weighted_gaussian_kde(timeseries, bw_method=bw[0], weights=weights)
         hist = pdf(bin_edges)
     area = simps(hist, bin_edges)
-    print "kde pdf area", area
+    print("kde pdf area", area)
 #    normalise again by hand
 #    hist /= area
 #    area = simps(hist, bin_edges)
@@ -135,26 +143,26 @@ class mbar_compute_dos(object):
         Full volume computation, assuming that PT data is available
         """
         base_directory = self.base_directory
-        print "analysing ", self.explore_dir
+        print("analysing ", self.explore_dir)
         trymakedir(base_directory)
-        print "importing k array"
+        print("importing k array")
         self._import_ks()
-        print "importing time series"
+        print("importing time series")
         self._import_pt_time_series()
-        print "subtracting equilibration point"
+        print("subtracting equilibration point")
         self._subtract_eqtime()
-        print "importing innersphre time series"
+        print("importing innersphre time series")
         self._import_ts_sphere()
-        print "subsampling time series"
+        print("subsampling time series")
         self._build_flat_timeseries()
-        print "building mbar"
+        print("building mbar")
         self._build_mbar()
-        print "mbar computing volume"
+        print("mbar computing volume")
         self._mbar_compute_volume()
         self._compute_hs_fluid_volume()
         self._print_volumes()
         if self.plot_dos_data:
-            print "plotting data"
+            print("plotting data")
             self._build_histogram(kde=self.kde)
             self._compute_dos()
             self._plot_dos_data()
@@ -162,24 +170,24 @@ class mbar_compute_dos(object):
     
     def run_bs(self, nr_subsamples=10):
         base_directory = self.base_directory
-        print "analysing ", self.explore_dir
+        print("analysing ", self.explore_dir)
         trymakedir(base_directory)
         #first compute the volume using the full set of data
         self._import_ks()
-        print "importing time series"
+        print("importing time series")
         self._import_pt_time_series()
-        print "subtracting equilibration point"
+        print("subtracting equilibration point")
         self._subtract_eqtime()
-        print "importing innersphre time series"
+        print("importing innersphre time series")
         self._import_ts_sphere()
-        print "subsampling time series"
+        print("subsampling time series")
         self._build_flat_timeseries()
-        print "building mbar"
+        print("building mbar")
         self._build_mbar()
-        print "mbar computing volume"
+        print("mbar computing volume")
         self._mbar_compute_volume()
         self._print_volumes()
-        print "plotting data all"
+        print("plotting data all")
         if self.plot_dos_data:
             self._build_histogram(kde=self.kde)
             self._compute_dos()
@@ -188,8 +196,8 @@ class mbar_compute_dos(object):
             full_flat_timeseries = np.copy(self.flat_timeseries)
             self.logn_E_subs = self.logn_E.copy()
             initial_f_k = np.array(self.mbar.f_k)
-            for iter in xrange(nr_subsamples):
-                print "sumbsapling - iteration {}".format(iter)
+            for iter in range(nr_subsamples):
+                print("sumbsapling - iteration {}".format(iter))
                 j = 0
                 for n_k in self.N_k:
                     idx = np.random.randint(0, n_k, size=n_k)
@@ -199,7 +207,7 @@ class mbar_compute_dos(object):
                 start = time.time()
                 #self._build_mbar(verbose=False, maxiter=1000, reltol=1.0e-7, initial_f_k=initial_f_k, subsampling=16)
                 self._build_mbar(verbose=False, initial_f_k=initial_f_k)
-                print "t: ", time.time() - start
+                print("t: ", time.time() - start)
                 #compute the weights, skip the volume calculation
                 Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
                 self.w_i_final = -Deltaf_ij[0]
@@ -211,7 +219,7 @@ class mbar_compute_dos(object):
             self._plot_dos_data()
         
     def _import_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.jammed_packing_configpath))
         self.nparticles = configf.getint('JAMMED_PACKING', 'nparticles')
         self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
@@ -263,7 +271,7 @@ class mbar_compute_dos(object):
     def _subtract_eqtime(self):
         #remove equilibration region from pt timeseries
         results = Parallel(n_jobs=max(1,self.ncores))(delayed(find_eqtime)(timeseries) for timeseries in self.timeseries)
-        print "eq_times: ", results
+        print("eq_times: ", results)
         eq_time = int(np.amax(results))
         self.timeseries = self.timeseries[:,eq_time:]
         
@@ -271,7 +279,7 @@ class mbar_compute_dos(object):
         K, N = self.karray.size, flat_timeseries.size
         u_kn = np.empty((K, N))  
         
-        for i in xrange(K):
+        for i in range(K):
             if i == 0:
                 u_kn[i] = (self.ndof-1)*np.log(flat_timeseries)+0.5*self.karray[i]*flat_timeseries**2
             else:
@@ -295,7 +303,7 @@ class mbar_compute_dos(object):
         N_k[0] = len(indices) # number of uncorrelated samples
         flat_ts = np.append(flat_ts, ts_sphere[indices])
         #now loop through pt timeseries
-        for i in xrange(K-1):  #subsample the energies
+        for i in range(K-1):  #subsample the energies
             j = i+1
             g[j] = statisticalInefficiency_fft(timeseries[i])
             indices = np.array(subsampleCorrelatedData(timeseries[i], g=g[j])) # indices of uncorrelated samples
@@ -321,9 +329,9 @@ class mbar_compute_dos(object):
         #print "effective sample number", self.mbar.computeEffectiveSampleNumber()
 
         rmin = self.ref_radius #1./np.sqrt(self.kmax) #we choose rmin to be 1/sqrt(k_max)
-        print "kmax", self.kmax
-        print "rmin", rmin
-        print "ref acceptance", self.ref_acceptance
+        print("kmax", self.kmax)
+        print("rmin", rmin)
+        print("ref acceptance", self.ref_acceptance)
         logvmin = log_volume_nball(rmin, self.ndof)
         Fmin = - logvmin - np.log(self.ref_acceptance)
         
@@ -342,8 +350,8 @@ class mbar_compute_dos(object):
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
         
         if self.verbose:
-            print 'F0 {} F0unc {} +/- {}'.format(self.F0, self.F0unc, self.sigF0)
-            print 'unit_box_F0 {} unit_box_F0unc {} +/- {}'.format(self.unit_box_F0, self.unit_box_F0unc, self.sigF0)
+            print('F0 {} F0unc {} +/- {}'.format(self.F0, self.F0unc, self.sigF0))
+            print('unit_box_F0 {} unit_box_F0unc {} +/- {}'.format(self.unit_box_F0, self.unit_box_F0unc, self.sigF0))
     
     def _compute_hs_fluid_volume(self, numerical_moments=False):
         volume_sanity_check = VolumeSanityCheck(self.packing_configpath, numerical_moments=numerical_moments)
@@ -388,10 +396,10 @@ class mbar_compute_dos(object):
         hist = get_kde_hist(self.ts_sphere, kde_bin_edges, kernel="epanechnikov", bw=0.001)
         hist_visits.append(hist)
         results = Parallel(n_jobs=max(1,self.ncores))(delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries)
-        print np.shape(results)
+        print(np.shape(results))
         for hist in results:
             hist_visits.append(hist)
-        print np.shape(hist_visits)
+        print(np.shape(hist_visits))
         return hist_visits
     
     def _unbias_histogram(self):
@@ -430,7 +438,7 @@ class mbar_compute_dos(object):
         color_cycle = get_color_cycle()
         skip = max(1, int(len(self.timeseries[0])/1e3))
         for i,series in enumerate(self.timeseries):
-            ax.plot(series[series>0].flatten()[::skip], ls=next(linecycler), color=color_cycle.next(), linewidth=1.8, label=str(i))
+            ax.plot(series[series>0].flatten()[::skip], ls=next(linecycler), color=next(color_cycle), linewidth=1.8, label=str(i))
         ax.set_ylabel(r'$r$', fontsize=28)
         ax.set_xlabel('steps/{}'.format(skip), fontsize=28)
         ax.set_xlim((0,150))
@@ -452,7 +460,7 @@ class mbar_compute_dos(object):
             herr.append(np.sqrt(var)/(np.amax(self.bin_edges)-np.amin(self.bin_edges)))
         herr = np.array(herr)
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
-            ax.errorbar(self.bin_edges[:-1], hist, linewidth=2, color=color_cycle.next(), 
+            ax.errorbar(self.bin_edges[:-1], hist, linewidth=2, color=next(color_cycle), 
                         label='{:.1f}'.format(self.karray[i])) #yerr=err
         ax.legend(frameon=False, loc="best", prop={'size':17}, numpoints=1, scatterpoints=1, 
                   markerscale=1, columnspacing=0.25, labelspacing=0.25, handletextpad=0.1, handlelength=1, ncol=2)
@@ -463,7 +471,7 @@ class mbar_compute_dos(object):
                 
         fig = plt.figure()
         ax = fig.add_subplot(111) 
-        for i in xrange(len(self.karray)):
+        for i in range(len(self.karray)):
             y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
         ax.set_xlabel(r'$\Delta r$')
@@ -506,14 +514,14 @@ class mbar_compute_dos(object):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(bin_edges, logn_E, label=r'$\log(\xi(r))$', color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, logn_E, label=r'$\log(\xi(r))$', color=next(color_cycle), linewidth=2)
         #dx = self.bin_edges[1] - self.bin_edges[0]
         rg = np.array(logn_E)
         rg -= (self.ndof-1)*np.log(bin_edges)
         rg -= np.mean(rg[:3])
         #print  "mean(rg[:3])= ", np.mean([rg[finindx[0]],rg[finindx[1]],rg[finindx[2]]])
         assert(abs(np.mean(rg[:3])) < 1e-8)
-        ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, rg, label=r'$\log(\xi(r)/r^{N-1})$', color=next(color_cycle), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.legend(frameon=False, loc="best")
         plt.ylim((min(np.amin(rg), np.amin(logn_E)), max(np.amax(rg),np.amax(logn_E)) ))
@@ -560,7 +568,7 @@ class mbar_compute_dos(object):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(bin_edges, dos, color=color_cycle.next(), linewidth=2)
+        ax.plot(bin_edges, dos, color=next(color_cycle), linewidth=2)
         ax.set_xlabel(r'$\Delta r$')
         ax.set_ylabel('DOS')
         plt.savefig(self.base_directory + '/dos.eps')
@@ -681,7 +689,7 @@ if __name__ == "__main__":
     parser.add_argument("--bootstrap", action='store_true', help="run bootstrap (slow!), default: False", default=False)
     parser.add_argument("--kde", action='store_true', help="use kernel density estimate, default: False", default=False)
     args = parser.parse_args()
-    print args
+    print(args)
     
     fname = args.fname
     fdir = args.fdir

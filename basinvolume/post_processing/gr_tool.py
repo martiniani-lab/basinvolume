@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import range
+from builtins import object
 import numpy as np
 from scipy.special import gamma
 
@@ -52,8 +55,8 @@ class PairDistHistogram(object):
     def add_configuration(self, coords):
         self.nr_configs += 1
         nr_particles = int(len(coords) / self.boxdim)
-        for i in xrange(nr_particles):
-            for j in xrange(i + 1, nr_particles):
+        for i in range(nr_particles):
+            for j in range(i + 1, nr_particles):
                 self.add_distance(i, j, coords)
                 
     def add_distance(self, i, j, coords):
@@ -65,7 +68,7 @@ class PairDistHistogram(object):
         self.bdim = self.boxdim
         self.boxv = self.boxvector
         deltaij = np.zeros(self.boxdim)
-        for k in xrange(self.boxdim):
+        for k in range(self.boxdim):
             deltaij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) - cround((coords[j*self.bdim+k] - coords[i*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
         return np.sum(deltaij**2)
     
@@ -74,11 +77,11 @@ class PairDistHistogram(object):
         return volume
         
     def get_hist_r(self):
-        return [self.histogram.get_position(i) for i in xrange(self.nr_bins)]
+        return [self.histogram.get_position(i) for i in range(self.nr_bins)]
         
     def get_hist_gr(self, number_density, nr_particles):
         result = np.zeros(self.nr_bins)
-        for i in xrange(self.nr_bins):
+        for i in range(self.nr_bins):
             r = self.histogram.get_position(i)
             delta_r = self.histogram.bin_size
             shell_volume_r = self.volume_nball(r + 0.5 * delta_r, self.boxdim) - self.volume_nball(r - 0.5 * delta_r, self.boxdim)
@@ -98,14 +101,14 @@ class MC(_BaseMCRunner):
     def set_control(self, temp):
         self.set_temperature(temp)
     def run(self, nr_steps, gr_acc, eq_steps):
-        for _ in xrange(int(nr_steps)):
-            print("_", _)
+        for _ in range(int(nr_steps)):
+            print(("_", _))
             self.one_iteration()
             if self.get_iterations_count() > eq_steps:
                 gr_acc.add_configuration(self.get_coords())
         
 
-class ComputeGR():
+class ComputeGR(object):
     def __init__(self, boxdim=2, nr_particles=100, hard_phi=0.4,
              nr_steps=1e2, epsilon=1, alpha=0.1, verbose=False):
         # Settings.
@@ -143,7 +146,7 @@ class ComputeGR():
         self.step = RandomCoordsDisplacement(42, 1, single=True, nparticles=self.nr_particles, bdim=self.boxdim)
         if self.verbose:
             print ("initial MC stepsize")
-            print self.step.get_stepsize()
+            print(self.step.get_stepsize())
         self.gr = PairDistHistogram(self.box_vector, 50)
         self.mc.set_takestep(self.step)
         self.eq_steps = self.nr_steps / 2
@@ -158,7 +161,7 @@ class ComputeGR():
         self.mc.run(self.nr_steps, self.gr, self.eq_steps)
         if self.verbose:
             print ("adapted MC stepsize")
-            print self.step.get_stepsize()
+            print(self.step.get_stepsize())
         
     def show_result(self):
         r = self.gr.get_hist_r()

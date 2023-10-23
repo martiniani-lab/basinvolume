@@ -1,4 +1,6 @@
 from __future__ import division
+from builtins import map
+from builtins import object
 import numpy as np
 
 class ExpFileHandler(object):
@@ -23,10 +25,10 @@ class ExpFileHandler(object):
             self.radii.append(line_contents[2])
             self.large.append(line_contents[3].strip())
         input_file.close()
-        self.x = map(float, self.x)
-        self.y = map(float, self.y)
-        self.radii = map(float, self.radii)
-        self.large = map(bool, self.large)
+        self.x = list(map(float, self.x))
+        self.y = list(map(float, self.y))
+        self.radii = list(map(float, self.radii))
+        self.large = list(map(bool, self.large))
         self.nr_particles = len(self.x)
         if len(self.y) != self.nr_particles or len(self.radii) != self.nr_particles or len(self.large) != self.nr_particles:
             raise Exception("ExpFileHandler: data read in error: extracted arrays with mismatching lengths")

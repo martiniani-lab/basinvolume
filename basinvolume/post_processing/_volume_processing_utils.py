@@ -1,12 +1,17 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 try:
     import numpy as np
-    import ConfigParser
+    import configparser
     import os
     from basinvolume.post_processing import F_acc_Gaussian_Poly_HS_Fluid
     from basinvolume.utils import to_string
 except ImportError as err:
-    print err
+    print(err)
 
 class PackingFailureStatistics(object):
     def __init__(self, total_nr):
@@ -25,14 +30,14 @@ class PackingFailureStatistics(object):
     def print_failure_info(self):
         if self.total_nr == 0:
             return
-        print "Packing failure statistics"
-        print self.get_nr_failures(), "out of", self.total_count, "failed"
-        print "corresponding failure ratio", self.get_nr_failures() / self.total_count
-        print 100 * self.get_nr_failures() / self.total_count, "per-cent"
+        print("Packing failure statistics")
+        print(self.get_nr_failures(), "out of", self.total_count, "failed")
+        print("corresponding failure ratio", self.get_nr_failures() / self.total_count)
+        print(100 * self.get_nr_failures() / self.total_count, "per-cent")
     def print_progress_info(self, packing_string):
-        print "done", self.total_count, "out of", self.total_nr 
-        print to_string(self.total_count / self.total_nr * 100, 2), "per-cent"
-        print "packing was", packing_string
+        print("done", self.total_count, "out of", self.total_nr) 
+        print(to_string(self.total_count / self.total_nr * 100, 2), "per-cent")
+        print("packing was", packing_string)
         
 class PTFailures(object):
     def __init__(self):
@@ -52,12 +57,12 @@ class PTFailures(object):
     def print_failure_info(self):
         if self.total_nr == 0:
             return
-        print "PT failure statistics"
-        print self.get_nr_failures(), "out of", self.total_nr, "failed"
-        print "corresponding failure ratio", self.get_nr_failures() / self.total_nr
-        print 100 * self.get_nr_failures() / self.total_nr, "per-cent"
-        print "packings with failed PT"
-        print self.failed
+        print("PT failure statistics")
+        print(self.get_nr_failures(), "out of", self.total_nr, "failed")
+        print("corresponding failure ratio", self.get_nr_failures() / self.total_nr)
+        print(100 * self.get_nr_failures() / self.total_nr, "per-cent")
+        print("packings with failed PT")
+        print(self.failed)
 
 class VolumeSanityCheck(object):
     def __init__(self, v_acc_parameter_file, numerical_moments=False):
@@ -65,7 +70,7 @@ class VolumeSanityCheck(object):
         self.v_acc_parameter_file = v_acc_parameter_file
         self.numerical_moments = numerical_moments
         # end input
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.v_acc_parameter_file))
         self.nr_particles = configf.getint("PACKING", "nparticles")
         self.box_dimension = configf.getint("PACKING", "boxdim")
@@ -88,14 +93,14 @@ class VolumeSanityCheck(object):
         self.V_acc = np.exp(- self.F0_acc)
         if (-self.F0_acc) > self.log_ideal_gas_V_acc:
             raise Exception("VolumeSanityCheck: polyHS fluid failure")
-        print "VolumeSanityCheck: "
-        print "F0_acc, HS fluid", self.F0_acc
-        print "F0_acc, ideal gas", - self.log_ideal_gas_V_acc
+        print("VolumeSanityCheck: ")
+        print("F0_acc, HS fluid", self.F0_acc)
+        print("F0_acc, ideal gas", - self.log_ideal_gas_V_acc)
         
     def get_diameter_file_0_path(self):
         packings_dir = os.path.split(self.v_acc_parameter_file)[0]
         self.diameter_file_0_path = os.path.join(packings_dir, [dir for dir in os.listdir(packings_dir) if "xy" in dir][0])
-        print("diameter file path", self.diameter_file_0_path)
+        print(("diameter file path", self.diameter_file_0_path))
     def read_diameters(self):
         f = open(self.diameter_file_0_path)
         packing_info = f.readlines()
@@ -108,16 +113,16 @@ class VolumeSanityCheck(object):
             return False
     def check(self, F0, F0_name, vf_path):
         if F0 < self.F0_acc:
-            print "failed F0 value", F0
-            print "-log(V_acc)", self.F0_acc
-            print "failed F0 name", F0_name
-            print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
+            print("failed F0 value", F0)
+            print("-log(V_acc)", self.F0_acc)
+            print("failed F0 name", F0_name)
+            print("failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:])
             raise Exception("VolumeSanityCheck: illegal free energy")
         if F0 < - self.log_ideal_gas_V_acc:
-            print "failed F0 value -- failed ideal gas box test"
-            print "-log(V_acc, ideal)", - self.log_ideal_gas_V_acc
-            print "failed F0 name", F0_name
-            print "failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:]
+            print("failed F0 value -- failed ideal gas box test")
+            print("-log(V_acc, ideal)", - self.log_ideal_gas_V_acc)
+            print("failed F0 name", F0_name)
+            print("failed packing", ([f for f in vf_path.split("/") if "jammed_packing" in f][0])[11:])
             raise Exception("VolumeSanityCheck: illegal free energy")
 
 class GLPTNotUsedStatistics(object):
@@ -140,10 +145,10 @@ class GLPTNotUsedStatistics(object):
     def get_approx_use_fraction(self):
         return self.used_approx / self.total_nr
     def print_statistics(self):
-        print "GLPTNotUsedStatistics:"
-        print "total number of F0 values:", self.total_nr
-        print "number of times GL failed:", self.used_approx
-        print "GL failure (approx usage) fraction:", self.get_approx_use_fraction()
+        print("GLPTNotUsedStatistics:")
+        print("total number of F0 values:", self.total_nr)
+        print("number of times GL failed:", self.used_approx)
+        print("GL failure (approx usage) fraction:", self.get_approx_use_fraction())
         
 class BestIntegrationSelection(object):
     """
@@ -204,14 +209,14 @@ class BestIntegrationSelection(object):
                 else:
                     print("discarded packing: GL failed, approx failed, huge kmax")
             else:
-                print "GL failed, with reasonable kmax!"
+                print("GL failed, with reasonable kmax!")
                 assert(False)
         else:
             if (np.abs(F0_error) / np.abs(F0)) > self.max_relative_GL_error:
                 if volume_sanity_check.is_insane(F0_approx_PTu2k0) == False:
                     record_approximation()
                 else:
-                    print "GL failed, approx failed, with reasonable kmax!"
+                    print("GL failed, approx failed, with reasonable kmax!")
                     assert(False)
             else:
                 #this should be the default behaviour
@@ -221,19 +226,19 @@ class BestIntegrationSelection(object):
                 
         assert(len(self.F0_final) == len(self.F0_error_final))
         if volume_sanity_check.is_insane(self.F0_final[-1]):
-            print "fail_information"
-            print fail_information
-            print "F0 ",F0
-            print "F0_error ",F0_error
-            print "kmax ",kmax
-            print "F0_approx_PTu2k0 ",F0_approx_PTu2k0
-            print "F0_approx_PTu2k0_error ",F0_approx_PTu2k0_error
+            print("fail_information")
+            print(fail_information)
+            print("F0 ",F0)
+            print("F0_error ",F0_error)
+            print("kmax ",kmax)
+            print("F0_approx_PTu2k0 ",F0_approx_PTu2k0)
+            print("F0_approx_PTu2k0_error ",F0_approx_PTu2k0_error)
             assert(False)
             
     def get_kmax(self, volume_file):
         path_with_kmax_info_file = os.path.split(os.path.split(volume_file)[0])[0]
         kmax_file = [path_with_kmax_info_file + "/" + f for f in os.listdir(path_with_kmax_info_file) if f.endswith(".config") and f.startswith("findk_jammed_packing")][0]
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(kmax_file))
         return configf.getfloat("FINDK", "kmax")
     def kmax_is_huge(self, kmax):
@@ -247,7 +252,7 @@ class BestIntegrationSelection(object):
             raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: error handling failed")
         for F0_final in self.F0_final:
             if volume_sanity_check.is_insane(F0_final):
-                print F0_final
+                print(F0_final)
                 raise Exception("BestIntegrationSelection: perform_sanity_check_on_final_F0: F0 is insane")
             
     def print_fail_information(self, packings_dir):
@@ -271,14 +276,14 @@ def assert_pt_success(path, fname):
     kmax_path = os.path.join(path, "findk_" + fname + ".config")
     if not os.path.isfile(pt_path):
         return False
-    configf = ConfigParser.ConfigParser()
+    configf = configparser.ConfigParser()
     try:
         configf.read(str(pt_path))
         success_dict = dict(configf.items('STATUS'))
     except:
         return False
     configf.read(str(kmax_path))    
-    for key, value in success_dict.iteritems():
+    for key, value in list(success_dict.items()):
         if not (value == "True"):
             return False
     return True

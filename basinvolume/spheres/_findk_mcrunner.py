@@ -1,11 +1,15 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import numpy as np
 import os
 from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, _configure_mcrunner
 from basinvolume.utils import trymakedir
 from basinvolume.utils import view_traceback
-import ConfigParser
+import configparser
 import time
 import warnings
 
@@ -86,7 +90,7 @@ class _findk_mcrunner(_configure_mcrunner):
         self.configfile = '{}/{}.config'.format(self.base_directory, configfile)
     
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING', 'nparticles')
         self.bdim = configf.getint('JAMMED_PACKING', 'boxdim')
@@ -123,7 +127,7 @@ class _findk_mcrunner(_configure_mcrunner):
         assert(self.sca > 0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[FINDK_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems():
+        for key, value in list(self.mc_params.items()):
             f.write('{}: {}\n'.format(key,value))
     
     def _print_results(self):
@@ -131,7 +135,7 @@ class _findk_mcrunner(_configure_mcrunner):
         f = open(fname, 'a')
         f.write('[FINDK_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems():
+        for key, value in list(status.items()):
             f.write('{}: {}\n'.format(key, value))
         f.write('[FINDK]\n')
         f.write('kmax: {:.16f}\n'.format(self.kmax))
@@ -150,21 +154,21 @@ if __name__ == "__main__":
     sim = _findk_mcrunner('jammed_packing0.xydr', avgcount=1e4, k=759, opt_tol=1e-5, ktarget=0.9, knavg=1e3,
                           seeds=seeds, use_cell_lists=True, verbose=True, use_cgd=True,
                           opt_pot_str=opt_pot_str, **extra_pot_kwargs)
-    print 'simulation started'
+    print('simulation started')
     start=time.time() 
     sim.run()
     frac = sim.mcrunner.conftest2.get_failed_quench_frac()
-    print "failed quench frac", frac
+    print("failed quench frac", frac)
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = sim.mcrunner.get_status()
-    print status
-    print "self.kmax:", sim.kmax
-    print "self.prob:", sim.prob
-    print "self.displ_k_max:", sim.displ_k_max
-    print "self.var_displ_k_max:", sim.var_displ_k_max
+    print(status)
+    print("self.kmax:", sim.kmax)
+    print("self.prob:", sim.prob)
+    print("self.displ_k_max:", sim.displ_k_max)
+    print("self.var_displ_k_max:", sim.var_displ_k_max)
     #print "Nd/k: ", sim.nparticles * sim.bdim / sim.kmax
-    print "(N-1)d/k", (sim.nparticles - 1) * sim.bdim / sim.kmax
+    print("(N-1)d/k", (sim.nparticles - 1) * sim.bdim / sim.kmax)
     sim.mcrunner.show_histogram()
-    print "entries in histogram:", sim.mcrunner.get_entries()
+    print("entries in histogram:", sim.mcrunner.get_entries())
     

@@ -1,8 +1,10 @@
 from __future__ import division
+from __future__ import absolute_import
 
+from builtins import range
 import os
 
-from multi_gauss_wrap import MultiGaussWrap
+from .multi_gauss_wrap import MultiGaussWrap
 
 def generate_potentials(potential_dir, nr_gaussians, nr_dimensions, nr_samples):
     """
@@ -30,7 +32,7 @@ def generate_potentials(potential_dir, nr_gaussians, nr_dimensions, nr_samples):
     nr_samples : integer
         Number of different potential energy landscapes sampled at each (nr_gaussians, nr_dimensions)
     """
-    for pot_index in xrange(nr_samples):
+    for pot_index in range(nr_samples):
         pot = MultiGaussWrap(potential_dir)
         if not pot.exists(nr_gaussians, nr_dimensions, pot_index):
             pot.generate(nr_gaussians, nr_dimensions, pot_index)

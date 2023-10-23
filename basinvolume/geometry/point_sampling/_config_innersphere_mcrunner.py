@@ -1,9 +1,13 @@
 from __future__ import division
+from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import time
 import warnings
 import os
-import ConfigParser
+import configparser
 import numpy as np
 
 from basinvolume.geometry.point_sampling import HyperElemInnerSphereMCrunner
@@ -82,7 +86,7 @@ class _hyperelem_innersphere_mcrunner(_configure_mcrunner):
         self.configfile = '{}/{}.config'.format(self.base_directory, configfile)
     
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.ndof = configf.getfloat('FINDK_HYPERELEM','ndof')
         self.geometry = configf.get('FINDK_HYPERELEM', 'geometry')
@@ -124,7 +128,7 @@ class _hyperelem_innersphere_mcrunner(_configure_mcrunner):
             f.write('{:.16f} '.format(val))
         f.write('\n')
         f.write('[INNERSPHERE_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
 
     def _print_results(self):
@@ -136,11 +140,11 @@ class _hyperelem_innersphere_mcrunner(_configure_mcrunner):
         f = open(fname, 'a')
         f.write('[INNERSPHERE_GAUSSIAN_MCRUNNER_STATUS]\n')
         status = self.mcrunner_gaussian.get_status()
-        for key, value in status.iteritems():
+        for key, value in list(status.items()):
             f.write('{}: {:.16f}\n'.format(key, value))
         f.write('[INNERSPHERE_BALLPICK_MCRUNNER_STATUS]\n')
         status = self.mcrunner_ballpick.get_status()
-        for key, value in status.iteritems():
+        for key, value in list(status.items()):
             f.write('{}: {:.16f}\n'.format(key, value))
         f.close()
         path = os.path.join(self.base_directory, "inner_sphere.timeseries")
@@ -153,19 +157,19 @@ if __name__ == "__main__":
     
     sim = _hyperelem_innersphere_mcrunner('explore_bv_hypersphere_exp_decay_n10_r1.0_edl0.1',
                                           niter=1e6, seeds=seeds, verbose=False)
-    print 'simulation started'
+    print('simulation started')
     start = time.time()
     sim.run()
     end = time.time()
-    print 'time elapsed', end - start
-    print "gaussian"
+    print('time elapsed', end - start)
+    print("gaussian")
     status = sim.mcrunner_gaussian.get_status()
-    print status
-    print 'stepsize: ', sim.mcrunner_gaussian.get_stepsize()
-    print "ballpick"
+    print(status)
+    print('stepsize: ', sim.mcrunner_gaussian.get_stepsize())
+    print("ballpick")
     status = sim.mcrunner_ballpick.get_status()
-    print status
-    print 'stepsize: ', sim.mcrunner_ballpick.get_stepsize()
+    print(status)
+    print('stepsize: ', sim.mcrunner_ballpick.get_stepsize())
     sim.mcrunner_gaussian.show_histogram_analytical()
     
     

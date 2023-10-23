@@ -1,4 +1,11 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 import abc
@@ -6,9 +13,10 @@ from pele.potentials import HS_WCA
 from pele.potentials import InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import *
-import ConfigParser
+import configparser
 import re
 import argparse
+from future.utils import with_metaclass
 try:
     import pylab
 except:
@@ -23,14 +31,14 @@ def cartesian_to_polar2d(vector):
 
 def sum_neighbor_angles2d(neigh_vec):
     sum_ = 0.
-    for idx in xrange(len(neigh_vec) - 1):
+    for idx in range(len(neigh_vec) - 1):
         sum_ += np.arccos(np.dot(neigh_vec[idx], neigh_vec[idx + 1]) / \
                          (np.linalg.norm(neigh_vec[idx]) * np.linalg.norm(neigh_vec[idx + 1])))
     sum_ += np.arccos(np.dot(neigh_vec[-1], neigh_vec[0]) / \
                      (np.linalg.norm(neigh_vec[-1]) * np.linalg.norm(neigh_vec[0])))
     return sum_
 
-class _Generate_Jammed_Packing(object):
+class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
     """
     this is an abstract class that implements the basic components of a generate packing class,
     and declares a number of abstract methods which should be implemented in all inheriting classes
@@ -42,7 +50,6 @@ class _Generate_Jammed_Packing(object):
     *packing_frac: target jammed packing fraction
     *boxv: an array of size bdim that contains the vectors defining the box
     """
-    __metaclass__ = abc.ABCMeta
     
     def __init__(self, packing_frac=0.65, packings_dir='packings'):
         self.packing_frac = packing_frac
@@ -64,7 +71,7 @@ class _Generate_Jammed_Packing(object):
         self._import_packing_config_file()
           
     def _import_packing_config_file(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('PACKING','nparticles')
         self.bdim = configf.getint('PACKING','boxdim')
@@ -151,7 +158,7 @@ class _Generate_Jammed_Packing(object):
         self._initialise()
         for fname in os.listdir(self.packings_dir):
             if ('xyzd' in fname) or ('xyd' in fname):
-                print "\n",fname
+                print("\n",fname)
                 self.one_iteration(fname)
         # self._histogram_eigenvalues()
             
@@ -193,7 +200,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         
         #assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
-            print "WARNING: max soft diameter >= 1/2 box side!"
+            print("WARNING: max soft diameter >= 1/2 box side!")
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
         
@@ -352,8 +359,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             # x is a 3 array with the coordinates of the particles
             dij = np.zeros(self.bdim)
             dmin = np.amin(self.hs_radii)/10.
-            for j in xrange(self.nparticles):
-                for k in xrange(self.bdim):
+            for j in range(self.nparticles):
+                for k in range(self.bdim):
                     #use distances to nearest image convention
                     dij[k] = ((self.coords[j*self.bdim+k] - x[k]) -
                               cround((self.coords[j*self.bdim+k] - x[k]) / self.boxv[k]) * self.boxv[k])
@@ -371,42 +378,42 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 return False
             radii = hs_radii * (1. + self.sca)
             contact_list, neighbors_index_list = self._find_nearest_neighbors(coords, radii)
-            for i in xrange(len(hs_radii)):
+            for i in range(len(hs_radii)):
                 i1 = self.bdim * i
                 no_neighbors = len(contact_list[i])
                 # print "no_neighbors", no_neighbors
                 if no_neighbors < zmin:
                     found_rattler = True
-                    print "particle {} is not isostatic".format(i)
+                    print("particle {} is not isostatic".format(i))
                 else:
                     angles = [cartesian_to_polar2d(dij)[1] for dij in contact_list[i]]
                     neigh_vec = [x for (y, x) in sorted(zip(angles, contact_list[i]))]
                     sum_ = sum_neighbor_angles2d(neigh_vec)
                     found_rattler =  np.abs(2*np.pi - sum_) > 1e-10
                     if found_rattler:
-                        print "asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_)
+                        print("asymmetric contact rattler, 2pi - theta = {}".format(2*np.pi - sum_))
                 #here assign correct index by searchin for the corresponding atom
                 j = get_index(coords[i1:i1+self.bdim])
                 self.rattlers[j] = 0 if found_rattler else 1000
                 self.rattlers_draw[j] = float(not found_rattler)
                 if found_rattler:
-                    coords = np.delete(coords, [i1 + k for k in xrange(self.bdim)])  # remove particle from array
+                    coords = np.delete(coords, [i1 + k for k in range(self.bdim)])  # remove particle from array
                     hs_radii = np.delete(hs_radii, [i]) #remove particle from array
                     nratls+=1
                     break
             look = True if found_rattler else False
-        print "n rattlers ", nratls
+        print("n rattlers ", nratls)
         return True
 
     def _find_nearest_neighbors(self, coords, radii):
         nparticles = radii.size
-        nnatoms_list = [[] for _ in xrange(nparticles)]
-        nnatoms_index_list = [[] for _ in xrange(nparticles)]
-        for i in xrange(nparticles):
-            for j in xrange(i, nparticles):
+        nnatoms_list = [[] for _ in range(nparticles)]
+        nnatoms_index_list = [[] for _ in range(nparticles)]
+        for i in range(nparticles):
+            for j in range(i, nparticles):
                 if i != j:
                     dij = np.zeros(self.bdim)
-                    for k in xrange(self.bdim):
+                    for k in range(self.bdim):
                         #use distances to nearest image convention
                         dij[k] = ((coords[j*self.bdim+k] - coords[i*self.bdim+k]) -
                                            cround((coords[j*self.bdim+k] - coords[i*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
@@ -432,7 +439,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         fire_maxstep = np.amin(self.hs_radii)*self.sca
         res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
         if not res.success:
-            print 'quench failed'
+            print('quench failed')
             return False
         
         self.coords = res.coords
@@ -441,13 +448,13 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         #test that on ri-minimisation the structure does not change
         res2 = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
         if res2.nfev > 1:
-            print 'quench failed (structure changed at second minimisation)'
+            print('quench failed (structure changed at second minimisation)')
             return False
         
         #asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
-            print 'overlap found'
+            print('overlap found')
             return False
 
         return self._find_rattlers()
@@ -482,11 +489,11 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
-        for i in xrange(self.nparticles):
+        for i in range(self.nparticles):
             if no_overlap == True:
-                for j in xrange(self.nparticles):
+                for j in range(self.nparticles):
                     dij = 0
-                    for k in xrange(self.bdim):
+                    for k in range(self.bdim):
                         #use distances to nearest image convention
                         dij += np.square((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) -
                                           cround((self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k]) / self.boxv[k]) * self.boxv[k])
@@ -494,10 +501,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                         dij = np.sqrt(dij)
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
-                            print 'invalid configuration'
-                            print 'atoms {} {} are overlapping'.format(i,j)
-                            print 'real distance {}'.format(dij)
-                            print 'min distance {}'.format(dmin)
+                            print('invalid configuration')
+                            print('atoms {} {} are overlapping'.format(i,j))
+                            print('real distance {}'.format(dij))
+                            print('min distance {}'.format(dmin))
                             no_overlap = False
                             break
             else:
@@ -529,21 +536,21 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
                         with open("{0}/mismatching_rattlers.txt".format(directory), 'a') as f:
                             f.write('jammed_packing{}\n'.format(n))
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
         #dump configuration
         if not compare:
             coords = self._correct_coords()
             if self.bdim == 2:
                 fname = "{0}/jammed_packing{1}.xydr".format(directory,n)
                 f = open(fname,'w')
-                for i in xrange(self.nparticles):
+                for i in range(self.nparticles):
                     f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                               self.hs_radii[i]*2,self.rattlers[i]))
             elif self.bdim == 3:
                 fname = "{0}/jammed_packing{1}.xyzdr".format(directory,n)
                 f = open(fname,'w')
-                for i in xrange(self.nparticles):
+                for i in range(self.nparticles):
                     f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                               coords[i*self.bdim+2],self.hs_radii[i]*2,self.rattlers[i]))
             else:
@@ -564,8 +571,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(np.amax(self.hs_radii)*2))
-            for i in xrange(self.nparticles):
-                for j in xrange(self.bdim):
+            for i in range(self.nparticles):
+                for j in range(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(0.0))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
@@ -575,8 +582,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
-            for i in xrange(self.nparticles):
-                for j in xrange(self.bdim):
+            for i in range(self.nparticles):
+                for j in range(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(self.hs_radii[i]*2*(1.+self.sca)))
                 f.write('{}\n'.format(colour-int(self.rattlers_draw[i])))
@@ -634,7 +641,7 @@ if __name__ == "__main__":
     parser.add_argument("--opt_pot", type=str, help="optmizer's potential, 1) (default) hs_wca "
                                                     "2) inverse_power_stillinger", default='hs_wca')
     args = parser.parse_args()
-    print args
+    print(args)
     
     # potential type
     opt_pot_str = args.opt_pot
@@ -643,11 +650,11 @@ if __name__ == "__main__":
         pass
     elif opt_pot_str.lower() == 'inverse_power_stillinger':
         extra_pot_kwargs = dict(pow=8, rcut=4.5)
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+        print('setting inverse_power_stillinger parameters: ', extra_pot_kwargs)
     else:
         raise NotImplementedError
     
-    print("extra_pot_kwargs", extra_pot_kwargs)
+    print(("extra_pot_kwargs", extra_pot_kwargs))
     sim = HS_Generate_Jammed_Packing(packing_frac=args.density,
         packings_dir=args.packingsdir,
         use_cell_lists=args.nocell, show=args.show,

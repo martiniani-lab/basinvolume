@@ -1,9 +1,14 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import numpy as np
 from pele.potentials import Harmonic
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import *
-import ConfigParser
+import configparser
 import warnings
 import time
 
@@ -117,7 +122,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         self.diffusion_configfname = '{}/{}'.format(self.diffusion_dir, diffusion_configfname)
     
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
@@ -164,7 +169,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[KMIN_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
     
     def _print_results_once(self, fname):
@@ -175,7 +180,7 @@ class _kmin_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[KMIN_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
+        for key, value in list(status.items()) :
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min * 1.25)) #note 1.25
@@ -187,7 +192,7 @@ class _kmin_mcrunner(_configure_mcrunner):
     
     def _dump_diffusion_timeseries(self):
         fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params['niter']))
-        print "fname", fname
+        print("fname", fname)
         self.mcrunner.dump_steps_timeseries(fname, clear=True)
     
     def _print_results(self):
@@ -227,21 +232,21 @@ if __name__ == "__main__":
     extra_pot_kwargs = dict(pow=3, a=1)
     opt_pot_str = 'hs_wca' #'inverse_power_stillinger'
     sim = _kmin_mcrunner('jammed_packing0.xydr', niter=1e4, k=0, opt_tol=1e-4, seeds=seeds,
-                         record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],
+                         record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
                          single=True, use_cell_lists=True, verbose=True, use_cgd=True,
                          hmax=20, hbinsize=0.05, opt_nsteps=1e6,
                          opt_pot_str=opt_pot_str, **extra_pot_kwargs)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     sim.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = sim.mcrunner.get_status()
-    print status
-    print 'd2 kmin: ',sim.displ_k_min
-    print 'var: ',sim.var_displ_k_min
-    print 'mean_coord_dist: ',sim.mean_coord_dist
-    print 'var_coord_dist: ', sim.var_coord_dist
+    print(status)
+    print('d2 kmin: ',sim.displ_k_min)
+    print('var: ',sim.var_displ_k_min)
+    print('mean_coord_dist: ',sim.mean_coord_dist)
+    print('var_coord_dist: ', sim.var_coord_dist)
     #sim.mcrunner.show_histogram_kmax()
     
     

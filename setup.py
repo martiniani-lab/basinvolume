@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import object
 import glob
 import os
 import sys
@@ -27,14 +29,14 @@ except:
     sys.exit()
 try:
     mcpelepath = os.path.dirname(mcpele.__file__)[:-len("/mcpele")]
-    print mcpelepath
+    print(mcpelepath)
 except:
     sys.stderr.write("WARNING: could't find path to mcpele\n")
     sys.exit()
 
 try:
     py_cgdescentpath = os.path.dirname(PyCG_DESCENT.__file__)[:-len("/PyCG_DESCENT")]
-    print py_cgdescentpath
+    print(py_cgdescentpath)
 except:
     sys.stderr.write("WARNING: could't find path to PyCG_DESCENT\n")
     sys.exit()
@@ -100,7 +102,7 @@ generate_cython()
 # compile fortran extension modules
 #
 
-class ModuleList:
+class ModuleList(object):
     def __init__(self, **kwargs):
         self.module_list = []
         self.kwargs = kwargs

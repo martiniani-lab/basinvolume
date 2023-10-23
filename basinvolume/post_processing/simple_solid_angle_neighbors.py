@@ -1,4 +1,6 @@
 from __future__ import division
+from builtins import range
+from builtins import object
 from basinvolume.utils import cround
 import numpy as np
 from numpy import linalg as la
@@ -22,7 +24,7 @@ class SimpleSolidAngleNeighbors(object):
         count = self.nparticles - 1
         if count < 3:
             raise Exception("SimpleSolidAngleNeighbors: too few particles")
-        d = dict([(self.get_distance(k), k) for k in xrange(self.nparticles) if k != self.center])
+        d = dict([(self.get_distance(k), k) for k in range(self.nparticles) if k != self.center])
         distance_sum = 0
         sk = sorted(d.keys())
         for s in sk[0:3]:
@@ -45,7 +47,7 @@ class SimpleSolidAngleNeighbors(object):
         
     def get_delta_vector(self, j):
         result = np.zeros(self.boxdim)
-        for k in xrange(self.boxdim):
+        for k in range(self.boxdim):
             #use distances to nearest image convention
             result[k] = ((self.coords[j*self.boxdim+k] - self.coords[self.center*self.boxdim+k]) -
                                cround((self.coords[j*self.boxdim+k] - self.coords[self.center*self.boxdim+k]) / self.boxv[k]) * self.boxv[k])

@@ -1,9 +1,13 @@
 from __future__ import division
+from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import time
 import warnings
 import os
-import ConfigParser
+import configparser
 import numpy as np
 
 from pele.potentials import Harmonic
@@ -101,7 +105,7 @@ class _oracle_hyperelem_kmin_mcrunner(_configure_mcrunner):
         f.write('cloud_radius: {}\n'.format(self.cloud_radius))
         f.write('nr_cloud_points: {}\n'.format(self.nr_cloud_points))
         f.write('[KMIN_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
     
     def _print_results_once(self, fname):
@@ -112,7 +116,7 @@ class _oracle_hyperelem_kmin_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[KMIN_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
+        for key, value in list(status.items()) :
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min))
@@ -158,15 +162,15 @@ if __name__ == "__main__":
                                           nr_cloud_points=nr_cloud_points, seeds=seeds, single=True,
                                           verbose=True, hmax=15, hbinsize=0.001, stepsize=cloud_radius*2)
     #record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     sim.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = sim.mcrunner.get_status()
-    print status
-    print 'd kmin: ',sim.displ_k_min
-    print 'var: ',sim.var_displ_k_min
+    print(status)
+    print('d kmin: ',sim.displ_k_min)
+    print('var: ',sim.var_displ_k_min)
 
               
                 

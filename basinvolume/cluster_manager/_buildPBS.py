@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import str
+from builtins import object
 from subprocess import Popen, PIPE
 import os
 
@@ -49,7 +52,7 @@ class BuildPBSScript(object):
         *fname [string]: name of the pbs bash script where to write
         *job_name [string]: name of the pbs job
         """
-        print "writing PBS file"
+        print("writing PBS file")
         if ".sh" not in fname:
             fname += ".sh"
         f = open(fname,'w')
@@ -94,11 +97,11 @@ class BuildPBSScript(object):
         return stdout
     
     def goto_PBS_O_WORKDIR(self):
-        print "going to PBS_O_WORKDIR"
+        print("going to PBS_O_WORKDIR")
         pbs_wdir = self.get_PBS_O_WORKDIR()
         if not os.path.isabs(pbs_wdir):
             #this probably unnecessary, more of a safety check
-            print "PBS_O_WORKDIR is not absolute, making absolute: {}".format(str(pbs_wdir))
+            print("PBS_O_WORKDIR is not absolute, making absolute: {}".format(str(pbs_wdir)))
             pbs_wdir = os.path.abspath(pbs_wdir)
         os.chdir(pbs_wdir)
     
@@ -125,11 +128,11 @@ class BuildPBSScript(object):
 if __name__ == "__main__":
     pbs = BuildPBSScript('test', 1, 1, 0.5, 'python run_test.py args')
     #pbs.writePBSscript('test_job', 'test_job')
-    print pbs.get_PBS_O_WORKDIR()
-    print pbs.get_PBS_JOBID()
-    print pbs.checkin_PBS_O_WORKDIR()
-    print pbs.s_wtime
-    print pbs.dhms_wtime
+    print(pbs.get_PBS_O_WORKDIR())
+    print(pbs.get_PBS_JOBID())
+    print(pbs.checkin_PBS_O_WORKDIR())
+    print(pbs.s_wtime)
+    print(pbs.dhms_wtime)
     stdout = pbs.submit_PBS('test_job','test_job')
-    print stdout
+    print(stdout)
     

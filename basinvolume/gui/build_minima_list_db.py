@@ -1,4 +1,8 @@
 from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import numpy as np
 import abc
 import os
@@ -6,7 +10,7 @@ from pele.potentials import HS_WCA
 from pele.storage import Minimum
 from basinvolume.utils import *
 from basinvolume.gui import HSWCASystem
-import ConfigParser
+import configparser
 import time
 import re
 import pylab
@@ -58,7 +62,7 @@ class build_minima_list_db(object):
         self.db = self.system.create_database(self.db_path)
         
     def _import_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.packing_configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')

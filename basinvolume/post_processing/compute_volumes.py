@@ -10,10 +10,17 @@ python ~/PathToBasinvolume/basinvolume/post_processing/compute_volumes.py -d n32
 """
 
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import range
+from builtins import object
+from future.utils import with_metaclass
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import re
     import matplotlib.pyplot as plt
@@ -30,14 +37,13 @@ try:
     from basinvolume.mbar_spheres import mbar_compute_dos
     from basinvolume.spheres._collect_u2_vs_k import _collect_u2_vs_k
 except ImportError as err:
-    print err
+    print(err)
 
-class ComputeVolumesCommon(object):
+class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
     """
     Contains common functionality of volume computation which is
     independent on config file layout.
     """
-    __metaclass__ = abc.ABCMeta
     
     def __init__(self, workspace_dir, nr_volume_points, force_run, method, 
                  explore_bv_dir="explore_bv_jammed_packing", analysis_dir="analysis", 
@@ -81,11 +87,11 @@ class ComputeVolumesCommon(object):
                 try:
                     if not self.force_run and os.path.isfile(os.path.join(path, self.analysis_dir, self.volume_file)):
                         try:
-                            volf = ConfigParser.ConfigParser()
+                            volf = configparser.ConfigParser()
                             volf.read(os.path.join(path, self.analysis_dir, self.volume_file))
                             F0 = volf.getfloat(self.volume_title, 'F0')
-                        except Exception, e:
-                            print "run_analysis Exception: ", e
+                        except Exception as e:
+                            print("run_analysis Exception: ", e)
                             self._compute_volume(fname, path,
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))    
@@ -93,20 +99,20 @@ class ComputeVolumesCommon(object):
                         self._compute_volume(fname, path,
                                              os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
                                              os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))
-                except Exception, e:
-                    print "Exception: ", e
+                except Exception as e:
+                    print("Exception: ", e)
                     print(traceback.format_exc())
-                    print "failed packing!"
-                    print "name: ", fname
-                    print "path:", path
+                    print("failed packing!")
+                    print("name: ", fname)
+                    print("path:", path)
         self.pt_failures.print_failure_info()
         
     def set_up_directories(self):
         self.explore_dirs = [os.path.join(self.workspace_dir, f) for f in os.listdir(self.workspace_dir) if f.startswith(self.explore_bv_dir)]
         if self.nr_volume_points != -1:
-            print "removing volume points"
+            print("removing volume points")
             nr_to_kill = len(self.explore_dirs) - self.nr_volume_points
-            for _ in xrange(nr_to_kill):
+            for _ in range(nr_to_kill):
                 self.explore_dirs = np.delete(self.explore_dirs, np.random.randint(0, len(self.explore_dirs)))
             assert(len(self.explore_dirs) == self.nr_volume_points)
         self.packing_strings = ["jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs]
@@ -217,11 +223,11 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                     if not self.force_run and os.path.isfile(os.path.join(path, self.analysis_dir, self.volume_file)) \
                     and os.path.isfile(os.path.join(path, self.analysis_dir, log_gr_ratio_file)):
                         try:
-                            volf = ConfigParser.ConfigParser()
+                            volf = configparser.ConfigParser()
                             volf.read(os.path.join(path, self.analysis_dir, self.volume_file))
                             F0 = volf.getfloat(self.volume_title, 'F0')
-                        except Exception, e:
-                            print "run_analysis Exception: ", e
+                        except Exception as e:
+                            print("run_analysis Exception: ", e)
                             self._compute_volume(fname, path,
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
                                                 os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))    
@@ -229,12 +235,12 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                         self._compute_volume(fname, path,
                                              os.path.abspath(os.path.join(self.workspace_dir, self.jammed_packings_dir)),
                                              os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir)))
-                except Exception, e:
-                    print "Exception: ", e
+                except Exception as e:
+                    print("Exception: ", e)
                     print(traceback.format_exc())
-                    print "failed packing!"
-                    print "name: ", fname
-                    print "path:", path
+                    print("failed packing!")
+                    print("name: ", fname)
+                    print("path:", path)
         self.pt_failures.print_failure_info()
 
 class ComputeVolumes(object):
@@ -283,7 +289,7 @@ if __name__ == "__main__":
         worker(workspace_dir, kwargs)
     else:
         subdirs = glob.glob(os.path.join(os.getcwd(), "n*phi*phi*D*"))
-        print subdirs
+        print(subdirs)
         if args.ncores > 1 and args.method != 'mbar':
             mypool = mp.Pool(ncores)
             try:

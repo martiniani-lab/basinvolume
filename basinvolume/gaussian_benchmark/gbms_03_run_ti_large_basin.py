@@ -1,5 +1,9 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
+from builtins import range
+from builtins import object
 import argparse as ap
 import copy
 import numpy as np
@@ -21,11 +25,11 @@ from basinvolume.post_processing import F_Basin_From_MC_Data_Free_COM
 from basinvolume.post_processing import spring_constants_variable_transform
 
 try:
-    from computer_common import ComputerCommon
-    from computer_common import run_computer
-    from gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
-    from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
-    from gbms_01_run_brute_large_basin import EngineCommonOpt
+    from .computer_common import ComputerCommon
+    from .computer_common import run_computer
+    from .gaussian_benchmark_kmax_run import GaussianBenchmarkKmaxRun
+    from .gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
+    from .gbms_01_run_brute_large_basin import EngineCommonOpt
 except Exception as e:
     print(e)
 
@@ -152,11 +156,11 @@ class TIEngine(EngineCommonOpt):
                                                  nparticles=1)
         self.kmin_run.run_kmin()
         self.displ2_kmin_mean, self.displ2_kmin_variance = self.kmin_run.get_displ2_kmin()
-        print("TI ko step", self.takestep.get_stepsize())
+        print(("TI ko step", self.takestep.get_stepsize()))
         if self.verbose:
-            print("displ2_kmin", self.displ2_kmin_mean)
-            print("displ2_kmin_variance", self.displ2_kmin_variance)
-            print("kmin niter:", self.kmin_run.get_iterations_count())
+            print(("displ2_kmin", self.displ2_kmin_mean))
+            print(("displ2_kmin_variance", self.displ2_kmin_variance))
+            print(("kmin niter:", self.kmin_run.get_iterations_count()))
         
     def setup_ti_pt_walks(self):
         self.all_k_values = spring_constants_variable_transform(self.ti_parameters["nprocs"] + 1,
@@ -187,7 +191,7 @@ class TIEngine(EngineCommonOpt):
         self.evaluations = self.conftest_check_same_minimum.get_nfev()
     
     def continue_pt_walks(self):
-        for i in xrange(len(self.direct_k_values)):
+        for i in range(len(self.direct_k_values)):
             m, v = self.direct_k_walkers[i].one_iteration_walk()
             self.direct_k_u2_means[i] = m
             self.direct_k_u2_variances[i] = v
@@ -248,28 +252,28 @@ class DirectKWalker(object):
         Monte Carlo steps to the biased walk.
         """
         if self.verbose:
-            print("step_choice_equilibration: number of MC iterations before:", self.ki_run.get_iterations_count())
+            print(("step_choice_equilibration: number of MC iterations before:", self.ki_run.get_iterations_count()))
         self.ki_run.niter = self.ti_parameters["equilibration_steps"]
         self.ki_run.run()
         if self.verbose:
-            print("equilibration_steps", self.ti_parameters["equilibration_steps"])
-            print("self.k_value", self.k_value)
-            print("self.takestep.get_stepsize()", self.takestep.get_stepsize())
-            print("self.ki_run.get_accepted_fraction()", self.ki_run.get_accepted_fraction())
-            print("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count())
-            print("step_choice_equilibration: number of MC iterations after:", self.ki_run.get_iterations_count())
-            print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+            print(("equilibration_steps", self.ti_parameters["equilibration_steps"]))
+            print(("self.k_value", self.k_value))
+            print(("self.takestep.get_stepsize()", self.takestep.get_stepsize()))
+            print(("self.ki_run.get_accepted_fraction()", self.ki_run.get_accepted_fraction()))
+            print(("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count()))
+            print(("step_choice_equilibration: number of MC iterations after:", self.ki_run.get_iterations_count()))
+            print(("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev()))
             print("------")
         
     def one_iteration_walk(self):
         if self.verbose:
-            print("one_iteration_walk: number of MC iterations before:", self.ki_run.get_iterations_count())
+            print(("one_iteration_walk: number of MC iterations before:", self.ki_run.get_iterations_count()))
         self.ki_run.niter = self.ti_parameters["nr_samples_increment"]
         self.ki_run.run()
         if self.verbose:
-            print("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count())
-            print("one_iteration_walk: number of MC iterations after:", self.ki_run.get_iterations_count())
-            print("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev())
+            print(("self.action_record_displ_ki.get_count()", self.action_record_displ_ki.get_count()))
+            print(("one_iteration_walk: number of MC iterations after:", self.ki_run.get_iterations_count()))
+            print(("self.conftest_check_same_minimum.get_nfev()", self.conftest_check_same_minimum.get_nfev()))
         return self.ki_run.get_displ2_kmin()
 
 

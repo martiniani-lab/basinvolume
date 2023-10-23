@@ -1,4 +1,13 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import input
+from builtins import str
+from builtins import zip
+from builtins import range
+from past.builtins import basestring
+from builtins import object
 import numpy as np
 import os
 from scipy.special import gamma, rgamma, gammaln
@@ -8,7 +17,7 @@ import basinvolume
 import pele
 import mcpele
 import sys, traceback
-import ConfigParser
+import configparser
 import pandas as pd
 import glob
 from itertools import chain
@@ -20,7 +29,7 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
-    print err
+    print(err)
 
 class Bunch(dict):
     def __init__(self, *args, **kwds):
@@ -35,7 +44,7 @@ def _sort_pair(x,y):
     sorts x and moves elements of y accordingly
     """
     xc = np.array(x)
-    points = zip(xc,y)
+    points = list(zip(xc,y))
     sorted_points = sorted(points)
     new_x = np.array([point[0] for point in sorted_points])
     new_y = np.array([point[1] for point in sorted_points])
@@ -90,7 +99,7 @@ def trymakedir(path):
             try:
                 os.makedirs(path)
                 break
-            except OSError, e:
+            except OSError as e:
                 if e.errno != 17:
                     raise
                 # time.sleep might help here
@@ -105,8 +114,8 @@ def view_traceback():
     filename = f.f_code.co_filename
     linecache.checkcache(filename)
     line = linecache.getline(filename, lineno, f.f_globals)
-    print 'EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
-    print 'Traceback: \n', traceback.print_tb(tb)
+    print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
+    print('Traceback: \n', traceback.print_tb(tb))
     del tb
 
 def put_in_box(x, boxvec):
@@ -189,7 +198,7 @@ def read_xydr(fname, etol=1.0, bdim=2):
         coords.extend([float(x), float(y)])
         radii.extend([float(d)])
         rattler = float(float(r) >= etol)
-        for _ in xrange(bdim): 
+        for _ in range(bdim): 
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
 
@@ -211,7 +220,7 @@ def read_xydfr(fname, etol=1.0, bdim=2):
         if bool(int(fr)):
             frozen.extend([i])
         rattler = float(float(r) >= etol)
-        for _ in xrange(bdim): 
+        for _ in range(bdim): 
             rattlers.extend([rattler])
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
@@ -229,7 +238,7 @@ def read_xyzdr(fname, etol=1.0, bdim=3):
         coords.extend([float(x), float(y), float(z)])
         radii.extend([float(d)])
         rattler = float(float(r) >= etol)
-        for _ in xrange(bdim): 
+        for _ in range(bdim): 
             rattlers.extend([rattler])
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(rattlers, dtype='d')
 
@@ -250,7 +259,7 @@ def read_xyzdfr(fname, etol=1.0, bdim=3):
         if bool(int(fr)):
             frozen.extend([i])
         rattler = float(float(r) >= etol)
-        for _ in xrange(bdim): 
+        for _ in range(bdim): 
             rattlers.extend([rattler])
         i+=1
     return np.array(coords, dtype='d'), np.array(radii, dtype='d'), np.array(frozen, dtype='int'), np.array(rattlers, dtype='d')
@@ -379,7 +388,7 @@ def get_git_version_from_build(repository="basinvolume"):
         f.close()
     except (OSError, IOError) as e:
         sys.stderr.write("WARNING: no version.py file found\n path: " + version_path + "\n")
-        print "error", e
+        print("error", e)
     return result
 
 def get_git_version(repository="basinvolume", from_build=True):
@@ -394,8 +403,8 @@ def get_python_version():
 def get_cython_version():
     try:
         from Cython.Compiler.Version import version
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         version="not known"
     return version
 
@@ -471,15 +480,15 @@ class OutlierDetection(object):
     def is_distant_point(self, central_datum, other_datum):
         return np.abs(central_datum - other_datum) > self.D
     def print_parameters_statistics(self):
-        print "OutlierDetection:"
-        print "parameter p:", self.p
-        print "parameter D:", self.D
-        print "number of outliers:", len(self.outliers)
+        print("OutlierDetection:")
+        print("parameter p:", self.p)
+        print("parameter D:", self.D)
+        print("number of outliers:", len(self.outliers))
         if len(self.outliers) + len(self.non_outliers) > 0:
-            print "fraction of outliers:", len(self.outliers) / (len(self.outliers) + len(self.non_outliers))
-        print "mean of non_outliers:", np.mean(self.non_outliers)
-        print "mean of outliers:", np.mean(self.outliers)
-        print "outliers:", self.outliers
+            print("fraction of outliers:", len(self.outliers) / (len(self.outliers) + len(self.non_outliers)))
+        print("mean of non_outliers:", np.mean(self.non_outliers))
+        print("mean of outliers:", np.mean(self.outliers))
+        print("outliers:", self.outliers)
         
 class MomentsAcc(object):
     def __init__(self):
@@ -525,7 +534,7 @@ class CDFAccumulator(object):
             self.data_x[inp] = 1
         self.total_number += 1
     def get_vecdata(self):
-        x = self.data_x.keys()
+        x = list(self.data_x.keys())
         x = sorted(x)
         cdf_x = []
         remaining_x = self.total_number
@@ -639,12 +648,12 @@ def simple_overlap_check(coords, radii, boxlength):
             if boxed > 0.5 * boxlength:
                 return boxed - boxlength
             return boxed
-        return np.sum(np.array([np.square(box(coords[a * boxdim + ii] - coords[b * boxdim + ii])) for ii in xrange(boxdim)]))
+        return np.sum(np.array([np.square(box(coords[a * boxdim + ii] - coords[b * boxdim + ii])) for ii in range(boxdim)]))
     def pair_is_overlapping(a, b):
         radii_sum = radii[a] + radii[b]
         return get_dist2(a, b) < radii_sum**2
-    for ii in xrange(nr_particles - 1):
-        for jj in xrange(ii + 1, nr_particles):
+    for ii in range(nr_particles - 1):
+        for jj in range(ii + 1, nr_particles):
             if pair_is_overlapping(ii, jj):
                 return True # At least one overlap.
     return False # No overlap.
@@ -655,7 +664,7 @@ def check_kmax_reasonable(kmax_configpath, max_kmax=5e5):
     read kmax then it assumes that it is reasonable. It is essential
     that if reading kmax_configpath fail this functions returns True
     """
-    configf = ConfigParser.ConfigParser()
+    configf = configparser.ConfigParser()
     try:
         configf.read(str(kmax_configpath))
         kmax = configf.getfloat('FINDK','kmax')
@@ -688,7 +697,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        choice = raw_input().lower()
+        choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -712,8 +721,8 @@ def asphericity_factor(evals):
     evals = np.sort(np.array(evals))[::-1]
     ndof = evals.size
     A = 0.
-    for i in xrange(ndof):
-        for j in xrange(i,ndof):
+    for i in range(ndof):
+        for j in range(i,ndof):
             A += (evals[i]-evals[j])**2
     A /= (ndof-1)*np.sum(evals)**2
     return A
@@ -731,7 +740,7 @@ def trajectory_pca(traj):
         array of containing trajectory with shape (npoints, ndof)
     """
     ndof = np.shape(traj)[1]
-    cov_mat = np.cov([traj[:,i] for i in xrange(ndof)])
+    cov_mat = np.cov([traj[:,i] for i in range(ndof)])
     eig_val_cov, eig_vec_cov = np.linalg.eig(cov_mat)
     idx = eig_val_cov.argsort()[::-1]   
     eig_val_cov = eig_val_cov[idx]
@@ -741,8 +750,8 @@ def trajectory_pca(traj):
 def write_2d_array_to_hf5(array, key, path):
     assert array.ndim == 2
     nind , ncol = array.shape
-    ind = [i for i in xrange(nind)]
-    col = [i for i in xrange(ncol)]
+    ind = [i for i in range(nind)]
+    col = [i for i in range(ncol)]
     df = pd.DataFrame(array, index=ind, columns=col)
     df.to_hdf(path, key, complevel=9, complib='blosc')
 
@@ -776,14 +785,14 @@ def import_pt_time_series(explore_dir, report_steps,
     try:
         timeseries = read_hf5_to_2d_array(tsframe, 'ts')
         if crop_report_steps:
-            print 'cropping report_steps'
+            print('cropping report_steps')
             timeseries = timeseries[:,int(report_steps):]
-        print 'timeseries shape ', np.shape(timeseries)
+        print('timeseries shape ', np.shape(timeseries))
         if max_series_size > 0 and  np.shape(timeseries)[1] > max_series_size:
             #need subsample and probably crop
             tsl = np.shape(timeseries)[1]
-            print 'subsampling timeseries because np.shape(timeseries)[1] > max_series_size'
-            print 'subsampling every {} steps'.format(int(tsl/max_series_size))
+            print('subsampling timeseries because np.shape(timeseries)[1] > max_series_size')
+            print('subsampling every {} steps'.format(int(tsl/max_series_size)))
             timeseries = timeseries[:, ::max(int(tsl/max_series_size),1)]
     except Exception:
         traceback.print_exc(file=sys.stdout)
@@ -821,7 +830,7 @@ def import_pt_time_series_raw(explore_dir, report_steps, max_series_size=0, ncor
     for subdir, dirs, files in os.walk(explore_dir):
         for dir in dirs:
             if dir.isdigit():
-                print "importing replica ", dir
+                print("importing replica ", dir)
                 series_order.append(int(dir))
                 path = os.path.join(explore_dir, dir)
                 file_list = glob.glob(path + '/TimeSeries*')
@@ -839,8 +848,8 @@ def import_pt_time_series_raw(explore_dir, report_steps, max_series_size=0, ncor
                 series.extend(read_txt(file_list[0], report_steps, max_series_size).tolist() )
                 try:
                     results = Parallel(n_jobs=ncores)(delayed(read_txt)(series_path, 0, other_max_size) for series_path in file_list[1:])
-                except Exception, e:
-                    print e
+                except Exception as e:
+                    print(e)
                     results = []
                     for series_path in file_list[1:]:
                         results.append(read_txt(series_path, 0, other_max_size))
@@ -855,7 +864,7 @@ def del_pt_time_series_raw(explore_dir):
     for subdir, dirs, files in os.walk(explore_dir):
         for dir in dirs:
             if dir.isdigit():
-                print "del replica raw replica timeseries ", dir
+                print("del replica raw replica timeseries ", dir)
                 path = os.path.join(explore_dir, dir)
                 filelist = glob.glob(os.path.join(path, "TimeSeries.*"))
                 for f in filelist:
@@ -883,7 +892,7 @@ def import_pt_cloud_drops_time_series_raw(explore_dir, max_series_size=int(1e5),
     for subdir, dirs, files in os.walk(explore_dir):
         for dir in dirs:
             if dir.isdigit():
-                print "importing replica ", dir
+                print("importing replica ", dir)
                 series_order.append(int(dir))
                 path = os.path.join(explore_dir, dir)
                 file_list = glob.glob(path + '/TimeSeries*')
@@ -901,14 +910,14 @@ def import_pt_cloud_drops_time_series_raw(explore_dir, max_series_size=int(1e5),
                 try:
                     results = Parallel(n_jobs=ncores)(delayed(read_hf5_to_2d_array)(series_path, 'drops_ts') for
                                                       series_path in file_list)
-                except Exception, e:
-                    print e
+                except Exception as e:
+                    print(e)
                     results = []
                     for series_path in file_list:
                         results.append(read_hf5_to_2d_array(series_path, 'drops_ts'))
                 results = list(chain.from_iterable(results))
                 #subsample to match maximum array size
-                print "here", np.shape(results)
+                print("here", np.shape(results))
                 ss = max(1, np.size(results)//max_series_size)
                 ss = max(1, ss // np.shape(results)[1])
                 series.extend(results[1::ss])
@@ -939,8 +948,8 @@ def import_pt_cloud_drops_time_series_raw_single(replica_dir, max_series_size=in
     try:
         results = Parallel(n_jobs=ncores)(delayed(read_hf5_to_2d_array)(series_path, 'drops_ts') for
                                           series_path in file_list)
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         results = []
         for series_path in file_list:
             results.append(read_hf5_to_2d_array(series_path, 'drops_ts'))
@@ -1023,7 +1032,7 @@ def sort_pair(x,y, reverse=False):
     sorts x and moves elements of y accordingly
     """
     xc = np.array(x)
-    points = zip(xc,y)
+    points = list(zip(xc,y))
     sorted_points = sorted(points, key=lambda x: x[0], reverse=reverse)
     new_x = np.array([point[0] for point in sorted_points])
     new_y = np.array([point[1] for point in sorted_points])

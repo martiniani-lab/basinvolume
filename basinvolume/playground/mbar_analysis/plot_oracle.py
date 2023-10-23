@@ -1,4 +1,8 @@
 from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import range
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from matplotlib.ticker import ScalarFormatter
@@ -8,7 +12,7 @@ import numpy as np
 import os
 import glob
 import gc
-import cPickle as pickle
+import pickle as pickle
 from itertools import cycle
 from cycler import cycler
 import argparse
@@ -41,9 +45,9 @@ class FixedOrderFormatter(ScalarFormatter):
 def get_color_cycle(ncolors=20, reverse=True):
     cm = plt.get_cmap('Paired')
     if reverse:
-        color_cycle=cycle([cm(1. * (i+0.5) / float(ncolors)) for i in xrange(ncolors)][::-1])
+        color_cycle=cycle([cm(1. * (i+0.5) / float(ncolors)) for i in range(ncolors)][::-1])
     else:
-        color_cycle = cycle([cm(1. * (i - 0.5) / float(ncolors)) for i in xrange(ncolors)])
+        color_cycle = cycle([cm(1. * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
     return color_cycle
 def get_marker_cycle():
     markers = ["s","o","v","^","<",">","*","D","h","8","p"]
@@ -56,9 +60,9 @@ def get_line_cycle():
 def get_cycler(ncolors=20, reverse=True):
     cm = plt.get_cmap('Paired')
     if reverse:
-        color_cycler = cycler('color', [cm(1. * (i+0.5) / float(ncolors)) for i in xrange(ncolors)][::-1])
+        color_cycler = cycler('color', [cm(1. * (i+0.5) / float(ncolors)) for i in range(ncolors)][::-1])
     else:
-        color_cycler = cycler('color', [cm(1. * (i - 0.5) / float(ncolors)) for i in xrange(ncolors)])
+        color_cycler = cycler('color', [cm(1. * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
     return color_cycler
 
 ###########################################################
@@ -83,7 +87,7 @@ def plot_sphere(figdir="figures"):
     d = datasets[0]
     y, y2 = [], []
     x = sorted(d.ndim_list)
-    color = color_cycle.next()
+    color = next(color_cycle)
     for i, n in enumerate(x):
         y.append(log_volume_nball(d.geom_params_list[i][0], n))
         y2.append(n * d.geom_params_list[i][0] ** 2 / (n + 2))
@@ -98,8 +102,8 @@ def plot_sphere(figdir="figures"):
             label = "$k={}$".format(d.cloud_points)
         else:
             label = "$k={}, PT$".format(d.cloud_points)
-        color = color_cycle.next()
-        marker = marker_cycle.next()
+        color = next(color_cycle)
+        marker = next(marker_cycle)
         x, y = sort_pair(d.ndim_list, d.f_list, reverse=False)
         x, y_err = sort_pair(d.ndim_list, d.ferr_list, reverse=False)
         ax0.errorbar(x, -y, marker=marker, color=color, yerr=2*y_err, linestyle="",
@@ -145,7 +149,7 @@ def plot_sphere_exp_decay(figdir="figures"):
     d = datasets[0]
     y= []
     x = sorted(d.ndim_list)
-    color = color_cycle.next()
+    color = next(color_cycle)
     for i, n in enumerate(x):
         ts = CheckExponentiallyDecayingProfile(np.zeros(n), d.geom_params_list[i][0],
                                                d.geom_params_list[i][1], cubic=False)
@@ -161,8 +165,8 @@ def plot_sphere_exp_decay(figdir="figures"):
         #     label = "$k={}$".format(d.cloud_points)
         if d.pt:
             label = "$k={}, PT$".format(d.cloud_points)
-            color = color_cycle.next()
-            marker = marker_cycle.next()
+            color = next(color_cycle)
+            marker = next(marker_cycle)
             x, y = sort_pair(d.ndim_list, d.f_list, reverse=False)
             x, y_err = sort_pair(d.ndim_list, d.ferr_list, reverse=False)
             ax0.errorbar(x, -y, marker=marker, color=color, yerr=2*y_err,

@@ -31,10 +31,14 @@ PDF description.
 """
 
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import re
     import matplotlib.pyplot as plt
@@ -57,20 +61,20 @@ try:
     from basinvolume.post_processing import BasinAnalysis
     from joblib import Parallel, delayed
 except ImportError as err:
-    print err
+    print(err)
 
 def _entropy(name, out_path, sanity_check, free_energies):
     computer = name(free_energies, sanity_check)
     try:
         computer.compute_and_write_entropy(out_path)
     except Exception as ex:
-        print("Exception occured in ", name)
+        print(("Exception occured in ", name))
         print(ex)
 
 def _compute_write_entropies(data_set):
-    print("compute and write entropies for dataset with name", data_set.set_name)
+    print(("compute and write entropies for dataset with name", data_set.set_name))
     entropy_base_output_path = os.path.join(data_set.set_path, 'entropy_analysis_all')
-    print("entropy_base_output_path", entropy_base_output_path)
+    print(("entropy_base_output_path", entropy_base_output_path))
     trymakedir(entropy_base_output_path)
     volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
     outliers = OutlierDetection(data_set.free_energies, p=0.5, D=3*np.std(data_set.free_energies))
@@ -79,7 +83,7 @@ def _compute_write_entropies(data_set):
     try:
         unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
     except Exception as ex:
-        print("Exception occured in unbiasing for log omega:", ex)
+        print(("Exception occured in unbiasing for log omega:", ex))
     _entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, free_energies)
     _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, free_energies)
     _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)
@@ -88,9 +92,9 @@ def _compute_write_entropies_msf(data_set, ik=0.1834006350297304, a=0.9671020810
     """
     compute free energy from pressure and use these to compute entropy
     """
-    print("compute and write entropies for dataset with name", data_set.set_name)
+    print(("compute and write entropies for dataset with name", data_set.set_name))
     entropy_base_output_path = os.path.join(data_set.set_path, 'msf_entropy_analysis_all')
-    print("entropy_base_output_path", entropy_base_output_path)
+    print(("entropy_base_output_path", entropy_base_output_path))
     trymakedir(entropy_base_output_path)
     volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
     outliers = OutlierDetection(data_set.free_energies, p=0.5, D=3*np.std(data_set.free_energies))
@@ -101,7 +105,7 @@ def _compute_write_entropies_msf(data_set, ik=0.1834006350297304, a=0.9671020810
     try:
         unbias_log_omega.compute_log_omega_entropy(volume_sanity_check)
     except Exception as ex:
-        print("Exception occured in unbiasing for log omega:", ex)
+        print(("Exception occured in unbiasing for log omega:", ex))
     _entropy(APFEntropy, os.path.join(entropy_base_output_path, "entropy_APF"), volume_sanity_check, free_energies)
     _entropy(KernelDensityLogOmegaJackKnife, os.path.join(entropy_base_output_path, "entropy_kernel_density"), volume_sanity_check, free_energies)
     _entropy(MLLogOmega, os.path.join(entropy_base_output_path, "entropy_ML_LogOmega"), volume_sanity_check, free_energies)

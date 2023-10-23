@@ -1,4 +1,9 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import numpy as np
 import abc
 import os
@@ -6,7 +11,7 @@ from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.spheres import BV_MCrunner, _configure_mcrunner
 from basinvolume.utils import *
-import ConfigParser
+import configparser
 import time
 
 class _kmin_exp_mcrunner(_configure_mcrunner):
@@ -37,15 +42,15 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         
         #select rcontainer to correspond to frozen particle furthest away
         rcontainer = 0
-        for i in xrange(len(self.hs_radii)):
+        for i in range(len(self.hs_radii)):
             r2=0
-            for j in xrange(self.bdim):
+            for j in range(self.bdim):
                 r2 += self.coords[i*self.bdim+j] * self.coords[i*self.bdim+j]
             if r2 > (rcontainer*rcontainer):
                 rcontainer = np.sqrt(r2)
                 index = i
                 if verbose:
-                    print "new rcontainer",rcontainer
+                    print("new rcontainer",rcontainer)
         #rcontainer -= self.hs_radii[index] #subtract radius of furthest most particle from rcontainer
         
         #self.mc_params = dict(k=k, temperature=temperature, )    
@@ -59,7 +64,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         try:
             self.mc_params.update(seeds)
         except:
-            print "WARNING:seeds not passed"
+            print("WARNING:seeds not passed")
         
         self._requench_coords(dtol, opt_maxstep, verbose, frozen=True)
         
@@ -104,7 +109,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         self.configfile = '{}/{}.config'.format(self.base_directory,configfile)
     
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.configpath))
         self.nparticles = configf.getint('JAMMED_PACKING','nparticles')
         self.bdim = configf.getint('JAMMED_PACKING','boxdim')
@@ -143,7 +148,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         assert(self.sca >0)
         f.write('sca: {:.16f}\n'.format(self.sca))
         f.write('[KMIN_MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
     
     def _print_results(self):
@@ -155,7 +160,7 @@ class _kmin_exp_mcrunner(_configure_mcrunner):
         f = open(fname,'a')
         f.write('[KMIN_MCRUNNER_STATUS]\n')
         status = self.mcrunner.get_status()
-        for key, value in status.iteritems() :
+        for key, value in list(status.items()) :
             f.write('{}: {}\n'.format(key,value))
         f.write('[KMIN]\n')
         f.write('displ_k_min: {:.16f}\n'.format(self.displ_k_min))
@@ -169,15 +174,15 @@ if __name__ == "__main__":
     
     sim = _kmin_exp_mcrunner('jammed_packing1.xydfr', k=289.508273354, niter=5e5, opt_tol=1e-7, 
                              seeds=seeds, single=True, use_cell_lists=True, verbose=True, use_cgd=True)
-    print 'simulation started'
+    print('simulation started')
     start=time.time()
     sim.run()
     end=time.time()
-    print 'time elapsed', end-start
+    print('time elapsed', end-start)
     status = sim.mcrunner.get_status()
-    print status
-    print 'd2 kmin: ',sim.displ_k_min
-    print 'var: ',sim.var_displ_k_min
+    print(status)
+    print('d2 kmin: ',sim.displ_k_min)
+    print('var: ',sim.var_displ_k_min)
     sim.mcrunner.show_histogram()
     
     

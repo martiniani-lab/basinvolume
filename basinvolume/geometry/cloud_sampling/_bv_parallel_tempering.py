@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import print_function
 
 import numpy as np
 import time
@@ -82,8 +83,8 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
         assert(self.eq_max_ptiter > self.eq_min_ptiter)
         assert((self.eq_max_ptiter-self.eq_min_ptiter)*self.mcrunner.niter > self.min_window) #condition on the minimal window size
         if not (self.min_window > self.mcrunner_eqsteps):
-            print("self.min_window", self.min_window)
-            print("self.mcrunner_eqsteps", self.mcrunner_eqsteps)
+            print(("self.min_window", self.min_window))
+            print(("self.mcrunner_eqsteps", self.mcrunner_eqsteps))
         assert(self.min_window > self.mcrunner_eqsteps)
         assert(self.max_eq_time > self.mcrunner_eqsteps)
         
@@ -104,10 +105,10 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
         self._all_dump_timeseries() #convergence is tested in this function
         #the histogram depends on self.timeseries that is not empty only once the ts test is passed
         print("_print_data -- BEGIN")
-        print("self.ptiter", self.ptiter)
-        print("self.eq_min_ptiter", self.eq_min_ptiter)
-        print("self.timeseries2.size", self.timeseries2.size)
-        print("self.mcrunner_eqsteps", self.mcrunner_eqsteps)
+        print(("self.ptiter", self.ptiter))
+        print(("self.eq_min_ptiter", self.eq_min_ptiter))
+        print(("self.timeseries2.size", self.timeseries2.size))
+        print(("self.mcrunner_eqsteps", self.mcrunner_eqsteps))
         if self.ptiter >= self.eq_min_ptiter and self.timeseries2.size > self.mcrunner_eqsteps:
             self._all_dump_histogram()
         print("_print_data -- END")
@@ -127,7 +128,7 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
         assert self.timeseries2.shape == (self.timeseries2.size,), "timeseries2 shape is not flat"
         if self.test_convergence and self.ptiter > self.eq_min_ptiter:
             if self.timeseries2.size < self.mcrunner_eqsteps:
-                print "core {} attempted to test convergence before the mcrunner equilibration steps had terminated".format(self.rank)
+                print("core {} attempted to test convergence before the mcrunner equilibration steps had terminated".format(self.rank))
                 return self.max_ptiter
             else:
                 return self._test_ts_convergence()
@@ -145,8 +146,8 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
                 eq_time = np.amin([self.max_eq_time, self.timeseries2.size])
                 self.eq_time = self.eq_time
             else:
-                print "detecting equilibration point"
-                print "timeseries size", self.timeseries2.size
+                print("detecting equilibration point")
+                print("timeseries size", self.timeseries2.size)
                 # self.timeseries2[::self.ndrops] subsampling now done in test convergence function one level up
                 eq_time = detectEquilibration_binary_search(self.timeseries2, bs_nodes=self.bs_nodes)[0]
                 eq_time = int(np.amin([self.timeseries2.size-1, int(eq_time)]))
@@ -164,16 +165,16 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
                 self.eq_time = np.amin([self.timeseries2.size // 1.5, self.eq_time])
                 self.eq_time = int(self.eq_time)
             end=time.time()
-            print ("core {} set_eq_time: {} comp_eq_time: {} "
+            print(("core {} set_eq_time: {} comp_eq_time: {} "
             "mcrunner_eqsteps: {} len(timeseseries2): {} "
             "time detect equilibration: {}").format(self.rank, self.eq_time, eq_time,
-                                                  self.mcrunner_eqsteps, self.timeseries2.size, end-start)
+                                                  self.mcrunner_eqsteps, self.timeseries2.size, end-start))
         #only keep time series from after the equilibration point, this references original data
         timeseries2 = self.timeseries2[self.eq_time:]
         new_max_ptiter = self._find_new_max_ptiter(timeseries2)
         #if self.verbose:
-        print "new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter)
-        print "core {} autocorrelation time {}".format(self.rank, self.autocorr)
+        print("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
+        print("core {} autocorrelation time {}".format(self.rank, self.autocorr))
         return new_max_ptiter
     
     def _find_new_max_ptiter(self, timeseries2):
@@ -187,7 +188,7 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
         #to reduce nskip (use more points) make the factor by which timeseries.size is divided by larger
         maxsize = int(1e6)
         nskip = max(int(np.round(timeseries2.size/maxsize)),1)
-        print "core {}: timeseries2.size {}, maxsizze {}, nskip {}".format(self.rank, timeseries2.size, maxsize, nskip)
+        print("core {}: timeseries2.size {}, maxsizze {}, nskip {}".format(self.rank, timeseries2.size, maxsize, nskip))
         tau = integratedAutocorrelationTime_fft(timeseries2[::nskip]) * nskip
         assert np.isfinite(tau)
         self.autocorr.extend([tau])
@@ -196,7 +197,7 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
         sample_size = timeseries2.size
         rel_err = np.sqrt(var*(1+2*tau)/sample_size) / mean
         self.rel_std_err_arr.extend([rel_err])
-        print "core {} relative standard error {}".format(self.rank, rel_err)
+        print("core {} relative standard error {}".format(self.rank, rel_err))
         
         #compute by how much to extend the time series, if has at least 1e5
         if sample_size < self.min_window: #self.autocorr[-1]*100
@@ -276,8 +277,8 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
                 assert grid.size == self.numnegk
                 for x in grid[::-1]:
                     Tarray.insert(0, x)
-            print "len Tarray", len(Tarray)
-            print "Tarray:", Tarray
+            print("len Tarray", len(Tarray))
+            print("Tarray:", Tarray)
             self.Tarray = np.array(Tarray[::-1],dtype='d')
         else:
             self.Tarray = None
@@ -312,7 +313,7 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
         clouds = self._gather_objects(self.cloud)
         if self.verbose:
             if clouds is not None:
-                print "len(clouds)", len(clouds)
+                print("len(clouds)", len(clouds))
         #find exchange pattern (list of exchange buddies)
         exchange_pattern = self._find_exchange_buddy(clouds)
         #now scatter the exchange pattern so that everybody knows who their buddy is
@@ -348,7 +349,7 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
             
             for i in self.nodelist[1::2]:
                 if self.verbose:
-                    print 'exchange choice: ',self.exchange_dic[self.exchange_choice] #this is a print statement that has to be removed after initial implementation
+                    print('exchange choice: ',self.exchange_dic[self.exchange_choice]) #this is a print statement that has to be removed after initial implementation
                 
                 cloud1 = clouds[i]
                 T1 = self.Tarray[i]
@@ -493,7 +494,7 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
         self._get_temps()
         self.T = self._scatter_single_value(self.Tarray)
         if self.verbose:
-            print "processor {0} temperature {1}".format(self.rank, self.T)
+            print("processor {0} temperature {1}".format(self.rank, self.T))
         self.mcrunner.set_control(self.T)
         self.config, self.energy = self.mcrunner.get_config()
         self.cloud = self.mcrunner.cloud_test.get_old_cloud()

@@ -1,8 +1,17 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import str
+from builtins import map
+from builtins import zip
+from builtins import range
+from builtins import object
 try:
     import numpy as np
     import argparse
-    import ConfigParser
+    import configparser
     import os
     import re
     import matplotlib.pyplot as plt
@@ -15,7 +24,7 @@ try:
     from scipy.integrate import simps
     import glob
 except ImportError as err:
-    print err
+    print(err)
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
@@ -30,7 +39,7 @@ cm = plt.get_cmap('Dark2')
 #####################LINE STYLE CYCLER####################                             
 lines = ["-","--","-."]
 linecycler = cycle(lines)
-color_cycle=cycle([cm(1. * i / 6) for i in xrange(6)])
+color_cycle=cycle([cm(1. * i / 6) for i in range(6)])
 ##########################################################
 """
 for plotting a linear fit with intervals of confidence see http://nbviewer.ipython.org/url/bagrow.com/dsv/LEC10_notes_2014-02-13.ipynb
@@ -141,7 +150,7 @@ class plot_mbar_data(object):
                     npack = int(re.findall('\d+', folder)[0])
                     if self.Nrange[0] <= npack <= self.Nrange[1]:
                         #collect volume
-                        configf = ConfigParser.ConfigParser()
+                        configf = configparser.ConfigParser()
                         fpath = os.path.join(path, mbar_data.volume_file)
                         if os.path.isfile(fpath):
                             configf.read(fpath)
@@ -150,7 +159,7 @@ class plot_mbar_data(object):
                             mbar_data.free_energies.append((F, Ferr))
                             mbar_data.acc_free_energies.append(Facc)
                         #collect boo (bond orientational order parameter)
-                        configf = ConfigParser.ConfigParser()
+                        configf = configparser.ConfigParser()
                         fpath = os.path.join(path, mbar_data.boo_file)
                         if os.path.isfile(fpath):
                             configf.read(fpath)
@@ -257,8 +266,8 @@ class plot_mbar_data(object):
         plt.ylabel(ylabel)
         try:
             ax.legend(frameon=False, loc="best")
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             
         if title:
             plt.title(title)
@@ -372,8 +381,8 @@ class plot_mbar_data(object):
         plt.ylabel(ylabel)
         try:
             ax.legend(frameon=False, loc="best", numpoints=1)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         if logx:
             ax.set_xscale('log')
         if logy:
@@ -431,7 +440,7 @@ class plot_diffusion_data(object):
                 file_list = sorted(file_list, key = lambda x: int(x.split(".")[1]))
                 for series_path in file_list:
                     fname = str(os.path.split(series_path)[-1].split())
-                    digits = map(int, re.findall(r'\d+', fname))
+                    digits = list(map(int, re.findall(r'\d+', fname)))
                     series_order.append(digits[-1])
                     timeseries.append(read_txt(series_path))
                 X = np.array(timeseries)
@@ -448,7 +457,7 @@ class plot_diffusion_data(object):
                     #the last nth step 
                     mean_arr = []
                     nsubs = step_timeseries[0][eqtime:].size // n
-                    for j in xrange(nsubs):
+                    for j in range(nsubs):
                         mean_arr.append(np.sum(step_timeseries[0][eqtime+j*n:eqtime+(j+1)*n]))
                     mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
                     step_timeseries_mean_path.append(mean)
@@ -462,7 +471,7 @@ class plot_diffusion_data(object):
     
     def _plot(self, ax, csv_tuple, label=None, plot_err=False, plot_fit=False, normalize=False):
         (x, xerr, y, yerr, fit) = csv_tuple
-        color = color_cycle.next()
+        color = next(color_cycle)
         if normalize:
             area = simps(y, x)
             y = np.array(y) / area
@@ -484,7 +493,7 @@ class plot_diffusion_data(object):
             if plot_type == "logr_vs_logt" and x.size > 0:
                 pol = np.poly1d(np.polyfit(np.log(x)[:3], np.log(y)[:3], 1,  w=(y/dy)[:3])) #[5:-1]
                 w = np.polyfit(np.log(x)[:3], np.log(y)[:3], 1)
-                print w
+                print(w)
                 fit = pol(np.log(x))
                 csv_tuple = (np.log(x), dx/x, np.log(y), dy/y, fit)
                 ax = self._plot(ax, csv_tuple, label=label, plot_err=True, plot_fit=True)
@@ -513,8 +522,8 @@ class plot_diffusion_data(object):
         plt.ylabel(ylabel)
         try:
             ax.legend(frameon=False, loc="best")
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             
         if title:
             plt.title(title)

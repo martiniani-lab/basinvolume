@@ -1,4 +1,10 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import range
+from builtins import object
 from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize import Result
 from pele.optimize._quench import modifiedfire_cpp
@@ -7,7 +13,7 @@ import argparse
 from basinvolume.spheres import HS_Generate_Packing
 from basinvolume.spheres.generate_jammed_packing import cartesian_to_polar2d, sum_neighbor_angles2d
 from pele.utils._pressure_tensor import pressure_tensor
-import cPickle as pickle
+import pickle as pickle
 
 class GeneratePackingFindJ(HS_Generate_Packing):
     def __init__(self, nparticles, workspace=None, method='quench', bdim=3, boxv=None,
@@ -26,7 +32,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         self.opt_pot_str = opt_pot_str
         self.hs_packing_frac = ss_packing_frac / np.power(1.+sca, bdim)
         self.ss_packing_frac = ss_packing_frac
-        print self.hs_packing_frac, self.ss_packing_frac
+        print(self.hs_packing_frac, self.ss_packing_frac)
         super(GeneratePackingFindJ, self).__init__(nparticles, method=method, bdim=bdim, boxv=boxv,
                                                    packing_frac=self.hs_packing_frac, hs_radii=hs_radii, mu=mu,
                                                    sig=sig, new_poly=new_poly, hsf_niter=hsf_niter,
@@ -85,7 +91,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             self.Z_list.append([len(contacts) for contacts in self.contact_list])
         self.success_list.append(int(success))
         self.iteration += 1
-        print 'iteration ', self.iteration
+        print('iteration ', self.iteration)
 
     def _one_iteration_ss(self):
         """perform one iteration
@@ -98,7 +104,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
     def _setup_one_iteration_ss(self):
         # assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca_ss) >= np.amin(self.boxv) / 2:
-            print "WARNING: max soft diameter >= 1/2 box side!"
+            print("WARNING: max soft diameter >= 1/2 box side!")
         if np.amax(self.hs_radii) * 2 * (1 + self.sca_ss) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
 
@@ -146,8 +152,8 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             # x is a 3 array with the coordinates of the particles
             dij = np.zeros(self.bdim)
             dmin = np.amin(self.hs_radii) / 10.
-            for j in xrange(self.nparticles):
-                for k in xrange(self.bdim):
+            for j in range(self.nparticles):
+                for k in range(self.bdim):
                     # use distances to nearest image convention
                     dij[k] = ((self.coords_ss[j * self.bdim + k] - x[k]) -
                               cround((self.coords_ss[j * self.bdim + k] - x[k]) / self.boxv[k]) * self.boxv[k])
@@ -165,40 +171,40 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                 return False
             radii = hs_radii * (1. + self.sca_ss)
             self.contact_list, neighbors_index_list = self._find_nearest_neighbors_ss(coords, radii)
-            for i in xrange(len(hs_radii)):
+            for i in range(len(hs_radii)):
                 i1 = self.bdim * i
                 no_neighbors = len(self.contact_list[i])
                 # print "no_neighbors", no_neighbors
                 if no_neighbors < zmin:
                     found_rattler = True
-                    print "particle {} is not isostatic".format(i)
+                    print("particle {} is not isostatic".format(i))
                 else:
                     angles = [cartesian_to_polar2d(dij)[1] for dij in self.contact_list[i]]
                     neigh_vec = [x for (y, x) in sorted(zip(angles, self.contact_list[i]))]
                     sum_ = sum_neighbor_angles2d(neigh_vec)
                     found_rattler = np.abs(2 * np.pi - sum_) > 1e-10
                     if found_rattler:
-                        print "asymmetric contact rattler, 2pi - theta = {}".format(2 * np.pi - sum_)
+                        print("asymmetric contact rattler, 2pi - theta = {}".format(2 * np.pi - sum_))
                 # here assign correct index by searchin for the corresponding atom
                 j = get_index(coords[i1:i1 + self.bdim])
                 if found_rattler:
-                    coords = np.delete(coords, [i1 + k for k in xrange(self.bdim)])  # remove particle from array
+                    coords = np.delete(coords, [i1 + k for k in range(self.bdim)])  # remove particle from array
                     hs_radii = np.delete(hs_radii, [i])  # remove particle from array
                     self.nratls_ += 1
                     break
             look = True if found_rattler else False
-        print "n rattlers ", self.nratls_
+        print("n rattlers ", self.nratls_)
         return True
 
     def _find_nearest_neighbors_ss(self, coords, radii):
         nparticles = radii.size
-        nnatoms_list = [[] for _ in xrange(nparticles)]
-        nnatoms_index_list = [[] for _ in xrange(nparticles)]
-        for i in xrange(nparticles):
-            for j in xrange(i, nparticles):
+        nnatoms_list = [[] for _ in range(nparticles)]
+        nnatoms_index_list = [[] for _ in range(nparticles)]
+        for i in range(nparticles):
+            for j in range(i, nparticles):
                 if i != j:
                     dij = np.zeros(self.bdim)
-                    for k in xrange(self.bdim):
+                    for k in range(self.bdim):
                         # use distances to nearest image convention
                         dij[k] = ((coords[j * self.bdim + k] - coords[i * self.bdim + k]) -
                                   cround((coords[j * self.bdim + k] - coords[i * self.bdim + k]) / self.boxv[k]) *
@@ -224,7 +230,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         fire_maxstep = np.amin(self.hs_radii) * self.sca_ss
         res = modifiedfire_cpp(self.coords, self.potential_ss, maxstep=fire_maxstep, nsteps=1e6, tol=tol, iprint=iprint)
         if not res.success:
-            print 'quench failed'
+            print('quench failed')
             return False
 
         self.coords_ss = res.coords
@@ -233,13 +239,13 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         # test that on ri-minimisation the structure does not change
         res2 = modifiedfire_cpp(self.coords_ss, self.potential_ss, maxstep=fire_maxstep, nsteps=1e6, tol=tol)
         if res2.nfev > 1:
-            print 'quench failed (structure changed at second minimisation)'
+            print('quench failed (structure changed at second minimisation)')
             return False
 
         # asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
-            print 'overlap found'
+            print('overlap found')
             return False
 
         return self._find_rattlers()
@@ -286,7 +292,7 @@ if __name__ == "__main__":
     parser.add_argument("--moveall", action='store_true', help="move all particles at each step, default: False",default=False)
     parser.add_argument("--method", type=str, help="protocol to generate packings", default="quench")
     args = parser.parse_args()
-    print args
+    print(args)
     single = not args.moveall
     
     #import radii from other configuration file

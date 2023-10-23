@@ -1,4 +1,8 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
 import numpy as np
 import os
 from basinvolume.spheres import _Generate_Packing
@@ -109,9 +113,9 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         print("found packing %d of %d" % (self.iteration+1, self.max_iter))
         self.mobile_particle_radius = self.all_particles.mobile_particle_radius
         self.frozen_particle_radius = self.all_particles.frozen_particle_radius
-        for i in xrange(self.bdim):
+        for i in range(self.bdim):
             self.boxv[i] = self.frozen_particle_radius*2.1 # extra 0.1 because the box must fit the whole particle for voro
-        print "boxv", self.boxv
+        print("boxv", self.boxv)
         return small_packing
     
     def _set_packing_fraction(self):
@@ -122,7 +126,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         vcavity = self._get_voronoi_mobile_area()
         assert(0 < vparticle < vcavity)
         self.packing_frac = vparticle/vcavity
-        print "phi ",self.packing_frac
+        print("phi ",self.packing_frac)
     
     def _get_particles_volume(self):
         """returns volume of n=self.bdim dimensional sphere for mobile particles """
@@ -141,7 +145,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         coords = self.coords.reshape(-1,self.bdim).tolist()
         #get box limits
         limits = []
-        for i in xrange(self.bdim):
+        for i in range(self.bdim):
             limits.append([-self.boxv[i]/2,self.boxv[i]/2])
         #compute dispersion (max distance between two points that might be adjacent)
         dispersion = np.amax(self.hs_radii) * 2
@@ -186,21 +190,21 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
     def _check_no_overlaps(self):
         """check that no two particles are overlapping (using nearest image convention)"""
         no_overlap = True
-        for i in xrange(self.nparticles):
+        for i in range(self.nparticles):
             if no_overlap == True:
-                for j in xrange(i, self.nparticles):
+                for j in range(i, self.nparticles):
                     dij = 0
-                    for k in xrange(self.bdim):
+                    for k in range(self.bdim):
                         #use distances to nearest image convention
                         dij += np.square(self.coords[i*self.bdim+k] - self.coords[j*self.bdim+k])
                     if i != j:
                         dij = np.sqrt(dij)
                         dmin = self.hs_radii[i]+self.hs_radii[j]
                         if dij - dmin <= 0:
-                            print 'invalid configuration'
-                            print 'atoms {} {} are overlapping'.format(i,j)
-                            print 'real distance {}'.format(dij)
-                            print 'min distance {}'.format(dmin)
+                            print('invalid configuration')
+                            print('atoms {} {} are overlapping'.format(i,j))
+                            print('real distance {}'.format(dij))
+                            print('min distance {}'.format(dmin))
                             no_overlap = False
                             break
             else:
@@ -225,13 +229,13 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         if self.bdim == 2:
             fname = "{0}/packing{1}.xydf".format(directory,self.iteration)
             f = open(fname,'w')
-            for i in xrange(nparticles):
+            for i in range(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                   self.hs_radii[i]*2, int(self.frozen_idx[i])))
         elif self.bdim == 3:
             fname = "{0}/packing{1}.xyzdf".format(directory,self.iteration)
             f = open(fname,'w')
-            for i in xrange(nparticles):
+            for i in range(nparticles):
                 f.write('{:.16f}\t{:.16f}\t{:.16f}\t{:.16f}\t{}\n'.format(coords[i*self.bdim],coords[i*self.bdim+1],
                                                                coords[i*self.bdim+2],self.hs_radii[i]*2, int(self.frozen_idx[i])))
         else:
@@ -254,8 +258,8 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(np.amax(self.hs_radii)*2))
-            for i in xrange(nparticles):
-                for j in xrange(self.bdim):
+            for i in range(nparticles):
+                for j in range(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(0))
                 f.write('{}\t'.format(self.hs_radii[i]*2))
@@ -265,8 +269,8 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
             f.write('{} \t 0.0 \t 0.0\n'.format(boxv[0]))
             f.write('0.0 \t {} \t 0.0\n'.format(boxv[1]))
             f.write('0.0 \t 0.0 \t {}\n'.format(boxv[2]))
-            for i in xrange(nparticles):
-                for j in xrange(self.bdim):
+            for i in range(nparticles):
+                for j in range(self.bdim):
                     f.write('{}\t'.format(coords[i*self.bdim+j]))
                 f.write('{}\t'.format(self.hs_radii[i]*2))
                 f.write('{}\n'.format(colour-self.frozen_idx[i]))
@@ -328,7 +332,7 @@ if __name__ == "__main__":
     parser.add_argument('--all', action='store_true', default=False, help='extract maximum number of packings')
     parser.add_argument("--datafname", type=str, default="PackingsData_", help="file name of experimental data")
     args = parser.parse_args()
-    print args
+    print(args)
         
     sim = HS_Exp_Generate_Packing(args.nparticles, bdim=args.boxdim, max_iter=args.npackings, data_set_index=args.dataset_index,
                                   distance_from_boundary_x=args.distance_from_boundary_x, distance_from_boundary_y=args.distance_from_boundary_y, 

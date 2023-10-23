@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import object
 import argparse
 import os
 import copy
@@ -18,11 +21,11 @@ from basinvolume.utils import ResultsFile
 from basinvolume.utils import to_string
 from basinvolume.utils import volume_nball
 from basinvolume.utils import trymakedir
-from brute_force_2d import BruteForce2D
+from .brute_force_2d import BruteForce2D
 try:
-    from utils import *
+    from .utils import *
 except Exception as e:
-    print e
+    print(e)
 
 class EvalCounter(object):
     def __init__(self):
@@ -40,8 +43,8 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     bf.compute_volume()
     # Print all volumes to screen.
     print("---direct MC result---")
-    print("bf.basin_volume", bf.basin_volume)
-    print("bf.error_basin_volume", bf.error_basin_volume)
+    print(("bf.basin_volume", bf.basin_volume))
+    print(("bf.error_basin_volume", bf.error_basin_volume))
     # Print all volumes to file.
     fout = ResultsFile(os.path.join(os.getcwd(), "volume_method_comparison_brute{}".format(minimum_index)))
     fout.set_heading("DIRECT REJECTION SAMPLING")
@@ -82,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("--index", type=int, default=0)
     args = parser.parse_args()
     means, cov = get_means_cov(args.gauss_path)
-    print("means", means)
-    print("cov", cov)
+    print(("means", means))
+    print(("cov", cov))
     compute_volume(minimum_index=args.index, means=means, cov=cov)
     

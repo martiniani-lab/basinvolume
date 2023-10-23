@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import print_function
 
 import argparse
 import numpy as np
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max),
                  seed_cloud=np.random.randint(i32max), seed_oracle=np.random.randint(i32max),
                  seed_record_drop_r=np.random.randint(i32max))
-    print seeds
+    print(seeds)
     
     #prepare MC runner
     comm = MPI.COMM_WORLD   
@@ -99,9 +100,9 @@ if __name__ == "__main__":
             view_traceback()
             
     end=time.time()
-    print 'core: {} ptiter: {} niter: {} report_steps: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
+    print('core: {} ptiter: {} niter: {} report_steps: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
                                                                                        ptrunner.ptiter, report_steps,
-                                                                                       ptrunner.skip, ptrunner.pfreq)
+                                                                                       ptrunner.skip, ptrunner.pfreq))
     # print 'convert timeseries to hf5...'
     # if rank == 0:
     #     #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
@@ -110,6 +111,6 @@ if __name__ == "__main__":
     #     timeseries = import_pt_time_series(sim.base_directory, int(sim.mc_params['report_steps']),
     #                                        max_series_size=0, ncores=1, del_raw=False)
     # print 'done'
-    print 'elapsed time',end-start
+    print('elapsed time',end-start)
     
     

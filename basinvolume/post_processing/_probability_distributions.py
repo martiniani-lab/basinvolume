@@ -1,4 +1,6 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import object
 try:
     import numpy as np
     import matplotlib.pyplot as plt
@@ -6,7 +8,7 @@ try:
     from scipy.special import gamma, gammaln
     from basinvolume.utils import CDFAccumulator
 except ImportError as err:
-    print err
+    print(err)
 
 from scipy.special import gammainc, gammaincc
 
@@ -114,9 +116,9 @@ class GeneralisedLogNormal(object):
         self.zeta_fit = self.get_zeta(self.zeta_offset)
         self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
-            print "self.mu", self.mu
-            print "self.alpha_offset", self.alpha_offset
-            print "self.zeta_offset", self.zeta_offset
+            print("self.mu", self.mu)
+            print("self.alpha_offset", self.alpha_offset)
+            print("self.zeta_offset", self.zeta_offset)
     
     def fit_cdf(self, x, cdf_x, initial_zeta=1.5):
         mean = np.mean(np.log(x))
@@ -124,7 +126,7 @@ class GeneralisedLogNormal(object):
         initial_mu = mean
         initial_zeta = initial_zeta
         initial_alpha = var
-        print "initial guess [mu, alpha, zeta]:", [initial_mu, initial_alpha, initial_zeta]
+        print("initial guess [mu, alpha, zeta]:", [initial_mu, initial_alpha, initial_zeta])
         opt_gen, error_gen = curve_fit(self.get_cdf, x, cdf_x, [initial_mu, initial_alpha, initial_zeta])
         self.mu = opt_gen[0]
         self.alpha_offset = opt_gen[1]
@@ -134,9 +136,9 @@ class GeneralisedLogNormal(object):
         self.zeta_fit = self.get_zeta(self.zeta_offset)
         self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
-            print "self.mu", self.mu
-            print "self.alpha_offset", self.alpha_offset
-            print "self.zeta_offset", self.zeta_offset
+            print("self.mu", self.mu)
+            print("self.alpha_offset", self.alpha_offset)
+            print("self.zeta_offset", self.zeta_offset)
         
 class LogNormal(GeneralisedLogNormal):
     def __init__(self, mu_initial = 1, alpha_initial = 1, alpha_min = 1e-10, verbose = False):
@@ -183,15 +185,15 @@ class LogNormal(GeneralisedLogNormal):
         self.zeta_fit = 2
         self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
-            print "self.mu", self.mu
-            print "self.alpha_offset", self.alpha_offset
+            print("self.mu", self.mu)
+            print("self.alpha_offset", self.alpha_offset)
     
     def fit_cdf(self, x, cdf_x):
         mean = np.mean(np.log(x))
         var = np.var(np.log(x))
         initial_mu = mean
         initial_alpha = var
-        print "initial guess [mu, alpha]:", [initial_mu, initial_alpha]
+        print("initial guess [mu, alpha]:", [initial_mu, initial_alpha])
         opt_gen, error_gen = curve_fit(self.get_cdf, x, cdf_x, [initial_mu, initial_alpha])
         self.mu = opt_gen[0]
         self.alpha_offset = opt_gen[1]
@@ -201,8 +203,8 @@ class LogNormal(GeneralisedLogNormal):
         self.zeta_fit = 2
         self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
-            print "self.mu", self.mu
-            print "self.alpha_offset", self.alpha_offset
+            print("self.mu", self.mu)
+            print("self.alpha_offset", self.alpha_offset)
     
 class GeneralisedGauss(object):
     """
@@ -265,9 +267,9 @@ class GeneralisedGauss(object):
         self.zeta_fit = self.get_zeta(self.zeta_offset)
         self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
-            print "self.mu", self.mu
-            print "self.alpha_offset", self.alpha_offset
-            print "self.zeta_offset", self.zeta_offset
+            print("self.mu", self.mu)
+            print("self.alpha_offset", self.alpha_offset)
+            print("self.zeta_offset", self.zeta_offset)
     def fit_cdf(self, x, cdf_x):
         initial_mu = np.mean(x)
         initial_zeta = 1.5
@@ -281,9 +283,9 @@ class GeneralisedGauss(object):
         self.zeta_fit = self.get_zeta(self.zeta_offset)
         self.fit_error = np.sqrt(np.diag(error_gen))
         if self.verbose:
-            print "self.mu", self.mu
-            print "self.alpha_offset", self.alpha_offset
-            print "self.zeta_offset", self.zeta_offset
+            print("self.mu", self.mu)
+            print("self.alpha_offset", self.alpha_offset)
+            print("self.zeta_offset", self.zeta_offset)
 
 if __name__ == "__main__":
     mu = 1
@@ -299,9 +301,9 @@ if __name__ == "__main__":
     cdf.add_array(pvs)
     x, cdf_x = cdf.get_vecdata()
     generalised_lognormal.fit_cdf(x, cdf_x)
-    print "mu: ", generalised_lognormal.mu_fit
-    print "alpha: ", generalised_lognormal.alpha_fit
-    print "zeta: ", generalised_lognormal.zeta_fit 
+    print("mu: ", generalised_lognormal.mu_fit)
+    print("alpha: ", generalised_lognormal.alpha_fit)
+    print("zeta: ", generalised_lognormal.zeta_fit) 
     xp = np.linspace(bin_centres[0], bin_centres[-1], num = 2000)
     plt.plot(xp, [generalised_lognormal.get_fitted(xpi) for xpi in xp], "r", label = "Generalised LogNormal")
     plt.show()

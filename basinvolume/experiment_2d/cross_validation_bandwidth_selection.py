@@ -1,4 +1,8 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import zip
+from builtins import range
+from builtins import object
 import numpy as np
 import copy
 from basinvolume.utils import CrossValidationCost
@@ -20,9 +24,9 @@ class CrossValidationBandwidthSelection(object):
     def __init__(self, data, kernel="gaussian", h_initial=2):
         pot = CrossValidationCost(data, kernel=kernel)
         optimizer = LBFGS(np.asarray([h_initial]), pot)
-        print "run bandwidth optimization"
+        print("run bandwidth optimization")
         result = optimizer.run()
-        print "done"
+        print("done")
         self.opt_bandwidth = result.coords
 
 def get_bandwidth_estimate(data, kernel="gaussian", method="cross_validation"):
@@ -57,12 +61,12 @@ def compute_central_moment(pdf_x, pdf_pdf, exponent=0):
 if __name__ == "__main__":
     np.random.seed(42)
     data = np.random.randn(100)
-    print "mean data", np.mean(data)
-    print "var data", np.var(data)
+    print("mean data", np.mean(data))
+    print("var data", np.var(data))
     silverman_bw = get_bandwidth_estimate(data, method="Silverman")
     bandwidth = get_bandwidth_estimate(data)
-    print "Silverman bw", silverman_bw
-    print "cv bw", bandwidth
+    print("Silverman bw", silverman_bw)
+    print("cv bw", bandwidth)
     n_integrate = 2**18 + 1
     pdf_x = np.linspace(-13, 13, n_integrate)
     pdf_pdf = get_pdf(data, pdf_x, bandwidth=bandwidth)
@@ -74,10 +78,10 @@ if __name__ == "__main__":
     plt.plot(pdf_x, nd(pdf_x, 1))
     plt.show()
     max_order = 4
-    numerical_raw_moments = [compute_raw_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in xrange(max_order + 1)]
-    numerical_central_moments = [compute_central_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in xrange(max_order + 1)]
-    for n in xrange(max_order + 1):
-        print "order", n
-        print numerical_raw_moments[n]
-        print numerical_central_moments[n]
+    numerical_raw_moments = [compute_raw_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in range(max_order + 1)]
+    numerical_central_moments = [compute_central_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in range(max_order + 1)]
+    for n in range(max_order + 1):
+        print("order", n)
+        print(numerical_raw_moments[n])
+        print(numerical_central_moments[n])
     

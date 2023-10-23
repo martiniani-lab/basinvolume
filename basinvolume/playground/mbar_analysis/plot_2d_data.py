@@ -1,7 +1,12 @@
 from __future__ import division
+from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import range
 import numpy as np
-import ConfigParser
+import configparser
 import os
 import re
 import matplotlib.pyplot as plt
@@ -15,7 +20,7 @@ from scipy.interpolate import spline
 from scipy.integrate import romberg, simps, quad, cumtrapz, trapz
 import glob
 from itertools import chain
-import cPickle as pickle
+import pickle as pickle
 from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
 from joblib import Parallel, delayed
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import get_bandwidth_estimate, get_pdf
@@ -35,7 +40,7 @@ plt.rcParams.update({'figure.autolayout': True})
 ####SET COLOUR MAP######
 def get_color_cycle():
     cm = plt.get_cmap('Set2')
-    color_cycle=cycle([cm(1. * i / 12) for i in xrange(12)])
+    color_cycle=cycle([cm(1. * i / 12) for i in range(12)])
     return color_cycle
 ########################
 #####################LINE STYLE CYCLER####################
@@ -91,7 +96,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         y = np.array([log_integrand_nom([xi],1) for xi in x])
         argmax = np.argmax(y)
         maxy = np.amax(y)
-        print np.amax(y)
+        print(np.amax(y))
         y = np.array([log_integrand_nom([xi], maxy) for xi in x])
         end = next(i for i,yy in enumerate(y[argmax:]) if yy<np.log(1e-5))
         end += argmax
@@ -104,8 +109,8 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         zx = np.linspace(0,x[zend],100000)
         y = np.array([log_integrand_den([xi],1) for xi in zx])
         maxy = np.amax(y)
-        print "zxmax", zx[-1]
-        print "xmax", x[end]
+        print("zxmax", zx[-1])
+        print("xmax", x[end])
 
         intnval = 10000
         integ = vegas.Integrator([[0., x[end]]])
@@ -114,7 +119,7 @@ class EdwardsGeneralisedLogNormal(GeneralisedLogNormal):
         integ = vegas.Integrator([[0., zx[-1]]])
         result = integ(lambda t : np.exp(log_integrand_den(t, maxy)), nitn=20, neval=intnval, alpha=0.2, beta=1)
         zPea, errzPea = result.mean, result.sdev
-        print "{}+/-{} \n {}+/-{}".format(Pea, errPea, zPea, errzPea)
+        print("{}+/-{} \n {}+/-{}".format(Pea, errPea, zPea, errzPea))
         return np.log(Pea) - np.log(zPea), 0.434*(errPea/Pea + errzPea/zPea)
 
 def plot(packing_datasets, figdir="figures"):
@@ -135,7 +140,7 @@ def plot(packing_datasets, figdir="figures"):
         S = []
         phi = []
         for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
-            print "set name ",dataset.set_name
+            print("set name ",dataset.set_name)
             if len(dataset.free_energies) > 0 and dataset.ss_phi > 0.835:
                 nparticles = dataset.nparticles
                 j = 0
@@ -145,13 +150,13 @@ def plot(packing_datasets, figdir="figures"):
                     Facc = dataset.packing_data[j].Facc
                     vcavity = dataset.packing_data[j].vcavity
                     j += 1
-                print Facc
-                print nparticles
+                print(Facc)
+                print(nparticles)
                 outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3*np.std(dataset.free_energies))
                 x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                 f = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
                 weights = 1./np.array(dataset.free_energies_err)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                print len(x), len(f)
+                print(len(x), len(f))
                 x = np.log(x)
                 y = Facc-f
                 if "fire" in dataset.set_name:
@@ -160,13 +165,13 @@ def plot(packing_datasets, figdir="figures"):
                 else:
                     marker = 'o'
                     label = 'cgd {:.3f}'.format(dataset.ss_phi)
-                ax.scatter(x, y, label=label, marker=marker, color=color_cycle.next())
+                ax.scatter(x, y, label=label, marker=marker, color=next(color_cycle))
                 fit, cov = np.polyfit(x, y, 1, w=weights, cov=True)
                 fit_err = np.sqrt(np.diag(cov))
                 fit_fn = np.poly1d(fit)
                 ax.plot(x, fit_fn(x), color='k')
                 dataset.add_extras((fit, fit_err))
-                print dataset.extras
+                print(dataset.extras)
                 S.append(np.mean(f) - Facc - log_factorial(dataset.nparticles))
                 phi.append(dataset.ss_phi)
         ax.legend(frameon=False, loc=2, prop={'size':18}, numpoints=1, scatterpoints=1, markerscale=1,
@@ -174,9 +179,9 @@ def plot(packing_datasets, figdir="figures"):
         ax.set_ylabel(r"$F_{acc}-F$")
         # ax.set_ylabel(r"$F$")
         ax.set_xlabel(r"$\log \mathcal{P}$")
-        print "extras", dataset.extras
+        print("extras", dataset.extras)
         fig.savefig('{0}/plot_{1}.pdf'.format(figdir, "f_logp"))
-        ax1.scatter(phi, S, color=color_cycle.next(), s=100)
+        ax1.scatter(phi, S, color=next(color_cycle), s=100)
         fit = np.polyfit(phi[2:], S[2:], 1)
         fit_fn = np.poly1d(fit)
         ax1.plot(np.linspace(phi[0],1,20), fit_fn(np.linspace(phi[0],1,20)), color='k')
@@ -196,8 +201,8 @@ def plot(packing_datasets, figdir="figures"):
 
             # plot power law exponent
             color_cycle = get_color_cycle()
-            color_marker = color_cycle.next()
-            color_fit = color_cycle.next()
+            color_marker = next(color_cycle)
+            color_fit = next(color_cycle)
             ax3 = fig.add_subplot(gs[4:, 0])
             x, y, yerr, y2, y2err = [], [], [], [], []
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
@@ -258,9 +263,9 @@ def plot(packing_datasets, figdir="figures"):
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
                 nparticles = dataset.nparticles
                 vcavity = dataset.packing_data[0].vcavity
-                print "vcavity", vcavity
+                print("vcavity", vcavity)
                 if len(dataset.free_energies) > 0:
-                    print "n:", nparticles
+                    print("n:", nparticles)
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
                     F0 = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
                     x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
@@ -268,7 +273,7 @@ def plot(packing_datasets, figdir="figures"):
                     bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
                     edges = np.linspace(np.amin(x) * 0.5, np.amax(x) * 1.5, 1000)
                     hist = get_pdf(x, edges, bandwidth=bw / 2, kernel="gaussian")
-                    color = color_cycle.next()
+                    color = next(color_cycle)
                     ax.plot(edges, hist, label=int(nparticles), color=color, linewidth=3)
                     # fit log normal
                     # assume that zeta_min=2
@@ -281,7 +286,7 @@ def plot(packing_datasets, figdir="figures"):
                             linewidth=2)
                     parameters = [nparticles, generalised_lognormal.mu_fit, generalised_lognormal.alpha_fit,
                                   generalised_lognormal.zeta_fit]
-                    print "mu, alpha, zeta:", parameters
+                    print("mu, alpha, zeta:", parameters)
                     fit_parameters.append(parameters)
                     fit_parameters_std.append(generalised_lognormal.fit_error.tolist())
                     # plot cdf
@@ -314,8 +319,8 @@ def plot(packing_datasets, figdir="figures"):
                                    points=[np.amin(x), np.amax(x), xp[np.argmax(fit)]], epsabs=1.49e-11)
                     c *= np.exp(nparticles)
                     Sb = - F0acc.F0_acc + np.log(c) - log_factorial(nparticles)
-                    print "new avgs, avg_err from pressure", c, cerr
-                    print "Sb ", Sb
+                    print("new avgs, avg_err from pressure", c, cerr)
+                    print("Sb ", Sb)
                     s_b.append([nparticles, Sb])
                     ax3.plot(xp, fit / c, label=int(nparticles), color=color, linewidth=3)
                     # S(V, P)
@@ -348,7 +353,7 @@ def plot(packing_datasets, figdir="figures"):
                                                                                                             ang,
                                                                                                             vcavity)
                             pea_array.append([Pea, errPea])
-                            print "ensemble average P ,Perr ", nparticles, Pea, errPea
+                            print("ensemble average P ,Perr ", nparticles, Pea, errPea)
                         # pea_array = Parallel(n_jobs=8)(delayed(generalised_lognormal.get_log_edwards_fitted_pressure_expectation)(glob_kappa, nparticles, ang, vcavity) for ang in ang_array)
                         pea_array_all.append(np.array(pea_array))
                         generalised_lognormal.glob_x = 100
@@ -404,7 +409,7 @@ def plot(packing_datasets, figdir="figures"):
                 pea_array = np.array(pea_array)
                 color_cycle = get_color_cycle()
                 for i, arr in enumerate(pea_array_all):
-                    color = color_cycle.next()
+                    color = next(color_cycle)
                     ax7.errorbar(ang_array, arr[:, 0], yerr=arr[:, 1], color=color, linewidth=2,
                                  label=int(angoricities[i, 0]))
                     ax7.arrow(0.25, arr[0, 0], -0.25, 0, length_includes_head=True, ec=color, fc=color, head_width=0.8,
@@ -436,7 +441,7 @@ def plot(packing_datasets, figdir="figures"):
             ax5 = fig2.add_axes([0.57, 0.25, 0.35, 0.35], alpha=0.5)
             color_cycle = get_color_cycle()
             # mu plot
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax5.errorbar(1. / fit_parameters[:, 0], fit_parameters[:, 1], fit_parameters_std[:, 0], marker='o',
                          linestyle='', ms=14, color=color, label=r'$\mu$')
             fit, cov = np.polyfit(1. / fit_parameters[:, 0], fit_parameters[:, 1], 1, w=1. / fit_parameters_std[:, 0],
@@ -446,7 +451,7 @@ def plot(packing_datasets, figdir="figures"):
             ax5.plot(1. / fit_parameters[:, 0], fit_fn(1. / fit_parameters[:, 0]), linestyle='--', color=color,
                      linewidth=2.0)  # , label=str(fit)+"+/-"+str(fit_std))
             # alpha plot
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax5.errorbar(1. / fit_parameters[:, 0], fit_parameters[:, 2], fit_parameters_std[:, 1], marker='o',
                          linestyle='', ms=14, color=color, label=r'$\sigma$')
             fit, cov = np.polyfit(1. / fit_parameters[:, 0], fit_parameters[:, 2], 1, w=1. / fit_parameters_std[:, 1],
@@ -456,7 +461,7 @@ def plot(packing_datasets, figdir="figures"):
             ax5.plot(1. / fit_parameters[:, 0], fit_fn(1. / fit_parameters[:, 0]), linestyle='--', color=color,
                      linewidth=2.0)  # , label=str(fit)+"+/-"+str(fit_std))
             # zeta plot
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax5.errorbar(1. / fit_parameters[:, 0], fit_parameters[:, 3], fit_parameters_std[:, 2], marker='o',
                          linestyle='', ms=14, color=color, label=r'$\zeta$')
             fit, cov = np.polyfit(1. / fit_parameters[:, 0], fit_parameters[:, 3], 1, w=1. / fit_parameters_std[:, 2],
@@ -486,7 +491,7 @@ def plot(packing_datasets, figdir="figures"):
             color_cycle = get_color_cycle()
             # ax6=fig4.add_axes([0.18,0.2,0.3,0.3], alpha=0.5)
             ax6 = fig4.add_subplot(gs[5:, 0])
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax6.plot(s_maxima[:, 0], s_maxima[:, 1], marker='o', linestyle='', ms=12, color=color,
                      label=r"$\max(S_B(\mathcal{P},V))$")
             fit = np.polyfit(s_maxima[:, 0], s_maxima[:, 1], 1)
@@ -494,7 +499,7 @@ def plot(packing_datasets, figdir="figures"):
             ax6.plot(np.linspace(0, np.amax(s_maxima[:, 0])), fit_fn(np.linspace(0, np.amax(s_maxima[:, 0]))),
                      linestyle='--', linewidth=2.0, color=color)
             # ax6.plot(s_p_maxima[:,0], s_p_maxima[:,1], marker='o', linestyle='', ms=12, color=color, label=r"$\max_P(S_B(\mathcal{P},V))$")
-            color = color_cycle.next()
+            color = next(color_cycle)
             ax6.plot(s_b[:, 0], s_b[:, 1], marker='^', linestyle='', color=color, ms=12, label=r'$S_{B}$')
             fit = np.polyfit(s_b[:, 0], s_b[:, 1], 1)
             fit_fn = np.poly1d(fit)
@@ -525,7 +530,7 @@ def plot(packing_datasets, figdir="figures"):
                     bw = get_bandwidth_estimate(np.array(x), kernel="gaussian", method="cross_validation")
                     edges = np.linspace(np.amin(x) * 0.5, np.amax(x) * 1.5, 1000)
                     hist = get_pdf(x, edges, bandwidth=bw, kernel="gaussian")
-                    color = color_cycle.next()
+                    color = next(color_cycle)
                     ax.plot(edges, hist, label=int(nparticles), color=color, linewidth=3)
 
                     x2 = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
@@ -553,13 +558,13 @@ def plot(packing_datasets, figdir="figures"):
             for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
                 if len(dataset.free_energies) > 0:
                     nparticles = dataset.nparticles
-                    print nparticles
+                    print(nparticles)
                     outliers = OutlierDetection(dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies))
                     x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                     y = np.array(dataset.free_energies)[np.array(outliers.non_outliers_indexes, dtype="i")]
-                    print len(x), len(y)
+                    print(len(x), len(y))
                     x = np.log(x)
-                    ax.scatter(x, y, color=color_cycle.next())
+                    ax.scatter(x, y, color=next(color_cycle))
 
                     def ff_msf(x, a):
                         return nparticles * (a * x + 1)
@@ -568,7 +573,7 @@ def plot(packing_datasets, figdir="figures"):
                     ax.plot(x, ff_msf(x, popt[0]), label="F = N/{:.3f}ln(P) + N".format(1. / popt[0]))
                     avg += popt[0]
             avg /= (i + 1)
-            print "avg kappa = ", 1 / avg
+            print("avg kappa = ", 1 / avg)
             ax.legend(frameon=False, loc="best", numpoints=1, markerscale=0.5, columnspacing=0.25, labelspacing=0.25)
             plt.ylabel(r"$F$")
             plt.xlabel(r"$\ln \mathcal{P}$")

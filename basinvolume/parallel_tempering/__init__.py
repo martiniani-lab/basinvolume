@@ -1,1 +1,2 @@
-from _bv_parallel_tempering import MPI_BV_PT_RLhandshake
+from __future__ import absolute_import
+from ._bv_parallel_tempering import MPI_BV_PT_RLhandshake

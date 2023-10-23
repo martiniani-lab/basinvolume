@@ -1,9 +1,16 @@
 from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from builtins import object
 import os
-import ConfigParser
+import configparser
 import time
 import copy
-import cPickle as pickle
+import pickle as pickle
 import numpy as np
 from pele.optimize import LBFGS_CPP
 from pele.potentials import SumGaussianPot
@@ -19,7 +26,7 @@ from basinvolume.utils import trymakedir
 from basinvolume.utils import get_git_version
 from basinvolume.utils import get_python_version
 from basinvolume.utils import get_cython_version
-from gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
+from .gaussian_benchmark_kmin_run import GaussianBenchmarkKminRun
 
 class configure_bv_gauss_mcrunner(object):
     """
@@ -95,7 +102,7 @@ class configure_bv_gauss_mcrunner(object):
         try:
             self.mc_params.update(seeds)
         except:
-            print "WARNING:seeds not passed"
+            print("WARNING:seeds not passed")
         self._initialise()
 #        self._requench_coords(dtol, opt_maxstep, verbose)
         if not seeds:
@@ -125,7 +132,7 @@ class configure_bv_gauss_mcrunner(object):
         self.opt_maxstep = 0.1
         print("self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps")
         self._initialise()
-        print(self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps)
+        print((self.origin, self.opt_dtmax, self.opt_maxstep, self.opt_tol, opt_nsteps))
         if self.use_cgd:
             self.optimizer = CGDescent(self.origin,
                                        self.pot_optimizer,
@@ -186,14 +193,14 @@ class configure_bv_gauss_mcrunner(object):
             raise Exception("illegal file name")
         if base_dir is None:
             base_directory = os.path.join(os.getcwd(), 'explore_bv_' + str(dname))
-            print("assert existence of base disrctory:", base_directory)
+            print(("assert existence of base disrctory:", base_directory))
             trymakedir(base_directory)
             assert(os.path.exists(base_directory))
         else:
             if not os.path.isabs(base_dir):
                 base_directory = os.path.join(os.getcwd(), packings_dir)
         self.base_directory = base_directory
-        print("self.base_directory", self.base_directory)
+        print(("self.base_directory", self.base_directory))
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
@@ -204,8 +211,8 @@ class configure_bv_gauss_mcrunner(object):
         self.kmin_configpath = os.path.join(self.base_directory, 'kmin_' + dname + '.config')
         self.configfile = '{}/explore_{}.config'.format(self.base_directory, dname)
     def _import_packing_config_files(self):
-        configf = ConfigParser.ConfigParser()
-        print("attempting to read from config file at", self.packing_configpath)
+        configf = configparser.ConfigParser()
+        print(("attempting to read from config file at", self.packing_configpath))
         configf.read(str(self.packing_configpath))
         self.ngaussians = configf.getint('GAUSSIAN_SUM', 'ngaussians')
         self.bdim = configf.getint('GAUSSIAN_SUM', 'bdim')
@@ -213,7 +220,7 @@ class configure_bv_gauss_mcrunner(object):
         self.radius_container = configf.getfloat("GAUSSIAN_SUM", "radius_container")
         self.nparticles = configf.getint("GAUSSIAN_SUM", "nparticles")
         #self.ndim = self.nparticles * self.bdim
-        print("self.findk_configpath", self.findk_configpath)
+        print(("self.findk_configpath", self.findk_configpath))
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat('FINDK', 'kmax')
         self.prob_kmax = configf.getfloat('FINDK', 'prob')
@@ -227,8 +234,8 @@ class configure_bv_gauss_mcrunner(object):
         Import position of minimum, as determined earlier.
         This should replace the function with the same name in bv for jammed particles.
         """
-        print("self.packings_dir", self.packings_dir)
-        print("self.fname", self.fname)
+        print(("self.packings_dir", self.packings_dir))
+        print(("self.fname", self.fname))
         path = os.path.join(self.packings_dir, self.fname)
         self.coords = read_single_column_coords(path)
         self.origin = copy.deepcopy(self.coords)
@@ -237,13 +244,13 @@ class configure_bv_gauss_mcrunner(object):
         """
         Import means and covs from file.
         """
-        print("gdim", self.gdim)
+        print(("gdim", self.gdim))
         self.means = read_multi_column(self.means_configpath)
         self.cov = read_multi_column(self.cov_configpath)
         if self.means.shape[1] != self.gdim or self.cov.shape[1] != self.gdim:
             raise Exception("reading means-covs failed")
-        print("self.means", self.means)
-        print("self.cov", self.cov)
+        print(("self.means", self.means))
+        print(("self.cov", self.cov))
     def _get_histogram_bin(self, k):
         """automatically estimate size of histogram"""
         """
@@ -293,10 +300,10 @@ class configure_bv_gauss_mcrunner(object):
         f.write('[IMPORTED_GAUSSIAN_SUM_MINIMUM]\n')
         f.write('boxdim: {}\n'.format(self.bdim))
         f.write('[MCRUNNER]\n')
-        for key, value in self.mc_params.iteritems() :
+        for key, value in list(self.mc_params.items()) :
             f.write('{}: {}\n'.format(key,value))
         f.write('[STATUS]\n')
-        for i in xrange(self.nprocs):
+        for i in range(self.nprocs):
             f.write('success_rank{}: {}\n'.format(str(i), "False"))
     def _print_success(self, success):
         """
@@ -314,8 +321,8 @@ class configure_bv_gauss_mcrunner(object):
         """
         assert(hasattr(self, 'configfile'))
         if self.rank == 0:
-            configf = ConfigParser.ConfigParser()
+            configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
-            for i in xrange(self.nprocs):
+            for i in range(self.nprocs):
                 configf.set('STATUS', 'success_rank{}'.format(str(i)), success)
             configf.write(open(str(self.configfile),'w')) 

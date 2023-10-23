@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import str
+from builtins import range
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -10,7 +13,7 @@ from basinvolume.utils import *
 if __name__ == "__main__":
     u = 3
     d = 0.3
-    n = range(2, 21)
+    n = list(range(2, 21))
     cube = []
     sphere = []
     exp_cube = []
@@ -42,6 +45,6 @@ if __name__ == "__main__":
     p.out_name = name.replace(" ", "").replace("=", "-") + ".pdf"
     p.save_and_close(2)
 
-    for n in xrange(2,11):
+    for n in range(2,11):
         tc = CheckExponentiallyDecayingProfile(np.zeros(n), 1., 0.1, cubic=True)
-        print "n: {} v: {}".format(n, -np.log(tc.get_exact_volume()))
+        print("n: {} v: {}".format(n, -np.log(tc.get_exact_volume())))

@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import print_function
 import numpy as np
 import argparse
 from basinvolume.parallel_tempering import MPI_BV_PT_RLhandshake
@@ -46,7 +47,7 @@ if __name__ == "__main__":
         pass
     elif opt_pot_str == 'inverse_power_stillinger':
         extra_pot_kwargs.update(dict(pow=3, rcut=1.5))
-        print 'setting inverse_power_stillinger parameters: ', extra_pot_kwargs
+        print('setting inverse_power_stillinger parameters: ', extra_pot_kwargs)
     else:
         raise NotImplementedError
 
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     collect_minima_list=args.nocollectminima
     i32max = np.iinfo(np.int32).max
     seeds = dict(seed_takestep=np.random.randint(i32max),seed_metropolis=np.random.randint(i32max))
-    print seeds
+    print(seeds)
 
 
     
@@ -85,10 +86,10 @@ if __name__ == "__main__":
     nprocs = comm.Get_size()
     rank = comm.Get_rank()
     if ".xydfr" in fname or ".xyzdfr" in fname:
-        print "found experimental packing"
+        print("found experimental packing")
         sim = configure_bv_exp_mcrunner(rank, nprocs)
     else:
-        print "found numerical packing"
+        print("found numerical packing")
         sim = configure_bv_mcrunner(rank, nprocs)
     
     mcrunner = sim(fname, niter=niter, stepsize=1e-1, dtol=1e-4, opt_tol=1e-5, opt_nsteps=1e5, hmin=0,
@@ -129,16 +130,16 @@ if __name__ == "__main__":
             view_traceback()
             
     end=time.time()
-    print 'core: {} ptiter: {} niter: {} report_steps: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
+    print('core: {} ptiter: {} niter: {} report_steps: {} skip: {} pfreq: {}'.format(rank, mcrunner.niter,
                                                                                        ptrunner.ptiter, report_steps,
-                                                                                       ptrunner.skip, ptrunner.pfreq)
-    print 'convert timeseries to hf5...'
+                                                                                       ptrunner.skip, ptrunner.pfreq))
+    print('convert timeseries to hf5...')
     if rank == 0:
         #it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
         #reduce the amount of occupied memory and i/o speed without loosing any information
         timeseries = import_pt_time_series(sim.base_directory, int(sim.mc_params['report_steps']),
                                            max_series_size=0, ncores=1, del_raw=False)
-    print 'done'
-    print 'elapsed time',end-start
+    print('done')
+    print('elapsed time',end-start)
     
     

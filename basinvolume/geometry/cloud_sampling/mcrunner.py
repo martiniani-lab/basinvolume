@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from builtins import range
 import numpy as np
 from pele.potentials import Harmonic
 from mcpele.monte_carlo import NullPotential
@@ -36,7 +37,7 @@ try:
     #####################LINE STYLE CYCLER####################                             
     lines = ["-","--","-."]
     linecycler = cycle(lines)
-    color_cycle=[cm(1. * i / 6) for i in xrange(6)]
+    color_cycle=[cm(1. * i / 6) for i in range(6)]
     ##########################################################
 except ImportError as err:
     print(err)

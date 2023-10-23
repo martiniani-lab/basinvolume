@@ -1,4 +1,8 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import zip
+from builtins import range
+from builtins import object
 import subprocess
 import shlex
 import shutil
@@ -36,17 +40,17 @@ class BVRemoveToxicData(object):
     
     def remove_kmax_toxic_data(self, where='at', gitrepo_path=None):
         self._find_kmax_toxic_data(where=where, gitrepo_path=gitrepo_path)
-        print "kmax toxic list", self.kmax_toxic_list
+        print("kmax toxic list", self.kmax_toxic_list)
         self._remove_toxic_data(self.kmax_toxic_list, self.kmax_config, output_signature="bv*kmax*.o*", pt=False)
     
     def remove_kmin_toxic_data(self, where='at', gitrepo_path=None):
         self._find_kmin_toxic_data(where=where, gitrepo_path=gitrepo_path)
-        print "kmin toxic list", self.kmin_toxic_list
+        print("kmin toxic list", self.kmin_toxic_list)
         self._remove_toxic_data(self.kmin_toxic_list, self.kmin_config, output_signature="bv*kmin*.o*", pt=False)
     
     def remove_pt_toxic_data(self, where='at', gitrepo_path=None):
         self._find_pt_toxic_data(where=where, gitrepo_path=gitrepo_path)
-        print "pt toxic list", self.pt_toxic_list
+        print("pt toxic list", self.pt_toxic_list)
         self._remove_toxic_data(self.pt_toxic_list, self.pt_config, output_signature="bv*pt*.o*", pt=True)
     
     def _find_kmax_toxic_data(self, where='at', gitrepo_path=None):
@@ -62,9 +66,9 @@ class BVRemoveToxicData(object):
             hash_table = self._get_hash_history(gitrepo_path)
             assert self.git_toxic_version in hash_table, "toxic_hash not in table, try to update log"
             if where == 'later':
-                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index < hash_table[self.git_toxic_version]]
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index < hash_table[self.git_toxic_version]]
             elif where == 'older':
-                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index > hash_table[self.git_toxic_version]]
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index > hash_table[self.git_toxic_version]]
             else:
                 raise NotImplementedError('option \"{}\" not known')
             self.kmax_toxic_list = []
@@ -84,9 +88,9 @@ class BVRemoveToxicData(object):
             hash_table = self._get_hash_history(gitrepo_path)
             assert self.git_toxic_version in hash_table, "toxic_hash not in table, try to update log"
             if where == 'later':
-                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index < hash_table[self.git_toxic_version]]
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index < hash_table[self.git_toxic_version]]
             elif where == 'older':
-                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index > hash_table[self.git_toxic_version]]
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index > hash_table[self.git_toxic_version]]
             else:
                 raise NotImplementedError('option \"{}\" not known')
             self.kmin_toxic_list = []
@@ -104,15 +108,15 @@ class BVRemoveToxicData(object):
         else:
             assert(gitrepo_path is not None)
             hash_table = self._get_hash_history(gitrepo_path)
-            print "building toxic hash list...",
+            print("building toxic hash list...", end=' ')
             assert self.git_toxic_version in hash_table, "toxic_hash not in table, try to update log"
             if where == 'later':
-                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index < hash_table[self.git_toxic_version]]
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index < hash_table[self.git_toxic_version]]
             elif where == 'older':
-                hash_list = [git_hash for git_hash,index in hash_table.iteritems() if index > hash_table[self.git_toxic_version]]
+                hash_list = [git_hash for git_hash,index in list(hash_table.items()) if index > hash_table[self.git_toxic_version]]
             else:
                 raise NotImplementedError('option \"{}\" not known')
-            print "DONE"
+            print("DONE")
             self.pt_toxic_list = []
             for item in hash_list:
                 self.pt_toxic_list.extend(self._find_toxic_data(self.pt_config, git_hash=item))
@@ -120,11 +124,11 @@ class BVRemoveToxicData(object):
     def _find_toxic_data(self, config_file, git_hash=None):
         if git_hash is None:
             git_hash = self.git_toxic_version
-        print "finding toxic data for git-hash {}...".format(git_hash),
+        print("finding toxic data for git-hash {}...".format(git_hash), end=' ')
         command = shlex.split("grep -r -i -l --include {}\*.config \"{}\" .".format(config_file, git_hash))
         try:
             list = subprocess.check_output(command).rstrip('\n').split('\n')
-            print "DONE"
+            print("DONE")
             for i,path in enumerate(list):
                 list[i] = os.path.basename(os.path.dirname(path))
         except Exception:
@@ -132,15 +136,15 @@ class BVRemoveToxicData(object):
         return list
     
     def _get_hash_history(self, gitrepo_path):
-        print "retrieving hash history...",
+        print("retrieving hash history...", end=' ')
         command = shlex.split("git --git-dir {}/.git log --pretty=oneline".format(gitrepo_path))
         try:
             raw_list = subprocess.check_output(command).split()
             raw_list = [word for word in raw_list if len(word) == 40]
-            hash_table = dict(zip(raw_list, range(len(raw_list))))
+            hash_table = dict(list(zip(raw_list, list(range(len(raw_list))))))
         except Exception:
             raise RuntimeError("\n could not build hash history \n")
-        print "DONE"
+        print("DONE")
         return hash_table
     
     def _remove_toxic_data(self, toxic_list, config_fname, output_signature="bv\*kmax\*.o\*", pt=False):
@@ -177,7 +181,7 @@ if __name__ == "__main__":
     parser.add_argument("--all", action='store_true', help="perform parallel tempering",default=False)        
     
     args = parser.parse_args()
-    print args
+    print(args)
         
     bvrm = BVRemoveToxicData(args.toxic_git_version, workdir=args.workdir)
        

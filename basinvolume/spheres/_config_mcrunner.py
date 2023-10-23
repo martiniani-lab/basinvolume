@@ -1,4 +1,7 @@
 from __future__ import division
+from __future__ import print_function
+from builtins import str
+from builtins import object
 import numpy as np
 import abc
 import os
@@ -7,13 +10,13 @@ from pele.optimize._quench import modifiedfire_cpp
 from basinvolume.utils import read_xydfr, read_xyzdfr, reduce_coordinates, get_cython_version, full_coordinates
 from basinvolume.utils import read_xydr, read_xyzdr, get_python_version, get_git_version
 import warnings
+from future.utils import with_metaclass
 
-class _configure_mcrunner(object):
+class _configure_mcrunner(with_metaclass(abc.ABCMeta, object)):
     """
     this is an abstract class that implements the basic components of a _configure_mcrunner class,
     and declares a number of abstract methods which should be implemented in all inheriting classes
     """
-    __metaclass__ = abc.ABCMeta
      
     @abc.abstractmethod
     def _set_paths(self, *args, **kwargs):
@@ -116,13 +119,13 @@ class _configure_mcrunner(object):
         self.coords = np.array(new_coords)
         
         if verbose:
-            print 'results from quench \n'
-            print res
+            print('results from quench \n')
+            print(res)
             hess = pot_optimizer.getHessian(res.coords)
             w, v = np.linalg.eig(hess)
             w = np.real(w)
-            print 'eigenvalues'
-            print sorted(w)
+            print('eigenvalues')
+            print(sorted(w))
     
     @abc.abstractmethod 
     def _import_packing_config_files(self):

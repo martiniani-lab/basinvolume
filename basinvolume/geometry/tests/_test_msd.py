@@ -1,7 +1,12 @@
 from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import numpy as np
 import os
-import ConfigParser
+import configparser
 from basinvolume.utils import import_pt_cloud_drops_time_series_raw, compute_mean_var_cloud_ts
 from sympy.mpmath import gammainc as sympy_gammainc
 from sympy.mpmath import gamma as sympy_gamma
@@ -40,7 +45,7 @@ class _testMSD(object):
 
         base_name = os.path.basename(os.path.normpath(self.explore_dir))
         dname = str(base_name).replace('explore_bv_', '')
-        print dname
+        print(dname)
         self.pt_configpath = os.path.join(self.explore_dir, 'explore_' + dname + '.config')
         assert os.path.isfile(self.pt_configpath)
         self.findk_configpath = os.path.join(self.explore_dir, 'findk_' + dname + '.config')
@@ -70,10 +75,10 @@ class _testMSD(object):
 
     def _import_pt_time_series(self):
         self.timeseries = import_pt_cloud_drops_time_series_raw(self.explore_dir, max_series_size=int(1e5), ncores=self.ncores)
-        print self.timeseries.shape
+        print(self.timeseries.shape)
 
     def _import_config_files(self):
-        configf = ConfigParser.ConfigParser()
+        configf = configparser.ConfigParser()
         configf.read(str(self.pt_configpath))
         self.report_steps = configf.getfloat('MCRUNNER', 'report_steps')
         configf.read(str(self.findk_configpath))
@@ -92,13 +97,13 @@ class _testMSD(object):
 
     def compute_msd(self):
         num_mean, num_var = compute_mean_var_cloud_ts(self.timeseries, self.karray)
-        print num_var
+        print(num_var)
         exact_msd = np.array([hypersphere_rmsd(k, self.geom_params[0], self.ndof) for k in self.karray])
         return num_mean, exact_msd
 
 if __name__== "__main__":
     test = _testMSD("explore_bv_oracle_hypersphere_n2_r1.0", ncores=2)
     num_msd, exact_msd = test.compute_msd()
-    print num_msd
-    print exact_msd
-    print "num-exact:", num_msd-exact_msd
+    print(num_msd)
+    print(exact_msd)
+    print("num-exact:", num_msd-exact_msd)

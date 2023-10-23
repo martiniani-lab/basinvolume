@@ -1,5 +1,9 @@
 from __future__ import division
+from __future__ import print_function
 
+from builtins import zip
+from builtins import str
+from builtins import object
 import argparse as ap
 import collections
 import copy
@@ -14,7 +18,7 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError as err:
-    print err
+    print(err)
     
 class TimeSeriesComparison(object):
     """
@@ -37,16 +41,16 @@ class TimeSeriesComparison(object):
         self.series = series
         self.data = dict([(k, s) for k, s in zip(keys, series)])
         self.analysis_parameters = analysis_parameters
-        self.long_time_mean = np.mean(np.asarray([s[-1] for s in self.data.values()]))
-        self.max_deviation_from_long_mean = np.amax([np.absolute(s[-1] - self.long_time_mean) / self.long_time_mean for s in self.data.values()])
-        print("self.max_deviation_from_long_mean", self.max_deviation_from_long_mean)
+        self.long_time_mean = np.mean(np.asarray([s[-1] for s in list(self.data.values())]))
+        self.max_deviation_from_long_mean = np.amax([np.absolute(s[-1] - self.long_time_mean) / self.long_time_mean for s in list(self.data.values())])
+        print(("self.max_deviation_from_long_mean", self.max_deviation_from_long_mean))
         if len(keys) > 2 and self.max_deviation_from_long_mean > self.analysis_parameters["target_relative_error"]:
-            print("self.analysis_parameters['target_relative_error']", self.analysis_parameters["target_relative_error"])
+            print(("self.analysis_parameters['target_relative_error']", self.analysis_parameters["target_relative_error"]))
             raise Exception("Target relative error too low.")
     
     def compute_conv_it(self):
         self.latest_converged_iteration = dict([(k, self.get_latest_conv_iteration(k)) for k in self.keys])
-        print("self.latest_converged_iteration", self.latest_converged_iteration)
+        print(("self.latest_converged_iteration", self.latest_converged_iteration))
                 
     def get_latest_conv_iteration(self, k):
         it = len(self.data[k])
@@ -102,7 +106,7 @@ class SeriesComparison(object):
         if self.incomplete:
             raise Exception("This assumes that the three-series-set is complete.")
         comp = None
-        print("self.three_series_dir", self.three_series_dir)
+        print(("self.three_series_dir", self.three_series_dir))
         try:
             comp = None
             if len(self.methods) == 2:
@@ -194,7 +198,7 @@ class TrajOnlyAnalysis(object):
         
     def run(self):
         acc = MomentsAcc()
-        for i in self.volume_files.path.keys():
+        for i in list(self.volume_files.path.keys()):
             evaluations = self.get_evals(self.volume_files.path[i], self.evaluations_files.path[i])
             if self.analysis_parameters["subtract_ini_evals"]:
                 evaluations -= self.get_ini_evals(self.ini_evals_files.path[i])
@@ -244,10 +248,10 @@ class BenchmarkPlot(BasicPlot):
                         self.converged_sets[int(dim)] = []
                     self.converged_sets[int(dim)].append(index)
         self.dimensions = sorted(self.converged_sets.keys())
-        print("self.converged_sets", self.converged_sets)
+        print(("self.converged_sets", self.converged_sets))
         #large_basin_results/5/2/0/brute_res_evals.txt
         for dim in self.dimensions:
-            for m in self.evaluations.keys():
+            for m in list(self.evaluations.keys()):
                 evals_list = [np.loadtxt(os.path.join(base_dir,
                     str(dim), i, m + "_res_evals.txt")) for i in self.converged_sets[dim]]
                 #print("evals_list", evals_list)
@@ -293,9 +297,9 @@ class BenchmarkPlot(BasicPlot):
         if not self.analysis_parameters["traj_plot_only"]:
             self.out_name = "gbms_data_analysis_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
             for i, m in enumerate(self.methods_for_plot):
-                print("self.dimensions", self.dimensions)
-                print("self.evaluations[m]", self.evaluations[m])
-                print("self.nr_samples[m]", self.nr_samples[m])
+                print(("self.dimensions", self.dimensions))
+                print(("self.evaluations[m]", self.evaluations[m]))
+                print(("self.nr_samples[m]", self.nr_samples[m]))
                 eval_plot = np.asarray(self.evaluations[m]) / 10**8
                 yerr_plot = np.asarray(self.evaluations_error[m]) / 10**8
                 plt.errorbar(self.dimensions, eval_plot, yerr=yerr_plot,
