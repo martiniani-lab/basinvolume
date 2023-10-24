@@ -10,7 +10,7 @@ from pele.potentials._pele cimport BasePotential
 from libcpp.string cimport string
 cimport cython
 import sys
-from pymbar.timeseries import statisticalInefficiency_fft
+from pymbar.timeseries import statistical_inefficiency_fft
 from ctypes import c_size_t as size_t
 
 cdef extern from "basinvolume/cross_validation_cost.h" namespace "bv":
