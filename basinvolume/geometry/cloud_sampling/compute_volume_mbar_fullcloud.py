@@ -24,7 +24,15 @@ from pymbar.timeseries import (
 )
 from joblib import Parallel, delayed
 from itertools import chain
-from compiler.ast import flatten
+import collections
+
+
+def flatten(iterable):
+    for el in iterable:
+        if isinstance(el, collections.Iterable) and not isinstance(el, str):
+            yield from flatten(el)
+        else:
+            yield el
 
 
 class hyperelem_mbar_compute_dos(mbar_compute_dos):
