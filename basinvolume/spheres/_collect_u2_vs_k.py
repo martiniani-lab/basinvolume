@@ -75,12 +75,14 @@ class _collect_u2_vs_k(object):
         packings_dir="packings",
         jammed_packings_dir="jammed_packings",
         plot_ts_integrand_data=True,
+        simple_integrator = True,
         frozen=False,
         show=False,
         plot_only=False,
         verbose=False,
     ):
 
+        self.simple_integrator = simple_integrator
         self.fname = fname
         if not os.path.isabs(jammed_packings_dir):
             jammed_packings_dir = os.path.join(
@@ -352,7 +354,7 @@ class _collect_u2_vs_k(object):
             self.u2_array,
             self.vcavity,
             self.prob_kmax,
-            displ_k_min_trafo=self.displ_k_min,
+            displ_k_min_trafo=self.displ_k_min
         ).get_free_energy_F0(
             sqared_std_errors
         )
@@ -369,6 +371,7 @@ class _collect_u2_vs_k(object):
             self.u2_array,
             prob=self.prob_kmax,
             displ_k_min_trafo=self.displ_k_min,
+            simple_integrator = self.simple_integrator
         ).get_free_energy_F0(
             sqared_std_errors
         )

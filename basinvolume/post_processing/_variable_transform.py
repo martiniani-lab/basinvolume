@@ -155,7 +155,7 @@ def spring_constants_variable_transform(
     the maximum spring constant k_max,
     the average displacement squared at k=0,
     the number of particles,
-    and the Ecuclidean dimension of the box;
+    and the Euclidean dimension of the box;
     computes the k values to use in PT to be able to use Gauss-Lobato integration.
     Reference: Daniel A. Asenjo-Andrews, PhD thesis,  p 34
     """
@@ -240,6 +240,9 @@ def calculate_simple_integral(
     kappa_const=1.0,
     displ_k_min_trafo=None,
 ):
+    """
+    This is a handcoded version of the Gauss-Lobato integrator, not a different (or simpler) one
+    """
     nr_points = len(u_sq_k)
     displ_k_min = 0
     if displ_k_min_trafo is None:

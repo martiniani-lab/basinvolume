@@ -68,6 +68,7 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
         nr_volume_points,
         force_run,
         method,
+        is_it_gausslobato,
         explore_bv_dir="explore_bv_jammed_packing",
         analysis_dir="analysis",
         volume_file="volume_data",
@@ -81,6 +82,7 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
         self.workspace_dir = workspace_dir
         self.force_run = force_run
         self.method = method
+        self.is_it_gausslobato = is_it_gausslobato
         # End: store input parameters.
         self.experimental = "exp" in workspace_dir  # this is weak, fix it
         self.nr_volume_points = nr_volume_points
@@ -173,68 +175,6 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
         ]
 
 
-#    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
-#    def get_packing_configpath(self, volume_file):
-#        tmp = os.path.split(os.path.split(volume_file)[0])[0]
-#        only_number = int(re.findall('\d+', volume_file)[0])
-# return os.path.join(self.workspace_dir, self.packings_dir, "packing" +
-# only_number + ".config")
-
-#    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
-#    def collect_computed_data_F0(self):
-#        self.volume_files = [os.path.join(f, self.analysis_dir, self.volume_file)
-#                             for f in self.explore_dirs]
-#        self.F0_actually_imported_files = []
-#        self.F0 = []
-#        self.unit_box_F0 = []
-#        self.sigF0 = []
-#        for vf in self.volume_files:
-#            self.read_from_volume_file(vf)
-#
-#    def read_from_volume_file(self, vf):
-#        volf = ConfigParser.ConfigParser()
-#        volf.read(str(vf))
-#        try:
-#            self.F0.append(volf.getfloat('VOLUME_FULL_PT', 'F0'))
-#            self.unit_box_F0.append(volf.getfloat('VOLUME_FULL_PT', 'unit_box_F0'))
-#            self.sigF0.append(volf.getfloat('VOLUME_FULL_PT', 'sigF0'))
-#            self.F0_actually_imported_files.append(vf)
-#            try:
-#                packing_configpath = self.get_packing_configpath(vf)
-#                logging.info("packing_configpath: {}".format(packing_configpath))
-#                volume_sanity_check = VolumeSanityCheck(packing_configpath,
-# numerical_moments=self.numerical_moments)
-#                self.best_integration_selection.check_next_F0(volume_sanity_check, self, vf)
-#            except Exception, e:
-#                logging.info("Exception: {}".format(e))
-#                logging.info("integration selection failed")
-#                logging.info("location: {}".format(vf))
-#        except Exception, e:
-#            logging.info("Exception: {}".format(e))
-#            logging.info("insufficient data available")
-#            logging.info("location: {}".format(vf))
-
-#    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
-#    def select_final_dataset(self):
-#        self.best_integration_selection.print_fail_information(self.workspace_dir)
-# self.F0_final_integration_selection =
-# self.best_integration_selection.F0_final
-#    self.outlier_detection = OutlierDetection(
-#        self.F0_final_integration_selection,
-#        p=0.5, D=3*np.std(self.F0_final_integration_selection), verbose=True)
-#        self.F0_wo_outliers = np.asarray(self.outlier_detection.non_outliers)
-
-#    THIS SHOULD BE PART OF THE COMPUTE ENTROPY CLASS
-#    def process_final_dataset_for_plots(self):
-#        try:
-#            self.print_histogram_and_data(self.F0_final_integration_selection,
-# "/volume_histogram_F0_final")
-#            self.print_histogram_and_data(self.F0_wo_outliers,
-# "/volume_histogram_F0_final_removed_outliers")
-#        except Exception as err:
-#            logging.info(err)
-
-
 class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
     """
     Used for packings with one config file for each packing.
@@ -246,6 +186,7 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
         nr_volume_points,
         force_run,
         method,
+        is_it_gausslobato,
         volume_file="volume_data",
         volume_title="VOLUME_FULL_PT",
         explore_bv_dir="explore_bv_jammed_packing",
@@ -258,6 +199,7 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
             nr_volume_points,
             force_run,
             method,
+            is_it_gausslobato,
             volume_file=volume_file,
             volume_title=volume_title,
             explore_bv_dir=explore_bv_dir,
@@ -268,7 +210,6 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
         self.series_collector = _collect_u2_vs_k()
 
     def _compute_volume(self, fname, explore_dir):
-        print("---- is this even called")
         jammed_packings_path = os.path.abspath(
             os.path.join(self.workspace_dir, self.jammed_packings_dir)
         )
@@ -286,6 +227,7 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
             jammed_packings_dir=jammed_packings_path,
             packings_dir=packings_path,
             plot_ts_integrand_data=False,
+            simple_integrator = self.is_it_gausslobato
         )
 
 
@@ -320,7 +262,6 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
             set_explore_dir=set_explore_dir,
         )
         self.plot_dos_data = False
-        print("we are here")
         self.series_collector = mbar_compute_dos(
             nbins=1000,
             bootstrap=True,
@@ -336,7 +277,6 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
         packings_path = os.path.abspath(
             os.path.join(self.workspace_dir, self.packings_dir)
         )
-        print("series collector")
         self.series_collector(
             fname=fname,
             explore_dir=explore_dir,
@@ -409,6 +349,7 @@ class ComputeVolumes(object):
         nr_volume_points=-1,
         force_run=False,
         method="mbar",
+        is_it_gausslobato = False,
         explore_bv_dir="explore_bv_jammed_packing",
         packings_dir="packings",
         jammed_packings_dir="jammed_packings",
@@ -430,18 +371,17 @@ class ComputeVolumes(object):
             )
         elif self.method == "tint":
             logging.info("using thermodynamic integration method")
-            print("are we going in")
             self.computer = ComputeVolumesTINTMultiConfigFile(
                 workspace_dir,
                 nr_volume_points,
                 force_run,
                 method,
+                is_it_gausslobato,
                 explore_bv_dir=explore_bv_dir,
                 packings_dir=packings_dir,
                 jammed_packings_dir=jammed_packings_dir,
                 set_explore_dir=set_explore_dir,
             )
-            print("are we going out")
         else:
             raise Exception(
                 "ComputeVolumes: illegal choice of method, "
@@ -454,9 +394,7 @@ class ComputeVolumes(object):
 
 def worker(workspace_dir, kwargs):
     try:
-        print("here")
         cv = ComputeVolumes(workspace_dir, **kwargs)
-        print("done")
         cv()
     except Exception:
         logging.info("find_k worker: %s" % (traceback.format_exc()))
@@ -517,6 +455,13 @@ if __name__ == "__main__":
         default="tint",
     )
     parser.add_argument(
+        "-gl",
+        "--gauss_lobato",
+        action = "store_true",
+        help="type of thermodynamic integration scheme",
+        default=False,
+    )
+    parser.add_argument(
         "--explore_dirs",
         type=str,
         help="String that packing directories to explore start with. "
@@ -558,6 +503,7 @@ if __name__ == "__main__":
         nr_volume_points=args.nr_vpoints,
         force_run=args.force,
         method=args.method,
+        is_it_gausslobato = args.gauss_lobato,
         explore_bv_dir=args.explore_dirs,
         packings_dir=args.packings_dir,
         jammed_packings_dir=args.jammed_packings_dir,
@@ -589,8 +535,6 @@ if __name__ == "__main__":
             mypool.join()
         else:
             for folder in subdirs:
-                print("what")
                 cv = ComputeVolumes(os.path.abspath(folder), **kwargs)
-                print("kwargs")
                 cv()
                 del cv
