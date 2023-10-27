@@ -20,7 +20,7 @@ class Base_Compute_Integral(object):
         displacements,
         kappa_const=1.0,
         displ_k_min_trafo=None,
-        simple_integrator=True,
+        simple_integrator = True
     ):
         """
         Compute the integral needed for the th. integration.
@@ -51,6 +51,7 @@ class Base_Compute_Integral(object):
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
         if self.simple_integrator:
+            print("Do we get to the brute force?")
             (
                 self.integral_over_displacements,
                 self.f,
@@ -136,7 +137,7 @@ class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
         prob,
         kappa_const=1.0,
         displ_k_min_trafo=None,
-        simple_integrator=True,
+        simple_integrator = True
     ):
         super(F_Basin_From_MC_Data_Free_COM, self).__init__(
             dimension,
@@ -191,7 +192,8 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         box_volume,
         prob,
         kappa_const=1.0,
-        displ_k_min_trafo=None
+        displ_k_min_trafo=None,
+        simple_integrator=True
     ):
         super(F_Basin_From_MC_Data, self).__init__(
             dimension,
@@ -200,6 +202,7 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
             displacements,
             kappa_const=kappa_const,
             displ_k_min_trafo=displ_k_min_trafo,
+            simple_integrator = simple_integrator
         )
         self.box_volume = box_volume
         self.prob = prob

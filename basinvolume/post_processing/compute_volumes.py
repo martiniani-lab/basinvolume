@@ -227,7 +227,7 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
             jammed_packings_dir=jammed_packings_path,
             packings_dir=packings_path,
             plot_ts_integrand_data=False,
-            simple_integrator = self.is_it_gausslobato
+            simple_integrator = not self.is_it_gausslobato
         )
 
 
@@ -358,7 +358,7 @@ class ComputeVolumes(object):
         self.method = method
         self.experimental = "exp" in workspace_dir  # THIS SHOULD BE IMPROVED
         if self.method == "mbar":
-            logging.info("using MBAR method")
+            logging.info("Using MBAR method")
             self.computer = ComputeVolumesMBARMultiConfigFile(
                 workspace_dir,
                 nr_volume_points,
@@ -370,7 +370,11 @@ class ComputeVolumes(object):
                 set_explore_dir=set_explore_dir,
             )
         elif self.method == "tint":
-            logging.info("using thermodynamic integration method")
+            logging.info("Using thermodynamic integration method")
+            if is_it_gausslobato:
+                logging.info("Using Gauss-Lobato quadrature")
+            else:
+                logging.info("Using brute-force trapeze method")
             self.computer = ComputeVolumesTINTMultiConfigFile(
                 workspace_dir,
                 nr_volume_points,

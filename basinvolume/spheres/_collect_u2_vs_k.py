@@ -354,7 +354,8 @@ class _collect_u2_vs_k(object):
             self.u2_array,
             self.vcavity,
             self.prob_kmax,
-            displ_k_min_trafo=self.displ_k_min
+            displ_k_min_trafo=self.displ_k_min,
+            simple_integrator=self.simple_integrator
         ).get_free_energy_F0(
             sqared_std_errors
         )
