@@ -132,13 +132,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--opt_dtmax", type=int, default=1, help="Description for opt_dtmax."
-    ) # XXX These could also be read off
+    )
     parser.add_argument(
         "--opt_nsteps",
         type=float,
         default=1e5,
         help="number of steps for optimizer",
-    ) # XXX These could also be read off
+    )
     parser.add_argument(
         "--record_trajectory_npoints",
         type=float,
@@ -179,8 +179,8 @@ if __name__ == "__main__":
         adjustf=args.adjustf,
         adjustf_niter=args.adjustf_niter,
         adjustf_navg=100,
-        opt_dtmax=args.opt_dtmax, # XXX These could also be read off
-        opt_nsteps=args.opt_nsteps, # XXX These could also be read off
+        opt_dtmax=args.opt_dtmax,
+        opt_nsteps=args.opt_nsteps,
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,
         use_cell_lists=not args.nocell,

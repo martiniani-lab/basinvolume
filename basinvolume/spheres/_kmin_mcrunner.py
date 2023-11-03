@@ -16,6 +16,7 @@ from basinvolume.utils import (
     get_dist_vec_com,
     trajectory_pca,
     asphericity_factor,
+    conf_get_default
 )
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.enums import Minimizer
@@ -92,8 +93,6 @@ class KminMCRunner(ConfigMCRunner):
         self.sca = imp_packing["sca"]
         self.distance_method = imp_packing["distance_method"]
         self.interaction = imp_packing["interaction"]
-        self.minimizer = imp_packing["minimizer"]
-        self.opt_tol = imp_packing["opt_tol"]
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
@@ -120,6 +119,8 @@ class KminMCRunner(ConfigMCRunner):
         configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
+        self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
+        self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
 
         kwargs = dict(
             k=k,
@@ -364,7 +365,7 @@ if __name__ == "__main__":
         verbose=True,
         hmax=20,
         hbinsize=0.05,
-        opt_nsteps=1e6, # XXX Could read this off too
+        opt_nsteps=1e6,
     )
     print("simulation started")
     start = time.time()

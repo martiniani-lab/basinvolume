@@ -39,13 +39,13 @@ class _findk_mcrunner(ConfigMCRunner):
         ktol=0.025,
         opt_dtmax=1,
         opt_maxstep=None,
-        # opt_tol=1e-5,
+        opt_tol=1e-5,
         opt_nsteps=1e5,
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
         use_cell_lists=False,
-        # minimizer=Minimizer.FIRE,
+        minimizer=Minimizer.FIRE,
         packings_dir="jammed_packings",
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
@@ -54,6 +54,8 @@ class _findk_mcrunner(ConfigMCRunner):
         self.temperature = 1.0
         self.eps = eps
         self.fname = fname
+        self.minimizer = minimizer
+        self.opt_tol = opt_tol
 
         self._set_paths(packings_dir, explore_dir)
         imp_packing = read_jammed_packing_config(str(self.configpath))
@@ -66,8 +68,6 @@ class _findk_mcrunner(ConfigMCRunner):
         self.sca = imp_packing["sca"]
         self.distance_method = imp_packing["distance_method"]
         self.interaction = imp_packing["interaction"]
-        self.minimizer = imp_packing["minimizer"]
-        self.opt_tol = imp_packing["opt_tol"]
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:

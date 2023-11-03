@@ -67,12 +67,14 @@ def submit_jobs(simulation_dir):
     # simulation dir is assumed to be of the form {minimizer}_{n_particles}_{packing_fraction}
     minimizer_name = simulation_dir_name.split("_")[0]
     minimizer = Minimizer[minimizer_name]
-    global_kwargs = dict(
+    opt_kwargs = dict(
         opt_tol=1e-10,
-        opt_nsteps=1e5,
-        dtol=1e-2,
-        opt_dtmax=1,
         minimizer=minimizer,
+        dtol=1e-2
+        )
+    global_kwargs = dict(
+        opt_nsteps=1e5,
+        opt_dtmax=1
     )
 
     n_prev_stages = 0
@@ -94,6 +96,7 @@ def submit_jobs(simulation_dir):
             jammed_packing_fname,
             simstage,
             submit=True,
+            opt_kwargs = opt_kwargs,
             global_kwargs=global_kwargs,
         )
     if n_prev_stages == 0 and n_analysis != 0:

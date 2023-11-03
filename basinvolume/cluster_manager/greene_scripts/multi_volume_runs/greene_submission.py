@@ -81,18 +81,22 @@ def calculate_volume(
     packing_file,
     simulation_type,
     submit=True,
-    global_kwargs=dict(
+    opt_kwargs = dict(
         opt_tol=1e-10,
-        opt_nsteps=1e5,
-        dtol=1e-2,
-        opt_dtmax=1,
         minimizer="LBFGS",
+        dtol=1e-2,
+    ),
+    global_kwargs=dict(
+        opt_nsteps=1e5,
+        opt_dtmax=1,
     ),
 ):
     # global args that should be the same across scripts
+    # only kmax sees the optimizer kwargs, the following steps just read them off from the kmax config file
     if simulation_type == SimStage.KMAX:
+        kmax_kwargs = {**opt_kwargs, **global_kwargs}
         setup_kmax(
-            simulation_folder, global_kwargs, packing_file, submit=submit
+            simulation_folder, kmax_kwargs, packing_file, submit=submit
         )
     elif simulation_type == SimStage.KMIN:
         setup_kmin(

@@ -9,7 +9,7 @@ import numpy as np
 import os
 from mcpele.monte_carlo import NullPotential
 from basinvolume.spheres import ConfigMCRunner
-from basinvolume.utils import trymakedir, view_traceback
+from basinvolume.utils import trymakedir, view_traceback, conf_get_default
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.mbar_spheres import BVInnerSphereMCrunner
 from basinvolume.enums import Minimizer
@@ -176,8 +176,6 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         self.sca = imp_packing["sca"]
         self.distance_method = imp_packing["distance_method"]
         self.interaction = imp_packing["interaction"]
-        self.minimizer = imp_packing["minimizer"]
-        self.opt_tol = imp_packing["opt_tol"]
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
@@ -202,6 +200,8 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
+        self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
+        self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
         # import mean displacement of replica with largest k
         check_path = os.path.join(self.base_directory, "0", "hist_mean")
 

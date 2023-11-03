@@ -114,6 +114,12 @@ def read_jammed_packing_config(configpath, frozen=False):
     parameters["opt_maxstep"] = configf.getfloat(
         "JAMMED_PACKING", "opt_maxstep"
     )
+    parameters["opt_dtmax"] = configf.getfloat(
+        "JAMMED_PACKING", "opt_dtmax"
+    )
+    parameters["opt_nsteps"] = configf.getfloat(
+        "JAMMED_PACKING", "opt_nsteps"
+    )
     parameters["pot_kwargs"] = ast.literal_eval(
         conf_get_default(configf, "JAMMED_PACKING", "pot_kwargs", "{}")
     )
@@ -152,7 +158,7 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         outdir="jammed_packings",
         override_pot_kwargs=None,
         minimizer=Minimizer.FIRE,
-        maxstep_factor=1.0,
+        opt_maxstep_factor=1.0,
         logging_tag="",
         write_opengl=False,
         sort_atoms=False,
@@ -169,7 +175,7 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         self.sca = -1
         self.eps = 1.0
         self.minimizer = minimizer
-        self.maxstep_factor = maxstep_factor
+        self.opt_maxstep_factor = opt_maxstep_factor
         self.logging_tag = logging_tag
         self.write_opengl = write_opengl
         self.sort_atoms = sort_atoms
@@ -266,8 +272,10 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         f.write("distance_method: {}\n".format(self.distance_method.name))
         f.write("interaction: {}\n".format(self.interaction.name))
         f.write("minimizer: {}\n".format(self.minimizer.name))
-        f.write("opt_tol: {}\n".format(self.tol))
+        f.write("opt_tol: {}\n".format(self.opt_tol))
         f.write("opt_maxstep: {}\n".format(self.opt_maxstep))
+        f.write("opt_dtmax: {}\n".format(self.opt_dtmax))
+        f.write("opt_nsteps: {}\n".format(self.opt_nsteps))
         f.write("pot_kwargs: {}\n".format(self.pot_kwargs))
         if self.sca < 0:
             logging.warning(
@@ -276,7 +284,7 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         f.write("sca: {:.16f}\n".format(self.sca))
         f.write("sorted: {}\n".format(self.sort_atoms))
         f.write("sorted_nsubdoms: {}\n".format(os.environ["OMP_NUM_THREADS"]))
-        f.write("maxstep_factor: {}\n".format(self.maxstep_factor))
+        f.write("maxstep_factor: {}\n".format(self.opt_maxstep_factor))
         f.write("\n")
         # print software version
         f.write("[CODEVERSION]\n")
@@ -356,14 +364,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
     sig: standard deviaton of normal distribution from which to sample particles
     sca: determines % by which the hs is inflated
     eps: LJ interaction energy of WCA part of the HS potential
-    tol: rms tolerance for the minimizer
+    opt_tol: rms tolerance for the minimizer
     """
 
     def __init__(
         self,
         target_packing_frac=0.7,
-        tol=1e-9,
-        maxstep_factor=1.0,
+        opt_tol=1e-9,
+        opt_maxstep_factor=1.0,
+        opt_dtmax=1.0,
+        opt_nsteps=1e5,
         packings_dir="packings",
         packing_nrs=None,
         import_jammed=False,
@@ -385,7 +395,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             import_jammed=import_jammed,
             outdir=outdir,
             minimizer=minimizer,
-            maxstep_factor=maxstep_factor,
+            opt_maxstep_factor=opt_maxstep_factor,
             override_pot_kwargs=override_pot_kwargs,
             logging_tag=logging_tag,
             write_opengl=write_opengl,
@@ -393,7 +403,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         )
         self.interaction = interaction
         self.use_cell_lists = use_cell_lists
-        self.tol = tol
+        self.opt_tol = opt_tol
+        self.opt_dtmax = opt_dtmax
+        self.opt_nsteps = opt_nsteps
         self.check_packing = check_packing
 
     def _initialise(self):
@@ -584,10 +596,10 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         """
         perform quench and run tests
         """
-        success = self._generate_packing_coords_iteration(tol=self.tol)
+        success = self._generate_packing_coords_iteration(opt_tol=self.opt_tol)
         return success
 
-    def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
+    def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
         """quenches the imported structure"""
 
         # asserts that none of the hard spheres is overlapping before quenching
@@ -598,23 +610,24 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 return False
 
         self.opt_maxstep = (
-            self.sca * np.amin(self.hs_radii) * 0.5 * self.maxstep_factor
+            self.sca * np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
         )
         if self.minimizer is Minimizer.FIRE:
             res = modifiedfire_cpp(
                 self.coords,
                 self.potential,
                 maxstep=self.opt_maxstep,
-                nsteps=1e6,
-                tol=tol,
+                nsteps=self.opt_nsteps,
+                tol=opt_tol,
+                dtmax=self.opt_dtmax,
                 iprint=iprint,
             )
         elif self.minimizer is Minimizer.CG:
             optimizer = CGDescent(
                 self.coords,
                 self.potential,
-                tol=tol,
-                nsteps=1e6,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 print_level=iprint,
             )
             res = optimizer.run()
@@ -624,7 +637,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             self.optimizer = CVODEBDFOptimizer(
                 self.potential,
                 self.coords,
-                tol=tol,
+                tol=opt_tol,
                 atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
                 rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
@@ -636,8 +649,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             self.optimizer = ExtendedMixedOptimizer(
                 self.potential,
                 self.coords,
-                tol=tol,
-                nsteps=1e7,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 atol=ratol,
                 rtol=ratol,
                 T=get_mxd_t(self.nparticles),
@@ -648,8 +661,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 self.coords,
                 self.potential,
                 maxstep=self.opt_maxstep,
-                tol=tol,
-                nsteps=1e6,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 maxErise=0,
                 iprint=iprint,
             )
@@ -671,15 +684,16 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     self.coords,
                     self.potential,
                     maxstep=self.opt_maxstep,
-                    nsteps=1e6,
-                    tol=tol,
+                    nsteps=self.opt_nsteps,
+                    tol=opt_tol,
+                    dtmax=self.opt_dtmax
                 )
             elif self.minimizer is Minimizer.CG:
                 optimizer = CGDescent(
                     self.coords,
                     self.potential,
-                    tol=tol,
-                    nsteps=1e6,
+                    tol=opt_tol,
+                    nsteps=self.opt_nsteps,
                     print_level=iprint,
                 )
                 res2 = optimizer.run()
@@ -689,7 +703,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 self.optimizer = CVODEBDFOptimizer(
                     self.potential,
                     self.coords,
-                    tol=tol,
+                    tol=opt_tol,
                     atol=INVERSE_POWER_CVODE_95_ACC[
                         len(self.coords) // self.bdim
                     ],
@@ -709,8 +723,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 self.optimizer = ExtendedMixedOptimizer(
                     self.potential,
                     self.coords,
-                    tol=tol,
-                    nsteps=1e7,
+                    tol=opt_tol,
+                    nsteps=self.opt_nsteps,
                     atol=ratol,
                     rtol=ratol,
                     T=get_mxd_t(self.nparticles),
@@ -722,8 +736,8 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     self.coords,
                     self.potential,
                     maxstep=self.opt_maxstep,
-                    tol=tol,
-                    nsteps=1e6,
+                    tol=opt_tol,
+                    nsteps=self.opt_nsteps,
                     maxErise=0,
                     iprint=iprint,
                 )
@@ -960,8 +974,10 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
     def __init__(
         self,
         target_packing_frac=0.7,
-        tol=1e-9,
-        maxstep_factor=1.0,
+        opt_tol=1e-9,
+        opt_maxstep_factor=1.0,
+        opt_dtmax=1.0,
+        opt_nsteps=1e5,
         packings_dir="packings",  # not necessary: exists for compatibility reasons
         packing_nrs=None,
         import_jammed=False,
@@ -985,8 +1001,10 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
     ):
         super().__init__(
             target_packing_frac=target_packing_frac,
-            tol=tol,
-            maxstep_factor=maxstep_factor,
+            opt_tol=opt_tol,
+            opt_dtmax=opt_dtmax,
+            opt_nsteps=opt_nsteps,
+            opt_maxstep_factor=opt_maxstep_factor,
             packings_dir=packings_dir,
             packing_nrs=packing_nrs,
             import_jammed=import_jammed,
@@ -1066,37 +1084,37 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         self.iteration += 1
         return success
 
-    def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
+    def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
         """quenches the imported structure"""
 
-        opt_maxstep = np.amin(self.hs_radii) * 0.5 * self.maxstep_factor
+        self.opt_maxstep = np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
         if self.minimizer is Minimizer.FIRE:
             res = modifiedfire_cpp(
                 self.coords,
                 self.potential,
-                maxstep=opt_maxstep,
-                nsteps=1e6,
-                tol=tol,
+                maxstep=self.opt_maxstep,
+                nsteps=self.opt_nsteps,
+                tol=opt_tol,
+                dtmax=self.opt_dtmax,
                 iprint=iprint,
             )
         elif self.minimizer is Minimizer.CG:
             optimizer = CGDescent(
                 self.coords,
                 self.potential,
-                tol=tol,
-                nsteps=1e6,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 print_level=iprint,
             )
             res = optimizer.run()
         elif self.minimizer is Minimizer.CVODE:
             from pele.optimize import CVODEBDFOptimizer
 
-            print("this should be what I'm searching for")
             self.optimizer = CVODEBDFOptimizer(
                 self.potential,
                 self.coords,
-                tol=tol,
-                nsteps=int(1e7),
+                tol=opt_tol,
+                nsteps=int(self.opt_nsteps),
                 atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
                 rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
@@ -1104,7 +1122,6 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         elif self.minimizer is Minimizer.MXD:
             from pele.optimize import ExtendedMixedOptimizer
 
-            print("here")
             ratol = (
                 INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
                 * 1e-1
@@ -1112,8 +1129,8 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
             self.optimizer = ExtendedMixedOptimizer(
                 self.potential,
                 self.coords,
-                tol=tol,
-                nsteps=1e7,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 atol=ratol,
                 rtol=ratol,
                 T=get_mxd_t(self.nparticles),
@@ -1123,9 +1140,9 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
             res = lbfgs_cpp(
                 self.coords,
                 self.potential,
-                maxstep=opt_maxstep,
-                tol=tol,
-                nsteps=1e6,
+                maxstep=self.opt_maxstep,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 maxErise=0,
                 iprint=iprint,
             )
@@ -1146,16 +1163,17 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 res2 = modifiedfire_cpp(
                     self.coords,
                     self.potential,
-                    maxstep=opt_maxstep,
-                    nsteps=1e6,
-                    tol=tol,
+                    maxstep=self.opt_maxstep,
+                    nsteps=self.opt_nsteps,
+                    tol=opt_tol,
+                    dtmax=self.opt_dtmax
                 )
             elif self.minimizer is Minimizer.CG:
                 optimizer = CGDescent(
                     self.coords,
                     self.potential,
-                    tol=tol,
-                    nsteps=1e6,
+                    tol=opt_tol,
+                    nsteps=self.opt_nsteps,
                     print_level=iprint,
                 )
                 res2 = optimizer.run()
@@ -1165,8 +1183,8 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 self.optimizer = CVODEBDFOptimizer(
                     self.potential,
                     self.coords,
-                    tol=tol,
-                    nsteps=1e7,
+                    tol=opt_tol,
+                    nsteps=self.opt_nsteps,
                     atol=INVERSE_POWER_CVODE_95_ACC[
                         len(self.coords) // self.bdim
                     ],
@@ -1185,7 +1203,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 self.optimizer = ExtendedMixedOptimizer(
                     self.potential,
                     self.coords,
-                    tol=tol,
+                    tol=opt_tol,
                     atol=ratol,
                     rtol=ratol,
                     T=get_mxd_t(self.nparticles),
@@ -1195,9 +1213,9 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 res2 = lbfgs_cpp(
                     self.coords,
                     self.potential,
-                    maxstep=opt_maxstep,
-                    tol=tol,
-                    nsteps=1e6,
+                    maxstep=self.opt_maxstep,
+                    tol=opt_tol,
+                    nsteps=self.opt_nsteps,
                     maxErise=0,
                     iprint=iprint,
                 )
@@ -1225,8 +1243,10 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
     def __init__(
         self,
         target_packing_frac=0.7,
-        tol=1e-9,
-        maxstep_factor=1,
+        opt_tol=1e-9,
+        opt_maxstep_factor=1,
+        opt_dtmax=1.0,
+        opt_nsteps=1e5,
         packings_dir="packings",
         packing_nrs=None,
         import_jammed=False,
@@ -1243,8 +1263,10 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
     ):
         super().__init__(
             target_packing_frac,
-            tol,
-            maxstep_factor,
+            opt_tol,
+            opt_maxstep_factor,
+            opt_dtmax,
+            opt_nsteps,
             packings_dir,
             packing_nrs,
             import_jammed,
@@ -1304,25 +1326,26 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
         self.iteration += 1
         return success
 
-    def _generate_packing_coords_iteration(self, tol=1e-9, iprint=-1):
+    def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
         """quenches the imported structure"""
 
-        opt_maxstep = np.amin(self.hs_radii) * 0.5 * self.maxstep_factor
+        opt_maxstep = np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
         if self.minimizer is Minimizer.FIRE:
             res = modifiedfire_cpp(
                 self.coords,
                 self.potential,
                 maxstep=opt_maxstep,
-                nsteps=1e6,
-                tol=tol,
+                nsteps=self.opt_nsteps,
+                tol=opt_tol,
+                dtmax=self.opt_dtmax,
                 iprint=iprint,
             )
         elif self.minimizer is Minimizer.CG:
             optimizer = CGDescent(
                 self.coords,
                 self.potential,
-                tol=tol,
-                nsteps=1e6,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 print_level=iprint,
             )
             res = optimizer.run()
@@ -1332,8 +1355,8 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
             self.optimizer = CVODEBDFOptimizer(
                 self.potential,
                 self.coords,
-                tol=tol,
-                nsteps=1e7,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
                 rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
             )
@@ -1348,8 +1371,8 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
             self.optimizer = ExtendedMixedOptimizer(
                 self.potential,
                 self.coords,
-                tol=tol,
-                nsteps=1e7,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 atol=ratol,
                 rtol=ratol,
                 T=get_mxd_t(self.nparticles),
@@ -1360,8 +1383,8 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
                 self.coords,
                 self.potential,
                 maxstep=opt_maxstep,
-                tol=tol,
-                nsteps=1e6,
+                tol=opt_tol,
+                nsteps=self.opt_nsteps,
                 maxErise=0,
                 iprint=iprint,
             )
@@ -1434,17 +1457,26 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-t",
-        "--tol",
+        "--opt_tol",
         type=float,
         help="rms tolerance of the minimizer",
         default=1e-9,
     )
     parser.add_argument(
-        "--maxstep",
+        "--opt_maxstep_factor",
         type=float,
         help="Factor by which the maximum step size of the "
         "minimizer is corrected.",
         default=1.0,
+    )
+    parser.add_argument(
+        "--opt_dtmax", type=float, default=1, help="For FIRE, max time step"
+    )
+    parser.add_argument(
+        "--opt_nsteps",
+        type=float,
+        default=1e7,
+        help="number of steps for optimizer",
     )
     parser.add_argument(
         "--minimizer",
@@ -1529,8 +1561,10 @@ if __name__ == "__main__":
             packing_nrs=args.packing_nrs,
             import_jammed=args.import_jammed,
             outdir=args.outdir,
-            tol=args.tol,
-            maxstep_factor=args.maxstep,
+            opt_tol=args.opt_tol,
+            opt_maxstep_factor=args.opt_maxstep_factor,
+            opt_dtmax=args.opt_dtmax,
+            opt_nsteps=args.opt_nsteps,
             use_cell_lists=not args.nocell,
             show=args.show,
             interaction=interaction,
@@ -1545,8 +1579,10 @@ if __name__ == "__main__":
             packing_nrs=args.packing_nrs,
             import_jammed=args.import_jammed,
             outdir=args.outdir,
-            tol=args.tol,
-            maxstep_factor=args.maxstep,
+            opt_tol=args.opt_tol,
+            opt_maxstep_factor=args.opt_maxstep_factor,
+            opt_dtmax=args.opt_dtmax,
+            opt_nsteps=args.opt_nsteps,
             use_cell_lists=not args.nocell,
             show=args.show,
             interaction=interaction,
@@ -1563,8 +1599,10 @@ if __name__ == "__main__":
             packing_nrs=args.packing_nrs,
             import_jammed=args.import_jammed,
             outdir=args.outdir,
-            tol=args.tol,
-            maxstep_factor=args.maxstep,
+            opt_tol=args.opt_tol,
+            opt_maxstep_factor=args.opt_maxstep_factor,
+            opt_dtmax=args.opt_dtmax,
+            opt_nsteps=args.opt_nsteps,
             use_cell_lists=not args.nocell,
             show=args.show,
             interaction=interaction,

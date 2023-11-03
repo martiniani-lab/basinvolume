@@ -10,7 +10,7 @@ import os
 import logging
 from pele.potentials import Harmonic
 from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
-from basinvolume.utils import trymakedir
+from basinvolume.utils import trymakedir, conf_get_default
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.enums import Minimizer
 import configparser
@@ -221,8 +221,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self.sca = imp_packing["sca"]
         self.distance_method = imp_packing["distance_method"]
         self.interaction = imp_packing["interaction"]
-        self.minimizer = imp_packing["minimizer"]
-        self.opt_tol = imp_packing["opt_tol"]
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
@@ -250,6 +248,8 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
+        self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
+        self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")

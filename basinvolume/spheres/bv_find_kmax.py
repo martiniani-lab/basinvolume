@@ -101,6 +101,17 @@ if __name__ == "__main__":
         default=1e5,
         help="number of steps for optimizer",
     )
+    parser.add_argument(
+        "--minimizer",
+        type=str,
+        help="Energy minimization algorithm "
+        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
+        "Default: 'FIRE'",
+        default="FIRE",
+    )
+    parser.add_argument(
+        "--opt_tol", type=float, default=1e-5, help="tolerance for optimizer"
+    )
 
     args = parser.parse_args()
 
@@ -124,6 +135,8 @@ if __name__ == "__main__":
     findk_kwargs = dict(
         k=args.kstart,
         niter=args.niter,
+        minimizer=args.minimizer,
+        opt_tol = args.opt_tol,
         dtol=args.dtol,
         eps=args.eps,
         ktarget=args.ktarget,
