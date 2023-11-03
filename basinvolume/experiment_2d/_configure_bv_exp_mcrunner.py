@@ -9,7 +9,7 @@ import numpy as np
 import os
 from pele.potentials import Harmonic
 from pele.distance import Distance
-from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
+from basinvolume.spheres import BV_MCrunner, ConfigMCRunner, read_jammed_packing_config
 from basinvolume.utils import trymakedir
 from basinvolume.enums import Minimizer
 import configparser
@@ -255,32 +255,37 @@ class configure_bv_exp_mcrunner(ConfigMCRunner):
             f.write("success_rank{}: {}\n".format(str(i), "False"))
 
     def _import_packing_config_files(self):
-        configf = configparser.ConfigParser()
+        
+        imp_packing = read_jammed_packing_config(str(self.configpath))
+        self.nparticles = imp_packing["nparticles"]
+        self.imp_packing_frac = imp_packing["packing_frac"]
+        self.bdim = imp_packing["bdim"]
+        self.ndim = imp_packing["ndim"]
+        self.boxv = imp_packing["boxv"].copy()
+        self.vcavity = imp_packing["vcavity"]
+        self.sca = imp_packing["sca"]
+        self.distance_method = imp_packing["distance_method"]
+        self.interaction = imp_packing["interaction"]
+        self.minimizer = imp_packing["minimizer"]
+        self.opt_tol = imp_packing["opt_tol"]
+        
         configf.read(str(self.packing_configpath))
-        self.nparticles = configf.getint("JAMMED_PACKING", "nparticles")
-        self.bdim = configf.getint("JAMMED_PACKING", "boxdim")
-        assert (
-            self.bdim == 2 or self.bdim == 3
-        ), "bdim={} not implemented".format(self.bdim)
-        self.ndim = self.nparticles * self.bdim
-        boxv = configf.get("JAMMED_PACKING", "boxv")
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat(
-            "JAMMED_PACKING", "packing_fraction"
-        )
-        self.sca = configf.getfloat("JAMMED_PACKING", "sca")
         self.mobile_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"
         )
         self.frozen_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"
         )
+        
+        configf = configparser.ConfigParser()        
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
+        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")
+
 
     def print_success_all(self, success):
         """

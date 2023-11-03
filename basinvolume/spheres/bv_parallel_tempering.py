@@ -105,14 +105,6 @@ if __name__ == "__main__":
         default=100,
     )
     parser.add_argument(
-        "--minimizer",
-        type=str,
-        help="Energy minimization algorithm "
-        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
-        "Default: 'FIRE'",
-        default="FIRE",
-    )
-    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -178,15 +170,6 @@ if __name__ == "__main__":
         type=float,
         default=1e-1,
         help="Step size for the MCRunner.",
-    )
-    parser.add_argument(
-        "--dtol",
-        type=float,
-        default=1e-4,
-        help="D-tolerance for the MCRunner.",
-    )
-    parser.add_argument(
-        "--opt_tol", type=float, default=1e-5, help="Optimization tolerance"
     )
     parser.add_argument(
         "--opt_nsteps", type=float, default=1e5, help="Optimization runs"
@@ -308,11 +291,6 @@ if __name__ == "__main__":
     )
     logging.info(seeds)
 
-    if args.minimizer.upper() in Minimizer.__members__:
-        minimizer = Minimizer[args.minimizer.upper()]
-    else:
-        raise ValueError("Unknown minimizer: {}".format(args.minimizer))
-
     if args.exchange_scheme.upper() in ExchangeScheme.__members__:
         exchange_scheme = ExchangeScheme[args.exchange_scheme.upper()]
     else:
@@ -339,8 +317,6 @@ if __name__ == "__main__":
         fname,
         niter=niter,
         stepsize=args.stepsize,
-        dtol=args.dtol,
-        opt_tol=args.opt_tol,
         opt_nsteps=args.opt_nsteps,
         hmin=args.hmin,
         hmax=args.hmax,
@@ -352,7 +328,6 @@ if __name__ == "__main__":
         pt_eq_niter=pt_eq_niter,
         ts_niter=ts_niter,
         ts_freq=ts_freq,
-        minimizer=minimizer,
         perform_convergence_test=perform_minimisation_convergence_test,
         collect_minima_list=collect_minima_list,
         seeds=seeds,

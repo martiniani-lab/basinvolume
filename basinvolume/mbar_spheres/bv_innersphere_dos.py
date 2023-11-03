@@ -53,28 +53,16 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
-        "--minimizer",
-        type=str,
-        help="Energy minimization algorithm "
-        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS', CVODE "
-        "Default: 'FIRE'",
-        default="FIRE",
-    )
-    parser.add_argument(
         "-v", "--verbose", action="store_true", help="verbosity", default=False
     )
     parser.add_argument(
         "--niter", type=float, default=1e5, help="Number of iterations."
     )
-    parser.add_argument("--dtol", type=float, default=1e4, help="D tolerance.")
     parser.add_argument(
         "--eps", type=float, default=1.0, help="Epsilon value."
     )
     parser.add_argument(
         "--opt_dtmax", type=int, default=1, help="Maximum dt for optimization."
-    )
-    parser.add_argument(
-        "--opt_tol", type=float, default=1e-5, help="Optimization tolerance."
     )
     parser.add_argument(
         "--opt_nsteps",
@@ -99,23 +87,15 @@ if __name__ == "__main__":
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(), packings_dir)
 
-    if args.minimizer.upper() in Minimizer.__members__:
-        minimizer = Minimizer[args.minimizer.upper()]
-    else:
-        raise ValueError("Unknown minimizer: {}".format(args.minimizer))
-
     # when niter=None, niter is set equal to exact number of PT niter
     innersphere_kwargs = dict(
         niter=args.niter,
-        dtol=args.dtol,
         eps=args.eps,
         opt_dtmax=args.opt_dtmax,
-        opt_tol=args.opt_tol,
         opt_nsteps=args.opt_nsteps,
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,
         use_cell_lists=not args.nocell,
-        minimizer=minimizer,
         verbose=args.verbose,
     )
 

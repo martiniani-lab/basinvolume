@@ -10,7 +10,7 @@ import os
 from pele.potentials import Harmonic, HS_WCA
 from pele.optimize._quench import modifiedfire_cpp
 from pele.distance import Distance
-from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
+from basinvolume.spheres import BV_MCrunner, ConfigMCRunner, read_jammed_packing_config
 from basinvolume.utils import trymakedir
 from basinvolume.enums import Minimizer
 import configparser
@@ -34,7 +34,7 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
         k=0.0,
         stepsize=1e-2,
         niter=5e4,
-        dtol=1e-4,
+        # dtol=1e-4,
         eps=1.0,
         hmin=0,
         hmax=100,
@@ -43,16 +43,16 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
         adjustf=0.9,
         adjustf_niter=5e3,
         adjustf_navg=100,
-        opt_dtmax=1,
+        opt_dtmax=1, # XXX These could also be read off
         opt_maxstep=None,
-        opt_tol=1e-5,
-        opt_nsteps=1e5,
+        # opt_tol=1e-5,
+        opt_nsteps=1e5, # XXX These could also be read off
         perform_convergence_test=False,
         collect_minima_list=False,
         single=False,
         seeds=None,
         use_cell_lists=False,
-        minimizer=Minimizer.FIRE,
+        # minimizer=Minimizer.FIRE,
         packings_dir="jammed_packings",
         verbose=False,
     ):
@@ -88,7 +88,7 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
             "temperature": self.temperature,
             "niter": niter,
             "stepsize": stepsize,
-            "dtol": dtol,
+            "dtol": self.dtol,
             "eps": eps,
             "hmin": hmin,
             "hmax": hmax,
@@ -99,14 +99,14 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
             "adjustf_navg": adjustf_navg,
             "opt_dtmax": opt_dtmax,
             "opt_maxstep": opt_maxstep,
-            "opt_tol": opt_tol,
+            "opt_tol": self.opt_tol,
             "opt_nsteps": opt_nsteps,
             "perform_convergence_test": perform_convergence_test,
             "collect_minima_list": collect_minima_list,
             "single": single,
             "use_cell_lists": use_cell_lists,
             "rcontainer": rcontainer,
-            "minimizer": minimizer,
+            "minimizer": self.minimizer,
         }
         # add seeds dictionary to mc_params
         try:
@@ -114,7 +114,7 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
         except:
             print("WARNING:seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose, frozen=True)
+        self._requench_coords(self.dtol, opt_maxstep, verbose, frozen=True)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -132,7 +132,7 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
             self.sca,
             rattlers=self.rattlers,
             k=k,
-            dtol=dtol,
+            dtol=self.dtol,
             eps=eps,
             hmin=hmin,
             hmax=hmax,
@@ -143,7 +143,7 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
             adjustf_navg=adjustf_navg,
             opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
-            opt_tol=opt_tol,
+            opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
@@ -155,7 +155,7 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
             use_frozen=True,
             frozen_atoms=self.frozen,
             rcontainer=rcontainer,
-            minimizer=minimizer,
+            minimizer=self.minimizer,
         )
 
         self._initialise()
@@ -190,26 +190,31 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
         )
 
     def _import_packing_config_files(self):
-        configf = configparser.ConfigParser()
-        configf.read(str(self.configpath))
-        self.nparticles = configf.getint("JAMMED_PACKING", "nparticles")
-        self.bdim = configf.getint("JAMMED_PACKING", "boxdim")
-        assert (
-            self.bdim == 2 or self.bdim == 3
-        ), "bdim={} not implemented".format(self.bdim)
-        self.ndim = self.nparticles * self.bdim
-        boxv = configf.get("JAMMED_PACKING", "boxv")
-        self.boxv = np.array([float(x) for x in boxv.split()])
-        self.imp_packing_frac = configf.getfloat(
-            "JAMMED_PACKING", "packing_fraction"
-        )
-        self.sca = configf.getfloat("JAMMED_PACKING", "sca")
+        
+        imp_packing = read_jammed_packing_config(str(self.configpath))
+        self.nparticles = imp_packing["nparticles"]
+        self.imp_packing_frac = imp_packing["packing_frac"]
+        self.bdim = imp_packing["bdim"]
+        self.ndim = imp_packing["ndim"]
+        self.boxv = imp_packing["boxv"].copy()
+        self.vcavity = imp_packing["vcavity"]
+        self.sca = imp_packing["sca"]
+        self.distance_method = imp_packing["distance_method"]
+        self.interaction = imp_packing["interaction"]
+        self.minimizer = imp_packing["minimizer"]
+        self.opt_tol = imp_packing["opt_tol"]
+        
+        configf.read(str(self.packing_configpath))
         self.mobile_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"
         )
         self.frozen_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"
         )
+        
+        configf = configparser.ConfigParser()
+        configf.read(str(self.findk_configpath))
+        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
 
     def _initialise(self):
         self._print_initialise()

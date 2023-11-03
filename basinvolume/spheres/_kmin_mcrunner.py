@@ -44,7 +44,6 @@ class KminMCRunner(ConfigMCRunner):
         k=0.0,
         stepsize=1e-2,
         niter=5e4,
-        dtol=1e-4,
         eps=1.0,
         hmin=0,
         hmax=0.01,
@@ -55,7 +54,6 @@ class KminMCRunner(ConfigMCRunner):
         adjustf_navg=100,
         opt_dtmax=1,
         opt_maxstep=None,
-        opt_tol=1e-5,
         opt_nsteps=1e5,
         record_steps_timeseries=False,
         record_steps_timeseries_every=[1],
@@ -67,7 +65,6 @@ class KminMCRunner(ConfigMCRunner):
         single=False,
         seeds=None,
         use_cell_lists=False,
-        minimizer=Minimizer.FIRE,
         packings_dir="jammed_packings",
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
@@ -95,6 +92,8 @@ class KminMCRunner(ConfigMCRunner):
         self.sca = imp_packing["sca"]
         self.distance_method = imp_packing["distance_method"]
         self.interaction = imp_packing["interaction"]
+        self.minimizer = imp_packing["minimizer"]
+        self.opt_tol = imp_packing["opt_tol"]
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
@@ -117,11 +116,14 @@ class KminMCRunner(ConfigMCRunner):
 
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
+        
+        configf = configparser.ConfigParser()
+        configf.read(str(self.findk_configpath))
+        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
 
-        # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
             k=k,
-            dtol=dtol,
+            dtol=self.dtol,
             eps=eps,
             hmin=hmin,
             hmax=hmax,
@@ -132,7 +134,7 @@ class KminMCRunner(ConfigMCRunner):
             adjustf_navg=adjustf_navg,
             opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
-            opt_tol=opt_tol,
+            opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
             record_steps_timeseries=record_steps_timeseries,
             record_steps_timeseries_every=record_steps_timeseries_every,
@@ -144,7 +146,7 @@ class KminMCRunner(ConfigMCRunner):
             use_cell_lists=use_cell_lists,
             record_histogram=True,
             single=single,
-            minimizer=minimizer,
+            minimizer=self.minimizer,
             distance_method=self.distance_method,
             use_frozen=False,
             interaction=self.interaction,
@@ -159,7 +161,7 @@ class KminMCRunner(ConfigMCRunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(self.dtol, opt_maxstep, verbose)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -352,7 +354,6 @@ if __name__ == "__main__":
         "jammed_packing0.xydr",
         niter=1e4,
         k=0,
-        opt_tol=1e-4,
         seeds=seeds,
         record_steps_timeseries=True,
         record_steps_timeseries_every=[
@@ -361,10 +362,9 @@ if __name__ == "__main__":
         single=True,
         use_cell_lists=True,
         verbose=True,
-        minimizer=Minimizer.FIRE,
         hmax=20,
         hbinsize=0.05,
-        opt_nsteps=1e6,
+        opt_nsteps=1e6, # XXX Could read this off too
     )
     print("simulation started")
     start = time.time()

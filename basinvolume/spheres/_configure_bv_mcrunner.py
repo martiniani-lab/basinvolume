@@ -41,7 +41,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
         temperature=1.0,
         stepsize=1e-1,
         niter=2e4,
-        dtol=1e-4,
         eps=1.0,
         hmin=0,
         hmax=100,
@@ -55,7 +54,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
         ts_freq=1,
         opt_dtmax=1,
         opt_maxstep=None,
-        opt_tol=1e-5,
         opt_nsteps=1e5,
         perform_convergence_test=False,
         collect_minima_list=False,
@@ -63,7 +61,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
         seeds=None,
         use_cell_lists=False,
         checkoverlap_cell_lists=None,
-        minimizer=Minimizer.FIRE,
         record_histogram=False,
         packings_dir="jammed_packings",
         base_dir=None,
@@ -82,7 +79,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
             k=k,
-            dtol=dtol,
+            dtol=self.dtol,
             eps=eps,
             hmin=hmin,
             hmax=hmax,
@@ -96,7 +93,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
             ts_freq=ts_freq,
             opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
-            opt_tol=opt_tol,
+            opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
             perform_convergence_test=perform_convergence_test,
             record_histogram=record_histogram,
@@ -107,7 +104,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
             single=single,
             distance_method=self.distance_method,
             use_frozen=False,
-            minimizer=minimizer,
+            minimizer=self.minimizer,
             record_trajectory=False,
             interaction=self.interaction,
             pot_kwargs=self.pot_kwargs,
@@ -121,7 +118,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
             warnings.warn("seeds not passed")
 
         self._initialise()
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(self.dtol, opt_maxstep, verbose)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -224,6 +221,8 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self.sca = imp_packing["sca"]
         self.distance_method = imp_packing["distance_method"]
         self.interaction = imp_packing["interaction"]
+        self.minimizer = imp_packing["minimizer"]
+        self.opt_tol = imp_packing["opt_tol"]
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
@@ -250,6 +249,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # fails if Success is false
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
+        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")

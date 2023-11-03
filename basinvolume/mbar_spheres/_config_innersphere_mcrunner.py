@@ -34,20 +34,20 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         self,
         fname,
         niter=None,
-        dtol=1e-4,
+        # dtol=1e-4,
         eps=1.0,
         hmin=0,
         hmax=0.01,
         hbinsize=0.0005,
         opt_dtmax=1,
         opt_maxstep=None,
-        opt_tol=1e-5,
+        # opt_tol=1e-5,
         opt_nsteps=1e5,
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
         use_cell_lists=False,
-        minimizer=Minimizer.FIRE,
+        # minimizer=Minimizer.FIRE,
         record_histogram=False,
         packings_dir="jammed_packings",
         explore_dir="explore_bv_jammed_packing",
@@ -70,21 +70,21 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
 
         # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
-            dtol=dtol,
+            dtol=self.dtol,
             eps=eps,
             hmin=hmin,
             hmax=hmax,
             hbinsize=hbinsize,
             opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
-            opt_tol=opt_tol,
+            opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,
             use_cell_lists=use_cell_lists,
             record_histogram=record_histogram,
-            minimizer=minimizer,
+            minimizer=self.minimizer,
             distance_method=self.distance_method,
             use_frozen=False,
             interaction=self.interaction,
@@ -101,7 +101,7 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(self.dtol, opt_maxstep, verbose)
 
         # construct mcrunner
         self.coords = _subtract_com(self.coords, ndim=self.bdim)
@@ -176,6 +176,8 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         self.sca = imp_packing["sca"]
         self.distance_method = imp_packing["distance_method"]
         self.interaction = imp_packing["interaction"]
+        self.minimizer = imp_packing["minimizer"]
+        self.opt_tol = imp_packing["opt_tol"]
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
@@ -199,6 +201,7 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
+        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
         # import mean displacement of replica with largest k
         check_path = os.path.join(self.base_directory, "0", "hist_mean")
 

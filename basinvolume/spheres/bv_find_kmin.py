@@ -74,14 +74,6 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
-        "--minimizer",
-        type=str,
-        help="Energy minimization algorithm "
-        "used for quenching. Options: 'CG', 'FIRE', 'LBFGS'. "
-        "Default: 'FIRE'",
-        default="FIRE",
-    )
-    parser.add_argument(
         "--rsts",
         action="store_true",
         help="record steps timeseries for diffusion studies, default: False",
@@ -118,9 +110,6 @@ if __name__ == "__main__":
         help="Description for stepsize.",
     )
     parser.add_argument(
-        "--dtol", type=float, default=1e-4, help="Description for dtol."
-    )
-    parser.add_argument(
         "--eps", type=float, default=1.0, help="Description for eps."
     )
     parser.add_argument(
@@ -143,16 +132,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--opt_dtmax", type=int, default=1, help="Description for opt_dtmax."
-    )
-    parser.add_argument(
-        "--opt_tol", type=float, default=1e-10, help="optimizer tolerance"
-    )
+    ) # XXX These could also be read off
     parser.add_argument(
         "--opt_nsteps",
         type=float,
         default=1e5,
         help="number of steps for optimizer",
-    )
+    ) # XXX These could also be read off
     parser.add_argument(
         "--record_trajectory_npoints",
         type=float,
@@ -177,11 +163,6 @@ if __name__ == "__main__":
     if not os.path.isabs(packings_dir):
         packings_dir = os.path.join(os.getcwd(), packings_dir)
 
-    if args.minimizer.upper() in Minimizer.__members__:
-        minimizer = Minimizer[args.minimizer.upper()]
-    else:
-        raise ValueError("Unknown minimizer: {}".format(args.minimizer))
-
     single = not args.moveall
     if args.rsts_only:
         args.rsts = True
@@ -190,7 +171,6 @@ if __name__ == "__main__":
         k=args.k,
         stepsize=args.stepsize,
         niter=args.niter,
-        dtol=args.dtol,
         eps=args.eps,
         hmin=args.hmin,
         hmax=args.hmax,
@@ -199,14 +179,12 @@ if __name__ == "__main__":
         adjustf=args.adjustf,
         adjustf_niter=args.adjustf_niter,
         adjustf_navg=100,
-        opt_dtmax=args.opt_dtmax,
-        opt_tol=args.opt_tol,
-        opt_nsteps=args.opt_nsteps,
+        opt_dtmax=args.opt_dtmax, # XXX These could also be read off
+        opt_nsteps=args.opt_nsteps, # XXX These could also be read off
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,
         use_cell_lists=not args.nocell,
         single=single,
-        minimizer=minimizer,
         verbose=args.verbose,
         record_steps_timeseries=args.rsts,
         record_steps_timeseries_every=[

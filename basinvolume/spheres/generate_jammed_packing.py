@@ -105,6 +105,15 @@ def read_jammed_packing_config(configpath, frozen=False):
     parameters["interaction"] = Interaction[
         conf_get_default(configf, "JAMMED_PACKING", "interaction", "HS_WCA")
     ]
+    parameters["minimizer"] = Minimizer[
+        conf_get_default(configf, "JAMMED_PACKING", "minimizer", "FIRE")
+    ]
+    parameters["opt_tol"] = configf.getfloat(
+        "JAMMED_PACKING", "opt_tol"
+    )
+    parameters["opt_maxstep"] = configf.getfloat(
+        "JAMMED_PACKING", "opt_maxstep"
+    )
     parameters["pot_kwargs"] = ast.literal_eval(
         conf_get_default(configf, "JAMMED_PACKING", "pot_kwargs", "{}")
     )
@@ -256,6 +265,9 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         f.write("\n")
         f.write("distance_method: {}\n".format(self.distance_method.name))
         f.write("interaction: {}\n".format(self.interaction.name))
+        f.write("minimizer: {}\n".format(self.minimizer.name))
+        f.write("opt_tol: {}\n".format(self.tol))
+        f.write("opt_maxstep: {}\n".format(self.opt_maxstep))
         f.write("pot_kwargs: {}\n".format(self.pot_kwargs))
         if self.sca < 0:
             logging.warning(
@@ -585,14 +597,14 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 logging.warning(self._log("Overlap found before quenching"))
                 return False
 
-        opt_maxstep = (
+        self.opt_maxstep = (
             self.sca * np.amin(self.hs_radii) * 0.5 * self.maxstep_factor
         )
         if self.minimizer is Minimizer.FIRE:
             res = modifiedfire_cpp(
                 self.coords,
                 self.potential,
-                maxstep=opt_maxstep,
+                maxstep=self.opt_maxstep,
                 nsteps=1e6,
                 tol=tol,
                 iprint=iprint,
@@ -635,7 +647,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             res = lbfgs_cpp(
                 self.coords,
                 self.potential,
-                maxstep=opt_maxstep,
+                maxstep=self.opt_maxstep,
                 tol=tol,
                 nsteps=1e6,
                 maxErise=0,
@@ -658,7 +670,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 res2 = modifiedfire_cpp(
                     self.coords,
                     self.potential,
-                    maxstep=opt_maxstep,
+                    maxstep=self.opt_maxstep,
                     nsteps=1e6,
                     tol=tol,
                 )
@@ -709,7 +721,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 res2 = lbfgs_cpp(
                     self.coords,
                     self.potential,
-                    maxstep=opt_maxstep,
+                    maxstep=self.opt_maxstep,
                     tol=tol,
                     nsteps=1e6,
                     maxErise=0,

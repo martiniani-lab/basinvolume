@@ -39,13 +39,13 @@ class _findk_mcrunner(ConfigMCRunner):
         ktol=0.025,
         opt_dtmax=1,
         opt_maxstep=None,
-        opt_tol=1e-5,
+        # opt_tol=1e-5,
         opt_nsteps=1e5,
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
         use_cell_lists=False,
-        minimizer=Minimizer.FIRE,
+        # minimizer=Minimizer.FIRE,
         packings_dir="jammed_packings",
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
@@ -66,6 +66,8 @@ class _findk_mcrunner(ConfigMCRunner):
         self.sca = imp_packing["sca"]
         self.distance_method = imp_packing["distance_method"]
         self.interaction = imp_packing["interaction"]
+        self.minimizer = imp_packing["minimizer"]
+        self.opt_tol = imp_packing["opt_tol"]
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
@@ -98,7 +100,6 @@ class _findk_mcrunner(ConfigMCRunner):
         # stepsize = np.sqrt(self.ndim/k)  #####################
         #####
 
-        # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
             dtol=dtol,
             eps=eps,
@@ -108,13 +109,13 @@ class _findk_mcrunner(ConfigMCRunner):
             avgcount=avgcount,
             opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
-            opt_tol=opt_tol,
+            opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,
             use_cell_lists=use_cell_lists,
-            minimizer=minimizer,
+            minimizer=self.minimizer,
             distance_method=self.distance_method,
             use_frozen=False,
             interaction=self.interaction,
@@ -129,7 +130,7 @@ class _findk_mcrunner(ConfigMCRunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose, gtol=opt_tol)
+        self._requench_coords(dtol, opt_maxstep, verbose, gtol=self.opt_tol)
 
         self.mcrunner = Findk_MCrunner(
             potential,
@@ -229,13 +230,11 @@ if __name__ == "__main__":
         "jammed_packing0.xyzdr",
         avgcount=1e4,
         k=759,
-        opt_tol=1e-5,
         ktarget=0.9,
         knavg=1e3,
         seeds=seeds,
         use_cell_lists=True,
         verbose=True,
-        minimizer=Minimizer.FIRE,
     )
     # print("simulation started")
     start = time.time()
