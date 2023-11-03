@@ -105,21 +105,21 @@ def read_jammed_packing_config(configpath, frozen=False):
     parameters["interaction"] = Interaction[
         conf_get_default(configf, "JAMMED_PACKING", "interaction", "HS_WCA")
     ]
-    parameters["minimizer"] = Minimizer[
-        conf_get_default(configf, "JAMMED_PACKING", "minimizer", "FIRE")
-    ]
-    parameters["opt_tol"] = configf.getfloat(
-        "JAMMED_PACKING", "opt_tol"
-    )
-    parameters["opt_maxstep"] = configf.getfloat(
-        "JAMMED_PACKING", "opt_maxstep"
-    )
-    parameters["opt_dtmax"] = configf.getfloat(
-        "JAMMED_PACKING", "opt_dtmax"
-    )
-    parameters["opt_nsteps"] = configf.getfloat(
-        "JAMMED_PACKING", "opt_nsteps"
-    )
+    # parameters["minimizer"] = Minimizer[
+    #     conf_get_default(configf, "JAMMED_PACKING", "minimizer", "FIRE")
+    # ]
+    # parameters["opt_tol"] = configf.getfloat(
+    #     "JAMMED_PACKING", "opt_tol"
+    # )
+    # parameters["opt_maxstep"] = configf.getfloat(
+    #     "JAMMED_PACKING", "opt_maxstep"
+    # )
+    # parameters["opt_dtmax"] = configf.getfloat(
+    #     "JAMMED_PACKING", "opt_dtmax"
+    # )
+    # parameters["opt_nsteps"] = configf.getfloat(
+    #     "JAMMED_PACKING", "opt_nsteps"
+    # )
     parameters["pot_kwargs"] = ast.literal_eval(
         conf_get_default(configf, "JAMMED_PACKING", "pot_kwargs", "{}")
     )
