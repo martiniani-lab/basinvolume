@@ -193,7 +193,6 @@ class configure_bv_mcrunner(_configure_mcrunner):
         """initialisation function"""
         # change directory only at the end of initialise
         self._print_initialise()
-        os.chdir(self.base_directory)
 
     def _print_initialise(self):
         base_directory = self.base_directory
@@ -258,7 +257,9 @@ class configure_bv_mcrunner(_configure_mcrunner):
             configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
             for i in range(self.nprocs):
-                configf.set("STATUS", "success_rank{}".format(str(i)), success)
+                configf.set(
+                    "STATUS", "success_rank{}".format(str(i)), str(success)
+                )
             configf.write(open(str(self.configfile), "w"))
 
 

@@ -129,6 +129,7 @@ class MPI_BV_PT_RLhandshake_cloud(MPI_PT_RLhandshake):
 
     def _print_initialise(self):
         base_directory = self.base_directory
+        print("===========================> are we here")
         trymakedir(base_directory)
         directory = "{0}/{1}".format(base_directory, self.rank)
         trymakedir(directory)

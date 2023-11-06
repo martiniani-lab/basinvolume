@@ -259,6 +259,8 @@ if __name__ == "__main__":
         )
     )
     print("convert timeseries to hf5...")
+    # For clearer outputs
+    MPI.COMM_WORLD.Barrier()
     if rank == 0:
         # it is imperative that max_series_size=0 to avoid loss of raw data, the objective of this step is to
         # reduce the amount of occupied memory and i/o speed without loosing any information
@@ -269,5 +271,6 @@ if __name__ == "__main__":
             ncores=1,
             del_raw=False,
         )
+    MPI.COMM_WORLD.Barrier()
     print("done")
     print("elapsed time", end - start)

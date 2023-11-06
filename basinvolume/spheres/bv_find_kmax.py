@@ -110,3 +110,5 @@ if __name__ == "__main__":
     seeds = dict(seeds=seeds_dict)
     findk_kwargs_s = copy.deepcopy(dict(findk_kwargs, **seeds))
     worker_findk(fname, findk_kwargs_s)
+
+# 797.933205759

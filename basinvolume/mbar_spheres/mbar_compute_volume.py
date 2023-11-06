@@ -421,7 +421,6 @@ class mbar_compute_dos(object):
         initial_f_k=None,
         maxiter=10000,
         reltol=1.0e-7,
-        subsampling=6,
     ):
         self.u_kn = self._build_u_kn(self.flat_timeseries)
         self.mbar = MBAR(
@@ -431,12 +430,15 @@ class mbar_compute_dos(object):
             relative_tolerance=reltol,
             initial_f_k=initial_f_k,
             initialize="BAR",
-            subsampling=subsampling,
             verbose=verbose,
         )
 
     def _mbar_compute_volume(self):
-        Deltaf_ij, dDeltaf_ij, Theta_ij = self.mbar.getFreeEnergyDifferences()
+        result_dict = self.mbar.compute_free_energy_differences(
+            return_theta=True
+        )
+        Deltaf_ij = result_dict["Delta_f"]
+        dDeltaf_ij = result_dict["dDelta_f"]
         self.w_i_final = -Deltaf_ij[
             0
         ]  # the free energy differences are nothing but the log weights that one would compute from wham
@@ -459,7 +461,9 @@ class mbar_compute_dos(object):
         u_lk = np.vstack(
             (u_lk, self.u_kn[self.k0_index])
         )  # measure free energy difference between k=0 and kw
-        Deltaf_ij, dDeltaf_ij = self.mbar.computePerturbedFreeEnergies(u_lk)
+        result_dict = self.mbar.compute_perturbed_free_energies(u_lk)
+        Deltaf_ij = result_dict["Delta_f"]
+        dDeltaf_ij = result_dict["dDelta_f"]
         # vol = Deltaf_ij[1,0]
         self.F0, self.sigF0 = (Fmin - Deltaf_ij[1, 0]) - np.log(
             self.vcavity
@@ -984,6 +988,9 @@ if __name__ == "__main__":
     assert os.path.isabs(wdir)
 
     if not os.path.isabs(fdir):
+        print("wdir: ", wdir)
+        print("fdir", fdir)
+        print("fname", fname)
         fdir = os.path.join(wdir, fdir + fname)
 
     sim = mbar_compute_dos(

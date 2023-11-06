@@ -12,6 +12,7 @@ from basinvolume.post_processing import spring_constants_variable_transform
 from basinvolume.spheres import BV_MCrunner
 from basinvolume.utils import get_dist_com, integratedAutocorrelationTime_fft
 from mcpele.parallel_tempering import MPI_PT_RLhandshake, trymakedir
+import os
 
 try:
     from basinvolume.gaussian_benchmark import GaussianBenchmarkKminRun
@@ -134,6 +135,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.histogram_mean_stream = open(
             "{0}/{1}".format(directory, "hist_mean"), "w"
         )
+        print("are we heeere")
         self.histogram_mean_stream.write(
             "{:<15}\t{:<15}\t{:<15}\t{:<15}\n".format(
                 "iteration", "<(x-x0)**2>", "variance", "std_err"
@@ -428,7 +430,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             )  # reset exchange pattern to no exchange
             self.anyswap = False
 
-            for i in self.nodelist[1::2]:
+            for i in self.nodelist[1 : self.nproc - self.exchange_choice : 2]:
                 if self.verbose:
                     print(
                         "exchange choice: ",
