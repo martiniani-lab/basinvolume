@@ -112,7 +112,7 @@ def submit_jobs(simulation_dir):
 
 
 def main():
-    folder = "/scratch/ps4586/num_256/"
+    folder = "/scratch/mc9287/remote_no_copy/basin_volumes_praharsh/num_128/"
     for simfolder in os.listdir(folder):
         submit_jobs(os.path.join(folder, simfolder))
 
