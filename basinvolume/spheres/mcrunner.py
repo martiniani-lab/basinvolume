@@ -963,7 +963,7 @@ class Findk_MCrunner(SpheresMCRunner):
             origin,
             hs_radii,
             boxv,
-            sca=0.0,
+            sca,
             rattlers=rattlers,
             k=1,
             dtol=dtol,
