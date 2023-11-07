@@ -1044,7 +1044,7 @@ class Findk_MCrunner(SpheresMCRunner):
             val,
             weights=hist,
             bins=len(hist),
-            normed=1,
+            density=True,
             alpha=0.4,
             edgecolor=color_cycle[0],
             color=color_cycle[0],
