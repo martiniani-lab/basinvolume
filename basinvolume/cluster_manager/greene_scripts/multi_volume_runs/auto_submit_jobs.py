@@ -66,7 +66,8 @@ def submit_jobs(simulation_dir):
     n_analysis = 0
     # simulation dir is assumed to be of the form {minimizer}_{n_particles}_{packing_fraction}
     minimizer_name = simulation_dir_name.split("_")[0]
-    minimizer = Minimizer[minimizer_name]
+    # minimizer = Minimizer[minimizer_name]
+    minimizer = minimizer_name
     opt_kwargs = dict(
         opt_tol=1e-10,
         minimizer=minimizer,
