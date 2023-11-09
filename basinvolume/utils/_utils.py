@@ -38,14 +38,14 @@ except ImportError as err:
 
 
 # given the number of particles
-# return the corresponding tolerance for 95 percent accuracy
+# return the corresponding tolerance for >95 percent accuracy
 # for the CVODE integrator for mapping basins of attraction
 # for the inversepower potential
 INVERSE_POWER_CVODE_95_ACC = {
-    8: 1e-4,
-    16: 1e-4,
-    32: 1e-5,
-    64: 1e-6,
+    8: 1e-7,
+    16: 1e-7,
+    32: 1e-7,
+    64: 1e-7,
     128: 1e-7,
     256: 1e-8,
     512: 1e-9,
