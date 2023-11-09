@@ -118,7 +118,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
             warnings.warn("seeds not passed")
 
         self._initialise()
-        self._requench_coords(self.dtol, opt_maxstep, verbose)
+        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol = self.opt_tol)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
