@@ -92,6 +92,17 @@ def submit_jobs(simulation_dir):
             n_analysis += 1
             print(f"analysis waiting for {simulation_dir_name}")
             continue
+        
+        if simstage == SimStage.PT:
+            fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
+            explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
+            if os.path.exists(os.path.join(explore_dir, f"checkpoint.dmp")):
+                checkpoint_file = os.path.join(simulation_dir, f"checkpoint.dmp")
+            else:
+                checkpoint_file = None
+        else: 
+            checkpoint_file = None
+        
         calculate_volume(
             simulation_dir,
             jammed_packing_fname,
@@ -99,6 +110,7 @@ def submit_jobs(simulation_dir):
             submit=True,
             opt_kwargs = opt_kwargs,
             global_kwargs=global_kwargs,
+            checkpoint_file = checkpoint_file
         )
     if n_prev_stages == 0 and n_analysis != 0:
         print(f"Submitting analysis for {simulation_dir_name}")

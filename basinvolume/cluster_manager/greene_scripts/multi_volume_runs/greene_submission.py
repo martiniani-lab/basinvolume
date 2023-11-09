@@ -81,6 +81,7 @@ def calculate_volume(
     packing_file,
     simulation_type,
     submit=True,
+    checkpoint_file = None,
     opt_kwargs = dict(
         opt_tol=1e-10,
         minimizer="LBFGS",
@@ -99,6 +100,9 @@ def calculate_volume(
     time_str = make_time_str(opt_kwargs["minimizer"], simulation_folder)
     pt_time_str = make_time_str(opt_kwargs["minimizer"], simulation_folder, parallel_tempering=True)
     
+    # Always checkpoint after 6 days if not over yet, always start from checkpoint if it exists
+    checkpoint_time = 8640 
+    
     if simulation_type == SimStage.KMAX:
         kmax_kwargs = {**opt_kwargs, **global_kwargs}
         setup_kmax(
@@ -110,7 +114,7 @@ def calculate_volume(
         )
     elif simulation_type == SimStage.PT:
         setup_parallel_tempering(
-            simulation_folder, global_kwargs, packing_file, pt_time_str, submit=submit
+            simulation_folder, global_kwargs, packing_file, pt_time_str, checkpoint_time=checkpoint_time, checkpoint_file=checkpoint_file, submit=submit
         )
     elif simulation_type == SimStage.INNER_SPHERE:
         setup_inner_sphere(
@@ -324,7 +328,7 @@ def submit_job(
 
 
 def setup_parallel_tempering(
-    simulation_folder, global_kwargs, packing_file, time_str, submit=True
+    simulation_folder, global_kwargs, packing_file, time_str, checkpoint_time = None, checkpoint_file = None, submit=True
 ):
     replicas = 64
     mpi_procs = 16
@@ -362,6 +366,8 @@ def setup_parallel_tempering(
         "k_spreading": "positionlinspace",
     }
     pt_kwargs["nreplicas"] = replicas
+    pt_kwargs["checkpoint-time"] = checkpoint_time
+    pt_kwargs["load-checkpoint"] = checkpoint_file
     script_subpath = "spheres/bv_parallel_tempering.py"
     job_name_prefix = "bv_pt"
 

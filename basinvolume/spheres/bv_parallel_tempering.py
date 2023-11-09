@@ -278,9 +278,9 @@ if __name__ == "__main__":
         args.relstderr
     )  # relative standard error in the mean used by convergence test
     min_window = (
-        2.5e5  # minimum amount of data before trying to check convergence
+        min_tot_niter * 0.5  # minimum amount of data before trying to check convergence
     )
-    max_eq_time = 2.5e5  # maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
+    max_eq_time = min_tot_niter * 0.5  # maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
     fast_ct = False  # if false skip euristic search for equilibration point
     collect_minima_list = args.collect_minima
     i32max = np.iinfo(np.int32).max
