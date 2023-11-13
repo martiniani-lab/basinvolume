@@ -9,6 +9,7 @@ import copy
 from _findk_mcrunner import _findk_mcrunner
 from basinvolume.experiment_2d import _findk_exp_mcrunner
 from basinvolume.enums import Minimizer
+from time import time
 
 
 def worker_findk(fname, kwargs):
@@ -71,7 +72,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dtol",
         type=float,
-        default=1e-2,
+        default=1e-4,
         help="for a minimum A, and a minimimization result B, if |d_A-d_B|^2<dtol, then A and B are considered the same ",
     )
     parser.add_argument(
@@ -136,7 +137,7 @@ if __name__ == "__main__":
         k=args.kstart,
         niter=args.niter,
         minimizer=args.minimizer,
-        opt_tol = args.opt_tol,
+        opt_tol=args.opt_tol,
         dtol=args.dtol,
         eps=args.eps,
         ktarget=args.ktarget,
@@ -158,4 +159,7 @@ if __name__ == "__main__":
     seeds_dict = dict(seed_takestep=seed_takestep)
     seeds = dict(seeds=seeds_dict)
     findk_kwargs_s = copy.deepcopy(dict(findk_kwargs, **seeds))
+    start_time = time()
     worker_findk(fname, findk_kwargs_s)
+    end_time = time()
+    print("took ", end_time - start_time, " seconds")
