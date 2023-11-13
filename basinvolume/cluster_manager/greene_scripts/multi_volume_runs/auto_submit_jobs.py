@@ -38,8 +38,11 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         os.path.join(explore_dir, f"kmin_{fname_wo_ext}.config")
     ):
         return SimStage.KMIN
-    elif not os.path.exists(
+    elif not os.path.exists( # PT not started
         os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
+        or os.path.exists( # PT not finished
+            os.path.join(simulation_dir, f"checkpoint.dmp")
+        )
     ):
         return SimStage.PT
     elif not os.path.exists(
