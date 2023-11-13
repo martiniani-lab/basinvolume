@@ -16,7 +16,7 @@ from basinvolume.utils import (
     get_dist_vec_com,
     trajectory_pca,
     asphericity_factor,
-    conf_get_default
+    conf_get_default,
 )
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.enums import Minimizer
@@ -70,8 +70,10 @@ class KminMCRunner(ConfigMCRunner):
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
         workspace=None,
+        minimizer=None,
+        dtol=None,
+        opt_tol=None,
     ):
-
         self.fname = fname
         self.temperature = 1.0
         self.eps = eps
@@ -115,12 +117,27 @@ class KminMCRunner(ConfigMCRunner):
 
         self._import_packing_configuration()
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
-        
+
         configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
-        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
-        self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
-        self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
+        if dtol is None:
+            self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
+        else:
+            self.dtol = dtol
+
+        if minimizer is None:
+            self.minimizer = Minimizer[
+                conf_get_default(
+                    configf, "FINDK_MCRUNNER", "minimizer", "FIRE"
+                )
+            ]
+        else:
+            self.minimizer = Minimizer[minimizer]
+
+        if opt_tol is None:
+            self.opt_tol = configf.getfloat("FINDK_MCRUNNER", "opt_tol")
+        else:
+            self.opt_tol = opt_tol
 
         kwargs = dict(
             k=k,
@@ -162,7 +179,9 @@ class KminMCRunner(ConfigMCRunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol = self.opt_tol)
+        self._requench_coords(
+            self.dtol, opt_maxstep, verbose, gtol=self.opt_tol
+        )
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -348,7 +367,6 @@ class KminMCRunner(ConfigMCRunner):
 
 
 if __name__ == "__main__":
-
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     sim = KminMCRunner(

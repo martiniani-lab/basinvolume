@@ -10,7 +10,6 @@ import copy
 from _kmin_mcrunner import KminMCRunner
 from basinvolume.experiment_2d import _kmin_exp_mcrunner
 from basinvolume.utils import check_kmax_reasonable
-from basinvolume.enums import Minimizer
 
 
 def worker_kmin(fname, kwargs):
@@ -145,6 +144,30 @@ if __name__ == "__main__":
         default=1e4,
         help="Description for record_trajectory_npoints.",
     )
+    parser.add_argument(
+        "--force-minimizer",
+        type=str,
+        help="Force minimizer usage different from the one used for kmax \
+              computation. Options: 'CG', 'FIRE', 'LBFGS'. Default: None \
+              Only use for testing purposes.",
+        default=None,
+    )
+    parser.add_argument(
+        "--force-dtol",
+        type=float,
+        help="Force identification tolerance different from the one used for kmax \
+              computation. Default: None (use the same as for kmax computation).  \
+            Only use for testing purposes.",
+        default=None,
+    )
+    parser.add_argument(
+        "--force-opt-tol",
+        type=float,
+        help="Force optimizer tolerance different from the one used for kmax \
+                computation. Default: None (use the same as for kmax computation).  \
+            Only use for testing purposes.",
+        default=None,
+    )
 
     args = parser.parse_args()
 
@@ -192,6 +215,9 @@ if __name__ == "__main__":
         ],
         print_diffusion_only=args.rsts_only,
         record_trajectory_npoints=int(args.record_trajectory_npoints),
+        minimizer=args.force_minimizer,
+        dtol=args.force_dtol,
+        opt_tol=args.force_opt_tol,
     )
 
     i32max = np.iinfo(np.int32).max
