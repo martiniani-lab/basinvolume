@@ -1364,7 +1364,6 @@ def find_neighbors_slow(
     # Loop over all unique pairs of different particles
     for i, atomi in enumerate(atom_labels):
         for atomj in atom_labels[i + 1 :]:
-
             # Calculate distance
             dij = calc_distance(
                 coords[atomi * bdim : (atomi + 1) * bdim],

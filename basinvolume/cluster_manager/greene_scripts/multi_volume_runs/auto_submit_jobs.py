@@ -38,8 +38,11 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         os.path.join(explore_dir, f"kmin_{fname_wo_ext}.config")
     ):
         return SimStage.KMIN
-    elif not os.path.exists(
+    elif not os.path.exists( # PT not started
         os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
+        or os.path.exists( # PT not finished
+            os.path.join(simulation_dir, f"checkpoint.dmp")
+        )
     ):
         return SimStage.PT
     elif not os.path.exists(
@@ -66,7 +69,8 @@ def submit_jobs(simulation_dir):
     n_analysis = 0
     # simulation dir is assumed to be of the form {minimizer}_{n_particles}_{packing_fraction}
     minimizer_name = simulation_dir_name.split("_")[0]
-    minimizer = Minimizer[minimizer_name]
+    # minimizer = Minimizer[minimizer_name]
+    minimizer = minimizer_name
     opt_kwargs = dict(
         opt_tol=1e-10,
         minimizer=minimizer,
@@ -91,6 +95,17 @@ def submit_jobs(simulation_dir):
             n_analysis += 1
             print(f"analysis waiting for {simulation_dir_name}")
             continue
+        
+        if simstage == SimStage.PT:
+            fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
+            explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
+            if os.path.exists(os.path.join(explore_dir, f"checkpoint.dmp")):
+                checkpoint_file = os.path.join(simulation_dir, f"checkpoint.dmp")
+            else:
+                checkpoint_file = None
+        else: 
+            checkpoint_file = None
+        
         calculate_volume(
             simulation_dir,
             jammed_packing_fname,
@@ -98,6 +113,7 @@ def submit_jobs(simulation_dir):
             submit=True,
             opt_kwargs = opt_kwargs,
             global_kwargs=global_kwargs,
+            checkpoint_file = checkpoint_file
         )
     if n_prev_stages == 0 and n_analysis != 0:
         print(f"Submitting analysis for {simulation_dir_name}")
@@ -112,7 +128,7 @@ def submit_jobs(simulation_dir):
 
 
 def main():
-    folder = "/scratch/ps4586/num_256/"
+    folder = "/scratch/mc9287/remote_no_copy/basin_volumes_praharsh/num_128/"
     for simfolder in os.listdir(folder):
         submit_jobs(os.path.join(folder, simfolder))
 

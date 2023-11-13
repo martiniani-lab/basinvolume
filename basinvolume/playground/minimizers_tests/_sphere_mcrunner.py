@@ -106,7 +106,7 @@ class _sphere_mcrunner(ConfigMCRunner):
         except:
             print("WARNING:seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose)
+        self._requench_coords(dtol, opt_maxstep, verbose, gtol = opt_tol)
 
         # construct mcrunner
         self.coords = _subtract_com(self.coords)

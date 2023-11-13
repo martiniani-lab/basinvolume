@@ -9,7 +9,7 @@ import os
 # hardcoded because we don't want to import this
 # importing basinvolume can only be done in singularity
 # and this script just manages job submission
-BASINVOLUME_PATH = "/home/ps4586/bv_lib/basinvolume/basinvolume"
+BASINVOLUME_PATH = "/home/mc9287/basinvolumelibs/basinvolume/basinvolume"
 
 
 @unique
@@ -31,14 +31,14 @@ GREENE_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --cpus-per-task={cpus_per_task}
 #SBATCH --mem={mem_str}
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=ps4586@nyu.edu
+#SBATCH --mail-user=mc9287@nyu.edu
 #SBATCH --job-name={out_file}
 #SBATCH --output={out_file}.out
 
 export OMP_NUM_THREADS=1;
 
 cd {simulation_folder};
-singularity exec --overlay /scratch/ps4586/conda/overlay-10GB-400K.ext3:ro \
+singularity exec --overlay /scratch/mc9287/basinvolume_praharsh.ext3:ro \
     /scratch/work/public/singularity/cuda11.4.2-cudnn8.2.4-devel-ubuntu20.04.3.sif \
     /bin/bash -c "source ~/.bashrc;
     export OMP_NUM_THREADS=1;
@@ -81,6 +81,7 @@ def calculate_volume(
     packing_file,
     simulation_type,
     submit=True,
+    checkpoint_file = None,
     opt_kwargs = dict(
         opt_tol=1e-10,
         minimizer="LBFGS",
@@ -93,22 +94,31 @@ def calculate_volume(
 ):
     # global args that should be the same across scripts
     # only kmax sees the optimizer kwargs, the following steps just read them off from the kmax config file
+    
+    # Pass time_str to everyone using opt_kwargs
+    # TODO: set these times based on problem dimension
+    time_str = make_time_str(opt_kwargs["minimizer"], simulation_folder)
+    pt_time_str = make_time_str(opt_kwargs["minimizer"], simulation_folder, parallel_tempering=True)
+    
+    # Always checkpoint after 6 days if not over yet, always start from checkpoint if it exists
+    checkpoint_time = 8640 
+    
     if simulation_type == SimStage.KMAX:
         kmax_kwargs = {**opt_kwargs, **global_kwargs}
         setup_kmax(
-            simulation_folder, kmax_kwargs, packing_file, submit=submit
+            simulation_folder, kmax_kwargs, packing_file, time_str, submit=submit
         )
     elif simulation_type == SimStage.KMIN:
         setup_kmin(
-            simulation_folder, global_kwargs, packing_file, submit=submit
+            simulation_folder, global_kwargs, packing_file, time_str, submit=submit
         )
     elif simulation_type == SimStage.PT:
         setup_parallel_tempering(
-            simulation_folder, global_kwargs, packing_file, submit=submit
+            simulation_folder, global_kwargs, packing_file, pt_time_str, checkpoint_time=checkpoint_time, checkpoint_file=checkpoint_file, submit=submit
         )
     elif simulation_type == SimStage.INNER_SPHERE:
         setup_inner_sphere(
-            simulation_folder, global_kwargs, packing_file, submit=submit
+            simulation_folder, global_kwargs, packing_file, time_str, submit=submit
         )
     elif simulation_type == SimStage.ANALYSIS:
         setup_compute_volume(simulation_folder, submit=submit)
@@ -116,7 +126,7 @@ def calculate_volume(
         raise NotImplementedError("simulation type not implemented")
 
 
-def setup_kmax(simulation_folder, global_kwargs, packing_file, submit=True):
+def setup_kmax(simulation_folder, global_kwargs, packing_file, time_str, submit=True):
     # single core args
     ntasks = 1
     cpus_per_task = 1
@@ -141,7 +151,6 @@ def setup_kmax(simulation_folder, global_kwargs, packing_file, submit=True):
         "opt_nsteps": 1e5,
     }
     mem_str = "4GB"
-    time_str = make_time_str(kmax_kwargs["minimizer"], simulation_folder)
 
     # update defaults with global kwargs
     script_subpath = "spheres/bv_find_kmax.py"
@@ -163,7 +172,7 @@ def setup_kmax(simulation_folder, global_kwargs, packing_file, submit=True):
     return 0
 
 
-def setup_kmin(simulation_folder, global_kwargs, packing_file, submit=True):
+def setup_kmin(simulation_folder, global_kwargs, packing_file, time_str, submit=True):
     ntasks = 1
     cpus_per_task = 1
     # defaults but you can change them at the script level
@@ -174,7 +183,7 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, submit=True):
         "adjustf-niter": 1e4,
         "nocell": False,
         "moveall": False,
-        "minimizer": "FIRE",
+        # "minimizer": "FIRE",
         "rsts": False,
         "rsts-only": False,
         "verbose": False,
@@ -182,7 +191,7 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, submit=True):
         "seed-metropolis": None,
         "k": 0,
         "stepsize": 1e-1,
-        "dtol": 1e-2,
+        # "dtol": 1e-2,
         "eps": 1.0,
         "hmin": 0,
         "hmax": 1000,
@@ -190,14 +199,12 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, submit=True):
         "acceptance": 0.2,
         "adjustf": 0.9,
         "opt_dtmax": 1,
-        "opt_tol": 1e-10,
+        # "opt_tol": 1e-10,
         "opt_nsteps": 1e5,
         "record_trajectory_npoints": int(1e4),
     }
     script_subpath = "spheres/bv_find_kmin.py"
     job_name_prefix = "bv_kmin"
-    # TODO: set these times based on problem dimension
-    time_str = make_time_str(kmin_kwargs["minimizer"], simulation_folder)
     mem_str = "4GB"
 
     submit_job(
@@ -220,7 +227,7 @@ def make_time_str(minimizer, simulation_folder, parallel_tempering=False):
     slurm_time_dict = {
         32: 1,
         64: 4,
-        128: 16,
+        128: 168,
         256: 32,
     }
     sim_folder = os.path.basename(simulation_folder)
@@ -321,15 +328,15 @@ def submit_job(
 
 
 def setup_parallel_tempering(
-    simulation_folder, global_kwargs, packing_file, submit=True
+    simulation_folder, global_kwargs, packing_file, time_str, checkpoint_time = None, checkpoint_file = None, submit=True
 ):
     replicas = 64
     mpi_procs = 16
     ntasks = 1
     cpus_per_task = mpi_procs
     pt_kwargs = {
-        "mintotniter": 5e5,
-        "maxtotniter": 2e6,
+        "mintotniter": 5e6,
+        "maxtotniter": 2e7,
         "adjustf-niter": None,
         "numnegk": 23,
         "lownegk": -0.5,
@@ -337,7 +344,7 @@ def setup_parallel_tempering(
         "nocell": False,
         "moveall": False,
         "adjustf-navg": 100,
-        "minimizer": "FIRE",
+        # "minimizer": "FIRE",
         "verbose": False,
         "collect-minima": False,
         "packings-dir": "jammed_packings",
@@ -348,8 +355,8 @@ def setup_parallel_tempering(
         "checkpoint-time": None,
         "load-checkpoint": None,
         "stepsize": 1e-1,
-        "dtol": 1e-2,
-        "opt_tol": 1e-10,
+        # "dtol": 1e-2,
+        # "opt_tol": 1e-10,
         "opt_nsteps": 1e5,
         "hmin": 0,
         "hmax": 1000,
@@ -359,11 +366,10 @@ def setup_parallel_tempering(
         "k_spreading": "positionlinspace",
     }
     pt_kwargs["nreplicas"] = replicas
+    pt_kwargs["checkpoint-time"] = checkpoint_time
+    pt_kwargs["load-checkpoint"] = checkpoint_file
     script_subpath = "spheres/bv_parallel_tempering.py"
     job_name_prefix = "bv_pt"
-    time_str = make_time_str(
-        pt_kwargs["minimizer"], simulation_folder, parallel_tempering=True
-    )
 
     mem_str = "20GB"
     # give the explore directory as the argument
@@ -389,7 +395,7 @@ def setup_parallel_tempering(
 
 
 def setup_inner_sphere(
-    simulation_folder, global_kwargs, packing_file, submit=True
+    simulation_folder, global_kwargs, packing_file, time_str, submit=True
 ):
     ntasks = 1
     cpus_per_task = 1
@@ -397,21 +403,17 @@ def setup_inner_sphere(
         "packings-dir": "jammed_packings",
         "explore-dir": "explore_bv_jammed_packing",
         "nocell": False,
-        "minimizer": "FIRE",
+        # "minimizer": "FIRE",
         "verbose": False,
         "niter": 1e5,
-        "dtol": 1e-2,
+        # "dtol": 1e-2,
         "eps": 1.0,
         "opt_dtmax": 1,
-        "opt_tol": 1e-10,
+        # "opt_tol": 1e-10,
         "opt_nsteps": 1e5,
     }
     script_subpath = "mbar_spheres/bv_innersphere_dos.py"
     job_name_prefix = "bv_inner_sphere"
-    # TODO: set these times based on problem dimension
-    time_str = make_time_str(
-        inner_sphere_kwargs["minimizer"], simulation_folder
-    )
     mem_str = "8GB"
     # give the explore directory as an argument
     packing_fname = os.path.splitext(packing_file)[0]
@@ -463,7 +465,7 @@ def setup_compute_volume(simulation_folder, submit=True):
 
 
 if __name__ == "__main__":
-    test_folder = "/scratch/ps4586/test_volume"
+    test_folder = "/scratch/mc9287/test_volume"
     calculate_volume(
         test_folder, "jammed_packing0.xydr", SimStage.KMAX, submit=False
     )

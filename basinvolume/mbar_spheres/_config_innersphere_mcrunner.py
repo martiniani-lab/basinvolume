@@ -101,7 +101,7 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(self.dtol, opt_maxstep, verbose)
+        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
 
         # construct mcrunner
         self.coords = _subtract_com(self.coords, ndim=self.bdim)
