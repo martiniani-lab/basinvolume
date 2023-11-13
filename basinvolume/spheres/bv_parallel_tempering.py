@@ -214,6 +214,31 @@ if __name__ == "__main__":
         help="K spreading method, options: \
         gausslobato, linspace, logspace, positionlinspace",
     )
+    parser.add_argument(
+        "--force-minimizer",
+        type=str,
+        help="Force minimizer usage different from the one used for kmax \
+              computation. Options: 'CG', 'FIRE', 'LBFGS'. Default: None \
+              Only use for testing purposes.",
+        default=None,
+    )
+    parser.add_argument(
+        "--force-dtol",
+        type=float,
+        help="Force identification tolerance different from the one used for kmax \
+              computation. Default: None (use the same as for kmax computation).  \
+            Only use for testing purposes.",
+        default=None,
+    )
+    parser.add_argument(
+        "--force-opt-tol",
+        type=float,
+        help="Force optimizer tolerance different from the one used for kmax \
+                computation. Default: None (use the same as for kmax computation).  \
+            Only use for testing purposes.",
+        default=None,
+    )
+
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
@@ -278,9 +303,12 @@ if __name__ == "__main__":
         args.relstderr
     )  # relative standard error in the mean used by convergence test
     min_window = (
-        min_tot_niter * 0.5  # minimum amount of data before trying to check convergence
+        min_tot_niter
+        * 0.5  # minimum amount of data before trying to check convergence
     )
-    max_eq_time = min_tot_niter * 0.5  # maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
+    max_eq_time = (
+        min_tot_niter * 0.5
+    )  # maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
     fast_ct = False  # if false skip euristic search for equilibration point
     collect_minima_list = args.collect_minima
     i32max = np.iinfo(np.int32).max
@@ -337,6 +365,9 @@ if __name__ == "__main__":
         record_histogram=record_histogram,
         packings_dir=args.packings_dir,
         base_dir=path,
+        minimizer=args.force_minimizer,
+        dtol=args.force_dtol,
+        opt_tol=args.force_opt_tol,
     )
 
     if not check_kmax_reasonable(sim.findk_configpath):

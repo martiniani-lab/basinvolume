@@ -65,11 +65,20 @@ class ConfigBVMCRunner(ConfigMCRunner):
         packings_dir="jammed_packings",
         base_dir=None,
         verbose=False,
+        minimizer=None,
+        opt_tol=None,
+        dtol=None,
     ):
-
+        if minimizer is None:
+            self.minimizer = None
+        else:
+            self.minimizer = Minimizer[minimizer]
+        self.opt_tol = opt_tol
+        self.dtol = dtol
         self.fname = fname
         self._set_paths(base_dir, packings_dir)
         self._import_packing_config_files()
+        self._read_kmin_kmax_opt_data(minimizer, opt_tol, dtol)
         self._import_packing_configuration()
         hbinsize = self._get_histogram_bin(k)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
@@ -118,7 +127,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
             warnings.warn("seeds not passed")
 
         self._initialise()
-        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol = self.opt_tol)
+        self._requench_coords(
+            self.dtol, opt_maxstep, verbose, gtol=self.opt_tol
+        )
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -241,15 +252,30 @@ class ConfigBVMCRunner(ConfigMCRunner):
                     "which changes the number of cells and can "
                     "negatively impact performance."
                 )
+
+    def _read_kmin_kmax_opt_data(self, minimizer_str, opt_tol, dtol):
         configf = configparser.ConfigParser()
         print(self.findk_configpath)
         configf.read(str(self.findk_configpath))
         # fails if Success is false
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
-        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
-        self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
-        self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
+        if dtol is None:
+            self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
+        else:
+            self.dtol = dtol
+        if minimizer_str is None:
+            self.minimizer = Minimizer[
+                conf_get_default(
+                    configf, "FINDK_MCRUNNER", "minimizer", "FIRE"
+                )
+            ]
+        else:
+            self.minimizer = Minimizer[minimizer_str]
+        if opt_tol is None:
+            self.opt_tol = configf.getfloat("FINDK_MCRUNNER", "opt_tol")
+        else:
+            self.opt_tol = opt_tol
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")
@@ -270,7 +296,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
 
 
 if __name__ == "__main__":
-
     # first 7 primary pseudo perfect numbers
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
