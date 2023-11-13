@@ -162,4 +162,4 @@ if __name__ == "__main__":
     start_time = time()
     worker_findk(fname, findk_kwargs_s)
     end_time = time()
-    print("took ", end_time - start_time, " seconds")
+    print("time ", end_time - start_time, " seconds")
