@@ -4,13 +4,25 @@
 
 from enum import unique, Enum
 import os
+import toml
 
 
-# hardcoded because we don't want to import this
+# hardcoded because we don't want to import this, and the relative paths are set
 # importing basinvolume can only be done in singularity
 # and this script just manages job submission
-BASINVOLUME_PATH = "/home/mc9287/basinvolumelibs/basinvolume/basinvolume"
+current_directory = os.getcwd()
+BASINVOLUME_PATH = os.path.join(current_directory, "../../..")
 
+# Load possibly changing paths and environment variables from a toml config file
+CONFIG_FILE = os.path.join(current_directory, "local_config.toml")
+config = toml.load(CONFIG_FILE)
+# User-dependent values
+email = config["user"]["email"]
+email_type = config["user"]["email_type"]
+ext3_file = config["user"]["ext3_file"]
+conda_env = config["user"]["conda_env"]
+# Cluster-dependent values, may change over time and/or between clusters even with similar architectures
+singularity_overlay = config["cluster"]["singularity_overlay"]
 
 @unique
 class SimStage(Enum):
@@ -30,19 +42,19 @@ GREENE_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --ntasks={ntasks}
 #SBATCH --cpus-per-task={cpus_per_task}
 #SBATCH --mem={mem_str}
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=mc9287@nyu.edu
+#SBATCH --mail-type={email_type}
+#SBATCH --mail-user={email}
 #SBATCH --job-name={out_file}
 #SBATCH --output={out_file}.out
 
 export OMP_NUM_THREADS=1;
 
 cd {simulation_folder};
-singularity exec --overlay /scratch/mc9287/basinvolume_praharsh.ext3:ro \
-    /scratch/work/public/singularity/cuda11.4.2-cudnn8.2.4-devel-ubuntu20.04.3.sif \
+singularity exec --overlay {ext3_file}:ro \
+    {singularity_overlay} \
     /bin/bash -c "source ~/.bashrc;
     export OMP_NUM_THREADS=1;
-    conda activate cb3-3.9;
+    conda activate {conda_env};
     {run_command};"
 """
 
@@ -86,10 +98,10 @@ def calculate_volume(
         opt_tol=1e-10,
         minimizer="LBFGS",
         dtol=1e-2,
+        opt_dtmax = 1
     ),
     global_kwargs=dict(
-        opt_nsteps=1e5,
-        opt_dtmax=1,
+        opt_nsteps=1e5
     ),
 ):
     # global args that should be the same across scripts
@@ -183,7 +195,6 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, time_str, submit=
         "adjustf-niter": 1e4,
         "nocell": False,
         "moveall": False,
-        # "minimizer": "FIRE",
         "rsts": False,
         "rsts-only": False,
         "verbose": False,
@@ -191,15 +202,12 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, time_str, submit=
         "seed-metropolis": None,
         "k": 0,
         "stepsize": 1e-1,
-        # "dtol": 1e-2,
         "eps": 1.0,
         "hmin": 0,
         "hmax": 1000,
         "hbinsize": 1,
         "acceptance": 0.2,
         "adjustf": 0.9,
-        "opt_dtmax": 1,
-        # "opt_tol": 1e-10,
         "opt_nsteps": 1e5,
         "record_trajectory_npoints": int(1e4),
     }
@@ -225,6 +233,7 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, time_str, submit=
 
 def make_time_str(minimizer, simulation_folder, parallel_tempering=False):
     slurm_time_dict = {
+        8: 1,
         32: 1,
         64: 4,
         128: 168,
@@ -314,6 +323,11 @@ def submit_job(
         out_file=out_file,
         run_command=run_command,
         simulation_folder=simulation_folder,
+        email = email,
+        email_type = email_type,
+        ext3_file=ext3_file,
+        conda_env=conda_env,
+        singularity_overlay=singularity_overlay
     )
 
     script_path = os.path.join(
@@ -403,13 +417,9 @@ def setup_inner_sphere(
         "packings-dir": "jammed_packings",
         "explore-dir": "explore_bv_jammed_packing",
         "nocell": False,
-        # "minimizer": "FIRE",
         "verbose": False,
         "niter": 1e5,
-        # "dtol": 1e-2,
         "eps": 1.0,
-        "opt_dtmax": 1,
-        # "opt_tol": 1e-10,
         "opt_nsteps": 1e5,
     }
     script_subpath = "mbar_spheres/bv_innersphere_dos.py"
@@ -465,7 +475,7 @@ def setup_compute_volume(simulation_folder, submit=True):
 
 
 if __name__ == "__main__":
-    test_folder = "/scratch/mc9287/test_volume"
+    test_folder = "/path/to/test/"
     calculate_volume(
         test_folder, "jammed_packing0.xydr", SimStage.KMAX, submit=False
     )

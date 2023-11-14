@@ -52,7 +52,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
         pt_eq_niter=0,
         ts_niter=None,
         ts_freq=1,
-        opt_dtmax=1,
         opt_maxstep=None,
         opt_nsteps=1e5,
         perform_convergence_test=False,
@@ -91,7 +90,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
             pt_eq_niter=pt_eq_niter,
             ts_niter=ts_niter,
             ts_freq=ts_freq,
-            opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
@@ -250,6 +248,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
         self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
         self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
+        self.opt_dtmax = configf.getfloat("FINDK_MCRUNNER","opt_dtmax")
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")

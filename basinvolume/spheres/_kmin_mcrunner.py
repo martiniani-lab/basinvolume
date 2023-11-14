@@ -53,7 +53,6 @@ class KminMCRunner(ConfigMCRunner):
         adjustf=0.9,
         adjustf_niter=5e3,
         adjustf_navg=100,
-        opt_dtmax=1,
         opt_maxstep=None,
         opt_nsteps=1e5,
         record_steps_timeseries=False,
@@ -73,6 +72,7 @@ class KminMCRunner(ConfigMCRunner):
         minimizer=None,
         dtol=None,
         opt_tol=None,
+        opt_dtmax=None,
     ):
         self.fname = fname
         self.temperature = 1.0
@@ -138,6 +138,11 @@ class KminMCRunner(ConfigMCRunner):
             self.opt_tol = configf.getfloat("FINDK_MCRUNNER", "opt_tol")
         else:
             self.opt_tol = opt_tol
+            
+        if opt_dtmax is None:
+            self.opt_dtmax = configf.getfloat("FINDK_MCRUNNER", "opt_dtmax")
+        else:
+            self.opt_dtmax = opt_dtmax
 
         kwargs = dict(
             k=k,
@@ -150,7 +155,7 @@ class KminMCRunner(ConfigMCRunner):
             adjustf=adjustf,
             adjustf_niter=adjustf_niter,
             adjustf_navg=adjustf_navg,
-            opt_dtmax=opt_dtmax,
+            opt_dtmax=self.opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,

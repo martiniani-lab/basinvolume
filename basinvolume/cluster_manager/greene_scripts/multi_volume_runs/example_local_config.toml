@@ -1,0 +1,10 @@
+# This is an example file!
+# Replace fields by the right values then rename this to local_config.toml
+["user"] # User-dependent values
+email = "me@domain.edu"
+email_type = "ALL"
+ext3_file = "/path/to/file.ext3"
+conda_env = "my_conda_env"
+
+["cluster"] # Cluster-dependent values
+singularity_overlay = "/scratch/work/public/singularity/cuda11.4.2-cudnn8.2.4-devel-ubuntu20.04.3.sif"

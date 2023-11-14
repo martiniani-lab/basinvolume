@@ -6,6 +6,7 @@ from enum import Enum, unique
 from greene_submission import SimStage, calculate_volume
 import os
 from basinvolume.enums import Minimizer
+import argparse
 
 
 def get_calculation_stage(simulation_dir, jammed_packing_fname):
@@ -74,11 +75,11 @@ def submit_jobs(simulation_dir):
     opt_kwargs = dict(
         opt_tol=1e-10,
         minimizer=minimizer,
-        dtol=1e-2
+        dtol=1e-2,
+        opt_dtmax=1
         )
     global_kwargs = dict(
-        opt_nsteps=1e5,
-        opt_dtmax=1
+        opt_nsteps=1e5
     )
 
     n_prev_stages = 0
@@ -128,7 +129,16 @@ def submit_jobs(simulation_dir):
 
 
 def main():
-    folder = "/scratch/mc9287/remote_no_copy/basin_volumes_praharsh/num_128/"
+    
+    parser = argparse.ArgumentParser(
+        description="Automatically submits the next step of the basin volume calculation to a slurm interface. Assumes that generate_packin has already been run."
+    )
+    
+    parser.add_argument("folder", type=str, help="Head directory containing the OPTIMIZER_N_PHI directories")
+    
+    args = parser.parse_args()
+    folder = args.folder
+    
     for simfolder in os.listdir(folder):
         submit_jobs(os.path.join(folder, simfolder))
 
