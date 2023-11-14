@@ -266,7 +266,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 * 1e-1
             )
             optimizer = ExtendedMixedOptimizer(
-                self.potential,
+                self.pot_optimizer,
                 self.start_coords,
                 tol=self.opt_tol,
                 nsteps=1e7,
@@ -579,7 +579,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def __init__(
         self,
-        potential,
+        bias_potential,
         full_coords,
         temperature,
         stepsize,
@@ -640,7 +640,7 @@ class BV_MCrunner(SpheresMCRunner):
         self.acceptance = acceptance
         self.single = single
         super(BV_MCrunner, self).__init__(
-            potential,
+            bias_potential,
             full_coords,
             temperature,
             stepsize,

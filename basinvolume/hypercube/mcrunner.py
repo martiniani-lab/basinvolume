@@ -151,7 +151,9 @@ class HypercubeMCrunner(_BaseMCRunner):
 
     def _set_accept_tests(self):
         self.metropolis = MetropolisTest(self.seeds["seed_metropolis"])
-        self.add_accept_test(self.metropolis)  # metropolis uses the harmonic potential
+        self.add_accept_test(
+            self.metropolis
+        )  # metropolis uses the harmonic potential
 
     def _set_conf_tests(self):
         self.conftest = ConfTestOR()
@@ -193,7 +195,9 @@ class HypercubeMCrunner(_BaseMCRunner):
             self.add_action(self.record_trajectory)
         if self.record_steps_timeseries:
             self.steps_timeseries_list = []
-            self.record_steps_timeseries_every = self.record_steps_timeseries_every
+            self.record_steps_timeseries_every = (
+                self.record_steps_timeseries_every
+            )
             for freq in self.record_steps_timeseries_every:
                 self.steps_timeseries_list.append(
                     RecordStepsTimeseries(
@@ -246,7 +250,9 @@ class HypercubeMCrunner(_BaseMCRunner):
             self.action_record_displ.clear()
         return timeseries
 
-    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
+    def check_convergence(
+        self, nr_steps_to_check=10000, rel_std_threshold=0.05
+    ):
         return self.action_record_displ.check_convergence(
             nr_steps_to_check=nr_steps_to_check,
             rel_std_threshold=rel_std_threshold,
@@ -294,7 +300,9 @@ class HypercubeMCrunner(_BaseMCRunner):
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)
-        self.takestep.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
+        self.takestep.set_adaptation_counters(
+            mcrunner_state.step_adaptation_counters
+        )
 
 
 class HypercubeFindkMCrunner(_BaseMCRunner):
@@ -418,7 +426,9 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         plt.hist(val, weights=hist, bins=len(hist), density=True, stacked=True)
         ###analytical
         k = self.get_k()
-        and2 = val[:-1] ** (self.ndof / 2 - 1) * np.exp(-0.5 * k * val[:-1] ** 1)
+        and2 = val[:-1] ** (self.ndof / 2 - 1) * np.exp(
+            -0.5 * k * val[:-1] ** 1
+        )
         norm = and2.sum() * self.hbinsize
         and2 /= norm
         plt.plot(val[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1])
@@ -602,7 +612,9 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         timeseries = np.array(self.time_series.get_time_series())
         return timeseries
 
-    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
+    def check_convergence(
+        self, nr_steps_to_check=10000, rel_std_threshold=0.05
+    ):
         return self.time_series.check_convergence(
             nr_steps_to_check=nr_steps_to_check,
             rel_std_threshold=rel_std_threshold,
@@ -611,7 +623,8 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
@@ -637,7 +650,9 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         k = self.k
         # and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
         and2 = n[0] * np.exp(-0.5 * k * bins[:-1] ** 2)
-        plt.plot(bins[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1])
+        plt.plot(
+            bins[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1]
+        )
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")
