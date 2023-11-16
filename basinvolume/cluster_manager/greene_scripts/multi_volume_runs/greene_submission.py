@@ -6,7 +6,6 @@ from enum import unique, Enum
 import os
 import toml
 
-
 # hardcoded because we don't want to import this, and the relative paths are set
 # importing basinvolume can only be done in singularity
 # and this script just manages job submission
@@ -226,6 +225,99 @@ def setup_kmin(simulation_folder, run_params, packing_file, time_str, submit=Tru
     )
     return 0
 
+def setup_parallel_tempering(
+    simulation_folder, run_params, packing_file, time_str, checkpoint_time = None, checkpoint_file = None, submit=True
+):
+    # TODO Adapt this to replicas
+    mpi_procs = 16
+    ntasks = 1
+    cpus_per_task = mpi_procs
+    pt_default_kwargs = default_config["pt_defaults"]
+    pt_default_kwargs["checkpoint-time"] = checkpoint_time
+    pt_default_kwargs["load-checkpoint"] = checkpoint_file
+    script_subpath = "spheres/bv_parallel_tempering.py"
+    job_name_prefix = "bv_pt"
+
+    mem_str = "20GB"
+    # give the explore directory as the argument
+    packing_fname = os.path.splitext(packing_file)[0]
+    explore_dir = f" explore_bv_{packing_fname}"
+
+    submit_job(
+        simulation_folder,
+        run_params["pt"],
+        packing_file,
+        ntasks,
+        cpus_per_task,
+        pt_default_kwargs,
+        script_subpath,
+        time_str,
+        mem_str,
+        job_name_prefix,
+        script_run_prefix=f"mpiexec -n {mpi_procs} python",
+        extra_args=explore_dir,
+        submit=submit
+    )
+    return 0
+
+
+def setup_inner_sphere(
+    simulation_folder, run_params, packing_file, time_str, submit=True
+):
+    ntasks = 1
+    cpus_per_task = 1
+    inner_sphere_default_kwargs = default_config["innersphere_defaults"]
+    script_subpath = "mbar_spheres/bv_innersphere_dos.py"
+    job_name_prefix = "bv_inner_sphere"
+    mem_str = "8GB"
+    # give the explore directory as an argument
+    packing_fname = os.path.splitext(packing_file)[0]
+    explore_dir = f" explore_bv_{packing_fname}"
+    submit_job(
+        simulation_folder,
+        run_params["innersphere"],
+        packing_file,
+        ntasks,
+        cpus_per_task,
+        inner_sphere_default_kwargs,
+        script_subpath,
+        time_str,
+        mem_str,
+        job_name_prefix,
+        submit=submit,
+    )
+    return 0
+
+
+def setup_compute_volume(simulation_folder, submit=True):
+    ntasks = 1
+    cpus_per_task = 1
+    script_location = os.path.join(
+        BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py"
+    )
+
+    out_folder = os.path.join(simulation_folder, "job_out")
+    script = GREENE_SCRIPT_TEMPLATE.format(
+        time_str="04:00:00",
+        mem_str="16GB",
+        ntasks=ntasks,
+        cpus_per_task=cpus_per_task,
+        job_name="bv_compute_volume",
+        run_command=f"python {script_location}",
+        out_file=os.path.join(out_folder, "compute_volume"),
+        simulation_folder=simulation_folder,
+    )
+    script_save_folder = os.path.join(simulation_folder, "job_scripts")
+    with open(
+        os.path.join(script_save_folder, "compute_volume.sh"), "w"
+    ) as script_file:
+        script_file.write(script)
+    if submit:
+        os.system(
+            f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}"
+        )
+    return 0
+
 
 def make_time_str(minimizer, simulation_folder, simstage):
     
@@ -385,7 +477,7 @@ def submit_job(
     job_name_prefix,
     script_run_prefix="python",
     extra_args="",
-    submit=True,
+    submit=True
 ):
     script_kwargs = default_kwargs.update(run_specific_kwargs)
     args_str = format_args_from_dict(script_kwargs)
@@ -400,6 +492,7 @@ def submit_job(
     os.makedirs(scripts_folder, exist_ok=True)
     os.makedirs(out_folder, exist_ok=True)
     out_file = f"{out_folder}/{job_name_prefix}_{packing_file_name}"
+    
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str=time_str,
         ntasks=ntasks,
@@ -424,98 +517,3 @@ def submit_job(
 
     if submit:
         os.system(f"sbatch {script_path}")
-
-
-def setup_parallel_tempering(
-    simulation_folder, run_params, packing_file, time_str, checkpoint_time = None, checkpoint_file = None, submit=True
-):
-
-    mpi_procs = 16
-    ntasks = 1
-    cpus_per_task = mpi_procs
-    pt_default_kwargs = default_config["pt_defaults"]
-    pt_default_kwargs["checkpoint-time"] = checkpoint_time
-    pt_default_kwargs["load-checkpoint"] = checkpoint_file
-    script_subpath = "spheres/bv_parallel_tempering.py"
-    job_name_prefix = "bv_pt"
-
-    mem_str = "20GB"
-    # give the explore directory as the argument
-    packing_fname = os.path.splitext(packing_file)[0]
-    explore_dir = f" explore_bv_{packing_fname}"
-
-    submit_job(
-        simulation_folder,
-        run_params["pt"],
-        packing_file,
-        ntasks,
-        cpus_per_task,
-        pt_default_kwargs,
-        script_subpath,
-        time_str,
-        mem_str,
-        job_name_prefix,
-        script_run_prefix=f"mpiexec -n {mpi_procs} python",
-        extra_args=explore_dir,
-        submit=submit,
-    )
-    return 0
-
-
-def setup_inner_sphere(
-    simulation_folder, run_params, packing_file, time_str, submit=True
-):
-    ntasks = 1
-    cpus_per_task = 1
-    inner_sphere_default_kwargs = default_config["innersphere_defaults"]
-    script_subpath = "mbar_spheres/bv_innersphere_dos.py"
-    job_name_prefix = "bv_inner_sphere"
-    mem_str = "8GB"
-    # give the explore directory as an argument
-    packing_fname = os.path.splitext(packing_file)[0]
-    explore_dir = f" explore_bv_{packing_fname}"
-    submit_job(
-        simulation_folder,
-        run_params["innersphere"],
-        packing_file,
-        ntasks,
-        cpus_per_task,
-        inner_sphere_default_kwargs,
-        script_subpath,
-        time_str,
-        mem_str,
-        job_name_prefix,
-        submit=submit,
-    )
-    return 0
-
-
-def setup_compute_volume(simulation_folder, submit=True):
-    ntasks = 1
-    cpus_per_task = 1
-    script_location = os.path.join(
-        BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py"
-    )
-
-    out_folder = os.path.join(simulation_folder, "job_out")
-    script = GREENE_SCRIPT_TEMPLATE.format(
-        time_str="04:00:00",
-        mem_str="16GB",
-        ntasks=ntasks,
-        cpus_per_task=cpus_per_task,
-        job_name="bv_compute_volume",
-        run_command=f"python {script_location}",
-        out_file=os.path.join(out_folder, "compute_volume"),
-        simulation_folder=simulation_folder,
-    )
-    script_save_folder = os.path.join(simulation_folder, "job_scripts")
-    with open(
-        os.path.join(script_save_folder, "compute_volume.sh"), "w"
-    ) as script_file:
-        script_file.write(script)
-    if submit:
-        os.system(
-            f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}"
-        )
-    return 0
-
