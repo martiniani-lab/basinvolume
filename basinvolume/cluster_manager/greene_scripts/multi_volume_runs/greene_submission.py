@@ -446,7 +446,7 @@ def setup_parallel_tempering(
 
     submit_job(
         simulation_folder,
-        pt_kwargs,
+        run_params["pt"],
         packing_file,
         ntasks,
         cpus_per_task,

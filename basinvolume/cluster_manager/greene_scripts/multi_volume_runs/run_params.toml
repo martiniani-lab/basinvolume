@@ -1,10 +1,10 @@
 # Template for run_params file, can be filled in to overwrite defaults.
 # Needs to be placed into the head directory of the runs!
 ["jammed_data"]
-minimizer_list = ["FIRE", "CG", "CVODE", "LBFGS", "MXD"]
+minimizer_list = ["FIRE", "CVODE", "LBFGS"]
 ss_packing_fraction_list = [0.87]
-n_particles_list = [8, 16]
-n_ensemble = 5
+n_particles_list = [8]
+n_ensemble = 1
 
 ["hard_sphere_packing"]
 
