@@ -42,7 +42,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
     elif not os.path.exists( # PT not started
         os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
         or os.path.exists( # PT not finished
-            os.path.join(explore_dir, f"checkpoint.dmp")
+            os.path.join(simulation_dir, f"checkpoint.dmp")
         )
     ):
         return SimStage.PT
