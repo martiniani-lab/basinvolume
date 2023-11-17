@@ -101,7 +101,7 @@ def submit_jobs(simulation_dir):
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
             if os.path.exists(os.path.join(explore_dir, f"checkpoint.dmp")):
-                checkpoint_file = os.path.join(simulation_dir, f"checkpoint.dmp")
+                checkpoint_file = os.path.join(explore_dir, f"checkpoint.dmp")
             else:
                 checkpoint_file = None
         else: 
