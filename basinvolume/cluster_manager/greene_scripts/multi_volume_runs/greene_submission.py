@@ -106,7 +106,7 @@ def calculate_volume(
     # TODO: set these times based on problem dimension
     kmax_dict = default_config["kmax_defaults"]
     if run_params["kmax"] != {}:
-        kmax_dict = kmax_dict.update(run_params["kmax"])
+        kmax_dict.update(run_params["kmax"])
     minimizer = kmax_dict["minimizer"]
     time_str = make_time_str(minimizer, simulation_folder, simulation_type)
     
@@ -233,8 +233,8 @@ def setup_parallel_tempering(
     ntasks = 1
     cpus_per_task = mpi_procs
     pt_default_kwargs = default_config["pt_defaults"]
-    pt_default_kwargs["checkpoint-time"] = checkpoint_time
-    pt_default_kwargs["load-checkpoint"] = checkpoint_file
+    run_params["pt"]["checkpoint-time"] = checkpoint_time
+    run_params["pt"]["load-checkpoint"] = checkpoint_file
     script_subpath = "spheres/bv_parallel_tempering.py"
     job_name_prefix = "bv_pt"
 
@@ -479,7 +479,8 @@ def submit_job(
     extra_args="",
     submit=True
 ):
-    script_kwargs = default_kwargs.update(run_specific_kwargs)
+    script_kwargs = default_kwargs
+    script_kwargs.update(run_specific_kwargs)
     args_str = format_args_from_dict(script_kwargs)
     script_location = os.path.join(BASINVOLUME_PATH, script_subpath)
 

@@ -31,6 +31,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
     )
     fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
     explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
+    
     if not os.path.exists(first_jammed_packing_config):
         return SimStage.JAMMED_PACKING
     elif not os.path.exists(
@@ -118,7 +119,7 @@ def submit_jobs(simulation_dir, generate_packings = False):
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
             if os.path.exists(os.path.join(explore_dir, f"checkpoint.dmp")):
-                checkpoint_file = os.path.join(simulation_dir, f"checkpoint.dmp")
+                checkpoint_file = os.path.join(explore_dir, f"checkpoint.dmp")
             else:
                 checkpoint_file = None
         else: 
