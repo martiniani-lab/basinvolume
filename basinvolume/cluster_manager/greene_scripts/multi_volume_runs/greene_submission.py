@@ -145,6 +145,7 @@ def setup_generate_jammed_data(simulation_folder, run_params, time_str, submit=T
     jammed_data_kwargs.update(run_params["jammed_data"])
     hard_sphere_packing_kwargs = default_config["hard_sphere_packing_defaults"]
     hard_sphere_packing_kwargs.update(run_params["hard_sphere_packing"])
+    hard_sphere_packing_kwargs["hsf-niter-dif"] = int(hard_sphere_packing_kwargs["hsf-niter-dif"])
     jammed_packing_kwargs = default_config["jammed_packing_defaults"]
     jammed_packing_kwargs.update(run_params["jammed_packing"])
     mem_str = "4GB"
@@ -421,15 +422,15 @@ def submit_initial_jobs(
                 os.makedirs(job_out_dir, exist_ok=True)
                 
                 # Add loop arguments to the dictionaries
-                local_packing_kwargs = {"n_particles": n_particles, "npackings": jammed_data_kwargs["n_ensemble"]}
-                local_jammed_packing_kwargs = {"minimizer": minimizer, "density": packing_fraction, "n_particles": n_particles}
+                local_packing_kwargs = {"npackings": jammed_data_kwargs["n_ensemble"]}
+                local_jammed_packing_kwargs = {"minimizer": minimizer, "density": packing_fraction}
                 loop_packing_kwargs = {**hard_sphere_packing_kwargs, **local_packing_kwargs}
                 loop_jammed_packing_kwargs = {**jammed_packing_kwargs, **local_jammed_packing_kwargs}
                 
                 # Translate to argument string then to the run command
                 packing_args_str = format_args_from_dict(loop_packing_kwargs)
                 jammed_packing_args_str = format_args_from_dict(loop_jammed_packing_kwargs)
-                packing_run_command = f"{script_run_prefix} {generate_packing_script_location} {extra_args} {packing_args_str}"
+                packing_run_command = f"{script_run_prefix} {generate_packing_script_location} {n_particles} {packing_args_str}"
                 jammed_packing_run_command = f"{script_run_prefix} {generate_jammed_packing_script_location} {extra_args} {jammed_packing_args_str}"
                 # Run both in sequence
                 run_command = f"{packing_run_command};\n{jammed_packing_run_command}"
