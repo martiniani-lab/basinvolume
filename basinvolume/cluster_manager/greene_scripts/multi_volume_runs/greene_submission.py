@@ -5,6 +5,7 @@
 from enum import unique, Enum
 import os
 import toml
+import numpy as np
 
 # hardcoded because we don't want to import this, and the relative paths are set
 # importing basinvolume can only be done in singularity
@@ -22,6 +23,11 @@ ext3_file = config["user"]["ext3_file"]
 conda_env = config["user"]["conda_env"]
 # Cluster-dependent values, may change over time and/or between clusters even with similar architectures
 singularity_overlay = config["cluster"]["singularity_overlay"]
+
+RESOURCE_FILE = os.path.join(current_directory, "resource_requirements.toml")
+resource_config = toml.load(RESOURCE_FILE)
+
+max_proc_number = resource_config["cpu"]["max_proc_number"]
 
 # Load defaults from the relevant config file
 DEFAULTS_CONFIG_FILE = os.path.join(current_directory, "default_params.toml")
@@ -108,34 +114,40 @@ def calculate_volume(
     if run_params["kmax"] != {}:
         kmax_dict.update(run_params["kmax"])
     minimizer = kmax_dict["minimizer"]
-    time_str = make_time_str(minimizer, simulation_folder, simulation_type)
+    time_str = make_time_str(minimizer, simulation_folder, simulation_type, resource_config["time"])
     
     # Always checkpoint after 6 days if not over yet, always start from checkpoint if it exists
     checkpoint_time = 8640 
     if simulation_type == SimStage.JAMMED_PACKING:
-        setup_generate_jammed_data(simulation_folder, run_params, time_str, submit=submit)
+        mem_str = resource_config["memory"]["generate"]
+        setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=submit)
     elif simulation_type == SimStage.KMAX:
+        mem_str = resource_config["memory"]["kmax"]
         setup_kmax(
-            simulation_folder, run_params, packing_file, time_str, submit=submit
+            simulation_folder, run_params, packing_file, time_str, mem_str, submit=submit
         )
     elif simulation_type == SimStage.KMIN:
+        mem_str = resource_config["memory"]["kmin"]
         setup_kmin(
-            simulation_folder, run_params, packing_file, time_str, submit=submit
+            simulation_folder, run_params, packing_file, time_str, mem_str, submit=submit
         )
     elif simulation_type == SimStage.PT:
+        mem_str = resource_config["memory"]["pt"]
         setup_parallel_tempering(
-            simulation_folder, run_params, packing_file, time_str, checkpoint_time=checkpoint_time, checkpoint_file=checkpoint_file, submit=submit
+            simulation_folder, run_params, packing_file, time_str, mem_str, checkpoint_time=checkpoint_time, checkpoint_file=checkpoint_file, submit=submit
         )
     elif simulation_type == SimStage.INNER_SPHERE:
+        mem_str = resource_config["memory"]["innersphere"]
         setup_inner_sphere(
-            simulation_folder, run_params, packing_file, time_str, submit=submit
+            simulation_folder, run_params, packing_file, time_str, mem_str, submit=submit
         )
     elif simulation_type == SimStage.ANALYSIS:
-        setup_compute_volume(simulation_folder, submit=submit)
+        mem_str = resource_config["memory"]["analysis"]
+        setup_compute_volume(simulation_folder, time_str, mem_str, submit=submit)
     else:
         raise NotImplementedError("simulation type not implemented")
 
-def setup_generate_jammed_data(simulation_folder, run_params, time_str, submit=True):
+def setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=True):
     # single core args
     ntasks = 1
     cpus_per_task = 1
@@ -148,7 +160,6 @@ def setup_generate_jammed_data(simulation_folder, run_params, time_str, submit=T
     hard_sphere_packing_kwargs["hsf-niter-dif"] = int(hard_sphere_packing_kwargs["hsf-niter-dif"])
     jammed_packing_kwargs = default_config["jammed_packing_defaults"]
     jammed_packing_kwargs.update(run_params["jammed_packing"])
-    mem_str = "4GB"
     
     # update defaults with global kwargs
     packing_script_subpath = "spheres/generate_packing.py"
@@ -173,14 +184,13 @@ def setup_generate_jammed_data(simulation_folder, run_params, time_str, submit=T
     
     return 0
 
-def setup_kmax(simulation_folder, run_params, packing_file, time_str, submit=True):
+def setup_kmax(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True):
     # single core args
     ntasks = 1
     cpus_per_task = 1
 
     # Most of these should be defaults but you can change them at the script level
     kmax_default_kwargs = default_config["kmax_defaults"]
-    mem_str = "4GB"
 
     # update defaults with global kwargs
     script_subpath = "spheres/bv_find_kmax.py"
@@ -202,14 +212,13 @@ def setup_kmax(simulation_folder, run_params, packing_file, time_str, submit=Tru
     return 0
 
 
-def setup_kmin(simulation_folder, run_params, packing_file, time_str, submit=True):
+def setup_kmin(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True):
     ntasks = 1
     cpus_per_task = 1
     # defaults but you can change them at the script level
     kmin_default_kwargs = default_config["kmin_defaults"]
     script_subpath = "spheres/bv_find_kmin.py"
     job_name_prefix = "bv_kmin"
-    mem_str = "4GB"
 
     submit_job(
         simulation_folder,
@@ -227,19 +236,21 @@ def setup_kmin(simulation_folder, run_params, packing_file, time_str, submit=Tru
     return 0
 
 def setup_parallel_tempering(
-    simulation_folder, run_params, packing_file, time_str, checkpoint_time = None, checkpoint_file = None, submit=True
+    simulation_folder, run_params, packing_file, time_str, mem_str, checkpoint_time = None, checkpoint_file = None, submit=True
 ):
-    # TODO Adapt this to replicas
-    mpi_procs = 16
+    
     ntasks = 1
-    cpus_per_task = mpi_procs
     pt_default_kwargs = default_config["pt_defaults"]
     run_params["pt"]["checkpoint-time"] = checkpoint_time
     run_params["pt"]["load-checkpoint"] = checkpoint_file
+    pt_default_kwargs.update(run_params["pt"])
+    mpi_procs = int(pt_default_kwargs["nreplicas"]/4) # Best performance according to Johannes
+    if mpi_procs > max_proc_number: # Bound by a config-file specified max value that depends on the cluster
+        mpi_procs = max_proc_number
+    cpus_per_task = mpi_procs
     script_subpath = "spheres/bv_parallel_tempering.py"
     job_name_prefix = "bv_pt"
 
-    mem_str = "20GB"
     # give the explore directory as the argument
     packing_fname = os.path.splitext(packing_file)[0]
     explore_dir = f" explore_bv_{packing_fname}"
@@ -263,14 +274,13 @@ def setup_parallel_tempering(
 
 
 def setup_inner_sphere(
-    simulation_folder, run_params, packing_file, time_str, submit=True
+    simulation_folder, run_params, packing_file, time_str, mem_str, submit=True
 ):
     ntasks = 1
     cpus_per_task = 1
     inner_sphere_default_kwargs = default_config["innersphere_defaults"]
     script_subpath = "mbar_spheres/bv_innersphere_dos.py"
     job_name_prefix = "bv_inner_sphere"
-    mem_str = "8GB"
     # give the explore directory as an argument
     packing_fname = os.path.splitext(packing_file)[0]
     explore_dir = f" explore_bv_{packing_fname}"
@@ -290,7 +300,7 @@ def setup_inner_sphere(
     return 0
 
 
-def setup_compute_volume(simulation_folder, submit=True):
+def setup_compute_volume(simulation_folder, time_str, mem_str, submit=True):
     ntasks = 1
     cpus_per_task = 1
     script_location = os.path.join(
@@ -299,8 +309,8 @@ def setup_compute_volume(simulation_folder, submit=True):
 
     out_folder = os.path.join(simulation_folder, "job_out")
     script = GREENE_SCRIPT_TEMPLATE.format(
-        time_str="04:00:00",
-        mem_str="16GB",
+        time_str=time_str,
+        mem_str=mem_str,
         ntasks=ntasks,
         cpus_per_task=cpus_per_task,
         job_name="bv_compute_volume",
@@ -320,23 +330,21 @@ def setup_compute_volume(simulation_folder, submit=True):
     return 0
 
 
-def make_time_str(minimizer, simulation_folder, simstage):
+def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     
     if simstage == SimStage.JAMMED_PACKING:
         time = 1
         return hours_to_slurm_time(time)
     
-    slurm_time_dict = {
-        8: 1,
-        32: 1,
-        64: 4,
-        128: 168,
-        256: 32,
-    }
     sim_folder = os.path.basename(simulation_folder)
     sim_folder_parts = sim_folder.split("_")
     n_particles = int(sim_folder_parts[1])
-    time = slurm_time_dict[n_particles]
+    nearest_power_of_two = 2**int(np.log2(n_particles))
+    if nearest_power_of_two < 8:
+        nearest_power_of_two == 8
+    elif nearest_power_of_two > 256:
+        nearest_power_of_two == 256
+    time = time_dict[str(nearest_power_of_two)]
 
     if minimizer == "CVODE":
         time *= 4
