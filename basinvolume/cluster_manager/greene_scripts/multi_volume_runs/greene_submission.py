@@ -114,10 +114,11 @@ def calculate_volume(
     if run_params["kmax"] != {}:
         kmax_dict.update(run_params["kmax"])
     minimizer = kmax_dict["minimizer"]
-    time_str = make_time_str(minimizer, simulation_folder, simulation_type, resource_config["time"])
+    time_str, time = make_time_str(minimizer, simulation_folder, simulation_type, resource_config["time"])
     
-    # Always checkpoint after 6 days if not over yet, always start from checkpoint if it exists
-    checkpoint_time = 8640 
+    # Always checkpoint after 90% of required wall time to avoid bad surprises
+    # This one time is in minutes, not hours, so it needs a factor of 60
+    checkpoint_time = int(0.9 * 60 * time)
     if simulation_type == SimStage.JAMMED_PACKING:
         mem_str = resource_config["memory"]["generate"]
         setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=submit)
@@ -355,7 +356,7 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     # max job time
     if time > 168:
         time = 168
-    return hours_to_slurm_time(time)
+    return hours_to_slurm_time(time), time
 
 
 def hours_to_slurm_time(hours):
