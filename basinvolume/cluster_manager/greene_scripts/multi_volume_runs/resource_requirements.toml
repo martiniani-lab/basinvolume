@@ -1,0 +1,19 @@
+# List of requirements for various parameters
+["time"] # Base times in hours for power-of-two numbers of particles. These have hard-coded multipliers for given minimizers. Other sizes are sent to one of these.
+8 = 2
+16 = 2
+32 = 4
+64 = 8
+128 = 168
+256 = 168
+
+["cpu"]
+max_proc_number = 96
+
+["memory"] # Default values that were hardcoded, these could be fine-tuned depending on some parameters
+generate = "4GB"
+kmax = "4GB"
+kmin = "4GB"
+pt = "20GB"
+innersphere = "8GB"
+analysis = "16GB"

@@ -1,5 +1,5 @@
 # This is an example file!
-# Replace fields by the right values then rename this to local_config.toml
+# Copy this to local_config.toml then Replace fields by the right values
 ["user"] # User-dependent values
 email = "me@domain.edu"
 email_type = "ALL"

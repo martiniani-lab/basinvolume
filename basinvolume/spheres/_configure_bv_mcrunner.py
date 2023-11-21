@@ -16,6 +16,7 @@ from basinvolume.enums import Minimizer
 import configparser
 import time
 import warnings
+import ast
 
 
 class ConfigBVMCRunner(ConfigMCRunner):
@@ -93,6 +94,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
+            opt_kwargs=self.opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             record_histogram=record_histogram,
             collect_minima_list=collect_minima_list,
@@ -248,7 +250,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
         self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
         self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
-        self.opt_dtmax = configf.getfloat("FINDK_MCRUNNER","opt_dtmax")
+        self.opt_kwargs = ast.literal_eval(conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}"))
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")

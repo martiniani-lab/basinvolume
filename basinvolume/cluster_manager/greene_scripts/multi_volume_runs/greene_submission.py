@@ -5,7 +5,7 @@
 from enum import unique, Enum
 import os
 import toml
-
+import numpy as np
 
 # hardcoded because we don't want to import this, and the relative paths are set
 # importing basinvolume can only be done in singularity
@@ -23,6 +23,15 @@ ext3_file = config["user"]["ext3_file"]
 conda_env = config["user"]["conda_env"]
 # Cluster-dependent values, may change over time and/or between clusters even with similar architectures
 singularity_overlay = config["cluster"]["singularity_overlay"]
+
+RESOURCE_FILE = os.path.join(current_directory, "resource_requirements.toml")
+resource_config = toml.load(RESOURCE_FILE)
+
+max_proc_number = resource_config["cpu"]["max_proc_number"]
+
+# Load defaults from the relevant config file
+DEFAULTS_CONFIG_FILE = os.path.join(current_directory, "default_params.toml")
+default_config = toml.load(DEFAULTS_CONFIG_FILE)
 
 @unique
 class SimStage(Enum):
@@ -92,77 +101,97 @@ def calculate_volume(
     simulation_folder,
     packing_file,
     simulation_type,
+    run_params,
     submit=True,
     checkpoint_file = None,
-    opt_kwargs = dict(
-        opt_tol=1e-10,
-        minimizer="LBFGS",
-        dtol=1e-2,
-        opt_dtmax = 1
-    ),
-    global_kwargs=dict(
-        opt_nsteps=1e5
-    ),
 ):
     # global args that should be the same across scripts
     # only kmax sees the optimizer kwargs, the following steps just read them off from the kmax config file
     
     # Pass time_str to everyone using opt_kwargs
     # TODO: set these times based on problem dimension
-    time_str = make_time_str(opt_kwargs["minimizer"], simulation_folder)
-    pt_time_str = make_time_str(opt_kwargs["minimizer"], simulation_folder, parallel_tempering=True)
+    kmax_dict = default_config["kmax_defaults"]
+    if run_params["kmax"] != {}:
+        kmax_dict.update(run_params["kmax"])
+    minimizer = kmax_dict["minimizer"]
+    time_str, time = make_time_str(minimizer, simulation_folder, simulation_type, resource_config["time"])
     
-    # Always checkpoint after 6 days if not over yet, always start from checkpoint if it exists
-    checkpoint_time = 8640 
-    
-    if simulation_type == SimStage.KMAX:
-        kmax_kwargs = {**opt_kwargs, **global_kwargs}
+    # Always checkpoint after 90% of required wall time to avoid bad surprises
+    # This one time is in minutes, not hours, so it needs a factor of 60
+    checkpoint_time = int(0.9 * 60 * time)
+    if simulation_type == SimStage.JAMMED_PACKING:
+        mem_str = resource_config["memory"]["generate"]
+        setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=submit)
+    elif simulation_type == SimStage.KMAX:
+        mem_str = resource_config["memory"]["kmax"]
         setup_kmax(
-            simulation_folder, kmax_kwargs, packing_file, time_str, submit=submit
+            simulation_folder, run_params, packing_file, time_str, mem_str, submit=submit
         )
     elif simulation_type == SimStage.KMIN:
+        mem_str = resource_config["memory"]["kmin"]
         setup_kmin(
-            simulation_folder, global_kwargs, packing_file, time_str, submit=submit
+            simulation_folder, run_params, packing_file, time_str, mem_str, submit=submit
         )
     elif simulation_type == SimStage.PT:
+        mem_str = resource_config["memory"]["pt"]
         setup_parallel_tempering(
-            simulation_folder, global_kwargs, packing_file, pt_time_str, checkpoint_time=checkpoint_time, checkpoint_file=checkpoint_file, submit=submit
+            simulation_folder, run_params, packing_file, time_str, mem_str, checkpoint_time=checkpoint_time, checkpoint_file=checkpoint_file, submit=submit
         )
     elif simulation_type == SimStage.INNER_SPHERE:
+        mem_str = resource_config["memory"]["innersphere"]
         setup_inner_sphere(
-            simulation_folder, global_kwargs, packing_file, time_str, submit=submit
+            simulation_folder, run_params, packing_file, time_str, mem_str, submit=submit
         )
     elif simulation_type == SimStage.ANALYSIS:
-        setup_compute_volume(simulation_folder, submit=submit)
+        mem_str = resource_config["memory"]["analysis"]
+        setup_compute_volume(simulation_folder, time_str, mem_str, submit=submit)
     else:
         raise NotImplementedError("simulation type not implemented")
 
+def setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=True):
+    # single core args
+    ntasks = 1
+    cpus_per_task = 1
+    
+    # Most of these should be defaults but you can change them at the script level
+    jammed_data_kwargs = default_config["jammed_data_defaults"]
+    jammed_data_kwargs.update(run_params["jammed_data"])
+    hard_sphere_packing_kwargs = default_config["hard_sphere_packing_defaults"]
+    hard_sphere_packing_kwargs.update(run_params["hard_sphere_packing"])
+    hard_sphere_packing_kwargs["hsf-niter-dif"] = int(hard_sphere_packing_kwargs["hsf-niter-dif"])
+    jammed_packing_kwargs = default_config["jammed_packing_defaults"]
+    jammed_packing_kwargs.update(run_params["jammed_packing"])
+    
+    # update defaults with global kwargs
+    packing_script_subpath = "spheres/generate_packing.py"
+    jammed_packing_script_subpath = "spheres/generate_jammed_packing.py"
+    job_name_prefix = "generate_jammed_packing"
+    
+    # This one is a bit special in the sense that the kwargs are lists of arguments
+    submit_initial_jobs(
+        simulation_folder,
+        ntasks,
+        cpus_per_task,
+        jammed_data_kwargs,
+        hard_sphere_packing_kwargs,
+        jammed_packing_kwargs,
+        packing_script_subpath,
+        jammed_packing_script_subpath,
+        time_str,
+        mem_str,
+        job_name_prefix,
+        submit=submit
+    )
+    
+    return 0
 
-def setup_kmax(simulation_folder, global_kwargs, packing_file, time_str, submit=True):
+def setup_kmax(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True):
     # single core args
     ntasks = 1
     cpus_per_task = 1
 
     # Most of these should be defaults but you can change them at the script level
-    kmax_kwargs = {
-        "kstart": 500,
-        "packings-dir": "jammed_packings",
-        "explore-dir": "explore_bv_jammed_packing",
-        "nocell": False,
-        "minimizer": "FIRE",
-        "verbose": False,
-        "seed-takestep": None,
-        "niter": 1e8,
-        "dtol": 1e-2,
-        "eps": 1.0,
-        "ktarget": 0.9,
-        "knavg": 1e4,
-        "ktol": 0.025,
-        "opt_dtmax": 1,
-        "opt_tol": 1e-5,
-        "opt_nsteps": 1e5,
-    }
-    mem_str = "4GB"
+    kmax_default_kwargs = default_config["kmax_defaults"]
 
     # update defaults with global kwargs
     script_subpath = "spheres/bv_find_kmax.py"
@@ -170,58 +199,100 @@ def setup_kmax(simulation_folder, global_kwargs, packing_file, time_str, submit=
 
     submit_job(
         simulation_folder,
-        global_kwargs,
+        run_params["kmax"],
         packing_file,
         ntasks,
         cpus_per_task,
-        kmax_kwargs,
+        kmax_default_kwargs,
         script_subpath,
         time_str,
         mem_str,
         job_name_prefix,
         submit=submit,
+        kmax = True
     )
     return 0
 
 
-def setup_kmin(simulation_folder, global_kwargs, packing_file, time_str, submit=True):
+def setup_kmin(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True):
     ntasks = 1
     cpus_per_task = 1
     # defaults but you can change them at the script level
-    kmin_kwargs = {
-        "packings-dir": "jammed_packings",
-        "explore-dir": "explore_bv_jammed_packing",
-        "niter": 1e5,
-        "adjustf-niter": 1e4,
-        "nocell": False,
-        "moveall": False,
-        "rsts": False,
-        "rsts-only": False,
-        "verbose": False,
-        "seed-takestep": None,
-        "seed-metropolis": None,
-        "k": 0,
-        "stepsize": 1e-1,
-        "eps": 1.0,
-        "hmin": 0,
-        "hmax": 1000,
-        "hbinsize": 1,
-        "acceptance": 0.2,
-        "adjustf": 0.9,
-        "opt_nsteps": 1e5,
-        "record_trajectory_npoints": int(1e4),
-    }
+    kmin_default_kwargs = default_config["kmin_defaults"]
     script_subpath = "spheres/bv_find_kmin.py"
     job_name_prefix = "bv_kmin"
-    mem_str = "4GB"
 
     submit_job(
         simulation_folder,
-        global_kwargs,
+        run_params["kmin"],
         packing_file,
         ntasks,
         cpus_per_task,
-        kmin_kwargs,
+        kmin_default_kwargs,
+        script_subpath,
+        time_str,
+        mem_str,
+        job_name_prefix,
+        submit=submit,
+    )
+    return 0
+
+def setup_parallel_tempering(
+    simulation_folder, run_params, packing_file, time_str, mem_str, checkpoint_time = None, checkpoint_file = None, submit=True
+):
+    
+    ntasks = 1
+    pt_default_kwargs = default_config["pt_defaults"]
+    run_params["pt"]["checkpoint-time"] = checkpoint_time
+    run_params["pt"]["load-checkpoint"] = checkpoint_file
+    pt_default_kwargs.update(run_params["pt"])
+    mpi_procs = int(pt_default_kwargs["nreplicas"]/4) # Best performance according to Johannes
+    if mpi_procs > max_proc_number: # Bound by a config-file specified max value that depends on the cluster
+        mpi_procs = max_proc_number
+    cpus_per_task = mpi_procs
+    script_subpath = "spheres/bv_parallel_tempering.py"
+    job_name_prefix = "bv_pt"
+
+    # give the explore directory as the argument
+    packing_fname = os.path.splitext(packing_file)[0]
+    explore_dir = f" explore_bv_{packing_fname}"
+
+    submit_job(
+        simulation_folder,
+        run_params["pt"],
+        packing_file,
+        ntasks,
+        cpus_per_task,
+        pt_default_kwargs,
+        script_subpath,
+        time_str,
+        mem_str,
+        job_name_prefix,
+        script_run_prefix=f"mpiexec -n {mpi_procs} python",
+        extra_args=explore_dir,
+        submit=submit
+    )
+    return 0
+
+
+def setup_inner_sphere(
+    simulation_folder, run_params, packing_file, time_str, mem_str, submit=True
+):
+    ntasks = 1
+    cpus_per_task = 1
+    inner_sphere_default_kwargs = default_config["innersphere_defaults"]
+    script_subpath = "mbar_spheres/bv_innersphere_dos.py"
+    job_name_prefix = "bv_inner_sphere"
+    # give the explore directory as an argument
+    packing_fname = os.path.splitext(packing_file)[0]
+    explore_dir = f" explore_bv_{packing_fname}"
+    submit_job(
+        simulation_folder,
+        run_params["innersphere"],
+        packing_file,
+        ntasks,
+        cpus_per_task,
+        inner_sphere_default_kwargs,
         script_subpath,
         time_str,
         mem_str,
@@ -231,29 +302,62 @@ def setup_kmin(simulation_folder, global_kwargs, packing_file, time_str, submit=
     return 0
 
 
-def make_time_str(minimizer, simulation_folder, parallel_tempering=False):
-    slurm_time_dict = {
-        8: 1,
-        32: 1,
-        64: 4,
-        128: 168,
-        256: 32,
-    }
+def setup_compute_volume(simulation_folder, time_str, mem_str, submit=True):
+    ntasks = 1
+    cpus_per_task = 1
+    script_location = os.path.join(
+        BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py"
+    )
+
+    out_folder = os.path.join(simulation_folder, "job_out")
+    script = GREENE_SCRIPT_TEMPLATE.format(
+        time_str=time_str,
+        mem_str=mem_str,
+        ntasks=ntasks,
+        cpus_per_task=cpus_per_task,
+        job_name="bv_compute_volume",
+        run_command=f"python {script_location}",
+        out_file=os.path.join(out_folder, "compute_volume"),
+        simulation_folder=simulation_folder,
+    )
+    script_save_folder = os.path.join(simulation_folder, "job_scripts")
+    with open(
+        os.path.join(script_save_folder, "compute_volume.sh"), "w"
+    ) as script_file:
+        script_file.write(script)
+    if submit:
+        os.system(
+            f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}"
+        )
+    return 0
+
+
+def make_time_str(minimizer, simulation_folder, simstage, time_dict):
+    
+    if simstage == SimStage.JAMMED_PACKING:
+        time = 1
+        return hours_to_slurm_time(time), time
+    
     sim_folder = os.path.basename(simulation_folder)
     sim_folder_parts = sim_folder.split("_")
     n_particles = int(sim_folder_parts[1])
-    time = slurm_time_dict[n_particles]
+    nearest_power_of_two = 2**int(np.log2(n_particles))
+    if nearest_power_of_two < 8:
+        nearest_power_of_two == 8
+    elif nearest_power_of_two > 256:
+        nearest_power_of_two == 256
+    time = time_dict[str(nearest_power_of_two)]
 
     if minimizer == "CVODE":
         time *= 4
 
-    if parallel_tempering:
+    if simstage == SimStage.PT:
         time *= 4
 
     # max job time
     if time > 168:
         time = 168
-    return hours_to_slurm_time(time)
+    return hours_to_slurm_time(time), time
 
 
 def hours_to_slurm_time(hours):
@@ -286,15 +390,15 @@ def hours_to_slurm_time(hours):
 
     return slurm_time_str
 
-
-def submit_job(
+def submit_initial_jobs(
     simulation_folder,
-    simulation_global_kwargs,
-    packing_file,
     ntasks,
     cpus_per_task,
-    script_kwargs,
-    script_subpath,
+    jammed_data_kwargs,
+    hard_sphere_packing_kwargs,
+    jammed_packing_kwargs,
+    generate_packing_script_subpath,
+    generate_jammed_packing_script_subpath,
     time_str,
     mem_str,
     job_name_prefix,
@@ -302,7 +406,103 @@ def submit_job(
     extra_args="",
     submit=True,
 ):
-    script_kwargs.update(simulation_global_kwargs)
+    
+    # Paths to the script files
+    generate_packing_script_location = os.path.join(BASINVOLUME_PATH, generate_packing_script_subpath)
+    generate_jammed_packing_script_location = os.path.join(BASINVOLUME_PATH, generate_jammed_packing_script_subpath)
+    
+    # Isolate loop arguments
+    minimizer_list = jammed_data_kwargs["minimizer_list"]
+    ss_packing_fraction_list = jammed_data_kwargs["ss_packing_fraction_list"]
+    n_particles_list = jammed_data_kwargs["n_particles_list"]
+
+    # Loop of jobs to submit
+    for minimizer in minimizer_list:
+        for packing_fraction in ss_packing_fraction_list:
+            for n_particles in n_particles_list:
+                # generate a directory for the experiment
+                experiment_dir = os.path.join(
+                    simulation_folder, f"{minimizer}_{n_particles}_{packing_fraction}"
+                )
+                os.makedirs(experiment_dir, exist_ok=True)
+                os.chdir(experiment_dir)
+                job_script_dir = os.path.join(experiment_dir, "job_scripts")
+                job_out_dir = os.path.join(experiment_dir, "job_out")
+                os.makedirs(job_script_dir, exist_ok=True)
+                os.makedirs(job_out_dir, exist_ok=True)
+                
+                # Add loop arguments to the dictionaries
+                local_packing_kwargs = {"npackings": jammed_data_kwargs["n_ensemble"]}
+                local_jammed_packing_kwargs = {"minimizer": minimizer, "density": packing_fraction}
+                loop_packing_kwargs = {**hard_sphere_packing_kwargs, **local_packing_kwargs}
+                loop_jammed_packing_kwargs = {**jammed_packing_kwargs, **local_jammed_packing_kwargs}
+                
+                # Translate to argument string then to the run command
+                packing_args_str = format_args_from_dict(loop_packing_kwargs)
+                jammed_packing_args_str = format_args_from_dict(loop_jammed_packing_kwargs)
+                packing_run_command = f"{script_run_prefix} {generate_packing_script_location} {n_particles} {packing_args_str}"
+                jammed_packing_run_command = f"{script_run_prefix} {generate_jammed_packing_script_location} {extra_args} {jammed_packing_args_str}"
+                # Run both in sequence
+                run_command = f"{packing_run_command};\n{jammed_packing_run_command}"
+                
+                # Interface with slurm
+                scripts_folder = os.path.join(experiment_dir, "job_scripts")
+                out_folder = os.path.join(experiment_dir, "job_out")
+                os.makedirs(scripts_folder, exist_ok=True)
+                os.makedirs(out_folder, exist_ok=True)
+                out_file = f"{out_folder}/{job_name_prefix}"
+                script = GREENE_SCRIPT_TEMPLATE.format(
+                    time_str=time_str,
+                    ntasks=ntasks,
+                    cpus_per_task=cpus_per_task,
+                    mem_str=mem_str,
+                    out_file=out_file,
+                    run_command=run_command,
+                    simulation_folder=experiment_dir,
+                    email = email,
+                    email_type = email_type,
+                    ext3_file=ext3_file,
+                    conda_env=conda_env,
+                    singularity_overlay=singularity_overlay
+                )
+                script_path = os.path.join(
+                scripts_folder, f"{job_name_prefix}.sh"
+                )
+                # write the script
+                with open(script_path, "w") as script_file:
+                    script_file.write(script)
+
+                if submit:
+                    os.system(f"sbatch {script_path}")
+
+def submit_job(
+    simulation_folder,
+    run_specific_kwargs,
+    packing_file,
+    ntasks,
+    cpus_per_task,
+    default_kwargs,
+    script_subpath,
+    time_str,
+    mem_str,
+    job_name_prefix,
+    script_run_prefix="python",
+    extra_args="",
+    submit=True,
+    kmax = False
+):
+    script_kwargs = default_kwargs.copy()
+    script_kwargs.update(run_specific_kwargs)
+    
+    if kmax:
+        minimizer = script_kwargs["minimizer"]
+        actual_opt_kwargs = {"opt_kwargs":  script_kwargs["opt_kwargs"][minimizer][0]}
+        opt_kwargs_file = os.path.join(simulation_folder, "opt_kwargs.toml")
+        with open(opt_kwargs_file, 'w') as f:
+            toml.dump(actual_opt_kwargs, f)
+        script_kwargs["opt_kwargs_file"] = opt_kwargs_file
+        del script_kwargs["opt_kwargs"]
+    
     args_str = format_args_from_dict(script_kwargs)
     script_location = os.path.join(BASINVOLUME_PATH, script_subpath)
 
@@ -315,6 +515,7 @@ def submit_job(
     os.makedirs(scripts_folder, exist_ok=True)
     os.makedirs(out_folder, exist_ok=True)
     out_file = f"{out_folder}/{job_name_prefix}_{packing_file_name}"
+    
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str=time_str,
         ntasks=ntasks,
@@ -339,164 +540,3 @@ def submit_job(
 
     if submit:
         os.system(f"sbatch {script_path}")
-
-
-def setup_parallel_tempering(
-    simulation_folder, global_kwargs, packing_file, time_str, checkpoint_time = None, checkpoint_file = None, submit=True
-):
-    replicas = 64
-    mpi_procs = 16
-    ntasks = 1
-    cpus_per_task = mpi_procs
-    pt_kwargs = {
-        "mintotniter": 5e6,
-        "maxtotniter": 2e7,
-        "adjustf-niter": None,
-        "numnegk": 23,
-        "lownegk": -0.5,
-        "relstderr": 0.05,
-        "nocell": False,
-        "moveall": False,
-        "adjustf-navg": 100,
-        # "minimizer": "FIRE",
-        "verbose": False,
-        "collect-minima": False,
-        "packings-dir": "jammed_packings",
-        "delraw": False,
-        "nreplicas": None,
-        "sleep-seconds": 0.0001,
-        "exchange-scheme": "NEIGHBOR_EXCHANGE",
-        "checkpoint-time": None,
-        "load-checkpoint": None,
-        "stepsize": 1e-1,
-        # "dtol": 1e-2,
-        # "opt_tol": 1e-10,
-        "opt_nsteps": 1e5,
-        "hmin": 0,
-        "hmax": 1000,
-        "hbinsize": 1e-1,
-        "acceptance": 0.2,
-        "adjustf": 0.9,
-        "k_spreading": "positionlinspace",
-    }
-    pt_kwargs["nreplicas"] = replicas
-    pt_kwargs["checkpoint-time"] = checkpoint_time
-    pt_kwargs["load-checkpoint"] = checkpoint_file
-    script_subpath = "spheres/bv_parallel_tempering.py"
-    job_name_prefix = "bv_pt"
-
-    mem_str = "20GB"
-    # give the explore directory as the argument
-    packing_fname = os.path.splitext(packing_file)[0]
-    explore_dir = f" explore_bv_{packing_fname}"
-
-    submit_job(
-        simulation_folder,
-        global_kwargs,
-        packing_file,
-        ntasks,
-        cpus_per_task,
-        pt_kwargs,
-        script_subpath,
-        time_str,
-        mem_str,
-        job_name_prefix,
-        script_run_prefix=f"mpiexec -n {mpi_procs} python",
-        extra_args=explore_dir,
-        submit=submit,
-    )
-    return 0
-
-
-def setup_inner_sphere(
-    simulation_folder, global_kwargs, packing_file, time_str, submit=True
-):
-    ntasks = 1
-    cpus_per_task = 1
-    inner_sphere_kwargs = {
-        "packings-dir": "jammed_packings",
-        "explore-dir": "explore_bv_jammed_packing",
-        "nocell": False,
-        "verbose": False,
-        "niter": 1e5,
-        "eps": 1.0,
-        "opt_nsteps": 1e5,
-    }
-    script_subpath = "mbar_spheres/bv_innersphere_dos.py"
-    job_name_prefix = "bv_inner_sphere"
-    mem_str = "8GB"
-    # give the explore directory as an argument
-    packing_fname = os.path.splitext(packing_file)[0]
-    explore_dir = f" explore_bv_{packing_fname}"
-    submit_job(
-        simulation_folder,
-        global_kwargs,
-        packing_file,
-        ntasks,
-        cpus_per_task,
-        inner_sphere_kwargs,
-        script_subpath,
-        time_str,
-        mem_str,
-        job_name_prefix,
-        submit=submit,
-    )
-    return 0
-
-
-def setup_compute_volume(simulation_folder, submit=True):
-    ntasks = 1
-    cpus_per_task = 1
-    script_location = os.path.join(
-        BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py"
-    )
-
-    out_folder = os.path.join(simulation_folder, "job_out")
-    script = GREENE_SCRIPT_TEMPLATE.format(
-        time_str="04:00:00",
-        mem_str="16GB",
-        ntasks=ntasks,
-        cpus_per_task=cpus_per_task,
-        job_name="bv_compute_volume",
-        run_command=f"python {script_location}",
-        out_file=os.path.join(out_folder, "compute_volume"),
-        simulation_folder=simulation_folder,
-    )
-    script_save_folder = os.path.join(simulation_folder, "job_scripts")
-    with open(
-        os.path.join(script_save_folder, "compute_volume.sh"), "w"
-    ) as script_file:
-        script_file.write(script)
-    if submit:
-        os.system(
-            f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}"
-        )
-    return 0
-
-
-if __name__ == "__main__":
-    test_folder = "/path/to/test/"
-    calculate_volume(
-        test_folder, "jammed_packing0.xydr", SimStage.KMAX, submit=False
-    )
-    calculate_volume(
-        test_folder, "jammed_packing0.xydr", SimStage.KMIN, submit=False
-    )
-    calculate_volume(
-        test_folder,
-        "jammed_packing0.xydr",
-        SimStage.PT,
-        submit=False,
-    )
-    calculate_volume(
-        test_folder,
-        "jammed_packing0.xydr",
-        SimStage.INNER_SPHERE,
-        submit=False,
-    )
-    calculate_volume(
-        test_folder,
-        "jammed_packing0.xydr",
-        SimStage.ANALYSIS,
-        submit=False,
-    )

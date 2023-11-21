@@ -23,6 +23,7 @@ from basinvolume.enums import Minimizer
 import configparser
 import warnings
 import time
+import ast
 
 
 class KminMCRunner(ConfigMCRunner):
@@ -72,7 +73,6 @@ class KminMCRunner(ConfigMCRunner):
         minimizer=None,
         dtol=None,
         opt_tol=None,
-        opt_dtmax=None,
     ):
         self.fname = fname
         self.temperature = 1.0
@@ -139,10 +139,7 @@ class KminMCRunner(ConfigMCRunner):
         else:
             self.opt_tol = opt_tol
             
-        if opt_dtmax is None:
-            self.opt_dtmax = configf.getfloat("FINDK_MCRUNNER", "opt_dtmax")
-        else:
-            self.opt_dtmax = opt_dtmax
+        self.opt_kwargs = ast.literal_eval(conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}"))
 
         kwargs = dict(
             k=k,
@@ -155,7 +152,6 @@ class KminMCRunner(ConfigMCRunner):
             adjustf=adjustf,
             adjustf_niter=adjustf_niter,
             adjustf_navg=adjustf_navg,
-            opt_dtmax=self.opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
@@ -170,6 +166,7 @@ class KminMCRunner(ConfigMCRunner):
             record_histogram=True,
             single=single,
             minimizer=self.minimizer,
+            opt_kwargs=self.opt_kwargs,
             distance_method=self.distance_method,
             use_frozen=False,
             interaction=self.interaction,

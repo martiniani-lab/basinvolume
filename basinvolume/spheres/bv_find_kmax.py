@@ -10,6 +10,7 @@ from _findk_mcrunner import _findk_mcrunner
 from basinvolume.experiment_2d import _findk_exp_mcrunner
 from basinvolume.enums import Minimizer
 from time import time
+import toml
 
 
 def worker_findk(fname, kwargs):
@@ -94,9 +95,6 @@ if __name__ == "__main__":
         "--ktol", type=float, default=0.025, help="tolerance for knavg"
     )
     parser.add_argument(
-        "--opt_dtmax", type=float, default=1, help="For FIRE, max time step"
-    )
-    parser.add_argument(
         "--opt_nsteps",
         type=float,
         default=1e5,
@@ -113,8 +111,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--opt_tol", type=float, default=1e-5, help="tolerance for optimizer"
     )
+    parser.add_argument(
+        "--opt_kwargs_file", type = str, default = "", help="File containing a dictionary of optimizer-specific arguments, if any"
+    )
 
     args = parser.parse_args()
+    
+    if args.opt_kwargs_file != "":
+        opt_kwargs = toml.load(args.opt_kwargs_file)["opt_kwargs"]
+    else:
+        opt_kwargs = {}
 
     if args.verbose:
         loglevel = logging.DEBUG
@@ -143,8 +149,8 @@ if __name__ == "__main__":
         ktarget=args.ktarget,
         knavg=args.knavg,
         ktol=args.ktol,
-        opt_dtmax=args.opt_dtmax,
         opt_nsteps=args.opt_nsteps,
+        opt_kwargs = opt_kwargs,
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,
         use_cell_lists=not args.nocell,
