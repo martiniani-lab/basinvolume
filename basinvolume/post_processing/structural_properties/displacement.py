@@ -101,7 +101,11 @@ class Displacement(StructuralAnalysis):
             for displacements_1d in zip(*displacements)
         ]
         avg_abs_displacement_norm = np.linalg.norm(avg_abs_displacement)
-        return avg_displacement, avg_abs_displacement, avg_abs_displacement_norm
+        return (
+            avg_displacement,
+            avg_abs_displacement,
+            avg_abs_displacement_norm,
+        )
 
     def _calculate(self, displacement_fname, packing_name, input_fname):
         if self.verbose:

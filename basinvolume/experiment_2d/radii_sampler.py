@@ -60,10 +60,14 @@ class RadiiSampler(object):
         plt.ylabel(r"PDF($r$)")
         nr_points = 1000
         k_pdf_x = np.linspace(
-            np.amin(self.full_exp_radii), np.amax(self.full_exp_radii), nr_points
+            np.amin(self.full_exp_radii),
+            np.amax(self.full_exp_radii),
+            nr_points,
         )
         k_pdf_y = get_pdf(
-            self.full_exp_radii, k_pdf_x, bandwidth=self.exp_distribution.bandwidth
+            self.full_exp_radii,
+            k_pdf_x,
+            bandwidth=self.exp_distribution.bandwidth,
         )
         plt.plot(k_pdf_x, k_pdf_y, label="KDE")
         plt.plot(self.radii, np.zeros(len(self.radii)), "o", label="Sampled")

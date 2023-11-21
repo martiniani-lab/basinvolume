@@ -146,7 +146,9 @@ class AnalyseShear(object):
         # Get packings to create
         input_files = os.listdir(
             os.path.join(
-                self.input_dir, "shear_{}".format(self.start), "jammed_packings"
+                self.input_dir,
+                "shear_{}".format(self.start),
+                "jammed_packings",
             )
         )
         packing_files = [
@@ -280,7 +282,8 @@ class AnalyseShear(object):
         logging.info("Collecting files for shear={}".format(shear))
 
         analysis_paths = self.get_subdir_paths(
-            os.path.join(self.input_dir, input_relpath), "explore_bv_jammed_packing"
+            os.path.join(self.input_dir, input_relpath),
+            "explore_bv_jammed_packing",
         )
         analysis_paths = [os.path.join(path, "analysis") for path in analysis_paths]
         output_paths = self.get_subdir_paths(self.output_dir, "packing")
@@ -315,7 +318,9 @@ class AnalyseShear(object):
                     shutil.copyfile(
                         os.path.join(analysis_path, param_from_to[0]),
                         os.path.join(
-                            output_path, param_from_to[1], "shear_{}".format(shear)
+                            output_path,
+                            param_from_to[1],
+                            "shear_{}".format(shear),
                         ),
                     )
 
@@ -476,7 +481,10 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
-        "--start", type=float, help="Lowest shear to analyse. Default: 0.0", default=0.0
+        "--start",
+        type=float,
+        help="Lowest shear to analyse. Default: 0.0",
+        default=0.0,
     )
     parser.add_argument(
         "--step",
@@ -491,7 +499,10 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
-        "--stop", type=float, help="Highest shear to analyse. Default: 1.0", default=1.0
+        "--stop",
+        type=float,
+        help="Highest shear to analyse. Default: 1.0",
+        default=1.0,
     )
     parser.add_argument(
         "-j",

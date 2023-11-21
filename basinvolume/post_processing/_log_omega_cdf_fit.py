@@ -34,9 +34,12 @@ class JackLogOmega(object):
         self.jack_acc_alpha = MomentsAcc()
         self.jack_acc_zeta = MomentsAcc()
         for idx in range(len(self.F0)):
-            S_star_red, mu_red, alpha_red, zeta_red = self.get_S_star_excluding_index(
-                idx
-            )
+            (
+                S_star_red,
+                mu_red,
+                alpha_red,
+                zeta_red,
+            ) = self.get_S_star_excluding_index(idx)
             self.jack_acc.update(S_star_red)
             self.jack_acc_mu.update(mu_red)
             self.jack_acc_alpha.update(alpha_red)
@@ -72,7 +75,11 @@ class JackLogOmega(object):
             generalised_gauss.get_fitted_times_expx,
             self.volume_sanity_check.F0_acc,
             np.amax(reduced_F0) * 100,
-            points=[np.amin(reduced_F0), np.amax(reduced_F0), np.mean(reduced_F0)],
+            points=[
+                np.amin(reduced_F0),
+                np.amax(reduced_F0),
+                np.mean(reduced_F0),
+            ],
         )
         assert integral > 0
         S_star_red = -self.volume_sanity_check.F0_acc + np.log(integral)
@@ -110,7 +117,11 @@ class JackLogOmega(object):
             generalised_gauss.get_fitted_times_expx,
             self.volume_sanity_check.F0_acc,
             np.amax(reduced_F0) * 100,
-            points=[np.amin(reduced_F0), np.amax(reduced_F0), np.mean(reduced_F0)],
+            points=[
+                np.amin(reduced_F0),
+                np.amax(reduced_F0),
+                np.mean(reduced_F0),
+            ],
         )
         assert integral > 0
         S_star_red = -self.volume_sanity_check.F0_acc + np.log(integral)
@@ -246,7 +257,11 @@ class OutlierRemovalUnbiasingEntropyLogOmega(object):
             self.generalised_gauss.get_fitted_times_expx,
             volume_sanity_check.F0_acc,
             np.amax(self.F0) * 100,
-            points=[np.amin(self.F0), np.amax(self.F0), self.generalised_gauss.mu],
+            points=[
+                np.amin(self.F0),
+                np.amax(self.F0),
+                self.generalised_gauss.mu,
+            ],
         )
         assert self.integral_no_jack > 0
 

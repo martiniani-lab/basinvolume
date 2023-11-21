@@ -59,11 +59,22 @@ try:
     from basinvolume.utils import to_string, save_pdf, log_factorial
     from basinvolume.utils import ResultsFile, OutlierDetection
     from basinvolume.utils import MomentsAcc, CDFAccumulator, trymakedir
-    from basinvolume.post_processing import APFEntropy, BestIntegrationSelection
-    from basinvolume.post_processing import VolumeSanityCheck, PackingFailureStatistics
-    from basinvolume.post_processing import OutlierRemovalUnbiasingEntropyLogOmega
+    from basinvolume.post_processing import (
+        APFEntropy,
+        BestIntegrationSelection,
+    )
+    from basinvolume.post_processing import (
+        VolumeSanityCheck,
+        PackingFailureStatistics,
+    )
+    from basinvolume.post_processing import (
+        OutlierRemovalUnbiasingEntropyLogOmega,
+    )
     from basinvolume.post_processing import GeneralisedGauss
-    from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
+    from basinvolume.post_processing import (
+        MLLogOmega,
+        KernelDensityLogOmegaJackKnife,
+    )
     from basinvolume.post_processing import PTFailures, assert_pt_success
 except ImportError as err:
     print(err)
@@ -129,7 +140,8 @@ class ComputeEntropyCommon(object):
             nr_to_kill = len(self.explore_dirs) - self.nr_volume_points
             for _ in range(nr_to_kill):
                 self.explore_dirs = np.delete(
-                    self.explore_dirs, np.random.randint(0, len(self.explore_dirs))
+                    self.explore_dirs,
+                    np.random.randint(0, len(self.explore_dirs)),
                 )
             assert len(self.explore_dirs) == self.nr_volume_points
         self.packing_strings = [
@@ -209,7 +221,8 @@ class ComputeEntropyCommon(object):
                 packing_configpath = self.get_packing_configpath(vf)
                 print("packing_configpath", packing_configpath)
                 volume_sanity_check = VolumeSanityCheck(
-                    packing_configpath, numerical_moments=self.numerical_moments
+                    packing_configpath,
+                    numerical_moments=self.numerical_moments,
                 )
                 self.best_integration_selection.check_next_F0(
                     volume_sanity_check, self, vf
@@ -237,10 +250,12 @@ class ComputeEntropyCommon(object):
     def process_final_dataset_for_plots(self):
         try:
             self.print_histogram_and_data(
-                self.F0_final_integration_selection, "/volume_histogram_F0_final"
+                self.F0_final_integration_selection,
+                "/volume_histogram_F0_final",
             )
             self.print_histogram_and_data(
-                self.F0_wo_outliers, "/volume_histogram_F0_final_removed_outliers"
+                self.F0_wo_outliers,
+                "/volume_histogram_F0_final_removed_outliers",
             )
         except Exception as err:
             print(err)
@@ -283,7 +298,10 @@ class ComputeEntropyCommon(object):
         def _set_hist_basics(plt):
             xp = np.linspace(bin_centres[0], bin_centres[-1], num=500)
             plt.plot(
-                xp, [_gauss(xpi, opt[0], opt[1]) for xpi in xp], "g--", label="Gaussian"
+                xp,
+                [_gauss(xpi, opt[0], opt[1]) for xpi in xp],
+                "g--",
+                label="Gaussian",
             )
             plt.plot(
                 xp,
@@ -556,7 +574,11 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
-        "-j", "--ncores", type=int, help="number of packings to produce", default=4
+        "-j",
+        "--ncores",
+        type=int,
+        help="number of packings to produce",
+        default=4,
     )
     args = parser.parse_args()
 

@@ -106,7 +106,7 @@ class _sphere_mcrunner(ConfigMCRunner):
         except:
             print("WARNING:seeds not passed")
 
-        self._requench_coords(dtol, opt_maxstep, verbose, gtol = opt_tol)
+        self._requench_coords(dtol, opt_maxstep, verbose, gtol=opt_tol)
 
         # construct mcrunner
         self.coords = _subtract_com(self.coords)
@@ -157,17 +157,13 @@ class _sphere_mcrunner(ConfigMCRunner):
 
     def _set_paths(self, packings_dir):
         dname = os.path.splitext(self.fname)[0]
-        self.base_directory = os.path.join(
-            os.getcwd(), "explore_bv_" + str(dname)
-        )
+        self.base_directory = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "jammed_packings.config")
         configfile = "kmin_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _initialise(self):
         self._print_initialise()
@@ -210,9 +206,7 @@ class _sphere_mcrunner(ConfigMCRunner):
         for key, value in list(status.items()):
             f.write("{}: {}\n".format(key, value))
         f.write("[KMIN]\n")
-        f.write(
-            "displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25)
-        )  # note 1.25
+        f.write("displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25))  # note 1.25
         f.write("var_displ_k_min: {:.16f}\n".format(self.var_displ_k_min))
         f.close()
 

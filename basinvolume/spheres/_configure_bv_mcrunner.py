@@ -119,17 +119,13 @@ class ConfigBVMCRunner(ConfigMCRunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(
-            temperature=temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
 
         self._initialise()
-        self._requench_coords(
-            self.dtol, opt_maxstep, verbose, gtol=self.opt_tol
-        )
+        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -169,15 +165,11 @@ class ConfigBVMCRunner(ConfigMCRunner):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
 
-        self.packing_configpath = os.path.join(
-            packings_dir, "{}.config".format(dname)
-        )
+        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
         self.findk_configpath = os.path.join(
             self.base_dir, "findk_" + dname + ".config"
         )
-        self.kmin_configpath = os.path.join(
-            self.base_dir, "kmin_" + dname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.base_dir, "kmin_" + dname + ".config")
         self.configfile = "{}/explore_{}.config".format(self.base_dir, dname)
 
     def _get_histogram_bin(self, k):
@@ -266,9 +258,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
             self.dtol = dtol
         if minimizer_str is None:
             self.minimizer = Minimizer[
-                conf_get_default(
-                    configf, "FINDK_MCRUNNER", "minimizer", "FIRE"
-                )
+                conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")
             ]
         else:
             self.minimizer = Minimizer[minimizer_str]
@@ -289,9 +279,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
             configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
             for i in range(self.nprocs):
-                configf.set(
-                    "STATUS", "success_rank{}".format(str(i)), str(success)
-                )
+                configf.set("STATUS", "success_rank{}".format(str(i)), str(success))
             configf.write(open(str(self.configfile), "w"))
 
 

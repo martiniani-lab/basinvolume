@@ -18,7 +18,12 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
     """
 
     def __init__(
-        self, nbins=1000, bootstrap=False, kde=True, plot_dos_data=True, ncores=7
+        self,
+        nbins=1000,
+        bootstrap=False,
+        kde=True,
+        plot_dos_data=True,
+        ncores=7,
     ):
         super(hypercube_mbar_compute_dos, self).__init__(
             nbins=nbins,
@@ -141,7 +146,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("explore_dir", type=str, help="explore_dir")
     parser.add_argument(
-        "--show", action="store_true", help="show plots, default: False", default=False
+        "--show",
+        action="store_true",
+        help="show plots, default: False",
+        default=False,
     )
     parser.add_argument(
         "--bootstrap",

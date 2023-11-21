@@ -105,7 +105,10 @@ class EntropyData(object):
         self.kd = Bunch(file=kd_file, title=kd_file_title, entropy=[0.0, 0.0])
         parameters = dict(mu=[0.0, 0.0], alpha=[0.0, 0.0], zeta=[0.0, 0.0])
         self.lo = Bunch(
-            file=lo_file, title=lo_file_title, entropy=[0.0, 0.0], parameters=parameters
+            file=lo_file,
+            title=lo_file_title,
+            entropy=[0.0, 0.0],
+            parameters=parameters,
         )  # parameters are mu,alpha,zeta
         self.loml = Bunch(
             file=loml_file,
@@ -172,7 +175,10 @@ class EntropyData(object):
 
 class plot_entropy(object):
     def __init__(
-        self, workdir=None, analysis_folder="entropy_analysis_all", Nrange=(0, 128)
+        self,
+        workdir=None,
+        analysis_folder="entropy_analysis_all",
+        Nrange=(0, 128),
     ):
         if not workdir:
             workdir = os.getcwd()
@@ -316,7 +322,13 @@ class plot_entropy(object):
             ynew = ff(trialx, popt[0])
             raw_color = color  # color_cycle.next()
             ax.errorbar(
-                x, y, yerr=yerr, color=raw_color, marker=raw_marker, linestyle="", ms=12
+                x,
+                y,
+                yerr=yerr,
+                color=raw_color,
+                marker=raw_marker,
+                linestyle="",
+                ms=12,
             )
             ax.plot(trialx, ynew, "--", color=raw_color, linewidth=2)
         plt.xlabel(xlabel)
@@ -439,7 +451,12 @@ class plot_entropy(object):
             plt.show()
 
     def plot_all(
-        self, xlabel=r"$N$", ylabel=r"$S$", title=None, show=False, savefig=False
+        self,
+        xlabel=r"$N$",
+        ylabel=r"$S$",
+        title=None,
+        show=False,
+        savefig=False,
     ):
         color_cycle = get_color_cycle()
         fig = plt.figure()
@@ -459,7 +476,14 @@ class plot_entropy(object):
             m = next(self.markercycler)
             color = next(color_cycle)
             ax.errorbar(
-                x, y, yerr=yerr, marker=m, linestyle="", color=color, ms=12, label=label
+                x,
+                y,
+                yerr=yerr,
+                marker=m,
+                linestyle="",
+                color=color,
+                ms=12,
+                label=label,
             )
             ax.plot(trialx, ynew, "--", color=color, linewidth=2)
         # loop over entropies without an associated error
@@ -476,7 +500,14 @@ class plot_entropy(object):
             m = next(self.markercycler)
             color = next(color_cycle)
             ax.errorbar(
-                x, y, marker=m, linestyle="", color=color, ms=12, mew=2, label=label
+                x,
+                y,
+                marker=m,
+                linestyle="",
+                color=color,
+                ms=12,
+                mew=2,
+                label=label,
             )
             ax.plot(trialx, ynew, "--", color=color, linewidth=2)
         plt.xlabel(xlabel)
@@ -534,7 +565,13 @@ class plot_entropy(object):
             x, mu = _sort_pair(nparticlesml, mu)
             color = next(color_cycle)
             ax.errorbar(
-                x, mu, marker="^", linestyle="", color=color, ms=12, label=r"$\mu_{ML}$"
+                x,
+                mu,
+                marker="^",
+                linestyle="",
+                color=color,
+                ms=12,
+                label=r"$\mu_{ML}$",
             )
             fit = np.polyfit(x, mu, 1)
             ynew = trialx * fit[0] + fit[1]
@@ -749,7 +786,12 @@ class plot_entropy(object):
             )
             color_cycle = get_color_cycle()
             ax.errorbar(
-                x, y_apf, marker="^", yerr=y_apf_err, color=color, markersize=12
+                x,
+                y_apf,
+                marker="^",
+                yerr=y_apf_err,
+                color=color,
+                markersize=12,
             )
             # fit = np.polyfit(x, y_apf, 1)
             # ynew = trialx * fit[0] + fit[1]
@@ -1172,7 +1214,14 @@ class plot_entropy(object):
             m = next(self.markercycler)
             color = next(color_cycle)
             ax.errorbar(
-                x, y, yerr=yerr, marker=m, linestyle="", color=color, ms=14, label=label
+                x,
+                y,
+                yerr=yerr,
+                marker=m,
+                linestyle="",
+                color=color,
+                ms=14,
+                label=label,
             )
             ax.plot(trialx, ynew, "--", color=color, linewidth=2)
         # loop over entropies without an associated error
@@ -1189,7 +1238,14 @@ class plot_entropy(object):
             m = next(self.markercycler)
             color = next(color_cycle)
             ax.errorbar(
-                x, y, marker=m, linestyle="", color=color, ms=14, mew=2, label=label
+                x,
+                y,
+                marker=m,
+                linestyle="",
+                color=color,
+                ms=14,
+                mew=2,
+                label=label,
             )
             ax.plot(trialx, ynew, "--", color=color, linewidth=2)
         plt.xlabel(r"$N$")

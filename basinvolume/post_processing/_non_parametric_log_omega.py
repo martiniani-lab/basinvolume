@@ -60,7 +60,9 @@ class KernelDensityLogOmega(object):
         )
         n_integrate = 2**18 + 1
         x_integrate = np.linspace(
-            self.volume_sanity_check.F0_acc, np.amax(self.F0) * 100, n_integrate
+            self.volume_sanity_check.F0_acc,
+            np.amax(self.F0) * 100,
+            n_integrate,
         )
         log_pdf = self.kde.score_samples(x_integrate[:, np.newaxis])
         integrand_control = np.exp(log_pdf)
@@ -202,7 +204,9 @@ class KernelDensityLogOmegaJackKnife(object):
         )
         n_integrate = 2**18 + 1
         x_integrate = np.linspace(
-            self.volume_sanity_check.F0_acc, np.amax(self.F0) * 100, n_integrate
+            self.volume_sanity_check.F0_acc,
+            np.amax(self.F0) * 100,
+            n_integrate,
         )
         log_pdf = self.kde.score_samples(x_integrate[:, np.newaxis])
         integrand_control = np.exp(log_pdf)

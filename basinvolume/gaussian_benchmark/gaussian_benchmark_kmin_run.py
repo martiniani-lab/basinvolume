@@ -106,5 +106,6 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
 
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.time_series.check_convergence(
-            nr_steps_to_check=nr_steps_to_check, rel_std_threshold=rel_std_threshold
+            nr_steps_to_check=nr_steps_to_check,
+            rel_std_threshold=rel_std_threshold,
         )

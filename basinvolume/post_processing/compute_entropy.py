@@ -55,10 +55,18 @@ try:
     from basinvolume.utils import ResultsFile, OutlierDetection
     from basinvolume.utils import MomentsAcc, CDFAccumulator, trymakedir
     from basinvolume.post_processing import APFEntropy
-    from basinvolume.post_processing import VolumeSanityCheck, PackingFailureStatistics
-    from basinvolume.post_processing import OutlierRemovalUnbiasingEntropyLogOmega
+    from basinvolume.post_processing import (
+        VolumeSanityCheck,
+        PackingFailureStatistics,
+    )
+    from basinvolume.post_processing import (
+        OutlierRemovalUnbiasingEntropyLogOmega,
+    )
     from basinvolume.post_processing import GeneralisedGauss
-    from basinvolume.post_processing import MLLogOmega, KernelDensityLogOmegaJackKnife
+    from basinvolume.post_processing import (
+        MLLogOmega,
+        KernelDensityLogOmegaJackKnife,
+    )
     from basinvolume.post_processing import PTFailures, assert_pt_success
     from basinvolume.post_processing import BasinAnalysis
     from joblib import Parallel, delayed
@@ -76,7 +84,12 @@ def _entropy(name, out_path, sanity_check, free_energies):
 
 
 def _compute_write_entropies(data_set):
-    print(("compute and write entropies for dataset with name", data_set.set_name))
+    print(
+        (
+            "compute and write entropies for dataset with name",
+            data_set.set_name,
+        )
+    )
     entropy_base_output_path = os.path.join(data_set.set_path, "entropy_analysis_all")
     print(("entropy_base_output_path", entropy_base_output_path))
     trymakedir(entropy_base_output_path)
@@ -118,7 +131,12 @@ def _compute_write_entropies_msf(data_set, ik=0.1834006350297304, a=0.9671020810
     """
     compute free energy from pressure and use these to compute entropy
     """
-    print(("compute and write entropies for dataset with name", data_set.set_name))
+    print(
+        (
+            "compute and write entropies for dataset with name",
+            data_set.set_name,
+        )
+    )
     entropy_base_output_path = os.path.join(
         data_set.set_path, "msf_entropy_analysis_all"
     )

@@ -2,7 +2,9 @@ from __future__ import print_function
 import numpy as np
 import os
 from spack import Packing
-from basinvolume.post_processing.structural_properties import StructuralAnalysis
+from basinvolume.post_processing.structural_properties import (
+    StructuralAnalysis,
+)
 from basinvolume.spheres import read_jammed_packing_config
 
 
@@ -14,7 +16,9 @@ class GenerateSpackPlot(StructuralAnalysis):
 
     def __init__(self, workspace, jammed_packings_dir="jammed_packings"):
         super(GenerateSpackPlot, self).__init__(
-            workspace, jammed_packings_dir=jammed_packings_dir, analysis_dir=None
+            workspace,
+            jammed_packings_dir=jammed_packings_dir,
+            analysis_dir=None,
         )
 
     def create_image(self, fname, size=1000, cmap=None, glass=True):
@@ -35,9 +39,12 @@ class GenerateSpackPlot(StructuralAnalysis):
         self.boxv = imp_packing["boxv"].copy()
         self.vcavity = imp_packing["vcavity"]
         self.sca = imp_packing["sca"]
-        hs_coords, hs_radii, ss_radii, rattlers = self._import_packing_configuration(
-            fname
-        )
+        (
+            hs_coords,
+            hs_radii,
+            ss_radii,
+            rattlers,
+        ) = self._import_packing_configuration(fname)
         hs_coords = np.reshape(hs_coords, (-1, self.bdim))
 
         # #packing

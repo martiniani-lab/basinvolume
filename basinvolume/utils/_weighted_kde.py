@@ -193,14 +193,18 @@ class weighted_gaussian_kde(object):
                 points = np.reshape(points, (self.d, 1))
                 m = 1
             else:
-                msg = "points have dimension %s, dataset has dimension %s" % (d, self.d)
+                msg = "points have dimension %s, dataset has dimension %s" % (
+                    d,
+                    self.d,
+                )
                 raise ValueError(msg)
 
         # compute the normalised residuals
         chi2 = cdist(points.T, self.dataset.T, "mahalanobis", VI=self.inv_cov) ** 2
         # compute the pdf
         result = old_div(
-            np.sum(np.exp(-0.5 * chi2) * self.weights, axis=1), self._norm_factor
+            np.sum(np.exp(-0.5 * chi2) * self.weights, axis=1),
+            self._norm_factor,
         )
 
         return result
@@ -319,7 +323,9 @@ class weighted_gaussian_kde(object):
             size = self.n
         norm = np.transpose(
             np.random.multivariate_normal(
-                np.zeros((self.d,), dtype=np.float64), self.covariance, size=int(size)
+                np.zeros((self.d,), dtype=np.float64),
+                self.covariance,
+                size=int(size),
             )
         )
         indices = np.random.choice(

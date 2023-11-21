@@ -32,3 +32,4 @@ CMakeLists.txt
 **/compile_commands.json
 **/explore_bv*
 paper_analysis
+basinvolume/mbar_spheres/scratch.ipynb

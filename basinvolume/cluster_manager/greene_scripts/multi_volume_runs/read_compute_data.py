@@ -63,17 +63,13 @@ def scan_directory(base_directory, read_function=read_volume_data):
     for folder in os.listdir(base_directory):
         folder_path = os.path.join(base_directory, folder)
         if os.path.isdir(folder_path):
-            minimizer_name, packing_fraction, id_ = extract_directory_info(
-                folder
-            )
+            minimizer_name, packing_fraction, id_ = extract_directory_info(folder)
 
             for jammed_folder in os.listdir(folder_path):
                 if "explore_bv_" in jammed_folder:
                     jammed_packing_name = extract_jammed_info(jammed_folder)
 
-                    analysis_path = os.path.join(
-                        folder_path, jammed_folder, "analysis"
-                    )
+                    analysis_path = os.path.join(folder_path, jammed_folder, "analysis")
                     data_dict = get_data_from_file(
                         analysis_path, "mbar_volume_data", read_function
                     )

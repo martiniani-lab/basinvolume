@@ -9,7 +9,11 @@ import numpy as np
 import os
 from pele.potentials import Harmonic
 from pele.distance import Distance
-from basinvolume.spheres import BV_MCrunner, ConfigMCRunner, read_jammed_packing_config
+from basinvolume.spheres import (
+    BV_MCrunner,
+    ConfigMCRunner,
+    read_jammed_packing_config,
+)
 from basinvolume.utils import trymakedir
 from basinvolume.enums import Minimizer
 import configparser
@@ -80,10 +84,7 @@ class configure_bv_exp_mcrunner(ConfigMCRunner):
         for i in range(len(self.hs_radii)):
             r2 = 0
             for j in range(self.bdim):
-                r2 += (
-                    self.coords[i * self.bdim + j]
-                    * self.coords[i * self.bdim + j]
-                )
+                r2 += self.coords[i * self.bdim + j] * self.coords[i * self.bdim + j]
             if r2 > (rcontainer * rcontainer):
                 rcontainer = np.sqrt(r2)
                 index = i
@@ -186,9 +187,7 @@ class configure_bv_exp_mcrunner(ConfigMCRunner):
         dname = os.path.splitext(self.fname)[0]
 
         if base_dir is None:
-            base_directory = os.path.join(
-                os.getcwd(), "explore_bv_" + str(dname)
-            )
+            base_directory = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
             assert os.path.exists(base_directory)
         else:
             if not os.path.isabs(base_dir):
@@ -199,18 +198,14 @@ class configure_bv_exp_mcrunner(ConfigMCRunner):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
 
-        self.packing_configpath = os.path.join(
-            packings_dir, "{}.config".format(dname)
-        )
+        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
         self.findk_configpath = os.path.join(
             self.base_directory, "findk_" + dname + ".config"
         )
         self.kmin_configpath = os.path.join(
             self.base_directory, "kmin_" + dname + ".config"
         )
-        self.configfile = "{}/explore_{}.config".format(
-            self.base_directory, dname
-        )
+        self.configfile = "{}/explore_{}.config".format(self.base_directory, dname)
 
     def _get_histogram_bin(self, k):
         """automatically estimate size of histogram"""
@@ -255,7 +250,7 @@ class configure_bv_exp_mcrunner(ConfigMCRunner):
             f.write("success_rank{}: {}\n".format(str(i), "False"))
 
     def _import_packing_config_files(self):
-        
+
         imp_packing = read_jammed_packing_config(str(self.configpath))
         self.nparticles = imp_packing["nparticles"]
         self.imp_packing_frac = imp_packing["packing_frac"]
@@ -268,7 +263,7 @@ class configure_bv_exp_mcrunner(ConfigMCRunner):
         self.interaction = imp_packing["interaction"]
         self.minimizer = imp_packing["minimizer"]
         self.opt_tol = imp_packing["opt_tol"]
-        
+
         configf.read(str(self.packing_configpath))
         self.mobile_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"
@@ -276,8 +271,8 @@ class configure_bv_exp_mcrunner(ConfigMCRunner):
         self.frozen_particle_radius = configf.getfloat(
             "JAMMED_PACKING", "mobile_particle_radius"
         )
-        
-        configf = configparser.ConfigParser()        
+
+        configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
@@ -285,7 +280,6 @@ class configure_bv_exp_mcrunner(ConfigMCRunner):
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")
-
 
     def print_success_all(self, success):
         """

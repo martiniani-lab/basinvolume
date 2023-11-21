@@ -103,7 +103,8 @@ def get_cycler(ncolors=20, reverse=True):
         )
     else:
         color_cycler = cycler(
-            "color", [cm(1.0 * (i - 0.5) / float(ncolors)) for i in range(ncolors)]
+            "color",
+            [cm(1.0 * (i - 0.5) / float(ncolors)) for i in range(ncolors)],
         )
     return color_cycler
 
@@ -149,7 +150,8 @@ def remove_outliers_cluster(x, p=0.5, D=4):
 
 
 def collect_data_every_set_all(
-    workspace=None, data_signature="jammed_packings_*D_mu*_sig*_sca*_phi*.pickle"
+    workspace=None,
+    data_signature="jammed_packings_*D_mu*_sig*_sca*_phi*.pickle",
 ):
     if workspace is None:
         workspace = os.getcwd()
@@ -391,15 +393,29 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         phi_ss_spl = np.linspace(phi_ss[0], phi_ss[-1], 1000)
         y = np.asarray(psuccess)
         popt, pcov = curve_fit(
-            sigmoid, phi_ss, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000
+            sigmoid,
+            phi_ss,
+            y,
+            p0=[0.845, 1, np.amax(y), np.amin(y), 1],
+            maxfev=3000,
         )
         yspl = np.vectorize(sigmoid)(phi_ss_spl, *popt)
         yder = np.vectorize(sigmoid_d1)(phi_ss_spl, *popt)
         ax.plot(
-            phi_ss_spl, yspl, marker="", linestyle="-", rasterized=True, color=color_fit
+            phi_ss_spl,
+            yspl,
+            marker="",
+            linestyle="-",
+            rasterized=True,
+            color=color_fit,
         )
         axinset.plot(
-            phi_ss_spl, yder, marker="", linestyle="-", rasterized=True, color=color_fit
+            phi_ss_spl,
+            yder,
+            marker="",
+            linestyle="-",
+            rasterized=True,
+            color=color_fit,
         )
         ax.set_xlim([phi_ss[0], phi_ss[-1]])
         ax.set_xlabel(r"$\phi$")
@@ -450,7 +466,12 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         yspl = np.vectorize(sigmoid)(phi_ss_spl, *popt)
         yder = np.vectorize(sigmoid_d1)(phi_ss_spl, *popt)
         ax1.plot(
-            phi_ss_spl, yspl, marker="", linestyle="-", rasterized=True, color=color_fit
+            phi_ss_spl,
+            yspl,
+            marker="",
+            linestyle="-",
+            rasterized=True,
+            color=color_fit,
         )
         # ax1inset.plot(phi_ss_spl, yder, marker='', linestyle='-', rasterized=True, color=color_fit)
         ax1.set_xlim([phi_ss_packed[0], phi_ss_packed[-1]])
@@ -480,7 +501,9 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         xnew = np.linspace(np.amin(flat_energy), np.amax(flat_energy), 10)
 
         fit_fn, fit_params, fit_err, rho = poly_fit(
-            flat_energy[flat_energy < -5], flat_pressure[flat_energy < -5], order=1
+            flat_energy[flat_energy < -5],
+            flat_pressure[flat_energy < -5],
+            order=1,
         )
         ax2.plot(
             xnew,
@@ -494,7 +517,9 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         # linear fit high P
         xnew = np.linspace(2.3, 10, 10)
         fit_fn, fit_params, fit_err, rho = poly_fit(
-            flat_energy[flat_energy > 5], flat_pressure[flat_energy > 5], order=1
+            flat_energy[flat_energy > 5],
+            flat_pressure[flat_energy > 5],
+            order=1,
         )
         ax2.plot(
             xnew,
@@ -508,7 +533,9 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         # quadratic fit
         xnew = np.linspace(-0.5, 10, 10)
         fit_fn, fit_params, fit_err, rho = poly_fit(
-            flat_energy[flat_energy > -0.5], flat_pressure[flat_energy > -0.5], order=2
+            flat_energy[flat_energy > -0.5],
+            flat_pressure[flat_energy > -0.5],
+            order=2,
         )
         ax2.plot(
             xnew,
@@ -891,7 +918,13 @@ def plot_all(figdir="figures", bdim=2):
             )
             # finite size scaling of <z>
             xsc, ysc, ysc_err = finite_size_scaling_collapse(
-                phi_ss_packed, yy, np.sqrt(nparticles[i]), 0.844, 2, -0.01, abs=False
+                phi_ss_packed,
+                yy,
+                np.sqrt(nparticles[i]),
+                0.844,
+                2,
+                -0.01,
+                abs=False,
             )
             ax0b.plot(
                 xsc,
@@ -1033,9 +1066,21 @@ def plot_all(figdir="figures", bdim=2):
             yder = np.vectorize(sigmoid_d1)(xspl, *popt)
             ysig_list.append(ysig)
             yder_list.append(yder)
-            ax.plot(xspl, ysig, marker="", linestyle="-", rasterized=True, color=color)
+            ax.plot(
+                xspl,
+                ysig,
+                marker="",
+                linestyle="-",
+                rasterized=True,
+                color=color,
+            )
             ax11cinset.plot(
-                xspl, ysig, marker="", linestyle="-", rasterized=True, color=color
+                xspl,
+                ysig,
+                marker="",
+                linestyle="-",
+                rasterized=True,
+                color=color,
             )
             ax04.plot(
                 xspl,
@@ -1102,7 +1147,12 @@ def plot_all(figdir="figures", bdim=2):
             yder = np.vectorize(sigmoid_d1)(phi_ss_spl, *popt)
             ratl_list.append(np.vectorize(sigmoid)(xspl, *popt))
             ax02.plot(
-                phi_ss_spl, ysig, marker="", linestyle="-", color=color, rasterized=True
+                phi_ss_spl,
+                ysig,
+                marker="",
+                linestyle="-",
+                color=color,
+                rasterized=True,
             )
             ax07.plot(
                 phi_ss_spl,
@@ -1570,7 +1620,11 @@ def plot_all(figdir="figures", bdim=2):
             yerr = np.abs(np.asarray([logp_mean[:, 1], logp_mean[:, 2]]) - y)
             # w = 0.5*(logp_mean[:, 2]-logp_mean[:, 1])/weights
             popt, pcov = curve_fit(
-                sigmoid, x, y, p0=[0.842, 1, np.amax(y), np.amin(y), 1], maxfev=3000
+                sigmoid,
+                x,
+                y,
+                p0=[0.842, 1, np.amax(y), np.amin(y), 1],
+                maxfev=3000,
             )
             yspl = np.vectorize(sigmoid)(xx, *popt)
             ax11.errorbar(
@@ -1644,7 +1698,10 @@ def plot_all(figdir="figures", bdim=2):
             y = logp_var[:, 0] * nparticles[i]
             yerr = np.abs(
                 np.asarray(
-                    [logp_var[:, 2] * nparticles[i], logp_var[:, 2] * nparticles[i]]
+                    [
+                        logp_var[:, 2] * nparticles[i],
+                        logp_var[:, 2] * nparticles[i],
+                    ]
                 )
                 - y
             )
@@ -1652,7 +1709,11 @@ def plot_all(figdir="figures", bdim=2):
             # spl = UnivariateSpline(x, y, s=1.5e6, k=5, w=weights)
             # yspl = spl(xx)
             popt, pcov = curve_fit(
-                sigmoid, x, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000
+                sigmoid,
+                x,
+                y,
+                p0=[0.845, 1, np.amax(y), np.amin(y), 1],
+                maxfev=3000,
             )
             logging.info(popt)
             yspl = np.vectorize(sigmoid)(xx, *popt)
@@ -1753,7 +1814,11 @@ def plot_all(figdir="figures", bdim=2):
             # spl = UnivariateSpline(x, y, s=1e7, k=5, w=weights)
             # yspl = spl(xx)
             popt, pcov = curve_fit(
-                sigmoid, x, y, p0=[0.845, 1, np.amax(y), np.amin(y), 1], maxfev=3000
+                sigmoid,
+                x,
+                y,
+                p0=[0.845, 1, np.amax(y), np.amin(y), 1],
+                maxfev=3000,
             )
             logging.info(popt)
             yspl = np.vectorize(sigmoid)(xx, *popt)
@@ -2382,7 +2447,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="plot findjstats")
     parser.add_argument("-n", "--nparticles", type=int, help="number of particles")
     parser.add_argument(
-        "--all", action="store_true", help="run over all packings", default=False
+        "--all",
+        action="store_true",
+        help="run over all packings",
+        default=False,
     )
     parser.add_argument("--show", action="store_true", help="show plots", default=False)
     args = parser.parse_args()

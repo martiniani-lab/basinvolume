@@ -105,7 +105,8 @@ class BatchScript(object):
         ):
             self.nodes += 1
         self.ncores = min(
-            cores_per_node, self.omp_threads * (self.mpi_procs - self.mpi_oversubscribe)
+            cores_per_node,
+            self.omp_threads * (self.mpi_procs - self.mpi_oversubscribe),
         )
         self.mpi_impl = mpi_impl
         self.memory_per_cpu = memory_per_cpu

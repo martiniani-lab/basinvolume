@@ -251,9 +251,10 @@ class BondOrientationalOrder(StructuralAnalysis):
         if not self.solid_angle_weighted:
             nnatoms_list = contacts_list
         else:
-            nnatoms_list, weights_all = self.find_nearest_neighbors_solid_angle(
-                coords, ss_radii
-            )
+            (
+                nnatoms_list,
+                weights_all,
+            ) = self.find_nearest_neighbors_solid_angle(coords, ss_radii)
 
         boo_list = []
         z_list = []

@@ -8,7 +8,9 @@ import configparser
 import argparse
 import glob
 from basinvolume.utils import import_pt_time_series
-from basinvolume.mbar_spheres.fastmbar_compute_volume import fastmbar_compute_dos
+from basinvolume.mbar_spheres.fastmbar_compute_volume import (
+    fastmbar_compute_dos,
+)
 
 
 class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
@@ -35,7 +37,11 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
         )
 
     def __call__(
-        self, explore_dir, base_dir="analysis_fastMBAR", show=False, verbose=True
+        self,
+        explore_dir,
+        base_dir="analysis_fastMBAR",
+        show=False,
+        verbose=True,
     ):
         if not os.path.isabs(explore_dir):
             self.explore_dir = os.path.join(os.getcwd(), explore_dir)
@@ -149,7 +155,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("explore_dir", type=str, help="explore_dir")
     parser.add_argument(
-        "--show", action="store_true", help="show plots, default: False", default=False
+        "--show",
+        action="store_true",
+        help="show plots, default: False",
+        default=False,
     )
     parser.add_argument(
         "--cuda",

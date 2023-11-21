@@ -99,7 +99,12 @@ class RuntimeData(object):
         print("slope linear law:", popt_linear[0])
         print("offset linear law:", popt_linear[1])
         xf = np.linspace(self.N[0], self.N[-1])
-        plt.plot(xf, time_law(xf, popt[0], popt[1]), "k", label="Power law, no offset")
+        plt.plot(
+            xf,
+            time_law(xf, popt[0], popt[1]),
+            "k",
+            label="Power law, no offset",
+        )
         plt.plot(
             xf,
             time_law_linear(xf, popt_linear[0], popt_linear[1]),
@@ -110,7 +115,8 @@ class RuntimeData(object):
         print("prediced runtime for", N_new, "particles: ")
         self.print_prediction("Power law", time_law(N_new, popt[0], popt[1]))
         self.print_prediction(
-            "Linear law", time_law_linear(N_new, popt_linear[0], popt_linear[1])
+            "Linear law",
+            time_law_linear(N_new, popt_linear[0], popt_linear[1]),
         )
 
     def print_prediction(self, name, new_seconds):

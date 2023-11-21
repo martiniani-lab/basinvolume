@@ -122,7 +122,10 @@ class BruteComputer(ComputerCommon):
             pot,
         )
         self.brute_engine = BruteEngine(
-            self.method_parameters, self.pes_parameters, self.pot, self.opt_parameters
+            self.method_parameters,
+            self.pes_parameters,
+            self.pot,
+            self.opt_parameters,
         )
         self.ini_evals = 0  # Brute force does not need initialisation.
 
@@ -142,7 +145,9 @@ def run_brute(ls_basin_label):
     """
     arg = ap.ArgumentParser()
     arg.add_argument(
-        "--nr_dimensions", type=int, help="Euclidean dimension of potential landscape"
+        "--nr_dimensions",
+        type=int,
+        help="Euclidean dimension of potential landscape",
     )
     arg.add_argument("--sample_index", type=int, help="Index of landscape to measure")
     arg.add_argument(

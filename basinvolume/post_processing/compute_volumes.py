@@ -120,15 +120,11 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
                         try:
                             volf = configparser.ConfigParser()
                             volf.read(
-                                os.path.join(
-                                    path, self.analysis_dir, self.volume_file
-                                )
+                                os.path.join(path, self.analysis_dir, self.volume_file)
                             )
                             F0 = volf.getfloat(self.volume_title, "F0")
                         except Exception as e:
-                            logging.info(
-                                "run_analysis Exception: {}".format(e)
-                            )
+                            logging.info("run_analysis Exception: {}".format(e))
                             self._compute_volume(fname, path)
                     else:
                         self._compute_volume(fname, path)
@@ -154,9 +150,7 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
             if (
                 f.startswith(self.explore_bv_dir)
                 and os.path.isfile(
-                    os.path.join(
-                        self.workspace_dir, f, "inner_sphere.timeseries"
-                    )
+                    os.path.join(self.workspace_dir, f, "inner_sphere.timeseries")
                 )
             )
         ]
@@ -170,8 +164,7 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
                 )
             assert len(self.explore_dirs) == self.nr_volume_points
         self.packing_strings = [
-            "jammed_" + (s.split("/")[-1]).split("_")[3]
-            for s in self.explore_dirs
+            "jammed_" + (s.split("/")[-1]).split("_")[3] for s in self.explore_dirs
         ]
 
 
@@ -227,7 +220,7 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
             jammed_packings_dir=jammed_packings_path,
             packings_dir=packings_path,
             plot_ts_integrand_data=False,
-            simple_integrator = not self.is_it_gausslobato
+            simple_integrator=not self.is_it_gausslobato,
         )
 
 
@@ -305,31 +298,23 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                     if (
                         not self.force_run
                         and os.path.isfile(
-                            os.path.join(
-                                path, self.analysis_dir, self.volume_file
-                            )
+                            os.path.join(path, self.analysis_dir, self.volume_file)
                         )
                         and (
                             not self.plot_dos_data
                             or os.path.isfile(
-                                os.path.join(
-                                    path, self.analysis_dir, log_gr_ratio_file
-                                )
+                                os.path.join(path, self.analysis_dir, log_gr_ratio_file)
                             )
                         )
                     ):
                         try:
                             volf = configparser.ConfigParser()
                             volf.read(
-                                os.path.join(
-                                    path, self.analysis_dir, self.volume_file
-                                )
+                                os.path.join(path, self.analysis_dir, self.volume_file)
                             )
                             F0 = volf.getfloat(self.volume_title, "F0")
                         except Exception as e:
-                            logging.info(
-                                "run_analysis Exception: {}".format(e)
-                            )
+                            logging.info("run_analysis Exception: {}".format(e))
                             self._compute_volume(fname, path)
                     else:
                         self._compute_volume(fname, path)
@@ -349,7 +334,7 @@ class ComputeVolumes(object):
         nr_volume_points=-1,
         force_run=False,
         method="mbar",
-        is_it_gausslobato = False,
+        is_it_gausslobato=False,
         explore_bv_dir="explore_bv_jammed_packing",
         packings_dir="packings",
         jammed_packings_dir="jammed_packings",
@@ -388,8 +373,7 @@ class ComputeVolumes(object):
             )
         else:
             raise Exception(
-                "ComputeVolumes: illegal choice of method, "
-                "should be MBAR or TINT"
+                "ComputeVolumes: illegal choice of method, " "should be MBAR or TINT"
             )
 
     def __call__(self):
@@ -405,11 +389,7 @@ def worker(workspace_dir, kwargs):
 
 
 def get_immediate_subdirectories(dir):
-    return [
-        name
-        for name in os.listdir(dir)
-        if os.path.isdir(os.path.join(dir, name))
-    ]
+    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
 
 if __name__ == "__main__":
@@ -435,8 +415,7 @@ if __name__ == "__main__":
         "--nr_vpoints",
         type=int,
         default=-1,
-        help="number of volume points, by default all "
-        "otherwise select n at random",
+        help="number of volume points, by default all " "otherwise select n at random",
     )
     parser.add_argument(
         "--force",
@@ -461,7 +440,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-gl",
         "--gauss_lobato",
-        action = "store_true",
+        action="store_true",
         help="type of thermodynamic integration scheme",
         default=False,
     )
@@ -481,8 +460,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--jammed_packings_dir",
         type=str,
-        help="Directory containing the jammed packings. "
-        "Default: 'jammed_packings'",
+        help="Directory containing the jammed packings. " "Default: 'jammed_packings'",
         default="jammed_packings",
     )
 
@@ -507,7 +485,7 @@ if __name__ == "__main__":
         nr_volume_points=args.nr_vpoints,
         force_run=args.force,
         method=args.method,
-        is_it_gausslobato = args.gauss_lobato,
+        is_it_gausslobato=args.gauss_lobato,
         explore_bv_dir=args.explore_dirs,
         packings_dir=args.packings_dir,
         jammed_packings_dir=args.jammed_packings_dir,

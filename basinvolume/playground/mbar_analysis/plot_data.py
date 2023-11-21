@@ -131,7 +131,10 @@ class mbar_data(object):
 
 class plot_mbar_data(object):
     def __init__(
-        self, workdir=None, explore_dir="explore_bv_jammed_packing", Nrange=(0, 1000)
+        self,
+        workdir=None,
+        explore_dir="explore_bv_jammed_packing",
+        Nrange=(0, 1000),
     ):
         if not workdir:
             workdir = os.getcwd()
@@ -164,7 +167,10 @@ class plot_mbar_data(object):
         for folder in subdirs:
             if self.explore_dir in folder:
                 path = os.path.join(
-                    self.workdir, mbar_data.label, folder, mbar_data.analysis_folder
+                    self.workdir,
+                    mbar_data.label,
+                    folder,
+                    mbar_data.analysis_folder,
                 )
                 if os.path.isdir(path):
                     npack = int(re.findall("\d+", folder)[0])
@@ -223,7 +229,13 @@ class plot_mbar_data(object):
         mbar_data.compute_mean()
 
     def _plot(
-        self, ax, csv_tuple, label=None, plot_err=False, plot_fit=False, normalize=False
+        self,
+        ax,
+        csv_tuple,
+        label=None,
+        plot_err=False,
+        plot_fit=False,
+        normalize=False,
     ):
         (x, xerr, y, yerr, fit) = csv_tuple
         if normalize:
@@ -322,7 +334,11 @@ class plot_mbar_data(object):
             label=r"fcc mono",
         )
         ax, xlabel, ylabel = self._plot_all(
-            ax, self.disordered_data, plot_type=plot_type, average=average, label=dlabel
+            ax,
+            self.disordered_data,
+            plot_type=plot_type,
+            average=average,
+            label=dlabel,
         )
 
         plt.xlabel(xlabel)
@@ -411,13 +427,23 @@ class plot_mbar_data(object):
         area = np.ones(free_energies.shape[0]) * 2 * np.pi * 4
         if plot_type == "m1_m2":
             ax.scatter(
-                moments[:, 1], moments[:, 2], s=area, label=label, c=color, alpha=0.5
+                moments[:, 1],
+                moments[:, 2],
+                s=area,
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             xlabel = r"$\langle r \rangle$"
             ylabel = r"$\langle (r - \langle r \rangle)^2 \rangle$"
         elif plot_type == "m3_m4":
             ax.scatter(
-                moments[:, 3], moments[:, 4], s=area, label=label, c=color, alpha=0.5
+                moments[:, 3],
+                moments[:, 4],
+                s=area,
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             xlabel = r"$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$"
             ylabel = r"$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$"
@@ -425,63 +451,112 @@ class plot_mbar_data(object):
         # boo-volume correlations
         if plot_type == "f_z":
             ax.scatter(
-                free_energies[:, 0], np.log(z_numbers), label=label, c=color, alpha=0.5
+                free_energies[:, 0],
+                np.log(z_numbers),
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$log(Z)$"
         elif plot_type == "f_q4":
             ax.scatter(
-                free_energies[:, 0], np.log(boo[:, 0]), label=label, c=color, alpha=0.5
+                free_energies[:, 0],
+                np.log(boo[:, 0]),
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$log(Q4)$"
         elif plot_type == "f_q6":
             ax.scatter(
-                free_energies[:, 0], np.log(boo[:, 1]), label=label, c=color, alpha=0.5
+                free_energies[:, 0],
+                np.log(boo[:, 1]),
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$log(Q6)$"
         elif plot_type == "f_q8":
             ax.scatter(
-                free_energies[:, 0], np.log(boo[:, 2]), label=label, c=color, alpha=0.5
+                free_energies[:, 0],
+                np.log(boo[:, 2]),
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$log(Q8)$"
         elif plot_type == "f_q10":
             ax.scatter(
-                free_energies[:, 0], np.log(boo[:, 3]), label=label, c=color, alpha=0.5
+                free_energies[:, 0],
+                np.log(boo[:, 3]),
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$log(Q10)$"
         elif plot_type == "f_q12":
             ax.scatter(
-                free_energies[:, 0], np.log(boo[:, 4]), label=label, c=color, alpha=0.5
+                free_energies[:, 0],
+                np.log(boo[:, 4]),
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$log(Q12)$"
 
         # boo-moments correlations
         if plot_type == "m0_q6":
             ax.scatter(
-                moments[:, 0], boo[:, 1], s=area, label=label, c=color, alpha=0.5
+                moments[:, 0],
+                boo[:, 1],
+                s=area,
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$Q6$"
             xlabel = r"$\max[g(r)]$"
         elif plot_type == "m1_q6":
             ax.scatter(
-                moments[:, 1], boo[:, 1], s=area, label=label, c=color, alpha=0.5
+                moments[:, 1],
+                boo[:, 1],
+                s=area,
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$Q6$"
             xlabel = r"$\langle r \rangle$"
         elif plot_type == "m2_q6":
             ax.scatter(
-                moments[:, 2], boo[:, 1], s=area, label=label, c=color, alpha=0.5
+                moments[:, 2],
+                boo[:, 1],
+                s=area,
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$Q6$"
             xlabel = r"$\langle (r - \langle r \rangle)^2 \rangle$"
         elif plot_type == "m3_q6":
             ax.scatter(
-                moments[:, 3], boo[:, 1], s=area, label=label, c=color, alpha=0.5
+                moments[:, 3],
+                boo[:, 1],
+                s=area,
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$Q6$"
             xlabel = r"$\frac{\langle (r - \langle r \rangle)^3 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{3/2}}$"
         elif plot_type == "m4_q6":
             ax.scatter(
-                moments[:, 4], boo[:, 1], s=area, label=label, c=color, alpha=0.5
+                moments[:, 4],
+                boo[:, 1],
+                s=area,
+                label=label,
+                c=color,
+                alpha=0.5,
             )
             ylabel = r"$Q6$"
             xlabel = r"$\frac{\langle (r - \langle r \rangle)^4 \rangle}{\langle (r - \langle r \rangle)^2 \rangle^{2}}$"
@@ -509,7 +584,11 @@ class plot_mbar_data(object):
             ax, self.fcc_data, plot_type=plot_type, label=r"fcc", color="g"
         )
         ax, xlabel, ylabel = self._plot_correlations(
-            ax, self.fcc_mono_data, plot_type=plot_type, label=r"fcc mono", color="r"
+            ax,
+            self.fcc_mono_data,
+            plot_type=plot_type,
+            label=r"fcc mono",
+            color="r",
         )
         ax, xlabel, ylabel = self._plot_correlations(
             ax, self.disordered_data, plot_type=plot_type, label=dlabel
@@ -547,7 +626,10 @@ class diffusion_data(object):
 
 class plot_diffusion_data(object):
     def __init__(
-        self, workdir=None, explore_dir="explore_bv_jammed_packing", Nrange=(0, 1000)
+        self,
+        workdir=None,
+        explore_dir="explore_bv_jammed_packing",
+        Nrange=(0, 1000),
     ):
         if not workdir:
             workdir = os.getcwd()
@@ -577,7 +659,10 @@ class plot_diffusion_data(object):
         timeseries = []
         series_order = []
         path = os.path.join(
-            self.workdir, diffusion_data.label, folder, diffusion_data.analysis_folder
+            self.workdir,
+            diffusion_data.label,
+            folder,
+            diffusion_data.analysis_folder,
         )
         if os.path.isdir(path):
             npack = int(re.findall("\d+", folder)[0])
@@ -637,7 +722,13 @@ class plot_diffusion_data(object):
                 )
 
     def _plot(
-        self, ax, csv_tuple, label=None, plot_err=False, plot_fit=False, normalize=False
+        self,
+        ax,
+        csv_tuple,
+        label=None,
+        plot_err=False,
+        plot_fit=False,
+        normalize=False,
     ):
         (x, xerr, y, yerr, fit) = csv_tuple
         color = next(color_cycle)

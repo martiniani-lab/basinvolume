@@ -11,16 +11,13 @@ import argparse
 import pickle as pickle
 from joblib import Parallel, delayed
 from numpy.random import RandomState
-from pele.distance import get_distance, Distance
+from pele.distance import Distance
 from pele.potentials import HS_WCA, InversePowerStillingerCut, InversePower
 from pele.optimize._quench import modifiedfire_cpp
 from pele.utils._pressure_tensor import pressure_tensor
 from basinvolume.utils import (
-    cround,
     in_hull,
     import_packing,
-    find_neighbors_slow,
-    in_hull,
     origin_in_hull_2d,
 )
 from basinvolume.spheres import HS_Generate_Packing
@@ -93,9 +90,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         self.interaction = interaction
         self.hs_packing_frac = ss_packing_frac / np.power(1.0 + sca, bdim)
         self.ss_packing_frac = ss_packing_frac
-        logging.info(
-            "{}, {}".format(self.hs_packing_frac, self.ss_packing_frac)
-        )
+        logging.info("{}, {}".format(self.hs_packing_frac, self.ss_packing_frac))
         super(GeneratePackingFindJ, self).__init__(
             nparticles,
             method=method,
@@ -136,15 +131,13 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                 self._dump_results()
 
     def _dump_results(self):
-        data_name = (
-            "jammed_packings_{}D_mu{}_sig{}_sca{}_phi{}_iter{}.pickle".format(
-                self.bdim,
-                self.mu,
-                self.sig,
-                self.sca_ss,
-                self.ss_packing_frac,
-                int(self.iteration),
-            )
+        data_name = "jammed_packings_{}D_mu{}_sig{}_sca{}_phi{}_iter{}.pickle".format(
+            self.bdim,
+            self.mu,
+            self.sig,
+            self.sca_ss,
+            self.ss_packing_frac,
+            int(self.iteration),
         )
         data_pickle = os.path.join(self.workspace, data_name)
         pickle.dump(self.packing_dataset, open(data_pickle, "wb"), protocol=-1)
@@ -163,12 +156,8 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                 np.prod(self.boxv),
                 self.bdim,
             )
-            neighbor_indicess, _ = self.potential_ss.getNeighbors(
-                self.coords_ss
-            )
-            Z = [
-                len(neighbor_indices) for neighbor_indices in neighbor_indicess
-            ]
+            neighbor_indicess, _ = self.potential_ss.getNeighbors(self.coords_ss)
+            Z = [len(neighbor_indices) for neighbor_indices in neighbor_indicess]
             data = SoftPackingData(
                 self.coords_ss, self.energy_ss, pressure, Z, self.nrattlers
             )
@@ -186,14 +175,9 @@ class GeneratePackingFindJ(HS_Generate_Packing):
 
     def _setup_one_iteration_ss(self):
         # assert that largest soft particle is not > 1/2 of smallest box size
-        if (
-            np.amax(self.hs_radii) * 2 * (1 + self.sca_ss)
-            >= np.amin(self.boxv) / 2
-        ):
+        if np.amax(self.hs_radii) * 2 * (1 + self.sca_ss) >= np.amin(self.boxv) / 2:
             logging.warning("Max soft diameter >= 1/2 box side!")
-        if np.amax(self.hs_radii) * 2 * (1 + self.sca_ss) >= np.amin(
-            self.boxv
-        ):
+        if np.amax(self.hs_radii) * 2 * (1 + self.sca_ss) >= np.amin(self.boxv):
             raise Exception("Particle does not fit in the box")
 
         ###potential needs to be called because self.coords_ss is an input argument of HS_WCAPeriodicCellLists
@@ -283,18 +267,16 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                 no_neighbors = len(neighbor_indicess[atomi])
                 if no_neighbors < zmin:
                     found_rattler = True
-                    logging.debug(
-                        "Particle {} is not isostatic.".format(atomi)
-                    )
+                    logging.debug("Particle {} is not isostatic.".format(atomi))
                 else:
                     if self.bdim == 2:
                         found_rattler = not origin_in_hull_2d(
                             neighbor_distancess[atomi]
                         )
                     else:
-                        points = np.asarray(
-                            neighbor_distancess[atomi]
-                        ).reshape((-1, self.bdim))
+                        points = np.asarray(neighbor_distancess[atomi]).reshape(
+                            (-1, self.bdim)
+                        )
                         found_rattler = not in_hull(origin, points)
                     if found_rattler:
                         logging.debug(
@@ -320,9 +302,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             [len(neighbor_indices) for neighbor_indices in neighbor_indicess]
         )
         N_min = int(2 * (self.bdim * (no_stable - 1) + 1))
-        logging.debug(
-            "N_min: {} total_contacts: {}".format(N_min, total_contacts)
-        )
+        logging.debug("N_min: {} total_contacts: {}".format(N_min, total_contacts))
         logging.debug("Number of rattlers: {}".format(self.nrattlers))
         if self.nrattlers > self.max_nrattlers:
             logging.warning("Too many rattlers. Discarding packing.")
@@ -370,9 +350,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             tol=tol,
         )
         if res2.nfev > 1:
-            logging.warning(
-                "Quench failed (structure changed at second minimisation)"
-            )
+            logging.warning("Quench failed (structure changed at second minimisation)")
             return False
 
         # asserts that none of the hard sphere is overlapping
@@ -412,7 +390,6 @@ class FindJ(object):
         start_iteration=0,
         ncores=2,
     ):
-
         self.rng = RandomState()
         self.ncores = ncores
         self.hsgp = []
@@ -444,13 +421,12 @@ class FindJ(object):
             self.hsgp.append(hsgp_)
 
     def run(self):
-        results = Parallel(n_jobs=max(1, self.ncores))(
+        Parallel(n_jobs=max(1, self.ncores))(
             delayed(run_hsgp)(hsgp_) for hsgp_ in self.hsgp
         )
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="generate 2/3-D hard disks/spheres packings"
     )
@@ -462,12 +438,8 @@ if __name__ == "__main__":
         help="number of packings to produce",
         default=1,
     )
-    parser.add_argument(
-        "-d", "--boxdim", type=int, help="box dimensions", default=3
-    )
-    parser.add_argument(
-        "-x", "--ncores", type=int, help="number of cores", default=2
-    )
+    parser.add_argument("-d", "--boxdim", type=int, help="box dimensions", default=3)
+    parser.add_argument("-x", "--ncores", type=int, help="number of cores", default=2)
     # parser.add_argument("-p","--density", type=float, help="target packing fraction",default=0.86)
     parser.add_argument(
         "-a",
@@ -573,9 +545,7 @@ if __name__ == "__main__":
             hs_radii = pickle.load(rfile).hs_radii
 
     # density = args.density
-    density = np.logspace(
-        np.log10(args.phimin), np.log10(args.phimax), args.nphi
-    )
+    density = np.logspace(np.log10(args.phimin), np.log10(args.phimax), args.nphi)
 
     sim = FindJ(
         args.nparticles,

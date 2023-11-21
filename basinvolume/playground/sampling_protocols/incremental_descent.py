@@ -173,7 +173,11 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
         if analyse:
             # test that on ri-minimisation the structure does not change
             res2 = modifiedfire_cpp(
-                self.coords, self.potential, maxstep=fire_maxstep, nsteps=1e6, tol=tol
+                self.coords,
+                self.potential,
+                maxstep=fire_maxstep,
+                nsteps=1e6,
+                tol=tol,
             )
             if res2.nfev > 1:
                 print("quench failed (structure changed at second minimisation)")
@@ -219,7 +223,11 @@ if __name__ == "__main__":
         description="generate 2/3-D hard disks/spheres packings"
     )
     parser.add_argument(
-        "-p", "--density", type=float, help="target packing fraction", default=0.7
+        "-p",
+        "--density",
+        type=float,
+        help="target packing fraction",
+        default=0.7,
     )
     parser.add_argument(
         "-e",

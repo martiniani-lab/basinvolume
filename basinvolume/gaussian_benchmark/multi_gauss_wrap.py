@@ -60,7 +60,10 @@ class MultiGaussWrap(object):
 
     def this_path(self, nr_gaussians, nr_dimensions, index):
         return os.path.join(
-            self.potential_path, str(nr_gaussians), str(nr_dimensions), str(index)
+            self.potential_path,
+            str(nr_gaussians),
+            str(nr_dimensions),
+            str(index),
         )
 
     def this_pot_path(self, nr_gaussians, nr_dimensions, index):
@@ -70,22 +73,26 @@ class MultiGaussWrap(object):
 
     def this_large_index_path(self, nr_gaussians, nr_dimensions, index):
         return os.path.join(
-            self.this_path(nr_gaussians, nr_dimensions, index), "large_basin_index.txt"
+            self.this_path(nr_gaussians, nr_dimensions, index),
+            "large_basin_index.txt",
         )
 
     def this_large_origin_path(self, nr_gaussians, nr_dimensions, index):
         return os.path.join(
-            self.this_path(nr_gaussians, nr_dimensions, index), "large_basin_origin.txt"
+            self.this_path(nr_gaussians, nr_dimensions, index),
+            "large_basin_origin.txt",
         )
 
     def this_small_index_path(self, nr_gaussians, nr_dimensions, index):
         return os.path.join(
-            self.this_path(nr_gaussians, nr_dimensions, index), "small_basin_index.txt"
+            self.this_path(nr_gaussians, nr_dimensions, index),
+            "small_basin_index.txt",
         )
 
     def this_small_origin_path(self, nr_gaussians, nr_dimensions, index):
         return os.path.join(
-            self.this_path(nr_gaussians, nr_dimensions, index), "small_basin_origin.txt"
+            self.this_path(nr_gaussians, nr_dimensions, index),
+            "small_basin_origin.txt",
         )
 
     def exists(self, nr_gaussians, nr_dimensions, index):
@@ -132,7 +139,10 @@ class MultiGaussWrap(object):
             int(self.large_basin_index),
         )
         # Write corresponding large basin origin to file
-        np.savetxt(self.this_large_origin_path(nr_gaussians, nr_dimensions, index), end)
+        np.savetxt(
+            self.this_large_origin_path(nr_gaussians, nr_dimensions, index),
+            end,
+        )
         # Write default / input small basin index to file
         to_file(
             self.this_small_index_path(nr_gaussians, nr_dimensions, index),
@@ -143,7 +153,10 @@ class MultiGaussWrap(object):
         np.savetxt(
             self.this_small_origin_path(nr_gaussians, nr_dimensions, index),
             self.get_local_minimum(
-                nr_gaussians, nr_dimensions, index, means[self.small_basin_index]
+                nr_gaussians,
+                nr_dimensions,
+                index,
+                means[self.small_basin_index],
             ),
         )
 
@@ -160,7 +173,13 @@ class MultiGaussWrap(object):
     def get_local_minimum(self, nr_gaussians, nr_dimensions, index, start):
         pot = self.get_pot(nr_gaussians, nr_dimensions, index)
         optimizer = ModifiedFireCPP(
-            start, pot, dtmax=1, maxstep=1e-1, tol=1e-8, nsteps=1e8, verbosity=0
+            start,
+            pot,
+            dtmax=1,
+            maxstep=1e-1,
+            tol=1e-8,
+            nsteps=1e8,
+            verbosity=0,
         )
         optimizer.reset(start)
         result = optimizer.run()

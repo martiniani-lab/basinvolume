@@ -44,9 +44,7 @@ class HypercubeFindKMCRunner(ConfigMCRunner):
             self.workspace = os.path.abspath(workspace)
 
         self._set_paths()
-        stepsize = np.sqrt(
-            1.0 / k
-        )  # stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
 
         # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
@@ -99,13 +97,9 @@ class HypercubeFindKMCRunner(ConfigMCRunner):
 
     def _set_paths(self):
         dname = "hypercube_n" + str(self.ndof) + "_l" + str(self.sidelength)
-        self.base_directory = os.path.join(
-            self.workspace, "explore_bv_" + dname
-        )
+        self.base_directory = os.path.join(self.workspace, "explore_bv_" + dname)
         configfile = "findk_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _initialise(self):
         self._print_initialise()

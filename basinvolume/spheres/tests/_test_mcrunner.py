@@ -5,8 +5,15 @@ from past.utils import old_div
 import numpy as np
 import time
 from pele.potentials import Harmonic
-from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest
-from mcpele.monte_carlo import GaussianCoordsDisplacement, CheckSphericalContainer
+from mcpele.monte_carlo import (
+    _BaseMCRunner,
+    RandomCoordsDisplacement,
+    MetropolisTest,
+)
+from mcpele.monte_carlo import (
+    GaussianCoordsDisplacement,
+    CheckSphericalContainer,
+)
 from basinvolume.monte_carlo import (
     RecordDisp2Histogram,
     CheckHyperSphericalContainer,
@@ -17,7 +24,9 @@ from basinvolume.post_processing import (
     F_Basin_From_MC_Data_Free_COM,
     Gauss_Lobatto_abscissas,
 )
-from basinvolume.post_processing import spring_constants_variable_transform as vt
+from basinvolume.post_processing import (
+    spring_constants_variable_transform as vt,
+)
 from basinvolume.utils import log_volume_nball
 import copy
 
@@ -353,7 +362,10 @@ def main():
     print("kmax ", k_max)
     print("prob ", prob)
     # k_max= nr_particles*dimension/(r*r) = 20.25
-    print("nr_particles*dimension/(r*r): ", old_div(nr_particles * dimension, (r * r)))
+    print(
+        "nr_particles*dimension/(r*r): ",
+        old_div(nr_particles * dimension, (r * r)),
+    )
 
     # ===========================================================================
     # COMPUTE k ARRAY
@@ -422,7 +434,13 @@ def main():
     # meanu2_analytical = (nr_particles*dimension)/karray
 
     F0, sigF0, farray, sigfarray = F_Basin_From_MC_Data(
-        dimension, nr_particles, karray, meanu2, boxvol, prob, kappa_const=kappa_const
+        dimension,
+        nr_particles,
+        karray,
+        meanu2,
+        boxvol,
+        prob,
+        kappa_const=kappa_const,
     ).get_free_energy_F0(var_meanu2)
     aF0, asigF0, afarray, asigfarray = F_Basin_From_MC_Data(
         dimension,
@@ -438,7 +456,12 @@ def main():
     print(
         "meanu2 uncorrected vol",
         F_Basin_From_MC_Data_Free_COM(
-            dimension, nr_particles, karray, meanu2, prob, kappa_const=kappa_const
+            dimension,
+            nr_particles,
+            karray,
+            meanu2,
+            prob,
+            kappa_const=kappa_const,
         ).get_free_energy_F0(var_meanu2)[:2],
     )
     print("analytical meanu2 corrected vol {} {}".format(aF0, asigF0))

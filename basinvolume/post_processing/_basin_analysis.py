@@ -102,22 +102,30 @@ class BasinAnalysis(object):
                     )
                     pd = PackingData(str(dname), configpath, packing_path=packing_path)
                     path = os.path.join(
-                        base_directory_path, self.analysis_dir, self.volume_file
+                        base_directory_path,
+                        self.analysis_dir,
+                        self.volume_file,
                     )
                     pd.import_volume_data(path, title=self.volume_title)
                     path = os.path.join(
-                        base_directory_path, self.analysis_dir, self.pressure_file
+                        base_directory_path,
+                        self.analysis_dir,
+                        self.pressure_file,
                     )
                     pd.import_pressure_data(path)
                     path = os.path.join(
                         base_directory_path, self.analysis_dir, self.zboo_file
                     )
                     path2 = os.path.join(
-                        base_directory_path, self.analysis_dir, self.zboolist_file
+                        base_directory_path,
+                        self.analysis_dir,
+                        self.zboolist_file,
                     )
                     pd.import_structural_data(path, path2)
                     path = os.path.join(
-                        base_directory_path, self.analysis_dir, self.invsym_file
+                        base_directory_path,
+                        self.analysis_dir,
+                        self.invsym_file,
                     )
                     pd.import_invsym_data(path)
                     pd_list.append(pd)
@@ -172,18 +180,24 @@ class BasinAnalysis(object):
                     )
                     pd = PackingData(str(dname), configpath, packing_path=packing_path)
                     path = os.path.join(
-                        base_directory_path, self.analysis_dir, self.pressure_file
+                        base_directory_path,
+                        self.analysis_dir,
+                        self.pressure_file,
                     )
                     pd.import_pressure_data(path)
                     path = os.path.join(
                         base_directory_path, self.analysis_dir, self.zboo_file
                     )
                     path2 = os.path.join(
-                        base_directory_path, self.analysis_dir, self.zboolist_file
+                        base_directory_path,
+                        self.analysis_dir,
+                        self.zboolist_file,
                     )
                     pd.import_structural_data(path, path2)
                     path = os.path.join(
-                        base_directory_path, self.analysis_dir, self.invsym_file
+                        base_directory_path,
+                        self.analysis_dir,
+                        self.invsym_file,
                     )
                     pd.import_invsym_data(path)
                     pd_list.append(pd)
