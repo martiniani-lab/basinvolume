@@ -134,9 +134,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
         # harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
+        biasing_potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
         mcrunner = BV_MCrunner(
-            potential,
+            biasing_potential,
             self.coords,
             temperature,
             stepsize,
