@@ -419,6 +419,9 @@ if __name__ == "__main__":
                     )
                 else:
                     checkpoint_path = os.path.join(path, args.load_checkpoint)
+                    # print current working directory
+                    if not os.path.exists(checkpoint_path):
+                        checkpoint_path = args.load_checkpoint
                     with open(checkpoint_path, "rb") as infile:
                         master = pickle.load(infile)
                     master.init_state(
