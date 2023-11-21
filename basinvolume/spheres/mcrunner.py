@@ -267,7 +267,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 rtol=rtol,
                 T=get_mxd_t(self.nparticles),
             )
-        else:
+        elif self.minimizer is Minimizer.FIRE:
             opt_dtmax = self.opt_kwargs["opt_dtmax"]
             optimizer = ModifiedFireCPP(
                 self.start_coords,
@@ -276,6 +276,10 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 maxstep=self.opt_maxstep,
                 tol=self.opt_tol,
                 nsteps=self.opt_nsteps,
+            )
+        else:
+            raise NotImplementedError(
+                "minimizer={} not implemented".format(self.minimizer)
             )
         return optimizer
 
