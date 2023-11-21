@@ -16,6 +16,7 @@ from basinvolume.enums import Minimizer
 import configparser
 import time
 import warnings
+import ast
 
 
 class ConfigBVMCRunner(ConfigMCRunner):
@@ -52,7 +53,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
         pt_eq_niter=0,
         ts_niter=None,
         ts_freq=1,
-        opt_dtmax=1,
         opt_maxstep=None,
         opt_nsteps=1e5,
         perform_convergence_test=False,
@@ -100,10 +100,10 @@ class ConfigBVMCRunner(ConfigMCRunner):
             pt_eq_niter=pt_eq_niter,
             ts_niter=ts_niter,
             ts_freq=ts_freq,
-            opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
+            opt_kwargs=self.opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             record_histogram=record_histogram,
             collect_minima_list=collect_minima_list,

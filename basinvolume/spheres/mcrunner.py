@@ -128,7 +128,6 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         avgcount=int(1e4),
         report_steps=0,
         pt_eq_niter=0,
-        opt_dtmax=1,
         opt_maxstep=0.5,
         opt_tol=1e-5,
         opt_nsteps=1e5,
@@ -145,15 +144,16 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         minimizer=Minimizer.FIRE,
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
+        opt_kwargs={}
     ):
         self.minimizer = minimizer
         # optimizer parameters
-        self.opt_dtmax = opt_dtmax
         self.opt_maxstep = opt_maxstep
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
         self.interaction = interaction
         self.pot_kwargs = pot_kwargs
+        self.opt_kwargs = opt_kwargs
         self.distance_method = distance_method
         # check same minimum parameters
         self.perform_convergence_test = perform_convergence_test
@@ -236,9 +236,6 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         return pot_optimizer
 
     def get_optimizer(self):
-        # res = modifiedfire_cpp(self.start_coords, self.pot_optimizer, dtmax=self.opt_dtmax,
-        #                        maxstep=self.opt_maxstep, tol=self.opt_tol, nsteps=self.opt_nsteps)
-        # maxErise = res.energy * 1e-9
         if self.minimizer is Minimizer.LBFGS:
             optimizer = LBFGS_CPP(
                 self.start_coords,
@@ -249,39 +246,40 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 maxErise=0,
             )
         elif self.minimizer is Minimizer.CVODE:
+            atol = self.opt_kwargs["atol_values"][str(len(self.start_coords) // self.bdim)]
+            rtol = self.opt_kwargs["rtol_values"][str(len(self.start_coords) // self.bdim)]
             optimizer = CVODEBDFOptimizer(
                 self.pot_optimizer,
                 self.start_coords,
                 tol=self.opt_tol,
-                atol=INVERSE_POWER_CVODE_95_ACC[
-                    len(self.start_coords) // self.bdim
-                ],
-                rtol=INVERSE_POWER_CVODE_95_ACC[
-                    len(self.start_coords) // self.bdim
-                ],
+                atol=atol,
+                rtol=rtol,
             )
         elif self.minimizer is Minimizer.MXD:
-            ratol = (
-                INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
-                * 1e-1
-            )
+            atol = self.opt_kwargs["atol_values"][len(self.start_coords) // self.bdim]
+            rtol = self.opt_kwargs["rtol_values"][len(self.start_coords) // self.bdim]
             optimizer = ExtendedMixedOptimizer(
                 self.pot_optimizer,
                 self.start_coords,
                 tol=self.opt_tol,
                 nsteps=1e7,
-                atol=ratol,
-                rtol=ratol,
+                atol=atol,
+                rtol=rtol,
                 T=get_mxd_t(self.nparticles),
             )
-        else:
+        elif self.minimizer is Minimizer.FIRE:
+            opt_dtmax = self.opt_kwargs["opt_dtmax"]
             optimizer = ModifiedFireCPP(
                 self.start_coords,
                 self.pot_optimizer,
-                dtmax=self.opt_dtmax,
+                dtmax=opt_dtmax,
                 maxstep=self.opt_maxstep,
                 tol=self.opt_tol,
                 nsteps=self.opt_nsteps,
+            )
+        else:
+            raise NotImplementedError(
+                "minimizer={} not implemented".format(self.minimizer)
             )
         return optimizer
 
@@ -538,14 +536,14 @@ class BV_MCrunner(SpheresMCRunner):
         ?
     ts_freq : integer
         ?
-    opt_dtmax : double
-        DeltaT_max parameter of modified fire optimiser.
     opt_maxstep : double
         MaxStep parameter of modified fire optimiser.
     opt_tol : double
         Tolerance of modified fire optimiser.
     opt_nsteps : integer
-        Numer of iterations of modified fire optimiser.
+        Number of iterations of modified fire optimiser.
+    opt_kwargs : dict
+        optimizer-specific kwargs, fed as a dict to avoid useless variables
     perform_convergence_test : bool
         ?
     collect_minima_list : bool
@@ -602,10 +600,10 @@ class BV_MCrunner(SpheresMCRunner):
         pt_eq_niter=0,
         ts_niter=None,
         ts_freq=1,
-        opt_dtmax=1,
         opt_maxstep=0.5,
         opt_tol=1e-5,
         opt_nsteps=1e5,
+        opt_kwargs = {},
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
@@ -658,10 +656,10 @@ class BV_MCrunner(SpheresMCRunner):
             hbinsize=hbinsize,
             report_steps=adjustf_niter,
             pt_eq_niter=pt_eq_niter,
-            opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=opt_tol,
             opt_nsteps=opt_nsteps,
+            opt_kwargs=opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,
@@ -930,10 +928,10 @@ class Findk_MCrunner(SpheresMCRunner):
         knavg=500,
         avgcount=int(1e4),
         ktol=0.05,
-        opt_dtmax=1,
         opt_maxstep=0.6,
         opt_tol=1e-4,
         opt_nsteps=1e5,
+        opt_kwargs={},
         hmin=0,
         hmax=1,
         binsize=0.005,
@@ -974,9 +972,9 @@ class Findk_MCrunner(SpheresMCRunner):
             hbinsize=binsize,
             report_steps=0,
             pt_eq_niter=0,
-            opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=opt_tol,
+            opt_kwargs=opt_kwargs,
             opt_nsteps=opt_nsteps,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,

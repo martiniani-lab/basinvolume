@@ -62,9 +62,6 @@ if __name__ == "__main__":
         "--eps", type=float, default=1.0, help="Epsilon value."
     )
     parser.add_argument(
-        "--opt_dtmax", type=int, default=1, help="Maximum dt for optimization."
-    )
-    parser.add_argument(
         "--opt_nsteps",
         type=float,
         default=1e5,
@@ -91,7 +88,6 @@ if __name__ == "__main__":
     innersphere_kwargs = dict(
         niter=args.niter,
         eps=args.eps,
-        opt_dtmax=args.opt_dtmax,
         opt_nsteps=args.opt_nsteps,
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,

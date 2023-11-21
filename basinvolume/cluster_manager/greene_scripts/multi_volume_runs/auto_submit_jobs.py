@@ -6,6 +6,9 @@ from enum import Enum, unique
 from greene_submission import SimStage, calculate_volume
 import os
 from basinvolume.enums import Minimizer
+import argparse
+import toml
+import shutil
 
 
 def get_calculation_stage(simulation_dir, jammed_packing_fname):
@@ -28,6 +31,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
     )
     fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
     explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
+    
     if not os.path.exists(first_jammed_packing_config):
         return SimStage.JAMMED_PACKING
     elif not os.path.exists(
@@ -38,10 +42,11 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         os.path.join(explore_dir, f"kmin_{fname_wo_ext}.config")
     ):
         return SimStage.KMIN
-    elif not os.path.exists( # PT not started
-        os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
-        or os.path.exists( # PT not finished
-            os.path.join(simulation_dir, f"checkpoint.dmp")
+    elif (not os.path.exists( # PT not started
+        os.path.join(explore_dir, f"explore_{fname_wo_ext}.config"))
+        or (os.path.exists( # PT not finished
+            os.path.join(explore_dir, f"checkpoint.dmp"))
+
         )
     ):
         return SimStage.PT
@@ -57,7 +62,27 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         return SimStage.COMPLETE
 
 
-def submit_jobs(simulation_dir):
+def submit_jobs(simulation_dir, generate_packings = False):
+    
+    if generate_packings:
+        simstage = SimStage.JAMMED_PACKING
+        RUN_PARAMS_CONFIG_FILE = os.path.join(simulation_dir, "run_params.toml")
+        if os.path.exists(RUN_PARAMS_CONFIG_FILE):
+            run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
+        else:
+            print("No param file in destination folder, copying template from basinvolume source")
+            EMPTY_PARAMS_CONFIG_FILE = os.path.join(os.getcwd(), "run_params.toml")
+            shutil.copy(EMPTY_PARAMS_CONFIG_FILE, RUN_PARAMS_CONFIG_FILE)
+            run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
+        calculate_volume(
+            simulation_dir,
+            "",
+            simstage,
+            run_params,
+            submit=True,
+        )
+        return
+        
     simulation_dir_name = os.path.basename(simulation_dir)
     jammed_packings_dir = os.path.join(simulation_dir, "jammed_packings")
     jammed_packing_fnames = os.listdir(jammed_packings_dir)
@@ -71,15 +96,10 @@ def submit_jobs(simulation_dir):
     minimizer_name = simulation_dir_name.split("_")[0]
     # minimizer = Minimizer[minimizer_name]
     minimizer = minimizer_name
-    opt_kwargs = dict(
-        opt_tol=1e-10,
-        minimizer=minimizer,
-        dtol=1e-2
-        )
-    global_kwargs = dict(
-        opt_nsteps=1e5,
-        opt_dtmax=1
-    )
+    
+    RUN_PARAMS_CONFIG_FILE = os.path.join(simulation_dir, "../run_params.toml")
+    run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
+    run_params["kmax"]["minimizer"] = minimizer
 
     n_prev_stages = 0
     for jammed_packing_fname in jammed_packing_fnames:
@@ -100,7 +120,7 @@ def submit_jobs(simulation_dir):
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
             if os.path.exists(os.path.join(explore_dir, f"checkpoint.dmp")):
-                checkpoint_file = os.path.join(simulation_dir, f"checkpoint.dmp")
+                checkpoint_file = os.path.join(explore_dir, f"checkpoint.dmp")
             else:
                 checkpoint_file = None
         else: 
@@ -110,9 +130,8 @@ def submit_jobs(simulation_dir):
             simulation_dir,
             jammed_packing_fname,
             simstage,
+            run_params,
             submit=True,
-            opt_kwargs = opt_kwargs,
-            global_kwargs=global_kwargs,
             checkpoint_file = checkpoint_file
         )
     if n_prev_stages == 0 and n_analysis != 0:
@@ -121,16 +140,33 @@ def submit_jobs(simulation_dir):
             simulation_dir,
             jammed_packing_fnames[0],
             SimStage.ANALYSIS,
-            submit=True,
-            global_kwargs=global_kwargs,
+            run_params,
+            submit=True
         )
     return
 
 
 def main():
-    folder = "/scratch/mc9287/remote_no_copy/basin_volumes_praharsh/num_128/"
-    for simfolder in os.listdir(folder):
-        submit_jobs(os.path.join(folder, simfolder))
+    
+    parser = argparse.ArgumentParser(
+        description="Automatically submits the next step of the basin volume calculation to a slurm interface. Assumes that generate_packin has already been run."
+    )
+    
+    parser.add_argument("folder", type=str, help="Head directory containing the OPTIMIZER_N_PHI directories")
+    
+    args = parser.parse_args()
+    folder = args.folder
+    
+    simlist = os.listdir(folder)
+    if simlist != []:
+        simlist.remove("run_params.toml")
+    
+    if simlist == []:
+        print("Empty directory: starting packing generation")
+        submit_jobs(folder, generate_packings=True)
+    else:
+        for simfolder in simlist:
+            submit_jobs(os.path.join(folder, simfolder))
 
 
 if __name__ == "__main__":

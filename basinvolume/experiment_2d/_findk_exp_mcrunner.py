@@ -50,7 +50,7 @@ class _findk_exp_mcrunner(ConfigMCRunner):
         collect_minima_list=False,
         seeds=None,
         use_cell_lists=False,
-        minimizer=Minimizer.FIRE,
+        minimizer="FIRE",
         packings_dir="jammed_packings",
         verbose=False,
     ):
@@ -58,6 +58,8 @@ class _findk_exp_mcrunner(ConfigMCRunner):
         self.temperature = 1.0
         self.eps = eps
         self.fname = fname
+        
+        minimizer = Minimizer[minimizer]
 
         self._set_paths(packings_dir)
         self._import_packing_config_files()

@@ -130,9 +130,6 @@ if __name__ == "__main__":
         "--adjustf", type=float, default=0.9, help="Description for adjustf."
     )
     parser.add_argument(
-        "--opt_dtmax", type=int, default=1, help="Description for opt_dtmax."
-    )
-    parser.add_argument(
         "--opt_nsteps",
         type=float,
         default=1e5,
@@ -202,7 +199,6 @@ if __name__ == "__main__":
         adjustf=args.adjustf,
         adjustf_niter=args.adjustf_niter,
         adjustf_navg=100,
-        opt_dtmax=args.opt_dtmax,
         opt_nsteps=args.opt_nsteps,
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,

@@ -3,12 +3,20 @@
 
 from greene_submission import GREENE_SCRIPT_TEMPLATE
 import os
+import argparse
+import toml
 
 
 def main():
-    BASE_DIR = "/scratch/mc9287/basin_tests/num8/"
+    
+    parser = argparse.ArgumentParser(
+        description="Generate packings at specified parameters and creates appropriate folder structure."
+    )
+    parser.add_argument("folder", type=str, help="Head directory")
+    args = parser.parse_args()
+    BASE_DIR = args.folder
+    
     minimizer_list = ["FIRE", "CG", "CVODE", "LBFGS", "MXD"]
-    #minimizer_list = ["CVODE"]
     packing_fraction_list = [0.85, 0.86, 0.87, 0.88, 0.90]
     packing_fraction_list = [0.87]
     n_particles_list = [8]

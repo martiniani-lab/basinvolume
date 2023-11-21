@@ -37,15 +37,15 @@ class _findk_mcrunner(ConfigMCRunner):
         ktarget=0.9,
         knavg=1000,
         ktol=0.025,
-        opt_dtmax=1,
         opt_maxstep=None,
         opt_tol=1e-5,
         opt_nsteps=1e5,
+        opt_kwargs = None,
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
         use_cell_lists=False,
-        minimizer=Minimizer.FIRE,
+        minimizer="FIRE",
         packings_dir="jammed_packings",
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
@@ -54,7 +54,7 @@ class _findk_mcrunner(ConfigMCRunner):
         self.temperature = 1.0
         self.eps = eps
         self.fname = fname
-        self.minimizer = minimizer
+        self.minimizer = Minimizer[minimizer]
         self.opt_tol = opt_tol
 
         self._set_paths(packings_dir, explore_dir)
@@ -107,10 +107,10 @@ class _findk_mcrunner(ConfigMCRunner):
             knavg=knavg,
             ktol=ktol,
             avgcount=avgcount,
-            opt_dtmax=opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
+            opt_kwargs = opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,

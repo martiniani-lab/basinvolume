@@ -205,9 +205,6 @@ if __name__ == "__main__":
         help="Adjust F value for the MCRunner.",
     )
     parser.add_argument(
-        "--opt_dtmax", type=float, default=1, help="Optimization max time step"
-    )
-    parser.add_argument(
         "--k_spreading",
         type=str,
         default="linspace",
