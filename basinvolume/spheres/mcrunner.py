@@ -246,8 +246,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 maxErise=0,
             )
         elif self.minimizer is Minimizer.CVODE:
-            atol = self.opt_kwargs["atol_values"][len(self.start_coords) // self.bdim]
-            rtol = self.opt_kwargs["rtol_values"][len(self.start_coords) // self.bdim]
+            atol = self.opt_kwargs["atol_values"][str(len(self.start_coords) // self.bdim)]
+            rtol = self.opt_kwargs["rtol_values"][str(len(self.start_coords) // self.bdim)]
             optimizer = CVODEBDFOptimizer(
                 self.pot_optimizer,
                 self.start_coords,

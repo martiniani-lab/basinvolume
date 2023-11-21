@@ -45,7 +45,7 @@ class _findk_mcrunner(ConfigMCRunner):
         collect_minima_list=False,
         seeds=None,
         use_cell_lists=False,
-        minimizer=Minimizer.FIRE,
+        minimizer="FIRE",
         packings_dir="jammed_packings",
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
@@ -54,7 +54,7 @@ class _findk_mcrunner(ConfigMCRunner):
         self.temperature = 1.0
         self.eps = eps
         self.fname = fname
-        self.minimizer = minimizer
+        self.minimizer = Minimizer[minimizer]
         self.opt_tol = opt_tol
 
         self._set_paths(packings_dir, explore_dir)

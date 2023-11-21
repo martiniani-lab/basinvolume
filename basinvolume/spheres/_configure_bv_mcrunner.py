@@ -16,6 +16,7 @@ from basinvolume.enums import Minimizer
 import configparser
 import time
 import warnings
+import ast
 
 
 class ConfigBVMCRunner(ConfigMCRunner):
