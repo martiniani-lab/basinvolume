@@ -209,6 +209,7 @@ def setup_kmax(simulation_folder, run_params, packing_file, time_str, mem_str, s
         mem_str,
         job_name_prefix,
         submit=submit,
+        kmax = True
     )
     return 0
 
@@ -335,7 +336,7 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     
     if simstage == SimStage.JAMMED_PACKING:
         time = 1
-        return hours_to_slurm_time(time)
+        return hours_to_slurm_time(time), time
     
     sim_folder = os.path.basename(simulation_folder)
     sim_folder_parts = sim_folder.split("_")
@@ -487,10 +488,21 @@ def submit_job(
     job_name_prefix,
     script_run_prefix="python",
     extra_args="",
-    submit=True
+    submit=True,
+    kmax = False
 ):
-    script_kwargs = default_kwargs
+    script_kwargs = default_kwargs.copy()
     script_kwargs.update(run_specific_kwargs)
+    
+    if kmax:
+        minimizer = script_kwargs["minimizer"]
+        actual_opt_kwargs = {"opt_kwargs":  script_kwargs["opt_kwargs"][minimizer][0]}
+        opt_kwargs_file = os.path.join(simulation_folder, "opt_kwargs.toml")
+        with open(opt_kwargs_file, 'w') as f:
+            toml.dump(actual_opt_kwargs, f)
+        script_kwargs["opt_kwargs_file"] = opt_kwargs_file
+        del script_kwargs["opt_kwargs"]
+    
     args_str = format_args_from_dict(script_kwargs)
     script_location = os.path.join(BASINVOLUME_PATH, script_subpath)
 
