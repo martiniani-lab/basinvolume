@@ -163,9 +163,7 @@ class mbar_compute_dos(object):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         if not os.path.isabs(jammed_packings_dir):
-            jammed_packings_dir = os.path.join(
-                os.getcwd(), jammed_packings_dir
-            )
+            jammed_packings_dir = os.path.join(os.getcwd(), jammed_packings_dir)
         self.jammed_packings_dir = jammed_packings_dir
         if not os.path.isabs(explore_dir):
             number = int(re.findall("\d+", self.fname)[0])
@@ -222,9 +220,7 @@ class mbar_compute_dos(object):
                 self.explore_dir, "inner_sphere.timeseries"
             )
             assert os.path.isfile(innersphere_timeseries_path)
-            self.innersphere_timeseries_paths.append(
-                innersphere_timeseries_path
-            )
+            self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
             self.number_nested_spheres = len(innersphere_dir_list)
             innersphere_dir_list = sorted(
@@ -240,9 +236,7 @@ class mbar_compute_dos(object):
                     dir, "/inner_sphere.timeseries"
                 )
                 assert os.path.isfile(innersphere_timeseries_path)
-                self.innersphere_timeseries_paths.append(
-                    innersphere_timeseries_path
-                )
+                self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
 
         self.show = show
         self.verbose = verbose
@@ -338,14 +332,12 @@ class mbar_compute_dos(object):
             self._plot_dos_data()
 
     def _import_config_files(self):
-        imp_packing = read_jammed_packing_config(
-            str(self.jammed_packing_configpath)
-        )
+        imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath))
         self.nparticles = imp_packing["nparticles"]
         self.bdim = imp_packing["bdim"]
-        assert (
-            self.bdim == 2 or self.bdim == 3
-        ), "bdim={} not implemented".format(self.bdim)
+        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(
+            self.bdim
+        )
         self.ndim = imp_packing["ndim"]
         self.boxv = imp_packing["boxv"].copy()
         self.packing_frac = imp_packing["packing_frac"]
@@ -419,9 +411,9 @@ class mbar_compute_dos(object):
 
         for i in range(K):
             if i < self.number_nested_spheres:
-                u_kn[i] = (self.ndof - 1) * np.log(
-                    flat_timeseries
-                ) + 0.5 * self.karray[i] * flat_timeseries**2
+                u_kn[i] = (self.ndof - 1) * np.log(flat_timeseries) + 0.5 * self.karray[
+                    i
+                ] * flat_timeseries**2
             else:
                 u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
         assert self.karray.size == u_kn.shape[0]
@@ -448,9 +440,7 @@ class mbar_compute_dos(object):
             flat_ts = np.append(flat_ts, ts_spheres[i][indices])
         # Now loop through pt timeseries
         print(K - self.number_nested_spheres, "pt timeseries")
-        for i in range(
-            K - self.number_nested_spheres
-        ):  # subsample the energies
+        for i in range(K - self.number_nested_spheres):  # subsample the energies
             j = i + self.number_nested_spheres
             print(timeseries)
             g[j] = statistical_inefficiency_fft(timeseries[i])
@@ -530,9 +520,7 @@ class mbar_compute_dos(object):
         self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1, 0]), dDeltaf_ij[1, 0]
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
-        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(
-            self.vcavity
-        )
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
 
         if self.verbose:
             logging.info(
@@ -569,9 +557,7 @@ class mbar_compute_dos(object):
                 self.nbins + 1,
             )
         else:
-            bin_edges = (
-                self.bin_edges - (self.bin_edges[1] - self.bin_edges[0]) / 2
-            )
+            bin_edges = self.bin_edges - (self.bin_edges[1] - self.bin_edges[0]) / 2
 
         if kde:
             hist_visits = self._build_histogram_kde(bin_edges)
@@ -632,9 +618,7 @@ class mbar_compute_dos(object):
             hist_unbiased = np.vstack(
                 (
                     (self.ndof - 1) * np.log(self.bin_edges[:-1])
-                    + 0.5
-                    * self.karray[sphere_number]
-                    * self.bin_edges[:-1] ** 2,
+                    + 0.5 * self.karray[sphere_number] * self.bin_edges[:-1] ** 2,
                     hist_unbiased,
                 )
             )
@@ -716,8 +700,7 @@ class mbar_compute_dos(object):
         for i, hist in enumerate(self.hist_visits):
             var = (1 - hist / np.sum(hist)) * hist / np.sum(hist)
             herr.append(
-                np.sqrt(var)
-                / (np.amax(self.bin_edges) - np.amin(self.bin_edges))
+                np.sqrt(var) / (np.amax(self.bin_edges) - np.amin(self.bin_edges))
             )
         herr = np.array(herr)
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
@@ -731,9 +714,7 @@ class mbar_compute_dos(object):
             write_csv_xy(
                 self.bin_edges[:-1],
                 hist,
-                fname=os.path.join(
-                    self.base_directory, "hist_k_" + str(i) + ".csv"
-                ),
+                fname=os.path.join(self.base_directory, "hist_k_" + str(i) + ".csv"),
             )
         ax.legend(
             frameon=False,
@@ -818,9 +799,7 @@ class mbar_compute_dos(object):
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel("DOS")
         plt.savefig(self.base_directory + "/dos.pdf")
-        write_csv_xy(
-            bin_edges, dos, fname=os.path.join(self.base_directory, "dos.csv")
-        )
+        write_csv_xy(bin_edges, dos, fname=os.path.join(self.base_directory, "dos.csv"))
         if self.show:
             plt.show()
 
@@ -922,9 +901,7 @@ class mbar_compute_dos(object):
         dos = np.mean(dos_subs, axis=0)
         nsamples = dos_subs.shape[0]
         low_dos = np.sort(dos_subs, axis=0)[int((alpha / 2.0) * nsamples), :]
-        high_dos = np.sort(dos_subs, axis=0)[
-            int((1 - alpha / 2.0) * nsamples), :
-        ]
+        high_dos = np.sort(dos_subs, axis=0)[int((1 - alpha / 2.0) * nsamples), :]
 
         # biased estimate of the mean np.mean(self.logn_E_subs,axis=0)
         # unbiased estimate of the mean
@@ -932,9 +909,7 @@ class mbar_compute_dos(object):
         nsamples = self.logn_E_subs.shape[0]
         # these are the unbiased estimates of the error because log is a monotonic convex function
         # and the we pick the 2.5 and 97.5 percentiles to have 95% intervals of confidence
-        low_logn_E = np.sort(self.logn_E_subs, axis=0)[
-            int((alpha / 2.0)) * nsamples, :
-        ]
+        low_logn_E = np.sort(self.logn_E_subs, axis=0)[int((alpha / 2.0)) * nsamples, :]
         high_logn_E = np.sort(self.logn_E_subs, axis=0)[
             int((1 - alpha / 2.0)) * nsamples, :
         ]
@@ -948,9 +923,7 @@ class mbar_compute_dos(object):
         rg = logn_E - (self.ndof - 1) * np.log(self.bin_edges[:-1])
         low_rg = low_logn_E - (self.ndof - 1) * np.log(self.bin_edges[:-1])
         high_rg = high_logn_E - (self.ndof - 1) * np.log(self.bin_edges[:-1])
-        ax.plot(
-            self.bin_edges[:-1], rg, label=r"$\log(g(r)/r^{N-1})$", color="g"
-        )
+        ax.plot(self.bin_edges[:-1], rg, label=r"$\log(g(r)/r^{N-1})$", color="g")
         ax.plot(self.bin_edges[:-1], low_rg, color="r")
         ax.plot(self.bin_edges[:-1], high_rg, color="r")
         ax.set_xlabel(r"$\Delta r$")
@@ -1083,9 +1056,7 @@ if __name__ == "__main__":
     wdir = args.workdir
     assert os.path.isabs(wdir)
 
-    sim = mbar_compute_dos(
-        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True
-    )
+    sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
     if fname != None:
         if not os.path.isabs(fdir):
             fdir = os.path.join(wdir, fdir + fname)

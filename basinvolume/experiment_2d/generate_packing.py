@@ -383,7 +383,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
-        "-n", "--npackings", type=int, default=1, help="number of packings to produce"
+        "-n",
+        "--npackings",
+        type=int,
+        default=1,
+        help="number of packings to produce",
     )
     parser.add_argument("-d", "--boxdim", type=int, default=3, help="box dimensions")
     parser.add_argument(

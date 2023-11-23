@@ -23,7 +23,11 @@ try:
     import glob
     from itertools import chain
     import pickle as pickle
-    from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
+    from basinvolume.post_processing import (
+        PackingData,
+        PackingDataSet,
+        BasinAnalysis,
+    )
     from joblib import Parallel, delayed
     from basinvolume.experiment_2d.cross_validation_bandwidth_selection import (
         get_bandwidth_estimate,
@@ -197,7 +201,9 @@ def plot(packing_datasets, figdir="figures"):
                 nparticles = dataset.nparticles
                 print(nparticles)
                 outliers = OutlierDetection(
-                    dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies)
+                    dataset.free_energies,
+                    p=0.5,
+                    D=3 * np.std(dataset.free_energies),
                 )
                 x = np.array(dataset.pressures)[
                     np.array(outliers.non_outliers_indexes, dtype="i")
@@ -299,7 +305,13 @@ def plot(packing_datasets, figdir="figures"):
             # ax4 = fig.add_subplot(2,2,4)
             ax4 = fig.add_subplot(gs[4:, 1])
             ax4.errorbar(
-                x, y2, y2err, marker="o", linestyle="", ms=12, color=color_marker
+                x,
+                y2,
+                y2err,
+                marker="o",
+                linestyle="",
+                ms=12,
+                color=color_marker,
             )
             popt, pcov = curve_fit(ff, x, y2, sigma=y2err, absolute_sigma=True)
             print("intercept {:.16f}".format(popt[0]))
@@ -362,7 +374,9 @@ def plot(packing_datasets, figdir="figures"):
             if len(dataset.free_energies) > 0:
                 print("n:", nparticles)
                 outliers = OutlierDetection(
-                    dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies)
+                    dataset.free_energies,
+                    p=0.5,
+                    D=3 * np.std(dataset.free_energies),
                 )
                 F0 = np.array(dataset.free_energies)[
                     np.array(outliers.non_outliers_indexes, dtype="i")
@@ -377,7 +391,13 @@ def plot(packing_datasets, figdir="figures"):
                 edges = np.linspace(np.amin(x) * 0.5, np.amax(x) * 1.5, 1000)
                 hist = get_pdf(x, edges, bandwidth=bw / 2, kernel="gaussian")
                 color = next(color_cycle)
-                ax.plot(edges, hist, label=int(nparticles), color=color, linewidth=3)
+                ax.plot(
+                    edges,
+                    hist,
+                    label=int(nparticles),
+                    color=color,
+                    linewidth=3,
+                )
                 # fit log normal
                 # assume that zeta_min=2
                 generalised_lognormal = EdwardsGeneralisedLogNormal(
@@ -430,7 +450,8 @@ def plot(packing_datasets, figdir="figures"):
                 )
                 # unbiased pdf
                 F0acc = Bunch(
-                    F0_acc=dataset.packing_data[0].Facc, nr_particles=nparticles
+                    F0_acc=dataset.packing_data[0].Facc,
+                    nr_particles=nparticles,
                 )
                 #                log_omega = OutlierRemovalUnbiasingEntropyLogOmega(F0, "/scratch/sm958/Results/basinvolume_tests", write=False)
                 #                log_omega.compute_log_omega_entropy(F0acc)
@@ -465,7 +486,13 @@ def plot(packing_datasets, figdir="figures"):
                 print("new avgs, avg_err from pressure", c, cerr)
                 print("Sb ", Sb)
                 s_b.append([nparticles, Sb])
-                ax3.plot(xp, fit / c, label=int(nparticles), color=color, linewidth=3)
+                ax3.plot(
+                    xp,
+                    fit / c,
+                    label=int(nparticles),
+                    color=color,
+                    linewidth=3,
+                )
                 # S(V, P)
                 maxps = 2e6
                 minps = 10
@@ -493,8 +520,20 @@ def plot(packing_datasets, figdir="figures"):
                     glob_kappa, nparticles, 0, 0
                 )
                 avgP = np.exp(avgP)
-                ax4.plot(ps / avgP, S, label=int(nparticles), color=color, linewidth=3)
-                ax42.plot(ps / avgP, S, label=int(nparticles), color=color, linewidth=3)
+                ax4.plot(
+                    ps / avgP,
+                    S,
+                    label=int(nparticles),
+                    color=color,
+                    linewidth=3,
+                )
+                ax42.plot(
+                    ps / avgP,
+                    S,
+                    label=int(nparticles),
+                    color=color,
+                    linewidth=3,
+                )
                 s_maxima.append([nparticles, np.amax(S)])
                 if ens_average:
                     #####################################################################
@@ -512,7 +551,12 @@ def plot(packing_datasets, figdir="figures"):
                             glob_kappa, nparticles, ang, vcavity
                         )
                         pea_array.append([Pea, errPea])
-                        print("ensemble average P ,Perr ", nparticles, Pea, errPea)
+                        print(
+                            "ensemble average P ,Perr ",
+                            nparticles,
+                            Pea,
+                            errPea,
+                        )
                     # pea_array = Parallel(n_jobs=8)(delayed(generalised_lognormal.get_log_edwards_fitted_pressure_expectation)(glob_kappa, nparticles, ang, vcavity) for ang in ang_array)
                     pea_array_all.append(np.array(pea_array))
                     generalised_lognormal.glob_x = 100
@@ -844,7 +888,9 @@ def plot(packing_datasets, figdir="figures"):
             if len(dataset.free_energies) > 0:
                 nparticles = dataset.nparticles
                 outliers = OutlierDetection(
-                    dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies)
+                    dataset.free_energies,
+                    p=0.5,
+                    D=3 * np.std(dataset.free_energies),
                 )
                 x = np.array(dataset.free_energies)[
                     np.array(outliers.non_outliers_indexes, dtype="i")
@@ -855,7 +901,13 @@ def plot(packing_datasets, figdir="figures"):
                 edges = np.linspace(np.amin(x) * 0.5, np.amax(x) * 1.5, 1000)
                 hist = get_pdf(x, edges, bandwidth=bw, kernel="gaussian")
                 color = next(color_cycle)
-                ax.plot(edges, hist, label=int(nparticles), color=color, linewidth=3)
+                ax.plot(
+                    edges,
+                    hist,
+                    label=int(nparticles),
+                    color=color,
+                    linewidth=3,
+                )
 
                 x2 = np.array(dataset.pressures)[
                     np.array(outliers.non_outliers_indexes, dtype="i")
@@ -897,7 +949,9 @@ def plot(packing_datasets, figdir="figures"):
                 nparticles = dataset.nparticles
                 print(nparticles)
                 outliers = OutlierDetection(
-                    dataset.free_energies, p=0.5, D=3 * np.std(dataset.free_energies)
+                    dataset.free_energies,
+                    p=0.5,
+                    D=3 * np.std(dataset.free_energies),
                 )
                 x = np.array(dataset.pressures)[
                     np.array(outliers.non_outliers_indexes, dtype="i")

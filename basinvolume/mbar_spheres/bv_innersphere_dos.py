@@ -58,9 +58,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--niter", type=float, default=1e5, help="Number of iterations."
     )
-    parser.add_argument(
-        "--eps", type=float, default=1.0, help="Epsilon value."
-    )
+    parser.add_argument("--eps", type=float, default=1.0, help="Epsilon value.")
     parser.add_argument(
         "--opt_nsteps",
         type=float,

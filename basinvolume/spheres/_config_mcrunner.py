@@ -49,10 +49,7 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
         if opt_maxstep is None:
             # opt_maxstep = self.boxv[0] * 0.01
             opt_maxstep = (
-                self.sca
-                * np.amin(self.red_radii)
-                * 0.5
-                * self.opt_maxstep_factor
+                self.sca * np.amin(self.red_radii) * 0.5 * self.opt_maxstep_factor
             )
         return opt_maxstep
 
@@ -100,17 +97,13 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
     def _write_code_version(self, f):
         """print software version"""
         f.write("[CODEVERSION]\n")
-        f.write(
-            "basinvolume_version: {}\n".format(get_git_version("basinvolume"))
-        )
+        f.write("basinvolume_version: {}\n".format(get_git_version("basinvolume")))
         f.write("mcpele_version: {}\n".format(get_git_version("mcpele")))
         f.write("pele_version: {}\n".format(get_git_version("pele")))
         f.write("python_version: {}\n".format(get_python_version()))
         f.write("cython_version: {}\n".format(get_cython_version()))
 
-    def _requench_coords(
-        self, dtol, opt_maxstep, verbose, gtol=1e-10, frozen=False
-    ):
+    def _requench_coords(self, dtol, opt_maxstep, verbose, gtol=1e-10, frozen=False):
         """re-quench origin to avoid rounding errors"""
         quench = lambda red_coords, pot_optimizer: modifiedfire_cpp(
             red_coords,
@@ -185,8 +178,7 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
             )
 
         drms = np.sqrt(
-            np.dot(self.coords - new_coords, self.coords - new_coords)
-            / self.ndim
+            np.dot(self.coords - new_coords, self.coords - new_coords) / self.ndim
         )
         assert drms <= dtol
         self.coords = np.array(new_coords)
@@ -223,13 +215,9 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
                     self.rattlers,
                 ) = read_xyzdfr(path)
             else:
-                raise NotImplementedError(
-                    "bdim={} not implemented".format(self.bdim)
-                )
+                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
             self.hs_radii = np.array(hs_diameters / 2)
-            self.red_coords = reduce_coordinates(
-                self.coords, self.frozen, self.bdim
-            )
+            self.red_coords = reduce_coordinates(self.coords, self.frozen, self.bdim)
             self.red_radii = np.delete(self.hs_radii.copy(), self.frozen)
             self.red_rattlers = reduce_coordinates(
                 self.rattlers, self.frozen, self.bdim

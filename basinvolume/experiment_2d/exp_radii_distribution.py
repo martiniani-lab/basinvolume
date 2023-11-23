@@ -20,5 +20,8 @@ class ExpRadiiDistribution(object):
         self.bandwidth = get_bandwidth_estimate(self.input_radii[::20])
         print(("bandwidth:", self.bandwidth))
         return sample_from_pdf(
-            self.input_radii, nr_particles, self.bandwidth, random_state=random_state
+            self.input_radii,
+            nr_particles,
+            self.bandwidth,
+            random_state=random_state,
         )

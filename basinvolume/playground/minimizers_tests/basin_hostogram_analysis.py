@@ -282,11 +282,15 @@ if __name__ == "__main__":
     # plt.show()
     print(logn_E, w_i_final)
     print(
-        "bin_edges diff", bin_edges[1] - bin_edges[0] - (bin_edges[-1] - bin_edges[-2])
+        "bin_edges diff",
+        bin_edges[1] - bin_edges[0] - (bin_edges[-1] - bin_edges[-2]),
     )
     # volume non smooth
     print("raw")
-    print("fake volume", np.trapz(np.ones(len(dos)), dx=bin_edges[1] - bin_edges[0]))
+    print(
+        "fake volume",
+        np.trapz(np.ones(len(dos)), dx=bin_edges[1] - bin_edges[0]),
+    )
     print("bin_edges extrema", bin_edges[0], bin_edges[-1])
     natoms = 24
     ndof = (natoms - 1) * 3

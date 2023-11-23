@@ -76,12 +76,7 @@ class ReplicaState(BV_MCRunner_State):
         self.takestep_count = int(value[5])
         self.coords = value[6 : 6 + len(self.coords)]
         self.counters = np.array(
-            value[
-                6
-                + len(self.coords) : 6
-                + len(self.coords)
-                + len(self.counters)
-            ],
+            value[6 + len(self.coords) : 6 + len(self.coords) + len(self.counters)],
             dtype="uintp",
         )
         self.step_adaptation_counters = np.array(
@@ -145,7 +140,9 @@ class PT_Master(object):
         self.max_ptiter = max_ptiter
         self.ptiter = 0
         self.print_status = print_status
-        self.skip = skip  # might want to skip the first few swaps to allow for equilibration
+        self.skip = (
+            skip  # might want to skip the first few swaps to allow for equilibration
+        )
         self.pfreq = pfreq
         self.NO_EXCHANGE = (
             -12345
@@ -188,9 +185,7 @@ class PT_Master(object):
         self.recv_buffer = np.empty(
             self.replica_states[0].size() + self.mcrunner_niter, dtype="d"
         )
-        self.exchange_cnts = np.zeros(
-            (self.nreplicas, self.nreplicas), dtype="int32"
-        )
+        self.exchange_cnts = np.zeros((self.nreplicas, self.nreplicas), dtype="int32")
         self.exchange_scheme = exchange_scheme
         self._init_sampling()
         self.checkpoint_time = checkpoint_time
@@ -204,9 +199,7 @@ class PT_Master(object):
         ) * self.mcrunner_niter > self.min_window  # Condition on the minimal window size
         if not (self.min_window > self.mcrunner_eqsteps):
             logging.info("self.min_window: {}".format(self.min_window))
-            logging.info(
-                "self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps)
-            )
+            logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
         assert self.min_window > self.mcrunner_eqsteps
         assert self.max_eq_time > self.mcrunner_eqsteps
 
@@ -230,9 +223,7 @@ class PT_Master(object):
             self._calculate_exchange = self._independence_sampling
             self.indep_sampling = IndependenceSampling(self.seed_exchanges)
         else:
-            raise ValueError(
-                "Unknown exchange scheme (%s)" % self.exchange_scheme.name
-            )
+            raise ValueError("Unknown exchange scheme (%s)" % self.exchange_scheme.name)
 
     def _init_replicas(self, example_mcrunner):
         ks = self._get_ks()
@@ -247,7 +238,6 @@ class PT_Master(object):
         self.replica_timeseries2 = [[] for _ in range(self.nreplicas)]
 
     def _init_print(self, append=False):
-
         current_dir = os.getcwd()
         if os.path.basename(current_dir) == self.base_directory:
             self.base_directory = current_dir
@@ -258,9 +248,7 @@ class PT_Master(object):
             mode = "w"
             trymakedir(self.base_directory)
             self._print_ks()
-        self.ex_outstream = open(
-            os.path.join(self.base_directory, "exchanges"), mode
-        )
+        self.ex_outstream = open(os.path.join(self.base_directory, "exchanges"), mode)
         self.permutations_stream = open(
             os.path.join(self.base_directory, "rem_permutations"), mode
         )
@@ -271,9 +259,7 @@ class PT_Master(object):
             if not append:
                 trymakedir(directory)
                 self._print_parameters(ireplica)
-            self.status_streams.append(
-                open(os.path.join(directory, "status"), mode)
-            )
+            self.status_streams.append(open(os.path.join(directory, "status"), mode))
             self.histogram_mean_streams.append(
                 open(os.path.join(directory, "hist_mean"), mode)
             )
@@ -328,9 +314,7 @@ class PT_Master(object):
                 for x in negKarray[::-1]:
                     Karray.insert(0, x)
             else:
-                negKarray = neg_spring_constants_logspace(
-                    self.numnegk, self.lownegk
-                )
+                negKarray = neg_spring_constants_logspace(self.numnegk, self.lownegk)
                 for x in negKarray[::-1]:
                     Karray.insert(0, x)
         # Reverse Karray for backwards compatibility
@@ -380,9 +364,7 @@ class PT_Master(object):
         del self.permutations_stream
         del self.histogram_mean_streams
         del self.status_streams
-        checkpoint_path = os.path.join(
-            self.base_directory, self.checkpoint_file
-        )
+        checkpoint_path = os.path.join(self.base_directory, self.checkpoint_file)
         with open(checkpoint_path, "wb") as outfile:
             pickle.dump(self, outfile)
 
@@ -400,9 +382,7 @@ class PT_Master(object):
 
         # Send the first job to every worker
         for i in range(self.nworkers):
-            self.comm.Send(
-                self.replica_states[current_replica].serialize(), dest=i + 1
-            )
+            self.comm.Send(self.replica_states[current_replica].serialize(), dest=i + 1)
             current_replica -= 1
 
         # Send the remaining jobs to finished workers
@@ -482,9 +462,7 @@ class PT_Master(object):
         which to perform the swap.
         """
         exchange_pattern = np.empty(self.nreplicas, dtype="int32")
-        exchange_pattern.fill(
-            self.NO_EXCHANGE
-        )  # reset exchange pattern to no exchange
+        exchange_pattern.fill(self.NO_EXCHANGE)  # reset exchange pattern to no exchange
         self.anyswap = False
 
         self._calculate_exchange(exchange_pattern)
@@ -519,9 +497,7 @@ class PT_Master(object):
         # should be sufficient
         nexchanges = self.nreplicas**3
 
-        naccept = self.indep_sampling.exchange(
-            exchange_pattern, dxs, betas, nexchanges
-        )
+        naccept = self.indep_sampling.exchange(exchange_pattern, dxs, betas, nexchanges)
 
         if naccept > 0:
             self.anyswap = True
@@ -612,9 +588,7 @@ class PT_Master(object):
         # only keep time series from after the equilibration point, this references original data
         new_max_ptiter = self._find_new_max_ptiter()
         logging.info(
-            "new max_ptiter {}, current ptiter {}".format(
-                new_max_ptiter, self.ptiter
-            )
+            "new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter)
         )
         return new_max_ptiter
 
@@ -658,9 +632,7 @@ class PT_Master(object):
         new_max_ptiters = []
         for ireplica in range(self.nreplicas):
             # to reduce nskip (use more points) make the factor by which len(timeseries) is divided by larger
-            current_timeseries2 = self.replica_timeseries2[ireplica][
-                self.eq_time :
-            ]
+            current_timeseries2 = self.replica_timeseries2[ireplica][self.eq_time :]
             nskip = max(int(np.round(len(current_timeseries2) / 1e6)), 1)
             tau = (
                 integratedAutocorrelationTime_fft(
@@ -674,16 +646,10 @@ class PT_Master(object):
             rel_err = np.sqrt(var * (1 + 2 * tau) / sample_size) / mean
             self.last_rel_std_errs[ireplica] = rel_err
             logging.info(
-                "Replica {} relative standard error: {}".format(
-                    ireplica, rel_err
-                )
+                "Replica {} relative standard error: {}".format(ireplica, rel_err)
             )
-            logging.debug(
-                "Replica {} sample_size: {}".format(ireplica, sample_size)
-            )
-            logging.debug(
-                "Replica {} autocorrelation time: {}".format(ireplica, tau)
-            )
+            logging.debug("Replica {} sample_size: {}".format(ireplica, sample_size))
+            logging.debug("Replica {} autocorrelation time: {}".format(ireplica, tau))
 
             # compute by how much to extend the time series, if has at least 1e5
             if sample_size < self.min_window:
@@ -710,14 +676,9 @@ class PT_Master(object):
         logging.debug("self.mcrunner_eqsteps %s" % self.mcrunner_eqsteps)
         iteration = self.mcrunner_niter * (self.ptiter + 1)
         for ireplica in range(self.nreplicas):
-            if (
-                len(self.replica_timeseries[ireplica]) > 0
-            ):  # DO NOT WRITE EMPTY FILES!
+            if len(self.replica_timeseries[ireplica]) > 0:  # DO NOT WRITE EMPTY FILES!
                 self._dump_timeseries(ireplica)
-            if (
-                self.ptiter >= self.eq_min_ptiter
-                and iteration > self.mcrunner_eqsteps
-            ):
+            if self.ptiter >= self.eq_min_ptiter and iteration > self.mcrunner_eqsteps:
                 self._dump_histogram(ireplica)
         logging.debug("_print_data -- END")
 
@@ -776,24 +737,20 @@ class PT_Master(object):
                 status["frac_acc_swaps"] = (
                     self.replica_states[ireplica].swap_accepted_count / nswaps
                 )
-            if self.ptiter == self.skip or self.print_status == False:
+            if self.ptiter == self.skip or self.print_status is False:
                 self.status_streams[ireplica].write("#")
                 for key, _ in list(status.items()):
                     self.status_streams[ireplica].write("{:<12}\t".format(key))
                 self.status_streams[ireplica].write("\n")
             for _, value in list(status.items()):
-                self.status_streams[ireplica].write(
-                    "{:>12.3f}\t".format(value)
-                )
+                self.status_streams[ireplica].write("{:>12.3f}\t".format(value))
             self.status_streams[ireplica].write("\n")
 
     def _print_ks(self):
         fname = os.path.join(self.base_directory, "temperatures")
         with open(fname, "w") as kfile:
             for ireplica in range(self.nreplicas):
-                kfile.write(
-                    "{:1.16f}\n".format(self.replica_states[ireplica].k)
-                )
+                kfile.write("{:1.16f}\n".format(self.replica_states[ireplica].k))
 
     def _print_stepsizes(self):
         fname = os.path.join(self.base_directory, "stepsizes")
@@ -812,9 +769,7 @@ class PT_Master(object):
                 "temperature:\t{0}\n".format(self.replica_states[ireplica].k)
             )
             paramfile.write("PT iterations:\t{0}\n".format(self.max_ptiter))
-            paramfile.write(
-                "total MC iterations:\t{0}\n".format(self.mcrunner_niter)
-            )
+            paramfile.write("total MC iterations:\t{0}\n".format(self.mcrunner_niter))
 
     def _print_permutations(self):
         if self.anyswap:

@@ -233,14 +233,18 @@ class HypercubeOMCrunner(_BaseMCRunner):
 
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.action_record_displ.check_convergence(
-            nr_steps_to_check=nr_steps_to_check, rel_std_threshold=rel_std_threshold
+            nr_steps_to_check=nr_steps_to_check,
+            rel_std_threshold=rel_std_threshold,
         )
 
     def get_mean_variance_coordinate_vector(self):
         """
         returns the average coordinate vector from the sampling and the elementwise variance
         """
-        mean_coord, var_coord = self.record_trajectory.get_mean_variance_time_series()
+        (
+            mean_coord,
+            var_coord,
+        ) = self.record_trajectory.get_mean_variance_time_series()
         return mean_coord, var_coord
 
     def dump_trajectory(self, fname, clear=True):
@@ -489,7 +493,8 @@ class HypercubeInnerSphereOMCrunner(_BaseMCRunner):
 
     def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.time_series.check_convergence(
-            nr_steps_to_check=nr_steps_to_check, rel_std_threshold=rel_std_threshold
+            nr_steps_to_check=nr_steps_to_check,
+            rel_std_threshold=rel_std_threshold,
         )
 
     def show_histogram(self):

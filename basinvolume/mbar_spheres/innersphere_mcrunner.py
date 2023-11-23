@@ -270,9 +270,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         timeseries = np.array(self.time_series.get_time_series())
         return timeseries
 
-    def check_convergence(
-        self, nr_steps_to_check=10000, rel_std_threshold=0.05
-    ):
+    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.time_series.check_convergence(
             nr_steps_to_check=nr_steps_to_check,
             rel_std_threshold=rel_std_threshold,
@@ -281,8 +279,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))])
-            + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         )
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
@@ -308,9 +305,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         )  # adjust for fixed com
         # and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
         and2 = n[0] * np.exp(-0.5 * k * bins[:-1] ** 2)
-        plt.plot(
-            bins[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1]
-        )
+        plt.plot(bins[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1])
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")

@@ -111,7 +111,12 @@ class DeterministicPlot(BasicPlot):
         plt.xlabel(r"Radius or side length", fontsize=18)
         plt.ylabel(r"Mean squared displacement", fontsize=18)
         plt.tick_params(labelsize=18)
-        self.labels = ["Disk, exact", "Square, exact", "Disk, MC", "Square, MC"]
+        self.labels = [
+            "Disk, exact",
+            "Square, exact",
+            "Disk, MC",
+            "Square, MC",
+        ]
 
     def run(self):
         self.compute_r2()
@@ -229,7 +234,8 @@ class DeterministicAcceptancePlot_CloudRadius(BasicPlot):
         plt.rc("text", usetex=True)
         plt.rc("font", family="serif")
         plt.xlabel(
-            r"Backbone point distance from center / disk radius $r_d$", fontsize=18
+            r"Backbone point distance from center / disk radius $r_d$",
+            fontsize=18,
         )
         plt.ylabel(r"Acceptance probability", fontsize=18)
         plt.tick_params(labelsize=18)
@@ -322,7 +328,8 @@ class DeterministicAcceptancePlot_DropNumber(DeterministicAcceptancePlot_CloudRa
         plt.rc("text", usetex=True)
         plt.rc("font", family="serif")
         plt.xlabel(
-            r"Backbone point distance from center / disk radius $r_d$", fontsize=18
+            r"Backbone point distance from center / disk radius $r_d$",
+            fontsize=18,
         )
         plt.ylabel(r"Acceptance probability", fontsize=18)
         plt.tick_params(labelsize=18)

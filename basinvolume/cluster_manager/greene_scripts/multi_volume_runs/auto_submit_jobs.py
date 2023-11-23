@@ -2,10 +2,8 @@
 Automatically figures out which runs have finished/haven't finished in a run folder
 and submits the appropriate jobs to the cluster.
 """
-from enum import Enum, unique
 from greene_submission import SimStage, calculate_volume
 import os
-from basinvolume.enums import Minimizer
 import argparse
 import toml
 import shutil
@@ -26,51 +24,42 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         The stage of the simulation that needs to be run
     """
     jammed_packing_dir = os.path.join(simulation_dir, "jammed_packings")
-    first_jammed_packing_config = os.path.join(
-        jammed_packing_dir, jammed_packing_fname
-    )
+    first_jammed_packing_config = os.path.join(jammed_packing_dir, jammed_packing_fname)
     fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
     explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
-    
+
     if not os.path.exists(first_jammed_packing_config):
         return SimStage.JAMMED_PACKING
-    elif not os.path.exists(
-        os.path.join(explore_dir, f"findk_{fname_wo_ext}.config")
-    ):
+    elif not os.path.exists(os.path.join(explore_dir, f"findk_{fname_wo_ext}.config")):
         return SimStage.KMAX
-    elif not os.path.exists(
-        os.path.join(explore_dir, f"kmin_{fname_wo_ext}.config")
-    ):
+    elif not os.path.exists(os.path.join(explore_dir, f"kmin_{fname_wo_ext}.config")):
         return SimStage.KMIN
-    elif (not os.path.exists( # PT not started
-        os.path.join(explore_dir, f"explore_{fname_wo_ext}.config"))
-        or (os.path.exists( # PT not finished
-            os.path.join(explore_dir, f"checkpoint.dmp"))
-
-        )
+    elif not os.path.exists(  # PT not started
+        os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
+    ) or (
+        os.path.exists(os.path.join(explore_dir, "checkpoint.dmp"))  # PT not finished
     ):
         return SimStage.PT
     elif not os.path.exists(
         os.path.join(explore_dir, f"innersphere_{fname_wo_ext}.config")
     ):
         return SimStage.INNER_SPHERE
-    elif not os.path.isfile(
-        os.path.join(explore_dir, "analysis", "mbar_volume_data")
-    ):
+    elif not os.path.isfile(os.path.join(explore_dir, "analysis", "mbar_volume_data")):
         return SimStage.ANALYSIS
     else:
         return SimStage.COMPLETE
 
 
-def submit_jobs(simulation_dir, generate_packings = False):
-    
+def submit_jobs(simulation_dir, generate_packings=False):
     if generate_packings:
         simstage = SimStage.JAMMED_PACKING
         RUN_PARAMS_CONFIG_FILE = os.path.join(simulation_dir, "run_params.toml")
         if os.path.exists(RUN_PARAMS_CONFIG_FILE):
             run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
         else:
-            print("No param file in destination folder, copying template from basinvolume source")
+            print(
+                "No param file in destination folder, copying template from basinvolume source"
+            )
             EMPTY_PARAMS_CONFIG_FILE = os.path.join(os.getcwd(), "run_params.toml")
             shutil.copy(EMPTY_PARAMS_CONFIG_FILE, RUN_PARAMS_CONFIG_FILE)
             run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
@@ -82,7 +71,7 @@ def submit_jobs(simulation_dir, generate_packings = False):
             submit=True,
         )
         return
-        
+
     simulation_dir_name = os.path.basename(simulation_dir)
     jammed_packings_dir = os.path.join(simulation_dir, "jammed_packings")
     jammed_packing_fnames = os.listdir(jammed_packings_dir)
@@ -96,7 +85,7 @@ def submit_jobs(simulation_dir, generate_packings = False):
     minimizer_name = simulation_dir_name.split("_")[0]
     # minimizer = Minimizer[minimizer_name]
     minimizer = minimizer_name
-    
+
     RUN_PARAMS_CONFIG_FILE = os.path.join(simulation_dir, "../run_params.toml")
     run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
     run_params["kmax"]["minimizer"] = minimizer
@@ -115,24 +104,24 @@ def submit_jobs(simulation_dir, generate_packings = False):
             n_analysis += 1
             print(f"analysis waiting for {simulation_dir_name}")
             continue
-        
+
         if simstage == SimStage.PT:
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
-            if os.path.exists(os.path.join(explore_dir, f"checkpoint.dmp")):
-                checkpoint_file = os.path.join(explore_dir, f"checkpoint.dmp")
+            if os.path.exists(os.path.join(explore_dir, "checkpoint.dmp")):
+                checkpoint_file = os.path.join(explore_dir, "checkpoint.dmp")
             else:
                 checkpoint_file = None
-        else: 
+        else:
             checkpoint_file = None
-        
+
         calculate_volume(
             simulation_dir,
             jammed_packing_fname,
             simstage,
             run_params,
             submit=True,
-            checkpoint_file = checkpoint_file
+            checkpoint_file=checkpoint_file,
         )
     if n_prev_stages == 0 and n_analysis != 0:
         print(f"Submitting analysis for {simulation_dir_name}")
@@ -141,26 +130,29 @@ def submit_jobs(simulation_dir, generate_packings = False):
             jammed_packing_fnames[0],
             SimStage.ANALYSIS,
             run_params,
-            submit=True
+            submit=True,
         )
     return
 
 
 def main():
-    
     parser = argparse.ArgumentParser(
         description="Automatically submits the next step of the basin volume calculation to a slurm interface. Assumes that generate_packin has already been run."
     )
-    
-    parser.add_argument("folder", type=str, help="Head directory containing the OPTIMIZER_N_PHI directories")
-    
+
+    parser.add_argument(
+        "folder",
+        type=str,
+        help="Head directory containing the OPTIMIZER_N_PHI directories",
+    )
+
     args = parser.parse_args()
     folder = args.folder
-    
+
     simlist = os.listdir(folder)
     if simlist != []:
         simlist.remove("run_params.toml")
-    
+
     if simlist == []:
         print("Empty directory: starting packing generation")
         submit_jobs(folder, generate_packings=True)

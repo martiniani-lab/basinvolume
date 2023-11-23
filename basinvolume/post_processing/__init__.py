@@ -14,10 +14,18 @@ from ._variable_transform import calculate_GL_integral_with_transform_get_error
 from ._variable_transform import calculate_simple_integral
 from ._variable_transform import calculate_simple_integral_get_error
 from ._get_volume import F_Basin_From_MC_Data, F_Basin_From_MC_Data_Free_COM
-from ._get_volume import F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0
+from ._get_volume import (
+    F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0,
+)
 from ._poly_hs_fluid import F_acc_Gaussian_Poly_HS_Fluid
-from ._volume_processing_utils import PackingFailureStatistics, VolumeSanityCheck
-from ._volume_processing_utils import GLPTNotUsedStatistics, BestIntegrationSelection
+from ._volume_processing_utils import (
+    PackingFailureStatistics,
+    VolumeSanityCheck,
+)
+from ._volume_processing_utils import (
+    GLPTNotUsedStatistics,
+    BestIntegrationSelection,
+)
 from ._volume_processing_utils import PTFailures, assert_pt_success
 from ._p_log_p import F0MeanError, APFEntropy
 from ._probability_distributions import (
@@ -25,7 +33,10 @@ from ._probability_distributions import (
     GeneralisedLogNormal,
     LogNormal,
 )
-from ._log_omega_cdf_fit import JackLogOmega, OutlierRemovalUnbiasingEntropyLogOmega
+from ._log_omega_cdf_fit import (
+    JackLogOmega,
+    OutlierRemovalUnbiasingEntropyLogOmega,
+)
 from ._ML_log_omega import MLLogOmega
 from ._non_parametric_log_omega import KernelDensityLogOmega
 from ._non_parametric_log_omega import KernelDensityLogOmegaJackKnife

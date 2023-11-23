@@ -56,7 +56,9 @@ class BVPackingsConfigNewFormat(object):
     def copy_packing_config_files(self):
         files = get_immediate_files(os.path.join(self.workdir, self.packing_folder))
         src = os.path.join(
-            self.workdir, self.packing_folder, self.old_packing_naming + ".config"
+            self.workdir,
+            self.packing_folder,
+            self.old_packing_naming + ".config",
         )
 
         if os.path.isfile(src):
@@ -72,7 +74,9 @@ class BVPackingsConfigNewFormat(object):
             shutil.copyfile(
                 src,
                 os.path.join(
-                    self.workdir, self.packing_folder, self.old_packing_naming + ".bak"
+                    self.workdir,
+                    self.packing_folder,
+                    self.old_packing_naming + ".bak",
                 ),
             )
             os.remove(src)

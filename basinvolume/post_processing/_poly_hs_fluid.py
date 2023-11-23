@@ -140,12 +140,22 @@ def test_HS_fluids():
     diameter_variance = 0.1
     print(
         F_acc_Gaussian_Poly_HS_Fluid(
-            phiHD, L_box**2, nr_particles, 2, diameter_mean, diameter_variance
+            phiHD,
+            L_box**2,
+            nr_particles,
+            2,
+            diameter_mean,
+            diameter_variance,
         )
     )
     print(
         F_acc_Gaussian_Poly_HS_Fluid(
-            phiHD, L_box**3, nr_particles, 3, diameter_mean, diameter_variance
+            phiHD,
+            L_box**3,
+            nr_particles,
+            3,
+            diameter_mean,
+            diameter_variance,
         )
     )
 

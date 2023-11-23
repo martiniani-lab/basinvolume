@@ -524,7 +524,11 @@ if __name__ == "__main__":
         description="generate 2/3-D hard disks/spheres packings"
     )
     parser.add_argument(
-        "-p", "--density", type=float, help="target packing fraction", default=0.7
+        "-p",
+        "--density",
+        type=float,
+        help="target packing fraction",
+        default=0.7,
     )
     parser.add_argument(
         "-e",

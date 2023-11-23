@@ -42,9 +42,7 @@ class BaseFindKMCRunner(ConfigMCRunner):
             self.coords, 0, bdim=self.bdim, com=False
         )  # set the potential to 0, the potential is completely fictitious here (there's no energy test),
         # k is entirely controlled by the stepsize
-        stepsize = np.sqrt(
-            1.0 / k
-        )  # stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
         # stepsize = np.sqrt(self.ndim/k)  #####################
         #####
 
@@ -107,17 +105,13 @@ class BaseFindKMCRunner(ConfigMCRunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(
-            os.getcwd(), explore_dir + packing_nr
-        )
+        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
         configfile = "findk_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _initialise(self):
         self._print_initialise()
@@ -309,8 +303,7 @@ class Findk_MCrunner(SpheresMCRunner):
         """shows the histogram"""
         hist = self.findk.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))])
-            + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         )
         n, bins, patches = plt.hist(
             val,
@@ -332,9 +325,7 @@ class Findk_MCrunner(SpheresMCRunner):
                 args=(self.get_k(), self.nparticles, self.bdim),
             )[0],
         )
-        plt.plot(
-            bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1]
-        )
+        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")

@@ -75,7 +75,7 @@ class _collect_u2_vs_k(object):
         packings_dir="packings",
         jammed_packings_dir="jammed_packings",
         plot_ts_integrand_data=True,
-        simple_integrator = True,
+        simple_integrator=True,
         frozen=False,
         show=False,
         plot_only=False,
@@ -85,9 +85,7 @@ class _collect_u2_vs_k(object):
         self.simple_integrator = simple_integrator
         self.fname = fname
         if not os.path.isabs(jammed_packings_dir):
-            jammed_packings_dir = os.path.join(
-                os.getcwd(), jammed_packings_dir
-            )
+            jammed_packings_dir = os.path.join(os.getcwd(), jammed_packings_dir)
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.jammed_packings_dir = jammed_packings_dir
         self.packings_dir = packings_dir
@@ -186,9 +184,7 @@ class _collect_u2_vs_k(object):
         print("prob_kmax {}".format(self.prob_kmax))
         self.displ_k_max = configf.getfloat("FINDK", "displ_k_max")
         self.var_displ_k_max = configf.getfloat("FINDK", "var_displ_k_max")
-        self.kmax_iteration = configf.getfloat(
-            "FINDK_MCRUNNER_STATUS", "iteration"
-        )
+        self.kmax_iteration = configf.getfloat("FINDK_MCRUNNER_STATUS", "iteration")
         self.std_error_kmax = np.sqrt(
             self.var_displ_k_max / (self.prob_kmax * self.kmax_iteration)
         )
@@ -241,9 +237,7 @@ class _collect_u2_vs_k(object):
 
     def _remove_negative_k(self):
         try:
-            k0_idx = next(
-                idx for idx, value in enumerate(self.karray) if value == 0
-            )
+            k0_idx = next(idx for idx, value in enumerate(self.karray) if value == 0)
         except Exception:
             k0_idx = -1
         if k0_idx >= 0:
@@ -290,19 +284,11 @@ class _collect_u2_vs_k(object):
             nsubs = step_timeseries[0][eqtime:].size // n
             for j in range(nsubs):
                 mean_arr.append(
-                    np.sum(
-                        step_timeseries[0][
-                            eqtime + j * n : eqtime + (j + 1) * n
-                        ]
-                    )
+                    np.sum(step_timeseries[0][eqtime + j * n : eqtime + (j + 1) * n])
                 )
-            mean, stdev = np.mean(np.array(mean_arr)), np.std(
-                np.array(mean_arr)
-            )
+            mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
             step_timeseries_mean_path.append(mean)
-            step_timeseries_mean_path_std.append(
-                stdev / np.sqrt(len(mean_arr))
-            )
+            step_timeseries_mean_path_std.append(stdev / np.sqrt(len(mean_arr)))
             step_timeseries_mean_eucdist.append(
                 np.mean(step_timeseries[i + 1][eqtime // n :])
             )
@@ -342,12 +328,7 @@ class _collect_u2_vs_k(object):
         # sqared_std_errors = self.var_array # This line is just to illustrate how the code worked before.
         sqared_std_errors = self.std_error_array**2
 
-        (
-            self.F0,
-            self.sigF0,
-            self.farray,
-            self.sigfarray,
-        ) = F_Basin_From_MC_Data(
+        (self.F0, self.sigF0, self.farray, self.sigfarray,) = F_Basin_From_MC_Data(
             self.bdim,
             self.nparticles,
             self.karray,
@@ -355,10 +336,8 @@ class _collect_u2_vs_k(object):
             self.vcavity,
             self.prob_kmax,
             displ_k_min_trafo=self.displ_k_min,
-            simple_integrator=self.simple_integrator
-        ).get_free_energy_F0(
-            sqared_std_errors
-        )
+            simple_integrator=self.simple_integrator,
+        ).get_free_energy_F0(sqared_std_errors)
 
         (
             self.F0unc,
@@ -372,16 +351,14 @@ class _collect_u2_vs_k(object):
             self.u2_array,
             prob=self.prob_kmax,
             displ_k_min_trafo=self.displ_k_min,
-            simple_integrator = self.simple_integrator
+            simple_integrator=self.simple_integrator,
         ).get_free_energy_F0(
             sqared_std_errors
         )
         self.tarray = Gauss_Lobatto_abscissas(len(self.u2_array))()
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
-        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(
-            self.vcavity
-        )
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
         print(
             "unit_box_F0 {} unit_box_F0unc {}".format(
                 self.unit_box_F0, self.unit_box_F0unc
@@ -420,18 +397,14 @@ class _collect_u2_vs_k(object):
         # plt.yscale('log')
         # plt.xscale('log')
         ax.legend(frameon=False, loc=1)
-        plt.savefig(
-            os.path.join(self.base_directory, "diffusion_logr_vs_logt.pdf")
-        )
+        plt.savefig(os.path.join(self.base_directory, "diffusion_logr_vs_logt.pdf"))
         write_csv_xy(
             np.log(x),
             np.log(y),
             xerr=dx / x,
             yerr=dy / y,
             fit=pol(np.log(x)),
-            fname=os.path.join(
-                self.base_directory, "diffusion_logr_vs_logt.csv"
-            ),
+            fname=os.path.join(self.base_directory, "diffusion_logr_vs_logt.csv"),
         )
         if self.show:
             plt.show()
@@ -447,17 +420,13 @@ class _collect_u2_vs_k(object):
         ax.set_ylabel(r"$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$")
         ax.set_xlabel(r"$\log (\Delta s)$")
         ax.legend(frameon=False, loc=1)
-        plt.savefig(
-            os.path.join(self.base_directory, "diffusion_red_logr_vs_logt.pdf")
-        )
+        plt.savefig(os.path.join(self.base_directory, "diffusion_red_logr_vs_logt.pdf"))
         write_csv_xy(
             np.log(x),
             np.log(y) - 0.5 * np.log(x),
             xerr=dx / x + dy / y,
             yerr=dy / y,
-            fname=os.path.join(
-                self.base_directory, "diffusion_red_logr_vs_logt.csv"
-            ),
+            fname=os.path.join(self.base_directory, "diffusion_red_logr_vs_logt.csv"),
         )
         if self.show:
             plt.show()

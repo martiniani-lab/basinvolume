@@ -47,7 +47,11 @@ class BVRemoveToxicData(object):
         self.kmin_toxic_list = []
         self.kmax_toxic_list = []
         self.pt_toxic_list = []
-        self.pt_output_files = ["exchanges", "rem_permutations", "temperatures"]
+        self.pt_output_files = [
+            "exchanges",
+            "rem_permutations",
+            "temperatures",
+        ]
 
     def remove_kmax_toxic_data(self, where="at", gitrepo_path=None):
         self._find_kmax_toxic_data(where=where, gitrepo_path=gitrepo_path)
@@ -73,7 +77,10 @@ class BVRemoveToxicData(object):
         self._find_pt_toxic_data(where=where, gitrepo_path=gitrepo_path)
         print("pt toxic list", self.pt_toxic_list)
         self._remove_toxic_data(
-            self.pt_toxic_list, self.pt_config, output_signature="bv*pt*.o*", pt=True
+            self.pt_toxic_list,
+            self.pt_config,
+            output_signature="bv*pt*.o*",
+            pt=True,
         )
 
     def _find_kmax_toxic_data(self, where="at", gitrepo_path=None):
@@ -211,7 +218,11 @@ class BVRemoveToxicData(object):
         return hash_table
 
     def _remove_toxic_data(
-        self, toxic_list, config_fname, output_signature="bv\*kmax\*.o\*", pt=False
+        self,
+        toxic_list,
+        config_fname,
+        output_signature="bv\*kmax\*.o\*",
+        pt=False,
     ):
         subdirs = get_immediate_subdirectories(self.workdir)
         for toxic_folder in toxic_list:
@@ -273,10 +284,16 @@ if __name__ == "__main__":
         "--kmax", action="store_true", help="compute kmax", default=False
     )
     parser.add_argument(
-        "--pt", action="store_true", help="perform parallel tempering", default=False
+        "--pt",
+        action="store_true",
+        help="perform parallel tempering",
+        default=False,
     )
     parser.add_argument(
-        "--all", action="store_true", help="perform parallel tempering", default=False
+        "--all",
+        action="store_true",
+        help="perform parallel tempering",
+        default=False,
     )
 
     args = parser.parse_args()

@@ -145,22 +145,16 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(
-            os.getcwd(), explore_dir + packing_nr
-        )
+        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
-        self.packing_configpath = os.path.join(
-            packings_dir, "{}.config".format(dname)
-        )
+        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
         self.findk_configpath = os.path.join(
             self.base_directory, "findk_" + dname + ".config"
         )
         configfile = "innersphere_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _import_packing_config_files(self):
         imp_packing = read_jammed_packing_config(str(self.packing_configpath))

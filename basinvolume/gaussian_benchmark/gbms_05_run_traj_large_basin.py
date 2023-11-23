@@ -23,7 +23,12 @@ class TrajEngine(object):
     """
 
     def __init__(
-        self, traj_parameters, pes_parameters, pot, opt_parameters, vol_parameters
+        self,
+        traj_parameters,
+        pes_parameters,
+        pot,
+        opt_parameters,
+        vol_parameters,
     ):
         self.traj_parameters = traj_parameters
         self.pes_parameters = pes_parameters
@@ -105,7 +110,9 @@ def run_traj(ls_basin_label):
     """
     arg = ap.ArgumentParser()
     arg.add_argument(
-        "--nr_dimensions", type=int, help="Euclidean dimension of potential landscape"
+        "--nr_dimensions",
+        type=int,
+        help="Euclidean dimension of potential landscape",
     )
     arg.add_argument("--sample_index", type=int, help="Index of landscape to measure")
     arg.add_argument(

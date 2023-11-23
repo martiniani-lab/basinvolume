@@ -50,7 +50,10 @@ class EqFluidSnapshots(object):
         self.stepsize = 1
         self.find_nr_decorrelation_steps()
         self.mc = MC(
-            self.mock_potential, self.coordinates, self.temperature, self.nr_steps
+            self.mock_potential,
+            self.coordinates,
+            self.temperature,
+            self.nr_steps,
         )
         self.step = RandomCoordsDisplacement(
             self.step_seed,
@@ -96,7 +99,14 @@ class EqFluidSnapshots(object):
         print(("maximum total nr steps", self.nr_steps))
 
     def print_next_image(self):
-        print(("printing image", self.printed_images + 1, "out of", self.nr_images))
+        print(
+            (
+                "printing image",
+                self.printed_images + 1,
+                "out of",
+                self.nr_images,
+            )
+        )
         for _ in range(self.nr_decorrelation_steps):
             self.mc.one_iteration()
         self.print_Lorenzo_style()

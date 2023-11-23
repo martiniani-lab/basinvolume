@@ -29,11 +29,7 @@ from basinvolume.spheres import (
 
 
 def get_immediate_subdirectories(dir):
-    return [
-        name
-        for name in os.listdir(dir)
-        if os.path.isdir(os.path.join(dir, name))
-    ]
+    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
 
 class SubmitBV(object):
@@ -214,9 +210,7 @@ class SubmitBV(object):
                 return False
         return True
 
-    def _check_innersphere_dos_config_file_ready(
-        self, innersphere_dos_configpath
-    ):
+    def _check_innersphere_dos_config_file_ready(self, innersphere_dos_configpath):
         """
         checks whether config files are ready (hence the necessary calculations have already been launched or have terminated),
         returns false if they are not
@@ -254,9 +248,7 @@ class SubmitBV(object):
     ):
         try:
             os.remove(os.path.join(explore_dir_path, rmdata))
-            logging.info(
-                "Removed {}".format(os.path.join(explore_dir_path, rmdata))
-            )
+            logging.info("Removed {}".format(os.path.join(explore_dir_path, rmdata)))
         except OSError:
             pass  # nothing to remove
         # remove config file and bv output
@@ -296,9 +288,7 @@ class SubmitBV(object):
         packing = self.packing_naming + noj + self.ext
         findk_script = os.path.join(path_to_script, script)
         command = "python {0} {1}".format(findk_script, packing)
-        command += " -p ${{{0}}}/{1}".format(
-            self.workdir_var, self.structures_dir
-        )
+        command += " -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir)
 
         command += " --explore-dir {}".format(self.explore_dir)
         command += " --minimizer {}".format(self.minimizer.name)
@@ -328,9 +318,7 @@ class SubmitBV(object):
             script,
         )
         command = "python {0} {1}".format(innersphere_dos_script, packing)
-        command += " -p ${{{0}}}/{1}".format(
-            self.workdir_var, self.structures_dir
-        )
+        command += " -p ${{{0}}}/{1}".format(self.workdir_var, self.structures_dir)
         command += " --explore-dir {}".format(self.explore_dir)
         command += " --minimizer {}".format(self.minimizer.name)
         if self.nocell:
@@ -360,9 +348,7 @@ class SubmitBV(object):
                 if self.ext in file:
                     noj = re.findall(r"\d+", file)[0]  # extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
-                        explore_dir = (
-                            self.explore_dir + noj
-                        )  # build explore_dir name
+                        explore_dir = self.explore_dir + noj  # build explore_dir name
                         if not os.path.isfile(
                             os.path.join(self.workdir, explore_dir + ".tar.gz")
                         ):  # check if there's a tar version
@@ -377,9 +363,7 @@ class SubmitBV(object):
                                 path, self.kmin_config + noj + ".config"
                             )
                             if (
-                                not self._check_kmin_config_file_ready(
-                                    kmin_path
-                                )
+                                not self._check_kmin_config_file_ready(kmin_path)
                                 or force
                             ):
                                 #########remove old BV output#######
@@ -389,9 +373,7 @@ class SubmitBV(object):
                                 )
                                 #####################################
                                 if not os.path.isabs(path_to_script):
-                                    path_to_script = os.path.abspath(
-                                        path_to_script
-                                    )
+                                    path_to_script = os.path.abspath(path_to_script)
                                 command = self._get_findk_command(
                                     noj,
                                     path_to_script,
@@ -440,9 +422,7 @@ class SubmitBV(object):
                 if self.ext in file:
                     noj = re.findall(r"\d+", file)[0]  # extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
-                        explore_dir = (
-                            self.explore_dir + noj
-                        )  # build explore_dir name
+                        explore_dir = self.explore_dir + noj  # build explore_dir name
                         if not os.path.isfile(
                             os.path.join(self.workdir, explore_dir + ".tar.gz")
                         ):  # check if there's a tar version
@@ -457,9 +437,7 @@ class SubmitBV(object):
                                 path, self.kmax_config + noj + ".config"
                             )
                             if (
-                                not self._check_kmax_config_file_ready(
-                                    kmax_path
-                                )
+                                not self._check_kmax_config_file_ready(kmax_path)
                                 or force
                             ):
                                 #########remove old BV output#######
@@ -469,9 +447,7 @@ class SubmitBV(object):
                                 )
                                 #####################################
                                 if not os.path.isabs(path_to_script):
-                                    path_to_script = os.path.abspath(
-                                        path_to_script
-                                    )
+                                    path_to_script = os.path.abspath(path_to_script)
                                 command = self._get_findk_command(
                                     noj,
                                     path_to_script,
@@ -516,9 +492,7 @@ class SubmitBV(object):
                 if self.ext in file:
                     noj = re.findall(r"\d+", file)[0]  # extract packing number
                     if self.nojmin <= int(noj) <= self.nojmax:
-                        explore_dir = (
-                            self.explore_dir + noj
-                        )  # build explore_dir name
+                        explore_dir = self.explore_dir + noj  # build explore_dir name
                         if not os.path.isfile(
                             os.path.join(self.workdir, explore_dir + ".tar.gz")
                         ):  # check if there's a tar version
@@ -541,9 +515,7 @@ class SubmitBV(object):
                             )
                             if (
                                 self._check_pt_config_file_ready(pt_path)
-                                and self._check_kmax_config_file_ready(
-                                    kmax_path
-                                )
+                                and self._check_kmax_config_file_ready(kmax_path)
                             ) and (
                                 not self._check_innersphere_dos_config_file_ready(
                                     innersphere_dos_path
@@ -560,9 +532,7 @@ class SubmitBV(object):
                                 )
                                 #####################################
                                 if not os.path.isabs(path_to_script):
-                                    path_to_script = os.path.abspath(
-                                        path_to_script
-                                    )
+                                    path_to_script = os.path.abspath(path_to_script)
                                 command = self._get_innersphere_dos_command(
                                     noj,
                                     path_to_script,
@@ -583,10 +553,7 @@ class SubmitBV(object):
                                 )
                                 batch_script.submit(
                                     "bv_innersphere_dos" + noj + ".sh",
-                                    "bv_"
-                                    + self.label
-                                    + "_innersphere_dos"
-                                    + noj,
+                                    "bv_" + self.label + "_innersphere_dos" + noj,
                                 )
                             else:
                                 pass
@@ -619,9 +586,7 @@ class SubmitBV(object):
                 self.pt_replicas,
             )
         )
-        command += " -p ${{{0}}}/{1}".format(
-            self.workdir_var, self.pt_structures_dir
-        )
+        command += " -p ${{{0}}}/{1}".format(self.workdir_var, self.pt_structures_dir)
         if self.nocell:
             command += " --nocell"
         command += " --minimizer {}".format(self.minimizer.name)
@@ -631,9 +596,7 @@ class SubmitBV(object):
         if self.pt_collect_minima:
             command += " --collect-minima"
         if self.numnegk > 0:
-            command += " --numnegk {0} --lownegk {1}".format(
-                self.numnegk, self.lownegk
-            )
+            command += " --numnegk {0} --lownegk {1}".format(self.numnegk, self.lownegk)
         if self.pt_checkpoint_time is not None:
             command += " --checkpoint-time {}".format(self.pt_checkpoint_time)
         if load_checkpoint:
@@ -681,12 +644,9 @@ class SubmitBV(object):
                             )
                             if (
                                 self._check_kmax_config_file_ready(kmax_path)
-                                and self._check_kmin_config_file_ready(
-                                    kmin_path
-                                )
+                                and self._check_kmin_config_file_ready(kmin_path)
                             ) and (
-                                not self._check_pt_config_file_ready(pt_path)
-                                or force
+                                not self._check_pt_config_file_ready(pt_path) or force
                             ):
                                 #############remove old pt data##############
                                 self._remove_pt_old_data(
@@ -700,9 +660,7 @@ class SubmitBV(object):
                                 ##now check that kmax has a reasonable value##
                                 if check_kmax_reasonable(kmax_path):
                                     if not os.path.isabs(path_to_script):
-                                        path_to_script = os.path.abspath(
-                                            path_to_script
-                                        )
+                                        path_to_script = os.path.abspath(path_to_script)
                                     mpi_procs = min(
                                         self.pt_workers + 1, self.pt_replicas
                                     )
@@ -820,15 +778,9 @@ class SubmitBV(object):
                         explore_dir
                     ) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
                         trymakedir(path)
-                    kmax_path = os.path.join(
-                        path, self.kmax_config + noj + ".config"
-                    )
-                    kmin_path = os.path.join(
-                        path, self.kmin_config + noj + ".config"
-                    )
-                    pt_path = os.path.join(
-                        path, self.pt_config + noj + ".config"
-                    )
+                    kmax_path = os.path.join(path, self.kmax_config + noj + ".config")
+                    kmin_path = os.path.join(path, self.kmin_config + noj + ".config")
+                    pt_path = os.path.join(path, self.pt_config + noj + ".config")
                     innersphere_dos_path = os.path.join(
                         path, self.innersphere_dos_config + noj + ".config"
                     )
@@ -851,15 +803,11 @@ class SubmitBV(object):
                         kmin_fname = "bv_kmin" + noj + ".sh"
                         pt_fname = "bv_pt" + noj + ".sh"
                         pt_load_fname = "bv_pt_load" + noj + ".sh"
-                        innersphere_dos_fname = (
-                            "bv_innersphere_dos" + noj + ".sh"
-                        )
-                        innersphere_dos_command = (
-                            self._get_innersphere_dos_command(
-                                noj,
-                                path_to_script,
-                                script="bv_innersphere_dos.py",
-                            )
+                        innersphere_dos_fname = "bv_innersphere_dos" + noj + ".sh"
+                        innersphere_dos_command = self._get_innersphere_dos_command(
+                            noj,
+                            path_to_script,
+                            script="bv_innersphere_dos.py",
                         )
                         innersphere_script = BatchScript(
                             self.batch_system,
@@ -893,23 +841,15 @@ class SubmitBV(object):
                                 ),
                             )
                             ##################################
-                            kmax_ready = self._check_kmax_config_file_ready(
-                                kmax_path
-                            )
-                            kmin_ready = self._check_kmin_config_file_ready(
-                                kmin_path
-                            )
+                            kmax_ready = self._check_kmax_config_file_ready(kmax_path)
+                            kmin_ready = self._check_kmin_config_file_ready(kmin_path)
                             # prepare PT command
-                            pt_mpi_procs = min(
-                                self.pt_workers + 1, self.pt_replicas
-                            )
+                            pt_mpi_procs = min(self.pt_workers + 1, self.pt_replicas)
                             if pt_mpi_procs == self.pt_replicas:
                                 pt_mpi_oversubscribe = 0
                             else:
                                 pt_mpi_oversubscribe = 1
-                            pt_command = self._get_pt_command(
-                                noj, path_to_script
-                            )
+                            pt_command = self._get_pt_command(noj, path_to_script)
                             if self.pt_checkpoint_time is None:
                                 pt_command += " && {} ${{{}}}/{}".format(
                                     self.submit_cmd,
@@ -993,9 +933,7 @@ class SubmitBV(object):
                                         #########remove old BV output#######
                                         self._remove_bv_output(
                                             explore_dir,
-                                            "bv_{}_kmin{}.o*".format(
-                                                self.label, noj
-                                            ),
+                                            "bv_{}_kmin{}.o*".format(self.label, noj),
                                         )
                                         #####################################
                                         kmin_command = self._get_findk_command(
@@ -1004,12 +942,10 @@ class SubmitBV(object):
                                             script="bv_find_kmin.py",
                                             record_steps_timeseries=self.record_steps_timeseries,
                                         )
-                                        kmin_command += (
-                                            " && {} ${{{}}}/{}".format(
-                                                self.submit_cmd,
-                                                self.workdir_var,
-                                                pt_fname,
-                                            )
+                                        kmin_command += " && {} ${{{}}}/{}".format(
+                                            self.submit_cmd,
+                                            self.workdir_var,
+                                            pt_fname,
                                         )
                                         kmin_script = BatchScript(
                                             self.batch_system,
@@ -1027,10 +963,7 @@ class SubmitBV(object):
                                         if kmax_ready:
                                             kmin_script.submit(
                                                 "bv_kmin" + noj + ".sh",
-                                                "bv_"
-                                                + self.label
-                                                + "_kmin"
-                                                + noj,
+                                                "bv_" + self.label + "_kmin" + noj,
                                             )
                                         else:
                                             #########remove old BV output#######
@@ -1043,24 +976,17 @@ class SubmitBV(object):
                                             #####################################
                                             kmin_script.write(
                                                 kmin_fname,
-                                                "bv_"
-                                                + self.label
-                                                + "_kmin"
-                                                + noj,
+                                                "bv_" + self.label + "_kmin" + noj,
                                             )
-                                            kmax_command = (
-                                                self._get_findk_command(
-                                                    noj,
-                                                    path_to_script,
-                                                    script="bv_find_kmax.py",
-                                                )
+                                            kmax_command = self._get_findk_command(
+                                                noj,
+                                                path_to_script,
+                                                script="bv_find_kmax.py",
                                             )
-                                            kmax_command += (
-                                                " && {} ${{{}}}/{}".format(
-                                                    self.submit_cmd,
-                                                    self.workdir_var,
-                                                    kmin_fname,
-                                                )
+                                            kmax_command += " && {} ${{{}}}/{}".format(
+                                                self.submit_cmd,
+                                                self.workdir_var,
+                                                kmin_fname,
                                             )
                                             kmax_script = BatchScript(
                                                 self.batch_system,
@@ -1077,10 +1003,7 @@ class SubmitBV(object):
                                             )
                                             kmax_script.submit(
                                                 "bv_kmax" + noj + ".sh",
-                                                "bv_"
-                                                + self.label
-                                                + "_kmax"
-                                                + noj,
+                                                "bv_" + self.label + "_kmax" + noj,
                                             )
                                     else:
                                         kmax_command = self._get_findk_command(
@@ -1088,12 +1011,10 @@ class SubmitBV(object):
                                             path_to_script,
                                             script="bv_find_kmax.py",
                                         )
-                                        kmax_command += (
-                                            " && {} ${{{}}}/{}".format(
-                                                self.submit_cmd,
-                                                self.workdir_var,
-                                                pt_fname,
-                                            )
+                                        kmax_command += " && {} ${{{}}}/{}".format(
+                                            self.submit_cmd,
+                                            self.workdir_var,
+                                            pt_fname,
                                         )
                                         kmax_script = BatchScript(
                                             self.batch_system,
@@ -1124,9 +1045,7 @@ if __name__ == "__main__":
         "chain to submit a bv jobs chain",
         dest="mode",
     )
-    single_parser = subparsers.add_parser(
-        "single", help="submit individual jobs"
-    )
+    single_parser = subparsers.add_parser("single", help="submit individual jobs")
     chain_parser = subparsers.add_parser("chain", help="submit a bv chain")
 
     single_parser.add_argument("ndim", type=int, help="dimensionality")
@@ -1142,9 +1061,7 @@ if __name__ == "__main__":
     single_parser.add_argument(
         "job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D"
     )
-    single_parser.add_argument(
-        "walltime_hours", type=float, help="wall-time in hours"
-    )
+    single_parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
     single_parser.add_argument(
         "--batch-system",
         type=str,
@@ -1154,8 +1071,7 @@ if __name__ == "__main__":
     single_parser.add_argument(
         "--mpi-implementation",
         type=str,
-        help="MPI implementation. Supported: OpenMPI, Intel. "
-        "Default: 'OpenMPI'",
+        help="MPI implementation. Supported: OpenMPI, Intel. " "Default: 'OpenMPI'",
         default="OPENMPI",
     )
     single_parser.add_argument(
@@ -1255,8 +1171,7 @@ if __name__ == "__main__":
     single_parser.add_argument(
         "--adjustf-niter",
         type=float,
-        help="Number of steps to adjust the stepsize. "
-        "Default: 0.1 * mintotniter",
+        help="Number of steps to adjust the stepsize. " "Default: 0.1 * mintotniter",
         default=None,
     )
     single_parser.add_argument(
@@ -1301,8 +1216,7 @@ if __name__ == "__main__":
         "-p",
         "--packings-dir",
         type=str,
-        help="Directory containing the jammed packings. "
-        "Default: 'jammed_packings'",
+        help="Directory containing the jammed packings. " "Default: 'jammed_packings'",
         default="jammed_packings",
     )
     single_parser.add_argument(
@@ -1327,8 +1241,7 @@ if __name__ == "__main__":
     single_parser.add_argument(
         "--pt-replicas",
         type=int,
-        help="Number of replicas to use for "
-        "parallel tempering. Default: 16",
+        help="Number of replicas to use for " "parallel tempering. Default: 16",
         default=16,
     )
     single_parser.add_argument(
@@ -1363,8 +1276,7 @@ if __name__ == "__main__":
     single_parser.add_argument(
         "--pt-checkpoint-time",
         type=int,
-        help="Minutes after which PT creates a checkpoint "
-        "and submits a new job.",
+        help="Minutes after which PT creates a checkpoint " "and submits a new job.",
         default=None,
     )
     single_parser.add_argument(
@@ -1397,9 +1309,7 @@ if __name__ == "__main__":
     chain_parser.add_argument(
         "job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D"
     )
-    chain_parser.add_argument(
-        "k_walltime_hours", type=float, help="wall-time in hours"
-    )
+    chain_parser.add_argument("k_walltime_hours", type=float, help="wall-time in hours")
     chain_parser.add_argument(
         "pt_walltime_hours", type=float, help="wall-time in hours"
     )
@@ -1412,8 +1322,7 @@ if __name__ == "__main__":
     chain_parser.add_argument(
         "--mpi-implementation",
         type=str,
-        help="MPI implementation. Supported: OpenMPI, Intel. "
-        "Default: 'OpenMPI'",
+        help="MPI implementation. Supported: OpenMPI, Intel. " "Default: 'OpenMPI'",
         default="OPENMPI",
     )
     chain_parser.add_argument(
@@ -1498,8 +1407,7 @@ if __name__ == "__main__":
     chain_parser.add_argument(
         "--adjustf-niter",
         type=float,
-        help="Number of steps to adjust the stepsize. "
-        "Default: 0.1 * mintotniter",
+        help="Number of steps to adjust the stepsize. " "Default: 0.1 * mintotniter",
         default=None,
     )
     chain_parser.add_argument(
@@ -1547,8 +1455,7 @@ if __name__ == "__main__":
         "-p",
         "--packings-dir",
         type=str,
-        help="Directory containing the jammed packings. "
-        "Default: 'jammed_packings'",
+        help="Directory containing the jammed packings. " "Default: 'jammed_packings'",
         default="jammed_packings",
     )
     chain_parser.add_argument(
@@ -1575,8 +1482,7 @@ if __name__ == "__main__":
     chain_parser.add_argument(
         "--pt-replicas",
         type=int,
-        help="Number of replicas to use for "
-        "parallel tempering. Default: 16",
+        help="Number of replicas to use for " "parallel tempering. Default: 16",
         default=16,
     )
     chain_parser.add_argument(
@@ -1611,8 +1517,7 @@ if __name__ == "__main__":
     chain_parser.add_argument(
         "--pt-checkpoint-time",
         type=int,
-        help="Minutes after which PT creates a checkpoint "
-        "and submits a new job.",
+        help="Minutes after which PT creates a checkpoint " "and submits a new job.",
         default=None,
     )
     chain_parser.add_argument(
@@ -1665,9 +1570,7 @@ if __name__ == "__main__":
     if args.pt_exchange_scheme.upper() in ExchangeScheme.__members__:
         pt_exchange_scheme = ExchangeScheme[args.pt_exchange_scheme.upper()]
     else:
-        raise ValueError(
-            "Unknown exchange scheme: {}".format(args.pt_exchange_scheme)
-        )
+        raise ValueError("Unknown exchange scheme: {}".format(args.pt_exchange_scheme))
 
     if args.adjustf_niter is None:
         adjustf_niter = int(
@@ -1784,9 +1687,7 @@ if __name__ == "__main__":
             args.path_to_script,
         )
     else:
-        assert not (
-            (args.kmin is True or args.kmax is True) and args.pt is True
-        )
+        assert not ((args.kmin is True or args.kmax is True) and args.pt is True)
         if args.kmin:
             submit_bv.submit_kmin_calculations(
                 args.queue_or_partition,

@@ -54,7 +54,10 @@ class ComputerCommon(object):
             """This only works for TI and brute force."""
             for i in range(self.vol_parameters["max_iterations"]):
                 self.iterations.append(i + 1)
-                evaluations, volume = self.get_evaluations_volume_one_iteration()
+                (
+                    evaluations,
+                    volume,
+                ) = self.get_evaluations_volume_one_iteration()
                 self.evaluations.append(evaluations)
                 self.volume.append(volume)
 
@@ -79,7 +82,8 @@ class ComputerCommon(object):
             self.evaluations,
         )
         np.savetxt(
-            self.this_volume_path(nr_gaussians, nr_dimensions, pot_index), self.volume
+            self.this_volume_path(nr_gaussians, nr_dimensions, pot_index),
+            self.volume,
         )
         np.savetxt(
             self.this_ini_evals_path(nr_gaussians, nr_dimensions, pot_index),
@@ -88,7 +92,10 @@ class ComputerCommon(object):
 
     def this_path(self, nr_gaussians, nr_dimensions, pot_index):
         return os.path.join(
-            self.results_path, str(nr_gaussians), str(nr_dimensions), str(pot_index)
+            self.results_path,
+            str(nr_gaussians),
+            str(nr_dimensions),
+            str(pot_index),
         )
 
     def this_iterations_path(self, nr_gaussians, nr_dimensions, pot_index):
