@@ -3,7 +3,7 @@
 ["jammed_data"]
 minimizer_list = ["FIRE", "CVODE", "LBFGS"]
 ss_packing_fraction_list = [0.87]
-n_particles_list = [8]
+n_particles_list = [128]
 n_ensemble = 1
 
 ["hard_sphere_packing"]
@@ -15,5 +15,7 @@ n_ensemble = 1
 ["kmin"]
 
 ["pt"]
+mintotniter = 5e5
+maxtotniter = 2e6
 
 ["innersphere"]

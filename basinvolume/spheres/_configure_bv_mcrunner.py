@@ -252,29 +252,21 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # fails if Success is false
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
-<<<<<<< HEAD
-        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
-        minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
-        minimizer = minimizer_string.split(".")[-1]
-        self.minimizer = Minimizer[minimizer]
-        self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
-        self.opt_kwargs = ast.literal_eval(conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}"))
-=======
         if dtol is None:
             self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
         else:
             self.dtol = dtol
         if minimizer_str is None:
-            self.minimizer = Minimizer[
-                conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")
-            ]
+            minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+            minimizer = minimizer_string.split(".")[-1]
+            self.minimizer = Minimizer[minimizer]
         else:
             self.minimizer = Minimizer[minimizer_str]
         if opt_tol is None:
             self.opt_tol = configf.getfloat("FINDK_MCRUNNER", "opt_tol")
         else:
             self.opt_tol = opt_tol
->>>>>>> 9af4ae837b0a5d06eb5b216b8423eb19ae30a2be
+            
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")
