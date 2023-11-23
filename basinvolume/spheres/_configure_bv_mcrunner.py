@@ -248,7 +248,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
-        self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
+        minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+        minimizer = minimizer_string.split(".")[-1]
+        self.minimizer = Minimizer[minimizer]
         self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
         self.opt_kwargs = ast.literal_eval(conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}"))
         configf.read(str(self.kmin_configpath))

@@ -126,11 +126,9 @@ class KminMCRunner(ConfigMCRunner):
             self.dtol = dtol
 
         if minimizer is None:
-            self.minimizer = Minimizer[
-                conf_get_default(
-                    configf, "FINDK_MCRUNNER", "minimizer", "FIRE"
-                )
-            ]
+            minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+            minimizer = minimizer_string.split(".")[-1]
+            self.minimizer = Minimizer[minimizer]
         else:
             self.minimizer = Minimizer[minimizer]
 
