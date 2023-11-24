@@ -266,6 +266,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
             self.opt_tol = configf.getfloat("FINDK_MCRUNNER", "opt_tol")
         else:
             self.opt_tol = opt_tol
+        self.opt_kwargs = ast.literal_eval(
+            conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}")
+        )
             
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
