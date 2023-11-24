@@ -71,10 +71,10 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
             hmin=hmin,
             hmax=hmax,
             hbinsize=hbinsize,
-            opt_dtmax=self.opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
+            opt_kwargs = self.opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,
@@ -194,7 +194,10 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         minimizer = minimizer_string.split(".")[-1]
         self.minimizer = Minimizer[minimizer]
         self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
-        self.opt_dtmax = configf.getfloat("FINDK_MCRUNNER","opt_dtmax")
+        self.opt_kwargs = ast.literal_eval(
+            conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}")
+        )
+        
         # import mean displacement of replica with largest k
         check_path = os.path.join(self.base_directory, "0", "hist_mean")
 
