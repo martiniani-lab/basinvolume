@@ -349,23 +349,39 @@ def setup_inner_sphere(
 
 
 def setup_compute_volume(simulation_folder, time_str, mem_str, submit=True):
+    # TODO make this more like the others with fewer hardcoded values
     ntasks = 1
     cpus_per_task = 1
+    
+    script_run_prefix = "python"
     script_location = os.path.join(
         BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py"
     )
+    
+    job_name_prefix = "bv_computevolume"
 
     out_folder = os.path.join(simulation_folder, "job_out")
-    script = GREENE_SCRIPT_TEMPLATE.format(
-        time_str=time_str,
-        mem_str=mem_str,
-        ntasks=ntasks,
-        cpus_per_task=cpus_per_task,
-        job_name="bv_compute_volume",
-        run_command=f"python {script_location}",
-        out_file=os.path.join(out_folder, "compute_volume"),
-        simulation_folder=simulation_folder,
+    out_file = f"{out_folder}/{job_name_prefix}"
+    explore_dir_prefix = "explore_bv_jammed_packing"
+    
+    run_command = (
+        f"{script_run_prefix} {script_location} -w {simulation_folder}"
     )
+    
+    script = GREENE_SCRIPT_TEMPLATE.format(
+                time_str=time_str,
+                ntasks=ntasks,
+                cpus_per_task=cpus_per_task,
+                mem_str=mem_str,
+                out_file=out_file,
+                run_command=run_command,
+                simulation_folder=simulation_folder,
+                email=USER_EMAIL,
+                email_type=EMAIL_TYPE,
+                ext3_file=EXT3_FILE,
+                conda_env=CONDA_ENV,
+                singularity_overlay=GREENE_SINGULARITY_OVERLAY,
+            )
     script_save_folder = os.path.join(simulation_folder, "job_scripts")
     with open(
         os.path.join(script_save_folder, "compute_volume.sh"), "w"

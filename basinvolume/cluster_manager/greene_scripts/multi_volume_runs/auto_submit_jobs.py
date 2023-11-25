@@ -134,7 +134,6 @@ def submit_jobs(simulation_dir, generate_packings=False):
         )
     return
 
-
 def main():
     parser = argparse.ArgumentParser(
         description="Automatically submits the next step of the basin volume calculation to a slurm interface. Assumes that generate_packin has already been run."

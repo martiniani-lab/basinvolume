@@ -1055,6 +1055,7 @@ if __name__ == "__main__":
     fdir = args.fdir
     wdir = args.workdir
     assert os.path.isabs(wdir)
+    os.chdir(wdir)
 
     sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
     if fname != None:
