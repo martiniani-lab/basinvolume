@@ -16,6 +16,7 @@ from basinvolume.enums import Minimizer
 import configparser
 import time
 import warnings
+import ast
 
 
 def _subtract_com(x, ndim=3):
