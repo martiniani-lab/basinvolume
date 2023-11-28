@@ -260,8 +260,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 rtol=rtol,
             )
         elif self.minimizer is Minimizer.MXD:
-            atol = self.opt_kwargs["atol_values"][len(self.start_coords) // self.bdim]
-            rtol = self.opt_kwargs["rtol_values"][len(self.start_coords) // self.bdim]
+            atol = self.opt_kwargs["atol_values"][str(len(self.start_coords) // self.bdim)]
+            rtol = self.opt_kwargs["rtol_values"][str(len(self.start_coords) // self.bdim)]
             optimizer = ExtendedMixedOptimizer(
                 self.pot_optimizer,
                 self.start_coords,
