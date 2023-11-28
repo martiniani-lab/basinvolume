@@ -211,6 +211,13 @@ if __name__ == "__main__":
         help="K spreading method, options: \
         gausslobato, linspace, logspace, positionlinspace",
     )
+    parser.add_argument(
+        "--bias",
+        type = str,
+        default = "harmonic",
+        help = "Biasing potentials used in umbrella sampling, options:\
+            harmonic, radial_gaussian"
+    )
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
@@ -377,6 +384,7 @@ if __name__ == "__main__":
                         numnegk=args.numnegk,
                         lownegk=args.lownegk,
                         k_spreading=args.k_spreading,
+                        bias = args.bias,
                         print_status=args.verbose,
                         base_directory=path,
                         sleep_seconds=args.sleep_seconds,
@@ -447,6 +455,7 @@ if __name__ == "__main__":
             numnegk=args.numnegk,
             lownegk=args.lownegk,
             k_spreading=args.k_spreading,
+            bias=args.bias,
             base_directory=path,
         )
         assert ptreplica.rank == rank, "rank id does not match"

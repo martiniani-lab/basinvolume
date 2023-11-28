@@ -451,7 +451,7 @@ class BV_MCRunner_State(object):
         state=None,
         coords=None,
         energy=0.0,
-        k=0.0,
+        bias_params = None,
         stepsize=0.0,
         counters=None,
         takestep_count=0,
@@ -460,7 +460,7 @@ class BV_MCRunner_State(object):
         if state is None:
             self.coords = coords
             self.energy = energy
-            self.k = k
+            self.bias_params = bias_params
             self.stepsize = stepsize
             self.counters = counters
             self.takestep_count = takestep_count
@@ -471,7 +471,7 @@ class BV_MCRunner_State(object):
     def _set_state(self, state):
         self.coords = state.coords
         self.energy = state.energy
-        self.k = state.k
+        self.bias_params = state.bias_params
         self.stepsize = state.stepsize
         self.counters = state.counters
         self.takestep_count = state.takestep_count
@@ -484,10 +484,10 @@ class BV_MCrunner(SpheresMCRunner):
 
     Parameters
     ----------
-    potential : pele potential
-        Harmonic potential used in the thermodynamic integration.
-        These are the harmonic springs that tie each particle to its original
-        position during the walk.
+    bias_potential : pele potential
+        Biasing potential used in the thermodynamic integration.
+        These can be harmonic springs that tie each particle to its original
+        position during the walk, or any arbitrary bias.
     coords : array
         Initial coordinates, can be the same as origin. These must be the full coordinates
     temperature : double
@@ -510,7 +510,7 @@ class BV_MCrunner(SpheresMCRunner):
         Array of rattler status if degrees of freedom. If dof does not belong to
         rattler, 1, if dof does belong to rattler, 0.
     k : double
-        Sping constant for harmonic potential.
+        Sping constant for harmonic potential. # XXX SHOULD MAKE THIS BETTER FOR ARGS
     dtol : double
         Tolerance on the rms distance of the minimised structure to the origin.
     eps : double
@@ -577,7 +577,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def __init__(
         self,
-        potential,
+        bias_potential,
         full_coords,
         temperature,
         stepsize,
@@ -638,7 +638,7 @@ class BV_MCrunner(SpheresMCRunner):
         self.acceptance = acceptance
         self.single = single
         super(BV_MCrunner, self).__init__(
-            potential,
+            bias_potential,
             full_coords,
             temperature,
             stepsize,
@@ -733,6 +733,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def set_control(self, c, reset=True):
         """set temperature, canonical control parameter"""
+        # XXX DOES THIS NEED CHANGES?
         self.k = c
         self.potential.set_k(c)
         if reset:
@@ -869,7 +870,7 @@ class BV_MCrunner(SpheresMCRunner):
         return BV_MCRunner_State(
             coords=self.get_coords(),
             energy=self.get_energy(),
-            k=self.k,
+            bias_params=self.bias_params,
             stepsize=self.takestep.get_stepsize(),
             counters=self.get_counters(),
             takestep_count=self.takestep.get_count(),
@@ -878,7 +879,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def set_complete_state(self, mcrunner_state):
         self.set_config(mcrunner_state.coords, mcrunner_state.energy)
-        self.set_control(mcrunner_state.k, reset=False)
+        self.set_control(mcrunner_state.bias_params, reset=False)
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)

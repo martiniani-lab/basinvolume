@@ -51,46 +51,42 @@ class ReplicaState(BV_MCRunner_State):
         self._set_state(mcrunner_state)
 
     def serialize(self):
+        n_bias_params = self.bias_params.shape[0]
+
         data = np.empty(self.size(), dtype="d")
         data[0] = self.id
         data[1] = self.dx
         data[2] = self.energy
-        data[3] = self.k
-        data[4] = self.stepsize
-        data[5] = self.takestep_count
-        data[6 : 6 + len(self.coords)] = self.coords
-        data[
-            6 + len(self.coords) : 6 + len(self.coords) + len(self.counters)
-        ] = self.counters
-        data[
-            6 + len(self.coords) + len(self.counters) :
-        ] = self.step_adaptation_counters
+        data[3:3 + n_bias_params] = self.bias_params
+        data[3 + n_bias_params] = self.stepsize
+        data[4 + n_bias_params] = self.takestep_count
+        data[5 + n_bias_params : 5 + n_bias_params + len(self.coords)] = self.coords
+        data[5 + n_bias_params + len(self.coords) : 5 + n_bias_params + len(self.coords) + len(self.counters)] = self.counters
+        data[5 + n_bias_params + len(self.coords) + len(self.counters) :] = self.step_adaptation_counters
         return data
 
     def deserialize(self, value):
+        n_bias_params = self.bias_params.shape[0]
+        
         self.id = int(value[0])
         self.dx = value[1]
         self.energy = value[2]
-        self.k = value[3]
-        self.stepsize = value[4]
-        self.takestep_count = int(value[5])
-        self.coords = value[6 : 6 + len(self.coords)]
+        self.bias_params = value[3: 3 + n_bias_params]
+        self.stepsize = value[3 + n_bias_params]
+        self.takestep_count = int(value[4 + n_bias_params])
+        self.coords = value[5 + n_bias_params : 5 + n_bias_params + len(self.coords)]
         self.counters = np.array(
-            value[
-                6
-                + len(self.coords) : 6
-                + len(self.coords)
-                + len(self.counters)
-            ],
+            value[5 + n_bias_params + len(self.coords) : 5 + n_bias_params + len(self.coords) + len(self.counters)],
             dtype="uintp",
         )
         self.step_adaptation_counters = np.array(
-            value[6 + len(self.coords) + len(self.counters) :], dtype="uintp"
+            value[5 + n_bias_params + len(self.coords) + len(self.counters) :], dtype="uintp"
         )
 
     def size(self):
+        n_bias_params = self.bias_params.shape[0]
         return (
-            6
+            5 +  n_bias_params
             + len(self.coords)
             + len(self.counters)
             + len(self.step_adaptation_counters)
@@ -121,6 +117,7 @@ class PT_Master(object):
         numnegk=0,
         lownegk=-2.5,
         k_spreading="gausslobato",
+        bias = "harmonic",
         print_status=False,
         base_directory=None,
         bs_nodes=100,
@@ -182,6 +179,7 @@ class PT_Master(object):
         self.numnegk = int(numnegk)
         self.lownegk = lownegk
         self.k_spreading = k_spreading
+        self.bias = bias
         self._init_replicas(example_mcrunner)
         self._init_timeseries()
         self._init_print()
@@ -235,12 +233,12 @@ class PT_Master(object):
             )
 
     def _init_replicas(self, example_mcrunner):
-        ks = self._get_ks()
+        bias_params = self._get_bias_params()
         start_state = example_mcrunner.get_complete_state()
         self.replica_states = []
         for i in range(self.nreplicas):
             self.replica_states.append(ReplicaState(i, start_state))
-            self.replica_states[-1].k = ks[i]
+            self.replica_states[-1].bias_params = bias_params[i]
 
     def _init_timeseries(self):
         self.replica_timeseries = [[] for _ in range(self.nreplicas)]
@@ -257,7 +255,7 @@ class PT_Master(object):
         else:
             mode = "w"
             trymakedir(self.base_directory)
-            self._print_ks()
+            self._print_bias_params()
         self.ex_outstream = open(
             os.path.join(self.base_directory, "exchanges"), mode
         )
@@ -284,7 +282,7 @@ class PT_Master(object):
                     )
                 )
 
-    def _get_ks(self):
+    def _get_bias_params(self):
         """
         set up the spring constants (temperatures).
         They can be distributed exponentially if the k_spreading option reads gausslobato.
@@ -292,50 +290,75 @@ class PT_Master(object):
         We order the spring constants from highest to lowest, to calculate the
         more costly replica first.
         """
-        nposk = self.nreplicas - self.numnegk  # number of positive k
-        if self.k_spreading == "gausslobato":
-            Karray = spring_constants_variable_transform(
-                nposk + 1,
-                self.kmax,
-                self.u2meank0,
-                self.nparticles,
-                self.bdim,
-                self.kmin,
-            )
-        elif self.k_spreading == "linspace":
-            Karray = spring_constants_linspace(nposk + 1, self.kmax, self.kmin)
-        elif self.k_spreading == "logspace":
-            Karray = spring_constants_logspace(nposk + 1, self.kmax, self.kmin)
-        elif self.k_spreading == "positionlinspace":
-            Karray = spring_constants_positionlinspace(
-                nposk + 1, self.kmax, self.u2meank0, self.nparticles, self.bdim
-            )
-        else:
-            raise NotImplementedError
-        Karray = Karray[
-            :-1
-        ]  # exclude kmax entry, no need to be simulated, mean is already available
-        if self.numnegk > 0:
-            if self.k_spreading == "positionlinspace":
-                negKarray = neg_spring_constants_positionlinspace(
-                    self.numnegk,
+        if self.bias == "harmonic":
+        
+            nposk = self.nreplicas - self.numnegk  # number of positive k
+            
+            if self.k_spreading == "gausslobato":
+                Karray = spring_constants_variable_transform(
                     nposk + 1,
                     self.kmax,
                     self.u2meank0,
                     self.nparticles,
                     self.bdim,
+                    self.kmin,
                 )
-                for x in negKarray[::-1]:
-                    Karray.insert(0, x)
+            elif self.k_spreading == "linspace":
+                Karray = spring_constants_linspace(nposk + 1, self.kmax, self.kmin)
+            elif self.k_spreading == "logspace":
+                Karray = spring_constants_logspace(nposk + 1, self.kmax, self.kmin)
+            elif self.k_spreading == "positionlinspace":
+                Karray = spring_constants_positionlinspace(
+                    nposk + 1, self.kmax, self.u2meank0, self.nparticles, self.bdim
+                )
             else:
-                negKarray = neg_spring_constants_logspace(
-                    self.numnegk, self.lownegk
-                )
-                for x in negKarray[::-1]:
-                    Karray.insert(0, x)
-        # Reverse Karray for backwards compatibility
-        Karray = Karray[::-1]
-        return Karray
+                raise NotImplementedError
+            Karray = Karray[
+                :-1
+            ]  # exclude kmax entry, no need to be simulated, mean is already available
+            if self.numnegk > 0:
+                if self.k_spreading == "positionlinspace":
+                    negKarray = neg_spring_constants_positionlinspace(
+                        self.numnegk,
+                        nposk + 1,
+                        self.kmax,
+                        self.u2meank0,
+                        self.nparticles,
+                        self.bdim,
+                    )
+                    for x in negKarray[::-1]:
+                        Karray.insert(0, x)
+                else:
+                    negKarray = neg_spring_constants_logspace(
+                        self.numnegk, self.lownegk
+                    )
+                    for x in negKarray[::-1]:
+                        Karray.insert(0, x)
+            # Reverse Karray for backwards compatibility
+            Karray = Karray[::-1]
+            return Karray
+        
+        elif self.bias == "radial_gaussian":
+            # Need both centerings and widths for the gaussians
+            
+            nposk = self.nreplicas - self.numnegk  # number of positive k
+            
+            # Set all widths equal to RMSD of kmin / nposk, or k = nposk / RMSD to keep spring constants
+            k = nposk / np.sqrt(self.u2meank0)
+            Karray = k * np.ones(self.nreplicas)
+            
+            # Force the k = 0 case
+            Karray[nposk] = 0.0
+            
+            # Set center positions of 1d gaussians for "positive" replicas to be linearly spaced between 0 and RMSD (both excluded)
+            spacing = np.sqrt(self.u2meank0) / (nposk+1)
+            Rnarray = (np.arange(self.nreplicas) + 1 ) * spacing
+            # The Rnarray at k = 0 does not matter so it does not need to be set
+            
+            return np.transpose(np.vstack([Karray, Rnarray]))
+            
+        else:
+            raise NotImplementedError
 
     def run(self):
         if self.checkpoint_time is not None:
@@ -512,37 +535,41 @@ class PT_Master(object):
         return exchange_pattern
 
     def _independence_sampling(self, exchange_pattern):
-        dxs = np.array([replica.dx for replica in self.replica_states])
-        betas = np.array([replica.k for replica in self.replica_states])
+        
+        if self.bias == "harmonic":
+            dxs = np.array([replica.dx for replica in self.replica_states])
+            betas = np.array([replica.bias_params for replica in self.replica_states])
 
-        # According to Chodera & Shirts 2011 nreplicas**3 to nreplicas**5 exchanges
-        # should be sufficient
-        nexchanges = self.nreplicas**3
+            # According to Chodera & Shirts 2011 nreplicas**3 to nreplicas**5 exchanges
+            # should be sufficient
+            nexchanges = self.nreplicas**3
 
-        naccept = self.indep_sampling.exchange(
-            exchange_pattern, dxs, betas, nexchanges
-        )
+            naccept = self.indep_sampling.exchange(
+                exchange_pattern, dxs, betas, nexchanges
+            )
 
-        if naccept > 0:
-            self.anyswap = True
+            if naccept > 0:
+                self.anyswap = True
 
-        logging.debug("Acceptance ratio: %f" % (naccept / nexchanges))
-        if logging.getLogger().isEnabledFor(logging.DEBUG):
-            for i in range(self.nreplicas):
-                j = exchange_pattern[i]
-                if i != j:
-                    self.ex_outstream.write(
-                        "{}: Accepting exchange {:>2} -> {:<2}: "
-                        "{:.4g} -> {:.4g}, {:.4g} -> {:.4g}\n".format(
-                            self.ptiter,
-                            i,
-                            j,
-                            self.replica_states[i].dx,
-                            self.replica_states[j].dx,
-                            self.replica_states[i].k,
-                            self.replica_states[j].k,
+            logging.debug("Acceptance ratio: %f" % (naccept / nexchanges))
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
+                for i in range(self.nreplicas):
+                    j = exchange_pattern[i]
+                    if i != j:
+                        self.ex_outstream.write(
+                            "{}: Accepting exchange {:>2} -> {:<2}: "
+                            "{:.4g} -> {:.4g}, {:.4g} -> {:.4g}\n".format(
+                                self.ptiter,
+                                i,
+                                j,
+                                self.replica_states[i].dx,
+                                self.replica_states[j].dx,
+                                self.replica_states[i].bias_params,
+                                self.replica_states[j].bias_params,
+                            )
                         )
-                    )
+        else:
+            raise NotImplementedError
 
     def _neighbor_exchange(self, exchange_pattern):
         """
@@ -551,15 +578,33 @@ class PT_Master(object):
         """
         for i in range(self.exchange_choice, self.nreplicas - 1, 2):
             dx1 = self.replica_states[i].dx
-            k1 = self.replica_states[i].k
             dx2 = self.replica_states[i + 1].dx
-            k2 = self.replica_states[i + 1].k
+            
+            bias_params1 = self.replica_states[i].bias_params
+            bias_params2 = self.replica_states[i + 1].bias_params
+            
+            if self.bias == "harmonic":
+                # Hamiltonian replica exchange for pure springs
+                k1 = bias_params1
+                k2 = bias_params2
+                deltaE = 0.5 * dx2 * dx2 - 0.5 * dx1 * dx1
+                deltabeta = (k2 - k1)
 
-            # Hamiltonian replica exchange
-            deltaE = 0.5 * dx2 * dx2 - 0.5 * dx1 * dx1
-            deltabeta = k2 - k1
+            elif self.bias == "radial_gaussian":
+                k1 = bias_params1[0]
+                k2 = bias_params2[0]
+                l1 = bias_params1[1]
+                l2 = bias_params2[1]
+                
+                E2 = 0.5 * (dx2 - l2)**2 + (self.nparticles * self.bdim - 1) * np.log(dx2) / k2
+                E1 = 0.5 * (dx1 - l1)**2 + (self.nparticles * self.bdim - 1) * np.log(dx1) / k1
+                deltaE = E2 - E1
+                deltabeta = (k2 - k1)
+                
+            else:
+                raise NotImplementedError
+
             w = np.exp(deltaE * deltabeta)
-
             rand = np.random.rand()
             if w > rand:
                 # accept exchange
@@ -576,7 +621,7 @@ class PT_Master(object):
                     self.ex_outstream.write(
                         "{}: Accepting exchange {:>2} <-> {:<2} ({:.4g} > {:.4g}): "
                         "{:.4g} <-> {:.4g}, {:.4g} <-> {:.4g}\n".format(
-                            self.ptiter, i, i + 1, w, rand, dx1, dx2, k1, k2
+                            self.ptiter, i, i + 1, w, rand, dx1, dx2, bias_params1, bias_params2
                         )
                     )
         if self.exchange_choice == 0:
@@ -787,12 +832,12 @@ class PT_Master(object):
                 )
             self.status_streams[ireplica].write("\n")
 
-    def _print_ks(self):
-        fname = os.path.join(self.base_directory, "temperatures")
+    def _print_bias_params(self):
+        fname = os.path.join(self.base_directory, "biases")
         with open(fname, "w") as kfile:
             for ireplica in range(self.nreplicas):
                 kfile.write(
-                    "{:1.16f}\n".format(self.replica_states[ireplica].k)
+                    f"{self.replica_states[ireplica].bias_params}\n"
                 )
 
     def _print_stepsizes(self):
@@ -809,7 +854,7 @@ class PT_Master(object):
         with open(fname, "w") as paramfile:
             paramfile.write("node:\t{0}\n".format(ireplica))
             paramfile.write(
-                "temperature:\t{0}\n".format(self.replica_states[ireplica].k)
+                "bias:\t{0}\n".format(self.replica_states[ireplica].bias_params)
             )
             paramfile.write("PT iterations:\t{0}\n".format(self.max_ptiter))
             paramfile.write(

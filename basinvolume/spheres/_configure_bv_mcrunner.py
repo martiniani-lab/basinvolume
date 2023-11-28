@@ -40,6 +40,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         fname,
         k=1.0,
         temperature=1.0,
+        bias = "harmonic",
         stepsize=1e-1,
         niter=2e4,
         eps=1.0,
@@ -74,9 +75,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
         hbinsize = self._get_histogram_bin(k)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         self.eps = eps
+        self.bias = bias
 
         # set parameters
-        # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
             k=k,
             dtol=self.dtol,
@@ -123,9 +124,19 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
         # harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
+        # XXX bias goes here!
+        if bias == "harmonic":
+            bias_potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
+        elif bias == "radial_gaussian":
+            #XXX need to define all these!
+            bias_potential = Radial_gaussian(self.coords, mean_distance, standard_deviation, bdim = self.bdim, com=True)
+        else:
+            raise NotImplementedError(
+                "bias={} not implemented".format(bias)
+            )
+           
         mcrunner = BV_MCrunner(
-            potential,
+            bias_potential,
             self.coords,
             temperature,
             stepsize,
@@ -248,7 +259,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
-        self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
+        minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+        minimizer = minimizer_string.split(".")[-1]
+        self.minimizer = Minimizer[minimizer]
         self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
         self.opt_kwargs = ast.literal_eval(conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}"))
         configf.read(str(self.kmin_configpath))
