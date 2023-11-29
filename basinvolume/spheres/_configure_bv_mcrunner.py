@@ -8,7 +8,7 @@ from builtins import range
 import numpy as np
 import os
 import logging
-from pele.potentials import Harmonic
+from pele.potentials import Harmonic, RadialGaussian
 from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir, conf_get_default
 from basinvolume.spheres import read_jammed_packing_config
@@ -125,13 +125,14 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
         # harmonic potential with fixed centre of mass
-        # XXX bias goes here!
         print(bias)
         if bias == "harmonic":
             bias_potential = Harmonic(self.coords, bias_params[0], bdim=self.bdim, com=True)
         elif bias == "radial_gaussian":
             #XXX need to define all these!
-            bias_potential = Radial_gaussian(self.coords, bias_params[0], bias_params[1], bdim = self.bdim, com=True)
+            bias_params = np.array([1.0, 1.0])
+            print(bias_params)
+            bias_potential = RadialGaussian(self.coords, bias_params[0], bias_params[1], bdim = self.bdim, com=True)
         else:
             raise NotImplementedError(
                 "bias={} not implemented".format(bias)
