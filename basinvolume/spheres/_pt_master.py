@@ -84,6 +84,7 @@ class ReplicaState(BV_MCRunner_State):
         )
 
     def size(self):
+        print(self.bias_params)
         n_bias_params = self.bias_params.shape[0]
         return (
             5 +  n_bias_params

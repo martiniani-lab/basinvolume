@@ -319,6 +319,7 @@ if __name__ == "__main__":
 
     mcrunner = sim(
         fname,
+        bias = args.bias,
         niter=niter,
         stepsize=args.stepsize,
         opt_nsteps=args.opt_nsteps,

@@ -119,7 +119,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         boxv,
         sca,
         rattlers=None,
-        k=1.0,
+        bias_params=np.array([1.0]),
+        bias = "harmonic",
         dtol=1e-3,
         eps=1.0,
         hmin=0,
@@ -171,7 +172,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             sca,
             avgcount=avgcount,
             rattlers=rattlers,
-            k=k,
+            bias_params=bias_params,
+            bias = bias,
             dtol=dtol,
             eps=eps,
             hmin=hmin,
@@ -413,7 +415,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             self.conftest2.dump_minima(minima_dicts)
             # add spring constant to user_data
             for m in minima_dicts:
-                m["user_data"].update(k=self.k)
+                # XXX Is this good?
+                m["user_data"].update(k=self.bias_params[0])
                 if self.use_frozen:
                     redcoords = m["coords"]
                     m["coords"] = full_coordinates(
@@ -587,7 +590,8 @@ class BV_MCrunner(SpheresMCRunner):
         boxv,
         sca,
         rattlers=None,
-        k=1.0,
+        bias_params= np.array([1.0]),
+        bias = "harmonic",
         dtol=1e-3,
         eps=1.0,
         hmin=0,
@@ -648,7 +652,8 @@ class BV_MCrunner(SpheresMCRunner):
             boxv,
             sca,
             rattlers=rattlers,
-            k=k,
+            bias_params=bias_params,
+            bias = bias,
             dtol=dtol,
             eps=eps,
             hmin=hmin,
@@ -675,7 +680,7 @@ class BV_MCrunner(SpheresMCRunner):
             pot_kwargs=pot_kwargs,
         )
         # set control
-        self.set_control(k)
+        self.set_control(bias_params[0])
 
     def _set_takestep(self, stepsize):
         self.takestep = RandomCoordsDisplacement(
@@ -733,8 +738,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def set_control(self, c, reset=True):
         """set temperature, canonical control parameter"""
-        # XXX DOES THIS NEED CHANGES?
-        self.k = c
+        self.bias_params = c
         self.potential.set_k(c)
         if reset:
             self.reset_energy()
@@ -823,12 +827,12 @@ class BV_MCrunner(SpheresMCRunner):
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
         and2 = old_div(
-            vec_analytical_d2(val, self.k, self.nparticles),
+            vec_analytical_d2(val, self.bias_params[0], self.nparticles),
             quad(
                 vec_analytical_d2,
                 bincenters[0],
                 bincenters[-1],
-                args=(self.k, self.nparticles),
+                args=(self.bias_params[0], self.nparticles),
             )[0],
         )
         plt.plot(
@@ -964,7 +968,7 @@ class Findk_MCrunner(SpheresMCRunner):
             boxv,
             sca=sca,
             rattlers=rattlers,
-            k=1,
+            bias_params=np.array([1]),
             dtol=dtol,
             avgcount=avgcount,
             eps=eps,
