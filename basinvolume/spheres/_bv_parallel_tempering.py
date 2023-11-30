@@ -480,7 +480,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                     T1 = self.params_array[i]
                     T2 = self.params_array[i + self.exchange_choice]
                     
-                    # Hamiltonia replica exchange
+                    # Hamiltonian replica exchange
                     deltaE = 0.5 * dx2 * dx2 - 0.5 * dx1 * dx1
                     deltabeta = T2 - T1
                     

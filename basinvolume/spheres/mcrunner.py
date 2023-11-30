@@ -682,6 +682,7 @@ class BV_MCrunner(SpheresMCRunner):
         
         self.bias_potential = bias_potential
         self.bias = bias
+        self.full_coords = full_coords
         
         # set bias parameters in potential
         self.set_bias_parameters(bias, bias_params)
@@ -746,11 +747,13 @@ class BV_MCrunner(SpheresMCRunner):
         if bias == "harmonic": 
             self.bias_potential.set_k(bias_params[0])
         elif bias == "radial_gaussian": 
-            if bias_params[0] == 0.0: #XXX Make the bias of the k = 0 Harmonic! Otherwise, there will be an unwanted log in it
-                self.bias_potential = Harmonic(self.coords, bias_params[0], bdim=self.bdim, com=True)
-            else:
                 self.bias_potential.set_k(bias_params[0])
                 self.bias_potential.set_l0(bias_params[1])
+                if bias_params[0] == 0.0:
+                    # remove the log part for k= 0 run
+                    self.bias_potential.set_log_prefactor(0.0)
+                else:
+                    self.bias_potential.set_log_prefactor(1.0) # If temperature != 1.0, this should be 1/beta so that exp(- beta log_term ) = r^(1-d)
         else: 
             raise NotImplementedError
         if reset:
