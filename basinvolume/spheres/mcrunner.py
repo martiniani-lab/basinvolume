@@ -512,8 +512,8 @@ class BV_MCrunner(SpheresMCRunner):
     rattlers : array of bool
         Array of rattler status if degrees of freedom. If dof does not belong to
         rattler, 1, if dof does belong to rattler, 0.
-    k : double
-        Sping constant for harmonic potential. # XXX SHOULD MAKE THIS BETTER FOR ARGS
+    bias_params : list of doubles
+        Parameters for biasing potential. # XXX SHOULD MAKE THIS A DICT IDEALLY?
     dtol : double
         Tolerance on the rms distance of the minimised structure to the origin.
     eps : double
@@ -705,7 +705,7 @@ class BV_MCrunner(SpheresMCRunner):
         self.metropolis = MetropolisTest(self.seeds["seed_metropolis"])
         self.add_accept_test(
             self.metropolis
-        )  # metropolis uses the harmonic potential
+        )
 
     def _set_actions(self):
         self.time_series = RecordDisplacementTimeseries(

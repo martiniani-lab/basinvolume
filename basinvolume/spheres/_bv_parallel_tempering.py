@@ -486,16 +486,21 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                     
                 elif self.bias == "radial_gaussian":
                     
-                    T1 = self.params_array[i][0]
-                    T2 = self.params_array[i + self.exchange_choice][0]
+                    k1 = self.params_array[i][0]
+                    k2 = self.params_array[i + self.exchange_choice][0]
                     l1 = self.params_array[i][1]
                     l2 = self.params_array[i + self.exchange_choice][1]
                     
-                    E2 = self.energies_radial_gaussian(dx2, l2, T2)
-                    E1 = self.energies_radial_gaussian(dx1, l1, T1)
+                    # E2 = self.reduced_energies_radial_gaussian(dx2, l2, k2)
+                    # E1 = self.reduced_energies_radial_gaussian(dx1, l1, k1)
                     
-                    deltaE = E2 - E1
-                    deltabeta = T2 - T1
+                    # deltaE = E2 - E1
+                    # deltabeta = T2 - T1 # XXX THINK ABOUT IT HERE! PROBABLY BAD SINCE ALL K'S EQUAL
+                    
+                    Eold = self.energies_radial_gaussian(dx1, k1, l1) + self.energies_radial_gaussian(dx2, k2, l2)
+                    Enew = self.energies_radial_gaussian(dx2, k1, l1) + self.energies_radial_gaussian(dx1, k2, l2)
+                                    
+                    w = np.exp(Eold - Enew)
                     
                 else:
                     raise NotImplementedError
@@ -555,8 +560,14 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         # logging.debug("exchange_pattern: {}".format(exchange_pattern))
         return exchange_pattern
 
-    def energies_radial_gaussian(self, dx, l0, T):
+    def reduced_energies_radial_gaussian(self, dx, l0, T):
         E = 0.5 * (dx - l0)**2
         if T != 0.0:
             E += (self.nparticles * self.bdim - 1) * np.log(dx) / T
+        return E
+    
+    def energies_radial_gaussian(self, dx, k, l0):
+        E = 0.5 * k * (dx - l0)**2
+        if k != 0.0:
+            E += (self.nparticles * self.bdim - 1) * np.log(dx)
         return E

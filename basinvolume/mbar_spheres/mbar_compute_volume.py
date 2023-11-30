@@ -138,6 +138,7 @@ class mbar_compute_dos(object):
         kde=True,
         plot_dos_data=True,
         ncores=7,
+        bias = "harmonic"
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -146,6 +147,7 @@ class mbar_compute_dos(object):
         self.bootstrap = bootstrap
         self.plot_dos_data = plot_dos_data
         self.ncores = ncores
+        self.bias = bias
 
     def __call__(
         self,
@@ -380,19 +382,28 @@ class mbar_compute_dos(object):
         must run before import u2
         """
         karray = []
-        path = os.path.join(self.explore_dir, "temperatures")
+        l0array = []
+        path = os.path.join(self.explore_dir, "biases")
         f = open(path, "r")
         while True:
-            k = f.readline()
-            if not k:
+            param_row = f.readline()
+            if not param_row:
                 break
+            k = param_row.split(' ')[0] # XXX Change depending on bias
             karray.extend([float(k)])
+            if self.bias == "radial_gaussian":
+                l0 = param_row.split(' ')[1]
+                l0array.extend([float(l0)])
         # prepend k innersphere
         # the list must be visited in reverse order to respect the innermost = first convention
         for k_innersphere in reversed(self.ks_innersphere):
             karray.insert(0, k_innersphere)
+            l0array.insert(0,0)
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray == 0.0)[0][0]
+        if self.bias == "radial_gaussian":
+            self.l0array = np.array(l0array)
+            
 
     def _import_pt_time_series(self):
         self.timeseries = import_pt_time_series(
@@ -423,7 +434,14 @@ class mbar_compute_dos(object):
                     flat_timeseries
                 ) + 0.5 * self.karray[i] * flat_timeseries**2
             else:
-                u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
+                if self.bias == "harmonic":
+                    u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
+                elif self.bias == "radial_gaussian":
+                    u_kn[i] = 0.5 * self.karray[i] * (flat_timeseries-self.l0array[i])**2
+                    if self.karray[i] != 0.0:
+                        u_kn[i] += (self.ndof - 1) * np.log(flat_timeseries)
+                else:
+                    raise NotImplementedError
         assert self.karray.size == u_kn.shape[0]
         assert N == u_kn.shape[1]
         return u_kn
@@ -626,7 +644,7 @@ class mbar_compute_dos(object):
         # There are now several innerspheres here
         hist_unbiased = np.outer(
             0.5 * self.karray[self.number_nested_spheres :],
-            self.bin_edges[:-1] ** 2,
+            self.bin_edges[:-1] ** 2, # XXX Does this too need bias update?
         )
         for sphere_number in range(self.number_nested_spheres):
             hist_unbiased = np.vstack(
@@ -639,8 +657,8 @@ class mbar_compute_dos(object):
                 )
             )
         self.hist_unbiased = hist_unbiased
-        assert self.hist_visits.shape == self.hist_unbiased.shape
-        assert self.hist_visits.shape[0] == self.karray.size
+        assert self.hist_visits.shape == self.hist_unbiased.shape, f"Histogram visit shapes do not match: \nraw {self.hist_visits.shape}\nunbiased {self.hist_unbiased.shape}"
+        assert self.hist_visits.shape[0] == self.karray.shape[0], f"Histogram visit's shape[0] does not match karray length: \nhist {self.hist_visits.shape[0]}\nkarray {self.karray.size}"
 
     def _compute_dos(self):
         """
@@ -1060,14 +1078,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--bootstrap",
         action="store_true",
-        help="run bootstrap (slow!), default: False",
+        help="Run bootstrap (slow!), default: False", # XXX Should use the pymbar 4 bootstrap instead
         default=False,
     )
     parser.add_argument(
         "--kde",
         action="store_true",
-        help="use kernel density estimate, default: False",
+        help="Use kernel density estimate, default: False",
         default=False,
+    )
+    parser.add_argument(
+        "--bias",
+        help = "Type of biasing potential, default = harmonic",
+        default = "harmonic"
     )
     args = parser.parse_args()
 
@@ -1084,7 +1107,7 @@ if __name__ == "__main__":
     assert os.path.isabs(wdir)
 
     sim = mbar_compute_dos(
-        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True
+        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, bias = args.bias
     )
     if fname != None:
         if not os.path.isabs(fdir):

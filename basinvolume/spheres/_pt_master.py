@@ -347,15 +347,15 @@ class PT_Master(object):
             k = nposk / np.sqrt(self.u2meank0)
             Karray = k * np.ones(self.nreplicas)
             
-            # Force the k = 0 case
-            Karray[nposk] = 0.0
-            
             # Set center positions of 1d gaussians for "positive" replicas to be linearly spaced between 0 and RMSD (both excluded)
             spacing = np.sqrt(self.u2meank0) / (nposk+1)
-            Rnarray = (np.arange(self.nreplicas) + 1 ) * spacing
-            # The Rnarray at k = 0 does not matter so it does not need to be set
+            l0array = (np.arange(self.nreplicas) + 1 ) * spacing
             
-            return np.transpose(np.vstack([Karray, Rnarray]))
+            # Force the k = 0 case
+            Karray[nposk] = 0.0
+            l0array[nposk] = 0.0
+            
+            return np.transpose(np.vstack([Karray, l0array]))
             
         else:
             raise NotImplementedError
@@ -589,6 +589,8 @@ class PT_Master(object):
                 k2 = bias_params2
                 deltaE = 0.5 * dx2 * dx2 - 0.5 * dx1 * dx1
                 deltabeta = (k2 - k1)
+                
+                w = np.exp(deltaE * deltabeta)
 
             elif self.bias == "radial_gaussian":
                 k1 = bias_params1[0]
@@ -597,16 +599,22 @@ class PT_Master(object):
                 l2 = bias_params2[1]
                 
                 
-                E2 = self.energies_radial_gaussian(dx2, l2, k2)
-                E1 = self.energies_radial_gaussian(dx1, l1, k1)
+                # E2 = self.energies_radial_gaussian(dx2, l2, k2)
+                # E1 = self.energies_radial_gaussian(dx1, l1, k1)
                 
-                deltaE = E2 - E1
-                deltabeta = (k2 - k1)
+                # deltaE = E2 - E1
+                # deltabeta = (k2 - k1)
+                # XXX THINK ABOUT IT HERE! PROBABLY BAD SINCE ALL K'S EQUAL
+                
+                Eold = self.energies_radial_gaussian(dx1, k1, l1) + self.energies_radial_gaussian(dx2, k2, l2)
+                Enew = self.energies_radial_gaussian(dx2, k1, l1) + self.energies_radial_gaussian(dx1, k2, l2)
+                
+                w = np.exp(Eold - Enew)
                 
             else:
                 raise NotImplementedError
 
-            w = np.exp(deltaE * deltabeta)
+            # print(w)
             rand = np.random.rand()
             if w > rand:
                 # accept exchange
@@ -631,10 +639,16 @@ class PT_Master(object):
         else:
             self.exchange_choice = 0
 
-    def energies_radial_gaussian(self, dx, l0, T):
+    def reduced_energies_radial_gaussian(self, dx, l0, T):
         E = 0.5 * (dx - l0)**2
         if T != 0.0:
             E += (self.nparticles * self.bdim - 1) * np.log(dx) / T
+        return E
+    
+    def energies_radial_gaussian(self, dx, k, l0):
+        E = 0.5 * k * (dx - l0)**2
+        if k != 0.0:
+            E += (self.nparticles * self.bdim - 1) * np.log(dx)
         return E
 
     def _test_convergence(self):
@@ -844,9 +858,10 @@ class PT_Master(object):
         fname = os.path.join(self.base_directory, "biases")
         with open(fname, "w") as kfile:
             for ireplica in range(self.nreplicas):
-                kfile.write(
-                    f"{self.replica_states[ireplica].bias_params}\n"
-                )
+                param_row = self.replica_states[ireplica].bias_params
+                for param in param_row:
+                    kfile.write(f"{param} ")
+                kfile.write(f"\n")
 
     def _print_stepsizes(self):
         fname = os.path.join(self.base_directory, "stepsizes")
