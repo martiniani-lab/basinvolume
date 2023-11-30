@@ -51,7 +51,7 @@ class ReplicaState(BV_MCRunner_State):
         self._set_state(mcrunner_state)
 
     def serialize(self):
-        n_bias_params = self.bias_params.shape[0]
+        n_bias_params = len(self.bias_params)
 
         data = np.empty(self.size(), dtype="d")
         data[0] = self.id
@@ -66,7 +66,7 @@ class ReplicaState(BV_MCRunner_State):
         return data
 
     def deserialize(self, value):
-        n_bias_params = self.bias_params.shape[0]
+        n_bias_params = len(self.bias_params)
         
         self.id = int(value[0])
         self.dx = value[1]
@@ -84,8 +84,7 @@ class ReplicaState(BV_MCRunner_State):
         )
 
     def size(self):
-        print(self.bias_params)
-        n_bias_params = self.bias_params.shape[0]
+        n_bias_params = len(self.bias_params)
         return (
             5 +  n_bias_params
             + len(self.coords)
@@ -597,8 +596,10 @@ class PT_Master(object):
                 l1 = bias_params1[1]
                 l2 = bias_params2[1]
                 
-                E2 = 0.5 * (dx2 - l2)**2 + (self.nparticles * self.bdim - 1) * np.log(dx2) / k2
-                E1 = 0.5 * (dx1 - l1)**2 + (self.nparticles * self.bdim - 1) * np.log(dx1) / k1
+                
+                E2 = self.energies_radial_gaussian(dx2, l2, k2)
+                E1 = self.energies_radial_gaussian(dx1, l1, k1)
+                
                 deltaE = E2 - E1
                 deltabeta = (k2 - k1)
                 
@@ -629,6 +630,12 @@ class PT_Master(object):
             self.exchange_choice = 1
         else:
             self.exchange_choice = 0
+
+    def energies_radial_gaussian(self, dx, l0, T):
+        E = 0.5 * (dx - l0)**2
+        if T != 0.0:
+            E += (self.nparticles * self.bdim - 1) * np.log(dx) / T
+        return E
 
     def _test_convergence(self):
         if self.test_convergence and self.ptiter > self.eq_min_ptiter:

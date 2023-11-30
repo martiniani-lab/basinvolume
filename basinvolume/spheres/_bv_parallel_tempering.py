@@ -390,16 +390,16 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 # Set all widths equal to RMSD of kmin / nposk, or k = nposk / RMSD to keep spring constants
                 k = nposk / np.sqrt(self.u2meank0)
                 Karray = k * np.ones(self.nprocs)
-
-                # Force the k = 0 case
-                Karray[nposk] = 0.0
             
                 # Set center positions of 1d gaussians for "positive" replicas to be linearly spaced between 0 and RMSD (both excluded)
                 spacing = np.sqrt(self.u2meank0) / (nposk+1)
-                Rnarray = (np.arange(self.nprocs) + 1) * spacing
-                # The Rnarray at k = 0 does not matter so it does not need to be set
+                l0array = (np.arange(self.nprocs) + 1) * spacing
+                
+                # Force the k = 0 case
+                Karray[nposk] = 0.0
+                l0array[nposk] = 0.0
             
-                self.params_array = np.transpose(np.vstack([Karray, Rnarray]))
+                self.params_array = np.transpose(np.vstack([Karray, l0array]))
                 
             else:
                 raise NotImplementedError
@@ -491,10 +491,11 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                     l1 = self.params_array[i][1]
                     l2 = self.params_array[i + self.exchange_choice][1]
                     
-                    E2 = 0.5 * (dx2 - l2)**2 + (self.nparticles * self.bdim - 1) * np.log(dx2) / T2
-                    E1 = 0.5 * (dx1 - l1)**2 + (self.nparticles * self.bdim - 1) * np.log(dx1) / T1
+                    E2 = self.energies_radial_gaussian(dx2, l2, T2)
+                    E1 = self.energies_radial_gaussian(dx1, l1, T1)
+                    
                     deltaE = E2 - E1
-                    deltabeta = (T2 - T1)
+                    deltabeta = T2 - T1
                     
                 else:
                     raise NotImplementedError
@@ -553,3 +554,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.exchange_choice *= -1  # swap direction of exchange choice
         # logging.debug("exchange_pattern: {}".format(exchange_pattern))
         return exchange_pattern
+
+    def energies_radial_gaussian(self, dx, l0, T):
+        E = 0.5 * (dx - l0)**2
+        if T != 0.0:
+            E += (self.nparticles * self.bdim - 1) * np.log(dx) / T
+        return E

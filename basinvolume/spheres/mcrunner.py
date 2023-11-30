@@ -119,7 +119,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         boxv,
         sca,
         rattlers=None,
-        bias_params=np.array([1.0]),
+        bias_params=None,
         bias = "harmonic",
         dtol=1e-3,
         eps=1.0,
@@ -590,7 +590,7 @@ class BV_MCrunner(SpheresMCRunner):
         boxv,
         sca,
         rattlers=None,
-        bias_params= np.array([1.0]),
+        bias_params=None,
         bias = "harmonic",
         dtol=1e-3,
         eps=1.0,
@@ -679,8 +679,12 @@ class BV_MCrunner(SpheresMCRunner):
             interaction=interaction,
             pot_kwargs=pot_kwargs,
         )
-        # set control
-        self.set_control(bias_params[0])
+        
+        self.bias_potential = bias_potential
+        self.bias = bias
+        
+        # set bias parameters in potential
+        self.set_bias_parameters(bias, bias_params)
 
     def _set_takestep(self, stepsize):
         self.takestep = RandomCoordsDisplacement(
@@ -736,10 +740,19 @@ class BV_MCrunner(SpheresMCRunner):
             for action in self.steps_timeseries_list:
                 self.add_action(action)
 
-    def set_control(self, c, reset=True):
+    def set_bias_parameters(self, bias, bias_params, reset=True): # XXX
         """set temperature, canonical control parameter"""
-        self.bias_params = c
-        self.potential.set_k(c)
+        self.bias_params = bias_params
+        if bias == "harmonic": 
+            self.bias_potential.set_k(bias_params[0])
+        elif bias == "radial_gaussian": 
+            if bias_params[0] == 0.0: #XXX Make the bias of the k = 0 Harmonic! Otherwise, there will be an unwanted log in it
+                self.bias_potential = Harmonic(self.coords, bias_params[0], bdim=self.bdim, com=True)
+            else:
+                self.bias_potential.set_k(bias_params[0])
+                self.bias_potential.set_l0(bias_params[1])
+        else: 
+            raise NotImplementedError
         if reset:
             self.reset_energy()
 
@@ -883,7 +896,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def set_complete_state(self, mcrunner_state):
         self.set_config(mcrunner_state.coords, mcrunner_state.energy)
-        self.set_control(mcrunner_state.bias_params, reset=False)
+        self.set_bias_parameters(self.bias, mcrunner_state.bias_params, reset=False) # XXX
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)
@@ -968,7 +981,7 @@ class Findk_MCrunner(SpheresMCRunner):
             boxv,
             sca=sca,
             rattlers=rattlers,
-            bias_params=np.array([1]),
+            bias_params = [1],
             dtol=dtol,
             avgcount=avgcount,
             eps=eps,

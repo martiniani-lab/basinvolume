@@ -38,7 +38,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
     def __call__(
         self,
         fname,
-        bias_params=np.array([1.0]),
+        bias_params=None,
         temperature=1.0,
         bias = "harmonic",
         stepsize=1e-1,
@@ -72,7 +72,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self._set_paths(base_dir, packings_dir)
         self._import_packing_config_files()
         self._import_packing_configuration()
-        hbinsize = self._get_histogram_bin(bias_params)
+        hbinsize = self._get_histogram_bin(temperature)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         self.eps = eps
         self.bias = bias
@@ -125,18 +125,18 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
         # harmonic potential with fixed centre of mass
-        print(bias)
         if bias == "harmonic":
+            bias_params = [1.0]
             bias_potential = Harmonic(self.coords, bias_params[0], bdim=self.bdim, com=True)
         elif bias == "radial_gaussian":
-            #XXX need to define all these!
-            bias_params = np.array([1.0, 1.0])
-            print(bias_params)
+            bias_params = [1.0, 1.0]
             bias_potential = RadialGaussian(self.coords, bias_params[0], bias_params[1], bdim = self.bdim, com=True)
         else:
             raise NotImplementedError(
                 "bias={} not implemented".format(bias)
             )
+            
+        kwargs["bias_params"] = bias_params # Needed to properly initialise with the right lengths in each list of parameters
            
         mcrunner = BV_MCrunner(
             bias_potential,
@@ -183,9 +183,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
         )
         self.configfile = "{}/explore_{}.config".format(self.base_dir, dname)
 
-    def _get_histogram_bin(self, bias_params):
+    def _get_histogram_bin(self, k):
         """automatically estimate size of histogram"""
-        hmax = self.displ_k_min * bias_params[0]  # self.displ_k_max*self.kmax
+        hmax = self.displ_k_min * k  # self.displ_k_max*self.kmax
         hbinsize = hmax * 0.0001
         return hbinsize
 
