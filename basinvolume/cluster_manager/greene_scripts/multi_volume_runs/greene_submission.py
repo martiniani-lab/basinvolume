@@ -6,6 +6,7 @@ from enum import unique, Enum
 import os
 import toml
 import numpy as np
+import subprocess
 
 # hardcoded because we don't want to import this, and the relative paths are set
 # importing basinvolume can only be done in singularity
@@ -610,9 +611,17 @@ def submit_job(
     script_path = os.path.join(
         scripts_folder, f"{job_name_prefix}_{packing_file_name}.sh"
     )
-    # write the script
-    with open(script_path, "w") as script_file:
-        script_file.write(script)
+    
+    # check if job with same script name is still running
+    user = USER_EMAIL.split("@")[0] # XXX This might be a bit too us-dependent, could adapt this
+    jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell = True)
+    conflict = script_path in jobs_list.decode()
+    if conflict:
+        print(f"Job already running for script {script_path}! Skipping.")
+    else:
+        # write the script
+        with open(script_path, "w") as script_file:
+            script_file.write(script)
 
-    if submit:
-        os.system(f"sbatch {script_path}")
+        if submit:
+            os.system(f"sbatch {script_path}")
