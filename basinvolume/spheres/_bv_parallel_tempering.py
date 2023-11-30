@@ -484,6 +484,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                     deltaE = 0.5 * dx2 * dx2 - 0.5 * dx1 * dx1
                     deltabeta = T2 - T1
                     
+                    w = np.exp(deltaE * deltabeta)
+                    
                 elif self.bias == "radial_gaussian":
                     
                     k1 = self.params_array[i][0]
@@ -505,7 +507,6 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 else:
                     raise NotImplementedError
                     
-                w = np.exp(deltaE * deltabeta)
                 rand = np.random.rand()
                 # logging.debug('w {} rand {}'.format(w,rand))
                 # logging.debug('deltaE {} deltaT {}'.format(deltaE, deltabeta))

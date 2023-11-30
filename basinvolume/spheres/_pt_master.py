@@ -614,7 +614,6 @@ class PT_Master(object):
             else:
                 raise NotImplementedError
 
-            # print(w)
             rand = np.random.rand()
             if w > rand:
                 # accept exchange
