@@ -749,6 +749,7 @@ class BV_MCrunner(SpheresMCRunner):
         elif bias == "radial_gaussian": 
                 self.bias_potential.set_k(bias_params[0])
                 self.bias_potential.set_l0(bias_params[1])
+                self.bias_potential.set_r_cutoff(bias_params[2])
                 if bias_params[0] == 0.0:
                     # remove the log part for k= 0 run
                     self.bias_potential.set_log_prefactor(0.0)

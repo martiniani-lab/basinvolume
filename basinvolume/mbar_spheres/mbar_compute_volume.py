@@ -383,26 +383,32 @@ class mbar_compute_dos(object):
         """
         karray = []
         l0array = []
+        r_cutoffarray = []
         path = os.path.join(self.explore_dir, "biases")
         f = open(path, "r")
         while True:
             param_row = f.readline()
             if not param_row:
                 break
-            k = param_row.split(' ')[0] # XXX Change depending on bias
+            params = param_row.split(' ')
+            k = params[0]
             karray.extend([float(k)])
             if self.bias == "radial_gaussian":
-                l0 = param_row.split(' ')[1]
+                l0 = params[1]
                 l0array.extend([float(l0)])
+                r_cutoff = params[2]
+                r_cutoffarray.extend([float(r_cutoff)])
         # prepend k innersphere
         # the list must be visited in reverse order to respect the innermost = first convention
         for k_innersphere in reversed(self.ks_innersphere):
             karray.insert(0, k_innersphere)
             l0array.insert(0,0)
+            r_cutoffarray.insert(0,0)
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray == 0.0)[0][0]
         if self.bias == "radial_gaussian":
             self.l0array = np.array(l0array)
+            self.r_cutoffarray = np.array(r_cutoffarray)
             
 
     def _import_pt_time_series(self):
@@ -439,7 +445,7 @@ class mbar_compute_dos(object):
                 elif self.bias == "radial_gaussian":
                     u_kn[i] = 0.5 * self.karray[i] * (flat_timeseries-self.l0array[i])**2
                     if self.karray[i] != 0.0:
-                        u_kn[i] += (self.ndof - 1) * np.log(flat_timeseries)
+                        u_kn[i] += (self.ndof - 1) * np.log(np.where(flat_timeseries > self.r_cutoffarray[i], flat_timeseries/self.r_cutoffarray[i], 1.0))
                 else:
                     raise NotImplementedError
         assert self.karray.size == u_kn.shape[0]
@@ -641,11 +647,29 @@ class mbar_compute_dos(object):
         return hist_visits
 
     def _unbias_histogram(self):
-        # There are now several innerspheres here
-        hist_unbiased = np.outer(
-            0.5 * self.karray[self.number_nested_spheres :],
-            self.bin_edges[:-1] ** 2, # XXX Does this too need bias update?
-        )
+        # There are now several innerspheres here, and different biases
+        
+        if self.bias == "harmonic": 
+            hist_unbiased = np.outer(
+                0.5 * self.karray[self.number_nested_spheres :],
+                self.bin_edges[:-1] ** 2,
+            )
+        elif self.bias == "radial_gaussian":
+            hist_unbiased = []
+            for rep in range(self.number_nested_spheres, self.karray.shape[0]):
+                krep = self.karray[rep]
+                l0rep = self.l0array[rep]
+                r_cutoffrep = self.r_cutoffarray[rep]
+                
+                u_kn = 0.5 * krep * (self.bin_edges[:-1]-l0rep)**2
+                if krep != 0.0:
+                    u_kn += (self.ndof - 1) * np.log(np.where(self.bin_edges[:-1] > r_cutoffrep, self.bin_edges[:-1]/r_cutoffrep, 1.0))
+
+                hist_unbiased.append(u_kn)
+            hist_unbiased = np.vstack(hist_unbiased)
+        else:
+            raise NotImplementedError
+            
         for sphere_number in range(self.number_nested_spheres):
             hist_unbiased = np.vstack(
                 (

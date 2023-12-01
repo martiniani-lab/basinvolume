@@ -353,15 +353,19 @@ class PT_Master(object):
             # Set center positions of 1d gaussians for "positive" replicas to be linearly spaced between rmin >=0 and RMSD (both excluded)
             # If rmin is too close to the origin, accumulation at 0 happens
             # As a rule of thumb, start from kmax to avoid silly issues at large nreplicas
-            rmin = np.max([r_kmax, 5*width])
+            rmin = r_kmax
             spacing = (np.sqrt(self.u2meank0) - rmin ) / (nposk+1)
             l0array = rmin + (np.arange(self.nreplicas) ) * spacing
+            
+            # only start the log part at some cut-off distance to avoid bad behaviour near 0
+            r_cutoffarray = 0.5 * rmin * np.ones(self.nreplicas)
             
             # Force the k = 0 case
             Karray[nposk] = 0.0
             l0array[nposk] = 0.0
+            r_cutoffarray[nposk] = 0.0
             
-            return np.transpose(np.vstack([Karray, l0array]))
+            return np.transpose(np.vstack([Karray, l0array, r_cutoffarray]))
             
         else:
             raise NotImplementedError
@@ -603,10 +607,12 @@ class PT_Master(object):
                 k2 = bias_params2[0]
                 l1 = bias_params1[1]
                 l2 = bias_params2[1]
+                r_cutoff1 = bias_params1[2]
+                r_cutoff2 = bias_params2[2]
                 
                 # Swap-MC-like Metropolis criterion
-                Eold = self.energies_radial_gaussian(dx1, k1, l1) + self.energies_radial_gaussian(dx2, k2, l2)
-                Enew = self.energies_radial_gaussian(dx2, k1, l1) + self.energies_radial_gaussian(dx1, k2, l2)
+                Eold = self.energies_radial_gaussian(dx1, k1, l1, r_cutoff1) + self.energies_radial_gaussian(dx2, k2, l2, r_cutoff2)
+                Enew = self.energies_radial_gaussian(dx2, k1, l1, r_cutoff1) + self.energies_radial_gaussian(dx1, k2, l2, r_cutoff2)
                 
                 w = np.exp(Eold - Enew)
                 
@@ -637,10 +643,10 @@ class PT_Master(object):
         else:
             self.exchange_choice = 0
     
-    def energies_radial_gaussian(self, dx, k, l0):
+    def energies_radial_gaussian(self, dx, k, l0, r_cutoff):
         E = 0.5 * k * (dx - l0)**2
-        if k != 0.0:
-            E += (self.nparticles * self.bdim - 1) * np.log(dx)
+        if k != 0.0 and dx > r_cutoff:
+            E += (self.nparticles * self.bdim - 1) * np.log(dx/r_cutoff)
         return E
 
     def _test_convergence(self):

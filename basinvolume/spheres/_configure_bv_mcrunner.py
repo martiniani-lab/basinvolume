@@ -129,7 +129,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
             bias_params = [1.0]
             bias_potential = Harmonic(self.coords, bias_params[0], bdim=self.bdim, com=True)
         elif bias == "radial_gaussian":
-            bias_params = [1.0, 1.0]
+            bias_params = [1.0, 1.0, 1.0]
             bias_potential = RadialGaussian(self.coords, bias_params[0], bias_params[1], bdim = self.bdim, com=True)
         else:
             raise NotImplementedError(
