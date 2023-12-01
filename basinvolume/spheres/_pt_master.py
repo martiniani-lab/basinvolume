@@ -343,13 +343,19 @@ class PT_Master(object):
             
             nposk = self.nreplicas - self.numnegk  # number of positive k
             
-            # Set all widths equal to RMSD of kmin / nposk, or k = nposk / RMSD to keep spring constants
-            k = nposk / np.sqrt(self.u2meank0)
+            # Set all widths equal to RMSD of kmin / nposk, or k =(nposk / RMSD)^2 to keep spring constants
+            u2meankmax = 0.5*(self.nparticles * self.bdim)/self.kmax
+            r_kmax = np.sqrt(u2meankmax)
+            width = (np.sqrt(self.u2meank0) - r_kmax) / nposk
+            k = 1/(width * width)
             Karray = k * np.ones(self.nreplicas)
             
-            # Set center positions of 1d gaussians for "positive" replicas to be linearly spaced between 0 and RMSD (both excluded)
-            spacing = np.sqrt(self.u2meank0) / (nposk+1)
-            l0array = (np.arange(self.nreplicas) + 1 ) * spacing
+            # Set center positions of 1d gaussians for "positive" replicas to be linearly spaced between rmin >=0 and RMSD (both excluded)
+            # If rmin is too close to the origin, accumulation at 0 happens
+            # As a rule of thumb, start from kmax to avoid silly issues at large nreplicas
+            rmin = np.max([r_kmax, 5*width])
+            spacing = (np.sqrt(self.u2meank0) - rmin ) / (nposk+1)
+            l0array = rmin + (np.arange(self.nreplicas) ) * spacing
             
             # Force the k = 0 case
             Karray[nposk] = 0.0
@@ -598,14 +604,7 @@ class PT_Master(object):
                 l1 = bias_params1[1]
                 l2 = bias_params2[1]
                 
-                
-                # E2 = self.energies_radial_gaussian(dx2, l2, k2)
-                # E1 = self.energies_radial_gaussian(dx1, l1, k1)
-                
-                # deltaE = E2 - E1
-                # deltabeta = (k2 - k1)
-                # XXX THINK ABOUT IT HERE! PROBABLY BAD SINCE ALL K'S EQUAL
-                
+                # Swap-MC-like Metropolis criterion
                 Eold = self.energies_radial_gaussian(dx1, k1, l1) + self.energies_radial_gaussian(dx2, k2, l2)
                 Enew = self.energies_radial_gaussian(dx2, k1, l1) + self.energies_radial_gaussian(dx1, k2, l2)
                 
@@ -637,12 +636,6 @@ class PT_Master(object):
             self.exchange_choice = 1
         else:
             self.exchange_choice = 0
-
-    def reduced_energies_radial_gaussian(self, dx, l0, T):
-        E = 0.5 * (dx - l0)**2
-        if T != 0.0:
-            E += (self.nparticles * self.bdim - 1) * np.log(dx) / T
-        return E
     
     def energies_radial_gaussian(self, dx, k, l0):
         E = 0.5 * k * (dx - l0)**2
