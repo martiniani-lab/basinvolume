@@ -34,3 +34,4 @@ CMakeLists.txt
 paper_analysis
 basinvolume/mbar_spheres/scratch.ipynb
 basinvolume/cluster_manager/greene_scripts/multi_volume_runs/local_config.toml
+scratch.ipynb
