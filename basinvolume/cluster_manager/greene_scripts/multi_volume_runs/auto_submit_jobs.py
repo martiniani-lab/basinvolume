@@ -7,6 +7,7 @@ import os
 import argparse
 import toml
 import shutil
+import configparser
 
 
 def get_calculation_stage(simulation_dir, jammed_packing_fname):
@@ -27,22 +28,27 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
     first_jammed_packing_config = os.path.join(jammed_packing_dir, jammed_packing_fname)
     fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
     explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
+    
+    kmax_config = os.path.join(explore_dir, f"findk_{fname_wo_ext}.config")
+    kmin_config =  os.path.join(explore_dir, f"kmin_{fname_wo_ext}.config")
+    pt_config =  os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
+    innersphere_config =  os.path.join(explore_dir, f"innersphere_{fname_wo_ext}.config")
 
     if not os.path.exists(first_jammed_packing_config):
         return SimStage.JAMMED_PACKING
-    elif not os.path.exists(os.path.join(explore_dir, f"findk_{fname_wo_ext}.config")):
+    elif not os.path.exists(kmax_config) or not check_success(kmax_config):
         return SimStage.KMAX
-    elif not os.path.exists(os.path.join(explore_dir, f"kmin_{fname_wo_ext}.config")):
+    elif not os.path.exists(kmin_config) or not check_success(kmin_config):
         return SimStage.KMIN
     elif not os.path.exists(  # PT not started
-        os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
+        pt_config
     ) or (
         os.path.exists(os.path.join(explore_dir, "checkpoint.dmp"))  # PT not finished
-    ):
+    ) or not check_success(pt_config, pt=True):
         return SimStage.PT
     elif not os.path.exists(
-        os.path.join(explore_dir, f"innersphere_{fname_wo_ext}.config")
-    ):
+       innersphere_config
+    ) or not check_success(innersphere_config) :
         return SimStage.INNER_SPHERE
     elif not os.path.isfile(os.path.join(explore_dir, "analysis", "mbar_volume_data")):
         return SimStage.ANALYSIS
@@ -134,6 +140,25 @@ def submit_jobs(simulation_dir, generate_packings=False):
         )
     return
 
+def check_success(config_file, pt = False):
+    ''' Check if a step was successful or not '''
+    
+    configf = configparser.ConfigParser()
+    configf.read(config_file)
+    
+    if pt:
+        success = conf_getboolean_default(configf, "STATUS", "success_rank0", False)
+    else:
+        success = conf_getboolean_default(configf, "STATUS", "success", False)
+    
+    return success
+
+def conf_getboolean_default(configf, region, option, default):
+    if configf.has_option(region, option):
+        return configf.getboolean(region, option)
+    else:
+        return default
+
 def main():
     parser = argparse.ArgumentParser(
         description="Automatically submits the next step of the basin volume calculation to a slurm interface. Assumes that generate_packin has already been run."
@@ -158,7 +183,6 @@ def main():
     else:
         for simfolder in simlist:
             submit_jobs(os.path.join(folder, simfolder))
-
 
 if __name__ == "__main__":
     main()
