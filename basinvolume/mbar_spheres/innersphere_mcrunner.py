@@ -182,7 +182,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
             boxv,
             sca,
             rattlers=rattlers,
-            k=self.k,
+            bias_params=[self.k],
             dtol=dtol,
             eps=eps,
             hmin=hmin,
