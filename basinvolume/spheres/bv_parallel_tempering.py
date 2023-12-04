@@ -208,6 +208,12 @@ if __name__ == "__main__":
         gausslobato, linspace, logspace, positionlinspace",
     )
     parser.add_argument(
+        "--bias",
+        type = str,
+        default = "harmonic",
+        help = "Biasing potentials used in umbrella sampling, options:\
+            harmonic, radial_gaussian"
+    )
         "--force-minimizer",
         type=str,
         help="Force minimizer usage different from the one used for kmax \
@@ -231,7 +237,6 @@ if __name__ == "__main__":
             Only use for testing purposes.",
         default=None,
     )
-
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
@@ -329,6 +334,7 @@ if __name__ == "__main__":
 
     mcrunner = sim(
         fname,
+        bias = args.bias,
         niter=niter,
         stepsize=args.stepsize,
         opt_nsteps=args.opt_nsteps,
@@ -397,6 +403,7 @@ if __name__ == "__main__":
                         numnegk=args.numnegk,
                         lownegk=args.lownegk,
                         k_spreading=args.k_spreading,
+                        bias = args.bias,
                         print_status=args.verbose,
                         base_directory=path,
                         sleep_seconds=args.sleep_seconds,
@@ -467,6 +474,7 @@ if __name__ == "__main__":
             numnegk=args.numnegk,
             lownegk=args.lownegk,
             k_spreading=args.k_spreading,
+            bias=args.bias,
             base_directory=path,
         )
         assert ptreplica.rank == rank, "rank id does not match"

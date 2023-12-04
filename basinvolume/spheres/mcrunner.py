@@ -119,7 +119,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         boxv,
         sca,
         rattlers=None,
-        k=1.0,
+        bias_params=None,
+        bias = "harmonic",
         dtol=1e-3,
         eps=1.0,
         hmin=0,
@@ -171,7 +172,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             sca,
             avgcount=avgcount,
             rattlers=rattlers,
-            k=k,
+            bias_params=bias_params,
+            bias = bias,
             dtol=dtol,
             eps=eps,
             hmin=hmin,
@@ -412,7 +414,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             self.conftest2.dump_minima(minima_dicts)
             # add spring constant to user_data
             for m in minima_dicts:
-                m["user_data"].update(k=self.k)
+                # XXX Is this good?
+                m["user_data"].update(k=self.bias_params[0])
                 if self.use_frozen:
                     redcoords = m["coords"]
                     m["coords"] = full_coordinates(
@@ -448,7 +451,7 @@ class BV_MCRunner_State(object):
         state=None,
         coords=None,
         energy=0.0,
-        k=0.0,
+        bias_params = None,
         stepsize=0.0,
         counters=None,
         takestep_count=0,
@@ -457,7 +460,7 @@ class BV_MCRunner_State(object):
         if state is None:
             self.coords = coords
             self.energy = energy
-            self.k = k
+            self.bias_params = bias_params
             self.stepsize = stepsize
             self.counters = counters
             self.takestep_count = takestep_count
@@ -468,7 +471,7 @@ class BV_MCRunner_State(object):
     def _set_state(self, state):
         self.coords = state.coords
         self.energy = state.energy
-        self.k = state.k
+        self.bias_params = state.bias_params
         self.stepsize = state.stepsize
         self.counters = state.counters
         self.takestep_count = state.takestep_count
@@ -481,10 +484,10 @@ class BV_MCrunner(SpheresMCRunner):
 
     Parameters
     ----------
-    potential : pele potential
-        Harmonic potential used in the thermodynamic integration.
-        These are the harmonic springs that tie each particle to its original
-        position during the walk.
+    bias_potential : pele potential
+        Biasing potential used in the thermodynamic integration.
+        These can be harmonic springs that tie each particle to its original
+        position during the walk, or any arbitrary bias.
     coords : array
         Initial coordinates, can be the same as origin. These must be the full coordinates
     temperature : double
@@ -506,8 +509,8 @@ class BV_MCrunner(SpheresMCRunner):
     rattlers : array of bool
         Array of rattler status if degrees of freedom. If dof does not belong to
         rattler, 1, if dof does belong to rattler, 0.
-    k : double
-        Sping constant for harmonic potential.
+    bias_params : list of doubles
+        Parameters for biasing potential. # XXX SHOULD MAKE THIS A DICT IDEALLY?
     dtol : double
         Tolerance on the rms distance of the minimised structure to the origin.
     eps : double
@@ -584,7 +587,8 @@ class BV_MCrunner(SpheresMCRunner):
         boxv,
         sca,
         rattlers=None,
-        k=1.0,
+        bias_params=None,
+        bias = "harmonic",
         dtol=1e-3,
         eps=1.0,
         hmin=0,
@@ -645,7 +649,8 @@ class BV_MCrunner(SpheresMCRunner):
             boxv,
             sca,
             rattlers=rattlers,
-            k=k,
+            bias_params=bias_params,
+            bias = bias,
             dtol=dtol,
             eps=eps,
             hmin=hmin,
@@ -671,8 +676,13 @@ class BV_MCrunner(SpheresMCRunner):
             interaction=interaction,
             pot_kwargs=pot_kwargs,
         )
-        # set control
-        self.set_control(k)
+        
+        self.bias_potential = bias_potential
+        self.bias = bias
+        self.full_coords = full_coords
+        
+        # set bias parameters in potential
+        self.set_bias_parameters(bias, bias_params)
 
     def _set_takestep(self, stepsize):
         self.takestep = RandomCoordsDisplacement(
@@ -690,7 +700,9 @@ class BV_MCrunner(SpheresMCRunner):
 
     def _set_accept_tests(self):
         self.metropolis = MetropolisTest(self.seeds["seed_metropolis"])
-        self.add_accept_test(self.metropolis)  # metropolis uses the harmonic potential
+        self.add_accept_test(
+            self.metropolis
+        )
 
     def _set_actions(self):
         self.time_series = RecordDisplacementTimeseries(
@@ -726,10 +738,22 @@ class BV_MCrunner(SpheresMCRunner):
             for action in self.steps_timeseries_list:
                 self.add_action(action)
 
-    def set_control(self, c, reset=True):
+    def set_bias_parameters(self, bias, bias_params, reset=True): # XXX
         """set temperature, canonical control parameter"""
-        self.k = c
-        self.potential.set_k(c)
+        self.bias_params = bias_params
+        if bias == "harmonic": 
+            self.bias_potential.set_k(bias_params[0])
+        elif bias == "radial_gaussian": 
+                self.bias_potential.set_k(bias_params[0])
+                self.bias_potential.set_l0(bias_params[1])
+                self.bias_potential.set_r_cutoff(bias_params[2])
+                if bias_params[0] == 0.0:
+                    # remove the log part for k= 0 run
+                    self.bias_potential.set_log_prefactor(0.0)
+                else:
+                    self.bias_potential.set_log_prefactor(1.0) # If temperature != 1.0, this should be 1/beta so that exp(- beta log_term ) = r^(1-d)
+        else: 
+            raise NotImplementedError
         if reset:
             self.reset_energy()
 
@@ -812,12 +836,12 @@ class BV_MCrunner(SpheresMCRunner):
         ###analytical
         bincenters = 0.5 * (bins[1:] + bins[:-1])
         and2 = old_div(
-            vec_analytical_d2(val, self.k, self.nparticles),
+            vec_analytical_d2(val, self.bias_params[0], self.nparticles),
             quad(
                 vec_analytical_d2,
                 bincenters[0],
                 bincenters[-1],
-                args=(self.k, self.nparticles),
+                args=(self.bias_params[0], self.nparticles),
             )[0],
         )
         plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
@@ -857,7 +881,7 @@ class BV_MCrunner(SpheresMCRunner):
         return BV_MCRunner_State(
             coords=self.get_coords(),
             energy=self.get_energy(),
-            k=self.k,
+            bias_params=self.bias_params,
             stepsize=self.takestep.get_stepsize(),
             counters=self.get_counters(),
             takestep_count=self.takestep.get_count(),
@@ -866,7 +890,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def set_complete_state(self, mcrunner_state):
         self.set_config(mcrunner_state.coords, mcrunner_state.energy)
-        self.set_control(mcrunner_state.k, reset=False)
+        self.set_bias_parameters(self.bias, mcrunner_state.bias_params, reset=False) # XXX
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)
@@ -949,7 +973,7 @@ class Findk_MCrunner(SpheresMCRunner):
             boxv,
             sca=sca,
             rattlers=rattlers,
-            k=1,
+            bias_params = [1],
             dtol=dtol,
             avgcount=avgcount,
             eps=eps,

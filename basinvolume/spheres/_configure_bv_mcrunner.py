@@ -8,7 +8,7 @@ from builtins import range
 import numpy as np
 import os
 import logging
-from pele.potentials import Harmonic
+from pele.potentials import Harmonic, RadialGaussian
 from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir, conf_get_default
 from basinvolume.spheres import read_jammed_packing_config
@@ -38,8 +38,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
     def __call__(
         self,
         fname,
-        k=1.0,
+        bias_params=None,
         temperature=1.0,
+        bias = "harmonic",
         stepsize=1e-1,
         niter=2e4,
         eps=1.0,
@@ -80,14 +81,15 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self._import_packing_config_files()
         self._read_kmin_kmax_opt_data(minimizer, opt_tol, dtol)
         self._import_packing_configuration()
-        hbinsize = self._get_histogram_bin(k)
+        hbinsize = self._get_histogram_bin(temperature)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         self.eps = eps
+        self.bias = bias
 
         # set parameters
-        # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
-            k=k,
+            bias_params=bias_params,
+            bias = self.bias,
             dtol=self.dtol,
             eps=eps,
             hmin=hmin,
@@ -130,9 +132,21 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
         # harmonic potential with fixed centre of mass
-        biasing_potential = Harmonic(self.coords, k, bdim=self.bdim, com=True)
+        if bias == "harmonic":
+            bias_params = [1.0]
+            bias_potential = Harmonic(self.coords, bias_params[0], bdim=self.bdim, com=True)
+        elif bias == "radial_gaussian":
+            bias_params = [1.0, 1.0, 1.0]
+            bias_potential = RadialGaussian(self.coords, bias_params[0], bias_params[1], bdim = self.bdim, com=True)
+        else:
+            raise NotImplementedError(
+                "bias={} not implemented".format(bias)
+            )
+            
+        kwargs["bias_params"] = bias_params # Needed to properly initialise with the right lengths in each list of parameters
+           
         mcrunner = BV_MCrunner(
-            biasing_potential,
+            bias_potential,
             self.coords,
             temperature,
             stepsize,
