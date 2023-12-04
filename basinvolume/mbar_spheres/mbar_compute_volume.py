@@ -497,7 +497,7 @@ class mbar_compute_dos(object):
         self.flat_timeseries, self.N_k, g = self._subsample_timeseries(
             self.ts_spheres, self.timeseries
         )
-
+        
     def _build_mbar(
         self, verbose=True, initial_f_k=None, maxiter=10000, reltol=1.0e-7
     ):  # subsampling=6 no longer supported

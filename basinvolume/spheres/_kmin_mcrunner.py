@@ -142,7 +142,7 @@ class KminMCRunner(ConfigMCRunner):
         self.opt_kwargs = ast.literal_eval(conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}"))
 
         kwargs = dict(
-            k=k,
+            bias_params = [k],
             dtol=self.dtol,
             eps=eps,
             hmin=hmin,
