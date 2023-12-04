@@ -123,9 +123,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         ) * self.mcrunner.niter > self.min_window  # condition on the minimal window size
         if not (self.min_window > self.mcrunner_eqsteps):
             logging.info("self.min_window: {}".format(self.min_window))
-            logging.info(
-                "self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps)
-            )
+            logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
         assert (
             self.min_window > self.mcrunner_eqsteps
         )  # NB: All times are absolute values from the start of the simulation! Need the min_window to be done AFTER the equilibration steps
@@ -139,9 +137,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self._master_print_temperatures()
         self._all_print_parameters()
         self.status_stream = open("{0}/{1}".format(directory, "status"), "w")
-        self.histogram_mean_stream = open(
-            "{0}/{1}".format(directory, "hist_mean"), "w"
-        )
+        self.histogram_mean_stream = open("{0}/{1}".format(directory, "hist_mean"), "w")
         self.histogram_mean_stream.write(
             "{:<15}\t{:<15}\t{:<15}\t{:<15}\n".format(
                 "iteration", "<(x-x0)**2>", "variance", "std_err"
@@ -191,14 +187,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if self.eq_time == 0:
             start = time.time()
             if self.fast_ct:
-                self.eq_time = np.amin(
-                    [self.max_eq_time, self.timeseries2.size]
-                )
+                self.eq_time = np.amin([self.max_eq_time, self.timeseries2.size])
             else:
                 logging.info("detecting equilibration point")
-                logging.info(
-                    "timeseries size: {}".format(self.timeseries2.size)
-                )
+                logging.info("timeseries size: {}".format(self.timeseries2.size))
                 eq_time = detect_equilibration_binary_search(
                     self.timeseries2, bs_nodes=self.bs_nodes
                 )[0]
@@ -232,9 +224,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         timeseries2 = self.timeseries2[self.eq_time :]
         new_max_ptiter = self._find_new_max_ptiter(timeseries2)
         logging.debug(
-            "new max_ptiter {}, current ptiter {}".format(
-                new_max_ptiter, self.ptiter
-            )
+            "new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter)
         )
         logging.debug("Autocorrelation time {}".format(self.autocorr))
         return new_max_ptiter
@@ -267,9 +257,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             new_max_ptiter = self.ptiter
         else:
             m = var * (1 + 2 * tau) / np.power(mean * self.rel_std_err, 2)
-            new_max_ptiter = self.ptiter + int(
-                (m - sample_size) / self.mcrunner.niter
-            )
+            new_max_ptiter = self.ptiter + int((m - sample_size) / self.mcrunner.niter)
 
         new_max_ptiter_array = self._gather_data([new_max_ptiter])
         if self.rank == 0:
@@ -302,9 +290,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         if not self.suppress_histogram:
             mean, variance = self.mcrunner.dump_histogram(fname)
             self.histogram_mean_stream.write(
-                "{:<15}\t{:>15.15e}\t{:>15.15e}\n".format(
-                    iteration, mean, variance
-                )
+                "{:<15}\t{:>15.15e}\t{:>15.15e}\n".format(iteration, mean, variance)
             )
         else:
             mean = np.mean(self.timeseries2[self.eq_time :])
@@ -477,9 +463,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             self.anyswap = False
 
             logging.debug(
-                "exchange choice: {}".format(
-                    self.exchange_dic[self.exchange_choice]
-                )
+                "exchange choice: {}".format(self.exchange_dic[self.exchange_choice])
             )
             for i in self.nodelist[1 : self.nprocs - self.exchange_choice : 2]:
 
@@ -541,12 +525,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                         exchange_pattern[i + self.exchange_choice]
                         == self.no_exchange_int
                     )  # verify that is not using the same process twice for swaps
-                    exchange_pattern[i] = self.nodelist[
-                        i + self.exchange_choice
-                    ]
-                    exchange_pattern[i + self.exchange_choice] = self.nodelist[
-                        i
-                    ]
+                    exchange_pattern[i] = self.nodelist[i + self.exchange_choice]
+                    exchange_pattern[i + self.exchange_choice] = self.nodelist[i]
                     self.anyswap = True
             ############end of for loop###############
             # record self.permutation_pattern to print permutations in print function

@@ -15,6 +15,7 @@ directory_list = os.listdir(base_directory)
 name_list = ["MXD", "LBFGS", "FIRE", "CG"]
 n_copies = 1
 
+
 def create_copies(src_name, n, cwd):
     for i in range(n):
         dest_name = f"{src_name}_{i}"
@@ -29,7 +30,7 @@ for directory in directory_list:
     # Extract the numbers
     num1 = parts[1]
     num2 = parts[2]
-    
+
     create_copies(directory, n_copies, base_directory)
 
     for name in name_list:
@@ -42,9 +43,5 @@ for directory in directory_list:
 
         # Copy the directory and its contents
         shutil.copytree(src, dest)
-        
+
         create_copies(new_directory, n_copies, base_directory)
-        
-    
-    
-    

@@ -6,7 +6,9 @@ from basinvolume.post_processing import (
     calculate_GL_integral_with_transform,
     calculate_GL_integral_with_transform_get_error,
 )
-from basinvolume.post_processing import calculate_simple_integral # This is a Gauss-Lobato one!
+from basinvolume.post_processing import (
+    calculate_simple_integral,
+)  # This is a Gauss-Lobato one!
 from basinvolume.post_processing import calculate_simple_integral_get_error
 import numpy as np
 
@@ -20,7 +22,7 @@ class Base_Compute_Integral(object):
         displacements,
         kappa_const=1.0,
         displ_k_min_trafo=None,
-        simple_integrator = True
+        simple_integrator=True,
     ):
         """
         Compute the integral needed for the th. integration.
@@ -44,9 +46,7 @@ class Base_Compute_Integral(object):
         if np.abs(self.k_max - max(self.k_values)) > 1e-10:
             print(("self.k_max", self.k_max))
             print(("max(self.k_values)", max(self.k_values)))
-            raise Exception(
-                "Base_Compute_Integral: kmax not equal to max(k_values)"
-            )
+            raise Exception("Base_Compute_Integral: kmax not equal to max(k_values)")
         self.nr_points = len(self.k_values)
         if self.nr_points != len(self.displacements):
             raise Exception("Base_Compute_Integral: illegal input")
@@ -55,11 +55,8 @@ class Base_Compute_Integral(object):
             (
                 self.integral_over_displacements,
                 self.f,
-            ) = calculate_bruteforce_integral(
-                self.displacements,
-                self.k_values
-                )
-            
+            ) = calculate_bruteforce_integral(self.displacements, self.k_values)
+
             # Old handmade GL
             # calculate_simple_integral(
             #     self.displacements,
@@ -90,9 +87,7 @@ class Base_Compute_Integral(object):
         """
         if self.simple_integrator:
             sigF0, sigIntegrand = calculate_bruteforce_integral_get_error(
-                self.displacements,
-                displacements_variance,
-                self.k_values
+                self.displacements, displacements_variance, self.k_values
             )
             # old handmade GL integrator
             # calculate_simple_integral_get_error(
@@ -106,10 +101,7 @@ class Base_Compute_Integral(object):
             #     displ_k_min_trafo=self.displ_k_min_trafo,
             # )
         else:
-            (
-                sigF0,
-                sigIntegrand,
-            ) = calculate_GL_integral_with_transform_get_error(
+            (sigF0, sigIntegrand,) = calculate_GL_integral_with_transform_get_error(
                 self.displacements,
                 displacements_variance,
                 self.k_max,
@@ -137,7 +129,7 @@ class F_Basin_From_MC_Data_Free_COM(Base_Compute_Integral):
         prob,
         kappa_const=1.0,
         displ_k_min_trafo=None,
-        simple_integrator = True
+        simple_integrator=True,
     ):
         super(F_Basin_From_MC_Data_Free_COM, self).__init__(
             dimension,
@@ -193,7 +185,7 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         prob,
         kappa_const=1.0,
         displ_k_min_trafo=None,
-        simple_integrator=True
+        simple_integrator=True,
     ):
         super(F_Basin_From_MC_Data, self).__init__(
             dimension,
@@ -202,7 +194,7 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
             displacements,
             kappa_const=kappa_const,
             displ_k_min_trafo=displ_k_min_trafo,
-            simple_integrator = simple_integrator
+            simple_integrator=simple_integrator,
         )
         self.box_volume = box_volume
         self.prob = prob
@@ -223,7 +215,8 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         F0 = (
             -0.5 * self.integral_over_displacements
             - np.log(self.box_volume)
-            - ((self.nr_particles - 1.0) * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max)
+            - ((self.nr_particles - 1.0) * self.dimension / 2.0)
+            * np.log(2.0 * pi / self.k_max)
             - np.log(self.prob)
         )
 
@@ -265,37 +258,33 @@ def F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(
     )
     return value_of_F0, error_on_F0
 
+
 # XXX Replace this by a more reasonable integration scheme that takes ARBITRARY k as entry
-def calculate_bruteforce_integral(
-        u_sq_k,
-        k_values
-    ):
+def calculate_bruteforce_integral(u_sq_k, k_values):
     """
     Just a silly trapeze method integral to get an idea of how bad it is
     """
     nr_points = len(u_sq_k)
     integral = 0.0
-    for i in range(nr_points-1):
-        integral += 0.5 * (u_sq_k[i] + u_sq_k[i+1]) * (k_values[i+1] - k_values[i])
-        
+    for i in range(nr_points - 1):
+        integral += 0.5 * (u_sq_k[i] + u_sq_k[i + 1]) * (k_values[i + 1] - k_values[i])
+
     return integral, u_sq_k
-    
-def calculate_bruteforce_integral_get_error(
-    u_sq_k,
-    u_sq_var_k,
-    k_values
-    ):
+
+
+def calculate_bruteforce_integral_get_error(u_sq_k, u_sq_var_k, k_values):
     """
-    Error propagation in the trapeze method: by linearity the variance of each integral value is simply the sum of the 2 variance contributions 
+    Error propagation in the trapeze method: by linearity the variance of each integral value is simply the sum of the 2 variance contributions
     """
     nr_points = len(u_sq_k)
     sq_error = 0.0
-    for i in range(nr_points-1):
-        sq_error += 0.5 * (u_sq_var_k[i] + u_sq_var_k[i+1]) * (k_values[i+1] - k_values[i])
-        
+    for i in range(nr_points - 1):
+        sq_error += (
+            0.5 * (u_sq_var_k[i] + u_sq_var_k[i + 1]) * (k_values[i + 1] - k_values[i])
+        )
+
     error = np.sqrt(sq_error)
     return error, u_sq_var_k
-    
 
 
 if __name__ == "__main__":

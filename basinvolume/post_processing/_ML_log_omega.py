@@ -120,4 +120,8 @@ class MLLogOmega(LogOmegaBase):
 
     def get_generalised_gaussian_parameters(self):
         ml_method_gen_gauss = MLMethodGenGauss(self.F0)
-        self.mu, self.alpha, self.zeta = ml_method_gen_gauss.find_get_opt_pars()
+        (
+            self.mu,
+            self.alpha,
+            self.zeta,
+        ) = ml_method_gen_gauss.find_get_opt_pars()

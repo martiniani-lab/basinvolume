@@ -105,9 +105,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
             self.base_directory, "findk_" + dname + ".config"
         )
         configfile = "innersphere_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _import_packing_config_files(self):
         configf = configparser.ConfigParser()

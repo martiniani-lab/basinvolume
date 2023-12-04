@@ -46,7 +46,13 @@ class TIVolumeComputer(object):
     """
 
     def __init__(
-        self, karray, displ_k_max, bdim, nparticles, prob_kmax, displ2_kmin_mean
+        self,
+        karray,
+        displ_k_max,
+        bdim,
+        nparticles,
+        prob_kmax,
+        displ2_kmin_mean,
     ):
         self.karray = copy.deepcopy(karray)
         self.displ_k_max = displ_k_max
@@ -348,7 +354,12 @@ class DirectKWalker(object):
         self.ki_run.niter = self.ti_parameters["equilibration_steps"]
         self.ki_run.run()
         if self.verbose:
-            print(("equilibration_steps", self.ti_parameters["equilibration_steps"]))
+            print(
+                (
+                    "equilibration_steps",
+                    self.ti_parameters["equilibration_steps"],
+                )
+            )
             print(("self.k_value", self.k_value))
             print(("self.takestep.get_stepsize()", self.takestep.get_stepsize()))
             print(
@@ -433,7 +444,10 @@ class TIComputer(ComputerCommon):
             pot,
         )
         self.ti_engine = TIEngine(
-            self.method_parameters, self.pes_parameters, self.pot, self.opt_parameters
+            self.method_parameters,
+            self.pes_parameters,
+            self.pot,
+            self.opt_parameters,
         )
         self.ini_evals = self.ti_engine.ini_evals
 
@@ -453,7 +467,9 @@ def run_ti(ls_basin_label):
     """
     arg = ap.ArgumentParser()
     arg.add_argument(
-        "--nr_dimensions", type=int, help="Euclidean dimension of potential landscape"
+        "--nr_dimensions",
+        type=int,
+        help="Euclidean dimension of potential landscape",
     )
     arg.add_argument("--sample_index", type=int, help="Index of landscape to measure")
     arg.add_argument(

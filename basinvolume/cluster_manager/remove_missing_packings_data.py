@@ -94,7 +94,8 @@ if __name__ == "__main__":
     ), "{} not a valid extension".format(args.ext)
 
     check = query_yes_no(
-        'Confirm that the right file extension is "{}" '.format(args.ext), default="no"
+        'Confirm that the right file extension is "{}" '.format(args.ext),
+        default="no",
     )
     if check:
         bvrm = BVRemoveMissingPackingsData(workdir=args.workdir, ext=args.ext)

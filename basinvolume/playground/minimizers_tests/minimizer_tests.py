@@ -119,9 +119,7 @@ def get_X(fname="test_data.npz", pppn=[2, 6], nconf=int(2e5)):
     return X_success, X_out, X_overlap, sim
 
 
-def test_minimizer(
-    minimizer, potential, X, origin, Etol=1e-6, dtol=1e-4, **kwargs
-):
+def test_minimizer(minimizer, potential, X, origin, Etol=1e-6, dtol=1e-4, **kwargs):
     def test_same_minimum(coords, E):
         if np.abs(E - Eorigin) > Etol:
             xmean, ymean = np.mean(origin[::2]), np.mean(origin[1::2])
@@ -203,9 +201,7 @@ def test1(X, potential, origin, nconf, maxstep, fname="test"):
     )
 
     print(
-        "nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(
-            fire_nfev, lbfgs_nfev, cgd_nfev
-        )
+        "nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(fire_nfev, lbfgs_nfev, cgd_nfev)
     )
 
     np.savez(
@@ -217,9 +213,7 @@ def test1(X, potential, origin, nconf, maxstep, fname="test"):
     )
 
 
-def _plot_simple_projection(
-    X, Xbool=None, color="b", pair=[0, 2], plt_density=False
-):
+def _plot_simple_projection(X, Xbool=None, color="b", pair=[0, 2], plt_density=False):
     print(len(X))
     if Xbool is None:
         Xbool = np.ones(len(X))
@@ -233,9 +227,7 @@ def _plot_simple_projection(
         plt.scatter(x, y, color=color, marker="s", s=10, edgecolor="none")
 
 
-def plot_file_simple(
-    fname, array_name="fire_Xbool", pair=[7, 3], plt_density=False
-):
+def plot_file_simple(fname, array_name="fire_Xbool", pair=[7, 3], plt_density=False):
     print("loading data...", end=" ")
     data = np.load(fname)
     X = data["X"]
@@ -345,9 +337,7 @@ def _plot_dist_projection(
         plt.ylabel(r"$(\mathbf{x}-\mathbf{x}_o) \cdot \mathbf{e}_{min}$")
 
 
-def plot_file_eig(
-    raw_fname, req_fname, array_name="fire_Xbool", plt_density=False
-):
+def plot_file_eig(raw_fname, req_fname, array_name="fire_Xbool", plt_density=False):
     X_success, X_out, X_overlap, sim = get_X(
         fname=raw_fname, pppn=[3, 6], nconf=int(1e5)
     )
@@ -429,9 +419,7 @@ def plot_density(x, y):
     ymin, ymax = np.amin(y) - abs(np.amin(y) * 0.05), np.amax(y) + abs(
         np.amax(y) * 0.05
     )
-    xx, yy = np.meshgrid(
-        np.linspace(xmin, xmax, 500), np.linspace(ymin, ymax, 500)
-    )
+    xx, yy = np.meshgrid(np.linspace(xmin, xmax, 500), np.linspace(ymin, ymax, 500))
     # fit the model
     X_train = np.column_stack((x, y))
     clf = svm.OneClassSVM(nu=0.01, kernel="rbf", gamma=30)
@@ -441,9 +429,7 @@ def plot_density(x, y):
     Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
     plt.title("Basin One class fit")
-    plt.contourf(
-        xx, yy, Z, levels=np.linspace(Z.min(), 0, 7), cmap=plt.cm.Blues_r
-    )
+    plt.contourf(xx, yy, Z, levels=np.linspace(Z.min(), 0, 7), cmap=plt.cm.Blues_r)
     a = plt.contour(xx, yy, Z, levels=[0], linewidths=2, colors="red")
     plt.contourf(xx, yy, Z, levels=[0, Z.max()], colors="orange")
     b1 = plt.scatter(X_train[:, 0], X_train[:, 1], c="white")
@@ -523,9 +509,7 @@ def _walk_eig_direction(
     while out == False:
         x += evec * stepsize
         d += stepsize
-        success = _check_no_overlaps(
-            x, sim.mcrunner.hs_radii, sim.mcrunner.boxv
-        )
+        success = _check_no_overlaps(x, sim.mcrunner.hs_radii, sim.mcrunner.boxv)
         if success:
             success = test_minimizer_single(
                 CGDescent,
@@ -618,9 +602,7 @@ def walk_eig(fname):
             ev_array=ev_array,
         )
     plt.figure()
-    plt.scatter(
-        ev_array, distance_array, color="k", marker="s", s=2, edgecolor="none"
-    )
+    plt.scatter(ev_array, distance_array, color="k", marker="s", s=2, edgecolor="none")
     plt.xlabel(r"$\lambda$")
     plt.ylabel(r"$\mathbf{x}_o + \delta \mathbf{e}_{\lambda}$")
     plt.xscale("log")
@@ -633,9 +615,7 @@ def walk_eig(fname):
     dx_means, bin_edges, binnumber = binned_statistic(
         ev_array, distance_array, statistic="mean", bins=20
     )
-    bin_means = [
-        (bin_edges[i] + bin_edges[i + 1]) / 2 for i in xrange(len(dx_means))
-    ]
+    bin_means = [(bin_edges[i] + bin_edges[i + 1]) / 2 for i in xrange(len(dx_means))]
     plt.plot(bin_means, dx_means, marker="o")
     plt.xscale("log")
     plt.yscale("log")
@@ -644,9 +624,7 @@ def walk_eig(fname):
     plt.savefig(fname[:-4] + "_lamb_dx_mean.pdf")
 
     plt.figure()
-    plt.scatter(
-        ev_array, te_array, color="k", marker="s", s=2, edgecolor="none"
-    )
+    plt.scatter(ev_array, te_array, color="k", marker="s", s=2, edgecolor="none")
     plt.xlabel(r"$\lambda$")
     plt.ylabel(r"$\Delta E$")
     plt.xscale("log")
@@ -657,9 +635,7 @@ def walk_eig(fname):
     te_means, bin_edges, binnumber = binned_statistic(
         ev_array, te_array, statistic="mean", bins=8
     )
-    bin_means = [
-        (bin_edges[i] + bin_edges[i + 1]) / 2 for i in xrange(len(te_means))
-    ]
+    bin_means = [(bin_edges[i] + bin_edges[i + 1]) / 2 for i in xrange(len(te_means))]
     plt.plot(bin_means, te_means, marker="o")
     plt.xlabel(r"$\lambda$")
     plt.ylabel(r"$\Delta E$")
@@ -684,9 +660,7 @@ def _import_time_series(explore_dir):
             if dir.isdigit():
                 path = os.path.join(explore_dir, dir)
                 file_list = glob.glob(path + "/TimeSeries*")
-                file_list = sorted(
-                    file_list, key=lambda x: int(x.split(".")[1])
-                )
+                file_list = sorted(file_list, key=lambda x: int(x.split(".")[1]))
                 series_order.append(int(dir))
                 series = []
                 for series_path in file_list:
@@ -724,9 +698,7 @@ def build_histogram(explore_dir, bins=100):
 
 
 def main(fname="test_data20k.npz"):
-    X_success, X_out, X_overlap, sim = get_X(
-        fname=fname, pppn=[3, 6], nconf=int(1e5)
-    )
+    X_success, X_out, X_overlap, sim = get_X(fname=fname, pppn=[3, 6], nconf=int(1e5))
     pot = sim.mcrunner.pot_optimizer
     maxstep = sim.mc_params["opt_maxstep"]
     origin = sim.mcrunner.origin

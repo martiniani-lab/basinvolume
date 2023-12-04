@@ -67,9 +67,7 @@ if __name__ == "__main__":
         help="Seed for the takestep method",
         default=None,
     )
-    parser.add_argument(
-        "--niter", type=float, default=1e8, help="number of iterations"
-    )
+    parser.add_argument("--niter", type=float, default=1e8, help="number of iterations")
     parser.add_argument(
         "--dtol",
         type=float,
@@ -91,9 +89,7 @@ if __name__ == "__main__":
         default=1e4,
         help="number of iterations to average for acceptance",
     )
-    parser.add_argument(
-        "--ktol", type=float, default=0.025, help="tolerance for knavg"
-    )
+    parser.add_argument("--ktol", type=float, default=0.025, help="tolerance for knavg")
     parser.add_argument(
         "--opt_nsteps",
         type=float,
@@ -112,11 +108,14 @@ if __name__ == "__main__":
         "--opt_tol", type=float, default=1e-5, help="tolerance for optimizer"
     )
     parser.add_argument(
-        "--opt_kwargs_file", type = str, default = "", help="File containing a dictionary of optimizer-specific arguments, if any"
+        "--opt_kwargs_file",
+        type=str,
+        default="",
+        help="File containing a dictionary of optimizer-specific arguments, if any",
     )
 
     args = parser.parse_args()
-    
+
     if args.opt_kwargs_file != "":
         opt_kwargs = toml.load(args.opt_kwargs_file)["opt_kwargs"]
     else:
@@ -150,7 +149,7 @@ if __name__ == "__main__":
         knavg=args.knavg,
         ktol=args.ktol,
         opt_nsteps=args.opt_nsteps,
-        opt_kwargs = opt_kwargs,
+        opt_kwargs=opt_kwargs,
         packings_dir=packings_dir,
         explore_dir=args.explore_dir,
         use_cell_lists=not args.nocell,

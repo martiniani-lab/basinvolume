@@ -22,7 +22,9 @@ from basinvolume.hypercube import _hypercube_findk_mcrunner
 from basinvolume.hypercube import _hypercube_kmin_mcrunner
 from basinvolume.hypercube import _hypercube_bv_mcrunner
 from basinvolume.hypercube import _hypercube_innersphere_mcrunner
-from basinvolume.hypercube.hypercube_compute_volume import hypercube_mbar_compute_dos
+from basinvolume.hypercube.hypercube_compute_volume import (
+    hypercube_mbar_compute_dos,
+)
 
 # for plotting histogram
 from itertools import cycle

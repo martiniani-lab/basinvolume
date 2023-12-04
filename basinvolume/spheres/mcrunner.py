@@ -145,7 +145,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         minimizer=Minimizer.FIRE,
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
-        opt_kwargs={}
+        opt_kwargs={},
     ):
         self.minimizer = minimizer
         # optimizer parameters
@@ -248,8 +248,12 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 maxErise=0,
             )
         elif self.minimizer is Minimizer.CVODE:
-            atol = self.opt_kwargs["atol_values"][str(len(self.start_coords) // self.bdim)]
-            rtol = self.opt_kwargs["rtol_values"][str(len(self.start_coords) // self.bdim)]
+            atol = self.opt_kwargs["atol_values"][
+                str(len(self.start_coords) // self.bdim)
+            ]
+            rtol = self.opt_kwargs["rtol_values"][
+                str(len(self.start_coords) // self.bdim)
+            ]
             optimizer = CVODEBDFOptimizer(
                 self.pot_optimizer,
                 self.start_coords,
@@ -258,10 +262,10 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 rtol=rtol,
             )
         elif self.minimizer is Minimizer.MXD:
-            atol = self.opt_kwargs["atol_values"][len(self.start_coords) // self.bdim]
-            rtol = self.opt_kwargs["rtol_values"][len(self.start_coords) // self.bdim]
+            atol = self.opt_kwargs["atol_values"][str(len(self.start_coords) // self.bdim)]
+            rtol = self.opt_kwargs["rtol_values"][str(len(self.start_coords) // self.bdim)]
             optimizer = ExtendedMixedOptimizer(
-                self.potential,
+                self.pot_optimizer,
                 self.start_coords,
                 tol=self.opt_tol,
                 nsteps=1e7,
@@ -305,15 +309,12 @@ class SpheresMCRunner(BaseSpheresMCrunner):
 
     def _set_conf_tests(self):
         if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(
-                self.rcontainer, self.bdim
-            )
+            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
             self.add_conf_test(self.conftest0)
         if self.interaction is Interaction.HS_WCA:
             if self.distance_method is Distance.PERIODIC:
                 if (
-                    self.checkoverlap_cell_lists is None
-                    and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapPeriodicCellLists(
                         self.hs_radii,
@@ -333,8 +334,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     )
             elif self.distance_method is Distance.CARTESIAN:
                 if (
-                    self.checkoverlap_cell_lists is None
-                    and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapCartesianCellLists(
                         self.hs_radii,
@@ -354,8 +354,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     )
             elif self.distance_method is Distance.LEES_EDWARDS:
                 if (
-                    self.checkoverlap_cell_lists is None
-                    and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapLeesEdwardsCellLists(
                         self.hs_radii,
@@ -422,9 +421,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     m["coords"] = full_coordinates(
                         redcoords, self.origin, self.frozen_atoms, self.bdim
                     )
-            assert (
-                len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1
-            )
+            assert len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1
             logging.info("Number of minima: %i" % len(minima_dicts))
             size_estimate = len(minima_dicts) * len(self.origin)
             if size_estimate > 1e8:
@@ -607,7 +604,7 @@ class BV_MCrunner(SpheresMCRunner):
         opt_maxstep=0.5,
         opt_tol=1e-5,
         opt_nsteps=1e5,
-        opt_kwargs = {},
+        opt_kwargs={},
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
@@ -791,8 +788,7 @@ class BV_MCrunner(SpheresMCRunner):
         for i, action in enumerate(self.steps_timeseries_list):
             timeseries = np.array(action.get_time_series())
             np.savetxt(
-                fname
-                + ".every{}".format(self.record_steps_timeseries_every[i]),
+                fname + ".every{}".format(self.record_steps_timeseries_every[i]),
                 timeseries,
             )
             if clear:
@@ -805,9 +801,7 @@ class BV_MCrunner(SpheresMCRunner):
             self.time_series.clear()
         return timeseries
 
-    def check_convergence(
-        self, nr_steps_to_check=10000, rel_std_threshold=0.05
-    ):
+    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
         return self.time_series.check_convergence(
             nr_steps_to_check=nr_steps_to_check,
             rel_std_threshold=rel_std_threshold,
@@ -816,8 +810,7 @@ class BV_MCrunner(SpheresMCRunner):
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))])
-            + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         )
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
@@ -829,8 +822,7 @@ class BV_MCrunner(SpheresMCRunner):
         """
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))])
-            + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         )
         n, bins, patches = plt.hist(
             val,
@@ -852,9 +844,7 @@ class BV_MCrunner(SpheresMCRunner):
                 args=(self.bias_params[0], self.nparticles),
             )[0],
         )
-        plt.plot(
-            bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1]
-        )
+        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")
@@ -904,9 +894,7 @@ class BV_MCrunner(SpheresMCRunner):
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)
-        self.takestep.set_adaptation_counters(
-            mcrunner_state.step_adaptation_counters
-        )
+        self.takestep.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
 
 
 class Findk_MCrunner(SpheresMCRunner):
@@ -1057,8 +1045,7 @@ class Findk_MCrunner(SpheresMCRunner):
         """shows the histogram"""
         hist = self.findk.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))])
-            + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         )
         n, bins, patches = plt.hist(
             val,
@@ -1080,9 +1067,7 @@ class Findk_MCrunner(SpheresMCRunner):
                 args=(self.get_k(), self.nparticles, self.bdim),
             )[0],
         )
-        plt.plot(
-            bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1]
-        )
+        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")

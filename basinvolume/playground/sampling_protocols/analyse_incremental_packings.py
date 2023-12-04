@@ -26,7 +26,11 @@ try:
     import glob
     from itertools import chain
     import pickle as pickle
-    from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
+    from basinvolume.post_processing import (
+        PackingData,
+        PackingDataSet,
+        BasinAnalysis,
+    )
     from basinvolume.experiment_2d.cross_validation_bandwidth_selection import (
         get_bandwidth_estimate,
         get_pdf,

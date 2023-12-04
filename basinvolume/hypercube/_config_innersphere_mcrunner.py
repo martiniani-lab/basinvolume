@@ -59,9 +59,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         if number_nested_spheres == 1:
             fraction_k = 0.0
         else:
-            fraction_k = (
-                current_nested_sphere * 1.0 / (number_nested_spheres - 1.0)
-            )
+            fraction_k = current_nested_sphere * 1.0 / (number_nested_spheres - 1.0)
         # Linearly spaced values
         # self.k = fraction_k * koutermost_spheres + (1 - fraction_k) * kinnermost_spheres
         # Log-spaced values
@@ -152,17 +150,13 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         )
 
         output_dir = (
-            self.base_directory
-            + "/innersphere_"
-            + str(self.current_nested_sphere)
+            self.base_directory + "/innersphere_" + str(self.current_nested_sphere)
         )
         trymakedir(output_dir)
         self.output_directory = output_dir
 
         configfile = "innersphere_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.output_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.output_directory, configfile)
 
     def _import_packing_config_files(self):
         configf = configparser.ConfigParser()

@@ -88,11 +88,7 @@ class Result(dict):
 
 
 def get_immediate_subdirectories(dir):
-    return [
-        name
-        for name in os.listdir(dir)
-        if os.path.isdir(os.path.join(dir, name))
-    ]
+    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 
 
 def _sort_pair(x, y):
@@ -147,9 +143,7 @@ def log_surface_nball(radius, n):
 
 
 def log_volume_nball(radius, n):
-    log_volume = (
-        n / 2.0 * np.log(np.pi) + n * np.log(radius) - gammaln(n / 2 + 1)
-    )
+    log_volume = n / 2.0 * np.log(np.pi) + n * np.log(radius) - gammaln(n / 2 + 1)
     return log_volume
 
 
@@ -402,9 +396,7 @@ def import_packing(fname, jammed, bdim, sca=0.0):
         results["ss_radii"] = hs_diameters * 0.5 * (1 + sca)
         results["stable_atoms"] = []
         for i in range(0, len(results["stable_atoms_float_bdim"]), bdim):
-            results["stable_atoms"].append(
-                results["stable_atoms_float_bdim"][i] == 1.0
-            )
+            results["stable_atoms"].append(results["stable_atoms_float_bdim"][i] == 1.0)
     else:
         if bdim == 2:
             results["coords"], hs_diameters = read_xyd(fname)
@@ -554,9 +546,7 @@ def get_git_version_direct(repository="basinvolume"):
             elif repository == "mcpele":
                 repo_path = os.path.dirname(mcpele.__file__)[:-7]
         except:
-            sys.stderr.write(
-                "WARNING: could't find path to" + repository + "\n"
-            )
+            sys.stderr.write("WARNING: could't find path to" + repository + "\n")
             sys.exit()
         repo_path = os.path.abspath(repo_path)
         out = subprocess.Popen(
@@ -587,9 +577,7 @@ def get_git_version_from_build(repository="basinvolume"):
         sys.stderr.write("WARNING: could't find path to" + repository + "\n")
         sys.exit()
     result = "Unknown"
-    version_path = os.path.abspath(
-        repo_path + "/" + repository + "/version.py"
-    )
+    version_path = os.path.abspath(repo_path + "/" + repository + "/version.py")
     try:
         f = open(version_path, "r")
         result = (f.readlines()[2].strip().split("=")[1]).split("'")[1]
@@ -713,8 +701,7 @@ class OutlierDetection(object):
         if len(self.outliers) + len(self.non_outliers) > 0:
             print(
                 "fraction of outliers:",
-                len(self.outliers)
-                / (len(self.outliers) + len(self.non_outliers)),
+                len(self.outliers) / (len(self.outliers) + len(self.non_outliers)),
             )
         print("mean of non_outliers:", np.mean(self.non_outliers))
         print("mean of outliers:", np.mean(self.outliers))
@@ -915,9 +902,7 @@ def simple_overlap_check(coords, radii, boxlength):
         return np.sum(
             np.array(
                 [
-                    np.square(
-                        box(coords[a * boxdim + ii] - coords[b * boxdim + ii])
-                    )
+                    np.square(box(coords[a * boxdim + ii] - coords[b * boxdim + ii]))
                     for ii in range(boxdim)
                 ]
             )
@@ -979,9 +964,7 @@ def query_yes_no(question, default="yes"):
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write(
-                "Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n"
-            )
+            sys.stdout.write("Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
 
 
 def asphericity_factor(evals):
@@ -1077,26 +1060,17 @@ def import_pt_time_series(
             if crop_adjustf_niter:
                 logging.info("cropping adjustf_niter")
                 timeseries = timeseries[:, adjustf_niter:]
-            logging.info(
-                "Old timeseries shape: {}".format(np.shape(timeseries))
-            )
-            if (
-                max_series_size > 0
-                and np.shape(timeseries)[1] > max_series_size
-            ):
+            logging.info("Old timeseries shape: {}".format(np.shape(timeseries)))
+            if max_series_size > 0 and np.shape(timeseries)[1] > max_series_size:
                 # need subsample and probably crop
                 tsl = np.shape(timeseries)[1]
                 logging.info(
                     "subsampling timeseries because np.shape(timeseries)[1] > max_series_size"
                 )
                 logging.info(
-                    "subsampling every {} steps".format(
-                        int(tsl / max_series_size)
-                    )
+                    "subsampling every {} steps".format(int(tsl / max_series_size))
                 )
-                timeseries = timeseries[
-                    :, :: max(int(tsl / max_series_size), 1)
-                ]
+                timeseries = timeseries[:, :: max(int(tsl / max_series_size), 1)]
         except Exception:
             traceback.print_exc(file=sys.stdout)
             try:
@@ -1131,9 +1105,7 @@ def import_pt_time_series(
     return timeseries
 
 
-def import_pt_time_series_raw(
-    explore_dir, adjustf_niter, max_series_size=0, ncores=7
-):
+def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, ncores=7):
     """
     max_series_size int
         when set to 0 the whole time series is imported and there is a lossless conversion from
@@ -1150,13 +1122,9 @@ def import_pt_time_series_raw(
                 path = os.path.join(explore_dir, dir)
                 # HACK for when a new directory is created
                 if not os.path.isdir(path):
-                    path = os.path.join(
-                        explore_dir, os.path.basename(explore_dir), dir
-                    )
+                    path = os.path.join(explore_dir, os.path.basename(explore_dir), dir)
                 file_list = glob.glob(path + "/TimeSeries*")
-                file_list = sorted(
-                    file_list, key=lambda x: int(x.split(".")[-1])
-                )
+                file_list = sorted(file_list, key=lambda x: int(x.split(".")[-1]))
                 tot_size = int(file_list[-1].split(".")[-1]) - adjustf_niter
                 print(tot_size)
                 init_size = int(file_list[0].split(".")[-1]) - adjustf_niter
@@ -1171,9 +1139,7 @@ def import_pt_time_series_raw(
                     adjustf_niter = 0
                 series = []
                 series.extend(
-                    read_txt(
-                        file_list[0], adjustf_niter, max_series_size
-                    ).tolist()
+                    read_txt(file_list[0], adjustf_niter, max_series_size).tolist()
                 )
                 results = Parallel(n_jobs=ncores)(
                     delayed(read_txt)(series_path, 0, other_max_size)
@@ -1202,12 +1168,7 @@ def del_pt_time_series_raw(explore_dir):
 
 def get_uniform_in_sphere(radius, dim):
     x = np.random.normal(0, 1, dim)
-    return (
-        x
-        / np.linalg.norm(x)
-        * radius
-        * np.power(np.random.uniform(0, 1), 1 / dim)
-    )
+    return x / np.linalg.norm(x) * radius * np.power(np.random.uniform(0, 1), 1 / dim)
 
 
 class BasicPlot(object):
@@ -1255,11 +1216,9 @@ def is_left(coords, index1, index2, point):
     = 0 for point on the line
     < 0 for point right of the line
     """
-    return (coords[index2][0] - coords[index1][0]) * (
-        point[1] - coords[index1][1]
-    ) - (point[0] - coords[index1][0]) * (
-        coords[index2][1] - coords[index1][1]
-    )
+    return (coords[index2][0] - coords[index1][0]) * (point[1] - coords[index1][1]) - (
+        point[0] - coords[index1][0]
+    ) * (coords[index2][1] - coords[index1][1])
 
 
 def origin_is_left(coords, index1, index2):
@@ -1271,10 +1230,7 @@ def origin_is_left(coords, index1, index2):
     = 0 for origin on the line
     < 0 for origin right of the line
     """
-    return (
-        coords[index1][0] * coords[index2][1]
-        - coords[index2][0] * coords[index1][1]
-    )
+    return coords[index1][0] * coords[index2][1] - coords[index2][0] * coords[index1][1]
 
 
 def in_hull_2d(point, vertices):
@@ -1282,16 +1238,9 @@ def in_hull_2d(point, vertices):
     Checks if a point is inside the convex hull defined by the 2d vertices.
     """
     hull = ConvexHull(vertices)
-    for pnt in range(
-        len(vertices)
-    ):  # traverse hull vertices counter-clockwise
+    for pnt in range(len(vertices)):  # traverse hull vertices counter-clockwise
         next_pnt = pnt + 1 if pnt + 1 < len(vertices) else 0
-        if (
-            is_left(
-                vertices, hull.vertices[pnt], hull.vertices[next_pnt], point
-            )
-            < 0
-        ):
+        if is_left(vertices, hull.vertices[pnt], hull.vertices[next_pnt], point) < 0:
             return False  # Point right of line
     return True
 
@@ -1318,9 +1267,7 @@ def origin_in_hull_2d(vertices):
     Checks if the origin is inside the convex hull defined by the 2d vertices.
     """
     sorted_vertices = sort_circle(vertices)
-    for pnt in range(
-        len(sorted_vertices)
-    ):  # traverse hull vertices counter-clockwise
+    for pnt in range(len(sorted_vertices)):  # traverse hull vertices counter-clockwise
         next_pnt = pnt + 1 if pnt + 1 < len(sorted_vertices) else 0
         if origin_is_left(sorted_vertices, pnt, next_pnt) < 0:
             return False  # Origin right of line

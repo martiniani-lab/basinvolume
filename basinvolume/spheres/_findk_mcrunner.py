@@ -40,7 +40,7 @@ class _findk_mcrunner(ConfigMCRunner):
         opt_maxstep=None,
         opt_tol=1e-5,
         opt_nsteps=1e5,
-        opt_kwargs = None,
+        opt_kwargs=None,
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
@@ -94,9 +94,7 @@ class _findk_mcrunner(ConfigMCRunner):
             self.coords, 0, bdim=self.bdim, com=False
         )  # set the potential to 0, the potential is completely fictitious here (there's no energy test),
         # k is entirely controlled by the stepsize
-        stepsize = np.sqrt(
-            1.0 / k
-        )  # stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
         # stepsize = np.sqrt(self.ndim/k)  #####################
         #####
 
@@ -110,7 +108,7 @@ class _findk_mcrunner(ConfigMCRunner):
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
-            opt_kwargs = opt_kwargs,
+            opt_kwargs=opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,
@@ -165,17 +163,13 @@ class _findk_mcrunner(ConfigMCRunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(
-            os.getcwd(), explore_dir + packing_nr
-        )
+        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
         configfile = "findk_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _initialise(self):
         self._print_initialise()
@@ -231,7 +225,7 @@ if __name__ == "__main__":
         avgcount=1e4,
         k=759,
         ktarget=0.9,
-        dtol = 1.4e-3,
+        dtol=1.4e-3,
         knavg=1e3,
         seeds=seeds,
         use_cell_lists=True,

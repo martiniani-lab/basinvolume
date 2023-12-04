@@ -40,7 +40,10 @@ class PackingFailureStatistics(object):
             return
         print("Packing failure statistics")
         print(self.get_nr_failures(), "out of", self.total_count, "failed")
-        print("corresponding failure ratio", self.get_nr_failures() / self.total_count)
+        print(
+            "corresponding failure ratio",
+            self.get_nr_failures() / self.total_count,
+        )
         print(100 * self.get_nr_failures() / self.total_count, "per-cent")
 
     def print_progress_info(self, packing_string):
@@ -74,7 +77,10 @@ class PTFailures(object):
             return
         print("PT failure statistics")
         print(self.get_nr_failures(), "out of", self.total_nr, "failed")
-        print("corresponding failure ratio", self.get_nr_failures() / self.total_nr)
+        print(
+            "corresponding failure ratio",
+            self.get_nr_failures() / self.total_nr,
+        )
         print(100 * self.get_nr_failures() / self.total_nr, "per-cent")
         print("packings with failed PT")
         print(self.failed)
@@ -130,7 +136,8 @@ class VolumeSanityCheck(object):
     def get_diameter_file_0_path(self):
         packings_dir = os.path.split(self.v_acc_parameter_file)[0]
         self.diameter_file_0_path = os.path.join(
-            packings_dir, [dir for dir in os.listdir(packings_dir) if "xy" in dir][0]
+            packings_dir,
+            [dir for dir in os.listdir(packings_dir) if "xy" in dir][0],
         )
         print(("diameter file path", self.diameter_file_0_path))
 
@@ -196,7 +203,10 @@ class GLPTNotUsedStatistics(object):
         print("GLPTNotUsedStatistics:")
         print("total number of F0 values:", self.total_nr)
         print("number of times GL failed:", self.used_approx)
-        print("GL failure (approx usage) fraction:", self.get_approx_use_fraction())
+        print(
+            "GL failure (approx usage) fraction:",
+            self.get_approx_use_fraction(),
+        )
 
 
 class BestIntegrationSelection(object):

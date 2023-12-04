@@ -439,9 +439,10 @@ class Experimental_Packing(object):
             nr_iterations += 1
             if nr_iterations > 100:
                 nr_iterations = 1
-                center_x, center_y = self._change_center_pathological_configuration(
-                    center_x, center_y
-                )
+                (
+                    center_x,
+                    center_y,
+                ) = self._change_center_pathological_configuration(center_x, center_y)
             mobile_particle_radius = self._adapt_radius(
                 mobile_particle_radius,
                 nr_mobile_found,
@@ -608,7 +609,9 @@ class Cut_Out_Packings(object):
             help="selects type of grid for splitting",
         )
         self.parser.add_argument(
-            "--all", action="store_true", help="extract maximum number of packings"
+            "--all",
+            action="store_true",
+            help="extract maximum number of packings",
         )
         self.args = self.parser.parse_args()
         if self.args.nr_of_particles <= 0:

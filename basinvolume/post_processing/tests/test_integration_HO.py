@@ -132,7 +132,13 @@ if __name__ == "__main__":
 
     ###__init__(self, dimension, nr_particles, k_values, displacements, box_volume, prob, kappa_const=1.0, displ_k_min_trafo=None):
     vol_fixed1 = F_Basin_From_MC_Data(
-        dimension, nr_particles, k, usq, box_volume, prob, kappa_const=kappa_const
+        dimension,
+        nr_particles,
+        k,
+        usq,
+        box_volume,
+        prob,
+        kappa_const=kappa_const,
     )
     vol_fixed1_ = F_Basin_From_MC_Data(
         dimension,
@@ -154,9 +160,12 @@ if __name__ == "__main__":
         kappa_const=kappa_const,
         displ_k_min_trafo=displ_k_min_trafo,
     )
-    F0_fixed1, sigF0_fixed1, far_fixed1, sigfar_fixed1 = vol_fixed1.get_free_energy_F0(
-        np.ones(nr_points)
-    )
+    (
+        F0_fixed1,
+        sigF0_fixed1,
+        far_fixed1,
+        sigfar_fixed1,
+    ) = vol_fixed1.get_free_energy_F0(np.ones(nr_points))
     (
         F0_fixed1_,
         sigF0_fixed1_,

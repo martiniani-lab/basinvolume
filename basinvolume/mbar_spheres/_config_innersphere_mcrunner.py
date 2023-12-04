@@ -16,6 +16,7 @@ from basinvolume.enums import Minimizer
 import configparser
 import time
 import warnings
+import ast
 
 
 def _subtract_com(x, ndim=3):
@@ -71,10 +72,10 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
             hmin=hmin,
             hmax=hmax,
             hbinsize=hbinsize,
-            opt_dtmax=self.opt_dtmax,
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
+            opt_kwargs = self.opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,
@@ -145,22 +146,16 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(
-            os.getcwd(), explore_dir + packing_nr
-        )
+        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
-        self.packing_configpath = os.path.join(
-            packings_dir, "{}.config".format(dname)
-        )
+        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
         self.findk_configpath = os.path.join(
             self.base_directory, "findk_" + dname + ".config"
         )
         configfile = "innersphere_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _import_packing_config_files(self):
         imp_packing = read_jammed_packing_config(str(self.packing_configpath))
@@ -196,9 +191,14 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
-        self.minimizer = Minimizer[conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "FIRE")]
+        minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+        minimizer = minimizer_string.split(".")[-1]
+        self.minimizer = Minimizer[minimizer]
         self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
-        self.opt_dtmax = configf.getfloat("FINDK_MCRUNNER","opt_dtmax")
+        self.opt_kwargs = ast.literal_eval(
+            conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}")
+        )
+        
         # import mean displacement of replica with largest k
         check_path = os.path.join(self.base_directory, "0", "hist_mean")
 

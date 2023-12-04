@@ -66,11 +66,20 @@ class ConfigBVMCRunner(ConfigMCRunner):
         packings_dir="jammed_packings",
         base_dir=None,
         verbose=False,
+        minimizer=None,
+        opt_tol=None,
+        dtol=None,
     ):
-
+        if minimizer is None:
+            self.minimizer = None
+        else:
+            self.minimizer = Minimizer[minimizer]
+        self.opt_tol = opt_tol
+        self.dtol = dtol
         self.fname = fname
         self._set_paths(base_dir, packings_dir)
         self._import_packing_config_files()
+        self._read_kmin_kmax_opt_data(minimizer, opt_tol, dtol)
         self._import_packing_configuration()
         hbinsize = self._get_histogram_bin(temperature)
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
@@ -112,15 +121,13 @@ class ConfigBVMCRunner(ConfigMCRunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(
-            temperature=temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
 
         self._initialise()
-        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol = self.opt_tol)
+        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -172,15 +179,11 @@ class ConfigBVMCRunner(ConfigMCRunner):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
 
-        self.packing_configpath = os.path.join(
-            packings_dir, "{}.config".format(dname)
-        )
+        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
         self.findk_configpath = os.path.join(
             self.base_dir, "findk_" + dname + ".config"
         )
-        self.kmin_configpath = os.path.join(
-            self.base_dir, "kmin_" + dname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.base_dir, "kmin_" + dname + ".config")
         self.configfile = "{}/explore_{}.config".format(self.base_dir, dname)
 
     def _get_histogram_bin(self, k):
@@ -255,18 +258,32 @@ class ConfigBVMCRunner(ConfigMCRunner):
                     "which changes the number of cells and can "
                     "negatively impact performance."
                 )
+
+    def _read_kmin_kmax_opt_data(self, minimizer_str, opt_tol, dtol):
         configf = configparser.ConfigParser()
         print(self.findk_configpath)
         configf.read(str(self.findk_configpath))
         # fails if Success is false
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
-        self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
-        minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
-        minimizer = minimizer_string.split(".")[-1]
-        self.minimizer = Minimizer[minimizer]
-        self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
-        self.opt_kwargs = ast.literal_eval(conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}"))
+        if dtol is None:
+            self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
+        else:
+            self.dtol = dtol
+        if minimizer_str is None:
+            minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+            minimizer = minimizer_string.split(".")[-1]
+            self.minimizer = Minimizer[minimizer]
+        else:
+            self.minimizer = Minimizer[minimizer_str]
+        if opt_tol is None:
+            self.opt_tol = configf.getfloat("FINDK_MCRUNNER", "opt_tol")
+        else:
+            self.opt_tol = opt_tol
+        self.opt_kwargs = ast.literal_eval(
+            conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}")
+        )
+            
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")
@@ -280,14 +297,11 @@ class ConfigBVMCRunner(ConfigMCRunner):
             configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
             for i in range(self.nprocs):
-                configf.set(
-                    "STATUS", "success_rank{}".format(str(i)), str(success)
-                )
+                configf.set("STATUS", "success_rank{}".format(str(i)), str(success))
             configf.write(open(str(self.configfile), "w"))
 
 
 if __name__ == "__main__":
-
     # first 7 primary pseudo perfect numbers
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])

@@ -7,7 +7,11 @@ import numpy as np
 from pele.potentials import Harmonic
 import unittest
 import logging
-from mcpele.monte_carlo import _BaseMCRunner, RandomCoordsDisplacement, MetropolisTest
+from mcpele.monte_carlo import (
+    _BaseMCRunner,
+    RandomCoordsDisplacement,
+    MetropolisTest,
+)
 from mcpele.monte_carlo import RecordEnergyHistogram, CheckSphericalContainer
 import copy
 

@@ -79,9 +79,12 @@ class Neighbors(StructuralAnalysis):
                     )
 
             # Read coordinates and compute neighbors
-            self.coords, self.hs_radii, _, _ = self._import_packing_configuration(
-                input_fname
-            )
+            (
+                self.coords,
+                self.hs_radii,
+                _,
+                _,
+            ) = self._import_packing_configuration(input_fname)
 
             # Create potential
             self._initialise_potential()

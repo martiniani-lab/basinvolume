@@ -14,13 +14,24 @@ import numpy as np
 
 
 def test_integration_with_transform(
-    nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const, displ_k_min_trafo
+    nr_points,
+    k_max,
+    displ_k0,
+    nr_particles,
+    dimension,
+    kappa_const,
+    displ_k_min_trafo,
 ):
     """
     Computes integral with variable transform and directly for consistency check.
     """
     k_old = spring_constants_variable_transform(
-        nr_points, k_max, displ_k0, nr_particles, dimension, kappa_const=kappa_const
+        nr_points,
+        k_max,
+        displ_k0,
+        nr_particles,
+        dimension,
+        kappa_const=kappa_const,
     )
     k = spring_constants_variable_transform(
         nr_points,

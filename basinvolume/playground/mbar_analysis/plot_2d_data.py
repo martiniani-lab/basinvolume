@@ -26,7 +26,11 @@ from scipy.integrate import romberg, simps, quad, cumtrapz, trapz
 import glob
 from itertools import chain
 import pickle as pickle
-from basinvolume.post_processing import PackingData, PackingDataSet, BasinAnalysis
+from basinvolume.post_processing import (
+    PackingData,
+    PackingDataSet,
+    BasinAnalysis,
+)
 from joblib import Parallel, delayed
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import (
     get_bandwidth_estimate,
@@ -256,7 +260,9 @@ def remove_outliers_cluster(x, y, yerr):
 def remove_outliers_mcd(x, y, yerr, support_fraction=0.99, contamination=0.1):
     x, y = np.asarray(x), np.asarray(y)
     classifier = EllipticEnvelope(
-        contamination=contamination, support_fraction=support_fraction, random_state=42
+        contamination=contamination,
+        support_fraction=support_fraction,
+        random_state=42,
     )
     features = np.vstack((x, y)).T
     classifier.fit(features)
@@ -494,9 +500,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     fit_fn, fit_params, fit_err, rho = lmms_fit(p, y)
                     ax.plot(p_raw, -fit_fn(p_raw), color="k", linestyle="-")
 
-                    (mean_p, var_p), (mean_f, var_f), cov, logl = robust_mean_var(
-                        p, f_raw
-                    )
+                    (
+                        (mean_p, var_p),
+                        (mean_f, var_f),
+                        cov,
+                        logl,
+                    ) = robust_mean_var(p, f_raw)
                     meanvar_f_list.append([mean_f, var_f])
                     meanvar_pi_list.append([mean_p, var_p])
                     cov_f_pi_list.append(cov)
@@ -540,7 +549,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     )
                     kdehist = np.exp(kde.score_samples(edges[:, np.newaxis]))
                     ax3.plot(
-                        edges, kdehist, label=dataset.ss_phi, color=color, linewidth=3
+                        edges,
+                        kdehist,
+                        label=dataset.ss_phi,
+                        color=color,
+                        linewidth=3,
                     )
                     kdefunc = lambda x: np.exp(np.add(kde.score_samples([[x]]), x))
                     kde_integral, kde_integral_error = integrate.quad(
@@ -610,7 +623,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     hist = kdehist * np.exp(edges) / kde_integral
                     hist /= simps(hist, edges)
                     ax33.plot(
-                        edges, hist, color=color, label=dataset.ss_phi, linewidth=3
+                        edges,
+                        hist,
+                        color=color,
+                        label=dataset.ss_phi,
+                        linewidth=3,
                     )
                     # wpdf = weighted_gaussian_kde(f, weights=np.exp(f), bw_method=bw[0])
                     # ax33.plot(edges, wpdf(edges), label=dataset.ss_phi, color=color, linewidth=3)
@@ -635,7 +652,11 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     edges = np.linspace(-2, 8, 10000)
                     kdehist = get_pdf(p, edges, bandwidth=bw, kernel="gaussian")
                     ax32.plot(
-                        edges, kdehist, label=dataset.ss_phi, color=color, linewidth=3
+                        edges,
+                        kdehist,
+                        label=dataset.ss_phi,
+                        color=color,
+                        linewidth=3,
                     )
                     # fit to generalised gaussian
                     generalised_gauss = GeneralisedGauss(
@@ -801,7 +822,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             markersize=15,
         )
         ax1.plot(
-            x, 1.0 / fit_fn(x), marker="", linewidth=3, linestyle="--", color=color
+            x,
+            1.0 / fit_fn(x),
+            marker="",
+            linewidth=3,
+            linestyle="--",
+            color=color,
         )
         a1 = ufloat(fit_params[0], fit_err[0])
         b1 = ufloat(fit_params[1], fit_err[1])
@@ -820,7 +846,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             markersize=15,
         )
         ax11.plot(
-            z, 1.0 / fit_fn(z), marker="", linewidth=3, linestyle="--", color=color
+            z,
+            1.0 / fit_fn(z),
+            marker="",
+            linewidth=3,
+            linestyle="--",
+            color=color,
         )
         za1 = ufloat(fit_params[0], fit_err[0])
         zb1 = ufloat(fit_params[1], fit_err[1])
@@ -850,7 +881,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             markersize=15,
         )
         ax1.plot(
-            x, 1.0 / fit_fn(x), marker="", linewidth=3, linestyle="--", color=color
+            x,
+            1.0 / fit_fn(x),
+            marker="",
+            linewidth=3,
+            linestyle="--",
+            color=color,
         )
         a2 = ufloat(fit_params[0], fit_err[0])
         b2 = ufloat(fit_params[1], fit_err[1])
@@ -880,7 +916,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             markersize=15,
         )
         ax11.plot(
-            z, 1.0 / fit_fn(z), marker="", linewidth=3, linestyle="--", color=color
+            z,
+            1.0 / fit_fn(z),
+            marker="",
+            linewidth=3,
+            linestyle="--",
+            color=color,
         )
         a2 = ufloat(fit_params[0], fit_err[0])
         b2 = ufloat(fit_params[1], fit_err[1])
@@ -913,7 +954,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             markersize=15,
         )
         ax1.plot(
-            x, 1.0 / fit_fn(x), marker="", linewidth=3, linestyle="--", color=color
+            x,
+            1.0 / fit_fn(x),
+            marker="",
+            linewidth=3,
+            linestyle="--",
+            color=color,
         )
         a2 = ufloat(fit_params[0], fit_err[0])
         b2 = ufloat(fit_params[1], fit_err[1])
@@ -943,7 +989,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             markersize=15,
         )
         ax11.plot(
-            z, 1.0 / fit_fn(z), marker="", linewidth=3, linestyle="--", color=color
+            z,
+            1.0 / fit_fn(z),
+            marker="",
+            linewidth=3,
+            linestyle="--",
+            color=color,
         )
         a2 = ufloat(fit_params[0], fit_err[0])
         b2 = ufloat(fit_params[1], fit_err[1])
@@ -1229,7 +1280,14 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 color=colorl,
                 markeredgecolor=colorl,
             )
-            ax2.plot(x, fit_fn(x), marker="", linewidth=3, linestyle="--", color=colorl)
+            ax2.plot(
+                x,
+                fit_fn(x),
+                marker="",
+                linewidth=3,
+                linestyle="--",
+                color=colorl,
+            )
             fit_params = np.array(fit_params)
             print(
                 "mu_f = {} phi^2 + {} phi + {} ".format(
@@ -1250,7 +1308,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 markeredgecolor=colorr,
             )
             ax22.plot(
-                x, fit_fn(x), marker="", linewidth=3, linestyle="--", color=colorr
+                x,
+                fit_fn(x),
+                marker="",
+                linewidth=3,
+                linestyle="--",
+                color=colorr,
             )
             print("mu_pi = {} phi + {} ".format(fit_params[0], fit_params[1]))
 
@@ -1292,7 +1355,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 markeredgecolor=colorr,
             )
             ax24.plot(
-                x, fit_fn(x), marker="", linewidth=3, linestyle="--", color=colorr
+                x,
+                fit_fn(x),
+                marker="",
+                linewidth=3,
+                linestyle="--",
+                color=colorr,
             )
             print(
                 "sigma_f = {} phi^2 + {} phi + {} ".format(
@@ -1314,7 +1382,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 markeredgecolor=colorl,
             )
             ax23.plot(
-                x, fit_fn(x), marker="", linewidth=3, linestyle="--", color=colorl
+                x,
+                fit_fn(x),
+                marker="",
+                linewidth=3,
+                linestyle="--",
+                color=colorl,
             )
             fit_params = np.array(fit_params)
             print(
@@ -1509,7 +1582,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
                         # free energy non parametric log omega
                         bw = get_bandwidth_estimate(
-                            np.array(f), kernel="gaussian", method="cross_validation"
+                            np.array(f),
+                            kernel="gaussian",
+                            method="cross_validation",
                         )
                         kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(
                             f[:, np.newaxis]
@@ -1527,7 +1602,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
                         # kde histogram
                         bw = get_bandwidth_estimate(
-                            np.array(x), kernel="gaussian", method="cross_validation"
+                            np.array(x),
+                            kernel="gaussian",
+                            method="cross_validation",
                         )
                         kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(
                             x[:, np.newaxis]
@@ -1546,7 +1623,8 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                         log_hist = log_pdf + iNK * np.log(x_integrate)
                         norm = np.log(
                             integrate.romb(
-                                np.exp(log_hist), dx=x_integrate[1] - x_integrate[0]
+                                np.exp(log_hist),
+                                dx=x_integrate[1] - x_integrate[0],
                             )
                         )
                         unpad_log_omega_p_hist.append(log_hist - norm + log_omega)

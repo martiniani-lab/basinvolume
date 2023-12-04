@@ -17,7 +17,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
 
     def __init__(
         self,
-        potential,
+        bias_potential,
         full_coords,
         temperature,
         stepsize,
@@ -52,7 +52,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         else:
             red_coords = full_coords
         super(BaseSpheresMCrunner, self).__init__(
-            potential, red_coords, temperature, niter
+            bias_potential, red_coords, temperature, niter
         )
 
         self.boxv = boxv

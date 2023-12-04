@@ -51,7 +51,8 @@ def compute_volume(minimum_index=None, means=None, cov=None):
     # Print all volumes to file.
     fout = ResultsFile(
         os.path.join(
-            os.getcwd(), "volume_method_comparison_brute{}".format(minimum_index)
+            os.getcwd(),
+            "volume_method_comparison_brute{}".format(minimum_index),
         )
     )
     fout.set_heading("DIRECT REJECTION SAMPLING")

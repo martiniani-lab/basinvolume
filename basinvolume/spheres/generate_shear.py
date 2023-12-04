@@ -127,7 +127,11 @@ if __name__ == "__main__":
         default=0.001,
     )
     parser.add_argument(
-        "-f", "--final-shear", type=float, help="Final shear. Default: 1.0", default=1.0
+        "-f",
+        "--final-shear",
+        type=float,
+        help="Final shear. Default: 1.0",
+        default=1.0,
     )
     parser.add_argument(
         "--nocell",
@@ -156,7 +160,11 @@ if __name__ == "__main__":
         default=32,
     )
     parser.add_argument(
-        "-d", "--boxdim", type=int, help="Box dimensions. Default: 2", default=2
+        "-d",
+        "--boxdim",
+        type=int,
+        help="Box dimensions. Default: 2",
+        default=2,
     )
     parser.add_argument(
         "--input-packings",
@@ -187,7 +195,10 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
-        "--rmean", type=float, help="Mean particle radius. Default: 1.0", default=1.0
+        "--rmean",
+        type=float,
+        help="Mean particle radius. Default: 1.0",
+        default=1.0,
     )
     parser.add_argument(
         "--rsigma",

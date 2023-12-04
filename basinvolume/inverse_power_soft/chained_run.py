@@ -111,13 +111,11 @@ class SoftSphereBasinVolumeCalculator(BaseBasinVolumeCalculator):
         self.attractor_coords = load_data(attractor_path).flatten()
         self.attractor_directory = os.path.dirname(attractor_path)
         self.simulation_dir = os.path.basename(self.attractor_directory)
-        with open(
-            os.path.join(self.attractor_directory, "parameters.yaml")
-        ) as param_f:
+        with open(os.path.join(self.attractor_directory, "parameters.yaml")) as param_f:
             self.parameters = yaml.load(param_f, Loader=yaml.UnsafeLoader)
-        self.potential = setup_bidisperse(
-            self.parameters, self.parameters["seed"]
-        )["potential"]
+        self.potential = setup_bidisperse(self.parameters, self.parameters["seed"])[
+            "potential"
+        ]
         os.chdir(self.simulation_dir)
 
     def run(self):

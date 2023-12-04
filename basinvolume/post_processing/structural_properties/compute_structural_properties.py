@@ -29,7 +29,11 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
-        "-j", "--ncores", type=int, help="Threads for parallel execution.", default=7
+        "-j",
+        "--ncores",
+        type=int,
+        help="Threads for parallel execution.",
+        default=7,
     )
 
     parser.add_argument(

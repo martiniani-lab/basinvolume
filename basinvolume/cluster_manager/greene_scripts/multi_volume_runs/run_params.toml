@@ -15,5 +15,7 @@ n_ensemble = 1
 ["kmin"]
 
 ["pt"]
+mintotniter = 5e5
+maxtotniter = 2e6
 
 ["innersphere"]

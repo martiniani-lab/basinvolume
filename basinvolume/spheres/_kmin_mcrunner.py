@@ -126,11 +126,9 @@ class KminMCRunner(ConfigMCRunner):
             self.dtol = dtol
 
         if minimizer is None:
-            self.minimizer = Minimizer[
-                conf_get_default(
-                    configf, "FINDK_MCRUNNER", "minimizer", "FIRE"
-                )
-            ]
+            minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+            minimizer = minimizer_string.split(".")[-1]
+            self.minimizer = Minimizer[minimizer]
         else:
             self.minimizer = Minimizer[minimizer]
 
@@ -138,8 +136,10 @@ class KminMCRunner(ConfigMCRunner):
             self.opt_tol = configf.getfloat("FINDK_MCRUNNER", "opt_tol")
         else:
             self.opt_tol = opt_tol
-            
-        self.opt_kwargs = ast.literal_eval(conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}"))
+
+        self.opt_kwargs = ast.literal_eval(
+            conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}")
+        )
 
         kwargs = dict(
             bias_params = [k],
@@ -181,9 +181,7 @@ class KminMCRunner(ConfigMCRunner):
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(
-            self.dtol, opt_maxstep, verbose, gtol=self.opt_tol
-        )
+        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -241,9 +239,7 @@ class KminMCRunner(ConfigMCRunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(
-            os.getcwd(), explore_dir + packing_nr
-        )
+        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(self.workspace, packings_dir)
         self.packings_dir = packings_dir
@@ -252,13 +248,9 @@ class KminMCRunner(ConfigMCRunner):
             self.base_directory, "findk_" + dname + ".config"
         )
         configfile = "kmin_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
         trajectory_fname = "kmin_trajectory_" + dname
-        self.trajectory_path = "{}/{}.h5".format(
-            self.base_directory, trajectory_fname
-        )
+        self.trajectory_path = "{}/{}.h5".format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = "diffusion_" + dname
         self.diffusion_configfname = "{}/{}".format(
@@ -317,9 +309,7 @@ class KminMCRunner(ConfigMCRunner):
         for key, value in list(status.items()):
             f.write("{}: {}\n".format(key, value))
         f.write("[KMIN]\n")
-        f.write(
-            "displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25)
-        )  # note 1.25
+        f.write("displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25))  # note 1.25
         f.write("var_displ_k_min: {:.16f}\n".format(self.var_displ_k_min))
         f.write("mean_coord_dist: {:.16f}\n".format(self.mean_coord_dist))
         f.write("var_coord_dist: {:.16f}\n".format(self.var_coord_dist))
@@ -377,9 +367,7 @@ if __name__ == "__main__":
         k=0,
         seeds=seeds,
         record_steps_timeseries=True,
-        record_steps_timeseries_every=[
-            int(np.ceil(1.5**n)) for n in range(22)
-        ],
+        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
         single=True,
         use_cell_lists=True,
         verbose=True,

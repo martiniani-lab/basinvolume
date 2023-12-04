@@ -122,7 +122,10 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
-        "--hard_phi", type=float, default=0.67, help="hard disc volume fraction"
+        "--hard_phi",
+        type=float,
+        default=0.67,
+        help="hard disc volume fraction",
     )
     parser.add_argument(
         "--seed_radii",

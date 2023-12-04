@@ -218,7 +218,11 @@ class HS_MCrunnerOptDiffusion(HS_MCrunner):
         self.initial_stepsize = stepsize
 
         self.diffusion = FindNrDecorrelationSteps(
-            desired_mean_rsm_displ, adjustf_niter, nr_samples_average, coords, self.bdim
+            desired_mean_rsm_displ,
+            adjustf_niter,
+            nr_samples_average,
+            coords,
+            self.bdim,
         )
         self.add_action(self.diffusion)
 

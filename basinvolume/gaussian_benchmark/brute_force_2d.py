@@ -117,7 +117,12 @@ class BruteForce2D(object):
         print(("initial optimization", result.success))
         origin_result = result.coords
         print(("self.optimizer.get_niter()", self.optimizer.get_niter()))
-        print(("self.optimizer.get_result().nfev", self.optimizer.get_result().nfev))
+        print(
+            (
+                "self.optimizer.get_result().nfev",
+                self.optimizer.get_result().nfev,
+            )
+        )
         # self.nr_evaluations.count += self.optimizer.get_result().nfev
         self.optimizer.reset(origin_result)
         print(
@@ -135,7 +140,12 @@ class BruteForce2D(object):
         keep_running = True
         while keep_running:
             self.mc.run(self.nr_samples_increment)
-            print(("self.mc.get_accepted_fraction()", self.mc.get_accepted_fraction()))
+            print(
+                (
+                    "self.mc.get_accepted_fraction()",
+                    self.mc.get_accepted_fraction(),
+                )
+            )
             p = self.mc.get_accepted_fraction()
             print(
                 (

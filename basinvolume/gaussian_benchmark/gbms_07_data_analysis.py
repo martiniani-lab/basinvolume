@@ -52,7 +52,12 @@ class TimeSeriesComparison(object):
                 for s in list(self.data.values())
             ]
         )
-        print(("self.max_deviation_from_long_mean", self.max_deviation_from_long_mean))
+        print(
+            (
+                "self.max_deviation_from_long_mean",
+                self.max_deviation_from_long_mean,
+            )
+        )
         if (
             len(keys) > 2
             and self.max_deviation_from_long_mean
@@ -70,7 +75,12 @@ class TimeSeriesComparison(object):
         self.latest_converged_iteration = dict(
             [(k, self.get_latest_conv_iteration(k)) for k in self.keys]
         )
-        print(("self.latest_converged_iteration", self.latest_converged_iteration))
+        print(
+            (
+                "self.latest_converged_iteration",
+                self.latest_converged_iteration,
+            )
+        )
 
     def get_latest_conv_iteration(self, k):
         it = len(self.data[k])
@@ -263,7 +273,9 @@ class TrajOnlyAnalysis(object):
 
     def get_evals(self, volume_path, evals_path):
         ssc = SingleSeriesConvergence(
-            volume_path, evals_path, self.analysis_parameters["target_relative_error"]
+            volume_path,
+            evals_path,
+            self.analysis_parameters["target_relative_error"],
         )
         return ssc.converged_evaluation
 
@@ -438,7 +450,8 @@ def run_analysis(ls_basin_label):
             (
                 "ls_basin_results_dir",
                 os.path.join(
-                    "/scratch/kjs73/basin_traj_data/", ls_basin_label + "_basin_results"
+                    "/scratch/kjs73/basin_traj_data/",
+                    ls_basin_label + "_basin_results",
                 ),
             ),
         ]
