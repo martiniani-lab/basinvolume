@@ -51,7 +51,10 @@ class ReplicaState(BV_MCRunner_State):
         self._set_state(mcrunner_state)
 
     def serialize(self):
-        n_bias_params = len(self.bias_params)
+        if isinstance(self.bias_params, float):
+            n_bias_params = 1
+        else: 
+            n_bias_params = len(self.bias_params)
 
         data = np.empty(self.size(), dtype="d")
         data[0] = self.id
@@ -66,7 +69,10 @@ class ReplicaState(BV_MCRunner_State):
         return data
 
     def deserialize(self, value):
-        n_bias_params = len(self.bias_params)
+        if isinstance(self.bias_params, float):
+            n_bias_params = 1
+        else: 
+            n_bias_params = len(self.bias_params)
         
         self.id = int(value[0])
         self.dx = value[1]
@@ -84,7 +90,10 @@ class ReplicaState(BV_MCRunner_State):
         )
 
     def size(self):
-        n_bias_params = len(self.bias_params)
+        if isinstance(self.bias_params, float):
+            n_bias_params = 1
+        else :
+            n_bias_params = len(self.bias_params)
         return (
             5 +  n_bias_params
             + len(self.coords)
@@ -857,8 +866,11 @@ class PT_Master(object):
         with open(fname, "w") as kfile:
             for ireplica in range(self.nreplicas):
                 param_row = self.replica_states[ireplica].bias_params
-                for param in param_row:
-                    kfile.write(f"{param} ")
+                if isinstance(param_row, float):
+                    kfile.write(f"{param_row}")
+                else:
+                    for param in param_row:
+                        kfile.write(f"{param} ")
                 kfile.write(f"\n")
 
     def _print_stepsizes(self):
