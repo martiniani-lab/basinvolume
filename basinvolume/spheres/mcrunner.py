@@ -267,11 +267,15 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             except KeyError:
                 atol = (
                     0.1
-                    * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                    * INVERSE_POWER_CVODE_95_ACC[
+                        len(self.start_coords) // self.bdim
+                    ]
                 )
                 rtol = (
                     0.1
-                    * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                    * INVERSE_POWER_CVODE_95_ACC[
+                        len(self.start_coords) // self.bdim
+                    ]
                 )
             optimizer = CVODEBDFOptimizer(
                 self.pot_optimizer,
@@ -291,11 +295,15 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             except KeyError:
                 atol = (
                     0.1
-                    * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                    * INVERSE_POWER_CVODE_95_ACC[
+                        len(self.start_coords) // self.bdim
+                    ]
                 )
                 rtol = (
                     0.1
-                    * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                    * INVERSE_POWER_CVODE_95_ACC[
+                        len(self.start_coords) // self.bdim
+                    ]
                 )
             optimizer = ExtendedMixedOptimizer(
                 self.pot_optimizer,

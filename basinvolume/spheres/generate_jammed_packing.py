@@ -1292,15 +1292,21 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
     def one_iteration(self, fname):
         """perform one iteration"""
         self._import_single_config_file(fname)
+        ### potential parameters
+        self.bdim = 2
+        self.parameters["dim"] = self.bdim * self.nparticles
+        self.parameters["period"] = 1.0
+        self.parameters["power"] = 0.5
+        self.parameters["offset"] = 0.0
         self.parameters["n_part"] = self.nparticles
-        self.parameters["ndim"] = self.bdim
+
         self.rattlers = np.empty(self.nparticles, dtype="d")
         self.rattlers_draw = np.empty(self.nparticles, dtype="d")
         self.opt_maxstep = 1.0
         print("ndim", self.ndim)
         radii = np.array([1.0] * self.nparticles)  # no radiii
         # periodic anyway
-        box_length = 4.0
+        box_length = self.parameters["period"]
 
         self._import_packing_configuration(fname)
         self.max_nrattlers = int(self.nparticles)
@@ -1315,7 +1321,7 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
         self.parameters["radii"] = self.hs_radii
         self.parameters["box_length"] = self.boxl
         self.potential = PoweredCosineSum(
-            self.parameters["ndim"],
+            self.parameters["dim"],
             self.parameters["period"],
             self.parameters["power"],
             self.parameters["offset"],
