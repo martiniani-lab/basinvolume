@@ -21,6 +21,9 @@ BINARY_SOFT_SPHERE_DEFAULTS = {
 }
 
 
+NEGATIVE_COS_DEFAULTS = {"dim": 4, "period": 1, "power": 0.5, "offset": 1}
+
+
 def setup_without_radii_bl(parameters, radii, box_length):
     """Sets up the inverse power potential.
         Uses a python based implementation that accounts
@@ -58,7 +61,9 @@ def setup_without_radii_bl(parameters, radii, box_length):
 
     if np.amin(box_vec) < 4 * np.amax(radii):
         if "non_additivity" in parameters:
-            raise ValueError("non_additivity not implemented for python potential")
+            raise ValueError(
+                "non_additivity not implemented for python potential"
+            )
         potential = PyInversePower(
             parameters["power"],
             parameters["eps"],
@@ -136,7 +141,9 @@ def quench_minima(initial_condition, parameters, quench_params):
     print("potential")
     print("initial_condition")
     print("quench_params")
-    result = quench_cvode_opt(potential, initial_condition.flatten(), **quench_params)
+    result = quench_cvode_opt(
+        potential, initial_condition.flatten(), **quench_params
+    )
     return result["coords"]
 
 
@@ -195,7 +202,9 @@ class SoftSphereMinimaEnsemble:
 
     def save(self):
         """Save the results to disk."""
-        with open(os.path.join(self.save_path, "parameters.yaml"), "w") as par_file:
+        with open(
+            os.path.join(self.save_path, "parameters.yaml"), "w"
+        ) as par_file:
             yaml.dump(self.parameters, par_file)
         for i, minimum in enumerate(self.minima):
             np.savetxt(
