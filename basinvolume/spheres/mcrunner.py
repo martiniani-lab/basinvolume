@@ -248,12 +248,16 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 maxErise=0,
             )
         elif self.minimizer is Minimizer.CVODE:
-            atol = self.opt_kwargs["atol_values"][
-                str(len(self.start_coords) // self.bdim)
-            ]
-            rtol = self.opt_kwargs["rtol_values"][
-                str(len(self.start_coords) // self.bdim)
-            ]
+            if self.opt_kwargs["rtol_values"] == None:
+                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+            else: 
+                atol = self.opt_kwargs["atol_values"][
+                    str(len(self.start_coords) // self.bdim)
+                ]
+                rtol = self.opt_kwargs["rtol_values"][
+                    str(len(self.start_coords) // self.bdim)
+                ]
             optimizer = CVODEBDFOptimizer(
                 self.pot_optimizer,
                 self.start_coords,
@@ -262,8 +266,16 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 rtol=rtol,
             )
         elif self.minimizer is Minimizer.MXD:
-            atol = self.opt_kwargs["atol_values"][str(len(self.start_coords) // self.bdim)]
-            rtol = self.opt_kwargs["rtol_values"][str(len(self.start_coords) // self.bdim)]
+            if self.opt_kwargs["rtol_values"] == None:
+                atol= 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                rtol= 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+            else: 
+                atol = self.opt_kwargs["atol_values"][
+                    str(len(self.start_coords) // self.bdim)
+                ]
+                rtol = self.opt_kwargs["rtol_values"][
+                    str(len(self.start_coords) // self.bdim)
+                ]
             optimizer = ExtendedMixedOptimizer(
                 self.pot_optimizer,
                 self.start_coords,
@@ -274,7 +286,10 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 T=get_mxd_t(self.nparticles),
             )
         elif self.minimizer is Minimizer.FIRE:
-            opt_dtmax = self.opt_kwargs["opt_dtmax"]
+            if self.opt_kwargs["opt_dtmax"] == None:
+                opt_dtmax = 1.0
+            else:
+                opt_dtmax = self.opt_kwargs["opt_dtmax"]
             optimizer = ModifiedFireCPP(
                 self.start_coords,
                 self.pot_optimizer,
