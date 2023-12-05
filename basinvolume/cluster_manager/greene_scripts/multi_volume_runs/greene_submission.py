@@ -172,7 +172,7 @@ def calculate_volume(
         )
     elif simulation_type == SimStage.ANALYSIS:
         mem_str = RESOURCE_CONFIG["memory"]["analysis"]
-        setup_compute_volume(simulation_folder, time_str, mem_str, submit=submit)
+        setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=submit)
     else:
         raise NotImplementedError("simulation type not implemented")
 
@@ -349,7 +349,7 @@ def setup_inner_sphere(
     return 0
 
 
-def setup_compute_volume(simulation_folder, time_str, mem_str, submit=True):
+def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=True):
     # TODO make this more like the others with fewer hardcoded values
     ntasks = 1
     cpus_per_task = 1
@@ -365,8 +365,13 @@ def setup_compute_volume(simulation_folder, time_str, mem_str, submit=True):
     out_file = f"{out_folder}/{job_name_prefix}"
     explore_dir_prefix = "explore_bv_jammed_packing"
     
+    # Use the same bias as in PT here
+    pt_default_kwargs = DEFAULT_CONFIG["pt_defaults"]
+    pt_default_kwargs.update(run_params["pt"])
+    bias = pt_default_kwargs["bias"]
+    
     run_command = (
-        f"{script_run_prefix} {script_location} -w {simulation_folder}"
+        f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias}"
     )
     
     script = GREENE_SCRIPT_TEMPLATE.format(

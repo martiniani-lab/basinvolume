@@ -111,6 +111,7 @@ hbinsize = 1e-1
 acceptance = 0.2
 adjustf = 0.9
 k_spreading = "positionlinspace"
+bias = "harmonic"
 
 ["innersphere_defaults"]
 packings-dir = "jammed_packings"
