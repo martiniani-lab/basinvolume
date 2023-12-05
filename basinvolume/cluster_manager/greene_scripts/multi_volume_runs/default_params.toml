@@ -40,7 +40,7 @@ sort = false
 
 
 ["kmax_defaults"]
-kstart = 500
+kstart = 5
 packings-dir = "jammed_packings"
 explore-dir = "explore_bv_jammed_packing"
 nocell = false
