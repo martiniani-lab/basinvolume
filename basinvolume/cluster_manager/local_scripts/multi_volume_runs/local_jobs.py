@@ -484,7 +484,7 @@ def submit_initial_jobs(
                 out_file = f"{out_folder}/{job_name_prefix}"
                 if submit:
                     print(run_command)
-                    os.chdir(simulation_folder)
+                    os.chdir(experiment_dir)
                     os.system(run_command)
                 return 0
 

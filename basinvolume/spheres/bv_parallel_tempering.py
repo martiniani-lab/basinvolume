@@ -207,9 +207,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--k_spreading",
         type=str,
-        default="linspace",
+        default="positionlinspace",
         help="K spreading method, options: \
-        gausslobato, linspace, logspace, positionlinspace",
+        HARMONIC BIAS ONLY: gausslobato, linspace, logspace, positionlinspace",
     )
     parser.add_argument(
         "--bias",
