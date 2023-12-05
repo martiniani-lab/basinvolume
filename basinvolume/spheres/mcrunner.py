@@ -257,29 +257,14 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 maxErise=0,
             )
         elif self.minimizer is Minimizer.CVODE:
-            if self.opt_kwargs["rtol_values"] == None:
-                atol = INVERSE_POWER_CVODE_95_ACC[
-                    len(self.coords) // self.bdim
-                ]
-                rtol = INVERSE_POWER_CVODE_95_ACC[
-                    len(self.coords) // self.bdim
-                ]
-            else:
+            try:
                 atol = self.opt_kwargs["atol_values"][
                     str(len(self.start_coords) // self.bdim)
                 ]
                 rtol = self.opt_kwargs["rtol_values"][
                     str(len(self.start_coords) // self.bdim)
                 ]
-            optimizer = CVODEBDFOptimizer(
-                self.pot_optimizer,
-                self.start_coords,
-                tol=self.opt_tol,
-                atol=atol,
-                rtol=rtol,
-            )
-        elif self.minimizer is Minimizer.MXD:
-            if self.opt_kwargs["rtol_values"] == None:
+            except KeyError:
                 atol = (
                     0.1
                     * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
@@ -288,13 +273,30 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     0.1
                     * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
                 )
-            else:
+            optimizer = CVODEBDFOptimizer(
+                self.pot_optimizer,
+                self.start_coords,
+                tol=self.opt_tol,
+                atol=atol,
+                rtol=rtol,
+            )
+        elif self.minimizer is Minimizer.MXD:
+            try:
                 atol = self.opt_kwargs["atol_values"][
                     str(len(self.start_coords) // self.bdim)
                 ]
                 rtol = self.opt_kwargs["rtol_values"][
                     str(len(self.start_coords) // self.bdim)
                 ]
+            except KeyError:
+                atol = (
+                    0.1
+                    * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                )
+                rtol = (
+                    0.1
+                    * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                )
             optimizer = ExtendedMixedOptimizer(
                 self.pot_optimizer,
                 self.start_coords,
@@ -305,10 +307,10 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 T=get_mxd_t(self.nparticles),
             )
         elif self.minimizer is Minimizer.FIRE:
-            if self.opt_kwargs["opt_dtmax"] == None:
-                opt_dtmax = 1.0
-            else:
+            try:
                 opt_dtmax = self.opt_kwargs["opt_dtmax"]
+            except KeyError:
+                opt_dtmax = 1.0
             optimizer = ModifiedFireCPP(
                 self.start_coords,
                 self.pot_optimizer,
