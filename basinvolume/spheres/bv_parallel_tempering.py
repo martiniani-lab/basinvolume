@@ -214,6 +214,7 @@ if __name__ == "__main__":
         help = "Biasing potentials used in umbrella sampling, options:\
             harmonic, radial_gaussian"
     )
+    parser.add_argument(
         "--force-minimizer",
         type=str,
         help="Force minimizer usage different from the one used for kmax \
