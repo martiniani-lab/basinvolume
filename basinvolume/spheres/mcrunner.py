@@ -12,6 +12,7 @@ from pele.potentials import (
     HS_WCA,
     InversePowerStillingerCut,
     InversePower,
+    PoweredCosineSum,
 )
 from pele.optimize import (
     ModifiedFireCPP,
@@ -120,7 +121,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         sca,
         rattlers=None,
         bias_params=None,
-        bias = "harmonic",
+        bias="harmonic",
         dtol=1e-3,
         eps=1.0,
         hmin=0,
@@ -173,7 +174,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             avgcount=avgcount,
             rattlers=rattlers,
             bias_params=bias_params,
-            bias = bias,
+            bias=bias,
             dtol=dtol,
             eps=eps,
             hmin=hmin,
@@ -233,6 +234,14 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 radii=self.hs_radii,
                 use_cell_lists=use_cell_lists,
             )
+        elif self.interaction is Interaction.NEGATIVE_COS:
+            pot_optimizer = PoweredCosineSum(
+                dim=self.ndim,
+                period=self.pot_kwargs["period"],
+                power=0.5,
+                offset=1,
+            )
+
         else:
             raise NotImplementedError
         return pot_optimizer
@@ -249,9 +258,13 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             )
         elif self.minimizer is Minimizer.CVODE:
             if self.opt_kwargs["rtol_values"] == None:
-                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
-                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
-            else: 
+                atol = INVERSE_POWER_CVODE_95_ACC[
+                    len(self.coords) // self.bdim
+                ]
+                rtol = INVERSE_POWER_CVODE_95_ACC[
+                    len(self.coords) // self.bdim
+                ]
+            else:
                 atol = self.opt_kwargs["atol_values"][
                     str(len(self.start_coords) // self.bdim)
                 ]
@@ -267,9 +280,15 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             )
         elif self.minimizer is Minimizer.MXD:
             if self.opt_kwargs["rtol_values"] == None:
-                atol= 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
-                rtol= 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
-            else: 
+                atol = (
+                    0.1
+                    * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                )
+                rtol = (
+                    0.1
+                    * INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
+                )
+            else:
                 atol = self.opt_kwargs["atol_values"][
                     str(len(self.start_coords) // self.bdim)
                 ]
@@ -324,12 +343,15 @@ class SpheresMCRunner(BaseSpheresMCrunner):
 
     def _set_conf_tests(self):
         if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
+            self.conftest0 = CheckSphericalContainer(
+                self.rcontainer, self.bdim
+            )
             self.add_conf_test(self.conftest0)
         if self.interaction is Interaction.HS_WCA:
             if self.distance_method is Distance.PERIODIC:
                 if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None
+                    and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapPeriodicCellLists(
                         self.hs_radii,
@@ -349,7 +371,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     )
             elif self.distance_method is Distance.CARTESIAN:
                 if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None
+                    and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapCartesianCellLists(
                         self.hs_radii,
@@ -369,7 +392,8 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     )
             elif self.distance_method is Distance.LEES_EDWARDS:
                 if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
+                    self.checkoverlap_cell_lists is None
+                    and self.use_cell_lists
                 ) or self.checkoverlap_cell_lists:
                     self.conftest1 = CheckOverlapLeesEdwardsCellLists(
                         self.hs_radii,
@@ -436,7 +460,9 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                     m["coords"] = full_coordinates(
                         redcoords, self.origin, self.frozen_atoms, self.bdim
                     )
-            assert len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1
+            assert (
+                len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1
+            )
             logging.info("Number of minima: %i" % len(minima_dicts))
             size_estimate = len(minima_dicts) * len(self.origin)
             if size_estimate > 1e8:
@@ -466,7 +492,7 @@ class BV_MCRunner_State(object):
         state=None,
         coords=None,
         energy=0.0,
-        bias_params = None,
+        bias_params=None,
         stepsize=0.0,
         counters=None,
         takestep_count=0,
@@ -603,7 +629,7 @@ class BV_MCrunner(SpheresMCRunner):
         sca,
         rattlers=None,
         bias_params=None,
-        bias = "harmonic",
+        bias="harmonic",
         dtol=1e-3,
         eps=1.0,
         hmin=0,
@@ -665,7 +691,7 @@ class BV_MCrunner(SpheresMCRunner):
             sca,
             rattlers=rattlers,
             bias_params=bias_params,
-            bias = bias,
+            bias=bias,
             dtol=dtol,
             eps=eps,
             hmin=hmin,
@@ -691,11 +717,11 @@ class BV_MCrunner(SpheresMCRunner):
             interaction=interaction,
             pot_kwargs=pot_kwargs,
         )
-        
+
         self.bias_potential = bias_potential
         self.bias = bias
         self.full_coords = full_coords
-        
+
         # set bias parameters in potential
         self.set_bias_parameters(bias, bias_params)
 
@@ -715,9 +741,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def _set_accept_tests(self):
         self.metropolis = MetropolisTest(self.seeds["seed_metropolis"])
-        self.add_accept_test(
-            self.metropolis
-        )
+        self.add_accept_test(self.metropolis)
 
     def _set_actions(self):
         self.time_series = RecordDisplacementTimeseries(
@@ -753,21 +777,23 @@ class BV_MCrunner(SpheresMCRunner):
             for action in self.steps_timeseries_list:
                 self.add_action(action)
 
-    def set_bias_parameters(self, bias, bias_params, reset=True): # XXX
+    def set_bias_parameters(self, bias, bias_params, reset=True):  # XXX
         """set temperature, canonical control parameter"""
         self.bias_params = bias_params
-        if bias == "harmonic": 
+        if bias == "harmonic":
             self.bias_potential.set_k(bias_params[0])
-        elif bias == "radial_gaussian": 
-                self.bias_potential.set_k(bias_params[0])
-                self.bias_potential.set_l0(bias_params[1])
-                self.bias_potential.set_r_cutoff(bias_params[2])
-                if bias_params[0] == 0.0:
-                    # remove the log part for k= 0 run
-                    self.bias_potential.set_log_prefactor(0.0)
-                else:
-                    self.bias_potential.set_log_prefactor(1.0) # If temperature != 1.0, this should be 1/beta so that exp(- beta log_term ) = r^(1-d)
-        else: 
+        elif bias == "radial_gaussian":
+            self.bias_potential.set_k(bias_params[0])
+            self.bias_potential.set_l0(bias_params[1])
+            self.bias_potential.set_r_cutoff(bias_params[2])
+            if bias_params[0] == 0.0:
+                # remove the log part for k= 0 run
+                self.bias_potential.set_log_prefactor(0.0)
+            else:
+                self.bias_potential.set_log_prefactor(
+                    1.0
+                )  # If temperature != 1.0, this should be 1/beta so that exp(- beta log_term ) = r^(1-d)
+        else:
             raise NotImplementedError
         if reset:
             self.reset_energy()
@@ -803,7 +829,8 @@ class BV_MCrunner(SpheresMCRunner):
         for i, action in enumerate(self.steps_timeseries_list):
             timeseries = np.array(action.get_time_series())
             np.savetxt(
-                fname + ".every{}".format(self.record_steps_timeseries_every[i]),
+                fname
+                + ".every{}".format(self.record_steps_timeseries_every[i]),
                 timeseries,
             )
             if clear:
@@ -816,7 +843,9 @@ class BV_MCrunner(SpheresMCRunner):
             self.time_series.clear()
         return timeseries
 
-    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
+    def check_convergence(
+        self, nr_steps_to_check=10000, rel_std_threshold=0.05
+    ):
         return self.time_series.check_convergence(
             nr_steps_to_check=nr_steps_to_check,
             rel_std_threshold=rel_std_threshold,
@@ -825,7 +854,8 @@ class BV_MCrunner(SpheresMCRunner):
     def show_histogram(self):
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
@@ -837,7 +867,8 @@ class BV_MCrunner(SpheresMCRunner):
         """
         hist = self.histogram.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
         n, bins, patches = plt.hist(
             val,
@@ -859,7 +890,9 @@ class BV_MCrunner(SpheresMCRunner):
                 args=(self.bias_params[0], self.nparticles),
             )[0],
         )
-        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
+        plt.plot(
+            bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1]
+        )
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")
@@ -905,11 +938,15 @@ class BV_MCrunner(SpheresMCRunner):
 
     def set_complete_state(self, mcrunner_state):
         self.set_config(mcrunner_state.coords, mcrunner_state.energy)
-        self.set_bias_parameters(self.bias, mcrunner_state.bias_params, reset=False) # XXX
+        self.set_bias_parameters(
+            self.bias, mcrunner_state.bias_params, reset=False
+        )  # XXX
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)
-        self.takestep.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
+        self.takestep.set_adaptation_counters(
+            mcrunner_state.step_adaptation_counters
+        )
 
 
 class Findk_MCrunner(SpheresMCRunner):
@@ -988,7 +1025,7 @@ class Findk_MCrunner(SpheresMCRunner):
             boxv,
             sca=sca,
             rattlers=rattlers,
-            bias_params = [1],
+            bias_params=[1],
             dtol=dtol,
             avgcount=avgcount,
             eps=eps,
@@ -1060,7 +1097,8 @@ class Findk_MCrunner(SpheresMCRunner):
         """shows the histogram"""
         hist = self.findk.get_histogram()
         val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+            np.array([i * self.binsize for i in range(len(hist))])
+            + 0.5 * self.binsize
         )
         n, bins, patches = plt.hist(
             val,
@@ -1082,7 +1120,9 @@ class Findk_MCrunner(SpheresMCRunner):
                 args=(self.get_k(), self.nparticles, self.bdim),
             )[0],
         )
-        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
+        plt.plot(
+            bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1]
+        )
         # plt.xlim(0,1)
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")

@@ -67,7 +67,9 @@ if __name__ == "__main__":
         help="Seed for the takestep method",
         default=None,
     )
-    parser.add_argument("--niter", type=float, default=1e8, help="number of iterations")
+    parser.add_argument(
+        "--niter", type=float, default=1e8, help="number of iterations"
+    )
     parser.add_argument(
         "--dtol",
         type=float,
@@ -89,7 +91,9 @@ if __name__ == "__main__":
         default=1e4,
         help="number of iterations to average for acceptance",
     )
-    parser.add_argument("--ktol", type=float, default=0.025, help="tolerance for knavg")
+    parser.add_argument(
+        "--ktol", type=float, default=0.025, help="tolerance for knavg"
+    )
     parser.add_argument(
         "--opt_nsteps",
         type=float,

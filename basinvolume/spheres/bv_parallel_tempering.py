@@ -36,7 +36,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="perform parallel tempering for basin volume method"
     )
-    parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
+    parser.add_argument(
+        "jammed_packing_fname", type=str, help="name of xy[z]dr file"
+    )
     parser.add_argument(
         "base_directory", type=str, help="directory in which to save results"
     )
@@ -60,7 +62,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--adjustf-niter",
         type=float,
-        help="Number of steps to adjust the stepsize. " "Default: 0.1 * mintotniter",
+        help="Number of steps to adjust the stepsize. "
+        "Default: 0.1 * mintotniter",
         default=None,
     )
     parser.add_argument(
@@ -124,7 +127,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--delraw",
         action="store_true",
-        help="Delete raw timeseries textfiles " "and only use the HDF5 format.",
+        help="Delete raw timeseries textfiles "
+        "and only use the HDF5 format.",
         default=False,
     )
     parser.add_argument(
@@ -253,7 +257,9 @@ if __name__ == "__main__":
     else:
         loglevel = logging.INFO
     logging.basicConfig(
-        format="%(asctime)s %(levelname)s: Rank {:>2}: %(message)s".format(rank),
+        format="%(asctime)s %(levelname)s: Rank {:>2}: %(message)s".format(
+            rank
+        ),
         datefmt="%d/%m/%Y %H:%M:%S",
         level=loglevel,
     )
@@ -278,7 +284,9 @@ if __name__ == "__main__":
         )  # equilibrate for the first 1/10th of total steps
     else:
         adjustf_niter = int(args.adjustf_niter)
-    nskip = int(adjustf_niter / niter)  # don't swap while adjusting the step-size
+    nskip = int(
+        adjustf_niter / niter
+    )  # don't swap while adjusting the step-size
     # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
     # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
     pt_eq_niter = 0
@@ -298,7 +306,8 @@ if __name__ == "__main__":
         args.relstderr
     )  # relative standard error in the mean used by convergence test
     min_window = (
-        min_tot_niter * 0.5  # minimum amount of data before trying to check convergence
+        min_tot_niter
+        * 0.5  # minimum amount of data before trying to check convergence
     )
     max_eq_time = (
         min_tot_niter * 0.5
@@ -316,7 +325,9 @@ if __name__ == "__main__":
     if args.exchange_scheme.upper() in ExchangeScheme.__members__:
         exchange_scheme = ExchangeScheme[args.exchange_scheme.upper()]
     else:
-        raise ValueError("Unknown exchange scheme: {}".format(args.exchange_scheme))
+        raise ValueError(
+            "Unknown exchange scheme: {}".format(args.exchange_scheme)
+        )
 
     # prepare MC runner
     if ".xydfr" in fname or ".xyzdfr" in fname:
@@ -455,7 +466,10 @@ if __name__ == "__main__":
             raise ValueError(
                 "Only the exchange scheme NEIGHBOR_EXCHANGE works with PT handshake."
             )
-        if args.checkpoint_time is not None or args.load_checkpoint is not None:
+        if (
+            args.checkpoint_time is not None
+            or args.load_checkpoint is not None
+        ):
             raise ValueError("Checkpointing does not work with PT handshake.")
 
         ptreplica = MPI_BV_PT_RLhandshake(
