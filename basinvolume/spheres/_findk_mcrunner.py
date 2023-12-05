@@ -50,7 +50,6 @@ class _findk_mcrunner(ConfigMCRunner):
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
     ):
-
         self.temperature = 1.0
         self.eps = eps
         self.fname = fname
@@ -94,7 +93,9 @@ class _findk_mcrunner(ConfigMCRunner):
             self.coords, 0, bdim=self.bdim, com=False
         )  # set the potential to 0, the potential is completely fictitious here (there's no energy test),
         # k is entirely controlled by the stepsize
-        stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(
+            1.0 / k
+        )  # stepsize plays the role of the standard deviation
         # stepsize = np.sqrt(self.ndim/k)  #####################
         #####
 
@@ -163,13 +164,17 @@ class _findk_mcrunner(ConfigMCRunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
+        self.base_directory = os.path.join(
+            os.getcwd(), explore_dir + packing_nr
+        )
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
         configfile = "findk_" + dname
-        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
+        self.configfile = "{}/{}.config".format(
+            self.base_directory, configfile
+        )
 
     def _initialise(self):
         self._print_initialise()
@@ -216,7 +221,6 @@ class _findk_mcrunner(ConfigMCRunner):
 
 
 if __name__ == "__main__":
-
     # sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)
