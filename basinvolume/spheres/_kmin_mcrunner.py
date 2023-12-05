@@ -142,7 +142,7 @@ class KminMCRunner(ConfigMCRunner):
         )
 
         kwargs = dict(
-            k=k,
+            bias_params = [k],
             dtol=self.dtol,
             eps=eps,
             hmin=hmin,

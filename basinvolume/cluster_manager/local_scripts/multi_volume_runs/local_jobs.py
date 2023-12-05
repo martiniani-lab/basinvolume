@@ -14,17 +14,6 @@ import subprocess
 current_directory = os.getcwd()
 BASINVOLUME_PATH = os.path.join(current_directory, "../../..")
 
-# Load possibly changing paths and environment variables from a toml config file
-CONFIG_FILE = os.path.join(current_directory, "local_config.toml")
-config = toml.load(CONFIG_FILE)
-# User-dependent values
-USER_EMAIL = config["user"]["email"]
-EMAIL_TYPE = config["user"]["email_type"]
-EXT3_FILE = config["user"]["ext3_file"]
-CONDA_ENV = config["user"]["conda_env"]
-# Cluster-dependent values, may change over time and/or between clusters even with similar architectures
-GREENE_SINGULARITY_OVERLAY = config["cluster"]["singularity_overlay"]
-
 RESOURCE_FILE = os.path.join(current_directory, "resource_requirements.toml")
 RESOURCE_CONFIG = toml.load(RESOURCE_FILE)
 
@@ -46,28 +35,6 @@ class SimStage(Enum):
     INNER_SPHERE = 4
     ANALYSIS = 5
     COMPLETE = 6
-
-
-GREENE_SCRIPT_TEMPLATE = """#!/bin/bash
-#SBATCH --time={time_str}
-#SBATCH --ntasks={ntasks}
-#SBATCH --cpus-per-task={cpus_per_task}
-#SBATCH --mem={mem_str}
-#SBATCH --mail-type={email_type}
-#SBATCH --mail-user={email}
-#SBATCH --job-name={out_file}
-#SBATCH --output={out_file}.out
-
-export OMP_NUM_THREADS=1;
-
-cd {simulation_folder};
-singularity exec --overlay {ext3_file}:ro \
-    {singularity_overlay} \
-    /bin/bash -c "source ~/.bashrc;
-    export OMP_NUM_THREADS=1;
-    conda activate {conda_env};
-    {run_command};"
-"""
 
 
 def format_args_from_dict(arg_dict):
@@ -374,27 +341,10 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
         f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias}"
     )
     
-    script = GREENE_SCRIPT_TEMPLATE.format(
-                time_str=time_str,
-                ntasks=ntasks,
-                cpus_per_task=cpus_per_task,
-                mem_str=mem_str,
-                out_file=out_file,
-                run_command=run_command,
-                simulation_folder=simulation_folder,
-                email=USER_EMAIL,
-                email_type=EMAIL_TYPE,
-                ext3_file=EXT3_FILE,
-                conda_env=CONDA_ENV,
-                singularity_overlay=GREENE_SINGULARITY_OVERLAY,
-            )
-    script_save_folder = os.path.join(simulation_folder, "job_scripts")
-    with open(
-        os.path.join(script_save_folder, "compute_volume.sh"), "w"
-    ) as script_file:
-        script_file.write(script)
     if submit:
-        os.system(f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}")
+        print(run_command)
+        os.chdir(simulation_folder)
+        os.system(run_command)
     return 0
 
 
@@ -532,27 +482,11 @@ def submit_initial_jobs(
                 os.makedirs(scripts_folder, exist_ok=True)
                 os.makedirs(out_folder, exist_ok=True)
                 out_file = f"{out_folder}/{job_name_prefix}"
-                script = GREENE_SCRIPT_TEMPLATE.format(
-                    time_str=time_str,
-                    ntasks=ntasks,
-                    cpus_per_task=cpus_per_task,
-                    mem_str=mem_str,
-                    out_file=out_file,
-                    run_command=run_command,
-                    simulation_folder=experiment_dir,
-                    email=USER_EMAIL,
-                    email_type=EMAIL_TYPE,
-                    ext3_file=EXT3_FILE,
-                    conda_env=CONDA_ENV,
-                    singularity_overlay=GREENE_SINGULARITY_OVERLAY,
-                )
-                script_path = os.path.join(scripts_folder, f"{job_name_prefix}.sh")
-                # write the script
-                with open(script_path, "w") as script_file:
-                    script_file.write(script)
-
                 if submit:
-                    os.system(f"sbatch {script_path}")
+                    print(run_command)
+                    os.chdir(simulation_folder)
+                    os.system(run_command)
+                return 0
 
 
 def submit_job(
@@ -598,35 +532,8 @@ def submit_job(
     os.makedirs(out_folder, exist_ok=True)
     out_file = f"{out_folder}/{job_name_prefix}_{packing_file_name}"
 
-    script = GREENE_SCRIPT_TEMPLATE.format(
-        time_str=time_str,
-        ntasks=ntasks,
-        cpus_per_task=cpus_per_task,
-        mem_str=mem_str,
-        out_file=out_file,
-        run_command=run_command,
-        simulation_folder=simulation_folder,
-        email=USER_EMAIL,
-        email_type=EMAIL_TYPE,
-        ext3_file=EXT3_FILE,
-        conda_env=CONDA_ENV,
-        singularity_overlay=GREENE_SINGULARITY_OVERLAY,
-    )
-
-    script_path = os.path.join(
-        scripts_folder, f"{job_name_prefix}_{packing_file_name}.sh"
-    )
-    
-    # check if job with same script name is still running
-    user = USER_EMAIL.split("@")[0] # XXX This might be a bit too us-dependent, could adapt this
-    jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell = True)
-    conflict = script_path in jobs_list.decode()
-    if conflict:
-        print(f"Job already running for script {script_path}! Skipping.")
-    else:
-        # write the script
-        with open(script_path, "w") as script_file:
-            script_file.write(script)
-
-        if submit:
-            os.system(f"sbatch {script_path}")
+    if submit:
+        print(run_command)
+        os.chdir(simulation_folder)
+        os.system(run_command)
+    return 0
