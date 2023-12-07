@@ -42,6 +42,7 @@ except ImportError as err:
 # for the CVODE integrator for mapping basins of attraction
 # for the inversepower potential
 INVERSE_POWER_CVODE_95_ACC = {
+    2: 1e-7,
     8: 1e-7,
     16: 1e-7,
     32: 1e-7,

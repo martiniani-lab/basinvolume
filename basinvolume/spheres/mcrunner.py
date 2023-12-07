@@ -950,7 +950,7 @@ class BV_MCrunner(SpheresMCRunner):
         self.set_config(mcrunner_state.coords, mcrunner_state.energy)
         self.set_bias_parameters(
             self.bias, mcrunner_state.bias_params, reset=False
-        )  # XXX
+        )
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)

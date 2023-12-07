@@ -59,14 +59,15 @@ except ImportError as err:
 class HypercubeMCrunner(_BaseMCRunner):
     def __init__(
         self,
-        potential,
+        bias_potential,
         full_coords,
         temperature,
         stepsize,
         niter,
         origin,
         sidelength=1,
-        k=1.0,
+        bias = "harmonic",
+        bias_params=[1.0],
         acceptance=0.2,
         adjustf=0.9,
         hmin=0,
@@ -87,7 +88,7 @@ class HypercubeMCrunner(_BaseMCRunner):
     ):
         # construct base class
         super(HypercubeMCrunner, self).__init__(
-            potential, full_coords, temperature, niter
+            bias_potential, full_coords, temperature, niter
         )
 
         self.nparticles = 1
@@ -97,7 +98,10 @@ class HypercubeMCrunner(_BaseMCRunner):
         self.red_origin = origin  # necessary for pt
         self.rattlers = np.ones(self.bdim)
         self.sidelength = sidelength
-        self.set_control(k)
+        # set bias parameters in bias_potential
+        self.bias = bias
+        self.bias_potential = bias_potential
+        self.set_bias_parameters(bias, bias_params)
         self.equilibration_steps = adjustf_niter + pt_eq_niter
         self.adjustf_niter = adjustf_niter
         # actions parameters
@@ -151,7 +155,7 @@ class HypercubeMCrunner(_BaseMCRunner):
 
     def _set_accept_tests(self):
         self.metropolis = MetropolisTest(self.seeds["seed_metropolis"])
-        self.add_accept_test(self.metropolis)  # metropolis uses the harmonic potential
+        self.add_accept_test(self.metropolis)
 
     def _set_conf_tests(self):
         self.conftest = ConfTestOR()
@@ -210,10 +214,27 @@ class HypercubeMCrunner(_BaseMCRunner):
     def _set_report_steps(self):
         self.set_report_steps(self.adjustf_niter)
 
-    def set_control(self, c, reset=True):
+    def set_control(self, c):
+        raise NotImplementedError
+
+    def set_bias_parameters(self, bias, bias_params, reset=True):  # XXX
         """set temperature, canonical control parameter"""
-        self.k = c
-        self.potential.set_k(c)
+        self.bias_params = bias_params
+        if bias == "harmonic":
+            self.bias_potential.set_k(bias_params[0])
+        elif bias == "radial_gaussian":
+            self.bias_potential.set_k(bias_params[0])
+            self.bias_potential.set_l0(bias_params[1])
+            self.bias_potential.set_r_cutoff(bias_params[2])
+            if bias_params[0] == 0.0:
+                # remove the log part for k= 0 run
+                self.bias_potential.set_log_prefactor(0.0)
+            else:
+                self.bias_potential.set_log_prefactor(
+                    1.0
+                )  # If temperature != 1.0, this should be 1/beta so that exp(- beta log_term ) = r^(1-d)
+        else:
+            raise NotImplementedError
         if reset:
             self.reset_energy()
 
@@ -281,7 +302,7 @@ class HypercubeMCrunner(_BaseMCRunner):
         return BV_MCRunner_State(
             coords=self.get_coords(),
             energy=self.get_energy(),
-            k=self.k,
+            bias_params=self.bias_params,
             stepsize=self.takestep.get_stepsize(),
             counters=self.get_counters(),
             takestep_count=self.takestep.get_count(),
@@ -290,7 +311,9 @@ class HypercubeMCrunner(_BaseMCRunner):
 
     def set_complete_state(self, mcrunner_state):
         self.set_config(mcrunner_state.coords, mcrunner_state.energy)
-        self.set_control(mcrunner_state.k, reset=False)
+        self.set_bias_parameters(
+            self.bias, mcrunner_state.bias_params, reset=False
+        )
         self.set_counters(mcrunner_state.counters)
         self.takestep.set_stepsize(mcrunner_state.stepsize)
         self.takestep.set_count(mcrunner_state.takestep_count)
@@ -308,7 +331,7 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
 
     def __init__(
         self,
-        potential,
+        bias_potential,
         full_coords,
         temperature,
         stepsize,
@@ -326,7 +349,7 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
     ):
         # construct base class
         super(HypercubeFindkMCrunner, self).__init__(
-            potential, full_coords, temperature, niter
+            bias_potential, full_coords, temperature, niter
         )
 
         self.nparticles = 1
@@ -400,7 +423,7 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         return status
 
     def get_k(self):
-        """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
+        """in findk, bias_potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
         k = 1.0 / (stepsize * stepsize)
         # k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
@@ -436,7 +459,7 @@ class BV_MCRunner_State(object):
         state=None,
         coords=None,
         energy=0.0,
-        k=0.0,
+        bias_params=[0.0],
         stepsize=0.0,
         counters=None,
         takestep_count=0,
@@ -445,7 +468,7 @@ class BV_MCRunner_State(object):
         if state is None:
             self.coords = coords
             self.energy = energy
-            self.k = k
+            self.bias_params = bias_params
             self.stepsize = stepsize
             self.counters = counters
             self.takestep_count = takestep_count
@@ -456,7 +479,7 @@ class BV_MCRunner_State(object):
     def _set_state(self, state):
         self.coords = state.coords
         self.energy = state.energy
-        self.k = state.k
+        self.bias_params = state.bias_params
         self.stepsize = state.stepsize
         self.counters = state.counters
         self.takestep_count = state.takestep_count
@@ -468,7 +491,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
 
     def __init__(
         self,
-        potential,
+        bias_potential,
         full_coords,
         temperature,
         stepsize,
@@ -486,7 +509,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
     ):
         # construct base class
         super(HypercubeInnerSphereMCrunner, self).__init__(
-            potential, full_coords, temperature, niter
+            bias_potential, full_coords, temperature, niter
         )
 
         self.nparticles = 1
@@ -561,7 +584,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         return self.takestep.get_stepsize()
 
     def get_k(self):
-        """potential is pretty much fictitious, k is adjusted through the stepsize"""
+        """bias_potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
         k = 1.0 / (stepsize * stepsize)
         # k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
@@ -647,13 +670,13 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
 
 
 if __name__ == "__main__":
-    # to run harmonic potential go to tests
+    # to run harmonic bias_potential go to tests
 
     import time
 
     ndim = 100
     origin = np.zeros(ndim)
-    potential = NullPotential()
+    bias_potential = NullPotential()
     # build start configuration
     full_coords = np.array(origin)
     k = 2  # 0.4261331121440447 # k=25
@@ -661,7 +684,7 @@ if __name__ == "__main__":
     if False:
         print("Find k test: \n\n\n")
         test = HypercubeFindkMCrunner(
-            potential, full_coords, 1, stepsize, int(1e8), origin, sidelength=1
+            bias_potential, full_coords, 1, stepsize, int(1e8), origin, sidelength=1
         )
         start = time.time()
         test.run()
@@ -669,9 +692,9 @@ if __name__ == "__main__":
         print(end - start)
     if False:
         print("MC test: \n\n\n")
-        potential = Harmonic(origin, k, bdim=ndim, com=False)
+        bias_potential = Harmonic(origin, k, bdim=ndim, com=False)
         test = HypercubeMCrunner(
-            potential,
+            bias_potential,
             full_coords,
             1,
             stepsize,
@@ -688,7 +711,7 @@ if __name__ == "__main__":
     if True:
         print("Inner sphere test: \n\n\n")
         test = HypercubeInnerSphereMCrunner(
-            potential,
+            bias_potential,
             full_coords,
             1,
             stepsize,

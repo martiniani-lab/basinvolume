@@ -372,6 +372,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             
             elif self.bias == "radial_gaussian":
                 
+                # First naïve test: same widths + linear spacing of centers
+                
                 # Need both centerings and widths for the gaussians
                 # Set all widths equal to RMSD of kmin / nposk, or k =(nposk / RMSD)^2 in terms of spring constants
                 u2meankmax = 0.5*(self.nparticles * self.bdim)/self.kmax
@@ -388,7 +390,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                 l0array = rmin + (np.arange(self.nreplicas) ) * spacing
                 
                 # only start the log part at some cut-off distance to avoid bad behaviour near 0
-                r_cutoffarray = 0.5 * rmin * np.ones(self.nreplicas)
+                r_cutoffarray = 0.25 * rmin * np.ones(self.nreplicas)
                 
                 # Force the k = 0 case
                 Karray[nposk] = 0.0
