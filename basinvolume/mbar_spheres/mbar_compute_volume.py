@@ -352,6 +352,18 @@ class mbar_compute_dos(object):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.ndof = (self.nparticles - 1) * self.bdim
+
+        self.interaction = imp_packing["interaction"]
+        # Deal with special "test" cases
+        # XXX Fix this if needed after other fixes
+        if self.interaction is Interaction.NEGATIVE_COS:
+            # In the cosine, the other steps are hackily computed by setting a fake bdim and nparticles
+            # Here: set back the nparticles to 1 and the number of dof's to the right value
+            self.ndof = self.nparticles * self.bdim
+            self.nparticles = 1
+            self.ndim = self.ndof
+            self.bdim = self.ndim
+            
         # There can be several inner spheres: each can come with its own k, radius and acceptance
         self.ks_innersphere = []
         self.ref_radii = []
