@@ -103,9 +103,7 @@ class BruteForce2D(object):
         self.mc.add_conf_test(self.conftest_check_same_minimum)
 
     def find_origin(self):
-        self.origin = copy.deepcopy(
-            self.get_local_minimum(mean_index=self.minimum_index)
-        )
+        self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
         print(("Gaussian center coords", self.means[self.minimum_index][:]))
         print(("corresponding mimimum position (origin)", self.origin))
 
@@ -155,8 +153,7 @@ class BruteForce2D(object):
             )
             self.basin_volume = p * volume_nball(self.radius_container, self.bdim)
             self.error_basin_volume = (
-                np.sqrt(p * (1 - p) / self.mc.get_iterations_count())
-                * self.basin_volume
+                np.sqrt(p * (1 - p) / self.mc.get_iterations_count()) * self.basin_volume
             )
             print(("self.basin_volume", self.basin_volume))
             print(("self.error_basin_volume", self.error_basin_volume))
@@ -169,9 +166,7 @@ class BruteForce2D(object):
         print("done")
 
     def check_not_converged(self):
-        delta = (
-            np.absolute(self.basin_volume - self.prev_basin_volume) / self.basin_volume
-        )
+        delta = np.absolute(self.basin_volume - self.prev_basin_volume) / self.basin_volume
         self.prev_basin_volume = self.basin_volume
         print(("delta", delta))
         not_converged = None

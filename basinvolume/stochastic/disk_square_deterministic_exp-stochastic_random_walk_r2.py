@@ -24,9 +24,9 @@ def get_disk_mean_r2(radius):
 
 
 def get_disk_exp_mean_r2(u, d):
-    return (
-        24 * d**4 + 24 * d**3 * u + 12 * d**2 * u**2 + 4 * d * u**3 + u**4
-    ) / (4 * d**2 + 4 * d * u + 2 * u**2)
+    return (24 * d**4 + 24 * d**3 * u + 12 * d**2 * u**2 + 4 * d * u**3 + u**4) / (
+        4 * d**2 + 4 * d * u + 2 * u**2
+    )
 
 
 def get_square_mean_r2(side_length):
@@ -63,13 +63,9 @@ class OracleMCR2(object):
         self.mc_potential = NullPotential()
         self.mc = MC(self.mc_potential, self.origin, self.temperature, self.nr_steps)
         self.eq_steps = self.nr_steps // 2
-        self.random_walk = RandomCoordsDisplacement(
-            42, 1, single=True, nparticles=1, bdim=2
-        )
+        self.random_walk = RandomCoordsDisplacement(42, 1, single=True, nparticles=1, bdim=2)
         self.mc.set_takestep(self.random_walk)
-        self.cloud_test = CloudTest(
-            44, 46, cloud_pars["nr_points"], cloud_pars["radius"]
-        )
+        self.cloud_test = CloudTest(44, 46, cloud_pars["nr_points"], cloud_pars["radius"])
         self.cloud_test.add_conf_test(self.oracle)
         self.mc.add_accept_test(self.cloud_test)
         self.cloud_measure_r2 = RecordCloudR2(self.eq_steps, self.origin)
@@ -199,19 +195,14 @@ class StochasticPlot(DeterministicPlot):
         lsp = np.linspace(np.amin(ls), np.amax(ls), 1000)
         plt.plot(
             rsp,
-            np.asarray(
-                [get_disk_exp_mean_r2(r, self.common_pars["decay_length"]) for r in rsp]
-            ),
+            np.asarray([get_disk_exp_mean_r2(r, self.common_pars["decay_length"]) for r in rsp]),
             label=self.labels[0],
         )
         plt.plot(rsp, get_disk_mean_r2(rsp), "--", label="Disk, exact")
         plt.plot(
             lsp,
             np.asarray(
-                [
-                    get_square_exp_mean_r2(l / 2, self.common_pars["decay_length"])
-                    for l in lsp
-                ]
+                [get_square_exp_mean_r2(l / 2, self.common_pars["decay_length"]) for l in lsp]
             ),
             label=self.labels[1],
         )
@@ -250,9 +241,7 @@ class DeterministicAcceptancePlot_CloudRadius(BasicPlot):
 
     def run_disk_mc(self):
         for cr in self.cloud_radii:
-            oracle = CheckHyperSphericalContainer(
-                self.common_pars["origin"], self.disk_radius, 2
-            )
+            oracle = CheckHyperSphericalContainer(self.common_pars["origin"], self.disk_radius, 2)
             cloud_pars = dict([("nr_points", self.nr_points), ("radius", cr)])
             mc = OracleMCAcc(self.common_pars, cloud_pars, oracle, self.acc_pars)
             mc.run()
@@ -336,9 +325,7 @@ class DeterministicAcceptancePlot_DropNumber(DeterministicAcceptancePlot_CloudRa
 
     def run_disk_mc(self):
         for np in self.drop_numbers:
-            oracle = CheckHyperSphericalContainer(
-                self.common_pars["origin"], self.disk_radius, 2
-            )
+            oracle = CheckHyperSphericalContainer(self.common_pars["origin"], self.disk_radius, 2)
             cloud_pars = dict([("nr_points", np), ("radius", self.cloud_radius)])
             mc = OracleMCAcc(self.common_pars, cloud_pars, oracle, self.acc_pars)
             mc.run()

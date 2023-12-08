@@ -53,9 +53,7 @@ class GaussianBenchmarkKminRun(_BaseMCRunner):
         ):
             raise Exception("GaussianBenchmarkKminRun: illegal input")
         print("checked input")
-        super(GaussianBenchmarkKminRun, self).__init__(
-            self.potential, self.origin, 1, self.niter
-        )
+        super(GaussianBenchmarkKminRun, self).__init__(self.potential, self.origin, 1, self.niter)
         print("constructed super")
         self.red_origin = self.origin
         self.set_report_steps(self.adjustf_niter)

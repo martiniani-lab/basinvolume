@@ -125,9 +125,7 @@ def calculate_volume(
     checkpoint_time = int(0.9 * 60 * time)
     if simulation_type == SimStage.JAMMED_PACKING:
         mem_str = RESOURCE_CONFIG["memory"]["generate"]
-        setup_generate_jammed_data(
-            simulation_folder, run_params, time_str, mem_str, submit=submit
-        )
+        setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=submit)
     elif simulation_type == SimStage.KMAX:
         mem_str = RESOURCE_CONFIG["memory"]["kmax"]
         setup_kmax(
@@ -177,9 +175,7 @@ def calculate_volume(
         raise NotImplementedError("simulation type not implemented")
 
 
-def setup_generate_jammed_data(
-    simulation_folder, run_params, time_str, mem_str, submit=True
-):
+def setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=True):
     # single core args
     ntasks = 1
     cpus_per_task = 1
@@ -189,9 +185,7 @@ def setup_generate_jammed_data(
     jammed_data_kwargs.update(run_params["jammed_data"])
     hard_sphere_packing_kwargs = DEFAULT_CONFIG["hard_sphere_packing_defaults"]
     hard_sphere_packing_kwargs.update(run_params["hard_sphere_packing"])
-    hard_sphere_packing_kwargs["hsf-niter-dif"] = int(
-        hard_sphere_packing_kwargs["hsf-niter-dif"]
-    )
+    hard_sphere_packing_kwargs["hsf-niter-dif"] = int(hard_sphere_packing_kwargs["hsf-niter-dif"])
     jammed_packing_kwargs = DEFAULT_CONFIG["jammed_packing_defaults"]
     jammed_packing_kwargs.update(run_params["jammed_packing"])
 
@@ -219,9 +213,7 @@ def setup_generate_jammed_data(
     return 0
 
 
-def setup_kmax(
-    simulation_folder, run_params, packing_file, time_str, mem_str, submit=True
-):
+def setup_kmax(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True):
     # single core args
     ntasks = 1
     cpus_per_task = 1
@@ -250,9 +242,7 @@ def setup_kmax(
     return 0
 
 
-def setup_kmin(
-    simulation_folder, run_params, packing_file, time_str, mem_str, submit=True
-):
+def setup_kmin(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True):
     ntasks = 1
     cpus_per_task = 1
     # defaults but you can change them at the script level
@@ -291,9 +281,7 @@ def setup_parallel_tempering(
     run_params["pt"]["checkpoint-time"] = checkpoint_time
     run_params["pt"]["load-checkpoint"] = checkpoint_file
     pt_default_kwargs.update(run_params["pt"])
-    mpi_procs = int(
-        pt_default_kwargs["nreplicas"] / 4
-    )  # Best performance according to Johannes
+    mpi_procs = int(pt_default_kwargs["nreplicas"] / 4)  # Best performance according to Johannes
     if (
         mpi_procs > MAX_PROC_NUMBER
     ):  # Bound by a config-file specified max value that depends on the cluster
@@ -353,45 +341,39 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
     # TODO make this more like the others with fewer hardcoded values
     ntasks = 1
     cpus_per_task = 1
-    
+
     script_run_prefix = "python"
-    script_location = os.path.join(
-        BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py"
-    )
-    
+    script_location = os.path.join(BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py")
+
     job_name_prefix = "bv_computevolume"
 
     out_folder = os.path.join(simulation_folder, "job_out")
     out_file = f"{out_folder}/{job_name_prefix}"
     explore_dir_prefix = "explore_bv_jammed_packing"
-    
+
     # Use the same bias as in PT here
     pt_default_kwargs = DEFAULT_CONFIG["pt_defaults"]
     pt_default_kwargs.update(run_params["pt"])
     bias = pt_default_kwargs["bias"]
-    
-    run_command = (
-        f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias}"
-    )
-    
+
+    run_command = f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias}"
+
     script = GREENE_SCRIPT_TEMPLATE.format(
-                time_str=time_str,
-                ntasks=ntasks,
-                cpus_per_task=cpus_per_task,
-                mem_str=mem_str,
-                out_file=out_file,
-                run_command=run_command,
-                simulation_folder=simulation_folder,
-                email=USER_EMAIL,
-                email_type=EMAIL_TYPE,
-                ext3_file=EXT3_FILE,
-                conda_env=CONDA_ENV,
-                singularity_overlay=GREENE_SINGULARITY_OVERLAY,
-            )
+        time_str=time_str,
+        ntasks=ntasks,
+        cpus_per_task=cpus_per_task,
+        mem_str=mem_str,
+        out_file=out_file,
+        run_command=run_command,
+        simulation_folder=simulation_folder,
+        email=USER_EMAIL,
+        email_type=EMAIL_TYPE,
+        ext3_file=EXT3_FILE,
+        conda_env=CONDA_ENV,
+        singularity_overlay=GREENE_SINGULARITY_OVERLAY,
+    )
     script_save_folder = os.path.join(simulation_folder, "job_scripts")
-    with open(
-        os.path.join(script_save_folder, "compute_volume.sh"), "w"
-    ) as script_file:
+    with open(os.path.join(script_save_folder, "compute_volume.sh"), "w") as script_file:
         script_file.write(script)
     if submit:
         os.system(f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}")
@@ -518,9 +500,7 @@ def submit_initial_jobs(
 
                 # Translate to argument string then to the run command
                 packing_args_str = format_args_from_dict(loop_packing_kwargs)
-                jammed_packing_args_str = format_args_from_dict(
-                    loop_jammed_packing_kwargs
-                )
+                jammed_packing_args_str = format_args_from_dict(loop_jammed_packing_kwargs)
                 packing_run_command = f"{script_run_prefix} {generate_packing_script_location} {n_particles} {packing_args_str}"
                 jammed_packing_run_command = f"{script_run_prefix} {generate_jammed_packing_script_location} {extra_args} {jammed_packing_args_str}"
                 # Run both in sequence
@@ -587,9 +567,7 @@ def submit_job(
     script_location = os.path.join(BASINVOLUME_PATH, script_subpath)
 
     packing_file_name = os.path.splitext(packing_file)[0]
-    run_command = (
-        f"{script_run_prefix} {script_location} {packing_file} {extra_args} {args_str}"
-    )
+    run_command = f"{script_run_prefix} {script_location} {packing_file} {extra_args} {args_str}"
     # replace spaces with underscores
     args_str = args_str.replace(" ", "_")
     scripts_folder = os.path.join(simulation_folder, "job_scripts")
@@ -613,13 +591,11 @@ def submit_job(
         singularity_overlay=GREENE_SINGULARITY_OVERLAY,
     )
 
-    script_path = os.path.join(
-        scripts_folder, f"{job_name_prefix}_{packing_file_name}.sh"
-    )
-    
+    script_path = os.path.join(scripts_folder, f"{job_name_prefix}_{packing_file_name}.sh")
+
     # check if job with same script name is still running
-    user = USER_EMAIL.split("@")[0] # XXX This might be a bit too us-dependent, could adapt this
-    jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell = True)
+    user = USER_EMAIL.split("@")[0]  # XXX This might be a bit too us-dependent, could adapt this
+    jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell=True)
     conflict = script_path in jobs_list.decode()
     if conflict:
         print(f"Job already running for script {script_path}! Skipping.")

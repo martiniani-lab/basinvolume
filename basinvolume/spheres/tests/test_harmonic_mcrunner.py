@@ -70,9 +70,7 @@ class Metropolis_MCrunner(_BaseMCRunner):
 
         self.set_control(k)
         self.binsize = hbinsize
-        self.histogram = RecordEnergyHistogram(
-            hEmin, hEmax, self.binsize, adjustf_niter
-        )
+        self.histogram = RecordEnergyHistogram(hEmin, hEmax, self.binsize, adjustf_niter)
         # self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         # self.step = RandomCoordsDisplacement(123)#np.random.randint(i32max)
         self.set_report_steps(adjustf_niter)
@@ -108,9 +106,7 @@ class Metropolis_MCrunner(_BaseMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(
-            Emin, Emax, num=len(hist), endpoint=False, retstep=True
-        )
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         assert abs(step - self.binsize) < self.binsize / 100
         np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
         mean, variance = self.histogram.get_mean_variance()
@@ -121,9 +117,7 @@ class Metropolis_MCrunner(_BaseMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(
-            Emin, Emax, num=len(hist), endpoint=False, retstep=True
-        )
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         assert abs(step - self.binsize) < self.binsize / 100
         return Energies, hist
 

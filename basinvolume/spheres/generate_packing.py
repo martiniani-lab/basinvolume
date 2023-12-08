@@ -41,9 +41,7 @@ def read_packing_config(configpath, frozen=False):
     configf.read(str(configpath))
     parameters = {}
     parameters["seed_takestep"] = configf.getint("PACKING", "seed_takestep")
-    parameters["seed_generate_packing"] = configf.getint(
-        "PACKING", "seed_generate_packing"
-    )
+    parameters["seed_generate_packing"] = configf.getint("PACKING", "seed_generate_packing")
     parameters["seed_swap"] = configf.getint("PACKING", "seed_swap")
     parameters["seed_probability_step_pattern"] = configf.getint(
         "PACKING", "seed_probability_step_pattern"
@@ -379,9 +377,7 @@ class HS_Generate_Packing(_Generate_Packing):
                 n_outside = np.sum(outside_cut)
                 if n_outside == 0:
                     break
-                self.hs_radii[outside_cut] = self.rng.normal(
-                    self.mu, self.sig, n_outside
-                )
+                self.hs_radii[outside_cut] = self.rng.normal(self.mu, self.sig, n_outside)
         elif (self.hs_radii is None or new_poly) and self.sig <= 1e-8:
             logging.info("Sampling hs_radii, setting to ones because sig <= 1e-8")
             self.hs_radii = np.ones(self.nparticles) * self.mu
@@ -641,9 +637,7 @@ class HS_Generate_Packing(_Generate_Packing):
             self._generate_coords_bcc_lattice_3d()
         else:
             raise Exception(
-                "_generate_coords_crystal: {} method not implemented".format(
-                    self.method
-                )
+                "_generate_coords_crystal: {} method not implemented".format(self.method)
             )
 
     def _generate_coords_fcc_lattice(self):
@@ -674,8 +668,7 @@ class HS_Generate_Packing(_Generate_Packing):
         boxy = self.boxv[1]
         if boxx / boxy != 1:
             logging.warning(
-                "_generate_packing_coords_lattice_2d: works best "
-                "for aspect ratio unity"
+                "_generate_packing_coords_lattice_2d: works best " "for aspect ratio unity"
             )
         maximum_radius = np.amax(self.hs_radii)
         minimum_spacing_x = 2 * maximum_radius
@@ -685,8 +678,7 @@ class HS_Generate_Packing(_Generate_Packing):
         max_placable_discs = LX * LY
         if self.nparticles > max_placable_discs:
             raise Exception(
-                "_generate_packing_coords_lattice_2d: discs can "
-                "not be placed on lattice"
+                "_generate_packing_coords_lattice_2d: discs can " "not be placed on lattice"
             )
         while ((LX - 1) * (LY - 1)) >= self.nparticles:
             LX -= 1
@@ -719,8 +711,7 @@ class HS_Generate_Packing(_Generate_Packing):
         d = [dx, dy, dz]
         if np.amax(self.hs_radii) > np.amax(d):
             raise Exception(
-                "_generate_packing_coords_lattice_3d: spheres can "
-                "not be placed on lattice"
+                "_generate_packing_coords_lattice_3d: spheres can " "not be placed on lattice"
             )
         coords = []
         for iz in range(NZ):
@@ -751,8 +742,7 @@ class HS_Generate_Packing(_Generate_Packing):
         d = [dx, dy, dz]
         if np.amax(self.hs_radii) > np.amax(d):
             raise Exception(
-                "_generate_packing_coords_lattice_3d: spheres can "
-                "not be placed on lattice"
+                "_generate_packing_coords_lattice_3d: spheres can " "not be placed on lattice"
             )
         coords = []
         for iz in range(NZ):
@@ -901,9 +891,7 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write("{}\n".format(self.nparticles))
 
         if self.bdim == 2:
-            f.write(
-                "{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii))
-            )
+            f.write("{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii)))
             f.write("{} \t 0.0 \t 0.0\n".format(boxv[0]))
             f.write("0.0 \t {} \t 0.0\n".format(boxv[1]))
             f.write("0.0 \t 0.0 \t {}\n".format(np.amax(self.hs_radii) * 2))
@@ -967,9 +955,7 @@ class HS_Generate_Packing(_Generate_Packing):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="generate 2/3-D hard disks/spheres packings"
-    )
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
         "-o",
@@ -993,9 +979,7 @@ if __name__ == "__main__":
         help="target packing fraction",
         default=0.5,
     )
-    parser.add_argument(
-        "-u", "--rmean", type=float, help="mean particle radius", default=1.0
-    )
+    parser.add_argument("-u", "--rmean", type=float, help="mean particle radius", default=1.0)
     parser.add_argument(
         "-s",
         "--rsigma",
@@ -1013,8 +997,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hsf-niter-dif",
         type=int,
-        help="Step count for the "
-        "estimation of the decorrelation step count. Default: 1e9",
+        help="Step count for the " "estimation of the decorrelation step count. Default: 1e9",
         default=1e9,
     )
     parser.add_argument(
@@ -1076,15 +1059,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--precalc-config",
         type=str,
-        help="Take a precalculated hsf_niter and "
-        "hsf_stepsize from this config-file.",
+        help="Take a precalculated hsf_niter and " "hsf_stepsize from this config-file.",
         default=None,
     )
     parser.add_argument(
         "--no-balance-omp",
         action="store_true",
-        help="Don't balance subdomains when using multi-threaded "
-        "cell lists. Default: False",
+        help="Don't balance subdomains when using multi-threaded " "cell lists. Default: False",
         default=False,
     )
     args = parser.parse_args()

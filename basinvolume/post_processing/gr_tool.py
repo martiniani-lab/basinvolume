@@ -72,13 +72,9 @@ class PairDistHistogram(object):
         self.boxv = self.boxvector
         deltaij = np.zeros(self.boxdim)
         for k in range(self.boxdim):
-            deltaij[k] = (
-                coords[j * self.bdim + k] - coords[i * self.bdim + k]
-            ) - cround(
+            deltaij[k] = (coords[j * self.bdim + k] - coords[i * self.bdim + k]) - cround(
                 (coords[j * self.bdim + k] - coords[i * self.bdim + k]) / self.boxv[k]
-            ) * self.boxv[
-                k
-            ]
+            ) * self.boxv[k]
         return np.sum(deltaij**2)
 
     def volume_nball(self, radius, n):
@@ -93,9 +89,9 @@ class PairDistHistogram(object):
         for i in range(self.nr_bins):
             r = self.histogram.get_position(i)
             delta_r = self.histogram.bin_size
-            shell_volume_r = self.volume_nball(
-                r + 0.5 * delta_r, self.boxdim
-            ) - self.volume_nball(r - 0.5 * delta_r, self.boxdim)
+            shell_volume_r = self.volume_nball(r + 0.5 * delta_r, self.boxdim) - self.volume_nball(
+                r - 0.5 * delta_r, self.boxdim
+            )
             nid = shell_volume_r * number_density
             normalization = 2 / (self.nr_configs * nr_particles * nid)
             result[i] = normalization * self.histogram.get_entry(i)
@@ -167,9 +163,7 @@ class ComputeGR(object):
         )
         # Initial configuration by minimization.
         self.nr_dof = self.boxdim * self.nr_particles
-        self.x = np.random.uniform(
-            -0.5 * self.box_length, 0.5 * self.box_length, self.nr_dof
-        )
+        self.x = np.random.uniform(-0.5 * self.box_length, 0.5 * self.box_length, self.nr_dof)
         optimizer = LBFGS_CPP(self.x, self.potential)
         optimizer.run()
         if not optimizer.get_result().success:

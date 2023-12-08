@@ -147,7 +147,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         opt_maxstep=0.5,
         opt_tol=1e-5,
         opt_nsteps=1e5,
-        opt_kwargs = {},
+        opt_kwargs={},
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
@@ -248,9 +248,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(
-            Emin, Emax, num=len(hist), endpoint=False, retstep=True
-        )
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
         assert abs(step - self.binsize) < old_div(self.binsize, 100)
         np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
@@ -278,9 +276,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        )
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
@@ -300,9 +296,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
             color=color_cycle[0],
         )
         ###analytical
-        k = old_div(
-            self.k * self.nparticles, (self.nparticles - 1)
-        )  # adjust for fixed com
+        k = old_div(self.k * self.nparticles, (self.nparticles - 1))  # adjust for fixed com
         # and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
         and2 = n[0] * np.exp(-0.5 * k * bins[:-1] ** 2)
         plt.plot(bins[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1])

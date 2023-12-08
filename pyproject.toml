@@ -1,0 +1,19 @@
+[tool.black]
+line-length = 99
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 99
+
+[tool.flake8]
+max-line-length = 99
+exclude = ['__init__.py', 'node_modules', '.venv']
+
+[tool.mypy]
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.ruff]
+line-length = 99
+exclude = ["__init__.py", "build/", "dist/"]

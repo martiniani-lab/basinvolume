@@ -125,9 +125,7 @@ class analyse_jammed_packings(object):
         self._import_packing_configuration(fname)
         if self.iteration is 0:
             self._initialise()
-            self.system = HSWCASystem(
-                self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim
-            )
+            self.system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim)
             self.potential = self.system.get_potential()
             self.db = self.system.create_database()
         self.analyse_hessian(fname)
@@ -235,9 +233,7 @@ if __name__ == "__main__":
         help="tolerance on particles eigenvalues, if eval < etol particle will be considered a rattler",
         default=1.0,
     )
-    parser.add_argument(
-        "--show", action="store_true", help="show histograms", default=False
-    )
+    parser.add_argument("--show", action="store_true", help="show histograms", default=False)
     parser.add_argument(
         "--packings-dir",
         type=str,

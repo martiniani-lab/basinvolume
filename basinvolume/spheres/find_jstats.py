@@ -158,9 +158,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
             )
             neighbor_indicess, _ = self.potential_ss.getNeighbors(self.coords_ss)
             Z = [len(neighbor_indices) for neighbor_indices in neighbor_indicess]
-            data = SoftPackingData(
-                self.coords_ss, self.energy_ss, pressure, Z, self.nrattlers
-            )
+            data = SoftPackingData(self.coords_ss, self.energy_ss, pressure, Z, self.nrattlers)
             self.packing_dataset.add_packing_data(data)
         self.packing_dataset.add_success(success)
         self.iteration += 1
@@ -270,18 +268,13 @@ class GeneratePackingFindJ(HS_Generate_Packing):
                     logging.debug("Particle {} is not isostatic.".format(atomi))
                 else:
                     if self.bdim == 2:
-                        found_rattler = not origin_in_hull_2d(
-                            neighbor_distancess[atomi]
-                        )
+                        found_rattler = not origin_in_hull_2d(neighbor_distancess[atomi])
                     else:
-                        points = np.asarray(neighbor_distancess[atomi]).reshape(
-                            (-1, self.bdim)
-                        )
+                        points = np.asarray(neighbor_distancess[atomi]).reshape((-1, self.bdim))
                         found_rattler = not in_hull(origin, points)
                     if found_rattler:
                         logging.debug(
-                            "Particle {} is not in "
-                            "contacts' convex hull.".format(atomi)
+                            "Particle {} is not in " "contacts' convex hull.".format(atomi)
                         )
                 self.rattlers[atomi] = 0 if found_rattler else 1000
                 if found_rattler:
@@ -298,9 +291,7 @@ class GeneratePackingFindJ(HS_Generate_Packing):
         # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
         # see eq 19 in arXiv:1406.1529
         no_stable = self.nparticles - self.nrattlers
-        total_contacts = sum(
-            [len(neighbor_indices) for neighbor_indices in neighbor_indicess]
-        )
+        total_contacts = sum([len(neighbor_indices) for neighbor_indices in neighbor_indicess])
         N_min = int(2 * (self.bdim * (no_stable - 1) + 1))
         logging.debug("N_min: {} total_contacts: {}".format(N_min, total_contacts))
         logging.debug("Number of rattlers: {}".format(self.nrattlers))
@@ -421,15 +412,11 @@ class FindJ(object):
             self.hsgp.append(hsgp_)
 
     def run(self):
-        Parallel(n_jobs=max(1, self.ncores))(
-            delayed(run_hsgp)(hsgp_) for hsgp_ in self.hsgp
-        )
+        Parallel(n_jobs=max(1, self.ncores))(delayed(run_hsgp)(hsgp_) for hsgp_ in self.hsgp)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="generate 2/3-D hard disks/spheres packings"
-    )
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
         "-n",
@@ -448,9 +435,7 @@ if __name__ == "__main__":
         help="1+a = r_ss/r_hs",
         default=0.1212238211627763,
     )
-    parser.add_argument(
-        "-u", "--rmean", type=float, help="mean particle radius", default=1.0
-    )
+    parser.add_argument("-u", "--rmean", type=float, help="mean particle radius", default=1.0)
     parser.add_argument(
         "-s",
         "--rsigma",
@@ -508,18 +493,10 @@ if __name__ == "__main__":
         help="protocol to generate packings",
         default="quench",
     )
-    parser.add_argument(
-        "--tol", type=float, help="minimizer rms tolerance", default=1e-8
-    )
-    parser.add_argument(
-        "--phimin", type=float, help="smallest density to run", default=0.83
-    )
-    parser.add_argument(
-        "--phimax", type=float, help="largest density to run", default=0.87
-    )
-    parser.add_argument(
-        "--nphi", type=int, help="number of densities to run", default=32
-    )
+    parser.add_argument("--tol", type=float, help="minimizer rms tolerance", default=1e-8)
+    parser.add_argument("--phimin", type=float, help="smallest density to run", default=0.83)
+    parser.add_argument("--phimax", type=float, help="largest density to run", default=0.87)
+    parser.add_argument("--nphi", type=int, help="number of densities to run", default=32)
     args = parser.parse_args()
 
     logging.basicConfig(

@@ -182,9 +182,7 @@ class ComputeEntropyCommon(object):
                             frozen=self.experimental,
                             fname=fname,
                             explore_dir=path,
-                            packings_dir=os.path.abspath(
-                                self.packings_dir + "/jammed_packings"
-                            ),
+                            packings_dir=os.path.abspath(self.packings_dir + "/jammed_packings"),
                             plot_ts_integrand_data=self.plot_ts_integrand_data,
                         )
                     self.packing_stat.add_success()
@@ -199,9 +197,7 @@ class ComputeEntropyCommon(object):
         self.packing_stat.print_failure_info()
 
     def collect_computed_data_F0(self):
-        self.volume_files = [
-            os.path.join(f, "analysis/volume_data") for f in self.explore_dirs
-        ]
+        self.volume_files = [os.path.join(f, "analysis/volume_data") for f in self.explore_dirs]
         self.F0_actually_imported_files = []
         self.F0 = []
         self.unit_box_F0 = []
@@ -224,9 +220,7 @@ class ComputeEntropyCommon(object):
                     packing_configpath,
                     numerical_moments=self.numerical_moments,
                 )
-                self.best_integration_selection.check_next_F0(
-                    volume_sanity_check, self, vf
-                )
+                self.best_integration_selection.check_next_F0(volume_sanity_check, self, vf)
             except Exception as e:
                 print("Exception: ", e)
                 print("integration selection failed")
@@ -269,15 +263,9 @@ class ComputeEntropyCommon(object):
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
 
         def _gauss(x, sig, mu):
-            return (
-                1
-                / np.sqrt(2 * np.pi * sig**2)
-                * np.exp(-((x - mu) ** 2) / (2 * sig**2))
-            )
+            return 1 / np.sqrt(2 * np.pi * sig**2) * np.exp(-((x - mu) ** 2) / (2 * sig**2))
 
-        opt, error = curve_fit(
-            _gauss, bin_centres, hist, [np.sqrt(np.var(data)), np.mean(data)]
-        )
+        opt, error = curve_fit(_gauss, bin_centres, hist, [np.sqrt(np.var(data)), np.mean(data)])
         gauss_fit_opt = opt
         gauss_fit_opt[0] = np.abs(gauss_fit_opt[0])  # make printed sigma positive
         gauss_fit_error = error
@@ -380,9 +368,7 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
         )
         # -p log g entropy
         self.APF_entropy = APFEntropy(self.F0_wo_outliers, volume_sanity_check)
-        self.APF_entropy.compute_and_write_entropy(
-            os.path.join(self.output_path, "entropy_AFP")
-        )
+        self.APF_entropy.compute_and_write_entropy(os.path.join(self.output_path, "entropy_AFP"))
         # non-parametric: kernel density estimate of pdf plus numerical integration like for cdf fits
         self.kernel_density_log_omega = KernelDensityLogOmegaJackKnife(
             self.F0_wo_outliers, volume_sanity_check
@@ -391,10 +377,8 @@ class ComputeEntropyNumerical(ComputeEntropyCommon):
             os.path.join(self.output_path, "entropy_kernel_density")
         )
         # fit to cdf, numerical integration for un-biasing
-        self.outlier_removal_unbiasing_entropy_log_omega = (
-            OutlierRemovalUnbiasingEntropyLogOmega(
-                self.F0_wo_outliers, self.output_path
-            )
+        self.outlier_removal_unbiasing_entropy_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(
+            self.F0_wo_outliers, self.output_path
         )
         try:
             self.outlier_removal_unbiasing_entropy_log_omega.compute_log_omega_entropy(
@@ -454,9 +438,7 @@ class ComputeEntropyExperimental(ComputeEntropyCommon):
         tmp = os.path.split(os.path.split(volume_file)[0])[0]
         # only_number = ((os.path.split(tmp)[1]).split("_")[3])[7:]
         only_number = int(re.findall("\d+", volume_file)[0])
-        return os.path.join(
-            self.packings_dir, "packings", "packing" + only_number + ".config"
-        )
+        return os.path.join(self.packings_dir, "packings", "packing" + only_number + ".config")
         # return os.path.join(tmp,  "explore_jammed_packing" + only_number + ".config")
 
     def compute_entropy_etc(self):

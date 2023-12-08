@@ -68,10 +68,7 @@ class Base_Compute_Integral(object):
             #     displ_k_min_trafo=self.displ_k_min_trafo,
             # )
         else:
-            (
-                self.integral_over_displacements,
-                self.f,
-            ) = calculate_GL_integral_with_transform(
+            (self.integral_over_displacements, self.f,) = calculate_GL_integral_with_transform(
                 self.displacements,
                 self.k_max,
                 self.nr_particles,
@@ -215,8 +212,7 @@ class F_Basin_From_MC_Data(Base_Compute_Integral):
         F0 = (
             -0.5 * self.integral_over_displacements
             - np.log(self.box_volume)
-            - ((self.nr_particles - 1.0) * self.dimension / 2.0)
-            * np.log(2.0 * pi / self.k_max)
+            - ((self.nr_particles - 1.0) * self.dimension / 2.0) * np.log(2.0 * pi / self.k_max)
             - np.log(self.prob)
         )
 
@@ -243,9 +239,7 @@ def F_Basin_From_MC_Data__get_free_energy_F0_approx_kmax_displ0(
         (nr_particles - 1) * dimension * (np.log(kmax + xi) - np.log(xi))
     )
     variance_on_displ2_k0 = error_displ_k0**2
-    variance_on_xi = (
-        (nr_particles - 1) * dimension / displ2_k0**2
-    ) ** 2 * variance_on_displ2_k0
+    variance_on_xi = ((nr_particles - 1) * dimension / displ2_k0**2) ** 2 * variance_on_displ2_k0
     variance_on_integral = (
         ((nr_particles - 1) * dimension * (1 - (kmax + xi) / xi)) / (kmax + xi)
     ) ** 2 * variance_on_xi
@@ -279,9 +273,7 @@ def calculate_bruteforce_integral_get_error(u_sq_k, u_sq_var_k, k_values):
     nr_points = len(u_sq_k)
     sq_error = 0.0
     for i in range(nr_points - 1):
-        sq_error += (
-            0.5 * (u_sq_var_k[i] + u_sq_var_k[i + 1]) * (k_values[i + 1] - k_values[i])
-        )
+        sq_error += 0.5 * (u_sq_var_k[i] + u_sq_var_k[i + 1]) * (k_values[i + 1] - k_values[i])
 
     error = np.sqrt(sq_error)
     return error, u_sq_var_k

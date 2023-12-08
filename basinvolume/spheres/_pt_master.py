@@ -53,36 +53,52 @@ class ReplicaState(BV_MCRunner_State):
     def serialize(self):
         if isinstance(self.bias_params, float):
             n_bias_params = 1
-        else: 
+        else:
             n_bias_params = len(self.bias_params)
 
         data = np.empty(self.size(), dtype="d")
         data[0] = self.id
         data[1] = self.dx
         data[2] = self.energy
-        data[3:3 + n_bias_params] = self.bias_params
+        data[3 : 3 + n_bias_params] = self.bias_params
         data[3 + n_bias_params] = self.stepsize
         data[4 + n_bias_params] = self.takestep_count
         data[5 + n_bias_params : 5 + n_bias_params + len(self.coords)] = self.coords
-        data[5 + n_bias_params + len(self.coords) : 5 + n_bias_params + len(self.coords) + len(self.counters)] = self.counters
-        data[5 + n_bias_params + len(self.coords) + len(self.counters) :] = self.step_adaptation_counters
+        data[
+            5
+            + n_bias_params
+            + len(self.coords) : 5
+            + n_bias_params
+            + len(self.coords)
+            + len(self.counters)
+        ] = self.counters
+        data[
+            5 + n_bias_params + len(self.coords) + len(self.counters) :
+        ] = self.step_adaptation_counters
         return data
 
     def deserialize(self, value):
         if isinstance(self.bias_params, float):
             n_bias_params = 1
-        else: 
+        else:
             n_bias_params = len(self.bias_params)
-        
+
         self.id = int(value[0])
         self.dx = value[1]
         self.energy = value[2]
-        self.bias_params = value[3: 3 + n_bias_params]
+        self.bias_params = value[3 : 3 + n_bias_params]
         self.stepsize = value[3 + n_bias_params]
         self.takestep_count = int(value[4 + n_bias_params])
         self.coords = value[5 + n_bias_params : 5 + n_bias_params + len(self.coords)]
         self.counters = np.array(
-            value[5 + n_bias_params + len(self.coords) : 5 + n_bias_params + len(self.coords) + len(self.counters)],
+            value[
+                5
+                + n_bias_params
+                + len(self.coords) : 5
+                + n_bias_params
+                + len(self.coords)
+                + len(self.counters)
+            ],
             dtype="uintp",
         )
         self.step_adaptation_counters = np.array(
@@ -92,10 +108,11 @@ class ReplicaState(BV_MCRunner_State):
     def size(self):
         if isinstance(self.bias_params, float):
             n_bias_params = 1
-        else :
+        else:
             n_bias_params = len(self.bias_params)
         return (
-            5 +  n_bias_params
+            5
+            + n_bias_params
             + len(self.coords)
             + len(self.counters)
             + len(self.step_adaptation_counters)
@@ -126,7 +143,7 @@ class PT_Master(object):
         numnegk=0,
         lownegk=-2.5,
         k_spreading="gausslobato",
-        bias = "harmonic",
+        bias="harmonic",
         print_status=False,
         base_directory=None,
         bs_nodes=100,
@@ -141,9 +158,7 @@ class PT_Master(object):
         self.sleep_seconds = sleep_seconds
         self.comm = MPI.COMM_WORLD
         self.nworkers = self.comm.Get_size() - 1  # total number of workers
-        self.rank = (
-            self.comm.Get_rank()
-        )  # this is the unique identifier for the process
+        self.rank = self.comm.Get_rank()  # this is the unique identifier for the process
         self.nparticles = example_mcrunner.nparticles
         self.bdim = example_mcrunner.bdim
         self.kmax = kmax
@@ -151,9 +166,7 @@ class PT_Master(object):
         self.max_ptiter = max_ptiter
         self.ptiter = 0
         self.print_status = print_status
-        self.skip = (
-            skip  # might want to skip the first few swaps to allow for equilibration
-        )
+        self.skip = skip  # might want to skip the first few swaps to allow for equilibration
         self.pfreq = pfreq
         self.NO_EXCHANGE = (
             -12345
@@ -194,9 +207,7 @@ class PT_Master(object):
         self._init_replicas(example_mcrunner)
         self._init_timeseries()
         self._init_print()
-        self.recv_buffer = np.empty(
-            self.replica_states[0].size() + self.mcrunner_niter, dtype="d"
-        )
+        self.recv_buffer = np.empty(self.replica_states[0].size() + self.mcrunner_niter, dtype="d")
         self.exchange_cnts = np.zeros((self.nreplicas, self.nreplicas), dtype="int32")
         self.exchange_scheme = exchange_scheme
         self._init_sampling()
@@ -260,9 +271,7 @@ class PT_Master(object):
             mode = "w"
             trymakedir(self.base_directory)
             self._print_bias_params()
-        self.ex_outstream = open(
-            os.path.join(self.base_directory, "exchanges"), mode
-        )
+        self.ex_outstream = open(os.path.join(self.base_directory, "exchanges"), mode)
         self.permutations_stream = open(
             os.path.join(self.base_directory, "rem_permutations"), mode
         )
@@ -274,9 +283,7 @@ class PT_Master(object):
                 trymakedir(directory)
                 self._print_parameters(ireplica)
             self.status_streams.append(open(os.path.join(directory, "status"), mode))
-            self.histogram_mean_streams.append(
-                open(os.path.join(directory, "hist_mean"), mode)
-            )
+            self.histogram_mean_streams.append(open(os.path.join(directory, "hist_mean"), mode))
             if not append:
                 self.histogram_mean_streams[ireplica].write(
                     "{:<15}\t{:<15}\t{:<15}\t{:<15}\n".format(
@@ -293,9 +300,9 @@ class PT_Master(object):
         more costly replica first.
         """
         if self.bias == "harmonic":
-        
+
             nposk = self.nreplicas - self.numnegk  # number of positive k
-            
+
             if self.k_spreading == "gausslobato":
                 Karray = spring_constants_variable_transform(
                     nposk + 1,
@@ -332,44 +339,42 @@ class PT_Master(object):
                     for x in negKarray[::-1]:
                         Karray.insert(0, x)
                 else:
-                    negKarray = neg_spring_constants_logspace(
-                        self.numnegk, self.lownegk
-                    )
+                    negKarray = neg_spring_constants_logspace(self.numnegk, self.lownegk)
                     for x in negKarray[::-1]:
                         Karray.insert(0, x)
             # Reverse Karray for backwards compatibility
             Karray = Karray[::-1]
             return Karray
-        
+
         elif self.bias == "radial_gaussian":
             # Need both centerings and widths for the gaussians
-            
+
             nposk = self.nreplicas - self.numnegk  # number of positive k
-            
+
             # Set all widths equal to RMSD of kmin / nposk, or k =(nposk / RMSD)^2 to keep spring constants
-            u2meankmax = 0.5*(self.nparticles * self.bdim)/self.kmax
+            u2meankmax = 0.5 * (self.nparticles * self.bdim) / self.kmax
             r_kmax = np.sqrt(u2meankmax)
             width = (np.sqrt(self.u2meank0) - r_kmax) / nposk
-            k = 1/(width * width)
+            k = 1 / (width * width)
             Karray = k * np.ones(self.nreplicas)
-            
+
             # Set center positions of 1d gaussians for "positive" replicas to be linearly spaced between rmin >=0 and RMSD (both excluded)
             # If rmin is too close to the origin, accumulation at 0 happens
             # As a rule of thumb, start from kmax to avoid silly issues at large nreplicas
             rmin = r_kmax
-            spacing = (np.sqrt(self.u2meank0) - rmin ) / (nposk+1)
-            l0array = rmin + (np.arange(self.nreplicas) ) * spacing
-            
+            spacing = (np.sqrt(self.u2meank0) - rmin) / (nposk + 1)
+            l0array = rmin + (np.arange(self.nreplicas)) * spacing
+
             # only start the log part at some cut-off distance to avoid bad behaviour near 0
             r_cutoffarray = 0.5 * rmin * np.ones(self.nreplicas)
-            
+
             # Force the k = 0 case
             Karray[nposk] = 0.0
             l0array[nposk] = 0.0
             r_cutoffarray[nposk] = 0.0
-            
+
             return np.transpose(np.vstack([Karray, l0array, r_cutoffarray]))
-            
+
         else:
             raise NotImplementedError
 
@@ -472,9 +477,7 @@ class PT_Master(object):
         src = status.Get_source()
         replica_id = int(self.recv_buffer[0])
         state_size = self.replica_states[0].size()
-        self.replica_states[replica_id].deserialize(
-            self.recv_buffer[:state_size].copy()
-        )
+        self.replica_states[replica_id].deserialize(self.recv_buffer[:state_size].copy())
         recv_timeseries = self.recv_buffer[state_size:]
         self.replica_timeseries[replica_id].extend(recv_timeseries)
         recv_timeseries2 = np.power(recv_timeseries, 2)
@@ -529,20 +532,16 @@ class PT_Master(object):
                 if buddy != self.NO_EXCHANGE:
                     self.replica_states[i].swap_accepted_count += 1
                     self.exchange_cnts[i, buddy] += 1
-                    self.permutation_pattern[i] = (
-                        buddy + 1
-                    )  # to conform to fortran notation
+                    self.permutation_pattern[i] = buddy + 1  # to conform to fortran notation
                 else:
                     self.replica_states[i].swap_rejected_count += 1
-                    self.permutation_pattern[i] = (
-                        i + 1
-                    )  # to conform to fortran notation
+                    self.permutation_pattern[i] = i + 1  # to conform to fortran notation
             self._print_permutations()
 
         return exchange_pattern
 
     def _independence_sampling(self, exchange_pattern):
-        
+
         if self.bias == "harmonic":
             dxs = np.array([replica.dx for replica in self.replica_states])
             betas = np.array([replica.bias_params for replica in self.replica_states])
@@ -551,9 +550,7 @@ class PT_Master(object):
             # should be sufficient
             nexchanges = self.nreplicas**3
 
-            naccept = self.indep_sampling.exchange(
-                exchange_pattern, dxs, betas, nexchanges
-            )
+            naccept = self.indep_sampling.exchange(exchange_pattern, dxs, betas, nexchanges)
 
             if naccept > 0:
                 self.anyswap = True
@@ -586,17 +583,17 @@ class PT_Master(object):
         for i in range(self.exchange_choice, self.nreplicas - 1, 2):
             dx1 = self.replica_states[i].dx
             dx2 = self.replica_states[i + 1].dx
-            
+
             bias_params1 = self.replica_states[i].bias_params
             bias_params2 = self.replica_states[i + 1].bias_params
-            
+
             if self.bias == "harmonic":
                 # Hamiltonian replica exchange for pure springs
                 k1 = bias_params1
                 k2 = bias_params2
                 deltaE = 0.5 * dx2 * dx2 - 0.5 * dx1 * dx1
-                deltabeta = (k2 - k1)
-                
+                deltabeta = k2 - k1
+
                 w = np.exp(deltaE * deltabeta)
 
             elif self.bias == "radial_gaussian":
@@ -606,13 +603,17 @@ class PT_Master(object):
                 l2 = bias_params2[1]
                 r_cutoff1 = bias_params1[2]
                 r_cutoff2 = bias_params2[2]
-                
+
                 # Swap-MC-like Metropolis criterion
-                Eold = self.energies_radial_gaussian(dx1, k1, l1, r_cutoff1) + self.energies_radial_gaussian(dx2, k2, l2, r_cutoff2)
-                Enew = self.energies_radial_gaussian(dx2, k1, l1, r_cutoff1) + self.energies_radial_gaussian(dx1, k2, l2, r_cutoff2)
-                
+                Eold = self.energies_radial_gaussian(
+                    dx1, k1, l1, r_cutoff1
+                ) + self.energies_radial_gaussian(dx2, k2, l2, r_cutoff2)
+                Enew = self.energies_radial_gaussian(
+                    dx2, k1, l1, r_cutoff1
+                ) + self.energies_radial_gaussian(dx1, k2, l2, r_cutoff2)
+
                 w = np.exp(Eold - Enew)
-                
+
             else:
                 raise NotImplementedError
 
@@ -639,11 +640,11 @@ class PT_Master(object):
             self.exchange_choice = 1
         else:
             self.exchange_choice = 0
-    
+
     def energies_radial_gaussian(self, dx, k, l0, r_cutoff):
-        E = 0.5 * k * (dx - l0)**2
+        E = 0.5 * k * (dx - l0) ** 2
         if k != 0.0 and dx > r_cutoff:
-            E += (self.nparticles * self.bdim - 1) * np.log(dx/r_cutoff)
+            E += (self.nparticles * self.bdim - 1) * np.log(dx / r_cutoff)
         return E
 
     def _test_convergence(self):
@@ -673,9 +674,7 @@ class PT_Master(object):
                 self.eq_time = self._find_new_eq_time()
         # only keep time series from after the equilibration point, this references original data
         new_max_ptiter = self._find_new_max_ptiter()
-        logging.info(
-            "new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter)
-        )
+        logging.info("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
         return new_max_ptiter
 
     def _find_new_eq_time(self):
@@ -731,9 +730,7 @@ class PT_Master(object):
             sample_size = len(current_timeseries2)
             rel_err = np.sqrt(var * (1 + 2 * tau) / sample_size) / mean
             self.last_rel_std_errs[ireplica] = rel_err
-            logging.info(
-                "Replica {} relative standard error: {}".format(ireplica, rel_err)
-            )
+            logging.info("Replica {} relative standard error: {}".format(ireplica, rel_err))
             logging.debug("Replica {} sample_size: {}".format(ireplica, sample_size))
             logging.debug("Replica {} autocorrelation time: {}".format(ireplica, tau))
 
@@ -745,9 +742,7 @@ class PT_Master(object):
                 new_max_ptiters.append(self.ptiter)
             else:
                 m = var * (1 + 2 * tau) / np.power(mean * self.rel_std_err, 2)
-                new_max_ptiters.append(
-                    self.ptiter + int((m - sample_size) / self.mcrunner_niter)
-                )
+                new_max_ptiters.append(self.ptiter + int((m - sample_size) / self.mcrunner_niter))
 
         logging.debug("self.rel_std_err: %s" % self.rel_std_err)
         logging.debug("self.eq_max_ptiter: %s" % self.eq_max_ptiter)
@@ -787,9 +782,7 @@ class PT_Master(object):
                 iteration, mean, variance, std_err
             )
         )
-        self.histogram_mean_streams[
-            ireplica
-        ].flush()  # flush every time, so we don't loose data
+        self.histogram_mean_streams[ireplica].flush()  # flush every time, so we don't loose data
 
     def _print_status(self):
         for ireplica in range(self.nreplicas):
@@ -807,9 +800,7 @@ class PT_Master(object):
             # Since this is a rather uncommon print, energy can be recomputed if it is nan here
             energy = self.replica_states[ireplica].energy
             if np.isnan(energy):
-                energy = self.mcrunner_potential.getEnergy(
-                    self.replica_states[ireplica].coords
-                )
+                energy = self.mcrunner_potential.getEnergy(self.replica_states[ireplica].coords)
             status["energy"] = energy
             status["neval"] = counters[4]
 
@@ -848,18 +839,14 @@ class PT_Master(object):
         fname = os.path.join(self.base_directory, "stepsizes")
         with open(fname, "w") as stepfile:
             for ireplica in range(self.nreplicas):
-                stepfile.write(
-                    "{:1.16f}\n".format(self.replica_states[ireplica].stepsize)
-                )
+                stepfile.write("{:1.16f}\n".format(self.replica_states[ireplica].stepsize))
 
     def _print_parameters(self, ireplica):
         directory = os.path.join(self.base_directory, str(ireplica))
         fname = os.path.join(directory, "parameters")
         with open(fname, "w") as paramfile:
             paramfile.write("node:\t{0}\n".format(ireplica))
-            paramfile.write(
-                "bias:\t{0}\n".format(self.replica_states[ireplica].bias_params)
-            )
+            paramfile.write("bias:\t{0}\n".format(self.replica_states[ireplica].bias_params))
             paramfile.write("PT iterations:\t{0}\n".format(self.max_ptiter))
             paramfile.write("total MC iterations:\t{0}\n".format(self.mcrunner_niter))
 

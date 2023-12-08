@@ -67,9 +67,7 @@ class build_minima_list_db(object):
         self.sca = imp_packing["sca"]
 
         self.eps = 1
-        self.system = HSWCASystem(
-            self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim
-        )
+        self.system = HSWCASystem(self.eps, self.sca, self.hs_radii, self.boxv, bdim=self.bdim)
         self.potential = self.system.get_potential()
         self.db = self.system.create_database(self.db_path)
 

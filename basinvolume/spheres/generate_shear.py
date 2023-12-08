@@ -17,9 +17,7 @@ from basinvolume.enums import Minimizer, Interaction
 
 def worker_packing(kwargs, nparticles, start_iteration=0):
     try:
-        gen_packing = HS_Generate_Packing(
-            nparticles, start_iteration=start_iteration, **kwargs
-        )
+        gen_packing = HS_Generate_Packing(nparticles, start_iteration=start_iteration, **kwargs)
         gen_packing.run()
     except Exception:
         logging.error("worker_packing worker: %s" % (traceback.format_exc()))
@@ -38,14 +36,11 @@ def worker_jammed_packing(kwargs, logging_tag, packing_nrs=None):
 def copy_dir(source_dir, target_dir):
     if not os.path.isdir(source_dir):
         raise IOError(
-            "The specified input packings-directory does not exist "
-            "({})!".format(source_dir)
+            "The specified input packings-directory does not exist " "({})!".format(source_dir)
         )
     if os.path.isdir(target_dir):
         if source_dir != target_dir:
-            logging.warning(
-                "The target directory '{}' already exists.".format(target_dir)
-            )
+            logging.warning("The target directory '{}' already exists.".format(target_dir))
     else:
         shutil.copytree(source_dir, target_dir)
 
@@ -83,9 +78,7 @@ def gen_packings(kwargs, npackings, nparticles, njobs):
         results = []
         for packing_nr in range(1, npackings):
             results.append(
-                mypool.apply_async(
-                    worker_packing, args=(kwargs, nparticles, packing_nr)
-                )
+                mypool.apply_async(worker_packing, args=(kwargs, nparticles, packing_nr))
             )
         for result in results:
             result.get()
@@ -142,8 +135,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--no-balance-omp",
         action="store_true",
-        help="Don't balance subdomains when using multi-threaded "
-        "cell lists. Default: False",
+        help="Don't balance subdomains when using multi-threaded " "cell lists. Default: False",
         default=False,
     )
     parser.add_argument(
@@ -209,8 +201,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hsf-niter-dif",
         type=int,
-        help="Step count for the "
-        "estimation of the decorrelation step count. Default: 1e9",
+        help="Step count for the " "estimation of the decorrelation step count. Default: 1e9",
         default=1e9,
     )
     parser.add_argument(
@@ -329,9 +320,7 @@ if __name__ == "__main__":
 
     # Generate sheared packings
     unjammed_packings = []
-    for shear in (
-        np.arange(0.0, args.final_shear - 0.5 * args.step, args.step) + args.step
-    ):
+    for shear in np.arange(0.0, args.final_shear - 0.5 * args.step, args.step) + args.step:
         pot_kwargs["shear"] = shear
         sheared_kwargs = dict(
             jammed_kwargs,

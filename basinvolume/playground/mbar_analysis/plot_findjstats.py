@@ -60,13 +60,9 @@ class FixedOrderFormatter(ScalarFormatter):
 def get_color_cycle(ncolors=20, reverse=True):
     cm = plt.get_cmap("Paired")
     if reverse:
-        color_cycle = cycle(
-            [cm(1.0 * (i + 0.5) / float(ncolors)) for i in range(ncolors)][::-1]
-        )
+        color_cycle = cycle([cm(1.0 * (i + 0.5) / float(ncolors)) for i in range(ncolors)][::-1])
     else:
-        color_cycle = cycle(
-            [cm(1.0 * (i - 0.5) / float(ncolors)) for i in range(ncolors)]
-        )
+        color_cycle = cycle([cm(1.0 * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
     return color_cycle
 
 
@@ -258,9 +254,7 @@ class DataPlot(object):
             # x_integrate = np.linspace(np.amin(np.log(np.hstack(self.pressure))), np.amax(np.log(np.hstack(self.pressure))), n_integrate)
             x_integrate = np.linspace(np.amin(lnp), np.amax(lnp), n_integrate)
             # build kde histogram
-            bw = get_bandwidth_estimate(
-                lnp, kernel="gaussian", method="cross_validation"
-            )
+            bw = get_bandwidth_estimate(lnp, kernel="gaussian", method="cross_validation")
             self.bw.append(bw)
             kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(lnp[:, np.newaxis])
             log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
@@ -272,9 +266,7 @@ class DataPlot(object):
             # build array of relative fluctuations around the mean
             p_rel = p / np.mean(p)
             n = int(min(n_samples, lnp.size * 25))
-            varCIs = bootstrap.ci(
-                p, lambda x: np.var(x / np.mean(x)), n_samples=n, alpha=0.32
-            )
+            varCIs = bootstrap.ci(p, lambda x: np.var(x / np.mean(x)), n_samples=n, alpha=0.32)
             self.p_rel_var.append([np.var(p_rel), varCIs[0], varCIs[1]])
             # build array of logp mean, var and maxp
             meanCIs = bootstrap.ci(lnp, np.mean, n_samples=n, alpha=0.32)
@@ -287,9 +279,7 @@ class DataPlot(object):
             self.p_mean.append([np.mean(p), meanCIs[0], meanCIs[1]])
             self.p_var.append([np.var(p), varCIs[0], varCIs[1]])
 
-        self.logp_mean, self.p_mean = np.asarray(self.logp_mean), np.asarray(
-            self.p_mean
-        )
+        self.logp_mean, self.p_mean = np.asarray(self.logp_mean), np.asarray(self.p_mean)
         self.logp_var, self.p_var, self.p_rel_var = (
             np.asarray(self.logp_var),
             np.asarray(self.p_var),
@@ -382,9 +372,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             color=color_marker,
             markeredgecolor=color_marker,
         )
-        spl = UnivariateSpline(
-            phi_ss, psuccess, bbox=[phi_ss[0], phi_ss[-1]], s=7.5e-4, k=3
-        )
+        spl = UnivariateSpline(phi_ss, psuccess, bbox=[phi_ss[0], phi_ss[-1]], s=7.5e-4, k=3)
         pickle.dump(
             spl,
             open(os.path.join(os.getcwd(), "phi_psuccess_spline.pickle"), "wb"),
@@ -494,9 +482,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
             assert len(e) == len(p)
             color = next(color_cycle)
             ax2.scatter(np.log(e), np.log(p), color=next(color_cycle), rasterized=True)
-        flat_energy, flat_pressure = np.log(np.hstack(energy)), np.log(
-            np.hstack(pressure)
-        )
+        flat_energy, flat_pressure = np.log(np.hstack(energy)), np.log(np.hstack(pressure))
         # linear fit low P
         xnew = np.linspace(np.amin(flat_energy), np.amax(flat_energy), 10)
 
@@ -828,9 +814,7 @@ def plot(figdir="figures", bdim=2, nparticles=64):
         )
         ax7.plot(xx, yspl, linewidth=2, color=color, rasterized=True)
 
-        phi_c = xx[
-            np.argmax(yspl)
-        ]  # phi_ss[np.argmin(np.abs(np.asarray(psuccess) - 0.5))]
+        phi_c = xx[np.argmax(yspl)]  # phi_ss[np.argmin(np.abs(np.asarray(psuccess) - 0.5))]
         logging.info(phi_c)
         logx = np.abs(1 - phi_ss_packed / phi_c)
         color_cycle = get_color_cycle(ncolors=3)
@@ -1262,9 +1246,7 @@ def plot_all(figdir="figures", bdim=2):
         ax2 = fig2.add_subplot(111)
         color_cycle = get_color_cycle(ncolors=4)
         x = np.log(np.sqrt(nparticles))
-        xnew = np.log(
-            np.sqrt(np.linspace(np.amin(nparticles), np.amax(nparticles), 100))
-        )
+        xnew = np.log(np.sqrt(np.linspace(np.amin(nparticles), np.amax(nparticles), 100)))
         color = next(color_cycle)
         y = np.log(0.845 - np.asarray(yder_argavg))
         ax2.plot(
@@ -1282,9 +1264,7 @@ def plot_all(figdir="figures", bdim=2):
             fit_fn(xnew),
             color=color,
             linewidth=2,
-            label="argavg: : ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(
-                fit_params[0], fit_params[1]
-            ),
+            label="argavg: : ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(fit_params[0], fit_params[1]),
             rasterized=True,
         )
         popt, pcov = curve_fit(
@@ -1293,9 +1273,7 @@ def plot_all(figdir="figures", bdim=2):
             np.asarray(yder_argavg),
             p0=[0.845, 1, 1],
         )
-        logging.info(
-            "ppack_argavg phi_c, c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov)))
-        )
+        logging.info("ppack_argavg phi_c, c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
         color = next(color_cycle)
         y = np.log(0.845 - np.asarray(yder_argmid))
         ax2.plot(
@@ -1313,9 +1291,7 @@ def plot_all(figdir="figures", bdim=2):
             fit_fn(xnew),
             color=color,
             linewidth=2,
-            label="argmid: ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(
-                fit_params[0], fit_params[1]
-            ),
+            label="argmid: ln(phi) = {:.3f} ln(N)/2 {:.3f}".format(fit_params[0], fit_params[1]),
             rasterized=True,
         )
         ax2.set_xlabel(r"$\ln(N^{1/2})$")
@@ -1807,9 +1783,7 @@ def plot_all(figdir="figures", bdim=2):
             ax19.set_yscale("log")
             # var of rel P
             y = nparticles[i] * prel_var[:, 0]
-            yerr = np.abs(
-                nparticles[i] * np.asarray([prel_var[:, 1], prel_var[:, 2]]) - y
-            )
+            yerr = np.abs(nparticles[i] * np.asarray([prel_var[:, 1], prel_var[:, 2]]) - y)
             # w = 0.5 * (p_mean[:, 2] - p_mean[:, 1]) / weights
             # spl = UnivariateSpline(x, y, s=1e7, k=5, w=weights)
             # yspl = spl(xx)
@@ -1863,9 +1837,7 @@ def plot_all(figdir="figures", bdim=2):
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
         ax15.plot(x, fit_fn(x), marker="", linewidth=2, color=color)
         varlnp_argmax_fn = fit_fn
-        logging.info(
-            "varlnP_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err)
-        )
+        logging.info("varlnP_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err))
         f = lambda L, b, c: 0.841 + b * (L ** (-1 / c))
         popt, pcov = curve_fit(
             f,
@@ -1874,9 +1846,7 @@ def plot_all(figdir="figures", bdim=2):
             p0=[-2, 0.5],
             maxfev=10000,
         )
-        logging.info(
-            "varlnP_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov)))
-        )
+        logging.info("varlnP_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
         # ax18.plot(np.sqrt(nparticles), np.asarray(varlnp_argmax), marker='o', color='b')
         # ax18.plot(np.exp(xnew), f(np.exp(xnew), popt[0],popt[1],popt[2]), linestyle='--', color='b')
         color = next(color_cycle)
@@ -1892,9 +1862,7 @@ def plot_all(figdir="figures", bdim=2):
         )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
         ax15.plot(x, fit_fn(x), marker="", linewidth=2, color=color)
-        logging.info(
-            "varprel_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err)
-        )
+        logging.info("varprel_argmax fit params: {}, fit_err: {}".format(fit_params, fit_err))
         popt, pcov = curve_fit(
             f,
             np.sqrt(nparticles),
@@ -1902,9 +1870,7 @@ def plot_all(figdir="figures", bdim=2):
             p0=[-2, 0.5],
             maxfev=10000,
         )
-        logging.info(
-            "varprel_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov)))
-        )
+        logging.info("varprel_argmax c, nu {}, err {}".format(popt, np.sqrt(np.diag(pcov))))
         # ax18.plot(np.sqrt(nparticles), np.asarray(varprel_argmax), marker='o', color='r')
         # ax18.plot(np.exp(xnew), f(np.exp(xnew), popt[0], popt[1], popt[2]), linestyle='--', color='r')
         color_cycle = get_color_cycle(ncolors=3)
@@ -1921,9 +1887,7 @@ def plot_all(figdir="figures", bdim=2):
         )
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
         ax17.plot(x, fit_fn(x), marker="", linewidth=2, color=color)
-        logging.info(
-            "varlnP_max fit params: {}, fit_err: {}".format(fit_params, fit_err)
-        )
+        logging.info("varlnP_max fit params: {}, fit_err: {}".format(fit_params, fit_err))
         color = next(color_cycle)
         y = np.log(varprel_max)
         ax17.plot(
@@ -1937,9 +1901,7 @@ def plot_all(figdir="figures", bdim=2):
         fit_fn, fit_params, fit_err, rho = poly_fit(x, y, order=1)
         ax17.plot(x, fit_fn(x), marker="", linewidth=2, color=color)
         varprel_argmax_fn = fit_fn
-        logging.info(
-            "varprel_max fit params: {}, fit_err: {}".format(fit_params, fit_err)
-        )
+        logging.info("varprel_max fit params: {}, fit_err: {}".format(fit_params, fit_err))
 
         # ax9inset.set_xlim((0.84,0.87))
         ax9.set_xlim((0.81, phi_max))
@@ -2190,17 +2152,12 @@ def plot_all(figdir="figures", bdim=2):
         color_cycle2 = get_color_cycle(ncolors=len(datasets))
         fss = Result()
         fss.nparticles = nparticles
-        fss.pressure = [
-            dp.pressure for dp in sorted(datasets, key=lambda data: data.nparticles)
-        ]
+        fss.pressure = [dp.pressure for dp in sorted(datasets, key=lambda data: data.nparticles)]
         fss.phi_ss_packed = [
-            dp.phi_ss_packed
-            for dp in sorted(datasets, key=lambda data: data.nparticles)
+            dp.phi_ss_packed for dp in sorted(datasets, key=lambda data: data.nparticles)
         ]
         fss.phi_c_lnp = np.exp([varlnp_argmax_fn(0.5 * np.log(n)) for n in nparticles])
-        fss.phi_c_prel = np.exp(
-            [varprel_argmax_fn(0.5 * np.log(n)) for n in nparticles]
-        )
+        fss.phi_c_prel = np.exp([varprel_argmax_fn(0.5 * np.log(n)) for n in nparticles])
         pickle.dump(
             fss,
             open(os.path.join(os.getcwd(), "pressure_fss.pickle"), "wb"),
@@ -2216,9 +2173,7 @@ def plot_all(figdir="figures", bdim=2):
             inu = 2.0
             zeta = -0.89
             # lambda
-            phi_c = (
-                0.841  # np.exp(varlnp_argmax_fn(0.5 * np.log(nparticles[i])))  #DEBUG
-            )
+            phi_c = 0.841  # np.exp(varlnp_argmax_fn(0.5 * np.log(nparticles[i])))  #DEBUG
             xabs = (
                 np.power(np.sqrt(nparticles[i]), inu)
                 * np.abs(np.asarray(phi_ss_packed) - np.asarray(phi_c))
@@ -2230,9 +2185,7 @@ def plot_all(figdir="figures", bdim=2):
                 / phi_c
             )
             y = (
-                np.power(np.sqrt(nparticles[i]), zeta * inu)
-                * logp_var[:, 0]
-                * nparticles[i]
+                np.power(np.sqrt(nparticles[i]), zeta * inu) * logp_var[:, 0] * nparticles[i]
             )  # [phi_ss_packed > phi_c]
             y_err = (
                 np.abs(np.asarray([logp_var[:, 1], logp_var[:, 2]]) - logp_var[:, 0])
@@ -2275,9 +2228,7 @@ def plot_all(figdir="figures", bdim=2):
                 markeredgecolor=color,
             )
             # prel
-            phi_c = (
-                0.841  # np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
-            )
+            phi_c = 0.841  # np.exp(varprel_argmax_fn(0.5 * np.log(nparticles[i])))  # DEBUG
             inu = 1.0 / 0.5
             zeta = -0.47
             xabs = (
@@ -2290,11 +2241,7 @@ def plot_all(figdir="figures", bdim=2):
                 * (np.asarray(phi_ss_packed) - np.asarray(phi_c))
                 / phi_c
             )
-            y = (
-                np.power(np.sqrt(nparticles[i]), zeta * inu)
-                * prel_var[:, 0]
-                * nparticles[i]
-            )
+            y = np.power(np.sqrt(nparticles[i]), zeta * inu) * prel_var[:, 0] * nparticles[i]
             yerr = (
                 np.abs(np.asarray([prel_var[:, 1], prel_var[:, 2]]) - prel_var[:, 0])
                 * nparticles[i]

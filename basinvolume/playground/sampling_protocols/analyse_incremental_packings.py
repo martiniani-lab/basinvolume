@@ -79,9 +79,7 @@ def myplot(packing_datasets, figdir="figures"):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        for i, dataset in enumerate(
-            sorted(packing_datasets, key=lambda data: data.nparticles)
-        ):
+        for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             if len(dataset.pressures) > 0:
                 nparticles = dataset.nparticles
                 color = next(color_cycle)

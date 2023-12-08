@@ -231,9 +231,7 @@ if __name__ == "__main__":
 
         # Configure_bv_mcrunner
         sim_bvconfig = _hypercube_bv_mcrunner(0, 1)
-        mcrunner_bvconfig = sim_bvconfig(
-            directory_name, seeds=seeds, verbose=True, niter=1e6
-        )
+        mcrunner_bvconfig = sim_bvconfig(directory_name, seeds=seeds, verbose=True, niter=1e6)
         print("\n\nsimulation: BV config started")
         start = time.time()
         mcrunner_bvconfig.run()
@@ -262,9 +260,7 @@ if __name__ == "__main__":
             min_tot_niter * 0.1
         )  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
         niter = int((min_tot_niter - min_ptiter) / min_ptiter)  # 90% MCMC walk
-        adjustf_niter = int(
-            min_tot_niter * 0.1
-        )  # equilibrate for the first 1/10th of total steps
+        adjustf_niter = int(min_tot_niter * 0.1)  # equilibrate for the first 1/10th of total steps
         nskip = int(adjustf_niter / niter)  # don't swap while adjusting the step-size
         # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
         # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
@@ -280,9 +276,7 @@ if __name__ == "__main__":
         assert (
             record_histogram == False and pt_eq_niter == 0 and ts_freq == 1
         )  # ts_freq must be 1 with current output implementation (all based on timeseries)
-        rel_std_err = (
-            0.05  # relative standard error in the mean used by convergence test
-        )
+        rel_std_err = 0.05  # relative standard error in the mean used by convergence test
         min_window = int(
             min_tot_niter * 0.5
         )  # minimum amount of data before trying to check convergence
@@ -484,9 +478,7 @@ if __name__ == "__main__":
                     status = sim_innersphere.mcrunner.get_status()
                     print(status)
                     print("stepsize: ", sim_innersphere.mcrunner.get_stepsize())
-                    output_directory = (
-                        directory_name + "/innersphere_" + str(sphere_number)
-                    )
+                    output_directory = directory_name + "/innersphere_" + str(sphere_number)
                     sim_innersphere.mcrunner.show_histogram_analytical(output_directory)
                     # This run is done!
                     innerspheres_done_flags[sphere_number] = True

@@ -98,9 +98,7 @@ def get_kde_hist(
     if kernel == "gaussian":
         if method == "cross_validation":
             skip = max(1, int(len(timeseries) / 1e5))
-        bw = get_bandwidth_estimate(
-            np.array(timeseries[::skip]), kernel="gaussian", method=method
-        )
+        bw = get_bandwidth_estimate(np.array(timeseries[::skip]), kernel="gaussian", method=method)
         logging.info("bandwidth {}".format(bw))
         # bw *= 3
     hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
@@ -175,25 +173,17 @@ class fastmbar_compute_dos(object):
         self.base_directory = os.path.join(self.explore_dir, base_dir)
         self.frozen = frozen
         n = int(re.findall(r"\d+", self.fname)[0])
-        self.packing_configpath = os.path.join(
-            packings_dir, "packing{}.config".format(n)
-        )
+        self.packing_configpath = os.path.join(packings_dir, "packing{}.config".format(n))
         assert os.path.isfile(self.packing_configpath)
         self.jammed_packing_configpath = os.path.join(
             jammed_packings_dir, "{}.config".format(self.fname)
         )
         assert os.path.isfile(self.jammed_packing_configpath)
-        self.pt_configpath = os.path.join(
-            self.explore_dir, "explore_" + fname + ".config"
-        )
+        self.pt_configpath = os.path.join(self.explore_dir, "explore_" + fname + ".config")
         assert os.path.isfile(self.pt_configpath)
-        self.findk_configpath = os.path.join(
-            self.explore_dir, "findk_" + fname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.explore_dir, "findk_" + fname + ".config")
         assert os.path.isfile(self.findk_configpath)
-        self.kmin_configpath = os.path.join(
-            self.explore_dir, "kmin_" + fname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + fname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         # There can be several innersphere runs, each with a config path
         self.innersphere_configpaths = []
@@ -210,9 +200,7 @@ class fastmbar_compute_dos(object):
             )
             assert os.path.isfile(innersphere_configpath)
             self.innersphere_configpaths.append(innersphere_configpath)
-            innersphere_timeseries_path = os.path.join(
-                self.explore_dir, "inner_sphere.timeseries"
-            )
+            innersphere_timeseries_path = os.path.join(self.explore_dir, "inner_sphere.timeseries")
             assert os.path.isfile(innersphere_timeseries_path)
             self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
@@ -221,14 +209,10 @@ class fastmbar_compute_dos(object):
                 innersphere_dir_list, key=lambda x: int(x.split("_")[-1])
             )
             for dir in innersphere_dir_list:
-                innersphere_configpath = os.path.join(
-                    dir, "/innersphere_" + fname + ".config"
-                )
+                innersphere_configpath = os.path.join(dir, "/innersphere_" + fname + ".config")
                 assert os.path.isfile(innersphere_configpath)
                 self.innersphere_configpaths.append(innersphere_configpath)
-                innersphere_timeseries_path = os.path.join(
-                    dir, "/inner_sphere.timeseries"
-                )
+                innersphere_timeseries_path = os.path.join(dir, "/inner_sphere.timeseries")
                 assert os.path.isfile(innersphere_timeseries_path)
                 self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
 
@@ -324,9 +308,7 @@ class fastmbar_compute_dos(object):
         imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath))
         self.nparticles = imp_packing["nparticles"]
         self.bdim = imp_packing["bdim"]
-        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(
-            self.bdim
-        )
+        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(self.bdim)
         self.ndim = imp_packing["ndim"]
         self.boxv = imp_packing["boxv"].copy()
         self.packing_frac = imp_packing["packing_frac"]
@@ -346,12 +328,8 @@ class fastmbar_compute_dos(object):
         for innersphere_configpath in self.innersphere_configpaths:
             configf.read(str(innersphere_configpath))
             k_innersphere = configf.getfloat("INNERSPHERE_MCRUNNER", "k")
-            ref_radius = configf.getfloat(
-                "INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize"
-            )
-            ref_acceptance = configf.getfloat(
-                "INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac"
-            )
+            ref_radius = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize")
+            ref_acceptance = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac")
             self.ks_innersphere.append(k_innersphere)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
@@ -549,9 +527,7 @@ class fastmbar_compute_dos(object):
 
         if self.verbose:
             if self.bootstrap:
-                logging.info(
-                    "F0 {} F0unc {} +/- {}".format(self.F0, self.F0unc, self.sigF0)
-                )
+                logging.info("F0 {} F0unc {} +/- {}".format(self.F0, self.F0unc, self.sigF0))
                 logging.info(
                     "unit_box_F0 {} unit_box_F0unc {} +/- {}".format(
                         self.unit_box_F0, self.unit_box_F0unc, self.sigF0
@@ -581,9 +557,7 @@ class fastmbar_compute_dos(object):
         if compute_binedges:
             full_timeseries = self.timeseries
             for sphere_number in range(self.number_nested_spheres):
-                full_timeseries = np.append(
-                    full_timeseries, self.ts_spheres[sphere_number]
-                )
+                full_timeseries = np.append(full_timeseries, self.ts_spheres[sphere_number])
             bin_edges = np.linspace(
                 np.amin(full_timeseries),
                 np.amax(full_timeseries),
@@ -598,17 +572,13 @@ class fastmbar_compute_dos(object):
             hist_visits = self._build_histogram_simple(bin_edges)
 
         self.hist_visits = np.array(hist_visits)
-        self.bin_edges = (
-            bin_edges + (bin_edges[1] - bin_edges[0]) / 2
-        )  # shift bin edges by bin/2
+        self.bin_edges = bin_edges + (bin_edges[1] - bin_edges[0]) / 2  # shift bin edges by bin/2
         self._unbias_histogram()
 
     def _build_histogram_simple(self, bin_edges):
         hist_visits = []
         for sphere_number in range(self.number_nested_spheres):
-            hist = np.histogram(
-                self.ts_spheres[sphere_number], bin_edges, density=True
-            )[0]
+            hist = np.histogram(self.ts_spheres[sphere_number], bin_edges, density=True)[0]
             hist_visits.append(hist)
         results = Parallel(n_jobs=self.ncores)(
             delayed(np.histogram)(timeseries, bin_edges, density=True)
@@ -632,8 +602,7 @@ class fastmbar_compute_dos(object):
             )
             hist_visits.append(hist)
         results = Parallel(n_jobs=max(1, self.ncores))(
-            delayed(get_kde_hist)(timeseries, kde_bin_edges)
-            for timeseries in self.timeseries
+            delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries
         )
         logging.info(np.shape(results))
         for hist in results:
@@ -732,9 +701,7 @@ class fastmbar_compute_dos(object):
         herr = []
         for i, hist in enumerate(self.hist_visits):
             var = (1 - hist / np.sum(hist)) * hist / np.sum(hist)
-            herr.append(
-                np.sqrt(var) / (np.amax(self.bin_edges) - np.amin(self.bin_edges))
-            )
+            herr.append(np.sqrt(var) / (np.amax(self.bin_edges) - np.amin(self.bin_edges)))
         herr = np.array(herr)
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
             ax.errorbar(
@@ -769,9 +736,7 @@ class fastmbar_compute_dos(object):
             y = np.where(
                 self.hist_visits[i, :] == 0,
                 SMALL,
-                np.log(self.hist_visits[i, :])
-                + self.hist_unbiased[i, :]
-                + self.w_i_final[i],
+                np.log(self.hist_visits[i, :]) + self.hist_unbiased[i, :] + self.w_i_final[i],
             )  # sends back a warning
             # y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
@@ -924,9 +889,7 @@ class fastmbar_compute_dos(object):
         # these are the unbiased estimates of the error because log is a monotonic convex function
         # and the we pick the 2.5 and 97.5 percentiles to have 95% intervals of confidence
         low_logn_E = np.sort(self.logn_E_subs, axis=0)[int((alpha / 2.0) * nsamples), :]
-        high_logn_E = np.sort(self.logn_E_subs, axis=0)[
-            int(1 - (alpha / 2.0) * nsamples), :
-        ]
+        high_logn_E = np.sort(self.logn_E_subs, axis=0)[int(1 - (alpha / 2.0) * nsamples), :]
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -1011,9 +974,7 @@ class fastmbar_compute_dos(object):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="analyze PT data from thermodynamic integration"
-    )
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     # parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
         "-f",

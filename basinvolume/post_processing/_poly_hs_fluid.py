@@ -32,15 +32,13 @@ class Poly_HS_Fluid_2d(Poly_HS_Fluid):
         self.phiCP = pi / sqrt(12)  # max phi in 2d
 
     def Z(self, phi):
-        return self.ZOne(phi) * (self.m1**2 / self.m2) + (
-            1.0 - self.m1**2.0 / self.m2
-        ) / (1.0 - phi)
+        return self.ZOne(phi) * (self.m1**2 / self.m2) + (1.0 - self.m1**2.0 / self.m2) / (
+            1.0 - phi
+        )
 
     def ZOne(self, phi):
         if self.name == "Santos":  # ref: http://dx.doi.org/10.1080/00268979909482932
-            return 1.0 / (
-                1.0 - 2.0 * phi + (2.0 * self.phiCP - 1.0) * phi**2 / self.phiCP**2
-            )
+            return 1.0 / (1.0 - 2.0 * phi + (2.0 * self.phiCP - 1.0) * phi**2 / self.phiCP**2)
         elif self.name == "Kolafa":  # ref: http://dx.doi.org/10.1080/00268970600967963
             rho_max = 0.9
             phi_max = rho_max * 0.25 * pi

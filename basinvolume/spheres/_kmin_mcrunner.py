@@ -106,9 +106,9 @@ class KminMCRunner(ConfigMCRunner):
                 "which can negatively impact performance."
             )
         else:
-            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing[
-                "sorted_nsubdoms"
-            ] != int(os.environ["OMP_NUM_THREADS"]):
+            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing["sorted_nsubdoms"] != int(
+                os.environ["OMP_NUM_THREADS"]
+            ):
                 print(
                     "WARNING: The jammed packing has been sorted with a different number "
                     "of subdomains (OpenMP threads), which changes the number of cells "
@@ -175,17 +175,13 @@ class KminMCRunner(ConfigMCRunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(
-            temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
 
         if seeds is None:
             warnings.warn("seeds not passed")
 
-        self._requench_coords(
-            self.dtol, opt_maxstep, verbose, gtol=self.opt_tol
-        )
+        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
@@ -232,9 +228,7 @@ class KminMCRunner(ConfigMCRunner):
         self.mean_coord_dist, self.var_coord_dist = get_dist_com(
             mean_coord, self.mcrunner.origin, self.bdim
         ), np.sum(var_coord)
-        self.trajectory = self.mcrunner.dump_trajectory(
-            self.trajectory_path, clear=True
-        )
+        self.trajectory = self.mcrunner.dump_trajectory(self.trajectory_path, clear=True)
         if fix_com:
             for i, coords in enumerate(self.trajectory):
                 self.trajectory[i] = get_dist_vec_com(
@@ -246,29 +240,19 @@ class KminMCRunner(ConfigMCRunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(
-            os.getcwd(), explore_dir + packing_nr
-        )
+        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(self.workspace, packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
         configfile = "kmin_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
         trajectory_fname = "kmin_trajectory_" + dname
-        self.trajectory_path = "{}/{}.h5".format(
-            self.base_directory, trajectory_fname
-        )
+        self.trajectory_path = "{}/{}.h5".format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = "diffusion_" + dname
-        self.diffusion_configfname = "{}/{}".format(
-            self.diffusion_dir, diffusion_configfname
-        )
+        self.diffusion_configfname = "{}/{}".format(self.diffusion_dir, diffusion_configfname)
 
     def _initialise(self):
         self._print_initialise()
@@ -283,9 +267,7 @@ class KminMCRunner(ConfigMCRunner):
 
     def _print_diffusion_params(self):
         trymakedir(self.diffusion_dir)
-        fname = "{}.{}.config".format(
-            self.diffusion_configfname, int(self.mc_params["niter"])
-        )
+        fname = "{}.{}.config".format(self.diffusion_configfname, int(self.mc_params["niter"]))
         f = open(fname, "w")
         self._write_sim_params(f)
         f.close()
@@ -322,9 +304,7 @@ class KminMCRunner(ConfigMCRunner):
         for key, value in list(status.items()):
             f.write("{}: {}\n".format(key, value))
         f.write("[KMIN]\n")
-        f.write(
-            "displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25)
-        )  # note 1.25
+        f.write("displ_k_min: {:.16f}\n".format(self.displ_k_min * 1.25))  # note 1.25
         f.write("var_displ_k_min: {:.16f}\n".format(self.var_displ_k_min))
         f.write("mean_coord_dist: {:.16f}\n".format(self.mean_coord_dist))
         f.write("var_coord_dist: {:.16f}\n".format(self.var_coord_dist))
@@ -332,9 +312,7 @@ class KminMCRunner(ConfigMCRunner):
         f.close()
 
     def _dump_diffusion_timeseries(self):
-        fname = "{0}/StepsTimeSeries.{1}".format(
-            self.diffusion_dir, int(self.mc_params["niter"])
-        )
+        fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params["niter"]))
         print("fname", fname)
         self.mcrunner.dump_steps_timeseries(fname, clear=True)
 
@@ -382,9 +360,7 @@ if __name__ == "__main__":
         k=0,
         seeds=seeds,
         record_steps_timeseries=True,
-        record_steps_timeseries_every=[
-            int(np.ceil(1.5**n)) for n in range(22)
-        ],
+        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],
         single=True,
         use_cell_lists=True,
         verbose=True,

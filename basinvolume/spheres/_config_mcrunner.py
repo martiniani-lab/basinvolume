@@ -48,12 +48,7 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
 
         if opt_maxstep is None:
             # opt_maxstep = self.boxv[0] * 0.01
-            opt_maxstep = (
-                self.sca
-                * np.amin(self.red_radii)
-                * 0.5
-                * self.opt_maxstep_factor
-            )
+            opt_maxstep = self.sca * np.amin(self.red_radii) * 0.5 * self.opt_maxstep_factor
         if opt_maxstep == 0:
             opt_maxstep = 0.5
         return opt_maxstep
@@ -102,17 +97,13 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
     def _write_code_version(self, f):
         """print software version"""
         f.write("[CODEVERSION]\n")
-        f.write(
-            "basinvolume_version: {}\n".format(get_git_version("basinvolume"))
-        )
+        f.write("basinvolume_version: {}\n".format(get_git_version("basinvolume")))
         f.write("mcpele_version: {}\n".format(get_git_version("mcpele")))
         f.write("pele_version: {}\n".format(get_git_version("pele")))
         f.write("python_version: {}\n".format(get_python_version()))
         f.write("cython_version: {}\n".format(get_cython_version()))
 
-    def _requench_coords(
-        self, dtol, opt_maxstep, verbose, gtol=1e-10, frozen=False
-    ):
+    def _requench_coords(self, dtol, opt_maxstep, verbose, gtol=1e-10, frozen=False):
         """re-quench origin to avoid rounding errors"""
         quench = lambda red_coords, pot_optimizer: modifiedfire_cpp(
             red_coords,
@@ -135,9 +126,7 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
                     ndim=self.bdim,
                 )
                 res = quench(self.red_coords, pot_optimizer)
-                new_coords = full_coordinates(
-                    res.coords, self.coords, self.frozen, self.bdim
-                )
+                new_coords = full_coordinates(res.coords, self.coords, self.frozen, self.bdim)
                 self.red_coords = np.array(res.coords)
             else:
                 pot_optimizer = HS_WCA(
@@ -153,9 +142,7 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
                 new_coords = res.coords
         elif self.interaction is Interaction.INVERSE_POWER_STILLINGER:
             pow = self.pot_kwargs["pow"]
-            pot_optimizer = InversePowerStillinger(
-                pow, ndim=self.bdim, boxvec=self.boxv
-            )
+            pot_optimizer = InversePowerStillinger(pow, ndim=self.bdim, boxvec=self.boxv)
             res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
         elif self.interaction is Interaction.INVERSE_POWER:
@@ -171,9 +158,7 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
             res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
         elif self.interaction is Interaction.NEGATIVE_COS:
-            pot_optimizer = PoweredCosineSum(
-                dim=self.ndim, period=1, power=0.5, offset=1
-            )
+            pot_optimizer = PoweredCosineSum(dim=self.ndim, period=1, power=0.5, offset=1)
             res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
 
@@ -184,14 +169,9 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
             print("result", res)
             raise Exception("Quenching failed")
         elif res.nfev > 1:
-            warnings.warn(
-                "Configuration has moved on re-quenching, this should not happen"
-            )
+            warnings.warn("Configuration has moved on re-quenching, this should not happen")
 
-        drms = np.sqrt(
-            np.dot(self.coords - new_coords, self.coords - new_coords)
-            / self.ndim
-        )
+        drms = np.sqrt(np.dot(self.coords - new_coords, self.coords - new_coords) / self.ndim)
         assert drms <= dtol
         self.coords = np.array(new_coords)
 
@@ -227,17 +207,11 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
                     self.rattlers,
                 ) = read_xyzdfr(path)
             else:
-                raise NotImplementedError(
-                    "bdim={} not implemented".format(self.bdim)
-                )
+                raise NotImplementedError("bdim={} not implemented".format(self.bdim))
             self.hs_radii = np.array(hs_diameters / 2)
-            self.red_coords = reduce_coordinates(
-                self.coords, self.frozen, self.bdim
-            )
+            self.red_coords = reduce_coordinates(self.coords, self.frozen, self.bdim)
             self.red_radii = np.delete(self.hs_radii.copy(), self.frozen)
-            self.red_rattlers = reduce_coordinates(
-                self.rattlers, self.frozen, self.bdim
-            )
+            self.red_rattlers = reduce_coordinates(self.rattlers, self.frozen, self.bdim)
         else:
             imp_packing = import_packing(path, True, self.bdim)
             self.coords = imp_packing["coords"]

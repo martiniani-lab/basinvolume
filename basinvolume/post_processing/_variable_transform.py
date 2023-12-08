@@ -49,9 +49,7 @@ def spring_constants_logspace(nr_points, k_max, k_min=0.0):
     return k
 
 
-def spring_constants_positionlinspace(
-    nr_points, k_max, displ_k_min, nr_particles, dimension
-):
+def spring_constants_positionlinspace(nr_points, k_max, displ_k_min, nr_particles, dimension):
     """
     Given the number of points n,
     the maximum spring constant k_max,
@@ -155,10 +153,7 @@ def spring_constants_variable_transform(
     """
     t = Gauss_Lobatto_abscissas(nr_points)()
     kappa = nr_particles * dimension / displ_k_min * kappa_const
-    k = [
-        k_min - kappa + kappa * (1.0 + (k_max - k_min) / kappa) ** ((1.0 + ti) / 2.0)
-        for ti in t
-    ]
+    k = [k_min - kappa + kappa * (1.0 + (k_max - k_min) / kappa) ** ((1.0 + ti) / 2.0) for ti in t]
     return k
 
 
@@ -170,10 +165,7 @@ def test_variable_transform(k, displ_k_min, nr_particles, dimension, kappa_const
     kappa = dimension * nr_particles / displ_k_min * kappa_const
     kmax = max(k)
     kmin = min(k)
-    t = [
-        2 * np.log(1 + (ki - kmin) / kappa) / np.log(1 + (kmax - kmin) / kappa) - 1
-        for ki in k
-    ]
+    t = [2 * np.log(1 + (ki - kmin) / kappa) / np.log(1 + (kmax - kmin) / kappa) - 1 for ki in k]
     return t
 
 
@@ -287,16 +279,11 @@ def calculate_GL_integral_with_transform_get_error(
     weights = Gauss_Lobatto_weights(Gauss_Lobatto_abscissas(nr_points)())()
     var_integrand = np.array(
         [
-            u_sq_var_ki
-            * 0.5
-            * (ki - k_min + kappa)
-            * np.log(1.0 + (k_max - k_min) / kappa)
+            u_sq_var_ki * 0.5 * (ki - k_min + kappa) * np.log(1.0 + (k_max - k_min) / kappa)
             for (u_sq_var_ki, ki) in zip(u_sq_var_k, k)
         ]
     )
-    sum_sq_weights_vars = sum(
-        wi * wi * vari for (wi, vari) in zip(weights, var_integrand)
-    )
+    sum_sq_weights_vars = sum(wi * wi * vari for (wi, vari) in zip(weights, var_integrand))
     return np.sqrt(sum_sq_weights_vars), np.sqrt(var_integrand)
 
 
@@ -332,9 +319,7 @@ def calculate_simple_integral_get_error(
     )
     weights = np.ones(nr_points)
     var_integrand = u_sq_var_k
-    sum_sq_weights_vars = sum(
-        wi * wi * vari for (wi, vari) in zip(weights, var_integrand)
-    )
+    sum_sq_weights_vars = sum(wi * wi * vari for (wi, vari) in zip(weights, var_integrand))
     return np.sqrt(sum_sq_weights_vars), np.sqrt(var_integrand)
 
 

@@ -44,9 +44,7 @@ class EqFluidSnapshots(object):
         self.eq_steps = 0  # Adapting stepsize and finding nr of decorrelation steps should be done by the diffusion test MC. Therefore, we do not need eq_steps (report steps) in the 'second' MC (which prints the fluid snapshots).
         self.overlap_check = CheckOverlapPeriodicCellLists(self.radii, self.boxvec)
         self.temperature = 1
-        self.mock_potential = Harmonic(
-            self.coordinates, 42, bdim=2
-        )  # This is not used.
+        self.mock_potential = Harmonic(self.coordinates, 42, bdim=2)  # This is not used.
         self.stepsize = 1
         self.find_nr_decorrelation_steps()
         self.mc = MC(
@@ -115,9 +113,7 @@ class EqFluidSnapshots(object):
     def print_Lorenzo_style(self):
         print(("number of MC steps", self.mc.get_iterations_count()))
         self.coordinates = self.mc.get_coords()
-        self.coordinates = put_in_box(
-            self.coordinates, 2, Distance.PERIODIC, self.boxvec
-        )
+        self.coordinates = put_in_box(self.coordinates, 2, Distance.PERIODIC, self.boxvec)
         out_file = open(self.base_out_file_name + "_" + str(self.printed_images), "w")
         for particle_index in range(self.nr_particles):
             out_file.write(self.get_Lorenzo_style_string(particle_index) + "\n")

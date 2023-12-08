@@ -27,9 +27,7 @@ class GenerateSpackPlot(StructuralAnalysis):
 
         assert "xyzd" in fname or "xyd" in fname
         dname = os.path.splitext(fname)[0]
-        jammed_packing_configpath = os.path.join(
-            self.jammed_packings_dir, dname + ".config"
-        )
+        jammed_packing_configpath = os.path.join(self.jammed_packings_dir, dname + ".config")
         print(jammed_packing_configpath)
         imp_packing = read_jammed_packing_config(jammed_packing_configpath)
         self.nparticles = imp_packing["nparticles"]

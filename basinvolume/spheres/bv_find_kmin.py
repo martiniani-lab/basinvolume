@@ -84,9 +84,7 @@ if __name__ == "__main__":
         help="record steps timeseries for diffusion studies ONLY, default: False",
         default=False,
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="verbosity", default=False
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="verbosity", default=False)
     parser.add_argument(
         "--seed-takestep",
         type=int,
@@ -111,18 +109,14 @@ if __name__ == "__main__":
     parser.add_argument("--eps", type=float, default=1.0, help="Description for eps.")
     parser.add_argument("--hmin", type=int, default=0, help="Description for hmin.")
     parser.add_argument("--hmax", type=int, default=1000, help="Description for hmax.")
-    parser.add_argument(
-        "--hbinsize", type=int, default=1, help="Description for hbinsize."
-    )
+    parser.add_argument("--hbinsize", type=int, default=1, help="Description for hbinsize.")
     parser.add_argument(
         "--acceptance",
         type=float,
         default=0.2,
         help="Description for acceptance.",
     )
-    parser.add_argument(
-        "--adjustf", type=float, default=0.9, help="Description for adjustf."
-    )
+    parser.add_argument("--adjustf", type=float, default=0.9, help="Description for adjustf.")
     parser.add_argument(
         "--opt_nsteps",
         type=float,

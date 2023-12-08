@@ -180,9 +180,7 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
         configfile = "kmin_" + dname
         self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
@@ -202,12 +200,8 @@ class _kmin_exp_mcrunner(ConfigMCRunner):
         self.opt_tol = imp_packing["opt_tol"]
 
         configf.read(str(self.packing_configpath))
-        self.mobile_particle_radius = configf.getfloat(
-            "JAMMED_PACKING", "mobile_particle_radius"
-        )
-        self.frozen_particle_radius = configf.getfloat(
-            "JAMMED_PACKING", "mobile_particle_radius"
-        )
+        self.mobile_particle_radius = configf.getfloat("JAMMED_PACKING", "mobile_particle_radius")
+        self.frozen_particle_radius = configf.getfloat("JAMMED_PACKING", "mobile_particle_radius")
 
         configf = configparser.ConfigParser()
         configf.read(str(self.findk_configpath))

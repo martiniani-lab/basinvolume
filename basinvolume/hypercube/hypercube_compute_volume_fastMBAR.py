@@ -52,17 +52,11 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
         dlist = explore_dir.split("_")
         assert dlist[-3] == "hypercube"
         dname = dlist[-3] + "_" + dlist[-2] + "_" + dlist[-1]
-        self.pt_configpath = os.path.join(
-            self.explore_dir, "explore_" + dname + ".config"
-        )
+        self.pt_configpath = os.path.join(self.explore_dir, "explore_" + dname + ".config")
         assert os.path.isfile(self.pt_configpath)
-        self.findk_configpath = os.path.join(
-            self.explore_dir, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.explore_dir, "findk_" + dname + ".config")
         assert os.path.isfile(self.findk_configpath)
-        self.kmin_configpath = os.path.join(
-            self.explore_dir, "kmin_" + dname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + dname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         # There can be several innersphere runs, each with a config path
         self.innersphere_configpaths = []
@@ -79,9 +73,7 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
             )
             assert os.path.isfile(innersphere_configpath)
             self.innersphere_configpaths.append(innersphere_configpath)
-            innersphere_timeseries_path = os.path.join(
-                self.explore_dir, "inner_sphere.timeseries"
-            )
+            innersphere_timeseries_path = os.path.join(self.explore_dir, "inner_sphere.timeseries")
             assert os.path.isfile(innersphere_timeseries_path)
             self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
@@ -121,12 +113,8 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
             k_innersphere = configf.getfloat("INNERSPHERE_MCRUNNER", "k")
             self.ndof = configf.getfloat("INNERSPHERE_HYPERCUBE", "ndof")
             self.sidelength = configf.getfloat("INNERSPHERE_HYPERCUBE", "sidelength")
-            ref_radius = configf.getfloat(
-                "INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize"
-            )
-            ref_acceptance = configf.getfloat(
-                "INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac"
-            )
+            ref_radius = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize")
+            ref_acceptance = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac")
             self.ks_innersphere.append(k_innersphere)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
@@ -150,9 +138,7 @@ class hypercube_fastmbar_compute_dos(fastmbar_compute_dos):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="analyze PT data from thermodynamic integration"
-    )
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     parser.add_argument("explore_dir", type=str, help="explore_dir")
     parser.add_argument(
         "--show",
