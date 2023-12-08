@@ -34,6 +34,7 @@ from basinvolume.utils import full_coordinates, write_2d_array_to_hdf5
 from basinvolume.spheres import BaseSpheresMCrunner
 from basinvolume.monte_carlo import (
     CheckSameMinimum,
+    CheckSameMinimumConfig,
     Findk,
     RecordDisplacementTimeseries,
     RecordStepsTimeseries,
@@ -335,20 +336,30 @@ class SpheresMCRunner(BaseSpheresMCrunner):
 
     def _get_check_same_minimum(self):
         use_cgd = self.minimizer is Minimizer.CG
-        csm = CheckSameMinimum(
-            self.pot_optimizer,
-            self.red_origin,
-            self.rattlers,
-            self.dtol,
-            opt=self.optimizer,
-            opt_tol=self.opt_tol,
-            opt_maxiter=self.opt_nsteps,
-            bdim=self.bdim,
-            eqsteps=self.equilibration_steps,
-            use_cgd=use_cgd,
-            perform_convergence_test=self.perform_convergence_test,
-            collect_minima_list=self.collect_minima_list,
-        )
+        if self.interaction is Interaction.NEGATIVE_COS:
+            csm = CheckSameMinimumConfig(
+                self.pot_optimizer,
+                self.red_origin,
+                self.dtol,
+                opt=self.optimizer,
+                opt_tol=self.opt_tol,
+                opt_maxiter=self.opt_nsteps,
+            )
+        else:
+            csm = CheckSameMinimum(
+                self.pot_optimizer,
+                self.red_origin,
+                self.rattlers,
+                self.dtol,
+                opt=self.optimizer,
+                opt_tol=self.opt_tol,
+                opt_maxiter=self.opt_nsteps,
+                bdim=self.bdim,
+                eqsteps=self.equilibration_steps,
+                use_cgd=use_cgd,
+                perform_convergence_test=self.perform_convergence_test,
+                collect_minima_list=self.collect_minima_list,
+            )
         return csm
 
     def _set_conf_tests(self):
