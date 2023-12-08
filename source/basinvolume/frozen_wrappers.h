@@ -20,24 +20,24 @@ namespace bv {
 template <typename ConfTestType>
 class ConfTestFrozenWrapper : public mcpele::ConfTest {
 public:
-    pele::FrozenCoordsConverter coords_converter;
+  pele::FrozenCoordsConverter coords_converter;
+
 protected:
-    virtual ~ConfTestFrozenWrapper() {}
-    std::shared_ptr<ConfTestType> _underlying_conftest;
-    ConfTestFrozenWrapper(std::shared_ptr<ConfTestType> conftest,
-            pele::Array<double> const& reference_coords,
-            pele::Array<size_t> const& frozen_dof)
-        : coords_converter(reference_coords, frozen_dof),
-          _underlying_conftest(conftest)
-    {}
-    inline bool conf_test(pele::Array<double> &reduced_coords, mcpele::MC * mc)
-    {
-        if (reduced_coords.size() != coords_converter.ndof_mobile()){
-            throw std::runtime_error("reduced coords does not have the right size");
-        }
-        pele::Array<double> full_coords(coords_converter.get_full_coords(reduced_coords));
-        return _underlying_conftest->conf_test(full_coords, mc);
+  virtual ~ConfTestFrozenWrapper() {}
+  std::shared_ptr<ConfTestType> _underlying_conftest;
+  ConfTestFrozenWrapper(std::shared_ptr<ConfTestType> conftest,
+                        pele::Array<double> const &reference_coords,
+                        pele::Array<size_t> const &frozen_dof)
+      : coords_converter(reference_coords, frozen_dof),
+        _underlying_conftest(conftest) {}
+  inline bool conf_test(pele::Array<double> &reduced_coords, mcpele::MC *mc) {
+    if (reduced_coords.size() != coords_converter.ndof_mobile()) {
+      throw std::runtime_error("reduced coords does not have the right size");
     }
+    pele::Array<double> full_coords(
+        coords_converter.get_full_coords(reduced_coords));
+    return _underlying_conftest->conf_test(full_coords, mc);
+  }
 };
 
 } // namespace bv
