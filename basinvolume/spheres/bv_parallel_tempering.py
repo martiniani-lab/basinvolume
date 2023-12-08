@@ -213,10 +213,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--bias",
-        type = str,
-        default = "harmonic",
-        help = "Biasing potentials used in umbrella sampling, options:\
-            harmonic, radial_gaussian"
+        type=str,
+        default="harmonic",
+        help="Biasing potentials used in umbrella sampling, options:\
+            harmonic, radial_gaussian",
     )
     parser.add_argument(
         "--force-minimizer",
@@ -343,10 +343,9 @@ if __name__ == "__main__":
     # Use specific version without cell lists instead, since that's faster than
     # the non-specific cell lists version
     mcrunner_checkoverlap_cell_lists = False
-
     mcrunner = sim(
         fname,
-        bias = args.bias,
+        bias=args.bias,
         niter=niter,
         stepsize=args.stepsize,
         opt_nsteps=args.opt_nsteps,
@@ -373,6 +372,7 @@ if __name__ == "__main__":
         dtol=args.force_dtol,
         opt_tol=args.force_opt_tol,
     )
+    fix_com = mcrunner.fix_com
 
     if not check_kmax_reasonable(sim.findk_configpath):
         logging.error("bv_parallel_tempering: kmax is unreasonable, exiting")
@@ -415,7 +415,7 @@ if __name__ == "__main__":
                         numnegk=args.numnegk,
                         lownegk=args.lownegk,
                         k_spreading=args.k_spreading,
-                        bias = args.bias,
+                        bias=args.bias,
                         print_status=args.verbose,
                         base_directory=path,
                         sleep_seconds=args.sleep_seconds,
@@ -454,7 +454,7 @@ if __name__ == "__main__":
                 sim.print_success_all(False)
 
         else:
-            worker = PT_Worker(mcrunner)
+            worker = PT_Worker(mcrunner, fix_com=fix_com)
             worker.run()
             if collect_minima_list:
                 mcrunner.dump_minima_list("{}/minima_list.sqlite".format(rank))

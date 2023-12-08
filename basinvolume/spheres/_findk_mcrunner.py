@@ -11,7 +11,7 @@ from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.spheres import read_jammed_packing_config
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Interaction, Minimizer
 import configparser
 import time
 import warnings
@@ -130,7 +130,8 @@ class _findk_mcrunner(ConfigMCRunner):
             warnings.warn("seeds not passed")
 
         self._requench_coords(dtol, opt_maxstep, verbose, gtol=self.opt_tol)
-
+        fix_com = self.interaction is not Interaction.NEGATIVE_COS
+        kwargs["fix_com"] = fix_com
         self.mcrunner = Findk_MCrunner(
             potential,
             self.coords,

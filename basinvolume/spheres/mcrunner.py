@@ -155,6 +155,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
         self.interaction = interaction
+        self.fix_com = self.interaction is not Interaction.NEGATIVE_COS
         self.pot_kwargs = pot_kwargs
         self.opt_kwargs = opt_kwargs
         self.distance_method = distance_method
@@ -190,6 +191,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             use_frozen=use_frozen,
             frozen_atoms=frozen_atoms,
             rcontainer=rcontainer,
+            fix_com=self.fix_com,
         )
 
     def get_pot_optimizer(self):
@@ -1030,11 +1032,13 @@ class Findk_MCrunner(SpheresMCRunner):
         minimizer=Minimizer.FIRE,
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
+        fix_com=True,
     ):
         # findk parameters
         self.ktarget = ktarget
         self.knavg = knavg
         self.ktol = ktol
+        self.fix_com = fix_com
         super(Findk_MCrunner, self).__init__(
             potential,
             full_coords,
@@ -1091,6 +1095,7 @@ class Findk_MCrunner(SpheresMCRunner):
             self.hmin,
             self.hmax,
             self.binsize,
+            fix_com=self.fix_com,
         )
         self.add_action(self.findk)
 

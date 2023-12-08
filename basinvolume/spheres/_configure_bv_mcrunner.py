@@ -12,7 +12,7 @@ from pele.potentials import Harmonic, RadialGaussian
 from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir, conf_get_default
 from basinvolume.spheres import read_jammed_packing_config
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Interaction, Minimizer
 import configparser
 import time
 import warnings
@@ -40,7 +40,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         fname,
         bias_params=None,
         temperature=1.0,
-        bias = "harmonic",
+        bias="harmonic",
         stepsize=1e-1,
         niter=2e4,
         eps=1.0,
@@ -85,11 +85,13 @@ class ConfigBVMCRunner(ConfigMCRunner):
         opt_maxstep = self._get_opt_maxstep(opt_maxstep)
         self.eps = eps
         self.bias = bias
+        # only fix com if potential is not negative cosine
+        self.fix_com = self.interaction is not Interaction.NEGATIVE_COS
 
         # set parameters
         kwargs = dict(
             bias_params=bias_params,
-            bias = self.bias,
+            bias=self.bias,
             dtol=self.dtol,
             eps=eps,
             hmin=hmin,
@@ -121,30 +123,42 @@ class ConfigBVMCRunner(ConfigMCRunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
+        self.mc_params = dict(
+            temperature=temperature, niter=niter, stepsize=stepsize
+        )
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
 
         self._initialise()
-        self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
+        self._requench_coords(
+            self.dtol, opt_maxstep, verbose, gtol=self.opt_tol
+        )
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
         # harmonic potential with fixed centre of mass
         if bias == "harmonic":
             bias_params = [1.0]
-            bias_potential = Harmonic(self.coords, bias_params[0], bdim=self.bdim, com=True)
+            bias_potential = Harmonic(
+                self.coords, bias_params[0], bdim=self.bdim, com=True
+            )
         elif bias == "radial_gaussian":
             bias_params = [1.0, 1.0, 1.0]
-            bias_potential = RadialGaussian(self.coords, bias_params[0], bias_params[1], bdim = self.bdim, com=True)
-        else:
-            raise NotImplementedError(
-                "bias={} not implemented".format(bias)
+            bias_potential = RadialGaussian(
+                self.coords,
+                bias_params[0],
+                bias_params[1],
+                bdim=self.bdim,
+                com=True,
             )
-            
-        kwargs["bias_params"] = bias_params # Needed to properly initialise with the right lengths in each list of parameters
-           
+        else:
+            raise NotImplementedError("bias={} not implemented".format(bias))
+
+        kwargs[
+            "bias_params"
+        ] = bias_params  # Needed to properly initialise with the right lengths in each list of parameters
+
         mcrunner = BV_MCrunner(
             bias_potential,
             self.coords,
@@ -179,11 +193,15 @@ class ConfigBVMCRunner(ConfigMCRunner):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
 
-        self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
+        self.packing_configpath = os.path.join(
+            packings_dir, "{}.config".format(dname)
+        )
         self.findk_configpath = os.path.join(
             self.base_dir, "findk_" + dname + ".config"
         )
-        self.kmin_configpath = os.path.join(self.base_dir, "kmin_" + dname + ".config")
+        self.kmin_configpath = os.path.join(
+            self.base_dir, "kmin_" + dname + ".config"
+        )
         self.configfile = "{}/explore_{}.config".format(self.base_dir, dname)
 
     def _get_histogram_bin(self, k):
@@ -271,7 +289,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
         else:
             self.dtol = dtol
         if minimizer_str is None:
-            minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+            minimizer_string = conf_get_default(
+                configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE"
+            )
             minimizer = minimizer_string.split(".")[-1]
             self.minimizer = Minimizer[minimizer]
         else:
@@ -283,7 +303,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         self.opt_kwargs = ast.literal_eval(
             conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}")
         )
-            
+
         configf.read(str(self.kmin_configpath))
         self.displ_k_min = configf.getfloat("KMIN", "displ_k_min")
         self.var_displ_k_min = configf.getfloat("KMIN", "var_displ_k_min")
@@ -297,7 +317,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
             configf = configparser.ConfigParser()
             configf.read(str(self.configfile))
             for i in range(self.nprocs):
-                configf.set("STATUS", "success_rank{}".format(str(i)), str(success))
+                configf.set(
+                    "STATUS", "success_rank{}".format(str(i)), str(success)
+                )
             configf.write(open(str(self.configfile), "w"))
 
 

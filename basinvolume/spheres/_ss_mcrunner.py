@@ -28,8 +28,8 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         sca,
         rattlers=None,
         avgcount=int(1e4),
-        bias_params= None,
-        bias = "harmonic",
+        bias_params=None,
+        bias="harmonic",
         dtol=1e-3,
         eps=1.0,
         hmin=0,
@@ -44,11 +44,17 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         use_frozen=False,
         frozen_atoms=None,
         rcontainer=None,
+        fix_com=True,
     ):
         # construct base class
         if use_frozen:
-            assert distance_method is Distance.CARTESIAN and frozen_atoms is not None
-            red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
+            assert (
+                distance_method is Distance.CARTESIAN
+                and frozen_atoms is not None
+            )
+            red_coords = reduce_coordinates(
+                full_coords, frozen_atoms, len(boxv)
+            )
         else:
             red_coords = full_coords
         super(BaseSpheresMCrunner, self).__init__(
@@ -66,7 +72,9 @@ class BaseSpheresMCrunner(_BaseMCRunner):
             self.red_origin = reduce_coordinates(
                 self.red_origin, frozen_atoms, self.bdim
             )
-            assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
+            assert len(self.red_radii) == (
+                len(self.hs_radii) - len(frozen_atoms)
+            )
             assert len(self.red_origin) == self.ndim
             assert rcontainer is not None
         self.sca = sca
@@ -87,11 +95,15 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         # manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof
         if rattlers is None:
-            self.rattlers = np.array([1.0 for _ in range(self.ndim)], dtype="d")
+            self.rattlers = np.array(
+                [1.0 for _ in range(self.ndim)], dtype="d"
+            )
         else:
             self.rattlers = np.array(rattlers, dtype="d")
         if self.use_frozen:
-            self.rattlers = reduce_coordinates(self.rattlers, frozen_atoms, self.bdim)
+            self.rattlers = reduce_coordinates(
+                self.rattlers, frozen_atoms, self.bdim
+            )
         assert len(self.rattlers) == self.ndim
         assert self.rattlers.all() >= 0 and self.rattlers.all() <= 1
 
@@ -99,7 +111,9 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         self.rcut = np.amax(self.hs_radii) * 2.0 * (1.0 + self.sca)
         if self.use_cell_lists:
             if np.amin(self.boxv) // self.rcut <= 3:
-                print("warning: use_cell_lists flag was set, rcut is too large though")
+                print(
+                    "warning: use_cell_lists flag was set, rcut is too large though"
+                )
                 print("setting use_cell_lists to False")
                 self.use_cell_lists = False
         self.ncellx_scale = 1.0
@@ -137,6 +151,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
             hmax,
             binsize,
             self.equilibration_steps,
+            fix_com=self.fix_com,
         )
         self.add_action(self.histogram)
 
