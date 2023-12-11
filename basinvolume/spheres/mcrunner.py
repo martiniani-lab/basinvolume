@@ -768,7 +768,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def _set_actions(self):
         self.time_series = RecordDisplacementTimeseries(
-            self.red_origin, self.bdim, self.ts_niter, self.ts_freq
+            self.red_origin, self.bdim, self.ts_niter, self.ts_freq, fix_com=self.fix_com
         )
         self.add_action(self.time_series)
         if self.record_trajectory:
