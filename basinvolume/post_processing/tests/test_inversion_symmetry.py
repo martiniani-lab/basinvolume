@@ -42,9 +42,7 @@ if __name__ == "__main__":
     )
     invsym.run()
 
-    invsym_dict = InversionSymmetry.read(
-        "explore_bv_jammed_packing0/analysis/inversion_symmetry"
-    )
+    invsym_dict = InversionSymmetry.read("explore_bv_jammed_packing0/analysis/inversion_symmetry")
     invsym_fcc = 1
 
     print(

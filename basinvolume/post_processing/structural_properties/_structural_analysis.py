@@ -94,25 +94,17 @@ class StructuralAnalysis(with_metaclass(abc.ABCMeta, object)):
                 packing_name = os.path.splitext(fname)[0]
 
                 # Get configuration
-                configpath = os.path.join(
-                    self.jammed_packings_dir, packing_name + ".config"
-                )
+                configpath = os.path.join(self.jammed_packings_dir, packing_name + ".config")
                 self._import_packing_config_file(configpath)
 
                 # Check if the work directory exists
-                base_directory_path = os.path.join(
-                    self.workspace, self.prefix + str(packing_name)
-                )
+                base_directory_path = os.path.join(self.workspace, self.prefix + str(packing_name))
                 if os.path.isdir(base_directory_path) or not self.existing_only:
                     trymakedir(base_directory_path)
 
                     # Check if this packing has already been analysed
-                    self.analysis_dir_path = os.path.join(
-                        base_directory_path, self.analysis_dir
-                    )
-                    analysis_fname = os.path.join(
-                        self.analysis_dir_path, self.analysis_name
-                    )
+                    self.analysis_dir_path = os.path.join(base_directory_path, self.analysis_dir)
+                    analysis_fname = os.path.join(self.analysis_dir_path, self.analysis_name)
                     already_computed = True
                     if not self.force:
                         already_computed = self._check_computed(analysis_fname)

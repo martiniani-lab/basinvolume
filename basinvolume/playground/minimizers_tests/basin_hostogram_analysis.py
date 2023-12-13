@@ -175,8 +175,7 @@ def build_histogram(explore_dir, nbins=100):
     hist_red_energy = np.outer(0.5 * karray[1:], bin_edges[:-1] ** 2)
     hist_red_energy = np.vstack(
         (
-            ((24 - 1) * 3 - 1) * np.log(bin_edges[:-1])
-            + 0.5 * karray[0] * bin_edges[:-1] ** 2,
+            ((24 - 1) * 3 - 1) * np.log(bin_edges[:-1]) + 0.5 * karray[0] * bin_edges[:-1] ** 2,
             hist_red_energy,
         )
     )
@@ -190,9 +189,7 @@ def main(explore_dir="explore_bv_jammed_packing1"):
     from histogram_reweighting.wham_potential import WhamPotential
     from histogram_reweighting import wham_utils
 
-    hist_visits, hist_red_energy, karray, bin_edges = build_histogram(
-        explore_dir, nbins=500
-    )
+    hist_visits, hist_red_energy, karray, bin_edges = build_histogram(explore_dir, nbins=500)
     print(hist_visits, hist_red_energy, karray)
     nreps, nbins = hist_visits.shape
     # print hist_ts
@@ -204,9 +201,7 @@ def main(explore_dir="explore_bv_jammed_packing1"):
     else:
         # estimate an initial guess for the offsets and density of states
         # so the minimizer converges more rapidly
-        offsets_estimate, log_dos_estimate = wham_utils.estimate_dos(
-            hist_visits, hist_red_energy
-        )
+        offsets_estimate, log_dos_estimate = wham_utils.estimate_dos(hist_visits, hist_red_energy)
         X = np.concatenate((offsets_estimate, log_dos_estimate))
 
     E0, grad = whampot.getEnergyGradient(X)

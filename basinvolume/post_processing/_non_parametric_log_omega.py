@@ -66,9 +66,7 @@ class KernelDensityLogOmega(object):
         )
         log_pdf = self.kde.score_samples(x_integrate[:, np.newaxis])
         integrand_control = np.exp(log_pdf)
-        integral_control = integrate.romb(
-            integrand_control, dx=x_integrate[1] - x_integrate[0]
-        )
+        integral_control = integrate.romb(integrand_control, dx=x_integrate[1] - x_integrate[0])
         if np.abs(integral_control - 1) > 1e-10:
             raise Exception(
                 "KernelDensityLogOmega: compute_log_omega: possible integration failure"
@@ -119,9 +117,7 @@ class KernelDensityLogOmega(object):
             )
             opt_bandwidth = loocv.opt_bandwidth
         else:
-            raise Exception(
-                "KernelDensityLogOmega: get_bandwidth_estimate: illegal method input"
-            )
+            raise Exception("KernelDensityLogOmega: get_bandwidth_estimate: illegal method input")
         assert opt_bandwidth is not None
         print(method, "method used to estimate bandwidth")
         print("estimated optimal bandwidth", opt_bandwidth)
@@ -190,9 +186,7 @@ class KernelDensityLogOmegaJackKnife(object):
             print("done", (idx + 1), "of", len(self.F0))
             self.jack_acc.update(S_star_red)
         self.S_star = self.jack_acc.mean
-        self.error_S_star = np.sqrt(len(self.F0) - 1) * np.sqrt(
-            self.jack_acc.get_variance()
-        )
+        self.error_S_star = np.sqrt(len(self.F0) - 1) * np.sqrt(self.jack_acc.get_variance())
         self.S = self.S_star - log_factorial(self.volume_sanity_check.nr_particles)
         self.error_S = self.error_S_star
 
@@ -210,9 +204,7 @@ class KernelDensityLogOmegaJackKnife(object):
         )
         log_pdf = self.kde.score_samples(x_integrate[:, np.newaxis])
         integrand_control = np.exp(log_pdf)
-        integral_control = integrate.romb(
-            integrand_control, dx=x_integrate[1] - x_integrate[0]
-        )
+        integral_control = integrate.romb(integrand_control, dx=x_integrate[1] - x_integrate[0])
         if np.abs(integral_control - 1) > 1e-8:
             raise Exception(
                 "KernelDensityLogOmega: compute_log_omega: possible integration failure"

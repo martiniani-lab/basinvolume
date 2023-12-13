@@ -48,9 +48,7 @@ class PressureTensor(StructuralAnalysis):
         configf.read(pressure_fname)
         pressure_dict = {}
         pressure_dict["P"] = configf.getfloat("PRESSURE", "P")
-        pressure_dict["maxshear_xyplane"] = configf.getfloat(
-            "PRESSURE", "maxshear_xyplane"
-        )
+        pressure_dict["maxshear_xyplane"] = configf.getfloat("PRESSURE", "maxshear_xyplane")
         pressure_dict["Ptensor"] = np.array(
             [float(x) for x in configf.get("PRESSURE", "Ptensor").split()]
         )
@@ -60,9 +58,7 @@ class PressureTensor(StructuralAnalysis):
     def _calculate(self, pressure_fname, packing_name, input_fname):
         """compute the pressure tensor for packings"""
         if self.verbose:
-            logging.info(
-                "Calculating pressure: {}".format(self.prefix + str(packing_name))
-            )
+            logging.info("Calculating pressure: {}".format(self.prefix + str(packing_name)))
         (
             self.coords,
             self.hs_radii,
@@ -76,12 +72,8 @@ class PressureTensor(StructuralAnalysis):
         #     res = modifiedfire_cpp(self.coords, self.potential, maxstep=fire_maxstep,
         #                            nsteps=1e6, tol=1e-11, iprint=-1)
         #     self.coords = res.coords
-        p, ptensor = pressure_tensor(
-            self.potential, self.coords, self.vcavity, self.bdim
-        )
-        max_shear_xyplane = np.sqrt(
-            ((ptensor[0] - ptensor[3]) / 2.0) ** 2 + ptensor[1] ** 2
-        )
+        p, ptensor = pressure_tensor(self.potential, self.coords, self.vcavity, self.bdim)
+        max_shear_xyplane = np.sqrt(((ptensor[0] - ptensor[3]) / 2.0) ** 2 + ptensor[1] ** 2)
         energy = self.potential.getEnergy(self.coords)
         with open(pressure_fname, "w") as f:
             f.write("#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND \n")

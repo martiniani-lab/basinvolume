@@ -11,7 +11,7 @@ from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.spheres import read_jammed_packing_config
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Interaction, Minimizer
 import configparser
 import time
 import warnings
@@ -78,9 +78,9 @@ class _findk_mcrunner(ConfigMCRunner):
                 "which can negatively impact performance."
             )
         else:
-            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing[
-                "sorted_nsubdoms"
-            ] != int(os.environ["OMP_NUM_THREADS"]):
+            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing["sorted_nsubdoms"] != int(
+                os.environ["OMP_NUM_THREADS"]
+            ):
                 print(
                     "WARNING: The jammed packing has been sorted with a different number "
                     "of subdomains (OpenMP threads), which changes the number of cells "
@@ -93,9 +93,7 @@ class _findk_mcrunner(ConfigMCRunner):
             self.coords, 0, bdim=self.bdim, com=False
         )  # set the potential to 0, the potential is completely fictitious here (there's no energy test),
         # k is entirely controlled by the stepsize
-        stepsize = np.sqrt(
-            1.0 / k
-        )  # stepsize plays the role of the standard deviation
+        stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
         # stepsize = np.sqrt(self.ndim/k)  #####################
         #####
 
@@ -121,16 +119,15 @@ class _findk_mcrunner(ConfigMCRunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(
-            temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
 
         if seeds is None:
             warnings.warn("seeds not passed")
 
         self._requench_coords(dtol, opt_maxstep, verbose, gtol=self.opt_tol)
-
+        fix_com = self.interaction is not Interaction.NEGATIVE_COS
+        kwargs["fix_com"] = fix_com
         self.mcrunner = Findk_MCrunner(
             potential,
             self.coords,
@@ -164,17 +161,13 @@ class _findk_mcrunner(ConfigMCRunner):
     def _set_paths(self, packings_dir, explore_dir):
         dname = os.path.splitext(self.fname)[0]
         packing_nr = dname[len("jammed_packing") :]
-        self.base_directory = os.path.join(
-            os.getcwd(), explore_dir + packing_nr
-        )
+        self.base_directory = os.path.join(os.getcwd(), explore_dir + packing_nr)
         if not os.path.isabs(packings_dir):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
         configfile = "findk_" + dname
-        self.configfile = "{}/{}.config".format(
-            self.base_directory, configfile
-        )
+        self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
     def _initialise(self):
         self._print_initialise()

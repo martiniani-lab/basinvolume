@@ -27,8 +27,7 @@ class ThrowAndQuench(object):
         #
         self.boxdim = 2
         self.box_length = np.power(
-            np.sum(np.asarray([volume_nball(r, self.boxdim) for r in self.radii]))
-            / self.hard_phi,
+            np.sum(np.asarray([volume_nball(r, self.boxdim) for r in self.radii])) / self.hard_phi,
             1 / self.boxdim,
         )
         self.boxvec = np.ones(self.boxdim) * self.box_length

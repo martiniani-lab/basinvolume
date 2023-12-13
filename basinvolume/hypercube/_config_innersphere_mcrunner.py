@@ -64,8 +64,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         # self.k = fraction_k * koutermost_spheres + (1 - fraction_k) * kinnermost_spheres
         # Log-spaced values
         self.k = np.exp(
-            (1 - fraction_k) * np.log(kinnermost_spheres)
-            + fraction_k * np.log(koutermost_spheres)
+            (1 - fraction_k) * np.log(kinnermost_spheres) + fraction_k * np.log(koutermost_spheres)
         )
 
         self.stepsize = 1.0 / np.sqrt(self.k)
@@ -145,13 +144,9 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         self.base_directory = base_dir
 
         dname = dlist[2] + "_" + dlist[3] + "_" + dlist[4]
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
 
-        output_dir = (
-            self.base_directory + "/innersphere_" + str(self.current_nested_sphere)
-        )
+        output_dir = self.base_directory + "/innersphere_" + str(self.current_nested_sphere)
         trymakedir(output_dir)
         self.output_directory = output_dir
 

@@ -36,12 +36,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="perform parallel tempering for basin volume method"
     )
-    parser.add_argument(
-        "jammed_packing_fname", type=str, help="name of xy[z]dr file"
-    )
-    parser.add_argument(
-        "base_directory", type=str, help="directory in which to save results"
-    )
+    parser.add_argument("jammed_packing_fname", type=str, help="name of xy[z]dr file")
+    parser.add_argument("base_directory", type=str, help="directory in which to save results")
     parser.add_argument(
         "-n",
         "--mintotniter",
@@ -62,8 +58,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--adjustf-niter",
         type=float,
-        help="Number of steps to adjust the stepsize. "
-        "Default: 0.1 * mintotniter",
+        help="Number of steps to adjust the stepsize. " "Default: 0.1 * mintotniter",
         default=None,
     )
     parser.add_argument(
@@ -100,8 +95,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--adjustf-navg",
         type=int,
-        help="Number of steps to average over when adjusting the stepsize. "
-        "Default: 100",
+        help="Number of steps to average over when adjusting the stepsize. " "Default: 100",
         default=100,
     )
     parser.add_argument(
@@ -127,8 +121,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--delraw",
         action="store_true",
-        help="Delete raw timeseries textfiles "
-        "and only use the HDF5 format.",
+        help="Delete raw timeseries textfiles " "and only use the HDF5 format.",
         default=False,
     )
     parser.add_argument(
@@ -171,9 +164,7 @@ if __name__ == "__main__":
         default=1e-1,
         help="Step size for the MCRunner.",
     )
-    parser.add_argument(
-        "--opt_nsteps", type=float, default=1e5, help="Optimization runs"
-    )
+    parser.add_argument("--opt_nsteps", type=float, default=1e5, help="Optimization runs")
     parser.add_argument(
         "--hmin",
         type=float,
@@ -213,10 +204,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--bias",
-        type = str,
-        default = "harmonic",
-        help = "Biasing potentials used in umbrella sampling, options:\
-            harmonic, radial_gaussian"
+        type=str,
+        default="harmonic",
+        help="Biasing potentials used in umbrella sampling, options:\
+            harmonic, radial_gaussian",
     )
     parser.add_argument(
         "--force-minimizer",
@@ -257,9 +248,7 @@ if __name__ == "__main__":
     else:
         loglevel = logging.INFO
     logging.basicConfig(
-        format="%(asctime)s %(levelname)s: Rank {:>2}: %(message)s".format(
-            rank
-        ),
+        format="%(asctime)s %(levelname)s: Rank {:>2}: %(message)s".format(rank),
         datefmt="%d/%m/%Y %H:%M:%S",
         level=loglevel,
     )
@@ -279,14 +268,10 @@ if __name__ == "__main__":
     )  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
     niter = int((min_tot_niter - min_ptiter) / min_ptiter)  # 90% MCMC walk
     if args.adjustf_niter is None:
-        adjustf_niter = int(
-            min_tot_niter * 0.1
-        )  # equilibrate for the first 1/10th of total steps
+        adjustf_niter = int(min_tot_niter * 0.1)  # equilibrate for the first 1/10th of total steps
     else:
         adjustf_niter = int(args.adjustf_niter)
-    nskip = int(
-        adjustf_niter / niter
-    )  # don't swap while adjusting the step-size
+    nskip = int(adjustf_niter / niter)  # don't swap while adjusting the step-size
     # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
     # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
     pt_eq_niter = 0
@@ -302,13 +287,8 @@ if __name__ == "__main__":
     assert (
         record_histogram == False and pt_eq_niter == 0 and ts_freq == 1
     )  # ts_freq must be 1 with current output implementation (all based on timeseries)
-    rel_std_err = (
-        args.relstderr
-    )  # relative standard error in the mean used by convergence test
-    min_window = (
-        min_tot_niter
-        * 0.5  # minimum amount of data before trying to check convergence
-    )
+    rel_std_err = args.relstderr  # relative standard error in the mean used by convergence test
+    min_window = min_tot_niter * 0.5  # minimum amount of data before trying to check convergence
     max_eq_time = (
         min_tot_niter * 0.5
     )  # maximum amount of data to discard (throw away max the first 2.5e5 points, to avoid reading spurious features)
@@ -325,9 +305,7 @@ if __name__ == "__main__":
     if args.exchange_scheme.upper() in ExchangeScheme.__members__:
         exchange_scheme = ExchangeScheme[args.exchange_scheme.upper()]
     else:
-        raise ValueError(
-            "Unknown exchange scheme: {}".format(args.exchange_scheme)
-        )
+        raise ValueError("Unknown exchange scheme: {}".format(args.exchange_scheme))
 
     # prepare MC runner
     if ".xydfr" in fname or ".xyzdfr" in fname:
@@ -343,10 +321,9 @@ if __name__ == "__main__":
     # Use specific version without cell lists instead, since that's faster than
     # the non-specific cell lists version
     mcrunner_checkoverlap_cell_lists = False
-
     mcrunner = sim(
         fname,
-        bias = args.bias,
+        bias=args.bias,
         niter=niter,
         stepsize=args.stepsize,
         opt_nsteps=args.opt_nsteps,
@@ -373,6 +350,7 @@ if __name__ == "__main__":
         dtol=args.force_dtol,
         opt_tol=args.force_opt_tol,
     )
+    fix_com = mcrunner.fix_com
 
     if not check_kmax_reasonable(sim.findk_configpath):
         logging.error("bv_parallel_tempering: kmax is unreasonable, exiting")
@@ -415,7 +393,7 @@ if __name__ == "__main__":
                         numnegk=args.numnegk,
                         lownegk=args.lownegk,
                         k_spreading=args.k_spreading,
-                        bias = args.bias,
+                        bias=args.bias,
                         print_status=args.verbose,
                         base_directory=path,
                         sleep_seconds=args.sleep_seconds,
@@ -429,9 +407,7 @@ if __name__ == "__main__":
                         checkpoint_path = args.load_checkpoint
                     with open(checkpoint_path, "rb") as infile:
                         master = pickle.load(infile)
-                    master.init_state(
-                        base_directory=path, checkpoint_time=checkpoint_time
-                    )
+                    master.init_state(base_directory=path, checkpoint_time=checkpoint_time)
                 master.run()
                 exit_on_checkpoint = master.created_checkpoint
                 if args.load_checkpoint is not None and not exit_on_checkpoint:
@@ -454,7 +430,7 @@ if __name__ == "__main__":
                 sim.print_success_all(False)
 
         else:
-            worker = PT_Worker(mcrunner)
+            worker = PT_Worker(mcrunner, fix_com=fix_com)
             worker.run()
             if collect_minima_list:
                 mcrunner.dump_minima_list("{}/minima_list.sqlite".format(rank))
@@ -463,13 +439,8 @@ if __name__ == "__main__":
         if rank == 0:
             logging.info("Using handshake with {} replicas.".format(nprocs))
         if exchange_scheme != ExchangeScheme.NEIGHBOR_EXCHANGE:
-            raise ValueError(
-                "Only the exchange scheme NEIGHBOR_EXCHANGE works with PT handshake."
-            )
-        if (
-            args.checkpoint_time is not None
-            or args.load_checkpoint is not None
-        ):
+            raise ValueError("Only the exchange scheme NEIGHBOR_EXCHANGE works with PT handshake.")
+        if args.checkpoint_time is not None or args.load_checkpoint is not None:
             raise ValueError("Checkpointing does not work with PT handshake.")
 
         ptreplica = MPI_BV_PT_RLhandshake(

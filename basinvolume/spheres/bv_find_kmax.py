@@ -58,18 +58,14 @@ if __name__ == "__main__":
         help="don't use cell lists, default: False",
         default=False,
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="verbosity", default=False
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="verbosity", default=False)
     parser.add_argument(
         "--seed-takestep",
         type=int,
         help="Seed for the takestep method",
         default=None,
     )
-    parser.add_argument(
-        "--niter", type=float, default=1e8, help="number of iterations"
-    )
+    parser.add_argument("--niter", type=float, default=1e8, help="number of iterations")
     parser.add_argument(
         "--dtol",
         type=float,
@@ -82,18 +78,14 @@ if __name__ == "__main__":
         default=1.0,
         help="softness of the potential (but this is hacked around enough so it's not used for some potentials)",
     )
-    parser.add_argument(
-        "--ktarget", type=float, default=0.9, help="Target acceptance ration"
-    )
+    parser.add_argument("--ktarget", type=float, default=0.9, help="Target acceptance ration")
     parser.add_argument(
         "--knavg",
         type=float,
         default=1e4,
         help="number of iterations to average for acceptance",
     )
-    parser.add_argument(
-        "--ktol", type=float, default=0.025, help="tolerance for knavg"
-    )
+    parser.add_argument("--ktol", type=float, default=0.025, help="tolerance for knavg")
     parser.add_argument(
         "--opt_nsteps",
         type=float,
@@ -108,9 +100,7 @@ if __name__ == "__main__":
         "Default: 'FIRE'",
         default="FIRE",
     )
-    parser.add_argument(
-        "--opt_tol", type=float, default=1e-5, help="tolerance for optimizer"
-    )
+    parser.add_argument("--opt_tol", type=float, default=1e-5, help="tolerance for optimizer")
     parser.add_argument(
         "--opt_kwargs_file",
         type=str,

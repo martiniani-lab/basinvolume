@@ -61,9 +61,7 @@ class _hypercube_findk_mcrunner(ConfigMCRunner):
             seeds=seeds,
         )
 
-        self.mc_params = dict(
-            k=k, temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(k=k, temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
@@ -72,13 +70,7 @@ class _hypercube_findk_mcrunner(ConfigMCRunner):
         potential = NullPotential()
         #####
         self.mcrunner = HypercubeFindkMCrunner(
-            potential,
-            self.coords,
-            self.temperature,
-            stepsize,
-            niter,
-            self.coords,
-            **kwargs
+            potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
         )
 
         self._initialise()

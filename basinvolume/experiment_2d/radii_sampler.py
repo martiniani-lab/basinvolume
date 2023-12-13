@@ -40,9 +40,7 @@ class RadiiSampler(object):
         self.show_distribution = show_distribution
         self.seed = seed
         #
-        self.data_file_name = (
-            self.exp_data_set_name_begin + str(self.exp_data_set_index) + ".dat"
-        )
+        self.data_file_name = self.exp_data_set_name_begin + str(self.exp_data_set_index) + ".dat"
         self.data_dir = os.path.abspath(self.data_dir)
         self.data_file_path = os.path.join(self.data_dir, self.data_file_name)
         print("self.data_file_path")

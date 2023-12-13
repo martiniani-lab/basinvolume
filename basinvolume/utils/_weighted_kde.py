@@ -275,9 +275,7 @@ class weighted_gaussian_kde(object):
             self._bw_method = bw_method
             self.covariance_factor = lambda: self._bw_method(self)
         else:
-            msg = (
-                "`bw_method` should be 'scott', 'silverman', a scalar " "or a callable."
-            )
+            msg = "`bw_method` should be 'scott', 'silverman', a scalar " "or a callable."
             raise ValueError(msg)
 
         self._compute_covariance()
@@ -293,18 +291,14 @@ class weighted_gaussian_kde(object):
             _mean = np.sum(self.weights * self.dataset, axis=1)
             _residual = self.dataset - _mean[:, None]
             # Compute the biased covariance
-            self._data_covariance = np.atleast_2d(
-                np.dot(_residual * self.weights, _residual.T)
-            )
+            self._data_covariance = np.atleast_2d(np.dot(_residual * self.weights, _residual.T))
             # Correct for bias (http://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_covariance)
             self._data_covariance /= 1 - np.sum(self.weights**2)
             self._data_inv_cov = np.linalg.inv(self._data_covariance)
 
         self.covariance = self._data_covariance * self.factor**2
         self.inv_cov = old_div(self._data_inv_cov, self.factor**2)
-        self._norm_factor = np.sqrt(
-            np.linalg.det(2 * np.pi * self.covariance)
-        )  # * self.n
+        self._norm_factor = np.sqrt(np.linalg.det(2 * np.pi * self.covariance))  # * self.n
 
     def resample(self, size=None):
         """
@@ -407,9 +401,7 @@ if __name__ == "__main__":
     samples = []
     weights = []
     # Generate samples and observed samples for each mixture component
-    for n, m, s, o in zip(
-        gaussian_samples, gaussian_means, gaussian_std, gaussian_observation
-    ):
+    for n, m, s, o in zip(gaussian_samples, gaussian_means, gaussian_std, gaussian_observation):
         _samples = np.random.normal(m, s, n)
         _samples = _samples[o > np.random.uniform(size=n)]
         samples.extend(_samples)

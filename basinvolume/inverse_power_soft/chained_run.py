@@ -113,9 +113,7 @@ class SoftSphereBasinVolumeCalculator(BaseBasinVolumeCalculator):
         self.simulation_dir = os.path.basename(self.attractor_directory)
         with open(os.path.join(self.attractor_directory, "parameters.yaml")) as param_f:
             self.parameters = yaml.load(param_f, Loader=yaml.UnsafeLoader)
-        self.potential = setup_bidisperse(self.parameters, self.parameters["seed"])[
-            "potential"
-        ]
+        self.potential = setup_bidisperse(self.parameters, self.parameters["seed"])["potential"]
         os.chdir(self.simulation_dir)
 
     def run(self):
@@ -145,9 +143,7 @@ class SoftSphereBasinVolumeCalculator(BaseBasinVolumeCalculator):
             niter=niter,
             origin=self.attractor_coords,
             hs_radii=self.parameters["radii"],
-            boxv=np.array(
-                [self.parameters["box_length"]] * int(self.parameters["ndim"])
-            ),
+            boxv=np.array([self.parameters["box_length"]] * int(self.parameters["ndim"])),
             sca=0,  # This means there is no hard shell in the potential
             rattlers=None,
             **kwargs,

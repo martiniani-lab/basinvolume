@@ -11,9 +11,7 @@ import pylab as pl
 
 
 def quench(coords, potential, boxv, nsteps=1e6, tol=1e-9):
-    res = modifiedfire_cpp(
-        coords, potential, maxstep=(boxv[0] * 0.1), nsteps=nsteps, tol=tol
-    )
+    res = modifiedfire_cpp(coords, potential, maxstep=(boxv[0] * 0.1), nsteps=nsteps, tol=tol)
     if not res.success:
         print("quench failed")
         return False
@@ -35,9 +33,7 @@ def merge_db(explore_dir, fname="merged_minima_list.sqlite", distinct=False):
                     print(file)
                     db = Database(file)
                     for m in db.minima():
-                        m.coords, m.energy = quench(
-                            m.coords, system.potential, system.boxv
-                        )
+                        m.coords, m.energy = quench(m.coords, system.potential, system.boxv)
                         if not distinct:
                             mnew = Minimum(m.energy, m.coords)
                         else:

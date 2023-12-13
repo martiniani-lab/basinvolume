@@ -48,9 +48,7 @@ class DensityOfStates(StructuralAnalysis):
         dos_dict["neg_eigenvalues"] = ast.literal_eval(
             configf.get("DENSITY_OF_STATES", "neg_eigenvalues")
         )
-        dos_dict["eigenmodes"] = ast.literal_eval(
-            configf.get("DENSITY_OF_STATES", "eigenmodes")
-        )
+        dos_dict["eigenmodes"] = ast.literal_eval(configf.get("DENSITY_OF_STATES", "eigenmodes"))
         dos_dict["participation_ratio"] = ast.literal_eval(
             configf.get("DENSITY_OF_STATES", "participation_ratio")
         )
@@ -61,9 +59,7 @@ class DensityOfStates(StructuralAnalysis):
         participation = np.empty((eigenvectors.shape[1]))
         for i in range(eigenvectors.shape[1]):
             eigvec_norm = np.sqrt(
-                sum(
-                    (eigenvectors[dim :: self.bdim, i] ** 2 for dim in range(self.bdim))
-                )
+                sum((eigenvectors[dim :: self.bdim, i] ** 2 for dim in range(self.bdim)))
             )
             participation[i] = sum(eigvec_norm**2) ** 2 / (
                 self.nparticles * sum(eigvec_norm**4)
@@ -82,9 +78,7 @@ class DensityOfStates(StructuralAnalysis):
     def _calculate(self, dos_fname, packing_name, input_fname):
         if self.verbose:
             logging.info(
-                "Calculating density of states: {}".format(
-                    self.prefix + str(packing_name)
-                )
+                "Calculating density of states: {}".format(self.prefix + str(packing_name))
             )
 
         # Read coordinates
@@ -122,8 +116,7 @@ def worker_dos(workspace, kwargs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Compute the density of states of the frequency modes "
-        "for jammed packings."
+        description="Compute the density of states of the frequency modes " "for jammed packings."
     )
     parser.add_argument(
         "-d",

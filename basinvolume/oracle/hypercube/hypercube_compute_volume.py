@@ -39,17 +39,11 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         dlist = explore_dir.split("_")
         assert dlist[2] == "hypercube"
         dname = dlist[2] + "_" + dlist[3] + "_" + dlist[4]
-        self.pt_configpath = os.path.join(
-            self.explore_dir, "explore_" + dname + ".config"
-        )
+        self.pt_configpath = os.path.join(self.explore_dir, "explore_" + dname + ".config")
         assert os.path.isfile(self.pt_configpath)
-        self.findk_configpath = os.path.join(
-            self.explore_dir, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.explore_dir, "findk_" + dname + ".config")
         assert os.path.isfile(self.findk_configpath)
-        self.kmin_configpath = os.path.join(
-            self.explore_dir, "kmin_" + dname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + dname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         self.innersphere_configpath = os.path.join(
             self.explore_dir, "innersphere_" + dname + ".config"
@@ -95,9 +89,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="analyze PT data from thermodynamic integration"
-    )
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     parser.add_argument("explore_dir", type=str, help="explore_dir")
     parser.add_argument(
         "--show",
@@ -120,9 +112,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
 
-    sim = hypercube_mbar_compute_dos(
-        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True
-    )
+    sim = hypercube_mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
 
     sim(args.explore_dir, show=args.show)
 #    else :

@@ -225,9 +225,7 @@ class BestIntegrationSelection(object):
 
     def __init__(self, max_relative_GL_error=0.2, kmax_threshold=1000):
         if max_relative_GL_error < 0:
-            raise Exception(
-                "BestIntegrationSelection: illegal input: max_relative_GL_error"
-            )
+            raise Exception("BestIntegrationSelection: illegal input: max_relative_GL_error")
         self.max_relative_GL_error = max_relative_GL_error
         if kmax_threshold < 0:
             raise Exception("BestIntegrationSelection: illegal input: kmax_threshold")
@@ -355,9 +353,7 @@ class BestIntegrationSelection(object):
             packings_dir + "/bad_volumes_failed_GL_integration",
             self.bad_volumes_failed_GL_integration,
         )
-        failed_to_file(
-            packings_dir + "/bad_volumes_huge_kmax", self.bad_volumes_huge_kmax
-        )
+        failed_to_file(packings_dir + "/bad_volumes_huge_kmax", self.bad_volumes_huge_kmax)
 
 
 def assert_pt_success(path, fname):

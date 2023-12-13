@@ -65,10 +65,7 @@ def sum_neighbor_angles2d(neigh_vec):
     for idx in range(len(neigh_vec) - 1):
         sum_ += np.arccos(
             np.dot(neigh_vec[idx], neigh_vec[idx + 1])
-            / (
-                np.linalg.norm(neigh_vec[idx])
-                * np.linalg.norm(neigh_vec[idx + 1])
-            )
+            / (np.linalg.norm(neigh_vec[idx]) * np.linalg.norm(neigh_vec[idx + 1]))
         )
     sum_ += np.arccos(
         np.dot(neigh_vec[-1], neigh_vec[0])
@@ -84,13 +81,11 @@ def read_jammed_packing_config(configpath, frozen=False):
     configf.read(str(configpath))
     parameters = {}
     parameters["nparticles"] = configf.getint("JAMMED_PACKING", "nparticles")
-    parameters["packing_frac"] = configf.getfloat(
-        "JAMMED_PACKING", "packing_fraction"
-    )
+    parameters["packing_frac"] = configf.getfloat("JAMMED_PACKING", "packing_fraction")
     parameters["bdim"] = configf.getint("JAMMED_PACKING", "boxdim")
-    assert (
-        parameters["bdim"] == 2 or parameters["bdim"] == 3
-    ), "bdim={} not implemented".format(parameters["bdim"])
+    assert parameters["bdim"] == 2 or parameters["bdim"] == 3, "bdim={} not implemented".format(
+        parameters["bdim"]
+    )
     parameters["ndim"] = parameters["nparticles"] * parameters["bdim"]
     boxv = configf.get("JAMMED_PACKING", "boxv")
     parameters["boxv"] = np.array([float(x) for x in boxv.split()])
@@ -99,9 +94,7 @@ def read_jammed_packing_config(configpath, frozen=False):
     else:
         parameters["vcavity"] = np.prod(parameters["boxv"])
     parameters["distance_method"] = Distance[
-        conf_get_default(
-            configf, "JAMMED_PACKING", "distance_method", "PERIODIC"
-        )
+        conf_get_default(configf, "JAMMED_PACKING", "distance_method", "PERIODIC")
     ]
     parameters["interaction"] = Interaction[
         conf_get_default(configf, "JAMMED_PACKING", "interaction", "HS_WCA")
@@ -125,9 +118,7 @@ def read_jammed_packing_config(configpath, frozen=False):
         conf_get_default(configf, "JAMMED_PACKING", "pot_kwargs", "{}")
     )
     parameters["sca"] = configf.getfloat("JAMMED_PACKING", "sca")
-    parameters["sorted"] = conf_getboolean_default(
-        configf, "JAMMED_PACKING", "sorted", False
-    )
+    parameters["sorted"] = conf_getboolean_default(configf, "JAMMED_PACKING", "sorted", False)
     parameters["sorted_nsubdoms"] = conf_getint_default(
         configf, "JAMMED_PACKING", "sorted_nsubdoms", 1
     )
@@ -199,9 +190,7 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
             if self.override_pot_kwargs is not None:
                 self.pot_kwargs.update(self.override_pot_kwargs)
             self.sca = imp_packing["sca"]
-            self.packing_frac = (
-                self.target_packing_frac / (1 + self.sca) ** self.bdim
-            )
+            self.packing_frac = self.target_packing_frac / (1 + self.sca) ** self.bdim
         else:
             self._import_packing_config_file(str(self.configpath))
 
@@ -289,9 +278,7 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         f.write("\n")
         # print software version
         f.write("[CODEVERSION]\n")
-        f.write(
-            "basinvolume_version: {}\n".format(get_git_version("basinvolume"))
-        )
+        f.write("basinvolume_version: {}\n".format(get_git_version("basinvolume")))
         f.write("mcpele_version: {}\n".format(get_git_version("mcpele")))
         f.write("pele_version: {}\n".format(get_git_version("pele")))
         f.write("python_version: {}\n".format(get_python_version()))
@@ -422,10 +409,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.max_nrattlers = int(self.nparticles * 0.5)
 
         # assert that largest soft particle is not > 1/2 of smallest box size
-        if (
-            np.amax(self.hs_radii) * 2 * (1 + self.sca)
-            >= np.amin(self.boxv) / 2
-        ):
+        if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
             logging.warning(self._log("Max soft diameter >= 1/2 box side!"))
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv):
             raise Exception("WARNING: particle does not fit the box")
@@ -483,9 +467,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if success:
             self._print(n)
         else:
-            path_list = glob.glob(
-                "{0}/jammed_packing{1}.*".format(self.base_directory, n)
-            )
+            path_list = glob.glob("{0}/jammed_packing{1}.*".format(self.base_directory, n))
             if len(path_list) > 0:
                 with open(
                     "{0}/mismatching_rattlers.txt".format(self.base_directory),
@@ -510,9 +492,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         check_again = list(range(len(self.hs_radii)))
         self.ss_radii = self.hs_radii * (1.0 + self.sca)
-        neighbor_indicess, neighbor_distancess = self.potential.getNeighbors(
-            self.coords
-        )
+        neighbor_indicess, neighbor_distancess = self.potential.getNeighbors(self.coords)
         nrattlers = 0
         if self.bdim != 2:
             origin = np.zeros(self.bdim)
@@ -520,35 +500,24 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             check_inds = check_again
             check_again = set()
             if nrattlers > self.max_nrattlers:
-                logging.warning(
-                    self._log("Too many rattlers. Discarding packing.")
-                )
+                logging.warning(self._log("Too many rattlers. Discarding packing."))
                 return False
             for atomi in check_inds:
                 found_rattler = False
                 no_neighbors = len(neighbor_indicess[atomi])
                 if no_neighbors < zmin:
                     found_rattler = True
-                    logging.debug(
-                        self._log(
-                            "Particle {} is not isostatic.".format(atomi)
-                        )
-                    )
+                    logging.debug(self._log("Particle {} is not isostatic.".format(atomi)))
                 else:
                     if self.bdim == 2:
-                        found_rattler = not origin_in_hull_2d(
-                            neighbor_distancess[atomi]
-                        )
+                        found_rattler = not origin_in_hull_2d(neighbor_distancess[atomi])
                     else:
-                        points = np.asarray(
-                            neighbor_distancess[atomi]
-                        ).reshape((-1, self.bdim))
+                        points = np.asarray(neighbor_distancess[atomi]).reshape((-1, self.bdim))
                         found_rattler = not in_hull(origin, points)
                     if found_rattler:
                         logging.debug(
                             self._log(
-                                "Particle {} is not in "
-                                "contacts' convex hull.".format(atomi)
+                                "Particle {} is not in " "contacts' convex hull.".format(atomi)
                             )
                         )
                 self.rattlers[atomi] = 0 if found_rattler else 1000
@@ -567,20 +536,12 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
         # see eq 19 in arXiv:1406.1529
         no_stable = self.nparticles - nrattlers
-        total_contacts = sum(
-            [len(neighbor_indices) for neighbor_indices in neighbor_indicess]
-        )
+        total_contacts = sum([len(neighbor_indices) for neighbor_indices in neighbor_indicess])
         N_min = int(2 * (self.bdim * (no_stable - 1) + 1))
-        logging.debug(
-            self._log(
-                "N_min: {} total_contacts: {}".format(N_min, total_contacts)
-            )
-        )
+        logging.debug(self._log("N_min: {} total_contacts: {}".format(N_min, total_contacts)))
         logging.debug(self._log("Number of rattlers: {}".format(nrattlers)))
         if nrattlers > self.max_nrattlers:
-            logging.warning(
-                self._log("Too many rattlers. Discarding packing.")
-            )
+            logging.warning(self._log("Too many rattlers. Discarding packing."))
             return False
         if total_contacts >= N_min:
             return True
@@ -610,9 +571,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 logging.warning(self._log("Overlap found before quenching"))
                 return False
 
-        self.opt_maxstep = (
-            self.sca * np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
-        )
+        self.opt_maxstep = self.sca * np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
         if self.minimizer is Minimizer.FIRE:
             res = modifiedfire_cpp(
                 self.coords,
@@ -705,22 +664,15 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     self.potential,
                     self.coords,
                     tol=opt_tol,
-                    atol=INVERSE_POWER_CVODE_95_ACC[
-                        len(self.coords) // self.bdim
-                    ],
-                    rtol=INVERSE_POWER_CVODE_95_ACC[
-                        len(self.coords) // self.bdim
-                    ],
+                    atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                    rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
                 )
 
                 res2 = self.optimizer.run(int(1e6))
             elif self.minimizer is Minimizer.MXD:
                 from pele.optimize import ExtendedMixedOptimizer
 
-                ratol = (
-                    INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
-                    * 1e-1
-                )
+                ratol = INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim] * 1e-1
                 self.optimizer = ExtendedMixedOptimizer(
                     self.potential,
                     self.coords,
@@ -746,10 +698,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 raise NotImplementedError
             if res2.nfev > 1:
                 logging.warning(
-                    self._log(
-                        "Quench failed (structure changed at "
-                        "second minimisation)"
-                    )
+                    self._log("Quench failed (structure changed at " "second minimisation)")
                 )
                 return False
 
@@ -783,12 +732,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         assert phi - self.packing_frac < 1e-4
         # END TEST
         # r_soft = r_hs*(1+sca)
-        self.sca = (
-            np.power(
-                self.target_packing_frac / self.packing_frac, 1.0 / self.bdim
-            )
-            - 1
-        )
+        self.sca = np.power(self.target_packing_frac / self.packing_frac, 1.0 / self.bdim) - 1
 
     def _check_no_overlaps(self):
         """check that no two particles are overlapping
@@ -807,9 +751,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 self.pot_kwargs["shear"],
             )
         else:
-            return put_in_box(
-                self.coords, self.bdim, self.distance_method, self.boxv
-            )
+            return put_in_box(self.coords, self.bdim, self.distance_method, self.boxv)
 
     def _sort_atoms(self, n):
         """sorts the atoms according to the potential"""
@@ -822,9 +764,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 new_radii[i] = self.hs_radii[new_order[i]]
                 new_rattlers[i] = self.rattlers[new_order[i]]
                 for j in range(self.bdim):
-                    new_coords[i * self.bdim + j] = self.coords[
-                        new_order[i] * self.bdim + j
-                    ]
+                    new_coords[i * self.bdim + j] = self.coords[new_order[i] * self.bdim + j]
             self.hs_radii = new_radii
             self.rattlers = new_rattlers
             self.coords = new_coords
@@ -875,9 +815,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     )
                 )
         else:
-            raise NotImplementedError(
-                "bdim={} not implemented".format(self.bdim)
-            )
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
 
     def _write_opengl_input(self, n):
@@ -890,11 +828,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         f = open(fname, "w")
         f.write("{}\n".format(self.nparticles))
         if self.bdim == 2:
-            f.write(
-                "{} {} {}\n".format(
-                    -boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii)
-                )
-            )
+            f.write("{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii)))
             f.write("{} \t 0.0 \t 0.0\n".format(boxv[0]))
             f.write("0.0 \t {} \t 0.0\n".format(boxv[1]))
             f.write("0.0 \t 0.0 \t {}\n".format(np.amax(self.hs_radii) * 2))
@@ -905,9 +839,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 f.write("{}\t".format(self.hs_radii[i] * 2 * (1.0 + self.sca)))
                 f.write("{}\n".format(colour - int(self.rattlers_draw[i])))
         elif self.bdim == 3:
-            f.write(
-                "{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -boxv[2] / 2)
-            )
+            f.write("{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -boxv[2] / 2))
             f.write("{} \t 0.0 \t 0.0\n".format(boxv[0]))
             f.write("0.0 \t {} \t 0.0\n".format(boxv[1]))
             f.write("0.0 \t 0.0 \t {}\n".format(boxv[2]))
@@ -917,9 +849,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 f.write("{}\t".format(self.hs_radii[i] * 2 * (1.0 + self.sca)))
                 f.write("{}\n".format(colour - int(self.rattlers_draw[i])))
         else:
-            raise NotImplementedError(
-                "bdim={} not implemented".format(self.bdim)
-            )
+            raise NotImplementedError("bdim={} not implemented".format(self.bdim))
         f.close()
 
     # def _histogram_eigenvalues(self):
@@ -1061,9 +991,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
 
         self.parameters["radii"] = self.hs_radii
         self.parameters["box_length"] = self.boxl
-        self.potential = setup_bidisperse(self.parameters, seed=self.seed)[
-            "potential"
-        ]
+        self.potential = setup_bidisperse(self.parameters, seed=self.seed)["potential"]
         self.parameters.pop("radii")
         self.parameters.pop("box_length")
 
@@ -1073,9 +1001,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         if success:
             self._print(n)
         else:
-            path_list = glob.glob(
-                "{0}/jammed_packing{1}.*".format(self.base_directory, n)
-            )
+            path_list = glob.glob("{0}/jammed_packing{1}.*".format(self.base_directory, n))
             if len(path_list) > 0:
                 with open(
                     "{0}/mismatching_rattlers.txt".format(self.base_directory),
@@ -1090,9 +1016,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
     def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
         """quenches the imported structure"""
 
-        self.opt_maxstep = (
-            np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
-        )
+        self.opt_maxstep = np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
         if self.minimizer is Minimizer.FIRE:
             res = modifiedfire_cpp(
                 self.coords,
@@ -1127,10 +1051,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         elif self.minimizer is Minimizer.MXD:
             from pele.optimize import ExtendedMixedOptimizer
 
-            ratol = (
-                INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
-                * 1e-1
-            )
+            ratol = INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim] * 1e-1
             self.optimizer = ExtendedMixedOptimizer(
                 self.potential,
                 self.coords,
@@ -1190,21 +1111,14 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                     self.coords,
                     tol=opt_tol,
                     nsteps=self.opt_nsteps,
-                    atol=INVERSE_POWER_CVODE_95_ACC[
-                        len(self.coords) // self.bdim
-                    ],
-                    rtol=INVERSE_POWER_CVODE_95_ACC[
-                        len(self.coords) // self.bdim
-                    ],
+                    atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
+                    rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
                 )
                 res2 = self.optimizer.run(int(1e6))
             elif self.minimizer is Minimizer.MXD:
                 from pele.optimize import ExtendedMixedOptimizer
 
-                ratol = (
-                    INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim]
-                    * 1e-1
-                )
+                ratol = INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim] * 1e-1
                 self.optimizer = ExtendedMixedOptimizer(
                     self.potential,
                     self.coords,
@@ -1228,10 +1142,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 raise NotImplementedError
             if res2.nfev > 1:
                 logging.warning(
-                    self._log(
-                        "Quench failed (structure changed at "
-                        "second minimisation)"
-                    )
+                    self._log("Quench failed (structure changed at " "second minimisation)")
                 )
                 return False
 
@@ -1333,9 +1244,7 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
         if success:
             self._print(n)
         else:
-            path_list = glob.glob(
-                "{0}/jammed_packing{1}.*".format(self.base_directory, n)
-            )
+            path_list = glob.glob("{0}/jammed_packing{1}.*".format(self.base_directory, n))
             if len(path_list) > 0:
                 with open(
                     "{0}/mismatching_rattlers.txt".format(self.base_directory),
@@ -1356,9 +1265,7 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="generate 2/3-D hard disks/spheres packings"
-    )
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument(
         "-p",
         "--density",
@@ -1395,13 +1302,10 @@ if __name__ == "__main__":
         "-o",
         "--outdir",
         type=str,
-        help="Directory to save jammed packings in. "
-        "Default: 'jammed_packings'",
+        help="Directory to save jammed packings in. " "Default: 'jammed_packings'",
         default="jammed_packings",
     )
-    parser.add_argument(
-        "--show", action="store_true", help="show histograms", default=False
-    )
+    parser.add_argument("--show", action="store_true", help="show histograms", default=False)
     parser.add_argument(
         "--write-opengl",
         action="store_true",
@@ -1418,13 +1322,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--opt_maxstep_factor",
         type=float,
-        help="Factor by which the maximum step size of the "
-        "minimizer is corrected.",
+        help="Factor by which the maximum step size of the " "minimizer is corrected.",
         default=1.0,
     )
-    parser.add_argument(
-        "--opt_dtmax", type=float, default=1, help="For FIRE, max time step"
-    )
+    parser.add_argument("--opt_dtmax", type=float, default=1, help="For FIRE, max time step")
     parser.add_argument(
         "--opt_nsteps",
         type=float,
@@ -1459,8 +1360,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sort",
         action="store_true",
-        help="Use the potential to sort the atoms before saving. "
-        "Default: False",
+        help="Use the potential to sort the atoms before saving. " "Default: False",
         default=False,
     )
     parser.add_argument(
@@ -1495,11 +1395,7 @@ if __name__ == "__main__":
         override_pot_kwargs["exp"] = args.wca_exp
     elif interaction is Interaction.INVERSE_POWER_STILLINGER:
         override_pot_kwargs.update(pow=8, rcut=4.5)
-        logging.info(
-            "Setting inverse_power_stillinger parameters: {}".format(
-                override_pot_kwargs
-            )
-        )
+        logging.info("Setting inverse_power_stillinger parameters: {}".format(override_pot_kwargs))
     elif interaction is Interaction.INVERSE_POWER:
         override_pot_kwargs.update(pow=2.5)
     elif interaction is Interaction.NEGATIVE_COS:

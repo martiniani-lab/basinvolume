@@ -722,9 +722,7 @@ class plot_entropy(object):
         # plot all
         entropy_array, label, plot_label = self.all_entropies_err[0]
 
-        ax = self._ploterr(
-            entropy_array, title=None, raw=False, raw_marker="o", show=False
-        )
+        ax = self._ploterr(entropy_array, title=None, raw=False, raw_marker="o", show=False)
         trialx = np.linspace(0, 130, 1000)
         # d+1/d-1 equation
         #        ynew = trialx * 1./2

@@ -193,9 +193,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         elif self.bdim == 3:
             cells = pyvoro.compute_voronoi(coords, limits, dispersion, radii=radii)
         else:
-            raise NotImplementedError(
-                "pyvoro bdim={} not implemented".format(self.bdim)
-            )
+            raise NotImplementedError("pyvoro bdim={} not implemented".format(self.bdim))
         assert len(cells) == int(len(self.coords) / self.bdim)
         # compute free volume
         vcavity = 0.0
@@ -307,9 +305,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         f.write("{}\n".format(nparticles))
 
         if self.bdim == 2:
-            f.write(
-                "{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii))
-            )
+            f.write("{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii)))
             f.write("{} \t 0.0 \t 0.0\n".format(boxv[0]))
             f.write("0.0 \t {} \t 0.0\n".format(boxv[1]))
             f.write("0.0 \t 0.0 \t {}\n".format(np.amax(self.hs_radii) * 2))
@@ -355,12 +351,8 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
         f.write("\n")
         f.write("[EXPERIMENTAL_DATA_EXTRACTION]\n")
         f.write("path_data: {}\n".format(self.path_to_datafile))
-        f.write(
-            "distance_from_boundary_x: {:.16f}\n".format(self.distance_from_boundary_x)
-        )
-        f.write(
-            "distance_from_boundary_y: {:.16f}\n".format(self.distance_from_boundary_y)
-        )
+        f.write("distance_from_boundary_x: {:.16f}\n".format(self.distance_from_boundary_x))
+        f.write("distance_from_boundary_y: {:.16f}\n".format(self.distance_from_boundary_y))
         f.write("frozen_shell_thickness: {:.16f}\n".format(self.frozen_shell_thickness))
         f.write("mobile_particle_radius: {:.16f}\n".format(self.mobile_particle_radius))
         f.write("frozen_particle_radius: {:.16f}\n".format(self.frozen_particle_radius))
@@ -378,9 +370,7 @@ class HS_Exp_Generate_Packing(_Generate_Packing):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="generate 2/3-D hard disks/spheres packings"
-    )
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
         "-n",
