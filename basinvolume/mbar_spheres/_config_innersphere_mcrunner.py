@@ -100,7 +100,8 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
         self.fix_com = self.interaction is not Interaction.NEGATIVE_COS
         # construct mcrunner
-        self.coords = _subtract_com(self.coords, ndim=self.bdim)
+        if self.fix_com:
+            self.coords = _subtract_com(self.coords, ndim=self.bdim)
         potential = NullPotential()
         self.mcrunner_gaussian = BVInnerSphereMCrunner(
             potential,
