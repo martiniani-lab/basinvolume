@@ -29,7 +29,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
         self,
         ndof,
         sidelength=1,
-        k=0.0,
+        bias_params=[0.0],
         stepsize=5e-1,
         niter=5e4,
         acceptance=0.2,
@@ -68,7 +68,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
         # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
             sidelength=self.sidelength,
-            k=k,
+            bias_params=[0.0],
             acceptance=acceptance,
             adjustf=adjustf,
             adjustf_niter=adjustf_niter,
@@ -92,7 +92,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
-        potential = Harmonic(self.coords, k, bdim=self.ndof, com=False)
+        potential = Harmonic(self.coords, bias_params[0], bdim=self.ndof, com=False)
         self.mcrunner = HypercubeMCrunner(
             potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
         )
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         ndof,
         sidelength=1,
         niter=1e6,
-        k=0,
+        bias_params=[0.0],
         seeds=seeds,
         single=True,
         verbose=True,

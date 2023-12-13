@@ -24,6 +24,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         kde=True,
         plot_dos_data=True,
         ncores=7,
+        bias = "harmonic"
     ):
         super(hypercube_mbar_compute_dos, self).__init__(
             nbins=nbins,
@@ -31,6 +32,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             kde=kde,
             plot_dos_data=plot_dos_data,
             ncores=ncores,
+            bias = bias
         )
 
     def __call__(self, explore_dir, base_dir="analysis", show=False, verbose=True):
@@ -155,11 +157,16 @@ if __name__ == "__main__":
         help="number of cores to use for the calculation",
         default=1,
     )
+    parser.add_argument(
+        "--bias",
+        help = "Biasing potential used in the PT",
+        default = "harmonic"
+    )
     args = parser.parse_args()
     print(args)
 
     sim = hypercube_mbar_compute_dos(
-        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1
+        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1, bias = bias
     )
 
     sim(args.explore_dir, show=args.show)
