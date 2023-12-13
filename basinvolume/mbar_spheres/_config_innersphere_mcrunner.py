@@ -12,7 +12,7 @@ from basinvolume.spheres import ConfigMCRunner
 from basinvolume.utils import trymakedir, view_traceback, conf_get_default
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.mbar_spheres import BVInnerSphereMCrunner
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Interaction, Minimizer
 import configparser
 import time
 import warnings
@@ -50,7 +50,6 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
     ):
-
         self.fname = fname
         self.temperature = 1.0
         self.eps = eps
@@ -99,9 +98,10 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
             warnings.warn("seeds not passed")
 
         self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
-
+        self.fix_com = self.interaction is not Interaction.NEGATIVE_COS
         # construct mcrunner
-        self.coords = _subtract_com(self.coords, ndim=self.bdim)
+        if self.fix_com:
+            self.coords = _subtract_com(self.coords, ndim=self.bdim)
         potential = NullPotential()
         self.mcrunner_gaussian = BVInnerSphereMCrunner(
             potential,
@@ -270,7 +270,6 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
 
 
 if __name__ == "__main__":
-
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 
