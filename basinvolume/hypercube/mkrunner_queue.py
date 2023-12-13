@@ -89,8 +89,8 @@ if __name__ == "__main__":
         "--number_nested_spheres",
         type=int,
         help="number of nested inner spheres to use, \
-                        default: 2",
-        default=2,
+                        default: 1",
+        default=1,
     )
     parser.add_argument(
         "-force_k",
@@ -114,6 +114,12 @@ if __name__ == "__main__":
         help="overrides --positivespringnumber and increases the number of replicas if needed",
         default=False,
     )
+    parser.add_argument(
+        "--bias",
+        help = "Biasing potentials used in PT\
+            default = harmonic",
+        default = "harmonic"
+    )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
 
@@ -136,6 +142,7 @@ if __name__ == "__main__":
     number_nested_spheres = args.number_nested_spheres
     force_kmax_value = args.force_kmax_value
     k_spreading = args.k_spreading
+    bias = args.bias
     i32max = np.iinfo(np.int32).max
     seeds = dict(
         seed_takestep=np.random.randint(i32max),
@@ -203,7 +210,7 @@ if __name__ == "__main__":
             ndof,
             sidelength=1,
             niter=1e6,
-            k=0,
+            bias_params=[0.0],
             seeds=seeds,
             single=True,
             verbose=True,
@@ -301,6 +308,7 @@ if __name__ == "__main__":
 
         mcrunner_pt = sim_pt(
             directory_name,
+            bias = bias,
             niter=niter,
             stepsize=5e-1,
             hmin=0,
@@ -357,6 +365,7 @@ if __name__ == "__main__":
                     eq_max_ptiter=int(max_tot_niter / niter),
                     numnegk=numnegk,
                     k_spreading=k_spreading,
+                    bias = bias,
                     print_status=bv_pt_printstatus,
                     base_directory=path,
                     sleep_seconds=sleep_seconds,
@@ -400,6 +409,7 @@ if __name__ == "__main__":
                 eq_max_ptiter=int(max_tot_niter / niter),
                 numnegk=numnegk,
                 k_spreading=k_spreading,
+                bias = bias,
                 base_directory=path,
                 fix_com=False,
             )
@@ -504,6 +514,6 @@ if __name__ == "__main__":
             print("\n\nsimulation: Volume computation started")
             print("\nThread {} here!".format(rank))
             sim_compute_volume = hypercube_mbar_compute_dos(
-                bootstrap=bootstrap, kde=kde, plot_dos_data=True, ncores=cores
+                bootstrap=bootstrap, kde=kde, plot_dos_data=True, ncores=cores, bias = bias
             )
             sim_compute_volume(directory_name, show=show)
