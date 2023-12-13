@@ -162,7 +162,6 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
     ):
-
         self.k = 1.0 / (stepsize * stepsize)
         # actions parameters
         if ts_niter is None:
@@ -170,6 +169,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         self.ts_niter = ts_niter
         self.ts_freq = ts_freq
         self.gaussian_step = gaussian_step
+        self.fix_com = interaction is not Interaction.NEGATIVE_COS
 
         super(BVInnerSphereMCrunner, self).__init__(
             potential,
@@ -210,8 +210,13 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         assert self.equilibration_steps == 0
 
     def _set_actions(self):
+        print("fix_com", self.fix_com)
         self.time_series = RecordDisplacementTimeseries(
-            self.red_origin, self.bdim, self.ts_niter, self.ts_freq
+            self.red_origin,
+            self.bdim,
+            self.ts_niter,
+            self.ts_freq,
+            fix_com=self.fix_com,
         )
         self.add_action(self.time_series)
 
