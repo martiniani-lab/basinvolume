@@ -87,7 +87,7 @@ class HypercubeMCrunner(_BaseMCRunner):
         record_histogram=False,
     ):
         # construct base class
-        super(HypercubeMCrunner, self).__init__(potential, full_coords, temperature, niter)
+        super(HypercubeMCrunner, self).__init__(bias_potential, full_coords, temperature, niter)
 
         self.nparticles = 1
         self.bdim = len(full_coords)
@@ -341,7 +341,7 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         seeds=None,
     ):
         # construct base class
-        super(HypercubeFindkMCrunner, self).__init__(potential, full_coords, temperature, niter)
+        super(HypercubeFindkMCrunner, self).__init__(bias_potential, full_coords, temperature, niter)
 
         self.nparticles = 1
         self.bdim = len(full_coords)

@@ -104,7 +104,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
 
             
         mcrunner = HypercubeMCrunner(
-            potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
+            bias_potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
         )
         return mcrunner
 
