@@ -166,7 +166,7 @@ if __name__ == "__main__":
     print(args)
 
     sim = hypercube_mbar_compute_dos(
-        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1, bias = bias
+        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1, bias = args.bias
     )
 
     sim(args.explore_dir, show=args.show)

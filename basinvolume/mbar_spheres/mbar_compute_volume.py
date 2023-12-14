@@ -345,6 +345,8 @@ class mbar_compute_dos(object):
             self.nparticles = 1
             self.ndim = self.ndof
             self.bdim = self.ndim
+            print(self.vcavity)
+            print(self.ndof)
         # There can be several inner spheres: each can come with its own k, radius and acceptance
         self.ks_innersphere = []
         self.ref_radii = []
