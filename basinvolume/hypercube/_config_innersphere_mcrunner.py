@@ -43,9 +43,9 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
 
         # The inner-most sphere for cubic runs has radius half a sidelength
         # For more general integrals: need some search algorithm!
-        stepsize_kinnermost_spheres = 0.5 * self.sidelength
+        stepsize_kinnermost_spheres = 0.25 * self.sidelength
         kinnermost_spheres = 1.0 / stepsize_kinnermost_spheres**2
-        # The last one should be overlapping with kmax
+        # The last one should be overlapping with kmax: guess a value from u2_k0
         koutermost_spheres = 1.0 / self.u2_k0
 
         # In low dimensions and/or depending on the choice of k, the order might be off
@@ -57,7 +57,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
 
         # Use regularly spaced values between the two natural bounds
         if number_nested_spheres == 1:
-            fraction_k = 0.0
+            fraction_k = 1.0
         else:
             fraction_k = current_nested_sphere * 1.0 / (number_nested_spheres - 1.0)
         # Linearly spaced values
@@ -68,7 +68,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         )
 
         self.stepsize = 1.0 / np.sqrt(self.k)
-        self.ref_radius = self.stepsize
+        self.ref_radius = self.stepsize/2.0
 
         self.coords = np.zeros(
             int(self.ndof)
