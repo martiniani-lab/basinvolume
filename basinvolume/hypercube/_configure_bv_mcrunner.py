@@ -102,8 +102,6 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
                 "bias={} not implemented".format(bias)
             )
         
-        print(bias)
-        print(bias_params)
         kwargs["bias_params"] = bias_params # Needed to properly initialise with the right lengths in each list of parameters
 
             

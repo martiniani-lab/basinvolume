@@ -105,8 +105,8 @@ if __name__ == "__main__":
         "--k_spreading",
         type=str,
         help="Set the way in which the k's are spread. Options: linspace, logspace, positionlinspace, gausslobato,\
-                        default = gausslobato",
-        default="gausslobato",
+                        default = positionlinspace",
+        default="positionlinspace",
     )
     parser.add_argument(
         "--auto_replica_number",
