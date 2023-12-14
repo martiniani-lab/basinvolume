@@ -136,7 +136,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # harmonic potential with fixed centre of mass
         if bias == "harmonic":
             bias_params = [1.0]
-            bias_potential = Harmonic(self.coords, bias_params[0], bdim=self.bdim, com=True)
+            bias_potential = Harmonic(
+                self.coords, bias_params[0], bdim=self.bdim, com=self.fix_com
+            )
         elif bias == "radial_gaussian":
             bias_params = [1.0, 1.0, 1.0]
             bias_potential = RadialGaussian(
@@ -144,7 +146,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
                 bias_params[0],
                 bias_params[1],
                 bdim=self.bdim,
-                com=True,
+                com=self.fix_com,
             )
         else:
             raise NotImplementedError("bias={} not implemented".format(bias))
