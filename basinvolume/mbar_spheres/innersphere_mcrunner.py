@@ -207,6 +207,9 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
             interaction=interaction,
             pot_kwargs=pot_kwargs,
         )
+        if interaction is Interaction.NEGATIVE_COS:
+            self.bdim *= self.nparticles
+            self.nparticles = 1
         assert self.equilibration_steps == 0
 
     def _set_actions(self):

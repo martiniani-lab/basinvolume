@@ -345,7 +345,10 @@ class mbar_compute_dos(object):
             self.nparticles = 1
             self.ndim = self.ndof
             self.bdim = self.ndim
+            self.boxv = np.ones(self.bdim) * self.boxv[0]
+            self.vcavity = np.prod(self.boxv)
             print(self.vcavity)
+            print(self.boxv)
             print(self.ndof)
         # There can be several inner spheres: each can come with its own k, radius and acceptance
         self.ks_innersphere = []
@@ -519,6 +522,8 @@ class mbar_compute_dos(object):
         logvmin = log_volume_nball(rmin, self.ndof)
         # logvmin = np.log( gammainc(self.ndof / 2, 0.5 ))
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
+        
+        logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
 
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
@@ -549,10 +554,13 @@ class mbar_compute_dos(object):
             )
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
-        volume_sanity_check = VolumeSanityCheck(
-            self.packing_configpath, numerical_moments=numerical_moments
-        )
-        self.F0_acc = volume_sanity_check.F0_acc
+        if self.interaction is Interaction.NEGATIVE_COS:
+            self.F0_acc = 0.0
+        else: 
+            volume_sanity_check = VolumeSanityCheck(
+                self.packing_configpath, numerical_moments=numerical_moments
+            )
+            self.F0_acc = volume_sanity_check.F0_acc
         self.ideal_gas_F_acc = -self.nparticles * np.log(self.vcavity)
 
     def _build_histogram(self, compute_binedges=True, kde=False):

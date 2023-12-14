@@ -8,6 +8,7 @@ import os
 import configparser
 import argparse
 import glob
+import logging
 from basinvolume.utils import import_pt_time_series
 from basinvolume.mbar_spheres.mbar_compute_volume import mbar_compute_dos
 
@@ -163,7 +164,14 @@ if __name__ == "__main__":
         default = "harmonic"
     )
     args = parser.parse_args()
-    print(args)
+    
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s: %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
+    logging.info(args)
+    
 
     sim = hypercube_mbar_compute_dos(
         bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1, bias = args.bias
