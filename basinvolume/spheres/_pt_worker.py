@@ -37,9 +37,7 @@ class PT_Worker(object):
         # collect the results
         state.set_mc_state(self.mcrunner.get_complete_state())
         if self.fix_com:
-            state.dx = get_dist_com(
-                state.coords, self.mcrunner.red_origin, self.mcrunner.bdim
-            )
+            state.dx = get_dist_com(state.coords, self.mcrunner.red_origin, self.mcrunner.bdim)
         else:
             state.dx = np.linalg.norm(state.coords - self.mcrunner.red_origin)
         return self.mcrunner.get_timeseries(clear=True)

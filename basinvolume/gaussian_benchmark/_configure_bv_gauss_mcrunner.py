@@ -198,12 +198,8 @@ class configure_bv_gauss_mcrunner(object):
                 tol=self.opt_tol,
                 nsteps=opt_nsteps,
             )
-        self.potential = Harmonic(
-            self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag
-        )
-        self.conftest_outer_sphere = CheckSphericalContainerConfig(
-            self.radius_container
-        )
+        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag)
+        self.conftest_outer_sphere = CheckSphericalContainerConfig(self.radius_container)
         self.conftest_check_same_minimum = CheckSameMinimumConfig(
             self.pot_optimizer,
             self.origin,
@@ -262,12 +258,8 @@ class configure_bv_gauss_mcrunner(object):
         self.means_configpath = os.path.join(packings_dir, "gaussian_sum_means.config")
         self.cov_configpath = os.path.join(packings_dir, "gaussian_sum_cov.config")
         self.packing_configpath = os.path.join(packings_dir, "gaussian_sum.config")
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
-        self.kmin_configpath = os.path.join(
-            self.base_directory, "kmin_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
+        self.kmin_configpath = os.path.join(self.base_directory, "kmin_" + dname + ".config")
         self.configfile = "{}/explore_{}.config".format(self.base_directory, dname)
 
     def _import_packing_config_files(self):
@@ -365,9 +357,7 @@ class configure_bv_gauss_mcrunner(object):
         write simulation parameters
         """
         f.write("#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n")
-        f.write(
-            "#Explore Gaussian sums potential basins wrapper class input parameters\n"
-        )
+        f.write("#Explore Gaussian sums potential basins wrapper class input parameters\n")
         f.write("[IMPORTED_GAUSSIAN_SUM_MINIMUM]\n")
         f.write("boxdim: {}\n".format(self.bdim))
         f.write("[MCRUNNER]\n")

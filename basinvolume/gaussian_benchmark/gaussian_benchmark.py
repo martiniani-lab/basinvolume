@@ -117,9 +117,7 @@ class GaussianBenchmark(object):
         self.nfev = EvalCounter()
         #####
         if self.harmonic_well:
-            self.pot_optimizer = Harmonic(
-                np.zeros(self.bdim), 42, bdim=self.bdim, com=False
-            )
+            self.pot_optimizer = Harmonic(np.zeros(self.bdim), 42, bdim=self.bdim, com=False)
         else:
             self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         for minimum in self.means:
@@ -174,9 +172,7 @@ class GaussianBenchmark(object):
         self.find_origin()
         print(("self.origin.size", self.origin.size))
         self.rattlers = np.ones(self.origin.size)
-        self.conftest_outer_sphere = CheckSphericalContainer(
-            self.radius_container, self.bdim
-        )
+        self.conftest_outer_sphere = CheckSphericalContainer(self.radius_container, self.bdim)
         self.conftest_check_same_minimum = CheckSameMinimumConfig(
             self.pot_optimizer,
             self.origin,
@@ -209,9 +205,7 @@ class GaussianBenchmark(object):
         )
         self.metropolis = MetropolisTest(self.seeds["seed_metropolis"])
         k = 42
-        self.potential = Harmonic(
-            self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag
-        )
+        self.potential = Harmonic(self.origin, k, bdim=self.bdim, com=self.harmonic_com_flag)
         self.PES_energy_calls = 0
         self.harmonic_energy_calls = 0
         self.total_neval = 0
@@ -219,9 +213,7 @@ class GaussianBenchmark(object):
 
     def find_origin(self):
         print("initial quench")
-        self.origin = copy.deepcopy(
-            self.get_local_minimum(mean_index=self.minimum_index)
-        )
+        self.origin = copy.deepcopy(self.get_local_minimum(mean_index=self.minimum_index))
         print(("Gaussian center coords", self.means[self.minimum_index][:]))
         print(("corresponding mimimum position (origin)", self.origin))
         self.print_minimum_coords_file(
@@ -346,9 +338,7 @@ class GaussianBenchmark(object):
         self.total_neval += kmin_run.get_neval()
         self.harmonic_energy_calls += kmin_run.get_iterations_count()
         print(("self.total_neval, kmin, kmax", self.total_neval))
-        self.print_kmin_config_file(
-            configuration_name="config{}.gauss".format(self.minimum_index)
-        )
+        self.print_kmin_config_file(configuration_name="config{}.gauss".format(self.minimum_index))
 
     def run_PT(self):
         # This is not PT because the basins here are not glassy and our PT implementation is hard to understand.
@@ -419,9 +409,7 @@ class GaussianBenchmark(object):
             "gaussian_benchmark",
             "gaussian_benchmark_pt_run.py",
         )
-        cmd_base_str = (
-            "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4}"
-        )
+        cmd_base_str = "mpiexec -n {0} python " + full_path_to_pt_run_script + " {1} {2} {3} {4}"
         cmd = cmd_base_str.format(
             self.nprocs,
             "config{}.gauss".format(self.minimum_index),
@@ -466,9 +454,7 @@ class GaussianBenchmark(object):
         dname = configuration_name[0:-6]
         basic_findk_config_path = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
         trymakedir(basic_findk_config_path)
-        findk_config_name = os.path.join(
-            basic_findk_config_path, "findk_" + dname + ".config"
-        )
+        findk_config_name = os.path.join(basic_findk_config_path, "findk_" + dname + ".config")
         print(("findk_config_name", findk_config_name))
         f = ResultsFile(findk_config_name)
         f.set_heading("FINDK")
@@ -482,9 +468,7 @@ class GaussianBenchmark(object):
         dname = configuration_name[0:-6]
         basic_kmin_config_path = os.path.join(os.getcwd(), "explore_bv_" + str(dname))
         trymakedir(basic_kmin_config_path)
-        kmin_config_name = os.path.join(
-            basic_kmin_config_path, "kmin_" + dname + ".config"
-        )
+        kmin_config_name = os.path.join(basic_kmin_config_path, "kmin_" + dname + ".config")
         f = ResultsFile(kmin_config_name)
         f.set_heading("KMIN")
         f.to_file("displ_k_min", self.displ2_kmin_mean)
@@ -503,9 +487,7 @@ class GaussianBenchmark(object):
 
     def compute_volume(self, configuration_name="config0.gauss"):
         print("computing volume")
-        self.explore_dir = os.path.join(
-            os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])
-        )
+        self.explore_dir = os.path.join(os.getcwd(), "explore_bv_" + str(configuration_name[0:-6]))
         self.base_directory = os.path.join(
             os.path.join(os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])),
             "analysis",
@@ -515,9 +497,7 @@ class GaussianBenchmark(object):
         self.karray = self.all_k_values
         self.displ_k_max = self.kmax_displ2
         self.var_displ_k_max = self.var_displ_kmax
-        self.std_error_kmax = np.sqrt(
-            self.var_displ_k_max / self.kmax_displ2_nr_samples
-        )
+        self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
         self.u2_array = copy.deepcopy(self.direct_k_u2_means)
         self.var_array = copy.deepcopy(self.direct_k_u2_variances)
         self.u2_array.append(self.displ_k_max)
@@ -535,9 +515,7 @@ class GaussianBenchmark(object):
         """
         Set analysis base directory.
         """
-        self.explore_dir = os.path.join(
-            os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])
-        )
+        self.explore_dir = os.path.join(os.getcwd(), "explore_bv_" + str(configuration_name[0:-6]))
         self.base_directory = os.path.join(
             os.path.join(os.getcwd(), "explore_bv_" + str(configuration_name[0:-6])),
             "analysis",
@@ -596,9 +574,7 @@ class GaussianBenchmark(object):
         self.var_displ_k_max = self.var_displ_kmax
         self.u2_array.insert(0, self.displ_k_max)
         self.var_array.insert(0, self.var_displ_k_max)
-        self.std_error_kmax = np.sqrt(
-            self.var_displ_k_max / self.kmax_displ2_nr_samples
-        )
+        self.std_error_kmax = np.sqrt(self.var_displ_k_max / self.kmax_displ2_nr_samples)
         self.std_error_array.insert(0, self.std_error_kmax)
         self.u2_array = np.array(self.u2_array[::-1], dtype="d")
         self.var_array = np.array(self.var_array[::-1], dtype="d")
@@ -612,9 +588,7 @@ class GaussianBenchmark(object):
         f.write("#AUTOMATICALLY GENERATED FILE - DO NOT MODIFY BY HAND\n")
         f.write("#{:>15}\t{:>15}\n".format("<u2>", "var(<u2>)"))
         for i in range(len(self.u2_array)):
-            f.write(
-                "{:>15.15e}\t{:>15.15e}\n".format(self.u2_array[i], self.var_array[i])
-            )
+            f.write("{:>15.15e}\t{:>15.15e}\n".format(self.u2_array[i], self.var_array[i]))
         f.close()
 
     def _compute_volume(self):

@@ -129,9 +129,7 @@ class BatchScript(object):
         elif self.mpi_impl is MPI_Implementation.INTEL:
             return "-n {} -rr".format(self.mpi_procs)
         else:
-            raise ValueError(
-                "MPI implementation not implemented: {}".format(self.mpi_impl)
-            )
+            raise ValueError("MPI implementation not implemented: {}".format(self.mpi_impl))
 
     def write(self, fname, job_name):
         """
@@ -143,9 +141,7 @@ class BatchScript(object):
         elif self.batch_system == BatchSystem.SLURM:
             self._write_slurm(fname, job_name)
         else:
-            raise ValueError(
-                "Batch system not implemented: {}".format(self.batch_system)
-            )
+            raise ValueError("Batch system not implemented: {}".format(self.batch_system))
 
     def _write_pbs(self, fname, job_name):
         logging.info("Writing PBS batch script")
@@ -157,9 +153,7 @@ class BatchScript(object):
         f.write("#PBS -l nodes={0}:ppn={1}\n".format(self.nodes, self.ncores))
         f.write("#PBS -l walltime={}\n".format(self.dhms_wtime))
         f.write("#PBS -l mem={}GB\n".format(self.ncores * self.memory_per_cpu))
-        f.write(
-            "#PBS -j oe\n"
-        )  # this directive merges output and error in the same file
+        f.write("#PBS -j oe\n")  # this directive merges output and error in the same file
         if self.outdir:
             f.write("#PBS -o {}\n".format(self.outdir))
         f.write("\n")
@@ -197,11 +191,7 @@ class BatchScript(object):
         f.write("#SBATCH --mem={}GB\n".format(self.memory_per_cpu * self.ncores))
         f.write("#SBATCH --time={}\n".format(self.dhms_wtime))
         if self.outdir:
-            f.write(
-                "#SBATCH --output={}_%j.out\n".format(
-                    os.path.join(self.outdir, job_name)
-                )
-            )
+            f.write("#SBATCH --output={}_%j.out\n".format(os.path.join(self.outdir, job_name)))
         else:
             f.write("#SBATCH --output={}_%j.out\n".format(job_name))
         f.write("\n")
@@ -234,9 +224,7 @@ class BatchScript(object):
         elif self.batch_system == BatchSystem.SLURM:
             workdir = os.getenv("SLURM_SUBMIT_DIR")
         else:
-            raise ValueError(
-                "Batch system not implemented: {}".format(self.batch_system)
-            )
+            raise ValueError("Batch system not implemented: {}".format(self.batch_system))
         if workdir is None:
             logging.info(
                 "Environment variable for working directory not found, "
@@ -251,9 +239,7 @@ class BatchScript(object):
         elif self.batch_system == BatchSystem.SLURM:
             return os.environ["SLURM_JOBID"]
         else:
-            raise ValueError(
-                "Batch system not implemented: {}".format(self.batch_system)
-            )
+            raise ValueError("Batch system not implemented: {}".format(self.batch_system))
 
     def goto_workdir(self):
         logging.info("Going to workdir")
@@ -289,9 +275,7 @@ class BatchScript(object):
                 ["sbatch {}".format(fname)], shell=True, stdout=PIPE
             ).communicate()
         else:
-            raise ValueError(
-                "Batch system not implemented: {}".format(self.batch_system)
-            )
+            raise ValueError("Batch system not implemented: {}".format(self.batch_system))
         return stdout
 
 

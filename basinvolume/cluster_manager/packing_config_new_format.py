@@ -9,9 +9,7 @@ import argparse
 
 
 def get_immediate_files(dir):
-    return [
-        str(name) for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))
-    ]
+    return [str(name) for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))]
 
 
 class BVPackingsConfigNewFormat(object):
@@ -82,9 +80,7 @@ class BVPackingsConfigNewFormat(object):
             os.remove(src)
 
     def copy_jammed_packing_config_files(self):
-        files = get_immediate_files(
-            os.path.join(self.workdir, self.jammed_packing_folder)
-        )
+        files = get_immediate_files(os.path.join(self.workdir, self.jammed_packing_folder))
         src = os.path.join(
             self.workdir,
             self.jammed_packing_folder,

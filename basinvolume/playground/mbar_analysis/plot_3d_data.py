@@ -194,9 +194,7 @@ def plot(packing_datasets, figdir="figures"):
         gs = gridspec.GridSpec(7, 2)
         # ax = fig.add_subplot(211)
         ax = fig.add_subplot(gs[:4, :])
-        for i, dataset in enumerate(
-            sorted(packing_datasets, key=lambda data: data.nparticles)
-        ):
+        for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             if len(dataset.free_energies) > 0:
                 nparticles = dataset.nparticles
                 print(nparticles)
@@ -205,9 +203,7 @@ def plot(packing_datasets, figdir="figures"):
                     p=0.5,
                     D=3 * np.std(dataset.free_energies),
                 )
-                x = np.array(dataset.pressures)[
-                    np.array(outliers.non_outliers_indexes, dtype="i")
-                ]
+                x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                 y = np.array(dataset.free_energies)[
                     np.array(outliers.non_outliers_indexes, dtype="i")
                 ]
@@ -272,9 +268,7 @@ def plot(packing_datasets, figdir="figures"):
                 np.array(y2err),
             )
 
-            ax3.errorbar(
-                x, y, yerr, marker="o", linestyle="", ms=12, color=color_marker
-            )
+            ax3.errorbar(x, y, yerr, marker="o", linestyle="", ms=12, color=color_marker)
             popt, pcov = curve_fit(ff, x, y, sigma=yerr, absolute_sigma=True)
             print("1/kappa {:.16f}".format(popt[0]))
             glob_kappa = 1.0 / popt[0]
@@ -319,9 +313,7 @@ def plot(packing_datasets, figdir="figures"):
             ax4.plot(
                 x,
                 ff(x, popt[0]),
-                label="intercept = ({:.3f} +/- {:.3f})N".format(
-                    popt[0], np.sqrt(float(pcov[0]))
-                ),
+                label="intercept = ({:.3f} +/- {:.3f})N".format(popt[0], np.sqrt(float(pcov[0]))),
                 color=color_fit,
             )
             # ax4.legend(frameon=False, loc="best", framealpha=0.5, prop={'size':12}, labelspacing=0.25,
@@ -365,9 +357,7 @@ def plot(packing_datasets, figdir="figures"):
         s_b = []
         angoricities = []
         pea_array_all = []
-        for i, dataset in enumerate(
-            sorted(packing_datasets, key=lambda data: data.nparticles)
-        ):
+        for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             nparticles = dataset.nparticles
             vcavity = dataset.packing_data[0].vcavity
             print("vcavity", vcavity)
@@ -381,9 +371,7 @@ def plot(packing_datasets, figdir="figures"):
                 F0 = np.array(dataset.free_energies)[
                     np.array(outliers.non_outliers_indexes, dtype="i")
                 ]
-                x = np.array(dataset.pressures)[
-                    np.array(outliers.non_outliers_indexes, dtype="i")
-                ]
+                x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                 # kde histogram
                 bw = get_bandwidth_estimate(
                     np.array(x), kernel="gaussian", method="cross_validation"
@@ -400,9 +388,7 @@ def plot(packing_datasets, figdir="figures"):
                 )
                 # fit log normal
                 # assume that zeta_min=2
-                generalised_lognormal = EdwardsGeneralisedLogNormal(
-                    alpha_min=0.0001, zeta_min=1.0
-                )
+                generalised_lognormal = EdwardsGeneralisedLogNormal(alpha_min=0.0001, zeta_min=1.0)
                 cdf = CDFAccumulator()
                 cdf.add_array(x)
                 x, cdf_x = cdf.get_vecdata()
@@ -466,9 +452,7 @@ def plot(packing_datasets, figdir="figures"):
                 xp = np.linspace(1, np.amax(x) * 100, 1e5)
                 fit = np.array(
                     [
-                        generalised_lognormal.get_fitted_times_xpow(
-                            xpi, glob_kappa, nparticles
-                        )
+                        generalised_lognormal.get_fitted_times_xpow(xpi, glob_kappa, nparticles)
                         for xpi in xp
                     ]
                 )
@@ -561,12 +545,7 @@ def plot(packing_datasets, figdir="figures"):
                     pea_array_all.append(np.array(pea_array))
                     generalised_lognormal.glob_x = 100
                     ensidx = (
-                        next(
-                            i
-                            for i, yy in enumerate(ps)
-                            if yy >= np.exp(pea_array[0][0])
-                        )
-                        - 1
+                        next(i for i, yy in enumerate(ps) if yy >= np.exp(pea_array[0][0])) - 1
                     )
                     # s_p_maxima.append([nparticles, ps[ensidx]])
                     j = ensidx
@@ -882,9 +861,7 @@ def plot(packing_datasets, figdir="figures"):
         color_cycle = get_color_cycle()
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        for i, dataset in enumerate(
-            sorted(packing_datasets, key=lambda data: data.nparticles)
-        ):
+        for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             if len(dataset.free_energies) > 0:
                 nparticles = dataset.nparticles
                 outliers = OutlierDetection(
@@ -942,9 +919,7 @@ def plot(packing_datasets, figdir="figures"):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         avg = 0
-        for i, dataset in enumerate(
-            sorted(packing_datasets, key=lambda data: data.nparticles)
-        ):
+        for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.nparticles)):
             if len(dataset.free_energies) > 0:
                 nparticles = dataset.nparticles
                 print(nparticles)
@@ -953,9 +928,7 @@ def plot(packing_datasets, figdir="figures"):
                     p=0.5,
                     D=3 * np.std(dataset.free_energies),
                 )
-                x = np.array(dataset.pressures)[
-                    np.array(outliers.non_outliers_indexes, dtype="i")
-                ]
+                x = np.array(dataset.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
                 y = np.array(dataset.free_energies)[
                     np.array(outliers.non_outliers_indexes, dtype="i")
                 ]

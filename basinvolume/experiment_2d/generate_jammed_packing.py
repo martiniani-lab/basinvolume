@@ -145,9 +145,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         red_radii = np.delete(self.hs_radii, self.frozen)
         assert len(redcoords) == self.ndim
         maxstep = np.amin(red_radii) * self.sca
-        res = modifiedfire_cpp(
-            redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol
-        )
+        res = modifiedfire_cpp(redcoords, self.potential, maxstep=maxstep, nsteps=1e6, tol=tol)
         if not res.success:
             print("quench failed")
             return False
@@ -170,9 +168,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 print("quench rejected, particle has moved more than its own radius")
                 return False
 
-        self.coords = full_coordinates(
-            new_redcoords, self.coords, self.frozen, self.bdim
-        )
+        self.coords = full_coordinates(new_redcoords, self.coords, self.frozen, self.bdim)
         # asserts that none of the hard sphere is overlapping
         no_overlap = self._check_no_overlaps()
         if not no_overlap:
@@ -266,9 +262,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         configf.read(self.configpath)
         self.nparticles = configf.getint("PACKING", "nparticles")
         self.bdim = configf.getint("PACKING", "boxdim")
-        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(
-            self.bdim
-        )
+        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get("PACKING", "boxv")
         self.boxv = np.array([float(x) for x in boxv.split()])
@@ -291,9 +285,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         assert phi - self.imp_packing_frac < 1e-4
         ##endtest##
         ###r_soft = r_hs*(1+sca)
-        self.sca = (
-            np.power(self.packing_frac / self.imp_packing_frac, 1.0 / self.bdim) - 1
-        )
+        self.sca = np.power(self.packing_frac / self.imp_packing_frac, 1.0 / self.bdim) - 1
 
     def _get_particles_volume(self):
         """returns volume of n=self.bdim dimensional sphere for mobile particles"""
@@ -324,9 +316,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         elif self.bdim == 3:
             cells = pyvoro.compute_voronoi(coords, limits, dispersion, radii=radii)
         else:
-            raise NotImplementedError(
-                "pyvoro bdim={} not implemented".format(self.bdim)
-            )
+            raise NotImplementedError("pyvoro bdim={} not implemented".format(self.bdim))
         assert len(cells) == int(len(self.coords) / self.bdim)
         # compute free volume
         vcavity = 0.0
@@ -429,9 +419,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         f = open(fname, "w")
         f.write("{}\n".format(nparticles))
         if self.bdim == 2:
-            f.write(
-                "{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii))
-            )
+            f.write("{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii)))
             f.write("{} \t 0.0 \t 0.0\n".format(boxv[0]))
             f.write("0.0 \t {} \t 0.0\n".format(boxv[1]))
             f.write("0.0 \t 0.0 \t {}\n".format(np.amax(self.hs_radii) * 2))
@@ -520,9 +508,7 @@ class HS_Exp_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="generate 2/3-D hard disks/spheres packings"
-    )
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument(
         "-p",
         "--density",
@@ -543,9 +529,7 @@ if __name__ == "__main__":
         help="name of directory with packings, must be in cwd",
         default="packings",
     )
-    parser.add_argument(
-        "--show", action="store_true", help="show histograms", default=False
-    )
+    parser.add_argument("--show", action="store_true", help="show histograms", default=False)
     args = parser.parse_args()
     print(args)
 

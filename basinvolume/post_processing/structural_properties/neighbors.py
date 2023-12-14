@@ -60,16 +60,12 @@ class Neighbors(StructuralAnalysis):
         return neighbors_dict
 
     def _calculate(self, neighbors_fname, packing_name, input_fname):
-        neighbors_dumpname = os.path.join(
-            self.analysis_dir_path, self.analysis_name + "_dump.p"
-        )
+        neighbors_dumpname = os.path.join(self.analysis_dir_path, self.analysis_name + "_dump.p")
         if self.force or self.write_analysis or not os.path.isfile(neighbors_dumpname):
             if self.verbose:
                 if self.restrict_neighbors is None:
                     logging.info(
-                        "Calculating neighbors: {}".format(
-                            self.prefix + str(packing_name)
-                        )
+                        "Calculating neighbors: {}".format(self.prefix + str(packing_name))
                     )
                 else:
                     logging.info(
@@ -90,9 +86,7 @@ class Neighbors(StructuralAnalysis):
             self._initialise_potential()
 
             # Compute neighbors
-            neighbor_lists, _ = self.potential.getNeighbors(
-                self.coords, cutoff_factor=self.cutoff
-            )
+            neighbor_lists, _ = self.potential.getNeighbors(self.coords, cutoff_factor=self.cutoff)
 
             # Filter neighbors
             if self.restrict_neighbors is not None:
@@ -112,18 +106,13 @@ class Neighbors(StructuralAnalysis):
         restrict_path = os.path.join(restrict_dir, self.analysis_name + "_dump.p")
         if not os.path.isfile(restrict_path):
             raise IOError(
-                "The restrict neighbors file {} does "
-                "not exist.".format(restrict_path)
+                "The restrict neighbors file {} does " "not exist.".format(restrict_path)
             )
         restrict_neighbor_lists = pickle.load(open(restrict_path, "r"))
 
         # Filter neighbors
         return [
-            [
-                particle
-                for particle in neighbor_lists[i]
-                if particle in restrict_neighbor_lists[i]
-            ]
+            [particle for particle in neighbor_lists[i] if particle in restrict_neighbor_lists[i]]
             for i in range(self.nparticles)
         ]
 
@@ -148,9 +137,7 @@ def worker_neighbors(workspace, kwargs):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Compute neighbor lists for jammed packings."
-    )
+    parser = argparse.ArgumentParser(description="Compute neighbor lists for jammed packings.")
     parser.add_argument(
         "-d",
         "--workspace-dir",
@@ -194,8 +181,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cutoff",
         type=float,
-        help="Multiple of particle radii "
-        "defining the maximum neighbor distance. Default: 1",
+        help="Multiple of particle radii " "defining the maximum neighbor distance. Default: 1",
         default=1.0,
     )
     parser.add_argument(

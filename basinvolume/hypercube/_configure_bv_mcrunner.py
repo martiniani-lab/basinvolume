@@ -77,9 +77,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
             record_histogram=record_histogram,
         )
 
-        self.mc_params = dict(
-            temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
@@ -106,13 +104,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
 
             
         mcrunner = HypercubeMCrunner(
-            bias_potential,
-            self.coords,
-            self.temperature,
-            stepsize,
-            niter,
-            self.coords,
-            **kwargs
+            potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
         )
         return mcrunner
 
@@ -128,12 +120,8 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         self.base_directory = base_directory
 
         dname = dlist[2] + "_" + dlist[3] + "_" + dlist[4]
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
-        self.kmin_configpath = os.path.join(
-            self.base_directory, "kmin_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
+        self.kmin_configpath = os.path.join(self.base_directory, "kmin_" + dname + ".config")
         self.configfile = "{}/explore_{}.config".format(self.base_directory, dname)
 
     def _get_histogram_bin(self, k):

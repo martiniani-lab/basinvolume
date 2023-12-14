@@ -41,12 +41,8 @@ if __name__ == "__main__":
         help="number of iterations",
         default=int(1e7),
     )
-    parser.add_argument(
-        "-f", "--force", action="store_true", help="run all", default=False
-    )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="verbosity", default=False
-    )
+    parser.add_argument("-f", "--force", action="store_true", help="run all", default=False)
+    parser.add_argument("-v", "--verbose", action="store_true", help="verbosity", default=False)
     # potential arguments
     args = parser.parse_args()
 
@@ -109,9 +105,7 @@ if __name__ == "__main__":
                         minimizer=Minimizer.FIRE,
                         verbose=args.verbose,
                         record_steps_timeseries=True,
-                        record_steps_timeseries_every=[
-                            int(np.ceil(1.5**n)) for n in range(28)
-                        ],
+                        record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(28)],
                         print_diffusion_only=True,
                         workspace=dir_path,
                         record_trajectory_npoints=int(1e4),

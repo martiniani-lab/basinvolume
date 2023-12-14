@@ -73,9 +73,7 @@ class BasinAnalysis(object):
                 print(("set_path", set_path))
                 print("collecting data from ", os.path.split(set_path)[1])
                 self.collect_data_single_all(set_path=set_path)
-            self.packing_datasets = sorted(
-                self.packing_datasets, key=lambda data: data.nparticles
-            )
+            self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
             pickle.dump(self.packing_datasets, open(data_pickle, "wb"), protocol=-1)
 
     def collect_data_single_all(self, set_path=None):
@@ -94,9 +92,7 @@ class BasinAnalysis(object):
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, "explore_bv_" + str(dname))
                 if os.path.isdir(base_directory_path):
-                    packing_path = os.path.join(
-                        set_path, self.jammed_packings_dir, fname
-                    )
+                    packing_path = os.path.join(set_path, self.jammed_packings_dir, fname)
                     configpath = os.path.join(
                         set_path, self.jammed_packings_dir, dname + ".config"
                     )
@@ -113,9 +109,7 @@ class BasinAnalysis(object):
                         self.pressure_file,
                     )
                     pd.import_pressure_data(path)
-                    path = os.path.join(
-                        base_directory_path, self.analysis_dir, self.zboo_file
-                    )
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
                     path2 = os.path.join(
                         base_directory_path,
                         self.analysis_dir,
@@ -151,9 +145,7 @@ class BasinAnalysis(object):
                 print(("set_path", set_path))
                 print("collecting data from ", os.path.split(set_path)[1])
                 self.collect_data_single_structure(set_path=set_path)
-            self.packing_datasets = sorted(
-                self.packing_datasets, key=lambda data: data.nparticles
-            )
+            self.packing_datasets = sorted(self.packing_datasets, key=lambda data: data.nparticles)
             pickle.dump(self.packing_datasets, open(data_pickle, "wb"), protocol=-1)
 
     def collect_data_single_structure(self, set_path=None):
@@ -172,9 +164,7 @@ class BasinAnalysis(object):
                 dname_packing = self._get_dname_packing(fname)
                 base_directory_path = os.path.join(set_path, "explore_bv_" + str(dname))
                 if os.path.isdir(base_directory_path):
-                    packing_path = os.path.join(
-                        set_path, self.jammed_packings_dir, fname
-                    )
+                    packing_path = os.path.join(set_path, self.jammed_packings_dir, fname)
                     configpath = os.path.join(
                         set_path, self.jammed_packings_dir, dname + ".config"
                     )
@@ -185,9 +175,7 @@ class BasinAnalysis(object):
                         self.pressure_file,
                     )
                     pd.import_pressure_data(path)
-                    path = os.path.join(
-                        base_directory_path, self.analysis_dir, self.zboo_file
-                    )
+                    path = os.path.join(base_directory_path, self.analysis_dir, self.zboo_file)
                     path2 = os.path.join(
                         base_directory_path,
                         self.analysis_dir,

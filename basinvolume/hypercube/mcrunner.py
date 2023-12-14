@@ -87,9 +87,7 @@ class HypercubeMCrunner(_BaseMCRunner):
         record_histogram=False,
     ):
         # construct base class
-        super(HypercubeMCrunner, self).__init__(
-            bias_potential, full_coords, temperature, niter
-        )
+        super(HypercubeMCrunner, self).__init__(potential, full_coords, temperature, niter)
 
         self.nparticles = 1
         self.bdim = len(full_coords)
@@ -159,9 +157,7 @@ class HypercubeMCrunner(_BaseMCRunner):
 
     def _set_conf_tests(self):
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(
-            np.zeros(self.ndof), self.sidelength, self.bdim
-        )
+        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
         self.add_late_conf_test(self.conftest)
 
@@ -185,10 +181,7 @@ class HypercubeMCrunner(_BaseMCRunner):
             self.add_action(self.histogram)
         if self.record_trajectory:
             rte = max(
-                int(
-                    (self.niter - self.equilibration_steps)
-                    / self.record_trajectory_npoints
-                ),
+                int((self.niter - self.equilibration_steps) / self.record_trajectory_npoints),
                 1,
             )
             self.record_trajectory = RecordCoordsTimeseries(
@@ -348,9 +341,7 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         seeds=None,
     ):
         # construct base class
-        super(HypercubeFindkMCrunner, self).__init__(
-            bias_potential, full_coords, temperature, niter
-        )
+        super(HypercubeFindkMCrunner, self).__init__(potential, full_coords, temperature, niter)
 
         self.nparticles = 1
         self.bdim = len(full_coords)
@@ -375,14 +366,10 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         self.hbinsize = hbinsize
 
         # construct test/action classes
-        self.takestep = SampleGaussian(
-            self.seeds["seed_takestep"], stepsize, self.origin
-        )
+        self.takestep = SampleGaussian(self.seeds["seed_takestep"], stepsize, self.origin)
 
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(
-            np.zeros(self.ndof), self.sidelength, self.bdim
-        )
+        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
 
         self.findk = Findk(
@@ -434,10 +421,7 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
 
     def show_histogram(self):
         hist = self.findk.get_histogram()
-        val = (
-            np.array([i * self.hbinsize for i in range(len(hist))])
-            + 0.5 * self.hbinsize
-        )
+        val = np.array([i * self.hbinsize for i in range(len(hist))]) + 0.5 * self.hbinsize
         plt.hist(val, weights=hist, bins=len(hist), density=True, stacked=True)
         ###analytical
         k = self.get_k()
@@ -547,9 +531,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
             self.add_action(self.histogram)
 
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(
-            np.zeros(self.ndof), self.sidelength, self.bdim
-        )
+        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
         # conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
         # self.conftest.add_test(conftest2)
@@ -603,9 +585,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(
-            Emin, Emax, num=len(hist), endpoint=False, retstep=True
-        )
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
         assert abs(step - self.binsize) < self.binsize / 100
         np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
@@ -633,9 +613,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        )
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 

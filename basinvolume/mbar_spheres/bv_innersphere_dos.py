@@ -24,9 +24,7 @@ def worker_innersphere(fname, kwargs):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="compute dos for inner sphere of basin"
-    )
+    parser = argparse.ArgumentParser(description="compute dos for inner sphere of basin")
     parser.add_argument(
         "fname",
         type=str,
@@ -52,12 +50,8 @@ if __name__ == "__main__":
         help="don't use cell lists, default: False",
         default=False,
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="verbosity", default=False
-    )
-    parser.add_argument(
-        "--niter", type=float, default=1e5, help="Number of iterations."
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="verbosity", default=False)
+    parser.add_argument("--niter", type=float, default=1e5, help="Number of iterations.")
     parser.add_argument("--eps", type=float, default=1.0, help="Epsilon value.")
     parser.add_argument(
         "--opt_nsteps",

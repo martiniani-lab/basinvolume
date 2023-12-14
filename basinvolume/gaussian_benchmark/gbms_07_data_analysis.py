@@ -43,9 +43,7 @@ class TimeSeriesComparison(object):
         self.series = series
         self.data = dict([(k, s) for k, s in zip(keys, series)])
         self.analysis_parameters = analysis_parameters
-        self.long_time_mean = np.mean(
-            np.asarray([s[-1] for s in list(self.data.values())])
-        )
+        self.long_time_mean = np.mean(np.asarray([s[-1] for s in list(self.data.values())]))
         self.max_deviation_from_long_mean = np.amax(
             [
                 np.absolute(s[-1] - self.long_time_mean) / self.long_time_mean
@@ -86,8 +84,7 @@ class TimeSeriesComparison(object):
         it = len(self.data[k])
         while it > 1:
             if (
-                np.absolute(self.data[k][it - 1] - self.long_time_mean)
-                / self.long_time_mean
+                np.absolute(self.data[k][it - 1] - self.long_time_mean) / self.long_time_mean
                 > self.analysis_parameters["target_relative_error"]
             ):
                 return it
@@ -116,10 +113,7 @@ class TimeSeriesComparison2(TimeSeriesComparison):
     def get_latest_conv_iteration(self, k):
         it = len(self.data[k])
         while it > 1:
-            if (
-                np.absolute(self.data[k][it - 1] - self.long_time_mean)
-                > self.final_delta
-            ):
+            if np.absolute(self.data[k][it - 1] - self.long_time_mean) > self.final_delta:
                 return it
             it -= 1
         return 0
@@ -194,9 +188,9 @@ class SeriesComparison(object):
         return result
 
     def get_converged_evaluation_basic(self, method, converged_iteration):
-        return np.loadtxt(
-            os.path.join(self.three_series_dir, method + "_evaluations.txt")
-        )[converged_iteration]
+        return np.loadtxt(os.path.join(self.three_series_dir, method + "_evaluations.txt"))[
+            converged_iteration
+        ]
 
     def get_ini_evals(self, method):
         ini_path = os.path.join(self.three_series_dir, method + "_ini_evals.txt")
@@ -261,9 +255,7 @@ class TrajOnlyAnalysis(object):
     def run(self):
         acc = MomentsAcc()
         for i in list(self.volume_files.path.keys()):
-            evaluations = self.get_evals(
-                self.volume_files.path[i], self.evaluations_files.path[i]
-            )
+            evaluations = self.get_evals(self.volume_files.path[i], self.evaluations_files.path[i])
             if self.analysis_parameters["subtract_ini_evals"]:
                 evaluations -= self.get_ini_evals(self.ini_evals_files.path[i])
             acc.update(evaluations)
@@ -324,18 +316,14 @@ class BenchmarkPlot(BasicPlot):
         for dim in self.dimensions:
             for m in list(self.evaluations.keys()):
                 evals_list = [
-                    np.loadtxt(
-                        os.path.join(base_dir, str(dim), i, m + "_res_evals.txt")
-                    )
+                    np.loadtxt(os.path.join(base_dir, str(dim), i, m + "_res_evals.txt"))
                     for i in self.converged_sets[dim]
                 ]
                 # print("evals_list", evals_list)
                 assert len(evals_list) == len(self.converged_sets[dim])
                 self.nr_samples[m].append(len(evals_list))
                 self.evaluations[m].append(np.mean(evals_list))
-                self.evaluations_error[m].append(
-                    np.std(evals_list) / np.sqrt(len(evals_list) - 1)
-                )
+                self.evaluations_error[m].append(np.std(evals_list) / np.sqrt(len(evals_list) - 1))
         # Traj only analysis, not conflated with TI data
         for dim in self.dimensions:
             nr_samples, evals, error_evals = self.traj_only_analysis(
@@ -392,9 +380,7 @@ class BenchmarkPlot(BasicPlot):
             plt.legend(loc=2, prop={"size": 18})
         else:
             self.out_name = (
-                "gbms_data_analysis_traj_only_"
-                + self.gauss_parameters["ls_basin_label"]
-                + ".pdf"
+                "gbms_data_analysis_traj_only_" + self.gauss_parameters["ls_basin_label"] + ".pdf"
             )
             eval_plot = np.asarray(self.traj_only_evaluations) / 10**8
             yerr_plot = np.asarray(self.traj_only_evaluations_error) / 10**8

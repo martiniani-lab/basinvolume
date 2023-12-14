@@ -33,13 +33,9 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
         if self.origin is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: origin")
         if self.conftest_outer_sphere is None:
-            raise Exception(
-                "GaussianBenchmarkKmaxRun: illegal input: conftest_outer_sphere"
-            )
+            raise Exception("GaussianBenchmarkKmaxRun: illegal input: conftest_outer_sphere")
         if self.conftest_check_same_minimum is None:
-            raise Exception(
-                "GaussianBenchmarkKmaxRun: illegal input: conftest_check_same_minimum"
-            )
+            raise Exception("GaussianBenchmarkKmaxRun: illegal input: conftest_check_same_minimum")
         if self.action_findk is None:
             raise Exception("GaussianBenchmarkKmaxRun: illegal input: action_findk")
         if not seeds:
@@ -47,9 +43,7 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
             seeds = dict(seed_takestep=np.random.randint(i32max))
         self.seeds = seeds
         stepsize = 1
-        self.takestep = SampleGaussian(
-            self.seeds["seed_takestep"], stepsize, self.origin
-        )
+        self.takestep = SampleGaussian(self.seeds["seed_takestep"], stepsize, self.origin)
         self.add_modules_to_mc()
         # self.set_report_steps(self.niter - self.avgcount)
         in_origin = self.origin
@@ -94,6 +88,4 @@ class GaussianBenchmarkKmaxRun(_BaseMCRunner):
 
     def set_control(self, c):
         """set k"""
-        print(
-            "WARNING: findk set control is not defined, spring constant is set through stepsize"
-        )
+        print("WARNING: findk set control is not defined, spring constant is set through stepsize")

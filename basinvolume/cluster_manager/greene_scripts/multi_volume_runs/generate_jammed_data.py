@@ -37,9 +37,7 @@ def main():
 def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ensemble):
 
     # generate a directory for the experiment
-    experiment_dir = os.path.join(
-        base_dir, f"{minimizer}_{n_particles}_{packing_fraction}"
-    )
+    experiment_dir = os.path.join(base_dir, f"{minimizer}_{n_particles}_{packing_fraction}")
     os.makedirs(experiment_dir, exist_ok=True)
     n_ensemble = n_ensemble
     os.chdir(experiment_dir)
@@ -48,7 +46,9 @@ def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ense
     os.makedirs(job_script_dir, exist_ok=True)
     os.makedirs(job_out_dir, exist_ok=True)
     # note that these arguments are placeholders since the code was written for HS_WCA
-    pack_comm = f"python /home/mc9287/basinvolumelibs/basinvolume/basinvolume/spheres/generate_packing.py"
+    pack_comm = (
+        f"python /home/mc9287/basinvolumelibs/basinvolume/basinvolume/spheres/generate_packing.py"
+    )
     pack_comm += f" {n_particles} -n {n_ensemble} -d 2 -p 0.7 -u 1 -s 0.1"
 
     jpack_com = f"python /home/mc9287/basinvolumelibs/basinvolume/basinvolume/spheres/generate_jammed_packing.py"

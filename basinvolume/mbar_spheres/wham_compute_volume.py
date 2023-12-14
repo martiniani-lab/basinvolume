@@ -67,17 +67,11 @@ class wham_compute_dos(object):
             jammed_packings_dir, "{}.config".format(self.fname)
         )
         assert os.path.isfile(self.jammed_packing_configpath)
-        self.pt_configpath = os.path.join(
-            self.explore_dir, "explore_" + fname + ".config"
-        )
+        self.pt_configpath = os.path.join(self.explore_dir, "explore_" + fname + ".config")
         assert os.path.isfile(self.pt_configpath)
-        self.findk_configpath = os.path.join(
-            self.explore_dir, "findk_" + fname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.explore_dir, "findk_" + fname + ".config")
         assert os.path.isfile(self.findk_configpath)
-        self.kmin_configpath = os.path.join(
-            self.explore_dir, "kmin_" + fname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + fname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         self.innersphere_configpath = os.path.join(
             self.explore_dir, "innersphere_" + fname + ".config"
@@ -121,9 +115,7 @@ class wham_compute_dos(object):
         self._print_volumes()
 
     def _import_config_files(self):
-        imp_packing = read_jammed_packing_config(
-            str(self.jammed_packing_configpath), self.frozen
-        )
+        imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath), self.frozen)
         self.nparticles = imp_packing["nparticles"]
         self.packing_frac = imp_packing["packing_frac"]
         self.bdim = imp_packing["bdim"]
@@ -199,9 +191,7 @@ class wham_compute_dos(object):
         self.eq_time = int(eq_time)
 
     def _build_histogram(self):
-        ts_sphere = np.genfromtxt(
-            os.path.join(self.explore_dir, "inner_sphere.timeseries")
-        )
+        ts_sphere = np.genfromtxt(os.path.join(self.explore_dir, "inner_sphere.timeseries"))
         ts_sphere = np.trim_zeros(ts_sphere)  # remove trailing 0s
         self.timeseries = self.timeseries[
             :, self.eq_time :
@@ -325,11 +315,7 @@ class wham_compute_dos(object):
 
         if self.verbose:
             print("F0 {} F0unc {}".format(self.F0, self.F0unc))
-            print(
-                "unit_box_F0 {} unit_box_F0unc {}".format(
-                    self.unit_box_F0, self.unit_box_F0unc
-                )
-            )
+            print("unit_box_F0 {} unit_box_F0unc {}".format(self.unit_box_F0, self.unit_box_F0unc))
 
     def _plot_data(self):
         if self.plot_data is False:
@@ -362,11 +348,7 @@ class wham_compute_dos(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for i in range(len(self.karray)):
-            y = (
-                np.log(self.hist_visits[i, :])
-                + self.hist_unbiased[i, :]
-                + self.w_i_final[i]
-            )
+            y = np.log(self.hist_visits[i, :]) + self.hist_unbiased[i, :] + self.w_i_final[i]
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
         ax.set_xlabel(r"$\Delta r$")
         ax.set_ylabel("WHAM")
@@ -426,9 +408,7 @@ class wham_compute_dos(object):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="analyze PT data from thermodynamic integration"
-    )
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     # parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
         "-f",

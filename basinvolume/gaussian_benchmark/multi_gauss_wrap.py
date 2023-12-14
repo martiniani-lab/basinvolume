@@ -67,9 +67,7 @@ class MultiGaussWrap(object):
         )
 
     def this_pot_path(self, nr_gaussians, nr_dimensions, index):
-        return os.path.join(
-            self.this_path(nr_gaussians, nr_dimensions, index), "pot.txt"
-        )
+        return os.path.join(self.this_path(nr_gaussians, nr_dimensions, index), "pot.txt")
 
     def this_large_index_path(self, nr_gaussians, nr_dimensions, index):
         return os.path.join(
@@ -124,9 +122,7 @@ class MultiGaussWrap(object):
         # Minimise from there
         end = self.get_local_minimum(nr_gaussians, nr_dimensions, index, start)
         # Determine basin index
-        self.large_basin_index = self.get_basin_index(
-            nr_gaussians, nr_dimensions, index, end
-        )
+        self.large_basin_index = self.get_basin_index(nr_gaussians, nr_dimensions, index, end)
 
         def to_file(name, number):
             f = open(name, "w")
@@ -161,14 +157,10 @@ class MultiGaussWrap(object):
         )
 
     def get_large_basin_origin(self, nr_gaussians, nr_dimensions, index):
-        return np.loadtxt(
-            self.this_large_origin_path(nr_gaussians, nr_dimensions, index)
-        )
+        return np.loadtxt(self.this_large_origin_path(nr_gaussians, nr_dimensions, index))
 
     def get_small_basin_origin(self, nr_gaussians, nr_dimensions, index):
-        return np.loadtxt(
-            self.this_small_origin_path(nr_gaussians, nr_dimensions, index)
-        )
+        return np.loadtxt(self.this_small_origin_path(nr_gaussians, nr_dimensions, index))
 
     def get_local_minimum(self, nr_gaussians, nr_dimensions, index, start):
         pot = self.get_pot(nr_gaussians, nr_dimensions, index)

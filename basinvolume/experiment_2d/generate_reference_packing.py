@@ -84,9 +84,7 @@ class HSExpReferenceGeneratePacking(object):
         self.boxvec = self.initial_condition.boxvec
         self.initial_coordinates = self.initial_condition.coordinates
         self.base_out_file_name = (
-            "reference_is_"
-            + self.exp_data_set_name_begin
-            + str(self.exp_data_set_index)
+            "reference_is_" + self.exp_data_set_name_begin + str(self.exp_data_set_index)
         )
         self.fluid = EqFluidSnapshots(
             self.radii,
@@ -104,9 +102,7 @@ if __name__ == "__main__":
         description="Generate reference equilibrium fluid snapshot from experimental radii distribution"
     )
     parser.add_argument("nr_particles", type=int, help="number of particles")
-    parser.add_argument(
-        "--nr_images", type=int, default=1, help="number of printed snapshots"
-    )
+    parser.add_argument("--nr_images", type=int, default=1, help="number of printed snapshots")
     parser.add_argument(
         "--exp_data_set_index",
         type=int,

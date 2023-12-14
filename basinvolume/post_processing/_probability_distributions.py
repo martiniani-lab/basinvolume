@@ -31,13 +31,9 @@ class GeneralisedLogNormal(object):
         verbose=False,
     ):
         if alpha_min < 0:
-            raise Exception(
-                "GeneralisedGauss: attempt to set illegal parameter value: alpha_min"
-            )
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: alpha_min")
         if zeta_min < 0:
-            raise Exception(
-                "GeneralisedGauss: attempt to set illegal parameter value: zeta_min"
-            )
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: zeta_min")
         self.alpha_min = alpha_min
         self.zeta_min = zeta_min
         self.mu = mu_initial
@@ -50,16 +46,12 @@ class GeneralisedLogNormal(object):
 
     def set_alpha(self, alpha):
         if alpha < self.alpha_min:
-            raise Exception(
-                "GeneralisedGauss: attempt to set illegal parameter value: alpha"
-            )
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: alpha")
         self.alpha_offset = alpha - self.alpha_min
 
     def set_zeta(self, zeta):
         if zeta < self.zeta_min:
-            raise Exception(
-                "GeneralisedGauss: attempt to set illegal parameter value: zeta"
-            )
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: zeta")
         self.zeta_offset = zeta - self.zeta_min
 
     def get_alpha(self, alpha_offset):
@@ -106,9 +98,7 @@ class GeneralisedLogNormal(object):
         return (
             z
             / (2 ** ((z + 1.0) / z) * a * gamma(1.0 / z))
-            * np.exp(
-                -0.5 * np.power(np.abs((logx - mu) / a), z) + logx * (n / kappa - 1)
-            )
+            * np.exp(-0.5 * np.power(np.abs((logx - mu) / a), z) + logx * (n / kappa - 1))
         )
 
     def get_log_times_xpow(self, x, mu, alpha_offset, zeta_offset, kappa, n):
@@ -128,25 +118,19 @@ class GeneralisedLogNormal(object):
         )
 
     def get_times_xpow_with_pars(self, x, mu, alpha, zeta, kappa, n):
-        return self.get_times_xpow(
-            x, mu, alpha - self.alpha_min, zeta - self.zeta_min, kappa, n
-        )
+        return self.get_times_xpow(x, mu, alpha - self.alpha_min, zeta - self.zeta_min, kappa, n)
 
     def get_fitted(self, x):
         return self.get(x, self.mu, self.alpha_offset, self.zeta_offset)
 
     def get_fitted_times_xpow(self, x, kappa, n):
-        return self.get_times_xpow(
-            x, self.mu, self.alpha_offset, self.zeta_offset, kappa, n
-        )
+        return self.get_times_xpow(x, self.mu, self.alpha_offset, self.zeta_offset, kappa, n)
 
     def get_log_fitted_times_xpow(self, x, kappa, n):
         """
         returns the log of the probability with the fit parameters
         """
-        return self.get_log_times_xpow(
-            x, self.mu, self.alpha_offset, self.zeta_offset, kappa, n
-        )
+        return self.get_log_times_xpow(x, self.mu, self.alpha_offset, self.zeta_offset, kappa, n)
 
     def fit(self, data_x, data_y):
         mean = np.mean(np.log(x))
@@ -255,9 +239,7 @@ class LogNormal(GeneralisedLogNormal):
         initial_mu = mean
         initial_alpha = var
         print("initial guess [mu, alpha]:", [initial_mu, initial_alpha])
-        opt_gen, error_gen = curve_fit(
-            self.get_cdf, x, cdf_x, [initial_mu, initial_alpha]
-        )
+        opt_gen, error_gen = curve_fit(self.get_cdf, x, cdf_x, [initial_mu, initial_alpha])
         self.mu = opt_gen[0]
         self.alpha_offset = opt_gen[1]
         self.zeta_offset = 0
@@ -287,13 +269,9 @@ class GeneralisedGauss(object):
         verbose=False,
     ):
         if alpha_min < 0:
-            raise Exception(
-                "GeneralisedGauss: attempt to set illegal parameter value: alpha_min"
-            )
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: alpha_min")
         if zeta_min < 0:
-            raise Exception(
-                "GeneralisedGauss: attempt to set illegal parameter value: zeta_min"
-            )
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: zeta_min")
         self.alpha_min = alpha_min
         self.zeta_min = zeta_min
         self.mu = mu_initial
@@ -306,16 +284,12 @@ class GeneralisedGauss(object):
 
     def set_alpha(self, alpha):
         if alpha < self.alpha_min:
-            raise Exception(
-                "GeneralisedGauss: attempt to set illegal parameter value: alpha"
-            )
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: alpha")
         self.alpha_offset = alpha - self.alpha_min
 
     def set_zeta(self, zeta):
         if zeta < self.zeta_min:
-            raise Exception(
-                "GeneralisedGauss: attempt to set illegal parameter value: zeta"
-            )
+            raise Exception("GeneralisedGauss: attempt to set illegal parameter value: zeta")
         self.zeta_offset = zeta - self.zeta_min
 
     def get_alpha(self, alpha_offset):
@@ -345,9 +319,7 @@ class GeneralisedGauss(object):
         """
         alpha = self.get_alpha(alpha_offset)
         zeta = self.get_zeta(zeta_offset)
-        return 0.5 - np.sign(x - mu) * 0.5 * gammainc(
-            1 / zeta, (np.abs(x - mu) / alpha) ** zeta
-        )
+        return 0.5 - np.sign(x - mu) * 0.5 * gammainc(1 / zeta, (np.abs(x - mu) / alpha) ** zeta)
 
     def get_times_expx(self, x, mu, alpha_offset, zeta_offset):
         return (
@@ -390,9 +362,7 @@ class GeneralisedGauss(object):
     def fit_cdf(self, x, cdf_x):
         initial_mu = np.mean(x)
         initial_zeta = 1.5
-        initial_alpha = np.sqrt(
-            gamma(1 / initial_zeta) / gamma(3 / initial_zeta) * np.var(x)
-        )
+        initial_alpha = np.sqrt(gamma(1 / initial_zeta) / gamma(3 / initial_zeta) * np.var(x))
         opt_gen, error_gen = curve_fit(
             self.get_cdf, x, cdf_x, [initial_mu, initial_alpha, initial_zeta]
         )

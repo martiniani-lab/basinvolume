@@ -75,9 +75,7 @@ class BruteEngine(EngineCommonOpt):
             self.mc_parameters["temperature"],
             self.mc_parameters["max_nr_samples"],
         )
-        self.step = UniformSphericalSampling(
-            42, self.pes_parameters["radius_container"]
-        )
+        self.step = UniformSphericalSampling(42, self.pes_parameters["radius_container"])
         self.mc.set_takestep(self.step)
         self.mc.set_report_steps(0)
         self.mc.add_conf_test(self.conftest_check_same_minimum)

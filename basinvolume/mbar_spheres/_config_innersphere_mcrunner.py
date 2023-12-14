@@ -12,7 +12,7 @@ from basinvolume.spheres import ConfigMCRunner
 from basinvolume.utils import trymakedir, view_traceback, conf_get_default
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.mbar_spheres import BVInnerSphereMCrunner
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Interaction, Minimizer
 import configparser
 import time
 import warnings
@@ -50,7 +50,6 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
     ):
-
         self.fname = fname
         self.temperature = 1.0
         self.eps = eps
@@ -75,7 +74,7 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
             opt_maxstep=opt_maxstep,
             opt_tol=self.opt_tol,
             opt_nsteps=opt_nsteps,
-            opt_kwargs = self.opt_kwargs,
+            opt_kwargs=self.opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,
@@ -99,9 +98,10 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
             warnings.warn("seeds not passed")
 
         self._requench_coords(self.dtol, opt_maxstep, verbose, gtol=self.opt_tol)
-
+        self.fix_com = self.interaction is not Interaction.NEGATIVE_COS
         # construct mcrunner
-        self.coords = _subtract_com(self.coords, ndim=self.bdim)
+        if self.fix_com:
+            self.coords = _subtract_com(self.coords, ndim=self.bdim)
         potential = NullPotential()
         self.mcrunner_gaussian = BVInnerSphereMCrunner(
             potential,
@@ -151,9 +151,7 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
             packings_dir = os.path.join(os.getcwd(), packings_dir)
         self.packings_dir = packings_dir
         self.packing_configpath = os.path.join(packings_dir, "{}.config".format(dname))
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
         configfile = "innersphere_" + dname
         self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 
@@ -178,9 +176,9 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
                 "which can negatively impact performance."
             )
         else:
-            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing[
-                "sorted_nsubdoms"
-            ] != int(os.environ["OMP_NUM_THREADS"]):
+            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing["sorted_nsubdoms"] != int(
+                os.environ["OMP_NUM_THREADS"]
+            ):
                 print(
                     "WARNING: The jammed packing has been sorted with a different number "
                     "of subdomains (OpenMP threads), which changes the number of cells "
@@ -191,14 +189,16 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.dtol = configf.getfloat("FINDK_MCRUNNER", "dtol")
-        minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+        minimizer_string = conf_get_default(
+            configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE"
+        )
         minimizer = minimizer_string.split(".")[-1]
         self.minimizer = Minimizer[minimizer]
-        self.opt_tol = configf.getfloat("FINDK_MCRUNNER","opt_tol")
+        self.opt_tol = configf.getfloat("FINDK_MCRUNNER", "opt_tol")
         self.opt_kwargs = ast.literal_eval(
             conf_get_default(configf, "FINDK_MCRUNNER", "opt_kwargs", "{}")
         )
-        
+
         # import mean displacement of replica with largest k
         check_path = os.path.join(self.base_directory, "0", "hist_mean")
 
@@ -270,7 +270,6 @@ class ConfigInnerSphereMCRunner(ConfigMCRunner):
 
 
 if __name__ == "__main__":
-
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
 

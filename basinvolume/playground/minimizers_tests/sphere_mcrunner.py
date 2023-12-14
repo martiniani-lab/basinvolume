@@ -199,9 +199,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         else:
             red_coords = full_coords
         # potential = as_cpp_potential(NullPotential())
-        super(BVSphereMCrunner, self).__init__(
-            potential, red_coords, temperature, niter
-        )
+        super(BVSphereMCrunner, self).__init__(potential, red_coords, temperature, niter)
 
         self.boxv = boxv
         self.bdim = len(boxv)
@@ -211,9 +209,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         self.red_radii = np.array(hs_radii)
         if use_frozen:
             self.red_radii = np.delete(self.red_radii, frozen_atoms)
-            self.red_origin = reduce_coordinates(
-                self.red_origin, frozen_atoms, self.bdim
-            )
+            self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
             assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
             assert len(self.red_origin) == self.ndim
             assert rcontainer is not None
@@ -436,9 +432,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(
-            Emin, Emax, num=len(hist), endpoint=False, retstep=True
-        )
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
         assert abs(step - self.binsize) < old_div(self.binsize, 100)
         np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
@@ -503,9 +497,7 @@ class BVSphereMCrunner(_BaseMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        )
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
@@ -515,9 +507,7 @@ class BVSphereMCrunner(_BaseMCRunner):
         this function is useful for testing
         """
         hist = self.histogram.get_histogram()
-        val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        )
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
 
         n, bins, patches = plt.hist(
             val,

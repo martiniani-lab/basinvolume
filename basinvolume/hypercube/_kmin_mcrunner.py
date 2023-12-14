@@ -85,9 +85,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
             record_histogram=True,
         )
 
-        self.mc_params = dict(
-            temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
@@ -96,13 +94,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
         # self.coords is origin, set initial configuration and origin to be the same
         potential = Harmonic(self.coords, bias_params[0], bdim=self.ndof, com=False)
         self.mcrunner = HypercubeMCrunner(
-            potential,
-            self.coords,
-            self.temperature,
-            stepsize,
-            niter,
-            self.coords,
-            **kwargs
+            potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
         )
 
         self._initialise()
@@ -129,9 +121,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
         self.mean_coord_dist, self.var_coord_dist = np.linalg.norm(
             mean_coord - self.mcrunner.origin
         ), np.sum(var_coord)
-        self.trajectory = self.mcrunner.dump_trajectory(
-            self.trajectory_path, clear=True
-        )
+        self.trajectory = self.mcrunner.dump_trajectory(self.trajectory_path, clear=True)
         self.traj_eval, self.traj_evec = trajectory_pca(self.trajectory)
         self.asphericity = asphericity_factor(self.traj_eval)
 
@@ -144,9 +134,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
         self.trajectory_path = "{}/{}.h5".format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = "diffusion_" + dname
-        self.diffusion_configfname = "{}/{}".format(
-            self.diffusion_dir, diffusion_configfname
-        )
+        self.diffusion_configfname = "{}/{}".format(self.diffusion_dir, diffusion_configfname)
 
     def _initialise(self):
         self._print_initialise()
@@ -161,9 +149,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
 
     def _print_diffusion_params(self):
         trymakedir(self.diffusion_dir)
-        fname = "{}.{}.config".format(
-            self.diffusion_configfname, int(self.mc_params["niter"])
-        )
+        fname = "{}.{}.config".format(self.diffusion_configfname, int(self.mc_params["niter"]))
         f = open(fname, "w")
         self._write_sim_params(f)
         f.close()
@@ -205,9 +191,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
             view_traceback()
 
     def _dump_diffusion_timeseries(self):
-        fname = "{0}/StepsTimeSeries.{1}".format(
-            self.diffusion_dir, int(self.mc_params["niter"])
-        )
+        fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params["niter"]))
         print("fname", fname)
         self.mcrunner.dump_steps_timeseries(fname, clear=True)
 

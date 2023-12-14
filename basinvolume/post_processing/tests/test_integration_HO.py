@@ -31,14 +31,11 @@ if __name__ == "__main__":
     ref_F2 = F_HO(nr_particles, dimension, k2)
     int_F1 = []
     int_F1.append(ref_F2 - 0.5 * nr_particles * dimension * log(k2 / k1))
-    int_F1.append(
-        ref_F2 - 0.5 * quad(lambda x: nr_particles * dimension / x, k1, k2)[0]
-    )
+    int_F1.append(ref_F2 - 0.5 * quad(lambda x: nr_particles * dimension / x, k1, k2)[0])
     # computation by GL without variable transform, order 4
     int_F1.append(
         ref_F2
-        - 0.5
-        * calculate_GL_integral_range(lambda x: nr_particles * dimension / x, k1, k2, 4)
+        - 0.5 * calculate_GL_integral_range(lambda x: nr_particles * dimension / x, k1, k2, 4)
     )
     # computation by GL with variable transform, order 4
     kappa_const = 1

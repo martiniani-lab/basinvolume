@@ -137,18 +137,14 @@ def _compute_write_entropies_msf(data_set, ik=0.1834006350297304, a=0.9671020810
             data_set.set_name,
         )
     )
-    entropy_base_output_path = os.path.join(
-        data_set.set_path, "msf_entropy_analysis_all"
-    )
+    entropy_base_output_path = os.path.join(data_set.set_path, "msf_entropy_analysis_all")
     print(("entropy_base_output_path", entropy_base_output_path))
     trymakedir(entropy_base_output_path)
     volume_sanity_check = VolumeSanityCheck(data_set.packing_data[0].configpath_packing)
     outliers = OutlierDetection(
         data_set.free_energies, p=0.5, D=3 * np.std(data_set.free_energies)
     )
-    gamma = np.array(data_set.pressures)[
-        np.array(outliers.non_outliers_indexes, dtype="i")
-    ]
+    gamma = np.array(data_set.pressures)[np.array(outliers.non_outliers_indexes, dtype="i")]
     # msf relation
     free_energies = (data_set.nparticles * ik) * np.log(gamma) + a * data_set.nparticles
     unbias_log_omega = OutlierRemovalUnbiasingEntropyLogOmega(

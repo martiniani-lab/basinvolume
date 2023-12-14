@@ -34,6 +34,7 @@ from basinvolume.utils import full_coordinates, write_2d_array_to_hdf5
 from basinvolume.spheres import BaseSpheresMCrunner
 from basinvolume.monte_carlo import (
     CheckSameMinimum,
+    CheckSameMinimumConfig,
     Findk,
     RecordDisplacementTimeseries,
     RecordStepsTimeseries,
@@ -154,6 +155,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         self.opt_tol = opt_tol
         self.opt_nsteps = opt_nsteps
         self.interaction = interaction
+        self.fix_com = self.interaction is not Interaction.NEGATIVE_COS
         self.pot_kwargs = pot_kwargs
         self.opt_kwargs = opt_kwargs
         self.distance_method = distance_method
@@ -189,6 +191,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
             use_frozen=use_frozen,
             frozen_atoms=frozen_atoms,
             rcontainer=rcontainer,
+            fix_com=self.fix_com,
         )
 
     def get_pot_optimizer(self):
@@ -335,20 +338,30 @@ class SpheresMCRunner(BaseSpheresMCrunner):
 
     def _get_check_same_minimum(self):
         use_cgd = self.minimizer is Minimizer.CG
-        csm = CheckSameMinimum(
-            self.pot_optimizer,
-            self.red_origin,
-            self.rattlers,
-            self.dtol,
-            opt=self.optimizer,
-            opt_tol=self.opt_tol,
-            opt_maxiter=self.opt_nsteps,
-            bdim=self.bdim,
-            eqsteps=self.equilibration_steps,
-            use_cgd=use_cgd,
-            perform_convergence_test=self.perform_convergence_test,
-            collect_minima_list=self.collect_minima_list,
-        )
+        if self.interaction is Interaction.NEGATIVE_COS:
+            csm = CheckSameMinimumConfig(
+                self.pot_optimizer,
+                self.red_origin,
+                self.dtol,
+                opt=self.optimizer,
+                opt_tol=self.opt_tol,
+                opt_maxiter=self.opt_nsteps,
+            )
+        else:
+            csm = CheckSameMinimum(
+                self.pot_optimizer,
+                self.red_origin,
+                self.rattlers,
+                self.dtol,
+                opt=self.optimizer,
+                opt_tol=self.opt_tol,
+                opt_maxiter=self.opt_nsteps,
+                bdim=self.bdim,
+                eqsteps=self.equilibration_steps,
+                use_cgd=use_cgd,
+                perform_convergence_test=self.perform_convergence_test,
+                collect_minima_list=self.collect_minima_list,
+            )
         return csm
 
     def _set_conf_tests(self):
@@ -755,7 +768,7 @@ class BV_MCrunner(SpheresMCRunner):
 
     def _set_actions(self):
         self.time_series = RecordDisplacementTimeseries(
-            self.red_origin, self.bdim, self.ts_niter, self.ts_freq
+            self.red_origin, self.bdim, self.ts_niter, self.ts_freq, fix_com=self.fix_com
         )
         self.add_action(self.time_series)
         if self.record_trajectory:
@@ -1019,11 +1032,13 @@ class Findk_MCrunner(SpheresMCRunner):
         minimizer=Minimizer.FIRE,
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
+        fix_com=True,
     ):
         # findk parameters
         self.ktarget = ktarget
         self.knavg = knavg
         self.ktol = ktol
+        self.fix_com = fix_com
         super(Findk_MCrunner, self).__init__(
             potential,
             full_coords,
@@ -1080,6 +1095,7 @@ class Findk_MCrunner(SpheresMCRunner):
             self.hmin,
             self.hmax,
             self.binsize,
+            fix_com=self.fix_com,
         )
         self.add_action(self.findk)
 
