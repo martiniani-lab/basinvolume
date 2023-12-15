@@ -805,14 +805,15 @@ class PT_Master(object):
         np.savetxt(fname, self.replica_timeseries[ireplica])
         self.replica_timeseries[ireplica] = []  # Clear timeseries
 
-    def _dump_traj(self, ireplica):
-        directory = os.path.join(self.base_directory, str(ireplica))
-        iteration = self.mcrunner_niter * (self.ptiter + 1)
-        coords = self.replica_states[ireplica].coords
-        df = pd.DataFrame([coords], columns=[f'{i}' for i in range(len(coords))])
-        df["iteration"] = iteration
-        hdf5_path = os.path.join(directory, "trajectory.hd5")
-        df.to_hdf(hdf5_path, key="data", mode="a", append=True)
+    def _dump_traj(self):
+        for ireplica in range(self.nreplicas):
+            directory = os.path.join(self.base_directory, str(ireplica))
+            iteration = self.mcrunner_niter * (self.ptiter + 1)
+            coords = self.replica_states[ireplica].coords
+            df = pd.DataFrame([coords], columns=[f'{i}' for i in range(len(coords))])
+            df["iteration"] = iteration
+            hdf5_path = os.path.join(directory, "trajectory.hd5")
+            df.to_hdf(hdf5_path, key="data", mode="a", append=True)
 
     def _dump_histogram(self, ireplica):
         directory = os.path.join(self.base_directory, str(ireplica))
