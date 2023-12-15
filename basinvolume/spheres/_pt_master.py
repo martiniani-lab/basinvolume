@@ -27,6 +27,7 @@ from basinvolume.post_processing import (
 )
 from basinvolume.monte_carlo import IndependenceSampling
 from basinvolume.spheres import BV_MCRunner_State
+import pandas as pd
 
 
 @unique
@@ -123,6 +124,35 @@ class PT_Master(object):
     """
     This class manages a job queue that sends jobs to Parallel Tempering replicas.
     It is run in a parallel process on rank 0.
+
+    Attributes:
+        nreplicas (int): The number of replicas.
+        example_mcrunner (object): An instance of the example_mcrunner class.
+        kmax (float): The maximum spring constant.
+        kmin (float): The minimum spring constant.
+        u2meank0 (float): The mean potential energy.
+        max_ptiter (int): The maximum number of parallel tempering iterations.
+        pfreq (int): The frequency of printing status updates.
+        skip (int): The number of swaps to skip for equilibration.
+        test_convergence (bool): Flag indicating whether to test for convergence.
+        fast_ct (bool): Flag indicating whether to use fast convergence testing.
+        rel_std_err (float): The relative standard error.
+        min_window (float): The minimum window size.
+        max_eq_time (float): The maximum equilibration time.
+        numnegk (int): The number of negative spring constants.
+        lownegk (float): The lowest negative spring constant.
+        k_spreading (str): The spreading scheme for spring constants.
+        bias (str): The biasing scheme.
+        print_status (bool): Flag indicating whether to print status updates.
+        base_directory (str): The base directory for storing results.
+        bs_nodes (int): The number of nodes for block sampling.
+        eq_min_ptiter (int): The minimum number of PT iterations for equilibration.
+        eq_max_ptiter (int): The maximum number of PT iterations for equilibration.
+        sleep_seconds (float): The sleep time in seconds.
+        exchange_scheme (ExchangeScheme): The exchange scheme.
+        checkpoint_time (float): The checkpoint time.
+        checkpoint_file (str): The checkpoint file name.
+        record_traj_npoints (int): The number of points to record in the trajectory.
     """
 
     def __init__(
@@ -153,6 +183,7 @@ class PT_Master(object):
         exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
         checkpoint_time=None,
         checkpoint_file="checkpoint.dmp",
+        record_traj_npoints=-1,
     ):
         self.nreplicas = nreplicas
         self.sleep_seconds = sleep_seconds
@@ -168,6 +199,7 @@ class PT_Master(object):
         self.print_status = print_status
         self.skip = skip  # might want to skip the first few swaps to allow for equilibration
         self.pfreq = pfreq
+        self.record_traj_npoints = record_traj_npoints
         self.NO_EXCHANGE = (
             -12345
         )  # this NEGATIVE number in exchange pattern means that no exchange should be attempted
@@ -300,7 +332,6 @@ class PT_Master(object):
         more costly replica first.
         """
         if self.bias == "harmonic":
-
             nposk = self.nreplicas - self.numnegk  # number of positive k
 
             if self.k_spreading == "gausslobato":
@@ -463,6 +494,9 @@ class PT_Master(object):
 
         if self.ptiter >= self.skip:
             self._exchange_coords()
+            if self.record_traj_npoints != -1 and self.ptiter % self.record_traj_npoints == 0:
+                self._dump_traj()
+
             # print and increase parallel tempering count and test convergence
             if self.ptiter % self.pfreq == 0:
                 self.max_ptiter = self._test_convergence()
@@ -541,7 +575,6 @@ class PT_Master(object):
         return exchange_pattern
 
     def _independence_sampling(self, exchange_pattern):
-
         if self.bias == "harmonic":
             dxs = np.array([replica.dx for replica in self.replica_states])
             betas = np.array([replica.bias_params for replica in self.replica_states])
@@ -761,6 +794,8 @@ class PT_Master(object):
                 self._dump_timeseries(ireplica)
             if self.ptiter >= self.eq_min_ptiter and iteration > self.mcrunner_eqsteps:
                 self._dump_histogram(ireplica)
+                self._dump_traj(ireplica)
+
         logging.debug("_print_data -- END")
 
     def _dump_timeseries(self, ireplica):
@@ -769,6 +804,15 @@ class PT_Master(object):
         fname = os.path.join(directory, "TimeSeries.{}".format(iteration))
         np.savetxt(fname, self.replica_timeseries[ireplica])
         self.replica_timeseries[ireplica] = []  # Clear timeseries
+
+    def _dump_traj(self, ireplica):
+        directory = os.path.join(self.base_directory, str(ireplica))
+        iteration = self.mcrunner_niter * (self.ptiter + 1)
+        coords = self.replica_states[ireplica].coords
+        df = pd.DataFrame([coords], columns=[f'{i}' for i in range(len(coords))])
+        df["iteration"] = iteration
+        hdf5_path = os.path.join(directory, "trajectory.hd5")
+        df.to_hdf(hdf5_path, key="data", mode="a", append=True)
 
     def _dump_histogram(self, ireplica):
         directory = os.path.join(self.base_directory, str(ireplica))
