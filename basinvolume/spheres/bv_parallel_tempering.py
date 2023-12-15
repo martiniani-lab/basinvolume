@@ -233,6 +233,20 @@ if __name__ == "__main__":
             Only use for testing purposes.",
         default=None,
     )
+    parser.add_argument(
+        "--save_coordinates",
+        type=bool,
+        help="Save coordinates every N steps of the monte carlo",
+        default=False,
+    )
+    parser.add_argument(
+        "--n_save_coordinates",
+        type=int,
+        help="How many coordinate to save if the simulation runs for mintotniter steps \
+            Default: 100.",
+        default=100,
+    )
+
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
@@ -263,6 +277,11 @@ if __name__ == "__main__":
     min_tot_niter = int(args.mintotniter)
     max_tot_niter = int(args.maxtotniter)
 
+    if args.save_coordinates:
+        record_traj_npoints = min_tot_niter // args.n_save_coordinates
+    else:
+        record_traj_npoints = -1
+
     min_ptiter = int(
         min_tot_niter * 0.1
     )  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
@@ -285,7 +304,7 @@ if __name__ == "__main__":
     test_convergence_ts = True
     record_histogram = False
     assert (
-        record_histogram == False and pt_eq_niter == 0 and ts_freq == 1
+        record_histogram is False and pt_eq_niter == 0 and ts_freq == 1
     )  # ts_freq must be 1 with current output implementation (all based on timeseries)
     rel_std_err = args.relstderr  # relative standard error in the mean used by convergence test
     min_window = min_tot_niter * 0.5  # minimum amount of data before trying to check convergence
@@ -349,6 +368,7 @@ if __name__ == "__main__":
         minimizer=args.force_minimizer,
         dtol=args.force_dtol,
         opt_tol=args.force_opt_tol,
+        record_traj_npoints=record_traj_npoints,
     )
     fix_com = mcrunner.fix_com
 
