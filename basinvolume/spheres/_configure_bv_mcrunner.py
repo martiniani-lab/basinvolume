@@ -69,7 +69,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
         minimizer=None,
         opt_tol=None,
         dtol=None,
-        record_traj_npoints=-1,
     ):
         if minimizer is None:
             self.minimizer = None
@@ -89,12 +88,6 @@ class ConfigBVMCRunner(ConfigMCRunner):
         # only fix com if potential is not negative cosine
         self.fix_com = self.interaction is not Interaction.NEGATIVE_COS
 
-        if self.record_traj_npoints == -1:
-            record_trajectory = False
-        else:
-            record_trajectory = True
-
-        self.record_traj_npoints = record_traj_npoints
         # set parameters
         kwargs = dict(
             bias_params=bias_params,
@@ -125,11 +118,9 @@ class ConfigBVMCRunner(ConfigMCRunner):
             distance_method=self.distance_method,
             use_frozen=False,
             minimizer=self.minimizer,
-            record_trajectory=record_trajectory,
-            record_trajectory_npoints=self.record_traj_npoints,
+            record_trajectory=False,
             interaction=self.interaction,
             pot_kwargs=self.pot_kwargs,
-            coords_record_freq=self.record_traj_npoints,
         )
 
         self.mc_params = dict(temperature=temperature, niter=niter, stepsize=stepsize)
