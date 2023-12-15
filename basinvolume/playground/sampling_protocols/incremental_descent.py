@@ -209,9 +209,7 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
 
             print("nrattlers: {}".format(nratls))
             if nratls > self.max_nrattlers:
-                print(
-                    "{} rattlers constitute more than 10% of the system".format(nratls)
-                )
+                print("{} rattlers constitute more than 10% of the system".format(nratls))
                 return False
 
         return True
@@ -219,9 +217,7 @@ class Incremental_Generate_Jammed_Packing(HS_Generate_Jammed_Packing):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="generate 2/3-D hard disks/spheres packings"
-    )
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument(
         "-p",
         "--density",
@@ -248,9 +244,7 @@ if __name__ == "__main__":
         help="name of directory with packings, must be in cwd",
         default="packings",
     )
-    parser.add_argument(
-        "--show", action="store_true", help="show histograms", default=False
-    )
+    parser.add_argument("--show", action="store_true", help="show histograms", default=False)
 
     args = parser.parse_args()
     print(args)

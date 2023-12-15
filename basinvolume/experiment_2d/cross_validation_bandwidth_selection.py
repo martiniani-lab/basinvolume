@@ -38,9 +38,7 @@ def get_bandwidth_estimate(data, kernel="gaussian", method="cross_validation"):
     silverman_bandwidth = ((4 * std_samples**5) / (3 * nr_samples)) ** (1 / 5)
     if method == "Silverman":
         return np.asarray([silverman_bandwidth])
-    loocv = CrossValidationBandwidthSelection(
-        data, kernel=kernel, h_initial=silverman_bandwidth
-    )
+    loocv = CrossValidationBandwidthSelection(data, kernel=kernel, h_initial=silverman_bandwidth)
     return loocv.opt_bandwidth
 
 
@@ -50,9 +48,7 @@ def get_pdf(data, x_sample_positions, bandwidth=2, kernel="gaussian"):
     return np.exp(log_pdf)
 
 
-def sample_from_pdf(
-    data, nr_samples, bandwidth=2, kernel="gaussian", random_state=None
-):
+def sample_from_pdf(data, nr_samples, bandwidth=2, kernel="gaussian", random_state=None):
     kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(data[:, np.newaxis])
     return kde.sample(nr_samples, random_state=random_state)[:, 0]
 
@@ -105,8 +101,7 @@ if __name__ == "__main__":
     plt.show()
     max_order = 4
     numerical_raw_moments = [
-        compute_raw_moment(pdf_x, pdf_pdf, exponent=exponent)
-        for exponent in range(max_order + 1)
+        compute_raw_moment(pdf_x, pdf_pdf, exponent=exponent) for exponent in range(max_order + 1)
     ]
     numerical_central_moments = [
         compute_central_moment(pdf_x, pdf_pdf, exponent=exponent)

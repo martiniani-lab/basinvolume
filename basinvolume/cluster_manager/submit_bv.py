@@ -154,9 +154,7 @@ class SubmitBV(object):
             self.submit_cmd = "sbatch"
             self.workdir_var = "SLURM_SUBMIT_DIR"
         else:
-            raise ValueError(
-                "Batch system not implemented: {}".format(self.batch_system)
-            )
+            raise ValueError("Batch system not implemented: {}".format(self.batch_system))
 
     def _check_kmax_config_file_ready(self, kmax_configpath):
         """
@@ -302,9 +300,7 @@ class SubmitBV(object):
             command += " --verbose"
         return command
 
-    def _get_innersphere_dos_command(
-        self, noj, path_to_script, script="bv_innersphere_dos.py"
-    ):
+    def _get_innersphere_dos_command(self, noj, path_to_script, script="bv_innersphere_dos.py"):
         """
         this function returns the correct command line.
 
@@ -327,9 +323,7 @@ class SubmitBV(object):
             command += " --verbose"
         return command
 
-    def submit_kmin_calculations(
-        self, queue_or_partition, walltime, path_to_script, force
-    ):
+    def submit_kmin_calculations(self, queue_or_partition, walltime, path_to_script, force):
         """
         launch kmin calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present,
@@ -359,13 +353,8 @@ class SubmitBV(object):
                                 explore_dir
                             ) not in subdirs:  # check is explore_dir is a subfolder of self.workdir
                                 trymakedir(path)
-                            kmin_path = os.path.join(
-                                path, self.kmin_config + noj + ".config"
-                            )
-                            if (
-                                not self._check_kmin_config_file_ready(kmin_path)
-                                or force
-                            ):
+                            kmin_path = os.path.join(path, self.kmin_config + noj + ".config")
+                            if not self._check_kmin_config_file_ready(kmin_path) or force:
                                 #########remove old BV output#######
                                 self._remove_bv_output(
                                     explore_dir,
@@ -400,9 +389,7 @@ class SubmitBV(object):
                             else:
                                 pass
 
-    def submit_kmax_calculations(
-        self, queue_or_partition, walltime, path_to_script, force
-    ):
+    def submit_kmax_calculations(self, queue_or_partition, walltime, path_to_script, force):
         """
         launch kmax calculations manually if they have not been launched yet
         (this method only checks that the config file is not ready or present,
@@ -433,13 +420,8 @@ class SubmitBV(object):
                                 # check is explore_dir is a
                                 # subfolder of self.workdir
                                 trymakedir(path)
-                            kmax_path = os.path.join(
-                                path, self.kmax_config + noj + ".config"
-                            )
-                            if (
-                                not self._check_kmax_config_file_ready(kmax_path)
-                                or force
-                            ):
+                            kmax_path = os.path.join(path, self.kmax_config + noj + ".config")
+                            if not self._check_kmax_config_file_ready(kmax_path) or force:
                                 #########remove old BV output#######
                                 self._remove_bv_output(
                                     explore_dir,
@@ -507,12 +489,8 @@ class SubmitBV(object):
                                 path,
                                 self.innersphere_dos_config + noj + ".config",
                             )
-                            kmax_path = os.path.join(
-                                path, self.kmax_config + noj + ".config"
-                            )
-                            pt_path = os.path.join(
-                                path, self.pt_config + noj + ".config"
-                            )
+                            kmax_path = os.path.join(path, self.kmax_config + noj + ".config")
+                            pt_path = os.path.join(path, self.pt_config + noj + ".config")
                             if (
                                 self._check_pt_config_file_ready(pt_path)
                                 and self._check_kmax_config_file_ready(kmax_path)
@@ -607,9 +585,7 @@ class SubmitBV(object):
             command += " --verbose"
         return command
 
-    def submit_pt_calculations(
-        self, queue_or_partition, walltime, path_to_script, force
-    ):
+    def submit_pt_calculations(self, queue_or_partition, walltime, path_to_script, force):
         """
         launch pt calculations manually if they have not been launched yet
         (this method only checks that the config files are not ready or present,
@@ -633,37 +609,25 @@ class SubmitBV(object):
                         ]  # extract packing number from explor_dir string
                         if self.nojmin <= int(noj) <= self.nojmax:
                             path = os.path.join(root, dir)  # build a full path
-                            kmax_path = os.path.join(
-                                path, self.kmax_config + noj + ".config"
-                            )
-                            kmin_path = os.path.join(
-                                path, self.kmin_config + noj + ".config"
-                            )
-                            pt_path = os.path.join(
-                                path, self.pt_config + noj + ".config"
-                            )
+                            kmax_path = os.path.join(path, self.kmax_config + noj + ".config")
+                            kmin_path = os.path.join(path, self.kmin_config + noj + ".config")
+                            pt_path = os.path.join(path, self.pt_config + noj + ".config")
                             if (
                                 self._check_kmax_config_file_ready(kmax_path)
                                 and self._check_kmin_config_file_ready(kmin_path)
-                            ) and (
-                                not self._check_pt_config_file_ready(pt_path) or force
-                            ):
+                            ) and (not self._check_pt_config_file_ready(pt_path) or force):
                                 #############remove old pt data##############
                                 self._remove_pt_old_data(
                                     dir,
                                     self.pt_config + noj,
-                                    output_signature="bv_{}_pt{}.o*".format(
-                                        self.label, noj
-                                    ),
+                                    output_signature="bv_{}_pt{}.o*".format(self.label, noj),
                                 )
                                 ##############################################
                                 ##now check that kmax has a reasonable value##
                                 if check_kmax_reasonable(kmax_path):
                                     if not os.path.isabs(path_to_script):
                                         path_to_script = os.path.abspath(path_to_script)
-                                    mpi_procs = min(
-                                        self.pt_workers + 1, self.pt_replicas
-                                    )
+                                    mpi_procs = min(self.pt_workers + 1, self.pt_replicas)
                                     if mpi_procs == self.pt_replicas:
                                         mpi_oversubscribe = 0
                                     else:
@@ -766,9 +730,7 @@ class SubmitBV(object):
                 if (
                     self.ext in file
                     and self.nojmin <= int(noj) <= self.nojmax
-                    and not os.path.isfile(
-                        os.path.join(self.workdir, explore_dir + ".tar.gz")
-                    )
+                    and not os.path.isfile(os.path.join(self.workdir, explore_dir + ".tar.gz"))
                 ):
 
                     path = os.path.join(
@@ -785,16 +747,12 @@ class SubmitBV(object):
                         path, self.innersphere_dos_config + noj + ".config"
                     )
 
-                    if not self._check_innersphere_dos_config_file_ready(
-                        innersphere_dos_path
-                    ):
+                    if not self._check_innersphere_dos_config_file_ready(innersphere_dos_path):
                         #########remove old innersphere data#######
                         self._remove_innersphere_dos_old_data(
                             explore_dir,
                             self.innersphere_dos_config + noj,
-                            output_signature="bv_{}_innersphere_dos{}.o*".format(
-                                self.label, noj
-                            ),
+                            output_signature="bv_{}_innersphere_dos{}.o*".format(self.label, noj),
                         )
                         #####################################
                         if not os.path.isabs(path_to_script):
@@ -836,9 +794,7 @@ class SubmitBV(object):
                             self._remove_pt_old_data(
                                 explore_dir,
                                 self.pt_config + noj,
-                                output_signature="bv_{}_pt{}.o*".format(
-                                    self.label, noj
-                                ),
+                                output_signature="bv_{}_pt{}.o*".format(self.label, noj),
                             )
                             ##################################
                             kmax_ready = self._check_kmax_config_file_ready(kmax_path)
@@ -969,9 +925,7 @@ class SubmitBV(object):
                                             #########remove old BV output#######
                                             self._remove_bv_output(
                                                 explore_dir,
-                                                "bv_{}_kmax{}.o*".format(
-                                                    self.label, noj
-                                                ),
+                                                "bv_{}_kmax{}.o*".format(self.label, noj),
                                             )
                                             #####################################
                                             kmin_script.write(
@@ -1055,12 +1009,8 @@ if __name__ == "__main__":
         help="working directory (folder containing the "
         "packings and jammed_packings subfolders)",
     )
-    single_parser.add_argument(
-        "path_to_script", type=str, help="path to the file to execute"
-    )
-    single_parser.add_argument(
-        "job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D"
-    )
+    single_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
+    single_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
     single_parser.add_argument("walltime_hours", type=float, help="wall-time in hours")
     single_parser.add_argument(
         "--batch-system",
@@ -1083,12 +1033,8 @@ if __name__ == "__main__":
         "or derive from walltime (PBS, works on Dexter)",
         default=None,
     )
-    single_parser.add_argument(
-        "--kmin", action="store_true", help="compute kmin", default=False
-    )
-    single_parser.add_argument(
-        "--kmax", action="store_true", help="compute kmax", default=False
-    )
+    single_parser.add_argument("--kmin", action="store_true", help="compute kmin", default=False)
+    single_parser.add_argument("--kmax", action="store_true", help="compute kmax", default=False)
     single_parser.add_argument(
         "--mbar",
         action="store_true",
@@ -1110,15 +1056,13 @@ if __name__ == "__main__":
     single_parser.add_argument(
         "--nojmin",
         type=int,
-        help="number of minimum job ID to submit (to "
-        "selectively submit a range of jobs)",
+        help="number of minimum job ID to submit (to " "selectively submit a range of jobs)",
         default=0,
     )
     single_parser.add_argument(
         "--nojmax",
         type=int,
-        help="number of maximum job ID to submit (to "
-        "selectively submit a range of jobs)",
+        help="number of maximum job ID to submit (to " "selectively submit a range of jobs)",
         default=1e6,
     )
     single_parser.add_argument(
@@ -1189,9 +1133,7 @@ if __name__ == "__main__":
         help="lowest value of negative k's to use, default -2.5",
         default=-2.5,
     )
-    single_parser.add_argument(
-        "--force", action="store_true", help="force run", default=False
-    )
+    single_parser.add_argument("--force", action="store_true", help="force run", default=False)
     single_parser.add_argument(
         "--nocell",
         action="store_true",
@@ -1228,8 +1170,7 @@ if __name__ == "__main__":
     single_parser.add_argument(
         "--pt-threads",
         type=int,
-        help="Number of OpenMP threads to use for parallel "
-        "tempering. Default: Set by THREADS",
+        help="Number of OpenMP threads to use for parallel " "tempering. Default: Set by THREADS",
         default=None,
     )
     single_parser.add_argument(
@@ -1303,16 +1244,10 @@ if __name__ == "__main__":
         help="working directory (folder containing the "
         "packings and jammed_packings subfolders)",
     )
-    chain_parser.add_argument(
-        "path_to_script", type=str, help="path to the file to execute"
-    )
-    chain_parser.add_argument(
-        "job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D"
-    )
+    chain_parser.add_argument("path_to_script", type=str, help="path to the file to execute")
+    chain_parser.add_argument("job_label", type=str, help="suggested: Nn_Pp_Pp_nD: 32_70_80_2D")
     chain_parser.add_argument("k_walltime_hours", type=float, help="wall-time in hours")
-    chain_parser.add_argument(
-        "pt_walltime_hours", type=float, help="wall-time in hours"
-    )
+    chain_parser.add_argument("pt_walltime_hours", type=float, help="wall-time in hours")
     chain_parser.add_argument(
         "--batch-system",
         type=str,
@@ -1352,15 +1287,13 @@ if __name__ == "__main__":
     chain_parser.add_argument(
         "--nojmin",
         type=int,
-        help="number of minimum job ID to submit (to "
-        "selectively submit a range of jobs)",
+        help="number of minimum job ID to submit (to " "selectively submit a range of jobs)",
         default=0,
     )
     chain_parser.add_argument(
         "--nojmax",
         type=int,
-        help="number of maximum job ID to submit (to "
-        "selectively submit a range of jobs)",
+        help="number of maximum job ID to submit (to " "selectively submit a range of jobs)",
         default=1e6,
     )
     chain_parser.add_argument(
@@ -1467,8 +1400,7 @@ if __name__ == "__main__":
     chain_parser.add_argument(
         "--pt-threads",
         type=int,
-        help="Number of OpenMP threads to use for parallel "
-        "tempering. Default: Set by THREADS",
+        help="Number of OpenMP threads to use for parallel " "tempering. Default: Set by THREADS",
         default=None,
     )
     chain_parser.add_argument(
@@ -1558,9 +1490,7 @@ if __name__ == "__main__":
     if args.mpi_implementation.upper() in MPI_Implementation.__members__:
         mpi_impl = MPI_Implementation[args.mpi_implementation.upper()]
     else:
-        raise ValueError(
-            "Unknown MPI implementation: {}".format(args.mpi_implementation)
-        )
+        raise ValueError("Unknown MPI implementation: {}".format(args.mpi_implementation))
 
     if args.minimizer.upper() in Minimizer.__members__:
         minimizer = Minimizer[args.minimizer.upper()]
@@ -1593,16 +1523,11 @@ if __name__ == "__main__":
             if (
                 not os.path.isdir(target_path)
                 or not config["sorted"]
-                or (
-                    config["sorted_nsubdoms"] != nthreads
-                    and config["pot_kwargs"]["balance_omp"]
-                )
+                or (config["sorted_nsubdoms"] != nthreads and config["pot_kwargs"]["balance_omp"])
             ):
                 # Only sort when directory doesn't exist or packings have not yet been sorted
                 logging.info("Sorting jammed packings")
-                unsorted_path = os.path.join(
-                    os.path.dirname(target_path), "jammed_unsorted"
-                )
+                unsorted_path = os.path.join(os.path.dirname(target_path), "jammed_unsorted")
                 if os.path.isdir(target_path):
                     if remove_old:
                         shutil.rmtree(target_path)
@@ -1628,9 +1553,7 @@ if __name__ == "__main__":
         packings_path = os.path.join(args.workdir, args.packings_dir)
         packing_files = os.listdir(packings_path)
         first_config = sorted([f for f in packing_files if ".config" in f])[0]
-        packing_config = read_jammed_packing_config(
-            os.path.join(packings_path, first_config)
-        )
+        packing_config = read_jammed_packing_config(os.path.join(packings_path, first_config))
         sort_packings(args.packings_dir, packing_config, args.threads)
         if args.pt_threads != args.threads:
             pt_packings_dir = "jammed_packings_pt"

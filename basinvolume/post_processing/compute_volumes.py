@@ -119,9 +119,7 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
                     ):
                         try:
                             volf = configparser.ConfigParser()
-                            volf.read(
-                                os.path.join(path, self.analysis_dir, self.volume_file)
-                            )
+                            volf.read(os.path.join(path, self.analysis_dir, self.volume_file))
                             F0 = volf.getfloat(self.volume_title, "F0")
                         except Exception as e:
                             logging.info("run_analysis Exception: {}".format(e))
@@ -149,9 +147,7 @@ class ComputeVolumesCommon(with_metaclass(abc.ABCMeta, object)):
             for f in os.listdir(self.workspace_dir)
             if (
                 f.startswith(self.explore_bv_dir)
-                and os.path.isfile(
-                    os.path.join(self.workspace_dir, f, "inner_sphere.timeseries")
-                )
+                and os.path.isfile(os.path.join(self.workspace_dir, f, "inner_sphere.timeseries"))
             )
         ]
         if self.nr_volume_points != -1:
@@ -206,9 +202,7 @@ class ComputeVolumesTINTMultiConfigFile(ComputeVolumesCommon):
         jammed_packings_path = os.path.abspath(
             os.path.join(self.workspace_dir, self.jammed_packings_dir)
         )
-        packings_path = os.path.abspath(
-            os.path.join(self.workspace_dir, self.packings_dir)
-        )
+        packings_path = os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir))
         print(explore_dir)
         print("jammed_packings_path", jammed_packings_path)
         print("packings_dir", packings_path)
@@ -267,9 +261,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
         jammed_packings_path = os.path.abspath(
             os.path.join(self.workspace_dir, self.jammed_packings_dir)
         )
-        packings_path = os.path.abspath(
-            os.path.join(self.workspace_dir, self.packings_dir)
-        )
+        packings_path = os.path.abspath(os.path.join(self.workspace_dir, self.packings_dir))
         self.series_collector(
             fname=fname,
             explore_dir=explore_dir,
@@ -297,9 +289,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                     log_gr_ratio_file = "log_gr_ratio.csv"
                     if (
                         not self.force_run
-                        and os.path.isfile(
-                            os.path.join(path, self.analysis_dir, self.volume_file)
-                        )
+                        and os.path.isfile(os.path.join(path, self.analysis_dir, self.volume_file))
                         and (
                             not self.plot_dos_data
                             or os.path.isfile(
@@ -309,9 +299,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
                     ):
                         try:
                             volf = configparser.ConfigParser()
-                            volf.read(
-                                os.path.join(path, self.analysis_dir, self.volume_file)
-                            )
+                            volf.read(os.path.join(path, self.analysis_dir, self.volume_file))
                             F0 = volf.getfloat(self.volume_title, "F0")
                         except Exception as e:
                             logging.info("run_analysis Exception: {}".format(e))
@@ -372,9 +360,7 @@ class ComputeVolumes(object):
                 set_explore_dir=set_explore_dir,
             )
         else:
-            raise Exception(
-                "ComputeVolumes: illegal choice of method, " "should be MBAR or TINT"
-            )
+            raise Exception("ComputeVolumes: illegal choice of method, " "should be MBAR or TINT")
 
     def __call__(self):
         self.computer.run_analysis()

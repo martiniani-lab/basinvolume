@@ -63,9 +63,7 @@ class Splitting_Grid_0(object):
                 )
             )
         )
-        self.nr_of_cells = (
-            self.nr_of_cells_one_direction * self.nr_of_cells_one_direction
-        )
+        self.nr_of_cells = self.nr_of_cells_one_direction * self.nr_of_cells_one_direction
         # recoding positions of grid cell centres
         self.center_x = np.zeros(self.nr_of_cells)
         self.center_y = np.zeros(self.nr_of_cells)
@@ -78,8 +76,7 @@ class Splitting_Grid_0(object):
                 self.center_x[0] + (i % self.nr_of_cells_one_direction) * self.spacing_x
             )
             self.center_y[i] = (
-                self.center_y[0]
-                + (i // self.nr_of_cells_one_direction) * self.spacing_y
+                self.center_y[0] + (i // self.nr_of_cells_one_direction) * self.spacing_y
             )
 
 
@@ -110,9 +107,7 @@ class Splitting_Grid_1(object):
             total_nr_of_particles,
         )
         self.nr_of_cells_one_direction = base.nr_of_cells_one_direction - 1
-        self.nr_of_cells = (
-            self.nr_of_cells_one_direction * self.nr_of_cells_one_direction
-        )
+        self.nr_of_cells = self.nr_of_cells_one_direction * self.nr_of_cells_one_direction
         self.center_x = np.zeros(self.nr_of_cells)
         self.center_y = np.zeros(self.nr_of_cells)
         # shift right and up
@@ -123,8 +118,7 @@ class Splitting_Grid_1(object):
                 self.center_x[0] + (i % self.nr_of_cells_one_direction) * base.spacing_x
             )
             self.center_y[i] = (
-                self.center_y[0]
-                + (i // self.nr_of_cells_one_direction) * base.spacing_y
+                self.center_y[0] + (i // self.nr_of_cells_one_direction) * base.spacing_y
             )
 
 
@@ -355,14 +349,10 @@ class Experimental_Packing(object):
         )
         self.frozen_shell_thickness = frozen_shell_thickness
         min_distance_from_boundary_x = (
-            self.frozen_shell_thickness
-            * (2 * self.average_particle_radius)
-            / self.grid.delta_x
+            self.frozen_shell_thickness * (2 * self.average_particle_radius) / self.grid.delta_x
         )
         min_distance_from_boundary_y = (
-            self.frozen_shell_thickness
-            * (2 * self.average_particle_radius)
-            / self.grid.delta_y
+            self.frozen_shell_thickness * (2 * self.average_particle_radius) / self.grid.delta_y
         )
         x_small = distance_from_boundary_x < min_distance_from_boundary_x
         y_small = distance_from_boundary_y < min_distance_from_boundary_y
@@ -418,9 +408,7 @@ class Experimental_Packing(object):
     def print_grid(self, output_name):
         out_file = open(output_name, "w")
         for i in range(self.grid.nr_of_cells):
-            out_file.write(
-                str(self.grid.center_x[i]) + "\t" + str(self.grid.center_y[i]) + "\n"
-            )
+            out_file.write(str(self.grid.center_x[i]) + "\t" + str(self.grid.center_y[i]) + "\n")
 
     def _extract_neighborhood(self, packing_index, particle_indices, particle_frozen):
         center_x = self.grid.center_x[packing_index]
@@ -455,9 +443,8 @@ class Experimental_Packing(object):
 
         # note that self.mobile_particle_radius and self.frozen_particle_radius are instantiated as members
         self.mobile_particle_radius = mobile_particle_radius
-        self.frozen_particle_radius = (
-            self.mobile_particle_radius
-            + self.frozen_shell_thickness * (2 * self.average_particle_radius)
+        self.frozen_particle_radius = self.mobile_particle_radius + self.frozen_shell_thickness * (
+            2 * self.average_particle_radius
         )
         for i in range(self.total_nr_of_particles):
             dd = la.norm([self.x[i] - center_x, self.y[i] - center_y])
@@ -471,19 +458,12 @@ class Experimental_Packing(object):
 
     def _get_nr_particles_in_circle(self, center_x, center_y, radius):
         return np.count_nonzero(
-            [
-                la.norm([x - center_x, y - center_y]) <= radius
-                for x, y in zip(self.x, self.y)
-            ]
+            [la.norm([x - center_x, y - center_y]) <= radius for x, y in zip(self.x, self.y)]
         )
 
-    def _adapt_radius(
-        self, old_radius, found_particles, desired_particles, nr_iterations
-    ):
+    def _adapt_radius(self, old_radius, found_particles, desired_particles, nr_iterations):
         coupling = 1.0 / nr_iterations  # can be adapted to damp oscillations
-        return old_radius * (
-            (1 - coupling) + coupling * sqrt(desired_particles / found_particles)
-        )
+        return old_radius * ((1 - coupling) + coupling * sqrt(desired_particles / found_particles))
 
     def _check_distance_to_boundary(self, idx):
         safe_nr_diameters = 2  # depends on boundary shape of experimental packing

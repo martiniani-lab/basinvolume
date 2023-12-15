@@ -98,18 +98,14 @@ class _collect_u2_vs_k(object):
         self.base_directory = self.explore_dir + "/" + base_dir
         self.frozen = frozen
         n = int(re.findall(r"\d+", self.fname)[0])
-        self.packing_configpath = os.path.join(
-            packings_dir, "packing{}.config".format(n)
-        )
+        self.packing_configpath = os.path.join(packings_dir, "packing{}.config".format(n))
         # assert os.path.isfile(self.packing_configpath)
 
         self.jammed_packing_configpath = os.path.join(
             jammed_packings_dir, "{}.config".format(self.fname)
         )
 
-        self.findk_configpath = os.path.join(
-            self.explore_dir, "findk_" + fname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.explore_dir, "findk_" + fname + ".config")
         if os.path.isfile(self.packing_configpath):
             self.problem_type = "packing"
             assert os.path.isfile(self.jammed_packing_configpath)
@@ -117,13 +113,9 @@ class _collect_u2_vs_k(object):
             # hack to run same code on hypercube
             self.problem_type = "hypercube"
         assert os.path.isfile(self.findk_configpath)
-        self.kmin_configpath = os.path.join(
-            self.explore_dir, "kmin_" + fname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + fname + ".config")
         assert os.path.isfile(self.kmin_configpath)
-        self.pt_configpath = os.path.join(
-            self.explore_dir, "explore_" + fname + ".config"
-        )
+        self.pt_configpath = os.path.join(self.explore_dir, "explore_" + fname + ".config")
         assert os.path.isfile(self.pt_configpath)
         self.verbose = verbose
         if self.verbose:
@@ -283,15 +275,11 @@ class _collect_u2_vs_k(object):
             mean_arr = []
             nsubs = step_timeseries[0][eqtime:].size // n
             for j in range(nsubs):
-                mean_arr.append(
-                    np.sum(step_timeseries[0][eqtime + j * n : eqtime + (j + 1) * n])
-                )
+                mean_arr.append(np.sum(step_timeseries[0][eqtime + j * n : eqtime + (j + 1) * n]))
             mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
             step_timeseries_mean_path.append(mean)
             step_timeseries_mean_path_std.append(stdev / np.sqrt(len(mean_arr)))
-            step_timeseries_mean_eucdist.append(
-                np.mean(step_timeseries[i + 1][eqtime // n :])
-            )
+            step_timeseries_mean_eucdist.append(np.mean(step_timeseries[i + 1][eqtime // n :]))
             step_timeseries_mean_eucdist_std.append(
                 np.std(step_timeseries[i + 1][eqtime // n :])
                 / np.sqrt(len(step_timeseries[i + 1]))
@@ -359,11 +347,7 @@ class _collect_u2_vs_k(object):
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
-        print(
-            "unit_box_F0 {} unit_box_F0unc {}".format(
-                self.unit_box_F0, self.unit_box_F0unc
-            )
-        )
+        print("unit_box_F0 {} unit_box_F0unc {}".format(self.unit_box_F0, self.unit_box_F0unc))
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
         if self.problem_type == "packing":
@@ -379,9 +363,7 @@ class _collect_u2_vs_k(object):
     def _plot_diffusion(self):
         x, dx, y, dy = self._import_steps_time_series_diffusion()
         x, dx, y, dy = np.array(x), np.array(dx), np.array(y), np.array(dy)
-        pol = np.poly1d(
-            np.polyfit(np.log(x)[:2], np.log(y)[:2], 1, w=(y / dy)[:2])
-        )  # [5:-1]
+        pol = np.poly1d(np.polyfit(np.log(x)[:2], np.log(y)[:2], 1, w=(y / dy)[:2]))  # [5:-1]
         w = np.polyfit(np.log(x)[:2], np.log(y)[:2], 1)
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -445,9 +427,9 @@ class _collect_u2_vs_k(object):
             print("_collect_u2_vs_k diffusion: %s" % (traceback.format_exc()))
 
         cont_karray = np.linspace(self.kmin, self.kmax, 100)
-        u2_array_app = (
-            cont_karray + (self.nparticles * self.bdim) / self.displ_k_min
-        ) / (self.nparticles * self.bdim)
+        u2_array_app = (cont_karray + (self.nparticles * self.bdim) / self.displ_k_min) / (
+            self.nparticles * self.bdim
+        )
         u2_array_app = 1.0 / u2_array_app
 
         if True:
@@ -580,9 +562,7 @@ class _collect_u2_vs_k(object):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="analyze PT data from thermodynamic integration"
-    )
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     # parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
         "-f",

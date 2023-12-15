@@ -49,6 +49,7 @@ from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t
 from basinvolume.inverse_power_soft.soft_sphere_ensemble import (
     setup_bidisperse,
     BINARY_SOFT_SPHERE_DEFAULTS,
+    NEGATIVE_COS_DEFAULTS,
 )
 
 
@@ -82,9 +83,9 @@ def read_jammed_packing_config(configpath, frozen=False):
     parameters["nparticles"] = configf.getint("JAMMED_PACKING", "nparticles")
     parameters["packing_frac"] = configf.getfloat("JAMMED_PACKING", "packing_fraction")
     parameters["bdim"] = configf.getint("JAMMED_PACKING", "boxdim")
-    assert (
-        parameters["bdim"] == 2 or parameters["bdim"] == 3
-    ), "bdim={} not implemented".format(parameters["bdim"])
+    assert parameters["bdim"] == 2 or parameters["bdim"] == 3, "bdim={} not implemented".format(
+        parameters["bdim"]
+    )
     parameters["ndim"] = parameters["nparticles"] * parameters["bdim"]
     boxv = configf.get("JAMMED_PACKING", "boxv")
     parameters["boxv"] = np.array([float(x) for x in boxv.split()])
@@ -117,9 +118,7 @@ def read_jammed_packing_config(configpath, frozen=False):
         conf_get_default(configf, "JAMMED_PACKING", "pot_kwargs", "{}")
     )
     parameters["sca"] = configf.getfloat("JAMMED_PACKING", "sca")
-    parameters["sorted"] = conf_getboolean_default(
-        configf, "JAMMED_PACKING", "sorted", False
-    )
+    parameters["sorted"] = conf_getboolean_default(configf, "JAMMED_PACKING", "sorted", False)
     parameters["sorted_nsubdoms"] = conf_getint_default(
         configf, "JAMMED_PACKING", "sorted_nsubdoms", 1
     )
@@ -468,9 +467,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         if success:
             self._print(n)
         else:
-            path_list = glob.glob(
-                "{0}/jammed_packing{1}.*".format(self.base_directory, n)
-            )
+            path_list = glob.glob("{0}/jammed_packing{1}.*".format(self.base_directory, n))
             if len(path_list) > 0:
                 with open(
                     "{0}/mismatching_rattlers.txt".format(self.base_directory),
@@ -495,9 +492,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         check_again = list(range(len(self.hs_radii)))
         self.ss_radii = self.hs_radii * (1.0 + self.sca)
-        neighbor_indicess, neighbor_distancess = self.potential.getNeighbors(
-            self.coords
-        )
+        neighbor_indicess, neighbor_distancess = self.potential.getNeighbors(self.coords)
         nrattlers = 0
         if self.bdim != 2:
             origin = np.zeros(self.bdim)
@@ -512,24 +507,17 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 no_neighbors = len(neighbor_indicess[atomi])
                 if no_neighbors < zmin:
                     found_rattler = True
-                    logging.debug(
-                        self._log("Particle {} is not isostatic.".format(atomi))
-                    )
+                    logging.debug(self._log("Particle {} is not isostatic.".format(atomi)))
                 else:
                     if self.bdim == 2:
-                        found_rattler = not origin_in_hull_2d(
-                            neighbor_distancess[atomi]
-                        )
+                        found_rattler = not origin_in_hull_2d(neighbor_distancess[atomi])
                     else:
-                        points = np.asarray(neighbor_distancess[atomi]).reshape(
-                            (-1, self.bdim)
-                        )
+                        points = np.asarray(neighbor_distancess[atomi]).reshape((-1, self.bdim))
                         found_rattler = not in_hull(origin, points)
                     if found_rattler:
                         logging.debug(
                             self._log(
-                                "Particle {} is not in "
-                                "contacts' convex hull.".format(atomi)
+                                "Particle {} is not in " "contacts' convex hull.".format(atomi)
                             )
                         )
                 self.rattlers[atomi] = 0 if found_rattler else 1000
@@ -548,13 +536,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         # see eq 4 in http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.109.095704
         # see eq 19 in arXiv:1406.1529
         no_stable = self.nparticles - nrattlers
-        total_contacts = sum(
-            [len(neighbor_indices) for neighbor_indices in neighbor_indicess]
-        )
+        total_contacts = sum([len(neighbor_indices) for neighbor_indices in neighbor_indicess])
         N_min = int(2 * (self.bdim * (no_stable - 1) + 1))
-        logging.debug(
-            self._log("N_min: {} total_contacts: {}".format(N_min, total_contacts))
-        )
+        logging.debug(self._log("N_min: {} total_contacts: {}".format(N_min, total_contacts)))
         logging.debug(self._log("Number of rattlers: {}".format(nrattlers)))
         if nrattlers > self.max_nrattlers:
             logging.warning(self._log("Too many rattlers. Discarding packing."))
@@ -587,9 +571,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 logging.warning(self._log("Overlap found before quenching"))
                 return False
 
-        self.opt_maxstep = (
-            self.sca * np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
-        )
+        self.opt_maxstep = self.sca * np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
         if self.minimizer is Minimizer.FIRE:
             res = modifiedfire_cpp(
                 self.coords,
@@ -716,9 +698,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 raise NotImplementedError
             if res2.nfev > 1:
                 logging.warning(
-                    self._log(
-                        "Quench failed (structure changed at " "second minimisation)"
-                    )
+                    self._log("Quench failed (structure changed at " "second minimisation)")
                 )
                 return False
 
@@ -752,9 +732,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         assert phi - self.packing_frac < 1e-4
         # END TEST
         # r_soft = r_hs*(1+sca)
-        self.sca = (
-            np.power(self.target_packing_frac / self.packing_frac, 1.0 / self.bdim) - 1
-        )
+        self.sca = np.power(self.target_packing_frac / self.packing_frac, 1.0 / self.bdim) - 1
 
     def _check_no_overlaps(self):
         """check that no two particles are overlapping
@@ -786,9 +764,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 new_radii[i] = self.hs_radii[new_order[i]]
                 new_rattlers[i] = self.rattlers[new_order[i]]
                 for j in range(self.bdim):
-                    new_coords[i * self.bdim + j] = self.coords[
-                        new_order[i] * self.bdim + j
-                    ]
+                    new_coords[i * self.bdim + j] = self.coords[new_order[i] * self.bdim + j]
             self.hs_radii = new_radii
             self.rattlers = new_rattlers
             self.coords = new_coords
@@ -852,9 +828,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         f = open(fname, "w")
         f.write("{}\n".format(self.nparticles))
         if self.bdim == 2:
-            f.write(
-                "{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii))
-            )
+            f.write("{} {} {}\n".format(-boxv[0] / 2, -boxv[1] / 2, -np.amax(self.hs_radii)))
             f.write("{} \t 0.0 \t 0.0\n".format(boxv[0]))
             f.write("0.0 \t {} \t 0.0\n".format(boxv[1]))
             f.write("0.0 \t 0.0 \t {}\n".format(np.amax(self.hs_radii) * 2))
@@ -1027,9 +1001,7 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         if success:
             self._print(n)
         else:
-            path_list = glob.glob(
-                "{0}/jammed_packing{1}.*".format(self.base_directory, n)
-            )
+            path_list = glob.glob("{0}/jammed_packing{1}.*".format(self.base_directory, n))
             if len(path_list) > 0:
                 with open(
                     "{0}/mismatching_rattlers.txt".format(self.base_directory),
@@ -1170,16 +1142,14 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 raise NotImplementedError
             if res2.nfev > 1:
                 logging.warning(
-                    self._log(
-                        "Quench failed (structure changed at " "second minimisation)"
-                    )
+                    self._log("Quench failed (structure changed at " "second minimisation)")
                 )
                 return False
 
         return self._find_rattlers()
 
 
-class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
+class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
     """Hacky way to keep the interface the same while providing
     the correct initial condition for negative cosine position
     Generates [0]*ndim and saves it as coords
@@ -1227,18 +1197,27 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
             check_packing,
             sort_atoms,
         )
+        self.parameters = NEGATIVE_COS_DEFAULTS.copy()
+        self.seed = 0
 
     def one_iteration(self, fname):
         """perform one iteration"""
         self._import_single_config_file(fname)
+        ### potential parameters
+        self.bdim = 2
+        self.parameters["dim"] = self.bdim * self.nparticles
+        self.parameters["period"] = 1.0
+        self.parameters["power"] = 0.5
+        self.parameters["offset"] = 0.0
         self.parameters["n_part"] = self.nparticles
-        self.parameters["ndim"] = self.bdim
+
         self.rattlers = np.empty(self.nparticles, dtype="d")
         self.rattlers_draw = np.empty(self.nparticles, dtype="d")
+        self.opt_maxstep = 1.0
         print("ndim", self.ndim)
         radii = np.array([1.0] * self.nparticles)  # no radiii
         # periodic anyway
-        box_length = 4.0
+        box_length = self.parameters["period"]
 
         self._import_packing_configuration(fname)
         self.max_nrattlers = int(self.nparticles)
@@ -1248,9 +1227,16 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
         self.boxl = box_length
         self.pot_kwargs = dict(dim=1.0, period=1.0)
 
+        from pele.potentials import PoweredCosineSum
+
         self.parameters["radii"] = self.hs_radii
         self.parameters["box_length"] = self.boxl
-        self.potential = setup_bidisperse(self.parameters, seed=self.seed)["potential"]
+        self.potential = PoweredCosineSum(
+            self.parameters["dim"],
+            self.parameters["period"],
+            self.parameters["power"],
+            self.parameters["offset"],
+        )
 
         success = self._generate_packing_coords()  # returns false if saddle
 
@@ -1258,9 +1244,7 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
         if success:
             self._print(n)
         else:
-            path_list = glob.glob(
-                "{0}/jammed_packing{1}.*".format(self.base_directory, n)
-            )
+            path_list = glob.glob("{0}/jammed_packing{1}.*".format(self.base_directory, n))
             if len(path_list) > 0:
                 with open(
                     "{0}/mismatching_rattlers.txt".format(self.base_directory),
@@ -1274,81 +1258,14 @@ class NegativeCosGeneratePackings(HS_Generate_Jammed_Packing):
 
     def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
         """quenches the imported structure"""
-
-        opt_maxstep = np.amin(self.hs_radii) * 0.5 * self.opt_maxstep_factor
-        if self.minimizer is Minimizer.FIRE:
-            res = modifiedfire_cpp(
-                self.coords,
-                self.potential,
-                maxstep=opt_maxstep,
-                nsteps=self.opt_nsteps,
-                tol=opt_tol,
-                dtmax=self.opt_dtmax,
-                iprint=iprint,
-            )
-        elif self.minimizer is Minimizer.CG:
-            optimizer = CGDescent(
-                self.coords,
-                self.potential,
-                tol=opt_tol,
-                nsteps=self.opt_nsteps,
-                print_level=iprint,
-            )
-            res = optimizer.run()
-        elif self.minimizer is Minimizer.CVODE:
-            from pele.optimize import CVODEBDFOptimizer
-
-            self.optimizer = CVODEBDFOptimizer(
-                self.potential,
-                self.coords,
-                tol=opt_tol,
-                nsteps=self.opt_nsteps,
-                atol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
-                rtol=INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim],
-            )
-            res = self.optimizer.run(int(1e6))
-        elif self.minimizer is Minimizer.MXD:
-            from pele.optimize import ExtendedMixedOptimizer
-
-            ratol = INVERSE_POWER_CVODE_95_ACC[len(self.coords) // self.bdim] * 1e-1
-            self.optimizer = ExtendedMixedOptimizer(
-                self.potential,
-                self.coords,
-                tol=opt_tol,
-                nsteps=self.opt_nsteps,
-                atol=ratol,
-                rtol=ratol,
-                T=get_mxd_t(self.nparticles),
-            )
-            res = self.optimizer.run(int(1e6))
-        elif self.minimizer is Minimizer.LBFGS:
-            res = lbfgs_cpp(
-                self.coords,
-                self.potential,
-                maxstep=opt_maxstep,
-                tol=opt_tol,
-                nsteps=self.opt_nsteps,
-                maxErise=0,
-                iprint=iprint,
-            )
-        else:
-            raise NotImplementedError
-        print("after")
-        if not res.success:
-            print(res)
-            logging.warning(self._log("Quench failed"))
-            return False
-
         self.coords = np.array([0.0] * self.ndim)
-        self.energy = -1.0
+        self.energy = self.potential.getEnergy(self.coords)
+        print("energy", self.energy)
         return True
 
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(
-        description="generate 2/3-D hard disks/spheres packings"
-    )
+    parser = argparse.ArgumentParser(description="generate 2/3-D hard disks/spheres packings")
     parser.add_argument(
         "-p",
         "--density",
@@ -1388,9 +1305,7 @@ if __name__ == "__main__":
         help="Directory to save jammed packings in. " "Default: 'jammed_packings'",
         default="jammed_packings",
     )
-    parser.add_argument(
-        "--show", action="store_true", help="show histograms", default=False
-    )
+    parser.add_argument("--show", action="store_true", help="show histograms", default=False)
     parser.add_argument(
         "--write-opengl",
         action="store_true",
@@ -1410,9 +1325,7 @@ if __name__ == "__main__":
         help="Factor by which the maximum step size of the " "minimizer is corrected.",
         default=1.0,
     )
-    parser.add_argument(
-        "--opt_dtmax", type=float, default=1, help="For FIRE, max time step"
-    )
+    parser.add_argument("--opt_dtmax", type=float, default=1, help="For FIRE, max time step")
     parser.add_argument(
         "--opt_nsteps",
         type=float,
@@ -1482,13 +1395,11 @@ if __name__ == "__main__":
         override_pot_kwargs["exp"] = args.wca_exp
     elif interaction is Interaction.INVERSE_POWER_STILLINGER:
         override_pot_kwargs.update(pow=8, rcut=4.5)
-        logging.info(
-            "Setting inverse_power_stillinger parameters: {}".format(
-                override_pot_kwargs
-            )
-        )
+        logging.info("Setting inverse_power_stillinger parameters: {}".format(override_pot_kwargs))
     elif interaction is Interaction.INVERSE_POWER:
         override_pot_kwargs.update(pow=2.5)
+    elif interaction is Interaction.NEGATIVE_COS:
+        override_pot_kwargs.update(pow=0.5)
     else:
         raise NotImplementedError
     if args.balance_omp is not None:
@@ -1514,7 +1425,7 @@ if __name__ == "__main__":
             sort_atoms=args.sort,
         )
     elif interaction is Interaction.NEGATIVE_COS:
-        sim = NegativeCosGeneratePackings(
+        sim = PoweredCosineSumGeneratePackings(
             packings_dir=args.packingsdir,
             packing_nrs=args.packing_nrs,
             import_jammed=args.import_jammed,

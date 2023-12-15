@@ -42,6 +42,8 @@ except ImportError as err:
 # for the CVODE integrator for mapping basins of attraction
 # for the inversepower potential
 INVERSE_POWER_CVODE_95_ACC = {
+    1: 1e-6,
+    2: 1e-7,
     8: 1e-7,
     16: 1e-7,
     32: 1e-7,
@@ -80,9 +82,7 @@ class Result(dict):
     def __repr__(self):
         if list(self.keys()):
             m = max(list(map(len, list(self.keys())))) + 1
-            return "\n".join(
-                [k.rjust(m) + ": " + repr(v) for k, v in list(self.items())]
-            )
+            return "\n".join([k.rjust(m) + ": " + repr(v) for k, v in list(self.items())])
         else:
             return self.__class__.__name__ + "()"
 
@@ -549,9 +549,9 @@ def get_git_version_direct(repository="basinvolume"):
             sys.stderr.write("WARNING: could't find path to" + repository + "\n")
             sys.exit()
         repo_path = os.path.abspath(repo_path)
-        out = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, env=env, cwd=repo_path
-        ).communicate()[0]
+        out = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env, cwd=repo_path).communicate()[
+            0
+        ]
         return out
 
     try:
@@ -583,9 +583,7 @@ def get_git_version_from_build(repository="basinvolume"):
         result = (f.readlines()[2].strip().split("=")[1]).split("'")[1]
         f.close()
     except (OSError, IOError) as e:
-        sys.stderr.write(
-            "WARNING: no version.py file found\n path: " + version_path + "\n"
-        )
+        sys.stderr.write("WARNING: no version.py file found\n path: " + version_path + "\n")
         print("error", e)
     return result
 
@@ -780,11 +778,7 @@ def gen_gauss(x, pars):
     mu = pars[0]
     alpha = pars[1]
     zeta = pars[2]
-    return (
-        zeta
-        / (2 * alpha * gamma(1 / zeta))
-        * np.exp(-np.power((np.abs(x - mu) / alpha), zeta))
-    )
+    return zeta / (2 * alpha * gamma(1 / zeta)) * np.exp(-np.power((np.abs(x - mu) / alpha), zeta))
 
 
 def get_gauss_times_expx(x, pars):
@@ -979,12 +973,15 @@ def asphericity_factor(evals):
     evals : array
         list of eigenvalues obtained from PCA of random walk
     """
+    print(evals)
     evals = np.sort(np.array(evals))[::-1]
+    print(evals)
     ndof = evals.size
     A = 0.0
     for i in range(ndof):
         for j in range(i, ndof):
             A += (evals[i] - evals[j]) ** 2
+    print(ndof)
     A /= (ndof - 1) * np.sum(evals) ** 2
     return A
 
@@ -1067,9 +1064,7 @@ def import_pt_time_series(
                 logging.info(
                     "subsampling timeseries because np.shape(timeseries)[1] > max_series_size"
                 )
-                logging.info(
-                    "subsampling every {} steps".format(int(tsl / max_series_size))
-                )
+                logging.info("subsampling every {} steps".format(int(tsl / max_series_size)))
                 timeseries = timeseries[:, :: max(int(tsl / max_series_size), 1)]
         except Exception:
             traceback.print_exc(file=sys.stdout)
@@ -1130,17 +1125,13 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
                 init_size = int(file_list[0].split(".")[-1]) - adjustf_niter
                 if max_series_size > 0:
                     init_max_size = int(max_series_size * init_size / tot_size)
-                    other_max_size = int(
-                        (max_series_size - init_max_size) / len(file_list[1:])
-                    )
+                    other_max_size = int((max_series_size - init_max_size) / len(file_list[1:]))
                 else:
                     # import all and don't crop (this is a bit hacky)
                     other_max_size = 0
                     adjustf_niter = 0
                 series = []
-                series.extend(
-                    read_txt(file_list[0], adjustf_niter, max_series_size).tolist()
-                )
+                series.extend(read_txt(file_list[0], adjustf_niter, max_series_size).tolist())
                 results = Parallel(n_jobs=ncores)(
                     delayed(read_txt)(series_path, 0, other_max_size)
                     for series_path in file_list[1:]

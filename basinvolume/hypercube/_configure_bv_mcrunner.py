@@ -7,7 +7,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 import os
-from pele.potentials import Harmonic
+from pele.potentials import Harmonic, RadialGaussian
 from basinvolume.spheres import ConfigMCRunner
 from basinvolume.hypercube import HypercubeMCrunner
 from basinvolume.utils import trymakedir
@@ -26,7 +26,8 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
     def __call__(
         self,
         base_dir,
-        k=1.0,
+        bias = "harmonic",
+        bias_params=[1.0],
         stepsize=1e-3,
         niter=2e4,
         hmin=0,
@@ -51,13 +52,14 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         self._set_paths(base_dir)
         self._import_packing_config_files()
         self.coords = np.zeros(int(self.ndof))
-        hbinsize = self._get_histogram_bin(k)
+        self.bias = bias
+        hbinsize = self._get_histogram_bin(bias_params[0])
 
         # set parameters
-        # self.mc_params = dict(k=k, temperature=temperature, )
         kwargs = dict(
             sidelength=self.sidelength,
-            k=k,
+            bias = self.bias,
+            bias_params=bias_params,
             acceptance=acceptance,
             adjustf=adjustf,
             adjustf_niter=adjustf_niter,
@@ -75,9 +77,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
             record_histogram=record_histogram,
         )
 
-        self.mc_params = dict(
-            temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
         if seeds is None:
             warnings.warn("seeds not passed")
@@ -86,16 +86,25 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
 
         # construct mcrunner
         # self.coords is origin, set initial configuration and origin to be the same
-        # harmonic potential with fixed centre of mass
-        potential = Harmonic(self.coords, k, bdim=self.ndof, com=False)
+        # harmonic bias_potential withOUT fixed centre of mass
+        # XXX BIAS 
+        ndim = self.coords.shape[0]
+        if bias == "harmonic":
+            bias_params = [1.0]
+            bias_potential = Harmonic(self.coords, bias_params[0], bdim = ndim, com=False)
+        elif bias == "radial_gaussian":
+            bias_params = [1.0, 1.0, 1.0]
+            bias_potential = RadialGaussian(self.coords, bias_params[0], bias_params[1], bdim = ndim, com=False)
+        else:
+            raise NotImplementedError(
+                "bias={} not implemented".format(bias)
+            )
+        
+        kwargs["bias_params"] = bias_params # Needed to properly initialise with the right lengths in each list of parameters
+
+            
         mcrunner = HypercubeMCrunner(
-            potential,
-            self.coords,
-            self.temperature,
-            stepsize,
-            niter,
-            self.coords,
-            **kwargs
+            bias_potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
         )
         return mcrunner
 
@@ -111,12 +120,8 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         self.base_directory = base_directory
 
         dname = dlist[2] + "_" + dlist[3] + "_" + dlist[4]
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
-        self.kmin_configpath = os.path.join(
-            self.base_directory, "kmin_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
+        self.kmin_configpath = os.path.join(self.base_directory, "kmin_" + dname + ".config")
         self.configfile = "{}/explore_{}.config".format(self.base_directory, dname)
 
     def _get_histogram_bin(self, k):

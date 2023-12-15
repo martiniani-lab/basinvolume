@@ -119,9 +119,7 @@ class HSWCASystem(BaseSystem):
             )
             alg_x2 = np.subtract(np.reshape(x2, (-1, self.bdim)), dx).flatten()
             # compute the distance ignoring the rattlers of structure 1
-            dist = np.reshape((x1 - alg_x2), (-1, self.bdim)) * np.reshape(
-                rattlers1, (-1, 1)
-            )
+            dist = np.reshape((x1 - alg_x2), (-1, self.bdim)) * np.reshape(rattlers1, (-1, 1))
             dist = np.linalg.norm(dist.flatten())
             return dist, x1, alg_x2
 
@@ -132,9 +130,7 @@ class HSWCASystem(BaseSystem):
         given translational symmetries
         """
         mindist = self.get_mindist()
-        return (
-            lambda x1, x2: old_div(mindist(x1, x2)[0], np.sqrt(self.natoms)) < self.dtol
-        )
+        return lambda x1, x2: old_div(mindist(x1, x2)[0], np.sqrt(self.natoms)) < self.dtol
 
     def smooth_path(self, path, **kwargs):
         mindist = self.get_mindist()

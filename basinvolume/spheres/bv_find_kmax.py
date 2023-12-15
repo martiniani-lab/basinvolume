@@ -58,9 +58,7 @@ if __name__ == "__main__":
         help="don't use cell lists, default: False",
         default=False,
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="verbosity", default=False
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="verbosity", default=False)
     parser.add_argument(
         "--seed-takestep",
         type=int,
@@ -80,9 +78,7 @@ if __name__ == "__main__":
         default=1.0,
         help="softness of the potential (but this is hacked around enough so it's not used for some potentials)",
     )
-    parser.add_argument(
-        "--ktarget", type=float, default=0.9, help="Target acceptance ration"
-    )
+    parser.add_argument("--ktarget", type=float, default=0.9, help="Target acceptance ration")
     parser.add_argument(
         "--knavg",
         type=float,
@@ -104,9 +100,7 @@ if __name__ == "__main__":
         "Default: 'FIRE'",
         default="FIRE",
     )
-    parser.add_argument(
-        "--opt_tol", type=float, default=1e-5, help="tolerance for optimizer"
-    )
+    parser.add_argument("--opt_tol", type=float, default=1e-5, help="tolerance for optimizer")
     parser.add_argument(
         "--opt_kwargs_file",
         type=str,

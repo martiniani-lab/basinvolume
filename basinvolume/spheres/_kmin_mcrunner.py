@@ -19,7 +19,7 @@ from basinvolume.utils import (
     conf_get_default,
 )
 from basinvolume.spheres import read_jammed_packing_config
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Interaction, Minimizer
 import configparser
 import warnings
 import time
@@ -106,9 +106,9 @@ class KminMCRunner(ConfigMCRunner):
                 "which can negatively impact performance."
             )
         else:
-            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing[
-                "sorted_nsubdoms"
-            ] != int(os.environ["OMP_NUM_THREADS"]):
+            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing["sorted_nsubdoms"] != int(
+                os.environ["OMP_NUM_THREADS"]
+            ):
                 print(
                     "WARNING: The jammed packing has been sorted with a different number "
                     "of subdomains (OpenMP threads), which changes the number of cells "
@@ -126,7 +126,9 @@ class KminMCRunner(ConfigMCRunner):
             self.dtol = dtol
 
         if minimizer is None:
-            minimizer_string = conf_get_default(configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE")
+            minimizer_string = conf_get_default(
+                configf, "FINDK_MCRUNNER", "minimizer", "Minimizer.FIRE"
+            )
             minimizer = minimizer_string.split(".")[-1]
             self.minimizer = Minimizer[minimizer]
         else:
@@ -142,7 +144,7 @@ class KminMCRunner(ConfigMCRunner):
         )
 
         kwargs = dict(
-            k=k,
+            bias_params=[k],
             dtol=self.dtol,
             eps=eps,
             hmin=hmin,
@@ -173,9 +175,7 @@ class KminMCRunner(ConfigMCRunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(
-            temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
 
         if seeds is None:
@@ -218,6 +218,9 @@ class KminMCRunner(ConfigMCRunner):
             self._print_success(False)
 
     def _collect_trajectory(self, fix_com=True):
+        if self.interaction is Interaction.NEGATIVE_COS:
+            fix_com = False
+
         (
             mean_coord,
             var_coord,
@@ -225,9 +228,7 @@ class KminMCRunner(ConfigMCRunner):
         self.mean_coord_dist, self.var_coord_dist = get_dist_com(
             mean_coord, self.mcrunner.origin, self.bdim
         ), np.sum(var_coord)
-        self.trajectory = self.mcrunner.dump_trajectory(
-            self.trajectory_path, clear=True
-        )
+        self.trajectory = self.mcrunner.dump_trajectory(self.trajectory_path, clear=True)
         if fix_com:
             for i, coords in enumerate(self.trajectory):
                 self.trajectory[i] = get_dist_vec_com(
@@ -244,18 +245,14 @@ class KminMCRunner(ConfigMCRunner):
             packings_dir = os.path.join(self.workspace, packings_dir)
         self.packings_dir = packings_dir
         self.configpath = os.path.join(packings_dir, "{}.config".format(dname))
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
         configfile = "kmin_" + dname
         self.configfile = "{}/{}.config".format(self.base_directory, configfile)
         trajectory_fname = "kmin_trajectory_" + dname
         self.trajectory_path = "{}/{}.h5".format(self.base_directory, trajectory_fname)
         self.diffusion_dir = os.path.join(self.base_directory, "diffusion")
         diffusion_configfname = "diffusion_" + dname
-        self.diffusion_configfname = "{}/{}".format(
-            self.diffusion_dir, diffusion_configfname
-        )
+        self.diffusion_configfname = "{}/{}".format(self.diffusion_dir, diffusion_configfname)
 
     def _initialise(self):
         self._print_initialise()
@@ -270,9 +267,7 @@ class KminMCRunner(ConfigMCRunner):
 
     def _print_diffusion_params(self):
         trymakedir(self.diffusion_dir)
-        fname = "{}.{}.config".format(
-            self.diffusion_configfname, int(self.mc_params["niter"])
-        )
+        fname = "{}.{}.config".format(self.diffusion_configfname, int(self.mc_params["niter"]))
         f = open(fname, "w")
         self._write_sim_params(f)
         f.close()
@@ -317,9 +312,7 @@ class KminMCRunner(ConfigMCRunner):
         f.close()
 
     def _dump_diffusion_timeseries(self):
-        fname = "{0}/StepsTimeSeries.{1}".format(
-            self.diffusion_dir, int(self.mc_params["niter"])
-        )
+        fname = "{0}/StepsTimeSeries.{1}".format(self.diffusion_dir, int(self.mc_params["niter"]))
         print("fname", fname)
         self.mcrunner.dump_steps_timeseries(fname, clear=True)
 

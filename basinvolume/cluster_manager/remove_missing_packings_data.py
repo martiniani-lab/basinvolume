@@ -12,10 +12,7 @@ def get_immediate_subdirectories_and_tar(dir, explore_dir):
     return [
         name
         for name in os.listdir(dir)
-        if (
-            os.path.isdir(os.path.join(dir, name))
-            or (".tar.gz" in name and explore_dir in name)
-        )
+        if (os.path.isdir(os.path.join(dir, name)) or (".tar.gz" in name and explore_dir in name))
     ]
 
 
@@ -87,10 +84,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
     assert (
-        args.ext == "xyzdr"
-        or args.ext == "xydr"
-        or args.ext == "xyzdfr"
-        or args.ext == "xydfr"
+        args.ext == "xyzdr" or args.ext == "xydr" or args.ext == "xyzdfr" or args.ext == "xydfr"
     ), "{} not a valid extension".format(args.ext)
 
     check = query_yes_no(

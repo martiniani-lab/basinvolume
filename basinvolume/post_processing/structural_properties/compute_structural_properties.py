@@ -119,8 +119,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cutoff",
         type=float,
-        help="Multiple of particle radii "
-        "defining the maximum neighbor distance. Default: 1",
+        help="Multiple of particle radii " "defining the maximum neighbor distance. Default: 1",
         default=1.0,
     )
     args = parser.parse_args()
@@ -168,9 +167,7 @@ if __name__ == "__main__":
     structural_props.append((worker_invsym, invsym_kwargs))
 
     # neighbors
-    neighbors_kwargs = dict(
-        kwargs, restrict_neighbors=args.restrict_neighbors, cutoff=args.cutoff
-    )
+    neighbors_kwargs = dict(kwargs, restrict_neighbors=args.restrict_neighbors, cutoff=args.cutoff)
     structural_props.append((worker_neighbors, neighbors_kwargs))
 
     # pressure tensor

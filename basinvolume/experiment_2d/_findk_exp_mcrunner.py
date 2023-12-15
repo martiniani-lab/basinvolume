@@ -171,20 +171,14 @@ class _findk_exp_mcrunner(ConfigMCRunner):
         configf.read(str(self.configpath))
         self.nparticles = configf.getint("JAMMED_PACKING", "nparticles")
         self.bdim = configf.getint("JAMMED_PACKING", "boxdim")
-        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(
-            self.bdim
-        )
+        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(self.bdim)
         self.ndim = self.nparticles * self.bdim
         boxv = configf.get("JAMMED_PACKING", "boxv")
         self.boxv = np.array([float(x) for x in boxv.split()])
         self.imp_packing_frac = configf.getfloat("JAMMED_PACKING", "packing_fraction")
         self.sca = configf.getfloat("JAMMED_PACKING", "sca")
-        self.mobile_particle_radius = configf.getfloat(
-            "JAMMED_PACKING", "mobile_particle_radius"
-        )
-        self.frozen_particle_radius = configf.getfloat(
-            "JAMMED_PACKING", "mobile_particle_radius"
-        )
+        self.mobile_particle_radius = configf.getfloat("JAMMED_PACKING", "mobile_particle_radius")
+        self.frozen_particle_radius = configf.getfloat("JAMMED_PACKING", "mobile_particle_radius")
 
     def _initialise(self):
         self._print_initialise()

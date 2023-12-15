@@ -116,9 +116,7 @@ class ES_MCrunner(_BaseMCRunner):
             self.binsize,
             adjustf_niter,
         )
-        self.conftest = CheckHyperSphericalContainer(
-            self.origin, hyperradius, self.bdim
-        )
+        self.conftest = CheckHyperSphericalContainer(self.origin, hyperradius, self.bdim)
         # self.adjust_step = AdjustStep(acceptance, adjustf, adjustf_niter, adjustf_navg)
         # self.step = RandomCoordsDisplacement(np.random.randint(i32max))
         self.set_report_steps(adjustf_niter)
@@ -151,9 +149,7 @@ class ES_MCrunner(_BaseMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(
-            Emin, Emax, num=len(hist), endpoint=False, retstep=True
-        )
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         assert abs(step - self.binsize) < old_div(self.binsize, 100)
         np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
         mean = self.histogram.get_mean()
@@ -231,9 +227,7 @@ class ES_Findk_MCrunner(_BaseMCRunner):
         i32max = np.iinfo(np.int32).max
 
         self.step = GaussianCoordsDisplacement(np.random.randint(i32max), stepsize)
-        self.conftest = CheckHyperSphericalContainer(
-            self.origin, hyperradius, self.bdim
-        )
+        self.conftest = CheckHyperSphericalContainer(self.origin, hyperradius, self.bdim)
         self.min = 0
         self.max = 10
         self.bin = 0.2
@@ -352,9 +346,7 @@ def main():
         ktol=ktol,
         hyperradius=r,
     )
-    mcrunner.set_control(
-        kstart
-    )  # potential is entirely fictitious, there is no energy test
+    mcrunner.set_control(kstart)  # potential is entirely fictitious, there is no energy test
     mcrunner.run()
     # print mcrunner.potential.get_k() derive a
     k_max = mcrunner.get_k()

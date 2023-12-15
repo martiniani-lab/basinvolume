@@ -18,6 +18,7 @@ import logging
 from scipy.special import gammaln, gammainc
 import warnings
 from itertools import cycle
+from basinvolume.enums import Interaction
 
 try:
     import matplotlib
@@ -39,6 +40,8 @@ from basinvolume.utils import (
 )
 from basinvolume.post_processing import VolumeSanityCheck
 from configparser import ConfigParser
+
+from basinvolume.enums import Interaction
 
 # import configparser
 from pymbar.timeseries import (
@@ -64,6 +67,8 @@ plt.rcParams["xtick.major.pad"] = 8
 plt.rcParams["ytick.major.pad"] = 8
 plt.rcParams.update({"figure.autolayout": True})
 plt.rcParams["figure.figsize"] = 10, 7.7
+
+
 ##########################################################
 ####SET COLOUR MAP######
 def get_color_cycle(ncol=7):
@@ -99,9 +104,7 @@ def get_kde_hist(
     if kernel == "gaussian":
         if method == "cross_validation":
             skip = max(1, int(len(timeseries) / 1e5))
-        bw = get_bandwidth_estimate(
-            np.array(timeseries[::skip]), kernel="gaussian", method=method
-        )
+        bw = get_bandwidth_estimate(np.array(timeseries[::skip]), kernel="gaussian", method=method)
         logging.info("bandwidth {}".format(bw))
         # bw *= 3
     hist = get_pdf(timeseries, bin_edges, bandwidth=bw, kernel=kernel)
@@ -138,6 +141,7 @@ class mbar_compute_dos(object):
         kde=True,
         plot_dos_data=True,
         ncores=7,
+        bias="harmonic",
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -146,6 +150,7 @@ class mbar_compute_dos(object):
         self.bootstrap = bootstrap
         self.plot_dos_data = plot_dos_data
         self.ncores = ncores
+        self.bias = bias
 
     def __call__(
         self,
@@ -174,32 +179,22 @@ class mbar_compute_dos(object):
         self.base_directory = os.path.join(self.explore_dir, base_dir)
         self.frozen = frozen
         n = int(re.findall(r"\d+", self.fname)[0])
-        self.packing_configpath = os.path.join(
-            packings_dir, "packing{}.config".format(n)
-        )
+        self.packing_configpath = os.path.join(packings_dir, "packing{}.config".format(n))
         assert os.path.isfile(self.packing_configpath)
         self.jammed_packing_configpath = os.path.join(
             jammed_packings_dir, "{}.config".format(self.fname)
         )
         assert os.path.isfile(self.jammed_packing_configpath)
-        self.pt_configpath = os.path.join(
-            self.explore_dir, "explore_" + fname + ".config"
-        )
+        self.pt_configpath = os.path.join(self.explore_dir, "explore_" + fname + ".config")
         # HACK this takes care of issues with files running
         if not os.path.isfile(self.pt_configpath):
             # use the base of the explore directory to find the config file
             self.explore_dir = os.path.dirname(self.explore_dir)
-            self.pt_configpath = os.path.join(
-                self.explore_dir, "explore_" + fname + ".config"
-            )
+            self.pt_configpath = os.path.join(self.explore_dir, "explore_" + fname + ".config")
 
-        self.findk_configpath = os.path.join(
-            self.explore_dir, "findk_" + fname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.explore_dir, "findk_" + fname + ".config")
         assert os.path.isfile(self.findk_configpath)
-        self.kmin_configpath = os.path.join(
-            self.explore_dir, "kmin_" + fname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + fname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         # There can be several innersphere runs, each with a config path
         self.innersphere_configpaths = []
@@ -216,9 +211,7 @@ class mbar_compute_dos(object):
             )
             assert os.path.isfile(innersphere_configpath)
             self.innersphere_configpaths.append(innersphere_configpath)
-            innersphere_timeseries_path = os.path.join(
-                self.explore_dir, "inner_sphere.timeseries"
-            )
+            innersphere_timeseries_path = os.path.join(self.explore_dir, "inner_sphere.timeseries")
             assert os.path.isfile(innersphere_timeseries_path)
             self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
@@ -227,14 +220,10 @@ class mbar_compute_dos(object):
                 innersphere_dir_list, key=lambda x: int(x.split("_")[-1])
             )
             for dir in innersphere_dir_list:
-                innersphere_configpath = os.path.join(
-                    dir, "/innersphere_" + fname + ".config"
-                )
+                innersphere_configpath = os.path.join(dir, "/innersphere_" + fname + ".config")
                 assert os.path.isfile(innersphere_configpath)
                 self.innersphere_configpaths.append(innersphere_configpath)
-                innersphere_timeseries_path = os.path.join(
-                    dir, "/inner_sphere.timeseries"
-                )
+                innersphere_timeseries_path = os.path.join(dir, "/inner_sphere.timeseries")
                 assert os.path.isfile(innersphere_timeseries_path)
                 self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
 
@@ -318,9 +307,7 @@ class mbar_compute_dos(object):
                 self._build_mbar(verbose=False, initial_f_k=initial_f_k)
                 logging.info("t: {}".format(time.time() - start))
                 # compute the weights, skip the volume calculation
-                result_dict = self.mbar.compute_free_energy_differences(
-                    return_theta=True
-                )
+                result_dict = self.mbar.compute_free_energy_differences(return_theta=True)
                 Deltaf_ij = result_dict["Delta_f"]
 
                 self.w_i_final = -Deltaf_ij[0]
@@ -335,9 +322,7 @@ class mbar_compute_dos(object):
         imp_packing = read_jammed_packing_config(str(self.jammed_packing_configpath))
         self.nparticles = imp_packing["nparticles"]
         self.bdim = imp_packing["bdim"]
-        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(
-            self.bdim
-        )
+        assert self.bdim == 2 or self.bdim == 3, "bdim={} not implemented".format(self.bdim)
         self.ndim = imp_packing["ndim"]
         self.boxv = imp_packing["boxv"].copy()
         self.packing_frac = imp_packing["packing_frac"]
@@ -350,6 +335,21 @@ class mbar_compute_dos(object):
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.ndof = (self.nparticles - 1) * self.bdim
+        self.interaction = imp_packing["interaction"]
+        # Deal with special "test" cases
+        # XXX Fix this if needed after other fixes
+        if self.interaction is Interaction.NEGATIVE_COS:
+            # In the cosine, the other steps are hackily computed by setting a fake bdim and nparticles
+            # Here: set back the nparticles to 1 and the number of dof's to the right value
+            self.ndof = self.nparticles * self.bdim
+            self.nparticles = 1
+            self.ndim = self.ndof
+            self.bdim = self.ndim
+            self.boxv = np.ones(self.bdim) * self.boxv[0]
+            self.vcavity = np.prod(self.boxv)
+            print(self.vcavity)
+            print(self.boxv)
+            print(self.ndof)
         # There can be several inner spheres: each can come with its own k, radius and acceptance
         self.ks_innersphere = []
         self.ref_radii = []
@@ -357,12 +357,8 @@ class mbar_compute_dos(object):
         for innersphere_configpath in self.innersphere_configpaths:
             configf.read(str(innersphere_configpath))
             k_innersphere = configf.getfloat("INNERSPHERE_MCRUNNER", "k")
-            ref_radius = configf.getfloat(
-                "INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize"
-            )
-            ref_acceptance = configf.getfloat(
-                "INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac"
-            )
+            ref_radius = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize")
+            ref_acceptance = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac")
             self.ks_innersphere.append(k_innersphere)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
@@ -372,19 +368,33 @@ class mbar_compute_dos(object):
         must run before import u2
         """
         karray = []
-        path = os.path.join(self.explore_dir, "temperatures")
+        l0array = []
+        r_cutoffarray = []
+        path = os.path.join(self.explore_dir, "biases")
         f = open(path, "r")
         while True:
-            k = f.readline()
-            if not k:
+            param_row = f.readline()
+            if not param_row:
                 break
+            params = param_row.split(" ")
+            k = params[0]
             karray.extend([float(k)])
+            if self.bias == "radial_gaussian":
+                l0 = params[1]
+                l0array.extend([float(l0)])
+                r_cutoff = params[2]
+                r_cutoffarray.extend([float(r_cutoff)])
         # prepend k innersphere
         # the list must be visited in reverse order to respect the innermost = first convention
         for k_innersphere in reversed(self.ks_innersphere):
             karray.insert(0, k_innersphere)
+            l0array.insert(0, 0)
+            r_cutoffarray.insert(0, 0)
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray == 0.0)[0][0]
+        if self.bias == "radial_gaussian":
+            self.l0array = np.array(l0array)
+            self.r_cutoffarray = np.array(r_cutoffarray)
 
     def _import_pt_time_series(self):
         self.timeseries = import_pt_time_series(
@@ -415,7 +425,20 @@ class mbar_compute_dos(object):
                     i
                 ] * flat_timeseries**2
             else:
-                u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
+                if self.bias == "harmonic":
+                    u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
+                elif self.bias == "radial_gaussian":
+                    u_kn[i] = 0.5 * self.karray[i] * (flat_timeseries - self.l0array[i]) ** 2
+                    if self.karray[i] != 0.0:
+                        u_kn[i] += (self.ndof - 1) * np.log(
+                            np.where(
+                                flat_timeseries > self.r_cutoffarray[i],
+                                flat_timeseries / self.r_cutoffarray[i],
+                                1.0,
+                            )
+                        )
+                else:
+                    raise NotImplementedError
         assert self.karray.size == u_kn.shape[0]
         assert N == u_kn.shape[1]
         return u_kn
@@ -499,6 +522,8 @@ class mbar_compute_dos(object):
         logvmin = log_volume_nball(rmin, self.ndof)
         # logvmin = np.log( gammainc(self.ndof / 2, 0.5 ))
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
+        
+        logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
 
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
@@ -514,18 +539,14 @@ class mbar_compute_dos(object):
         dDeltaf_ij = result_dict["dDelta_f"]
 
         # vol = Deltaf_ij[1,0]
-        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1, 0]) - np.log(
-            self.vcavity
-        ), dDeltaf_ij[1, 0]
+        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1, 0]) - np.log(self.vcavity), dDeltaf_ij[1, 0]
         self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1, 0]), dDeltaf_ij[1, 0]
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
 
         if self.verbose:
-            logging.info(
-                "F0 {} F0unc {} +/- {}".format(self.F0, self.F0unc, self.sigF0)
-            )
+            logging.info("F0 {} F0unc {} +/- {}".format(self.F0, self.F0unc, self.sigF0))
             logging.info(
                 "unit_box_F0 {} unit_box_F0unc {} +/- {}".format(
                     self.unit_box_F0, self.unit_box_F0unc, self.sigF0
@@ -533,10 +554,13 @@ class mbar_compute_dos(object):
             )
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
-        volume_sanity_check = VolumeSanityCheck(
-            self.packing_configpath, numerical_moments=numerical_moments
-        )
-        self.F0_acc = volume_sanity_check.F0_acc
+        if self.interaction is Interaction.NEGATIVE_COS:
+            self.F0_acc = 0.0
+        else: 
+            volume_sanity_check = VolumeSanityCheck(
+                self.packing_configpath, numerical_moments=numerical_moments
+            )
+            self.F0_acc = volume_sanity_check.F0_acc
         self.ideal_gas_F_acc = -self.nparticles * np.log(self.vcavity)
 
     def _build_histogram(self, compute_binedges=True, kde=False):
@@ -548,9 +572,7 @@ class mbar_compute_dos(object):
         if compute_binedges:
             full_timeseries = self.timeseries
             for sphere_number in range(self.number_nested_spheres):
-                full_timeseries = np.append(
-                    full_timeseries, self.ts_spheres[sphere_number]
-                )
+                full_timeseries = np.append(full_timeseries, self.ts_spheres[sphere_number])
             bin_edges = np.linspace(
                 np.amin(full_timeseries),
                 np.amax(full_timeseries),
@@ -565,17 +587,13 @@ class mbar_compute_dos(object):
             hist_visits = self._build_histogram_simple(bin_edges)
 
         self.hist_visits = np.array(hist_visits)
-        self.bin_edges = (
-            bin_edges + (bin_edges[1] - bin_edges[0]) / 2
-        )  # shift bin edges by bin/2
+        self.bin_edges = bin_edges + (bin_edges[1] - bin_edges[0]) / 2  # shift bin edges by bin/2
         self._unbias_histogram()
 
     def _build_histogram_simple(self, bin_edges):
         hist_visits = []
         for sphere_number in range(self.number_nested_spheres):
-            hist = np.histogram(
-                self.ts_spheres[sphere_number], bin_edges, density=True
-            )[0]
+            hist = np.histogram(self.ts_spheres[sphere_number], bin_edges, density=True)[0]
             hist_visits.append(hist)
         results = Parallel(n_jobs=self.ncores)(
             delayed(np.histogram)(timeseries, bin_edges, density=True)
@@ -599,8 +617,7 @@ class mbar_compute_dos(object):
             )
             hist_visits.append(hist)
         results = Parallel(n_jobs=max(1, self.ncores))(
-            delayed(get_kde_hist)(timeseries, kde_bin_edges)
-            for timeseries in self.timeseries
+            delayed(get_kde_hist)(timeseries, kde_bin_edges) for timeseries in self.timeseries
         )
         logging.info(np.shape(results))
         for hist in results:
@@ -609,11 +626,35 @@ class mbar_compute_dos(object):
         return hist_visits
 
     def _unbias_histogram(self):
-        # There are now several innerspheres here
-        hist_unbiased = np.outer(
-            0.5 * self.karray[self.number_nested_spheres :],
-            self.bin_edges[:-1] ** 2,
-        )
+        # There are now several innerspheres here, and different biases
+
+        if self.bias == "harmonic":
+            hist_unbiased = np.outer(
+                0.5 * self.karray[self.number_nested_spheres :],
+                self.bin_edges[:-1] ** 2,
+            )
+        elif self.bias == "radial_gaussian":
+            hist_unbiased = []
+            for rep in range(self.number_nested_spheres, self.karray.shape[0]):
+                krep = self.karray[rep]
+                l0rep = self.l0array[rep]
+                r_cutoffrep = self.r_cutoffarray[rep]
+
+                u_kn = 0.5 * krep * (self.bin_edges[:-1] - l0rep) ** 2
+                if krep != 0.0:
+                    u_kn += (self.ndof - 1) * np.log(
+                        np.where(
+                            self.bin_edges[:-1] > r_cutoffrep,
+                            self.bin_edges[:-1] / r_cutoffrep,
+                            1.0,
+                        )
+                    )
+
+                hist_unbiased.append(u_kn)
+            hist_unbiased = np.vstack(hist_unbiased)
+        else:
+            raise NotImplementedError
+
         for sphere_number in range(self.number_nested_spheres):
             hist_unbiased = np.vstack(
                 (
@@ -623,8 +664,12 @@ class mbar_compute_dos(object):
                 )
             )
         self.hist_unbiased = hist_unbiased
-        assert self.hist_visits.shape == self.hist_unbiased.shape
-        assert self.hist_visits.shape[0] == self.karray.size
+        assert (
+            self.hist_visits.shape == self.hist_unbiased.shape
+        ), f"Histogram visit shapes do not match: \nraw {self.hist_visits.shape}\nunbiased {self.hist_unbiased.shape}"
+        assert (
+            self.hist_visits.shape[0] == self.karray.shape[0]
+        ), f"Histogram visit's shape[0] does not match karray length: \nhist {self.hist_visits.shape[0]}\nkarray {self.karray.size}"
 
     def _compute_dos(self):
         """
@@ -699,9 +744,7 @@ class mbar_compute_dos(object):
         herr = []
         for i, hist in enumerate(self.hist_visits):
             var = (1 - hist / np.sum(hist)) * hist / np.sum(hist)
-            herr.append(
-                np.sqrt(var) / (np.amax(self.bin_edges) - np.amin(self.bin_edges))
-            )
+            herr.append(np.sqrt(var) / (np.amax(self.bin_edges) - np.amin(self.bin_edges)))
         herr = np.array(herr)
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
             ax.errorbar(
@@ -741,9 +784,7 @@ class mbar_compute_dos(object):
             y = np.where(
                 self.hist_visits[i, :] == 0,
                 SMALL,
-                np.log(self.hist_visits[i, :])
-                + self.hist_unbiased[i, :]
-                + self.w_i_final[i],
+                np.log(self.hist_visits[i, :]) + self.hist_unbiased[i, :] + self.w_i_final[i],
             )  # sends back a warning
             # y = np.log(self.hist_visits[i,:]) + self.hist_unbiased[i,:] + self.w_i_final[i]
             ax.plot(self.bin_edges[:-1], y, linewidth=2, label=str(i))
@@ -910,9 +951,7 @@ class mbar_compute_dos(object):
         # these are the unbiased estimates of the error because log is a monotonic convex function
         # and the we pick the 2.5 and 97.5 percentiles to have 95% intervals of confidence
         low_logn_E = np.sort(self.logn_E_subs, axis=0)[int((alpha / 2.0)) * nsamples, :]
-        high_logn_E = np.sort(self.logn_E_subs, axis=0)[
-            int((1 - alpha / 2.0)) * nsamples, :
-        ]
+        high_logn_E = np.sort(self.logn_E_subs, axis=0)[int((1 - alpha / 2.0)) * nsamples, :]
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -993,9 +1032,7 @@ class mbar_compute_dos(object):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="analyze PT data from thermodynamic integration"
-    )
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     # parser.add_argument("nparticles", type=int, help="number of particles")
     parser.add_argument(
         "-f",
@@ -1033,14 +1070,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--bootstrap",
         action="store_true",
-        help="run bootstrap (slow!), default: False",
+        help="Run bootstrap (slow!), default: False",  # XXX Should use the pymbar 4 bootstrap instead
         default=False,
     )
     parser.add_argument(
         "--kde",
         action="store_true",
-        help="use kernel density estimate, default: False",
+        help="Use kernel density estimate, default: False",
         default=False,
+    )
+    parser.add_argument(
+        "--bias",
+        help="Type of biasing potential, default = harmonic",
+        default="harmonic",
     )
     args = parser.parse_args()
 
@@ -1057,7 +1099,12 @@ if __name__ == "__main__":
     assert os.path.isabs(wdir)
     os.chdir(wdir)
 
-    sim = mbar_compute_dos(bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True)
+    sim = mbar_compute_dos(
+        bootstrap=args.bootstrap,
+        kde=args.kde,
+        plot_dos_data=True,
+        bias=args.bias,
+    )
     if fname != None:
         if not os.path.isabs(fdir):
             fdir = os.path.join(wdir, fdir + fname)

@@ -21,6 +21,9 @@ BINARY_SOFT_SPHERE_DEFAULTS = {
 }
 
 
+NEGATIVE_COS_DEFAULTS = {"dim": 4, "period": 1, "power": 0.5, "offset": 1}
+
+
 def setup_without_radii_bl(parameters, radii, box_length):
     """Sets up the inverse power potential.
         Uses a python based implementation that accounts
@@ -143,9 +146,7 @@ def quench_minima(initial_condition, parameters, quench_params):
 class SoftSphereMinimaEnsemble:
     """Create a set of minima for a given packing fraction."""
 
-    def __init__(
-        self, parameters: dict, save_path: str, save_folder_name="packings"
-    ) -> None:
+    def __init__(self, parameters: dict, save_path: str, save_folder_name="packings") -> None:
         """Create a set of minima for a given packing fraction."""
         if parameters["n_part"] > 128 and parameters["use_cell_lists"] == 0:
             print("WARNING: Not using cell lists for large system")
@@ -179,10 +180,7 @@ class SoftSphereMinimaEnsemble:
 
         results = pool.starmap(
             quench_minima,
-            (
-                (ic, self.parameters.copy(), quench_params.copy())
-                for ic in self.initial_conditions
-            ),
+            ((ic, self.parameters.copy(), quench_params.copy()) for ic in self.initial_conditions),
         )
 
         pool.close()

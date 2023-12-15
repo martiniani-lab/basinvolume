@@ -43,9 +43,9 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
 
         # The inner-most sphere for cubic runs has radius half a sidelength
         # For more general integrals: need some search algorithm!
-        stepsize_kinnermost_spheres = 0.5 * self.sidelength
+        stepsize_kinnermost_spheres = 0.25 * self.sidelength
         kinnermost_spheres = 1.0 / stepsize_kinnermost_spheres**2
-        # The last one should be overlapping with kmax
+        # The last one should be overlapping with kmax: guess a value from u2_k0
         koutermost_spheres = 1.0 / self.u2_k0
 
         # In low dimensions and/or depending on the choice of k, the order might be off
@@ -57,19 +57,18 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
 
         # Use regularly spaced values between the two natural bounds
         if number_nested_spheres == 1:
-            fraction_k = 0.0
+            fraction_k = 1.0
         else:
             fraction_k = current_nested_sphere * 1.0 / (number_nested_spheres - 1.0)
         # Linearly spaced values
         # self.k = fraction_k * koutermost_spheres + (1 - fraction_k) * kinnermost_spheres
         # Log-spaced values
         self.k = np.exp(
-            (1 - fraction_k) * np.log(kinnermost_spheres)
-            + fraction_k * np.log(koutermost_spheres)
+            (1 - fraction_k) * np.log(kinnermost_spheres) + fraction_k * np.log(koutermost_spheres)
         )
 
         self.stepsize = 1.0 / np.sqrt(self.k)
-        self.ref_radius = self.stepsize
+        self.ref_radius = self.stepsize/2.0
 
         self.coords = np.zeros(
             int(self.ndof)
@@ -145,13 +144,9 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         self.base_directory = base_dir
 
         dname = dlist[2] + "_" + dlist[3] + "_" + dlist[4]
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
 
-        output_dir = (
-            self.base_directory + "/innersphere_" + str(self.current_nested_sphere)
-        )
+        output_dir = self.base_directory + "/innersphere_" + str(self.current_nested_sphere)
         trymakedir(output_dir)
         self.output_directory = output_dir
 

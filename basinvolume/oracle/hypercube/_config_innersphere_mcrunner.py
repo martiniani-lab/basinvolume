@@ -101,9 +101,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         self.base_directory = base_directory
 
         dname = dlist[2] + "_" + dlist[3] + "_" + dlist[4]
-        self.findk_configpath = os.path.join(
-            self.base_directory, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.base_directory, "findk_" + dname + ".config")
         configfile = "innersphere_" + dname
         self.configfile = "{}/{}.config".format(self.base_directory, configfile)
 

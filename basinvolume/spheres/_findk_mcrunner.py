@@ -11,7 +11,7 @@ from pele.potentials import Harmonic
 from basinvolume.spheres import Findk_MCrunner, ConfigMCRunner
 from basinvolume.utils import trymakedir, view_traceback
 from basinvolume.spheres import read_jammed_packing_config
-from basinvolume.enums import Minimizer
+from basinvolume.enums import Interaction, Minimizer
 import configparser
 import time
 import warnings
@@ -50,7 +50,6 @@ class _findk_mcrunner(ConfigMCRunner):
         explore_dir="explore_bv_jammed_packing",
         verbose=False,
     ):
-
         self.temperature = 1.0
         self.eps = eps
         self.fname = fname
@@ -79,9 +78,9 @@ class _findk_mcrunner(ConfigMCRunner):
                 "which can negatively impact performance."
             )
         else:
-            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing[
-                "sorted_nsubdoms"
-            ] != int(os.environ["OMP_NUM_THREADS"]):
+            if imp_packing["pot_kwargs"]["balance_omp"] and imp_packing["sorted_nsubdoms"] != int(
+                os.environ["OMP_NUM_THREADS"]
+            ):
                 print(
                     "WARNING: The jammed packing has been sorted with a different number "
                     "of subdomains (OpenMP threads), which changes the number of cells "
@@ -120,16 +119,15 @@ class _findk_mcrunner(ConfigMCRunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(
-            temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
 
         if seeds is None:
             warnings.warn("seeds not passed")
 
         self._requench_coords(dtol, opt_maxstep, verbose, gtol=self.opt_tol)
-
+        fix_com = self.interaction is not Interaction.NEGATIVE_COS
+        kwargs["fix_com"] = fix_com
         self.mcrunner = Findk_MCrunner(
             potential,
             self.coords,
@@ -216,7 +214,6 @@ class _findk_mcrunner(ConfigMCRunner):
 
 
 if __name__ == "__main__":
-
     # sim = _findk_mcrunner('jammed_packing0.xydr')
     pppn = [2, 6, 42, 1806, 47058, 2214502422, 52495396602]
     seeds = dict(seed_takestep=1158925890)

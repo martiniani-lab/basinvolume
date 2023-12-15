@@ -147,7 +147,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         opt_maxstep=0.5,
         opt_tol=1e-5,
         opt_nsteps=1e5,
-        opt_kwargs = {},
+        opt_kwargs={},
         perform_convergence_test=False,
         collect_minima_list=False,
         seeds=None,
@@ -162,7 +162,6 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
     ):
-
         self.k = 1.0 / (stepsize * stepsize)
         # actions parameters
         if ts_niter is None:
@@ -170,6 +169,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         self.ts_niter = ts_niter
         self.ts_freq = ts_freq
         self.gaussian_step = gaussian_step
+        self.fix_com = interaction is not Interaction.NEGATIVE_COS
 
         super(BVInnerSphereMCrunner, self).__init__(
             potential,
@@ -182,7 +182,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
             boxv,
             sca,
             rattlers=rattlers,
-            k=self.k,
+            bias_params=[self.k],
             dtol=dtol,
             eps=eps,
             hmin=hmin,
@@ -207,11 +207,19 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
             interaction=interaction,
             pot_kwargs=pot_kwargs,
         )
+        if interaction is Interaction.NEGATIVE_COS:
+            self.bdim *= self.nparticles
+            self.nparticles = 1
         assert self.equilibration_steps == 0
 
     def _set_actions(self):
+        print("fix_com", self.fix_com)
         self.time_series = RecordDisplacementTimeseries(
-            self.red_origin, self.bdim, self.ts_niter, self.ts_freq
+            self.red_origin,
+            self.bdim,
+            self.ts_niter,
+            self.ts_freq,
+            fix_com=self.fix_com,
         )
         self.add_action(self.time_series)
 
@@ -248,9 +256,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(
-            Emin, Emax, num=len(hist), endpoint=False, retstep=True
-        )
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
         assert abs(step - self.binsize) < old_div(self.binsize, 100)
         np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
@@ -278,9 +284,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        )
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
@@ -300,9 +304,7 @@ class BVInnerSphereMCrunner(SpheresMCRunner):
             color=color_cycle[0],
         )
         ###analytical
-        k = old_div(
-            self.k * self.nparticles, (self.nparticles - 1)
-        )  # adjust for fixed com
+        k = old_div(self.k * self.nparticles, (self.nparticles - 1))  # adjust for fixed com
         # and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
         and2 = n[0] * np.exp(-0.5 * k * bins[:-1] ** 2)
         plt.plot(bins[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1])

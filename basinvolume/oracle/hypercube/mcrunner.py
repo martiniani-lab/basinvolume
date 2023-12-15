@@ -87,9 +87,7 @@ class HypercubeOMCrunner(_BaseMCRunner):
         record_histogram=False,
     ):
         # construct base class
-        super(HypercubeOMCrunner, self).__init__(
-            potential, full_coords, temperature, niter
-        )
+        super(HypercubeOMCrunner, self).__init__(potential, full_coords, temperature, niter)
 
         self.nparticles = 1
         self.bdim = len(full_coords)
@@ -120,9 +118,7 @@ class HypercubeOMCrunner(_BaseMCRunner):
         self.seeds = seeds
 
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(
-            np.zeros(self.ndof), self.sidelength, self.bdim
-        )
+        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
 
         self.conftest.add_test(conftest)
         # conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
@@ -177,9 +173,7 @@ class HypercubeOMCrunner(_BaseMCRunner):
             self.add_action(self.histogram)
         if record_trajectory:
             rte = max(
-                int(
-                    (self.niter - self.equilibration_steps) / record_trajectory_npoints
-                ),
+                int((self.niter - self.equilibration_steps) / record_trajectory_npoints),
                 1,
             )
             self.record_trajectory = RecordCoordsTimeseries(
@@ -191,9 +185,7 @@ class HypercubeOMCrunner(_BaseMCRunner):
             self.record_steps_timeseries_every = record_steps_timeseries_every
             for freq in self.record_steps_timeseries_every:
                 self.steps_timeseries_list.append(
-                    RecordStepsTimeseries(
-                        self.origin, self.rattlers, self.bdim, ts_niter, freq
-                    )
+                    RecordStepsTimeseries(self.origin, self.rattlers, self.bdim, ts_niter, freq)
                 )
             for action in self.steps_timeseries_list:
                 self.add_action(action)
@@ -282,9 +274,7 @@ class HypercubeFindkOMCrunner(_BaseMCRunner):
         seeds=None,
     ):
         # construct base class
-        super(HypercubeFindkOMCrunner, self).__init__(
-            potential, full_coords, temperature, niter
-        )
+        super(HypercubeFindkOMCrunner, self).__init__(potential, full_coords, temperature, niter)
 
         self.nparticles = 1
         self.bdim = len(full_coords)
@@ -308,14 +298,10 @@ class HypercubeFindkOMCrunner(_BaseMCRunner):
         self.hbinsize = hbinsize
 
         # construct test/action classes
-        self.takestep = SampleGaussian(
-            self.seeds["seed_takestep"], stepsize, self.origin
-        )
+        self.takestep = SampleGaussian(self.seeds["seed_takestep"], stepsize, self.origin)
 
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(
-            np.zeros(self.ndof), self.sidelength, self.bdim
-        )
+        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
         # conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
         # self.conftest.add_test(conftest2)
@@ -426,9 +412,7 @@ class HypercubeInnerSphereOMCrunner(_BaseMCRunner):
             self.add_action(self.histogram)
 
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(
-            np.zeros(self.ndof), self.sidelength, self.bdim
-        )
+        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
         # conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
         # self.conftest.add_test(conftest2)
@@ -469,9 +453,7 @@ class HypercubeInnerSphereOMCrunner(_BaseMCRunner):
         Emin, Emax = self.histogram.get_bounds_val()
         histl = self.histogram.get_histogram()
         hist = np.array(histl)
-        Energies, step = np.linspace(
-            Emin, Emax, num=len(hist), endpoint=False, retstep=True
-        )
+        Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
         assert abs(step - self.binsize) < self.binsize / 100
         np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
@@ -499,9 +481,7 @@ class HypercubeInnerSphereOMCrunner(_BaseMCRunner):
 
     def show_histogram(self):
         hist = self.histogram.get_histogram()
-        val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        )
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 

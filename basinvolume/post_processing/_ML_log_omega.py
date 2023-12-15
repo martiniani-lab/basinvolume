@@ -62,9 +62,7 @@ class LogOmegaBase(object):
 
     def compute_log_omega(self):
         if self.mu is None or self.alpha is None or self.zeta is None:
-            raise Exception(
-                "LogOmegaBase: generalised gaussian parameters are not determined"
-            )
+            raise Exception("LogOmegaBase: generalised gaussian parameters are not determined")
         integral, error_integral = integrate.quad(
             get_gauss_times_expx,
             self.volume_sanity_check.F0_acc,

@@ -28,7 +28,8 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         sca,
         rattlers=None,
         avgcount=int(1e4),
-        k=1.0,
+        bias_params=None,
+        bias="harmonic",
         dtol=1e-3,
         eps=1.0,
         hmin=0,
@@ -43,6 +44,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         use_frozen=False,
         frozen_atoms=None,
         rcontainer=None,
+        fix_com=True,
     ):
         # construct base class
         if use_frozen:
@@ -50,9 +52,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
             red_coords = reduce_coordinates(full_coords, frozen_atoms, len(boxv))
         else:
             red_coords = full_coords
-        super(BaseSpheresMCrunner, self).__init__(
-            bias_potential, red_coords, temperature, niter
-        )
+        super(BaseSpheresMCrunner, self).__init__(bias_potential, red_coords, temperature, niter)
 
         self.boxv = boxv
         self.bdim = len(boxv)
@@ -62,9 +62,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
         self.red_radii = np.array(hs_radii)
         if use_frozen:
             self.red_radii = np.delete(self.red_radii, frozen_atoms)
-            self.red_origin = reduce_coordinates(
-                self.red_origin, frozen_atoms, self.bdim
-            )
+            self.red_origin = reduce_coordinates(self.red_origin, frozen_atoms, self.bdim)
             assert len(self.red_radii) == (len(self.hs_radii) - len(frozen_atoms))
             assert len(self.red_origin) == self.ndim
             assert rcontainer is not None
@@ -136,6 +134,7 @@ class BaseSpheresMCrunner(_BaseMCRunner):
             hmax,
             binsize,
             self.equilibration_steps,
+            fix_com=self.fix_com,
         )
         self.add_action(self.histogram)
 

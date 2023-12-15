@@ -95,9 +95,7 @@ class AnalyseShear(object):
             shear_dir = "shear_{}".format(shear)
             if not os.path.isdir(os.path.join(self.input_dir, shear_dir)):
                 logging.error(
-                    "The shear directory {} does not exist. Stopping analysis.".format(
-                        shear_dir
-                    )
+                    "The shear directory {} does not exist. Stopping analysis.".format(shear_dir)
                 )
                 sys.exit(1)
             self.calc_parameters(shear, shear_dir)
@@ -114,9 +112,7 @@ class AnalyseShear(object):
         if os.path.exists(self.output_dir):
             logging.info("Old output directory '{}' found.".format(self.output_dir))
             if self.force:
-                logging.info(
-                    "Removing old output directory '{}'.".format(self.output_dir)
-                )
+                logging.info("Removing old output directory '{}'.".format(self.output_dir))
                 shutil.rmtree(self.output_dir)
                 os.mkdir(self.output_dir)
         else:
@@ -196,9 +192,7 @@ class AnalyseShear(object):
             disp_kwargs["force"] = disp_kwargs["force"] or self.force_rel
             if shear == self.start:
                 disp_kwargs["shear"] = 0.0
-                disp_kwargs["packings_old"] = os.path.join(
-                    input_relpath, "jammed_packings"
-                )
+                disp_kwargs["packings_old"] = os.path.join(input_relpath, "jammed_packings")
             else:
                 disp_kwargs["shear"] = self.step
                 disp_kwargs["packings_old"] = os.path.join(
@@ -218,9 +212,7 @@ class AnalyseShear(object):
 
         # Lasting neighbors
         if self.calc_neighbors_dyn:
-            neighbors_dyn_kwargs = dict(
-                kwargs, cutoff=1.0, analysis_name="neighbors_dyn"
-            )
+            neighbors_dyn_kwargs = dict(kwargs, cutoff=1.0, analysis_name="neighbors_dyn")
             if shear == self.start:
                 structural_props.append((worker_neighbors, neighbors_dyn_kwargs))
             else:
@@ -230,21 +222,15 @@ class AnalyseShear(object):
                     step=self.step,
                     substep=self.substep,
                 )
-                structural_props.append(
-                    (worker_lasting_neighbors, neighbors_dyn_worker_kwargs)
-                )
+                structural_props.append((worker_lasting_neighbors, neighbors_dyn_worker_kwargs))
 
         # Original neighbors
         if self.calc_neighbors_orig:
-            neighbors_orig_kwargs = dict(
-                kwargs, cutoff=1.0, analysis_name="neighbors_orig"
-            )
+            neighbors_orig_kwargs = dict(kwargs, cutoff=1.0, analysis_name="neighbors_orig")
             if shear == self.start:
                 structural_props.append((worker_neighbors, neighbors_orig_kwargs))
             else:
-                restrict_prefix = os.path.join(
-                    "shear_{}".format(self.start), "explore_bv_"
-                )
+                restrict_prefix = os.path.join("shear_{}".format(self.start), "explore_bv_")
                 neighbors_orig_kwargs.update(restrict_neighbors=restrict_prefix)
                 structural_props.append((worker_neighbors, neighbors_orig_kwargs))
 
@@ -355,17 +341,13 @@ class AnalyseShear(object):
                     avg_abs_nonaff_displacement.append(pd.Series())
             for i in range(len(dims)):
                 avg_abs_displacement[i][shear] = displ_dict["avg_abs_displacement"][i]
-                avg_abs_nonaff_displacement[i][shear] = displ_dict[
-                    "avg_abs_nonaff_displacement"
-                ][i]
+                avg_abs_nonaff_displacement[i][shear] = displ_dict["avg_abs_nonaff_displacement"][
+                    i
+                ]
         data["Average absolute displacement"] = avg_abs_displacement_norm
-        data[
-            "Average absolute non-affine displacement"
-        ] = avg_abs_nonaff_displacement_norm
+        data["Average absolute non-affine displacement"] = avg_abs_nonaff_displacement_norm
         for i in range(len(dims)):
-            data[
-                "Average absolute displacement {}".format(dims[i])
-            ] = avg_abs_displacement[i]
+            data["Average absolute displacement {}".format(dims[i])] = avg_abs_displacement[i]
             data[
                 "Average absolute non-affine displacement {}".format(dims[i])
             ] = avg_abs_nonaff_displacement[i]

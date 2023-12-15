@@ -40,7 +40,7 @@ sort = false
 
 
 ["kmax_defaults"]
-kstart = 500
+kstart = 5
 packings-dir = "jammed_packings"
 explore-dir = "explore_bv_jammed_packing"
 nocell = false
@@ -111,6 +111,7 @@ hbinsize = 1e-1
 acceptance = 0.2
 adjustf = 0.9
 k_spreading = "positionlinspace"
+bias = "harmonic"
 
 ["innersphere_defaults"]
 packings-dir = "jammed_packings"

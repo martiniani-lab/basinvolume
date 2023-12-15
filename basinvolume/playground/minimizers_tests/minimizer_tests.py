@@ -147,9 +147,7 @@ def test_minimizer(minimizer, potential, X, origin, Etol=1e-6, dtol=1e-4, **kwar
     return np.array(Xbool), count, nfev
 
 
-def test_minimizer_single(
-    minimizer, potential, coords, origin, Etol=1e-6, dtol=1e-4, **kwargs
-):
+def test_minimizer_single(minimizer, potential, coords, origin, Etol=1e-6, dtol=1e-4, **kwargs):
     def test_same_minimum(coords, E):
         if np.abs(E - Eorigin) > Etol:
             xmean, ymean = np.mean(origin[::2]), np.mean(origin[1::2])
@@ -200,9 +198,7 @@ def test1(X, potential, origin, nconf, maxstep, fname="test"):
         )
     )
 
-    print(
-        "nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(fire_nfev, lbfgs_nfev, cgd_nfev)
-    )
+    print("nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(fire_nfev, lbfgs_nfev, cgd_nfev))
 
     np.savez(
         "xbool_n{}_{}.npz".format(nconf, fname),
@@ -338,9 +334,7 @@ def _plot_dist_projection(
 
 
 def plot_file_eig(raw_fname, req_fname, array_name="fire_Xbool", plt_density=False):
-    X_success, X_out, X_overlap, sim = get_X(
-        fname=raw_fname, pppn=[3, 6], nconf=int(1e5)
-    )
+    X_success, X_out, X_overlap, sim = get_X(fname=raw_fname, pppn=[3, 6], nconf=int(1e5))
     print("loading data...", end=" ")
     data = np.load(req_fname)
     X = data["X"]
@@ -413,12 +407,8 @@ def plot_density(x, y):
     """
     from sklearn import svm
 
-    xmin, xmax = np.amin(x) - abs(np.amin(x) * 0.05), np.amax(x) + abs(
-        np.amax(x) * 0.05
-    )
-    ymin, ymax = np.amin(y) - abs(np.amin(y) * 0.05), np.amax(y) + abs(
-        np.amax(y) * 0.05
-    )
+    xmin, xmax = np.amin(x) - abs(np.amin(x) * 0.05), np.amax(x) + abs(np.amax(x) * 0.05)
+    ymin, ymax = np.amin(y) - abs(np.amin(y) * 0.05), np.amax(y) + abs(np.amax(y) * 0.05)
     xx, yy = np.meshgrid(np.linspace(xmin, xmax, 500), np.linspace(ymin, ymax, 500))
     # fit the model
     X_train = np.column_stack((x, y))
@@ -546,9 +536,7 @@ def _walk_eig_loop(fname, ndim=128, npackings=250):
     pppn = [3, 6]
     seeds = dict(seed_takestep=pppn[0], seed_metropolis=pppn[1])
     distance_array = []
-    te_array = (
-        []
-    )  # transition state energy (energy at point where we fall out from basin)
+    te_array = []  # transition state energy (energy at point where we fall out from basin)
     ev_array = []
     for i in xrange(ndim):
         for j in xrange(npackings):
@@ -632,9 +620,7 @@ def walk_eig(fname):
     plt.savefig(fname[:-4] + "_lamb_te.pdf")
 
     plt.figure()
-    te_means, bin_edges, binnumber = binned_statistic(
-        ev_array, te_array, statistic="mean", bins=8
-    )
+    te_means, bin_edges, binnumber = binned_statistic(ev_array, te_array, statistic="mean", bins=8)
     bin_means = [(bin_edges[i] + bin_edges[i + 1]) / 2 for i in xrange(len(te_means))]
     plt.plot(bin_means, te_means, marker="o")
     plt.xlabel(r"$\lambda$")

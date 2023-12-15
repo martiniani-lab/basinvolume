@@ -8,6 +8,7 @@ import os
 import configparser
 import argparse
 import glob
+import logging
 from basinvolume.utils import import_pt_time_series
 from basinvolume.mbar_spheres.mbar_compute_volume import mbar_compute_dos
 
@@ -24,6 +25,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         kde=True,
         plot_dos_data=True,
         ncores=7,
+        bias = "harmonic"
     ):
         super(hypercube_mbar_compute_dos, self).__init__(
             nbins=nbins,
@@ -31,6 +33,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             kde=kde,
             plot_dos_data=plot_dos_data,
             ncores=ncores,
+            bias = bias
         )
 
     def __call__(self, explore_dir, base_dir="analysis", show=False, verbose=True):
@@ -43,17 +46,11 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         dlist = explore_dir.split("_")
         assert dlist[2] == "hypercube"
         dname = dlist[2] + "_" + dlist[3] + "_" + dlist[4]
-        self.pt_configpath = os.path.join(
-            self.explore_dir, "explore_" + dname + ".config"
-        )
+        self.pt_configpath = os.path.join(self.explore_dir, "explore_" + dname + ".config")
         assert os.path.isfile(self.pt_configpath)
-        self.findk_configpath = os.path.join(
-            self.explore_dir, "findk_" + dname + ".config"
-        )
+        self.findk_configpath = os.path.join(self.explore_dir, "findk_" + dname + ".config")
         assert os.path.isfile(self.findk_configpath)
-        self.kmin_configpath = os.path.join(
-            self.explore_dir, "kmin_" + dname + ".config"
-        )
+        self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + dname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         # There can be several innersphere runs, each with a config path
         self.innersphere_configpaths = []
@@ -70,9 +67,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             )
             assert os.path.isfile(innersphere_configpath)
             self.innersphere_configpaths.append(innersphere_configpath)
-            innersphere_timeseries_path = os.path.join(
-                self.explore_dir, "inner_sphere.timeseries"
-            )
+            innersphere_timeseries_path = os.path.join(self.explore_dir, "inner_sphere.timeseries")
             assert os.path.isfile(innersphere_timeseries_path)
             self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
@@ -112,12 +107,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             k_innersphere = configf.getfloat("INNERSPHERE_MCRUNNER", "k")
             self.ndof = configf.getfloat("INNERSPHERE_HYPERCUBE", "ndof")
             self.sidelength = configf.getfloat("INNERSPHERE_HYPERCUBE", "sidelength")
-            ref_radius = configf.getfloat(
-                "INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize"
-            )
-            ref_acceptance = configf.getfloat(
-                "INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac"
-            )
+            ref_radius = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize")
+            ref_acceptance = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac")
             self.ks_innersphere.append(k_innersphere)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
@@ -141,9 +132,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="analyze PT data from thermodynamic integration"
-    )
+    parser = argparse.ArgumentParser(description="analyze PT data from thermodynamic integration")
     parser.add_argument("explore_dir", type=str, help="explore_dir")
     parser.add_argument(
         "--show",
@@ -169,11 +158,23 @@ if __name__ == "__main__":
         help="number of cores to use for the calculation",
         default=1,
     )
+    parser.add_argument(
+        "--bias",
+        help = "Biasing potential used in the PT",
+        default = "harmonic"
+    )
     args = parser.parse_args()
-    print(args)
+    
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s: %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
+    logging.info(args)
+    
 
     sim = hypercube_mbar_compute_dos(
-        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1
+        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1, bias = args.bias
     )
 
     sim(args.explore_dir, show=args.show)

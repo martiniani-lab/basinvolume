@@ -66,9 +66,7 @@ class BaseFindKMCRunner(ConfigMCRunner):
             pot_kwargs=self.pot_kwargs,
         )
 
-        self.mc_params = dict(
-            temperature=self.temperature, niter=niter, stepsize=stepsize
-        )
+        self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
         self.mc_params.update(kwargs)
 
         if seeds is None:
@@ -259,9 +257,7 @@ class Findk_MCrunner(SpheresMCRunner):
         )
 
     def _set_takestep(self, stepsize):
-        self.takestep = SampleGaussian(
-            self.seeds["seed_takestep"], stepsize, self.origin
-        )
+        self.takestep = SampleGaussian(self.seeds["seed_takestep"], stepsize, self.origin)
         self.set_takestep(self.takestep)
 
     def _set_actions(self):
@@ -302,9 +298,7 @@ class Findk_MCrunner(SpheresMCRunner):
     def show_histogram(self):
         """shows the histogram"""
         hist = self.findk.get_histogram()
-        val = (
-            np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        )
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
         n, bins, patches = plt.hist(
             val,
             weights=hist,

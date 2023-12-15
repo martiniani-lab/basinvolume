@@ -113,9 +113,7 @@ class BVRemoveToxicData(object):
                 raise NotImplementedError('option "{}" not known')
             self.kmax_toxic_list = []
             for item in hash_list:
-                self.kmax_toxic_list.extend(
-                    self._find_toxic_data(self.kmax_config, git_hash=item)
-                )
+                self.kmax_toxic_list.extend(self._find_toxic_data(self.kmax_config, git_hash=item))
 
     def _find_kmin_toxic_data(self, where="at", gitrepo_path=None):
         """
@@ -147,9 +145,7 @@ class BVRemoveToxicData(object):
                 raise NotImplementedError('option "{}" not known')
             self.kmin_toxic_list = []
             for item in hash_list:
-                self.kmin_toxic_list.extend(
-                    self._find_toxic_data(self.kmin_config, git_hash=item)
-                )
+                self.kmin_toxic_list.extend(self._find_toxic_data(self.kmin_config, git_hash=item))
 
     def _find_pt_toxic_data(self, where="at", gitrepo_path=None):
         """
@@ -183,9 +179,7 @@ class BVRemoveToxicData(object):
             print("DONE")
             self.pt_toxic_list = []
             for item in hash_list:
-                self.pt_toxic_list.extend(
-                    self._find_toxic_data(self.pt_config, git_hash=item)
-                )
+                self.pt_toxic_list.extend(self._find_toxic_data(self.pt_config, git_hash=item))
 
     def _find_toxic_data(self, config_file, git_hash=None):
         if git_hash is None:
@@ -205,9 +199,7 @@ class BVRemoveToxicData(object):
 
     def _get_hash_history(self, gitrepo_path):
         print("retrieving hash history...", end=" ")
-        command = shlex.split(
-            "git --git-dir {}/.git log --pretty=oneline".format(gitrepo_path)
-        )
+        command = shlex.split("git --git-dir {}/.git log --pretty=oneline".format(gitrepo_path))
         try:
             raw_list = subprocess.check_output(command).split()
             raw_list = [word for word in raw_list if len(word) == 40]
@@ -268,21 +260,15 @@ if __name__ == "__main__":
         help="working directory (folder containing the packings and jammed_packings subfolders)",
     )
     parser.add_argument("toxic_git_version", type=str, help="toxic git version")
-    parser.add_argument(
-        "--repopath", type=str, help="path to git repository", default=None
-    )
+    parser.add_argument("--repopath", type=str, help="path to git repository", default=None)
     parser.add_argument(
         "--where",
         type=str,
         help="range (all strictly): at (default), older, later",
         default="at",
     )
-    parser.add_argument(
-        "--kmin", action="store_true", help="compute kmin", default=False
-    )
-    parser.add_argument(
-        "--kmax", action="store_true", help="compute kmax", default=False
-    )
+    parser.add_argument("--kmin", action="store_true", help="compute kmin", default=False)
+    parser.add_argument("--kmax", action="store_true", help="compute kmax", default=False)
     parser.add_argument(
         "--pt",
         action="store_true",

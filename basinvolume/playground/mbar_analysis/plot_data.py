@@ -161,9 +161,7 @@ class plot_mbar_data(object):
         self.disordered_data.compute_dos_moments()
 
     def _collect_data(self, mbar_data):
-        subdirs = get_immediate_subdirectories(
-            os.path.join(self.workdir, mbar_data.label)
-        )
+        subdirs = get_immediate_subdirectories(os.path.join(self.workdir, mbar_data.label))
         for folder in subdirs:
             if self.explore_dir in folder:
                 path = os.path.join(
@@ -180,9 +178,9 @@ class plot_mbar_data(object):
                         fpath = os.path.join(path, mbar_data.volume_file)
                         if os.path.isfile(fpath):
                             configf.read(fpath)
-                            F, Ferr = configf.getfloat(
-                                "VOLUME_MBAR", "F0"
-                            ), configf.getfloat("VOLUME_MBAR", "sigF0")
+                            F, Ferr = configf.getfloat("VOLUME_MBAR", "F0"), configf.getfloat(
+                                "VOLUME_MBAR", "sigF0"
+                            )
                             Facc = configf.getfloat("VOLUME_HS_FLUID", "F0_acc")
                             mbar_data.free_energies.append((F, Ferr))
                             mbar_data.acc_free_energies.append(Facc)
@@ -191,12 +189,8 @@ class plot_mbar_data(object):
                         fpath = os.path.join(path, mbar_data.boo_file)
                         if os.path.isfile(fpath):
                             configf.read(fpath)
-                            Q4, Q6 = configf.getfloat("BOO", "Q4"), configf.getfloat(
-                                "BOO", "Q6"
-                            )
-                            Q8, Q10 = configf.getfloat("BOO", "Q8"), configf.getfloat(
-                                "BOO", "Q10"
-                            )
+                            Q4, Q6 = configf.getfloat("BOO", "Q4"), configf.getfloat("BOO", "Q6")
+                            Q8, Q10 = configf.getfloat("BOO", "Q8"), configf.getfloat("BOO", "Q10")
                             Q12 = configf.getfloat("BOO", "Q12")
                             mbar_data.boo.append((Q4, Q6, Q8, Q10, Q12))
                             z = configf.getfloat("Z", "Z")
@@ -256,9 +250,7 @@ class plot_mbar_data(object):
             else:
                 log_gr = mbar_data.log_gr
             for csv_tuple in log_gr:
-                ax = self._plot(
-                    ax, csv_tuple, label=label, plot_err=False, plot_fit=False
-                )
+                ax = self._plot(ax, csv_tuple, label=label, plot_err=False, plot_fit=False)
             xlabel = r"r"
             ylabel = r"$\log(g(r))$"
         if plot_type == "log_gr_ratio":
@@ -267,9 +259,7 @@ class plot_mbar_data(object):
             else:
                 log_gr_ratio = mbar_data.log_gr_ratio
             for csv_tuple in log_gr_ratio:
-                ax = self._plot(
-                    ax, csv_tuple, label=label, plot_err=False, plot_fit=False
-                )
+                ax = self._plot(ax, csv_tuple, label=label, plot_err=False, plot_fit=False)
             xlabel = r"r"
             ylabel = r"$\log(g(r)/r^{N-1})$"
         if plot_type == "gr_ratio":
@@ -278,9 +268,7 @@ class plot_mbar_data(object):
             else:
                 gr_ratio = mbar_data.gr_ratio
             for csv_tuple in gr_ratio:
-                ax = self._plot(
-                    ax, csv_tuple, label=label, plot_err=False, plot_fit=False
-                )
+                ax = self._plot(ax, csv_tuple, label=label, plot_err=False, plot_fit=False)
             xlabel = r"r"
             ylabel = r"$g(r)/r^{N-1}$"
             ax.set_xlim((0, 1))
@@ -360,9 +348,7 @@ class plot_mbar_data(object):
         if show:
             plt.show()
 
-    def _plot_correlations(
-        self, ax, mbar_data, plot_type="f_m1", label=None, color="b"
-    ):
+    def _plot_correlations(self, ax, mbar_data, plot_type="f_m1", label=None, color="b"):
         moments = np.reshape(mbar_data.dos_moments, (-1, 5))
         free_energies = np.reshape(mbar_data.free_energies, (-1, 2))
         free_energies[:, 0] += np.array(
@@ -648,9 +634,7 @@ class plot_diffusion_data(object):
         self._collect_diffusion_data(self.disordered_data)
 
     def _collect_diffusion_data(self, diffusion_data):
-        subdirs = get_immediate_subdirectories(
-            os.path.join(self.workdir, diffusion_data.label)
-        )
+        subdirs = get_immediate_subdirectories(os.path.join(self.workdir, diffusion_data.label))
         for folder in subdirs:
             if self.explore_dir in folder:
                 self._import_steps_time_series_diffusion(folder, diffusion_data)
@@ -690,15 +674,9 @@ class plot_diffusion_data(object):
                     nsubs = step_timeseries[0][eqtime:].size // n
                     for j in range(nsubs):
                         mean_arr.append(
-                            np.sum(
-                                step_timeseries[0][
-                                    eqtime + j * n : eqtime + (j + 1) * n
-                                ]
-                            )
+                            np.sum(step_timeseries[0][eqtime + j * n : eqtime + (j + 1) * n])
                         )
-                    mean, stdev = np.mean(np.array(mean_arr)), np.std(
-                        np.array(mean_arr)
-                    )
+                    mean, stdev = np.mean(np.array(mean_arr)), np.std(np.array(mean_arr))
                     step_timeseries_mean_path.append(mean)
                     step_timeseries_mean_path_std.append(stdev / np.sqrt(len(mean_arr)))
                     step_timeseries_mean_eucdist.append(
@@ -708,15 +686,9 @@ class plot_diffusion_data(object):
                         np.std(step_timeseries[i + 1][eqtime // n :])
                         / np.sqrt(len(step_timeseries[i + 1]))
                     )
-                diffusion_data.step_timeseries_mean_path.append(
-                    step_timeseries_mean_path
-                )
-                diffusion_data.step_timeseries_mean_path_std.append(
-                    step_timeseries_mean_path_std
-                )
-                diffusion_data.step_timeseries_mean_eucdist.append(
-                    step_timeseries_mean_eucdist
-                )
+                diffusion_data.step_timeseries_mean_path.append(step_timeseries_mean_path)
+                diffusion_data.step_timeseries_mean_path_std.append(step_timeseries_mean_path_std)
+                diffusion_data.step_timeseries_mean_eucdist.append(step_timeseries_mean_eucdist)
                 diffusion_data.step_timeseries_mean_eucdist_std.append(
                     step_timeseries_mean_eucdist_std
                 )
@@ -764,9 +736,7 @@ class plot_diffusion_data(object):
                 print(w)
                 fit = pol(np.log(x))
                 csv_tuple = (np.log(x), dx / x, np.log(y), dy / y, fit)
-                ax = self._plot(
-                    ax, csv_tuple, label=label, plot_err=True, plot_fit=True
-                )
+                ax = self._plot(ax, csv_tuple, label=label, plot_err=True, plot_fit=True)
                 ylabel = r"$\log(\Delta r)$"
                 xlabel = r"$\log (\Delta s)$"
             if plot_type == "red_logr_vs_logt" and x.size > 0:
@@ -778,9 +748,7 @@ class plot_diffusion_data(object):
                     dy / y,
                     np.zeros(len(x)),
                 )
-                ax = self._plot(
-                    ax, csv_tuple, label=label, plot_err=True, plot_fit=False
-                )
+                ax = self._plot(ax, csv_tuple, label=label, plot_err=True, plot_fit=False)
                 ylabel = r"$\log(\Delta r) - \frac{1}{2}\log(\Delta s)$"
                 xlabel = r"$\log (\Delta s)$"
         return ax, xlabel, ylabel
@@ -797,9 +765,7 @@ class plot_diffusion_data(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
-        ax, xlabel, ylabel = self._plot_all(
-            ax, self.fcc_data, plot_type=plot_type, label=r"fcc"
-        )
+        ax, xlabel, ylabel = self._plot_all(ax, self.fcc_data, plot_type=plot_type, label=r"fcc")
         ax, xlabel, ylabel = self._plot_all(
             ax, self.fcc_mono_data, plot_type=plot_type, label=r"fcc mono"
         )
@@ -854,12 +820,8 @@ if __name__ == "__main__":
     logx = True
     logy = True
     #    pe.plot_correlations(plot_type="m0_q6", logx=logx, logy=logy, show=False, savefig=True)
-    pe.plot_correlations(
-        plot_type="m1_q6", logx=logx, logy=logy, show=False, savefig=True
-    )
-    pe.plot_correlations(
-        plot_type="m2_q6", logx=logx, logy=logy, show=False, savefig=True
-    )
+    pe.plot_correlations(plot_type="m1_q6", logx=logx, logy=logy, show=False, savefig=True)
+    pe.plot_correlations(plot_type="m2_q6", logx=logx, logy=logy, show=False, savefig=True)
     #    pe.plot_correlations(plot_type="m3_q6", logx=logx, logy=logy, show=False, savefig=True)
     #    pe.plot_correlations(plot_type="m4_q6", logx=logx, logy=logy, show=False, savefig=True)
 

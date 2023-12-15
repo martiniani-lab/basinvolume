@@ -64,9 +64,7 @@ class Displacement(StructuralAnalysis):
         disp_dict["avg_displacement"] = ast.literal_eval(
             configf.get("DISPLACEMENT", "avg_displacement")
         )
-        disp_dict["displacements"] = ast.literal_eval(
-            configf.get("DISPLACEMENT", "displacements")
-        )
+        disp_dict["displacements"] = ast.literal_eval(configf.get("DISPLACEMENT", "displacements"))
         if configf.has_section("NONAFFINE_DISPLACEMENT"):
             disp_dict["avg_abs_nonaff_displacement_norm"] = configf.getfloat(
                 "NONAFFINE_DISPLACEMENT", "avg_abs_displacement_norm"
@@ -83,9 +81,7 @@ class Displacement(StructuralAnalysis):
         return disp_dict
 
     def _averages(self, displacements):
-        avg_displacement = [
-            np.mean(displacements_1d) for displacements_1d in zip(*displacements)
-        ]
+        avg_displacement = [np.mean(displacements_1d) for displacements_1d in zip(*displacements)]
         # This should be zero when the centre of mass is subtracted
         if self.sub_centre_mass:
             check_avg_displacement = list(avg_displacement)
@@ -97,8 +93,7 @@ class Displacement(StructuralAnalysis):
             )
 
         avg_abs_displacement = [
-            np.mean(np.abs(displacements_1d))
-            for displacements_1d in zip(*displacements)
+            np.mean(np.abs(displacements_1d)) for displacements_1d in zip(*displacements)
         ]
         avg_abs_displacement_norm = np.linalg.norm(avg_abs_displacement)
         return (
@@ -109,9 +104,7 @@ class Displacement(StructuralAnalysis):
 
     def _calculate(self, displacement_fname, packing_name, input_fname):
         if self.verbose:
-            logging.info(
-                "Calculating displacements: {}".format(self.prefix + str(packing_name))
-            )
+            logging.info("Calculating displacements: {}".format(self.prefix + str(packing_name)))
 
         # Read coordinates
         path_new = os.path.join(self.jammed_packings_dir, input_fname)
@@ -150,9 +143,7 @@ class Displacement(StructuralAnalysis):
             if self.shear is not None:
                 nonaff_displacements -= centre_of_mass_displacement
                 # Centre of mass displacement by affine shear component
-                affine_com_displacement = np.mean(
-                    coords_old[1 :: self.bdim] * self.shear
-                )
+                affine_com_displacement = np.mean(coords_old[1 :: self.bdim] * self.shear)
                 for i in range(self.nparticles):
                     nonaff_displacements[i][0] += affine_com_displacement
 
@@ -176,24 +167,14 @@ class Displacement(StructuralAnalysis):
             f.write("avg_abs_displacement_norm: {}\n".format(avg_abs_displacement_norm))
             f.write("avg_abs_displacement: {}\n".format(avg_abs_displacement))
             f.write("avg_displacement: {}\n".format(avg_displacement))
-            f.write(
-                "displacements: {}\n".format([disp.tolist() for disp in displacements])
-            )
+            f.write("displacements: {}\n".format([disp.tolist() for disp in displacements]))
             if self.shear is not None:
                 f.write("[NONAFFINE_DISPLACEMENT]\n")
-                f.write(
-                    "avg_abs_displacement_norm: {}\n".format(
-                        avg_abs_nonaff_displacement_norm
-                    )
-                )
-                f.write(
-                    "avg_abs_displacement: {}\n".format(avg_abs_nonaff_displacement)
-                )
+                f.write("avg_abs_displacement_norm: {}\n".format(avg_abs_nonaff_displacement_norm))
+                f.write("avg_abs_displacement: {}\n".format(avg_abs_nonaff_displacement))
                 f.write("avg_displacement: {}\n".format(avg_nonaff_displacement))
                 f.write(
-                    "displacements: {}\n".format(
-                        [disp.tolist() for disp in nonaff_displacements]
-                    )
+                    "displacements: {}\n".format([disp.tolist() for disp in nonaff_displacements])
                 )
 
 
@@ -207,14 +188,12 @@ def worker_disp(workspace, kwargs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Compares the particle positions "
-        "in different sets of jammed packings."
+        description="Compares the particle positions " "in different sets of jammed packings."
     )
     parser.add_argument(
         "packings-old",
         type=str,
-        help="Directory containing the "
-        "jammed packings with the old particle positions.",
+        help="Directory containing the " "jammed packings with the old particle positions.",
     )
     parser.add_argument(
         "packings-new",

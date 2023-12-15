@@ -92,9 +92,7 @@ class RuntimeData(object):
         plt.xlabel(r"Number of particles $N$")
         plt.ylabel(r"Runtime on dexter / seconds")
         popt, pcov = curve_fit(time_law, self.N, self.time, [10000, 1])
-        popt_linear, pcov_linear = curve_fit(
-            time_law_linear, self.N, self.time, [10000, 0]
-        )
+        popt_linear, pcov_linear = curve_fit(time_law_linear, self.N, self.time, [10000, 0])
         print("large-N exponent: N^", popt[1])
         print("slope linear law:", popt_linear[0])
         print("offset linear law:", popt_linear[1])
@@ -176,8 +174,7 @@ class RuntimeData(object):
             print(actual_n)
             print(f)
             time_strings = [
-                extract_time_string(os.path.join(f, time_file))
-                for time_file in os.listdir(f)
+                extract_time_string(os.path.join(f, time_file)) for time_file in os.listdir(f)
             ]
             while "unknown" in time_strings:
                 time_strings.remove("unknown")

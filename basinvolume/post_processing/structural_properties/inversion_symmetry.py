@@ -54,9 +54,7 @@ class InversionSymmetry(StructuralAnalysis):
         dist_dir = distance / dist_norm
         if self.bdim == 2:
             # Transformation defined by base vectors dist_dir and its normal
-            rot_matrix = np.array(
-                [[dist_dir[0], dist_dir[1]], [-dist_dir[1], dist_dir[0]]]
-            )
+            rot_matrix = np.array([[dist_dir[0], dist_dir[1]], [-dist_dir[1], dist_dir[0]]])
         elif self.bdim == 3:
             # Transformation defined by base vectors dist_dir,
             # its normal in the xy-plane and their cross product
@@ -76,9 +74,7 @@ class InversionSymmetry(StructuralAnalysis):
         if self.bdim == 2:
             hessian_particle_system = np.array([[hess_radial, 0], [0, 0]])
         elif self.bdim == 3:
-            hessian_particle_system = np.array(
-                [[hess_radial, 0, 0], [0, 0, 0], [0, 0, 0]]
-            )
+            hessian_particle_system = np.array([[hess_radial, 0, 0], [0, 0, 0], [0, 0, 0]])
         hessian = np.dot(rot_matrix.T, np.dot(hessian_particle_system, rot_matrix))
 
         result = np.empty((self.bdim, self.bdim, self.bdim))
@@ -90,9 +86,7 @@ class InversionSymmetry(StructuralAnalysis):
     def _affine_force_particle(self, index, distances, neighbors):
         affine_force_particle = np.zeros((self.bdim, self.bdim, self.bdim))
         for i in range(len(neighbors)):
-            affine_force = self._affine_force_interaction(
-                distances[i], index, neighbors[i]
-            )
+            affine_force = self._affine_force_interaction(distances[i], index, neighbors[i])
             affine_force_particle += affine_force
         return affine_force_particle
 
@@ -136,9 +130,7 @@ class InversionSymmetry(StructuralAnalysis):
     def _calculate(self, invsym_fname, packing_name, input_fname):
         if self.verbose:
             logging.info(
-                "Calculating local inversion symmetry: {}".format(
-                    self.prefix + str(packing_name)
-                )
+                "Calculating local inversion symmetry: {}".format(self.prefix + str(packing_name))
             )
 
         # Read coordinates
@@ -157,9 +149,7 @@ class InversionSymmetry(StructuralAnalysis):
 
         # Compute local inversion symmetry
         affine_forces_sum = self._sum_affine_forces(neighbor_distancess, neighbor_lists)
-        affine_forces_isb = self._sum_affine_forces_sym_broken(
-            neighbor_distancess, neighbor_lists
-        )
+        affine_forces_isb = self._sum_affine_forces_sym_broken(neighbor_distancess, neighbor_lists)
         inv_sym = 1 - affine_forces_sum / affine_forces_isb
 
         # Output inversion symmetry to file

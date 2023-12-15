@@ -66,13 +66,9 @@ plt.rcParams.update({"figure.autolayout": True})
 def get_color_cycle(ncolors=8, reverse=True):
     cm = plt.get_cmap("Paired")
     if reverse:
-        color_cycle = cycle(
-            [cm(1.0 * (i + 0.5) / float(ncolors)) for i in range(ncolors)][::-1]
-        )
+        color_cycle = cycle([cm(1.0 * (i + 0.5) / float(ncolors)) for i in range(ncolors)][::-1])
     else:
-        color_cycle = cycle(
-            [cm(1.0 * (i - 0.5) / float(ncolors)) for i in range(ncolors)]
-        )
+        color_cycle = cycle([cm(1.0 * (i - 0.5) / float(ncolors)) for i in range(ncolors)])
     return color_cycle
 
 
@@ -247,9 +243,7 @@ def remove_outliers_cluster(x, y, yerr):
     y_outliers = OutlierDetection(y, p=0.5, D=4 * np.std(y))
     x_outliers = OutlierDetection(x, p=0.5, D=4 * np.std(x))
     non_outliers_indexes = list(
-        set(y_outliers.non_outliers_indexes).intersection(
-            x_outliers.non_outliers_indexes
-        )
+        set(y_outliers.non_outliers_indexes).intersection(x_outliers.non_outliers_indexes)
     )
     x = np.array(x)[np.array(non_outliers_indexes, dtype="i")]
     y = np.array(y)[np.array(non_outliers_indexes, dtype="i")]
@@ -276,22 +270,12 @@ def remove_outliers_pca_cluster(x, y, yerr):
     x, y = np.asarray(x), np.asarray(y)
     features = np.vstack((x, y)).T
     pca.fit(features)
-    pca_projection1 = np.array(
-        [np.dot(xx, pca.components_[0]) for xx in np.vstack((x, y)).T]
-    )
-    pca_projection2 = np.array(
-        [np.dot(xx, pca.components_[1]) for xx in np.vstack((x, y)).T]
-    )
-    outliers_pca1 = OutlierDetection(
-        pca_projection1, p=0.5, D=3 * np.std(pca_projection1)
-    )
-    outliers_pca2 = OutlierDetection(
-        pca_projection2, p=0.5, D=3 * np.std(pca_projection2)
-    )
+    pca_projection1 = np.array([np.dot(xx, pca.components_[0]) for xx in np.vstack((x, y)).T])
+    pca_projection2 = np.array([np.dot(xx, pca.components_[1]) for xx in np.vstack((x, y)).T])
+    outliers_pca1 = OutlierDetection(pca_projection1, p=0.5, D=3 * np.std(pca_projection1))
+    outliers_pca2 = OutlierDetection(pca_projection2, p=0.5, D=3 * np.std(pca_projection2))
     non_outliers_indexes_pca = list(
-        set(outliers_pca1.non_outliers_indexes).intersection(
-            outliers_pca2.non_outliers_indexes
-        )
+        set(outliers_pca1.non_outliers_indexes).intersection(outliers_pca2.non_outliers_indexes)
     )
     x = np.array(x)[np.array(non_outliers_indexes_pca, dtype="i")]
     y = np.array(y)[np.array(non_outliers_indexes_pca, dtype="i")]
@@ -435,9 +419,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         cov_f_pi_list, logl_list = [], []
         bw_list = []
         pjam_spline = pickle.load(open("phi_psuccess_spline.pickle", "rb"))
-        for i, dataset in enumerate(
-            sorted(packing_datasets, key=lambda data: data.ss_phi)
-        ):
+        for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
             if len(dataset.free_energies) > 0 and phi_min < dataset.ss_phi < phi_max:
                 print("set name ", dataset.set_name)
                 nparticles = dataset.nparticles
@@ -445,23 +427,16 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                 Facc = None
                 vcavity = None
                 while Facc is None or vcavity is None:
-                    Facc = dataset.packing_data[j].Facc - np.log(
-                        pjam_spline(dataset.ss_phi)
-                    )
+                    Facc = dataset.packing_data[j].Facc - np.log(pjam_spline(dataset.ss_phi))
                     vcavity = dataset.packing_data[j].vcavity
                     j += 1
                 print(Facc)
                 print(nparticles)
-                if (
-                    0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name
-                ) or (phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
+                if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
+                    phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name
+                ):
                     # should remoe both outliers in pressure and in volume
-                    (
-                        p_raw,
-                        f_raw,
-                        ferr_raw,
-                        non_outliers_indexes,
-                    ) = remove_outliers_cluster(
+                    (p_raw, f_raw, ferr_raw, non_outliers_indexes,) = remove_outliers_cluster(
                         np.log(dataset.pressures),
                         np.array(dataset.free_energies),
                         np.array(dataset.free_energies_err),
@@ -478,9 +453,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     ), f_raw + nparticles * np.log(
                         np.pi * (u**2 + s**2)
                     )  # DEBUG: here I supposedly adjust the units, check this
-                    Facc += nparticles * np.log(
-                        np.pi * (u**2 + s**2)
-                    )  # DEBUG: check here too
+                    Facc += nparticles * np.log(np.pi * (u**2 + s**2))  # DEBUG: check here too
                     # end fix units
                     p, f, ferr = p_raw, f_raw, ferr_raw
                     p = np.exp(p)
@@ -539,14 +512,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     print("n samples", len(f))
                     print("min f, max f", np.amin(f), np.amax(f))
                     # f: fit to kde
-                    bw = get_bandwidth_estimate(
-                        f, kernel="gaussian", method="cross_validation"
-                    )
+                    bw = get_bandwidth_estimate(f, kernel="gaussian", method="cross_validation")
                     bw_list.append(bw[0])
                     edges = np.linspace(120, 160, 10000)
-                    kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(
-                        f[:, np.newaxis]
-                    )
+                    kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(f[:, np.newaxis])
                     kdehist = np.exp(kde.score_samples(edges[:, np.newaxis]))
                     ax3.plot(
                         edges,
@@ -588,9 +557,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     #     if np.isfinite(fintegral) and fintegral_error < 1e55:
                     #         fintegral_list.append(fintegral)
                     #         n += 1
-                    generalised_gauss = GeneralisedGauss(
-                        alpha_min=0.00001, zeta_min=0.1
-                    )
+                    generalised_gauss = GeneralisedGauss(alpha_min=0.00001, zeta_min=0.1)
                     cdf = CDFAccumulator()
                     cdf.add_array(f)
                     x, cdf_x = cdf.get_vecdata()
@@ -605,9 +572,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     u = ufloat(fintegral, np.sqrt(np.var(np.exp(f)) / f.size))
                     s = umath.log(u) - Facc - log_factorial(nparticles)
                     Sb_gauss.append([s.nominal_value, s.std_dev])
-                    hist = np.array(
-                        [generalised_gauss.get_fitted(edge) for edge in edges]
-                    )
+                    hist = np.array([generalised_gauss.get_fitted(edge) for edge in edges])
                     ax3.plot(edges, hist, linestyle="--", color=color, linewidth=3)
 
                     # mean_func = lambda x: generalised_gauss.get_fitted_times_expx(x) * x / fintegral
@@ -632,12 +597,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     # wpdf = weighted_gaussian_kde(f, weights=np.exp(f), bw_method=bw[0])
                     # ax33.plot(edges, wpdf(edges), label=dataset.ss_phi, color=color, linewidth=3)
                     hist = (
-                        np.array(
-                            [
-                                generalised_gauss.get_fitted_times_expx(edge)
-                                for edge in edges
-                            ]
-                        )
+                        np.array([generalised_gauss.get_fitted_times_expx(edge) for edge in edges])
                         / fintegral
                     )
                     hist /= simps(hist, edges)
@@ -646,9 +606,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     # meanvar_f_u_list.append([np.mean(u_set), np.var(u_set)])
 
                     # p: fit to kde
-                    bw = get_bandwidth_estimate(
-                        p, kernel="gaussian", method="cross_validation"
-                    )
+                    bw = get_bandwidth_estimate(p, kernel="gaussian", method="cross_validation")
                     edges = np.linspace(-2, 8, 10000)
                     kdehist = get_pdf(p, edges, bandwidth=bw, kernel="gaussian")
                     ax32.plot(
@@ -659,9 +617,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                         linewidth=3,
                     )
                     # fit to generalised gaussian
-                    generalised_gauss = GeneralisedGauss(
-                        alpha_min=0.00001, zeta_min=0.1
-                    )
+                    generalised_gauss = GeneralisedGauss(alpha_min=0.00001, zeta_min=0.1)
                     cdf = CDFAccumulator()
                     cdf.add_array(p)
                     x, cdf_x = cdf.get_vecdata()
@@ -669,9 +625,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     print("mu: ", generalised_gauss.mu_fit)
                     print("alpha: ", generalised_gauss.alpha_fit)
                     print("zeta: ", generalised_gauss.zeta_fit)
-                    hist = np.array(
-                        [generalised_gauss.get_fitted(edge) for edge in edges]
-                    )
+                    hist = np.array([generalised_gauss.get_fitted(edge) for edge in edges])
                     ax32.plot(edges, hist, linestyle="--", color=color, linewidth=3)
 
                     pintegral, pintegral_error = integrate.quad(
@@ -790,9 +744,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
         meanz_spline = pickle.load(open("phi_meanZ_spline.pickle", "rb"))
         meanz_data = pickle.load(open("phi_meanZ_data.pickle", "rb"))
-        meanz_spline_err = lambda x, xstd: np.sqrt(
-            meanz_spline.derivative()(x) ** 2 * xstd**2
-        )
+        meanz_spline_err = lambda x, xstd: np.sqrt(meanz_spline.derivative()(x) ** 2 * xstd**2)
         # assume that error in entropy is proportional to standard error of the mean for all of them
         phi_star = 0.823
         Sg = np.array(Sg)
@@ -800,9 +752,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         yerr = Sg[:, 1]
         iyerr = unp.std_devs(1.0 / uSg)
         print("iyerr: ", iyerr)
-        fit_fn, fit_params, fit_err, rho = poly_fit(
-            phi, 1.0 / Sg[:, 0], yerr=iyerr, order=2
-        )
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1.0 / Sg[:, 0], yerr=iyerr, order=2)
         print("fit_params", fit_params)
         print("fit_err", fit_err)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
@@ -832,9 +782,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         a1 = ufloat(fit_params[0], fit_err[0])
         b1 = ufloat(fit_params[1], fit_err[1])
         c1 = ufloat(fit_params[2], fit_err[2])
-        fit_fn, fit_params, fit_err, rho = poly_fit(
-            avgz, 1.0 / Sg[:, 0], yerr=iyerr, order=2
-        )
+        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1.0 / Sg[:, 0], yerr=iyerr, order=2)
         ax11.errorbar(
             avgz,
             Sg[:, 0],
@@ -862,9 +810,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         yerr = Sb_gauss[:, 1]
         iyerr = unp.std_devs(1.0 / uSb)
         print("iyerr: ", iyerr)
-        fit_fn, fit_params, fit_err, rho = poly_fit(
-            phi, 1.0 / Sb_gauss[:, 0], yerr=iyerr, order=2
-        )
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1.0 / Sb_gauss[:, 0], yerr=iyerr, order=2)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sb-gauss phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
@@ -935,9 +881,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         uSb = unp.uarray(Sb_kde[:, 0], Sb_kde[:, 1])
         yerr = Sb_kde[:, 1]
         iyerr = unp.std_devs(1.0 / uSb)
-        fit_fn, fit_params, fit_err, rho = poly_fit(
-            phi, 1.0 / Sb_kde[:, 0], yerr=iyerr, order=2
-        )
+        fit_fn, fit_params, fit_err, rho = poly_fit(phi, 1.0 / Sb_kde[:, 0], yerr=iyerr, order=2)
         # phi_star, phi_star_err = find_roots(fit_params, fit_err)[0]
         # print "Sb-kde phi* = {} \pm {}".format(phi_star, phi_star_err)
         x = np.linspace(phi_star, np.amax(phi), 1000)
@@ -975,9 +919,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             )
         )
 
-        fit_fn, fit_params, fit_err, rho = poly_fit(
-            avgz, 1.0 / Sb_kde[:, 0], yerr=iyerr, order=2
-        )
+        fit_fn, fit_params, fit_err, rho = poly_fit(avgz, 1.0 / Sb_kde[:, 0], yerr=iyerr, order=2)
         ax11.errorbar(
             avgz,
             Sb_kde[:, 0],
@@ -1064,17 +1006,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             fig01 = plt.figure()
             ax3 = fig01.add_subplot(111)
             x, y, yerr, y2, y2err, rho = [], [], [], [], [], []
-            for i, dataset in enumerate(
-                sorted(packing_datasets, key=lambda data: data.ss_phi)
-            ):
-                if (
-                    len(dataset.free_energies) > 0
-                    and phi_min < dataset.ss_phi < phi_max
-                ):
-                    if (
-                        0.86 < dataset.ss_phi < phi_max
-                        and "fire" not in dataset.set_name
-                    ) or (
+            for i, dataset in enumerate(sorted(packing_datasets, key=lambda data: data.ss_phi)):
+                if len(dataset.free_energies) > 0 and phi_min < dataset.ss_phi < phi_max:
+                    if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                         phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name
                     ):
                         y.append(dataset.extras[0][0])
@@ -1117,9 +1051,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             glob_phi_j, glob_phi_j_std = find_roots(fit_params, fit_err)[0]
             print("1/k(phi) = {} phi + {}".format(fit_params[0], fit_params[1]))
             print(
-                "1/k: phi*: {} \pm {}, beta: {}".format(
-                    glob_phi_j, glob_phi_j_std, fit_params[1]
-                )
+                "1/k: phi*: {} \pm {}, beta: {}".format(glob_phi_j, glob_phi_j_std, fit_params[1])
             )
             print(
                 "1/k: z(\phi*): {} \pm {}".format(
@@ -1150,11 +1082,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             ax31.plot(avgz, fit_fn(avgz), color=color_fit)
             glob_z_j, glob_z_j_std = find_roots(fit_params, fit_err)[0]
             print("1/k(z) = {} z + {}".format(fit_params[0], fit_params[1]))
-            print(
-                "1/k: z*: {} \pm {}, beta: {}".format(
-                    glob_z_j, glob_z_j_std, fit_params[1]
-                )
-            )
+            print("1/k: z*: {} \pm {}, beta: {}".format(glob_z_j, glob_z_j_std, fit_params[1]))
             ax31.set_xlabel(r"$\overline{z}$", size=glob_fontsize)
             ax31.set_ylabel(r"$\lambda$", size=glob_fontsize)
             ax31.locator_params(axis="x", nbins=4)
@@ -1185,11 +1113,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             a, b = ufloat(fit_params[0], fit_err[0]), ufloat(fit_params[1], fit_err[1])
             r1 = (2.0 - b) / a
             phi_c1, phi_c1err = r1.nominal_value, r1.std_dev
-            print(
-                "c: phi_c1: {} \pm {}, beta: {}".format(
-                    phi_c1, phi_c1err, fit_params[1]
-                )
-            )
+            print("c: phi_c1: {} \pm {}, beta: {}".format(phi_c1, phi_c1err, fit_params[1]))
             ax4.set_xlabel(r"$\phi$", size=glob_fontsize)
             ax4.set_ylabel(r"$c$", size=glob_fontsize)
             ax4.locator_params(axis="x", nbins=4)
@@ -1436,9 +1360,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
         )
         ax26.plot(x, fit_fn(x), marker="", linewidth=3, linestyle="--", color=colorr)
         print(
-            "cov_fpi = {} phi^2 + {} phi + {} ".format(
-                fit_params[0], fit_params[1], fit_params[2]
-            )
+            "cov_fpi = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2])
         )
 
         y3 = np.array(cov_f_pi_list) / np.sqrt(
@@ -1460,11 +1382,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             markeredgecolor=colorr,
         )
         ax27.plot(x, fit_fn(x), marker="", linewidth=3, linestyle="--", color=colorr)
-        print(
-            "rho = {} phi^2 + {} phi + {} ".format(
-                fit_params[0], fit_params[1], fit_params[2]
-            )
-        )
+        print("rho = {} phi^2 + {} phi + {} ".format(fit_params[0], fit_params[1], fit_params[2]))
 
         # y3 = np.array(meanvar_pi_list)[:, 1]
         # fit_fn, fit_params, fit_err, rho = poly_fit(phi, y3, yerr=1./np.sqrt(histograms_nsamples), order=2)
@@ -1523,9 +1441,9 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             maxp, max_logdos = [], []  # pressure for which kde is max
             x_integrate_list = []
             if len(dataset.free_energies) > 0 and phi_min < dataset.ss_phi < phi_max:
-                if (
-                    0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name
-                ) or (phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name):
+                if (0.86 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
+                    phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name
+                ):
                     j = 0
                     Facc = None
                     vcavity = None
@@ -1535,10 +1453,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                         j += 1
                     nparticles = dataset.nparticles
                     vcavity = dataset.packing_data[0].vcavity
-                    if (
-                        0.855 < dataset.ss_phi < phi_max
-                        and "fire" not in dataset.set_name
-                    ) or (
+                    if (0.855 < dataset.ss_phi < phi_max and "fire" not in dataset.set_name) or (
                         phi_min < dataset.ss_phi < 0.86 and "fire" in dataset.set_name
                     ):
                         print("n:", nparticles)
@@ -1586,17 +1501,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                             kernel="gaussian",
                             method="cross_validation",
                         )
-                        kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(
-                            f[:, np.newaxis]
-                        )
+                        kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(f[:, np.newaxis])
                         # plot histograms
                         n_integrate = 2**14 + 1
                         x_integrate = np.linspace(Facc, np.amax(f) * 100, n_integrate)
                         log_pdf = kde.score_samples(x_integrate[:, np.newaxis])
                         integrand = np.exp(np.add(log_pdf, x_integrate))
-                        integral = integrate.romb(
-                            integrand, dx=x_integrate[1] - x_integrate[0]
-                        )
+                        integral = integrate.romb(integrand, dx=x_integrate[1] - x_integrate[0])
                         log_omega = -Facc + np.log(integral)
                         log_omega_list.append(log_omega)
 
@@ -1606,9 +1517,7 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                             kernel="gaussian",
                             method="cross_validation",
                         )
-                        kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(
-                            x[:, np.newaxis]
-                        )
+                        kde = KernelDensity(kernel="gaussian", bandwidth=bw).fit(x[:, np.newaxis])
                         kde_list.append(kde)
                         # plot histograms
                         n_integrate = 2**14 + 1

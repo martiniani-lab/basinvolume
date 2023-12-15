@@ -1,0 +1,123 @@
+# This is a dictionary of default parameters for steps of the BV calculation
+# They are overriden by values in run_params.toml
+# Therefore, DO NOT CHANGE THE VALUES HERE WITHOUT A GOOD REASON
+["jammed_data_defaults"]
+minimizer_list = ["FIRE", "CG", "CVODE", "LBFGS", "MXD"]
+ss_packing_fraction_list = [0.87]
+n_particles_list = [8]
+n_ensemble = 1
+
+["hard_sphere_packing_defaults"]
+density = 0.7
+boxdim = 2
+rmean = 1
+rsigma = 0.1
+hsfstep = 1e-3
+hsf-niter-dif = 1e9
+newpoly = false
+nocell = false
+moveall = false
+write-opengl = false
+method = "quench"
+distance-method = "periodic"
+shear = 0.0
+no-balance-omp = false
+
+["jammed_packing_defaults"]
+nocell = false
+packingsdir = "packings"
+import-jammed = false
+show = false
+opt_tol = 1e-9
+opt_maxstep_factor = 1.0
+opt_dtmax = 1.0
+opt_nsteps = 1e7
+minimizer = "CVODE"
+interaction = "INVERSE_POWER"
+wca-exp = 6
+sort = false
+
+
+
+["kmax_defaults"]
+kstart = 500
+packings-dir = "jammed_packings"
+explore-dir = "explore_bv_jammed_packing"
+nocell = false
+minimizer="CVODE"
+verbose= false
+niter = 1e8
+dtol = 1e-2
+eps = 1.0
+ktarget = 0.9
+knavg = 1e4
+ktol = 0.025
+opt_tol = 1e-5
+opt_nsteps = 1e5
+
+[["kmax_defaults".opt_kwargs.FIRE]]  # optimizer-specific arguments
+opt_dtmax = 1.0
+[["kmax_defaults".opt_kwargs.CG]]
+[["kmax_defaults".opt_kwargs.CVODE]]
+atol_values = {8 = 1e-7, 16 = 1e-7, 32 = 1e-7, 64 = 1e-7, 128 = 1e-7, 256 = 1e-8, 512 = 1e-9, 1024 = 1e-10}
+rtol_values = {8 = 1e-7, 16 = 1e-7, 32 = 1e-7, 64 = 1e-7, 128 = 1e-7, 256 = 1e-8, 512 = 1e-9, 1024 = 1e-10}
+[["kmax_defaults".opt_kwargs.LBFGS]]
+[["kmax_defaults".opt_kwargs.MXD]]
+atol_values = {8 = 1e-8, 16 = 1e-8, 32 = 1e-8, 64 = 1e-8, 128 = 1e-8, 256 = 1e-9, 512 = 1e-10, 1024 = 1e-11}
+rtol_values = {8 = 1e-8, 16 = 1e-8, 32 = 1e-8, 64 = 1e-8, 128 = 1e-8, 256 = 1e-9, 512 = 1e-10, 1024 = 1e-11}
+
+["kmin_defaults"]
+packings-dir = "jammed_packings"
+explore-dir = "explore_bv_jammed_packing"
+niter = 1e5
+adjustf-niter = 1e4
+nocell = false
+moveall = false
+rsts = false
+rsts-only = false
+verbose = false
+k = 0
+stepsize = 1e-1
+eps = 1.0
+hmin = 0
+hmax = 1000
+hbinsize = 1
+acceptance = 0.2
+adjustf = 0.9
+opt_nsteps = 1e5
+record_trajectory_npoints = 1e4
+
+["pt_defaults"]
+mintotniter = 5e6
+maxtotniter = 2e7
+nreplicas = 64
+numnegk = 23
+lownegk = -0.5
+relstderr = 0.05
+nocell = false
+moveall = false
+adjustf-navg = 100
+verbose = false
+collect-minima = false
+packings-dir = "jammed_packings"
+delraw = false
+sleep-seconds = 0.0001
+exchange-scheme = "NEIGHBOR_EXCHANGE"
+stepsize = 1e-1
+opt_nsteps = 1e5
+hmin = 0
+hmax = 1000
+hbinsize = 1e-1
+acceptance = 0.2
+adjustf = 0.9
+k_spreading = "positionlinspace"
+bias = "harmonic"
+
+["innersphere_defaults"]
+packings-dir = "jammed_packings"
+explore-dir = "explore_bv_jammed_packing"
+nocell = false
+verbose = false
+niter = 1e5
+eps = 1.0
+opt_nsteps = 1e5

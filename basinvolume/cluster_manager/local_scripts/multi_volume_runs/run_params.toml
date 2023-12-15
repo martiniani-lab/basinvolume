@@ -1,0 +1,25 @@
+# Template for run_params file, can be filled in to overwrite defaults.
+# Needs to be placed into the head directory of the runs!
+["jammed_data"]
+minimizer_list = ["FIRE"]
+ss_packing_fraction_list = [0.87]
+n_particles_list = [8]
+n_ensemble = 1
+
+["hard_sphere_packing"]
+
+["jammed_packing"]
+
+["kmax"]
+kstart = 5
+
+["kmin"]
+
+["pt"]
+nreplicas = 16
+numnegk = 11
+mintotniter = 5e5
+maxtotniter = 2e6
+bias = "radial_gaussian"
+
+["innersphere"]

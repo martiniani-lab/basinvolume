@@ -1,9 +1,9 @@
 #ifndef _BV_SAMPLE_UNIFORM_SPHERE_GAUSSIAN_H__
 #define _BV_SAMPLE_UNIFORM_SPHERE_GAUSSIAN_H__
 
-#include <random>
-#include "mcpele/mc.h"
 #include "mcpele/gaussian_coords_displacement.h"
+#include "mcpele/mc.h"
+#include <random>
 
 namespace bv {
 
@@ -15,11 +15,13 @@ namespace bv {
 
 class SampleUniformSphereGaussian : public mcpele::GaussianTakeStep {
 protected:
-    pele::Array<double> m_origin;
+  pele::Array<double> m_origin;
+
 public:
-    SampleUniformSphereGaussian(const size_t rseed, const double stepsize, const pele::Array<double> origin);
-    virtual ~SampleUniformSphereGaussian() {}
-    virtual void displace(pele::Array<double>& coords, mcpele::MC* mc);
+  SampleUniformSphereGaussian(const size_t rseed, const double stepsize,
+                              const pele::Array<double> origin);
+  virtual ~SampleUniformSphereGaussian() {}
+  virtual void displace(pele::Array<double> &coords, mcpele::MC *mc);
 };
 
 } // namespace bv

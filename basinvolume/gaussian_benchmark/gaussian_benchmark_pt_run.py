@@ -48,9 +48,7 @@ class GaussianBenchmarkPTRun(object):
         ptiter = int(tot_niter * 0.1)  # 10% PT swaps
         # ptiter = int(tot_niter * 1e-2) #1% PT swaps
         niter = int((tot_niter - ptiter) / ptiter)  # 90% MCMC walk
-        adjustf_niter = int(
-            tot_niter * 0.1
-        )  # equilibrate for the first 1/10th of total steps
+        adjustf_niter = int(tot_niter * 0.1)  # equilibrate for the first 1/10th of total steps
         nskip = int(adjustf_niter / niter)  # don't swap while adjusting the step-size
         # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
         # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
@@ -83,9 +81,7 @@ class GaussianBenchmarkPTRun(object):
         assert (
             record_histogram == False and pt_eq_niter == 0 and ts_freq == 1
         )  # ts_freq must be 1 with current output implementation (all based on timeseries)
-        rel_std_err = (
-            0.05  # relative standard error in the mean used by convergence test
-        )
+        rel_std_err = 0.05  # relative standard error in the mean used by convergence test
         min_window = int(
             0.2 * tot_niter
         )  # minimum amount of data before trying to check convergence

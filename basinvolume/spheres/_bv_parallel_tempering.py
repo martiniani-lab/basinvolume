@@ -29,7 +29,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
 
     u2meank0 : float
         mean of histogram from simulation done at k=0
-    Tmax, Tmin : float
+    kmax, kmin : float
         here correspond to kmin and kmax, they should be computed by bv_find_params
     fast_ct: bool
         if false perform full convergence test computing the segment of the recorded time series that maximises the number of uncorrelated samples
@@ -58,8 +58,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     def __init__(
         self,
         mcrunner,
-        Tmax,
-        Tmin,
+        kmax,
+        kmin,
         u2meank0,
         max_ptiter=10,
         pfreq=1,
@@ -72,6 +72,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         numnegk=0,
         lownegk=-2.5,
         k_spreading="gausslobato",
+        bias="harmonic",
         print_status=False,
         base_directory=None,
         bs_nodes=100,
@@ -81,8 +82,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
     ):
         super(MPI_BV_PT_RLhandshake, self).__init__(
             mcrunner,
-            Tmax,
-            Tmin,
+            kmax,
+            kmin,
             max_ptiter=max_ptiter,
             pfreq=pfreq,
             skip=skip,
@@ -112,6 +113,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.numnegk = int(numnegk)
         self.lownegk = lownegk
         self.k_spreading = k_spreading
+        self.bias = (bias,)
         self.fix_com = fix_com
         assert self.eq_min_ptiter > self.skip
         assert self.max_ptiter > self.eq_min_ptiter
@@ -142,9 +144,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             )
         )
         if self.rank == 0:
-            self.permutations_stream = open(
-                r"{0}/rem_permutations".format(base_directory), "w"
-            )
+            self.permutations_stream = open(r"{0}/rem_permutations".format(base_directory), "w")
 
     def _print_data(self):
         if len(self.timeseries2) > 0:
@@ -155,10 +155,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         logging.info("self.eq_min_ptiter: {}".format(self.eq_min_ptiter))
         logging.info("self.timeseries2.size: {}".format(self.timeseries2.size))
         logging.info("self.mcrunner_eqsteps: {}".format(self.mcrunner_eqsteps))
-        if (
-            self.ptiter >= self.eq_min_ptiter
-            and self.timeseries2.size > self.mcrunner_eqsteps
-        ):
+        if self.ptiter >= self.eq_min_ptiter and self.timeseries2.size > self.mcrunner_eqsteps:
             self._all_dump_histogram()
         logging.info("_print_data -- END")
 
@@ -221,9 +218,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         # only keep time series from after the equilibration point, this references original data
         timeseries2 = self.timeseries2[self.eq_time :]
         new_max_ptiter = self._find_new_max_ptiter(timeseries2)
-        logging.debug(
-            "new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter)
-        )
+        logging.debug("new max_ptiter {}, current ptiter {}".format(new_max_ptiter, self.ptiter))
         logging.debug("Autocorrelation time {}".format(self.autocorr))
         return new_max_ptiter
 
@@ -301,26 +296,10 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             )
         self.histogram_mean_stream.flush()  # print every time not to lose data
 
-    #    def _get_temps(self):
-    #        """
-    #        NOTE: BECAUSE K0 IS INCLUDED IN THE CALCULATION TARRAY CANNOT BE REVERSED AS [::-1]
-    #        set up the spring constant. We give root the lowest temperature.
-    #        This should increase performance when pair lists are used (they are updated less often at low temperature
-    #        or when steps involve minimisation, as the low temperatures are closer to the minimum)
-    #        """
-    #        if (self.rank == 0):
-    #            Tarray = spring_constants_variable_transform(self.nprocs+1, self.Tmax, self.u2meank0,
-    #                                                         self.mcrunner.nparticles, self.mcrunner.bdim, self.Tmin)
-    #            Tarray = Tarray[::-1]
-    #            Tarray = np.array(Tarray[1:],dtype='d') #exclude kmax entry, no need to be simulated, mean is already available
-    #            self.Tarray = Tarray
-    #        else:
-    #            self.Tarray = None
-
-    # THIS _get_temps CAN DEAL WITH NEGATIVE Ks
-    def _get_temps(self):
+    def _get_bias_params(self):
         """
-        Set up the spring constants (temperatures).
+        Set up the parameters for the biasing potentials.
+        Harmonic case: just spring constants ("temperatures")
         They can be distributed exponentially if the k_spreading option reads gausslobato.
         The other options are linspace (linearly spaced) or logspace (log spaced).
         We give root the lowest temperature.
@@ -329,56 +308,84 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         """
         if self.rank == 0:
             nposk = self.nprocs - self.numnegk  # number of positive k
-            if self.k_spreading == "gausslobato":
-                Tarray = spring_constants_variable_transform(
-                    nposk + 1,
-                    self.Tmax,
-                    self.u2meank0,
-                    self.mcrunner.nparticles,
-                    self.mcrunner.bdim,
-                    self.Tmin,
-                )
-            elif self.k_spreading == "linspace":
-                Tarray = spring_constants_linspace(nposk + 1, self.Tmax, self.Tmin)
-            elif self.k_spreading == "logspace":
-                Tarray = spring_constants_logspace(nposk + 1, self.Tmax, self.Tmin)
-            elif self.k_spreading == "positionlinspace":
-                Tarray = spring_constants_positionlinspace(
-                    nposk + 1,
-                    self.Tmax,
-                    self.u2meank0,
-                    self.mcrunner.nparticles,
-                    self.mcrunner.bdim,
-                    self.Tmin,
-                )
-            else:
-                raise NotImplementedError
-            Tarray = Tarray[
-                :-1
-            ]  # exclude kmax entry, no need to be simulated, mean is already available
-            if self.numnegk > 0:
-                if self.k_spreading == "positionlinspace":
-                    negTarray = neg_spring_constants_positionlinspace(
-                        self.numnegk,
+
+            if self.bias == "harmonic":
+                if self.k_spreading == "gausslobato":
+                    params_array = spring_constants_variable_transform(
                         nposk + 1,
-                        self.Tmax,
+                        self.kmax,
                         self.u2meank0,
                         self.mcrunner.nparticles,
                         self.mcrunner.bdim,
+                        self.kmin,
                     )
-                    for x in negTarray[::-1]:
-                        Tarray.insert(0, x)
+                elif self.k_spreading == "linspace":
+                    params_array = spring_constants_linspace(nposk + 1, self.kmax, self.kmin)
+                elif self.k_spreading == "logspace":
+                    params_array = spring_constants_logspace(nposk + 1, self.kmax, self.kmin)
+                elif self.k_spreading == "positionlinspace":
+                    params_array = spring_constants_positionlinspace(
+                        nposk + 1,
+                        self.kmax,
+                        self.u2meank0,
+                        self.mcrunner.nparticles,
+                        self.mcrunner.bdim,
+                        self.kmin,
+                    )
                 else:
-                    negTarray = neg_spring_constants_logspace(
-                        self.numnegk, self.lownegk
-                    )
-                    for x in negTarray[::-1]:
-                        Tarray.insert(0, x)
-            logging.info("len Tarray: {}".format(len(Tarray)))
-            logging.info("Tarray: {}".format(Tarray))
-            self.Tarray = np.array(Tarray[::-1], dtype="d")
+                    raise NotImplementedError
+                params_array = params_array[
+                    :-1
+                ]  # exclude kmax entry, no need to be simulated, mean is already available
+                if self.numnegk > 0:
+                    if self.k_spreading == "positionlinspace":
+                        negparams_array = neg_spring_constants_positionlinspace(
+                            self.numnegk,
+                            nposk + 1,
+                            self.kmax,
+                            self.u2meank0,
+                            self.mcrunner.nparticles,
+                            self.mcrunner.bdim,
+                        )
+                        for x in negparams_array[::-1]:
+                            params_array.insert(0, x)
+                    else:
+                        negparams_array = neg_spring_constants_logspace(self.numnegk, self.lownegk)
+                        for x in negparams_array[::-1]:
+                            params_array.insert(0, x)
+                logging.info("len params_array: {}".format(len(params_array)))
+                logging.info("params_array: {}".format(params_array))
+                self.params_array = np.array(params_array[::-1], dtype="d")
+
+            elif self.bias == "radial_gaussian":
+                # Need both centerings and widths for the gaussians
+                # Set all widths equal to RMSD of kmin / nposk, or k =(nposk / RMSD)^2 in terms of spring constants
+                u2meankmax = 0.5 * (self.nparticles * self.bdim) / self.kmax
+                r_kmax = np.sqrt(u2meankmax)
+                width = (np.sqrt(self.u2meank0) - r_kmax) / nposk
+                k = 1 / (width * width)
+                Karray = k * np.ones(self.nreplicas)
+
+                # Set center positions of 1d gaussians for "positive" replicas to be linearly spaced between rmin >=0 and RMSD (both excluded)
+                # If rmin is too close to the origin, accumulation at 0 happens
+                # As a rule of thumb, start from kmax to avoid silly issues at large nreplicas
+                rmin = r_kmax
+                spacing = (np.sqrt(self.u2meank0) - rmin) / (nposk + 1)
+                l0array = rmin + (np.arange(self.nreplicas)) * spacing
+
+                # only start the log part at some cut-off distance to avoid bad behaviour near 0
+                r_cutoffarray = 0.25 * rmin * np.ones(self.nreplicas)
+                # Force the k = 0 case
+                Karray[nposk] = 0.0
+                l0array[nposk] = 0.0
+                r_cutoffarray[nposk] = 0.0
+
+                return np.transpose(np.vstack([Karray, l0array, r_cutoffarray]))
+
+            else:
+                raise NotImplementedError
         else:
-            self.Tarray = None
+            self.params_array = None
 
     def _attempt_exchange(self):
         """
@@ -399,8 +406,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             )
         else:
             dx = np.linalg.norm(
-                np.array(self.config, dtype="d")
-                - np.array(self.mcrunner.red_origin, dtype="d")
+                np.array(self.config, dtype="d") - np.array(self.mcrunner.red_origin, dtype="d")
             )
         # gather dx, only root will do so
         dx_array = self._gather_energies(dx)
@@ -409,20 +415,14 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         # find exchange pattern (list of exchange buddies)
         exchange_pattern = self._find_exchange_buddy(dx_array)
         # now scatter the exchange pattern so that everybody knows who their buddy is
-        exchange_buddy = self._scatter_single_value(
-            np.array(exchange_pattern, dtype="d")
-        )
+        exchange_buddy = self._scatter_single_value(np.array(exchange_pattern, dtype="d"))
         exchange_buddy = int(exchange_buddy)
         # attempt configurations swap
-        assert self.mcrunner.potential.get_k() == self.T  # debug
-        self.config = self._exchange_pairs(
-            exchange_buddy, np.array(self.config, dtype="d")
-        )
+        assert self.mcrunner.potential.get_k() == self.T  # debug # XXX Adapt this to bias
+        self.config = self._exchange_pairs(exchange_buddy, np.array(self.config, dtype="d"))
         if exchange_buddy != self.no_exchange_int:
             # recompute energy (this assumes that mcrunner has member origin)
-            self.energy = self.mcrunner.potential.getEnergy(
-                np.array(self.config, dtype="d")
-            )
+            self.energy = self.mcrunner.potential.getEnergy(np.array(self.config, dtype="d"))
 
     def _find_exchange_buddy(self, dx_array):
         """
@@ -433,29 +433,50 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         The exchange partner is then scattered to the other processes.
         """
         if self.rank == 0:
-            assert len(dx_array) == len(self.Tarray)
+            assert len(dx_array) == len(self.params_array)
             exchange_pattern = np.empty(len(dx_array), dtype="int32")
-            exchange_pattern.fill(
-                self.no_exchange_int
-            )  # reset exchange pattern to no exchange
+            exchange_pattern.fill(self.no_exchange_int)  # reset exchange pattern to no exchange
             self.anyswap = False
 
-            logging.debug(
-                "exchange choice: {}".format(self.exchange_dic[self.exchange_choice])
-            )
+            logging.debug("exchange choice: {}".format(self.exchange_dic[self.exchange_choice]))
             for i in self.nodelist[1 : self.nprocs - self.exchange_choice : 2]:
 
                 dx1 = dx_array[i]
-                T1 = self.Tarray[i]
                 dx2 = dx_array[i + self.exchange_choice]
-                T2 = self.Tarray[i + self.exchange_choice]
 
-                # Hamiltonia replica exchange
-                deltaE = 0.5 * dx2 * dx2 - 0.5 * dx1 * dx1
-                deltabeta = T2 - T1
-                w = np.exp(deltaE * deltabeta)
+                if self.bias == "harmonic":
+                    T1 = self.params_array[i]
+                    T2 = self.params_array[i + self.exchange_choice]
+
+                    # Hamiltonian replica exchange
+                    deltaE = 0.5 * dx2 * dx2 - 0.5 * dx1 * dx1
+                    deltabeta = T2 - T1
+
+                    w = np.exp(deltaE * deltabeta)
+
+                elif self.bias == "radial_gaussian":
+
+                    k1 = self.params_array[i][0]
+                    k2 = self.params_array[i + self.exchange_choice][0]
+                    l1 = self.params_array[i][1]
+                    l2 = self.params_array[i + self.exchange_choice][1]
+                    r_cutoff1 = self.params_array[i][2]
+                    r_cutoff2 = self.params_array[i + self.exchange_choice][2]
+
+                    # Swap-MC-like Metropolis criterion
+                    Eold = self.energies_radial_gaussian(
+                        dx1, k1, l1, r_cutoff1
+                    ) + self.energies_radial_gaussian(dx2, k2, l2, r_cutoff2)
+                    Enew = self.energies_radial_gaussian(
+                        dx2, k1, l1, r_cutoff1
+                    ) + self.energies_radial_gaussian(dx1, k2, l2, r_cutoff2)
+
+                    w = np.exp(Eold - Enew)
+
+                else:
+                    raise NotImplementedError
+
                 rand = np.random.rand()
-
                 # logging.debug('w {} rand {}'.format(w,rand))
                 # logging.debug('deltaE {} deltaT {}'.format(deltaE, deltabeta))
                 # logging.debug("E1 {0} T1 {1} E2 {2} T2 {3} w {4}".format(E1,T1,E2,T2,w))
@@ -470,8 +491,8 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                                 self.nodelist[i + self.exchange_choice],
                                 dx1,
                                 dx2,
-                                T1,
-                                T2,
+                                self.params_array[i],
+                                self.params_array[i + self.exchange_choice],
                                 self.ptiter,
                             )
                         )
@@ -479,8 +500,7 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
                         exchange_pattern[i] == self.no_exchange_int
                     )  # verify that is not using the same process twice for swaps
                     assert (
-                        exchange_pattern[i + self.exchange_choice]
-                        == self.no_exchange_int
+                        exchange_pattern[i + self.exchange_choice] == self.no_exchange_int
                     )  # verify that is not using the same process twice for swaps
                     exchange_pattern[i] = self.nodelist[i + self.exchange_choice]
                     exchange_pattern[i + self.exchange_choice] = self.nodelist[i]
@@ -490,13 +510,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
             if self.anyswap:
                 for i, buddy in enumerate(exchange_pattern):
                     if buddy != self.no_exchange_int:
-                        self.permutation_pattern[i] = (
-                            buddy + 1
-                        )  # to conform to fortran notation
+                        self.permutation_pattern[i] = buddy + 1  # to conform to fortran notation
                     else:
-                        self.permutation_pattern[i] = (
-                            i + 1
-                        )  # to conform to fortran notation
+                        self.permutation_pattern[i] = i + 1  # to conform to fortran notation
                 self._master_print_permutations()
         else:
             exchange_pattern = None
@@ -504,3 +520,9 @@ class MPI_BV_PT_RLhandshake(MPI_PT_RLhandshake):
         self.exchange_choice *= -1  # swap direction of exchange choice
         # logging.debug("exchange_pattern: {}".format(exchange_pattern))
         return exchange_pattern
+
+    def energies_radial_gaussian(self, dx, k, l0, r_cutoff):
+        E = 0.5 * k * (dx - l0) ** 2
+        if k != 0.0 and dx > r_cutoff:
+            E += (self.nparticles * self.bdim - 1) * np.log(dx / r_cutoff)
+        return E

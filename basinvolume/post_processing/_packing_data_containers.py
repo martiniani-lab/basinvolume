@@ -116,9 +116,7 @@ class PackingData(object):
         self.sca = imp_jammed_packing["sca"]
         if packing_path is not None:
             self._import_packing_configuration(packing_path)
-        self.jammed_packing_name = os.path.split(os.path.splitext(self.configpath)[0])[
-            1
-        ]
+        self.jammed_packing_name = os.path.split(os.path.splitext(self.configpath)[0])[1]
         self.F = None
         self.Ferr = None
         self.P = None
@@ -143,23 +141,17 @@ class PackingData(object):
         self.hs_mean = imp_packing["radii_mean"]
         self.hs_stddev = imp_packing["radii_stddev"]
 
-    def import_volume_data(
-        self, path, title="VOLUME_FULL_PT", vfluid_title="VOLUME_HS_FLUID"
-    ):
+    def import_volume_data(self, path, title="VOLUME_FULL_PT", vfluid_title="VOLUME_HS_FLUID"):
         if os.path.isfile(path):
             configf = configparser.ConfigParser()
             configf.read(path)
-            self.F, self.Ferr = configf.getfloat(title, "F0"), configf.getfloat(
-                title, "sigF0"
-            )
+            self.F, self.Ferr = configf.getfloat(title, "F0"), configf.getfloat(title, "sigF0")
             try:
                 self.Facc = configf.getfloat(vfluid_title, "F0_acc")
             except Exception as e:
                 pass
 
-    def import_pressure_data(
-        self, path, pressure_title="PRESSURE", energy_title="ENERGY"
-    ):
+    def import_pressure_data(self, path, pressure_title="PRESSURE", energy_title="ENERGY"):
         if os.path.isfile(path):
             configf = configparser.ConfigParser()
             configf.read(path)
@@ -176,12 +168,8 @@ class PackingData(object):
             configf = configparser.ConfigParser()
             configf.read(path)
             if self.bdim == 3:
-                Q4, Q6 = configf.getfloat(title_boo, "Q4"), configf.getfloat(
-                    title_boo, "Q6"
-                )
-                Q8, Q10 = configf.getfloat(title_boo, "Q8"), configf.getfloat(
-                    title_boo, "Q10"
-                )
+                Q4, Q6 = configf.getfloat(title_boo, "Q4"), configf.getfloat(title_boo, "Q6")
+                Q8, Q10 = configf.getfloat(title_boo, "Q8"), configf.getfloat(title_boo, "Q10")
                 Q12 = configf.getfloat(title_boo, "Q12")
                 self.boo = Bunch(Q4=Q4, Q6=Q6, Q8=Q8, Q10=Q10, Q12=Q12)
             elif self.bdim == 2:

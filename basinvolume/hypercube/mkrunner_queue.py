@@ -89,8 +89,8 @@ if __name__ == "__main__":
         "--number_nested_spheres",
         type=int,
         help="number of nested inner spheres to use, \
-                        default: 2",
-        default=2,
+                        default: 1",
+        default=1,
     )
     parser.add_argument(
         "-force_k",
@@ -105,14 +105,20 @@ if __name__ == "__main__":
         "--k_spreading",
         type=str,
         help="Set the way in which the k's are spread. Options: linspace, logspace, positionlinspace, gausslobato,\
-                        default = gausslobato",
-        default="gausslobato",
+                        default = positionlinspace",
+        default="positionlinspace",
     )
     parser.add_argument(
         "--auto_replica_number",
         action="store_true",
         help="overrides --positivespringnumber and increases the number of replicas if needed",
         default=False,
+    )
+    parser.add_argument(
+        "--bias",
+        help = "Biasing potentials used in PT\
+            default = harmonic",
+        default = "harmonic"
     )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
@@ -136,6 +142,7 @@ if __name__ == "__main__":
     number_nested_spheres = args.number_nested_spheres
     force_kmax_value = args.force_kmax_value
     k_spreading = args.k_spreading
+    bias = args.bias
     i32max = np.iinfo(np.int32).max
     seeds = dict(
         seed_takestep=np.random.randint(i32max),
@@ -203,7 +210,7 @@ if __name__ == "__main__":
             ndof,
             sidelength=1,
             niter=1e6,
-            k=0,
+            bias_params=[0.0],
             seeds=seeds,
             single=True,
             verbose=True,
@@ -231,9 +238,7 @@ if __name__ == "__main__":
 
         # Configure_bv_mcrunner
         sim_bvconfig = _hypercube_bv_mcrunner(0, 1)
-        mcrunner_bvconfig = sim_bvconfig(
-            directory_name, seeds=seeds, verbose=True, niter=1e6
-        )
+        mcrunner_bvconfig = sim_bvconfig(directory_name, seeds=seeds, verbose=True, niter=1e6)
         print("\n\nsimulation: BV config started")
         start = time.time()
         mcrunner_bvconfig.run()
@@ -262,9 +267,7 @@ if __name__ == "__main__":
             min_tot_niter * 0.1
         )  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
         niter = int((min_tot_niter - min_ptiter) / min_ptiter)  # 90% MCMC walk
-        adjustf_niter = int(
-            min_tot_niter * 0.1
-        )  # equilibrate for the first 1/10th of total steps
+        adjustf_niter = int(min_tot_niter * 0.1)  # equilibrate for the first 1/10th of total steps
         nskip = int(adjustf_niter / niter)  # don't swap while adjusting the step-size
         # pt_eq_niter equilibrate pt for the following 4/10th of total steps (), this has an effect on histogram
         # and on checksameminimum: it only starts recording the neighbouring minima when equilibration is reached
@@ -280,9 +283,7 @@ if __name__ == "__main__":
         assert (
             record_histogram == False and pt_eq_niter == 0 and ts_freq == 1
         )  # ts_freq must be 1 with current output implementation (all based on timeseries)
-        rel_std_err = (
-            0.05  # relative standard error in the mean used by convergence test
-        )
+        rel_std_err = 0.05  # relative standard error in the mean used by convergence test
         min_window = int(
             min_tot_niter * 0.5
         )  # minimum amount of data before trying to check convergence
@@ -307,6 +308,7 @@ if __name__ == "__main__":
 
         mcrunner_pt = sim_pt(
             directory_name,
+            bias = bias,
             niter=niter,
             stepsize=5e-1,
             hmin=0,
@@ -363,6 +365,7 @@ if __name__ == "__main__":
                     eq_max_ptiter=int(max_tot_niter / niter),
                     numnegk=numnegk,
                     k_spreading=k_spreading,
+                    bias = bias,
                     print_status=bv_pt_printstatus,
                     base_directory=path,
                     sleep_seconds=sleep_seconds,
@@ -406,6 +409,7 @@ if __name__ == "__main__":
                 eq_max_ptiter=int(max_tot_niter / niter),
                 numnegk=numnegk,
                 k_spreading=k_spreading,
+                bias = bias,
                 base_directory=path,
                 fix_com=False,
             )
@@ -484,9 +488,7 @@ if __name__ == "__main__":
                     status = sim_innersphere.mcrunner.get_status()
                     print(status)
                     print("stepsize: ", sim_innersphere.mcrunner.get_stepsize())
-                    output_directory = (
-                        directory_name + "/innersphere_" + str(sphere_number)
-                    )
+                    output_directory = directory_name + "/innersphere_" + str(sphere_number)
                     sim_innersphere.mcrunner.show_histogram_analytical(output_directory)
                     # This run is done!
                     innerspheres_done_flags[sphere_number] = True
@@ -512,6 +514,6 @@ if __name__ == "__main__":
             print("\n\nsimulation: Volume computation started")
             print("\nThread {} here!".format(rank))
             sim_compute_volume = hypercube_mbar_compute_dos(
-                bootstrap=bootstrap, kde=kde, plot_dos_data=True, ncores=cores
+                bootstrap=bootstrap, kde=kde, plot_dos_data=True, ncores=cores, bias = bias
             )
             sim_compute_volume(directory_name, show=show)

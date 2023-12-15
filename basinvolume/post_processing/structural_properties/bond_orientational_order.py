@@ -48,9 +48,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         )
         self.solid_angle_weighted = solid_angle_weighted
         if self.verbose:
-            logging.debug(
-                "self.solid_angle_weighted: {}".format(self.solid_angle_weighted)
-            )
+            logging.debug("self.solid_angle_weighted: {}".format(self.solid_angle_weighted))
         self.analysis_name = "glob_boo"
         self.deg = deg
         self.pinit = pinit  # initialise printing
@@ -90,9 +88,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         if self.verbose:
             logging.info(
-                "Calculating bond orientational order: {}".format(
-                    self.prefix + str(packing_name)
-                )
+                "Calculating bond orientational order: {}".format(self.prefix + str(packing_name))
             )
         boo_fname = os.path.join(self.analysis_dir_path, "boo_deg{}".format(self.deg))
 
@@ -121,9 +117,7 @@ class BondOrientationalOrder(StructuralAnalysis):
                 f.write("Z: {:.16f} \n".format(np.sum(z_list) / (z_list > 1e-12).sum()))
                 f.write("[BOO] \n")
             f.write(
-                "Q{}: {:.16f} \n".format(
-                    self.deg, np.sum(boo_list) / (boo_list > 1e-12).sum()
-                )
+                "Q{}: {:.16f} \n".format(self.deg, np.sum(boo_list) / (boo_list > 1e-12).sum())
             )
 
     def run_all(self, deg_list=[4, 6, 8, 10, 12]):
@@ -201,13 +195,9 @@ class BondOrientationalOrder(StructuralAnalysis):
 
     def _bond_orientational_order(self, nnatoms_vec, ndim=3, deg=6, weights=None):
         if ndim == 3:
-            return self._bond_orientational_order3d(
-                nnatoms_vec, deg=deg, weights=weights
-            )
+            return self._bond_orientational_order3d(nnatoms_vec, deg=deg, weights=weights)
         elif ndim == 2:
-            return self._bond_orientational_order2d(
-                nnatoms_vec, deg=deg, weights=weights
-            )
+            return self._bond_orientational_order2d(nnatoms_vec, deg=deg, weights=weights)
         else:
             raise Exception("ndim not implemented")
 
@@ -230,9 +220,7 @@ class BondOrientationalOrder(StructuralAnalysis):
     def bond_orientation_order_single(
         self, coords, ss_radii, stable_atoms, atom_index, ndim=3, deg=6
     ):
-        _, nnatoms_list = self.potential.getNeighbors(
-            coords, include_atoms=stable_atoms
-        )
+        _, nnatoms_list = self.potential.getNeighbors(coords, include_atoms=stable_atoms)
         nnatoms_vec = nnatoms_list[atom_index]
         return self._bond_orientational_order(nnatoms_vec, ndim=ndim, deg=deg)
 
@@ -245,9 +233,7 @@ class BondOrientationalOrder(StructuralAnalysis):
         """
         nnatoms_list = None
         weights_all = None
-        _, contacts_list = self.potential.getNeighbors(
-            coords, include_atoms=stable_atoms
-        )
+        _, contacts_list = self.potential.getNeighbors(coords, include_atoms=stable_atoms)
         if not self.solid_angle_weighted:
             nnatoms_list = contacts_list
         else:

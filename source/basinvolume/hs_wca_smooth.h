@@ -1,141 +1,158 @@
 #ifndef _BV_HS_WCA_Smooth_H
 #define _BV_HS_WCA_Smooth_H
 
-#include "pele/simple_pairwise_potential.hpp"
-#include "pele/simple_pairwise_ilist.hpp"
 #include "pele/atomlist_potential.hpp"
 #include "pele/distance.hpp"
 #include "pele/frozen_atoms.hpp"
+#include "pele/simple_pairwise_ilist.hpp"
+#include "pele/simple_pairwise_potential.hpp"
 #include <memory>
 
 namespace bv {
 
 /**
- * Pairwise interaction for Hard Sphere + Weeks-Chandler-Andersen (HS_WCA_Smooth) potential, refer to D. Asenjo PhD thesis pp 66
- * _prfac is the cubic power of _sca/(2**(1/6))
- * well depth _eps and scaling factor (shell thickness = sca * R, where R is the hard core radius), sca determined the thickness of the shell
+ * Pairwise interaction for Hard Sphere + Weeks-Chandler-Andersen
+ * (HS_WCA_Smooth) potential, refer to D. Asenjo PhD thesis pp 66 _prfac is the
+ * cubic power of _sca/(2**(1/6)) well depth _eps and scaling factor (shell
+ * thickness = sca * R, where R is the hard core radius), sca determined the
+ * thickness of the shell
  */
 struct HS_WCA_Smooth_interaction : pele::BaseInteraction {
-    double const _eps, _sca;
-    double const _infty, _prfac, _c, _gamma;
+  double const _eps, _sca;
+  double const _infty, _prfac, _c, _gamma;
 
-    HS_WCA_Smooth_interaction(double eps, double sca)
-        : _eps(eps), _sca(sca),
-          _infty(std::pow(10.0,80)), _prfac(1./std::sqrt(2)), _c(0.5*(1+std::sqrt(1+(_infty-eps)/eps))),
-          _gamma(_sca/(std::pow(2*_c,1./6)-1))
-    {}
+  HS_WCA_Smooth_interaction(double eps, double sca)
+      : _eps(eps), _sca(sca), _infty(std::pow(10.0, 80)),
+        _prfac(1. / std::sqrt(2)),
+        _c(0.5 * (1 + std::sqrt(1 + (_infty - eps) / eps))),
+        _gamma(_sca / (std::pow(2 * _c, 1. / 6) - 1)) {}
 
-    /* calculate energy from distance squared, r0 is the hard core distance, r is the distance between the centres */
-    double inline energy(double r2, const double radius_sum) const
-    {
-        double E;
-        double r = sqrt(r2);
-        double C = (_sca+_gamma)*radius_sum;
-        double C3 = _prfac*C*C*C;
-        double C6 = C3*C3;
-        double C12 = C6*C6;
-        double coff = radius_sum*(1.0 +_sca); //distance at which the soft cores are at contact
-        double dr = r + radius_sum*(_gamma - 1);
-        double dr2 = dr*dr;
-        double dr6 = dr2*dr2*dr2;
-        double ir6 = 1./(dr6);
-        double ir12 = 1./(dr6*dr6);
+  /* calculate energy from distance squared, r0 is the hard core distance, r is
+   * the distance between the centres */
+  double inline energy(double r2, const double radius_sum) const {
+    double E;
+    double r = sqrt(r2);
+    double C = (_sca + _gamma) * radius_sum;
+    double C3 = _prfac * C * C * C;
+    double C6 = C3 * C3;
+    double C12 = C6 * C6;
+    double coff =
+        radius_sum *
+        (1.0 + _sca); // distance at which the soft cores are at contact
+    double dr = r + radius_sum * (_gamma - 1);
+    double dr2 = dr * dr;
+    double dr6 = dr2 * dr2 * dr2;
+    double ir6 = 1. / (dr6);
+    double ir12 = 1. / (dr6 * dr6);
 
-        if (r <= radius_sum) {
-            double gamma = _gamma*radius_sum;
-            double gamma3 = gamma*gamma*gamma;
-            double gamma6 = gamma3*gamma3;
-            double gamma12 = gamma6*gamma6;
-            double m = 4 * _eps * (6*C6/(gamma6*gamma) - 12*C12/(gamma12*gamma));
-            E = m*(r-radius_sum) + _infty;
-            //std::cout<<"WARNING: distance between atoms "<<atomi<<" and "<<atomj<<" is "<<radius_sum-r<<", less than their hard core separation"<<std::endl;
-        }
-        else if (r < coff )
-            E = 4.*_eps*(-C6*ir6 + C12*ir12) + _eps;
-        else
-            E = 0.;
+    if (r <= radius_sum) {
+      double gamma = _gamma * radius_sum;
+      double gamma3 = gamma * gamma * gamma;
+      double gamma6 = gamma3 * gamma3;
+      double gamma12 = gamma6 * gamma6;
+      double m =
+          4 * _eps * (6 * C6 / (gamma6 * gamma) - 12 * C12 / (gamma12 * gamma));
+      E = m * (r - radius_sum) + _infty;
+      // std::cout<<"WARNING: distance between atoms "<<atomi<<" and "<<atomj<<"
+      // is "<<radius_sum-r<<", less than their hard core
+      // separation"<<std::endl;
+    } else if (r < coff)
+      E = 4. * _eps * (-C6 * ir6 + C12 * ir12) + _eps;
+    else
+      E = 0.;
 
-        return E;
+    return E;
+  }
+
+  /* calculate energy and gradient from distance squared, gradient is in
+   * g/|rij|, radius_sum is the hard core distance, r is the distance between
+   * the centres */
+  double inline energy_gradient(double r2, double *gij,
+                                const double radius_sum) const {
+    double E;
+    double r = sqrt(r2);
+    double C = (_sca + _gamma) * radius_sum;
+    double C3 = _prfac * C * C * C;
+    double C6 = C3 * C3;
+    double C12 = C6 * C6;
+    double coff =
+        radius_sum *
+        (1.0 + _sca); // distance at which the soft cores are at contact
+    double dr = r + radius_sum * (_gamma - 1);
+    double dr2 = dr * dr;
+    double dr6 = dr2 * dr2 * dr2;
+    double ir6 = 1. / (dr6);
+    double ir12 = 1. / (dr6 * dr6);
+
+    if (r <= radius_sum) {
+      double gamma = _gamma * radius_sum;
+      double gamma3 = gamma * gamma * gamma;
+      double gamma6 = gamma3 * gamma3;
+      double gamma12 = gamma6 * gamma6;
+      double m =
+          4 * _eps * (6 * C6 / (gamma6 * gamma) - 12 * C12 / (gamma12 * gamma));
+      E = m * (r - radius_sum) + _infty;
+      *gij = -m / r;
+      // std::cout<<"WARNING: distance between atoms "<<atomi<<" and "<<atomj<<"
+      // is "<<radius_sum-r<<"less than their hard core separation"<<std::endl;
+    } else if (r < coff) {
+      E = 4. * _eps * (-C6 * ir6 + C12 * ir12) + _eps;
+      *gij = 4. * _eps * (-6 * C6 * ir6 + 12 * C12 * ir12) /
+             (dr * r); // 1/dr because powers must be 7 and 13, this is -g|gij|
+                       // (for consistency with the loop in pairwise potential)
+      //*gij = 4.*_eps*(- 6 * C6 * dr6 * ir6 * ir6 + 12 * C12 * dr12 * ir12 *
+      //ir12) / (dr*r);
+    } else {
+      E = 0.;
+      *gij = 0.;
     }
 
-    /* calculate energy and gradient from distance squared, gradient is in g/|rij|, radius_sum is the hard core distance, r is the distance between the centres */
-    double inline energy_gradient(double r2, double *gij, const double radius_sum) const
-    {
-        double E;
-        double r = sqrt(r2);
-        double C = (_sca+_gamma)*radius_sum;
-        double C3 = _prfac*C*C*C;
-        double C6 = C3*C3;
-        double C12 = C6*C6;
-        double coff = radius_sum*(1.0 +_sca); //distance at which the soft cores are at contact
-        double dr = r + radius_sum*(_gamma - 1);
-        double dr2 = dr*dr;
-        double dr6 = dr2*dr2*dr2;
-        double ir6 = 1./(dr6);
-        double ir12 = 1./(dr6*dr6);
+    return E;
+  }
 
-        if (r <= radius_sum) {
-            double gamma = _gamma*radius_sum;
-            double gamma3 = gamma*gamma*gamma;
-            double gamma6 = gamma3*gamma3;
-            double gamma12 = gamma6*gamma6;
-            double m = 4 * _eps * (6*C6/(gamma6*gamma) - 12*C12/(gamma12*gamma));
-            E = m*(r-radius_sum) + _infty;
-            *gij = -m/r;
-            //std::cout<<"WARNING: distance between atoms "<<atomi<<" and "<<atomj<<" is "<<radius_sum-r<<"less than their hard core separation"<<std::endl;
-        }
-        else if (r < coff) {
-            E = 4.*_eps*(- C6 * ir6 + C12 * ir12) + _eps;
-            *gij = 4.*_eps*(- 6 * C6 * ir6 + 12 * C12 * ir12) / (dr*r); //1/dr because powers must be 7 and 13, this is -g|gij| (for consistency with the loop in pairwise potential)
-            //*gij = 4.*_eps*(- 6 * C6 * dr6 * ir6 * ir6 + 12 * C12 * dr12 * ir12 * ir12) / (dr*r);
-        }
-        else {
-            E = 0.;
-            *gij = 0.;
-        }
+  double inline energy_gradient_hessian(double r2, double *gij, double *hij,
+                                        const double radius_sum) const {
+    double E;
+    double r = sqrt(r2);
+    double C = (_sca + _gamma) * radius_sum;
+    double C3 = _prfac * C * C * C;
+    double C6 = C3 * C3;
+    double C12 = C6 * C6;
+    double coff =
+        radius_sum *
+        (1.0 + _sca); // distance at which the soft cores are at contact
+    double dr = r + radius_sum * (_gamma - 1);
+    double dr2 = dr * dr;
+    double dr6 = dr2 * dr2 * dr2;
+    double ir6 = 1. / (dr6);
+    double ir12 = 1. / (dr6 * dr6);
 
-        return E;
-
+    if (r <= radius_sum) {
+      double gamma = _gamma * radius_sum;
+      double gamma3 = gamma * gamma * gamma;
+      double gamma6 = gamma3 * gamma3;
+      double gamma12 = gamma6 * gamma6;
+      double m =
+          4 * _eps * (6 * C6 / (gamma6 * gamma) - 12 * C12 / (gamma12 * gamma));
+      E = m * (r - radius_sum) + _infty;
+      *gij = -m / r;
+      *hij = 0.0;
+      // std::cout<<"WARNING: distance between atoms "<<atomi<<" and "<<atomj<<"
+      // is "<<radius_sum-r<<"less than their hard core separation"<<std::endl;
+    } else if (r < coff) {
+      E = 4. * _eps * (-C6 * ir6 + C12 * ir12) + _eps;
+      *gij = 4. * _eps * (-6 * C6 * ir6 + 12 * C12 * ir12) /
+             (dr * r); // 1/dr because powers must be 7 and 13, this is -g|gij|
+                       // (for consistency with the loop in pairwise potential)
+      *hij = 4. * _eps * (-42 * C6 * ir6 + 156 * C12 * ir12) / dr2;
+    } else {
+      E = 0.;
+      *gij = 0.;
+      *hij = 0.;
     }
 
-    double inline energy_gradient_hessian(double r2, double *gij, double *hij, const double radius_sum) const
-    {
-        double E;
-        double r = sqrt(r2);
-        double C = (_sca+_gamma)*radius_sum;
-        double C3 = _prfac*C*C*C;
-        double C6 = C3*C3;
-        double C12 = C6*C6;
-        double coff = radius_sum*(1.0 +_sca); //distance at which the soft cores are at contact
-        double dr = r + radius_sum*(_gamma - 1);
-        double dr2 = dr*dr;
-        double dr6 = dr2*dr2*dr2;
-        double ir6 = 1./(dr6);
-        double ir12 = 1./(dr6*dr6);
-
-        if (r <= radius_sum) {
-            double gamma = _gamma*radius_sum;
-            double gamma3 = gamma*gamma*gamma;
-            double gamma6 = gamma3*gamma3;
-            double gamma12 = gamma6*gamma6;
-            double m = 4 * _eps * (6*C6/(gamma6*gamma) - 12*C12/(gamma12*gamma));
-            E = m*(r-radius_sum) + _infty;
-            *gij = -m/r;
-            *hij = 0.0;
-            //std::cout<<"WARNING: distance between atoms "<<atomi<<" and "<<atomj<<" is "<<radius_sum-r<<"less than their hard core separation"<<std::endl;
-        } else if (r < coff) {
-            E = 4.*_eps*(- C6 * ir6 + C12 * ir12) + _eps;
-            *gij = 4.*_eps*(- 6 * C6 * ir6 + 12 * C12 * ir12) / (dr*r); //1/dr because powers must be 7 and 13, this is -g|gij| (for consistency with the loop in pairwise potential)
-            *hij = 4.*_eps*(- 42 * C6 * ir6 + 156 * C12 * ir12) / dr2;
-        } else {
-            E = 0.;
-            *gij = 0.;
-            *hij = 0.;
-        }
-
-        return E;
-    }
-
+    return E;
+  }
 };
 
 //
@@ -146,45 +163,50 @@ struct HS_WCA_Smooth_interaction : pele::BaseInteraction {
 /**
  * Pairwise HS_WCA_Smooth potential
  */
-class HS_WCA_Smooth : public pele::SimplePairwisePotential< HS_WCA_Smooth_interaction > {
+class HS_WCA_Smooth
+    : public pele::SimplePairwisePotential<HS_WCA_Smooth_interaction> {
 public:
-    HS_WCA_Smooth(double eps, double sca, pele::Array<double> radii)
-        : pele::SimplePairwisePotential< HS_WCA_Smooth_interaction >(
-                std::make_shared<HS_WCA_Smooth_interaction>(eps, sca), radii)
-    {}
+  HS_WCA_Smooth(double eps, double sca, pele::Array<double> radii)
+      : pele::SimplePairwisePotential<HS_WCA_Smooth_interaction>(
+            std::make_shared<HS_WCA_Smooth_interaction>(eps, sca), radii) {}
 };
 
-
-class HS_WCA_Smooth2D : public pele::SimplePairwisePotential< HS_WCA_Smooth_interaction, pele::cartesian_distance<2> > {
+class HS_WCA_Smooth2D
+    : public pele::SimplePairwisePotential<HS_WCA_Smooth_interaction,
+                                           pele::cartesian_distance<2>> {
 public:
-    HS_WCA_Smooth2D(double eps, double sca, pele::Array<double> radii)
-        : pele::SimplePairwisePotential< HS_WCA_Smooth_interaction, pele::cartesian_distance<2> >(
-                std::make_shared<HS_WCA_Smooth_interaction>(eps, sca), radii,
-                std::make_shared<pele::cartesian_distance<2>>() )
-    {}
+  HS_WCA_Smooth2D(double eps, double sca, pele::Array<double> radii)
+      : pele::SimplePairwisePotential<HS_WCA_Smooth_interaction,
+                                      pele::cartesian_distance<2>>(
+            std::make_shared<HS_WCA_Smooth_interaction>(eps, sca), radii,
+            std::make_shared<pele::cartesian_distance<2>>()) {}
 };
 
 /**
  * Pairwise HS_WCA_Smooth potential in a rectangular box
  */
-class HS_WCA_SmoothPeriodic : public pele::SimplePairwisePotential< HS_WCA_Smooth_interaction, pele::periodic_distance<3> > {
+class HS_WCA_SmoothPeriodic
+    : public pele::SimplePairwisePotential<HS_WCA_Smooth_interaction,
+                                           pele::periodic_distance<3>> {
 public:
-    HS_WCA_SmoothPeriodic(double eps, double sca, pele::Array<double> radii, pele::Array<double> const boxvec)
-        : pele::SimplePairwisePotential< HS_WCA_Smooth_interaction, pele::periodic_distance<3>> (
-                std::make_shared<HS_WCA_Smooth_interaction>(eps, sca), radii,
-                std::make_shared<pele::periodic_distance<3>>(boxvec)
-                )
-    {}
+  HS_WCA_SmoothPeriodic(double eps, double sca, pele::Array<double> radii,
+                        pele::Array<double> const boxvec)
+      : pele::SimplePairwisePotential<HS_WCA_Smooth_interaction,
+                                      pele::periodic_distance<3>>(
+            std::make_shared<HS_WCA_Smooth_interaction>(eps, sca), radii,
+            std::make_shared<pele::periodic_distance<3>>(boxvec)) {}
 };
 
-class HS_WCA_SmoothPeriodic2D : public pele::SimplePairwisePotential< HS_WCA_Smooth_interaction, pele::periodic_distance<2> > {
+class HS_WCA_SmoothPeriodic2D
+    : public pele::SimplePairwisePotential<HS_WCA_Smooth_interaction,
+                                           pele::periodic_distance<2>> {
 public:
-    HS_WCA_SmoothPeriodic2D(double eps, double sca, pele::Array<double> radii, pele::Array<double> const boxvec)
-        : pele::SimplePairwisePotential< HS_WCA_Smooth_interaction, pele::periodic_distance<2>> (
-                std::make_shared<HS_WCA_Smooth_interaction>(eps, sca), radii,
-                std::make_shared<pele::periodic_distance<2>>(boxvec)
-                )
-    {}
+  HS_WCA_SmoothPeriodic2D(double eps, double sca, pele::Array<double> radii,
+                          pele::Array<double> const boxvec)
+      : pele::SimplePairwisePotential<HS_WCA_Smooth_interaction,
+                                      pele::periodic_distance<2>>(
+            std::make_shared<HS_WCA_Smooth_interaction>(eps, sca), radii,
+            std::make_shared<pele::periodic_distance<2>>(boxvec)) {}
 };
 
 } // namespace bv

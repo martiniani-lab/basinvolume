@@ -302,39 +302,21 @@ def set_compiler_env(compiler_id):
     env = os.environ.copy()
     if compiler_id.lower() in ("unix"):
         print(env, "eeenv")
-        env["CC"] = (
-            (subprocess.check_output(["which", "gcc"])).decode(encoding).rstrip("\n")
-        )
-        env["CXX"] = (
-            (subprocess.check_output(["which", "g++"])).decode(encoding).rstrip("\n")
-        )
-        env["LD"] = (
-            (subprocess.check_output(["which", "ld"])).decode(encoding).rstrip("\n")
-        )
-        env["AR"] = (
-            (subprocess.check_output(["which", "ar"])).decode(encoding).rstrip("\n")
-        )
+        env["CC"] = (subprocess.check_output(["which", "gcc"])).decode(encoding).rstrip("\n")
+        env["CXX"] = (subprocess.check_output(["which", "g++"])).decode(encoding).rstrip("\n")
+        env["LD"] = (subprocess.check_output(["which", "ld"])).decode(encoding).rstrip("\n")
+        env["AR"] = (subprocess.check_output(["which", "ar"])).decode(encoding).rstrip("\n")
     elif compiler_id.lower() in ("intel"):
-        env["CC"] = (
-            (subprocess.check_output(["which", "icc"])).decode(encoding).rstrip("\n")
-        )
-        env["CXX"] = (
-            (subprocess.check_output(["which", "icpc"])).decode(encoding).rstrip("\n")
-        )
-        env["LD"] = (
-            (subprocess.check_output(["which", "xild"])).decode(encoding).rstrip("\n")
-        )
-        env["AR"] = (
-            (subprocess.check_output(["which", "xiar"])).decode(encoding).rstrip("\n")
-        )
+        env["CC"] = (subprocess.check_output(["which", "icc"])).decode(encoding).rstrip("\n")
+        env["CXX"] = (subprocess.check_output(["which", "icpc"])).decode(encoding).rstrip("\n")
+        env["LD"] = (subprocess.check_output(["which", "xild"])).decode(encoding).rstrip("\n")
+        env["AR"] = (subprocess.check_output(["which", "xiar"])).decode(encoding).rstrip("\n")
     else:
         raise Exception("compiler_id not known")
     # this line only works is the build directory has been deleted
     cmake_compiler_args = shlex.split(
         "-D CMAKE_C_COMPILER={} -D CMAKE_CXX_COMPILER={} "
-        "-D CMAKE_LINKER={} -D CMAKE_AR={}".format(
-            env["CC"], env["CXX"], env["LD"], env["AR"]
-        )
+        "-D CMAKE_LINKER={} -D CMAKE_AR={}".format(env["CC"], env["CXX"], env["LD"], env["AR"])
     )
     return env, cmake_compiler_args
 
@@ -346,9 +328,7 @@ def run_cmake(compiler_id="unix"):
     cwd = os.path.abspath(os.path.dirname(__file__))
     env, cmake_compiler_args = set_compiler_env(compiler_id)
 
-    p = subprocess.call(
-        ["cmake"] + cmake_compiler_args + [cwd], cwd=cmake_build_dir, env=env
-    )
+    p = subprocess.call(["cmake"] + cmake_compiler_args + [cwd], cwd=cmake_build_dir, env=env)
     if p != 0:
         raise Exception("running cmake failed")
     print("\nbuilding files in cmake directory")
@@ -382,9 +362,7 @@ class build_ext_precompiled(old_build_ext):
             raise RuntimeError("library is not a .so file: " + pre_compiled_library)
         if not os.path.isfile(pre_compiled_library):
             raise RuntimeError(
-                "file does not exist: "
-                + pre_compiled_library
-                + " Did CMake not run correctly"
+                "file does not exist: " + pre_compiled_library + " Did CMake not run correctly"
             )
         print("copying", pre_compiled_library, "to", ext_path)
         shutil.copy2(pre_compiled_library, ext_path)
