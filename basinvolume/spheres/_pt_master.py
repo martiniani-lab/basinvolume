@@ -816,9 +816,7 @@ class PT_Master(object):
             df.to_hdf(hdf5_path, key="data", mode="a", append=True)
 
     def _dump_histogram(self, ireplica):
-        directory = os.path.join(self.base_directory, str(ireplica))
         iteration = self.mcrunner_niter * (self.ptiter + 1)
-        fname = os.path.join(directory, "Visits.his.{}".format(iteration))
         mean = np.mean(self.replica_timeseries2[ireplica][self.eq_time :])
         variance = np.var(self.replica_timeseries2[ireplica][self.eq_time :])
         std_err = self.last_rel_std_errs[ireplica] * mean
