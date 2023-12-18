@@ -233,6 +233,20 @@ if __name__ == "__main__":
             Only use for testing purposes.",
         default=None,
     )
+    parser.add_argument(
+        "--save_coordinates",
+        type=bool,
+        help="Save coordinates every N steps of the monte carlo",
+        default=False,
+    )
+    parser.add_argument(
+        "--n_save_coordinates",
+        type=int,
+        help="How many coordinate to save if the simulation runs for mintotniter steps \
+            Default: 100.",
+        default=100,
+    )
+
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
@@ -285,7 +299,7 @@ if __name__ == "__main__":
     test_convergence_ts = True
     record_histogram = False
     assert (
-        record_histogram == False and pt_eq_niter == 0 and ts_freq == 1
+        record_histogram is False and pt_eq_niter == 0 and ts_freq == 1
     )  # ts_freq must be 1 with current output implementation (all based on timeseries)
     rel_std_err = args.relstderr  # relative standard error in the mean used by convergence test
     min_window = min_tot_niter * 0.5  # minimum amount of data before trying to check convergence
@@ -301,6 +315,10 @@ if __name__ == "__main__":
         seed_metropolis=random.randint(0, i32max),
     )
     logging.info(seeds)
+    if args.save_coordinates:
+        record_traj_npoints = min_ptiter // args.n_save_coordinates
+    else:
+        record_traj_npoints = -1
 
     if args.exchange_scheme.upper() in ExchangeScheme.__members__:
         exchange_scheme = ExchangeScheme[args.exchange_scheme.upper()]
@@ -399,6 +417,7 @@ if __name__ == "__main__":
                         sleep_seconds=args.sleep_seconds,
                         exchange_scheme=exchange_scheme,
                         checkpoint_time=checkpoint_time,
+                        record_traj_npoints=record_traj_npoints,
                     )
                 else:
                     checkpoint_path = os.path.join(path, args.load_checkpoint)
