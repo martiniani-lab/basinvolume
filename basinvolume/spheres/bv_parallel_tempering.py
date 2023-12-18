@@ -277,11 +277,6 @@ if __name__ == "__main__":
     min_tot_niter = int(args.mintotniter)
     max_tot_niter = int(args.maxtotniter)
 
-    if args.save_coordinates:
-        record_traj_npoints = min_tot_niter // args.n_save_coordinates
-    else:
-        record_traj_npoints = -1
-
     min_ptiter = int(
         min_tot_niter * 0.1
     )  # 10% PT swaps, this is the initial proposed maximum length of the run. at the end of min_ptiter convergence is checked
@@ -320,6 +315,10 @@ if __name__ == "__main__":
         seed_metropolis=random.randint(0, i32max),
     )
     logging.info(seeds)
+    if args.save_coordinates:
+        record_traj_npoints = min_ptiter // args.n_save_coordinates
+    else:
+        record_traj_npoints = -1
 
     if args.exchange_scheme.upper() in ExchangeScheme.__members__:
         exchange_scheme = ExchangeScheme[args.exchange_scheme.upper()]
