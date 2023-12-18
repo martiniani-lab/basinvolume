@@ -794,7 +794,6 @@ class PT_Master(object):
                 self._dump_timeseries(ireplica)
             if self.ptiter >= self.eq_min_ptiter and iteration > self.mcrunner_eqsteps:
                 self._dump_histogram(ireplica)
-                self._dump_traj(ireplica)
 
         logging.debug("_print_data -- END")
 
