@@ -2,6 +2,7 @@
 """
 
 
+import configparser
 from enum import unique, Enum
 import os
 import toml
@@ -281,6 +282,21 @@ def setup_parallel_tempering(
     run_params["pt"]["checkpoint-time"] = checkpoint_time
     run_params["pt"]["load-checkpoint"] = checkpoint_file
     pt_default_kwargs.update(run_params["pt"])
+    
+    if pt_default_kwargs["nreplicas"] == "auto":
+        # load dim from jammed_packing config file
+        jammed_packing_folder = os.path.join(simulation_folder, "jammed_packing")
+        # get the first file ending with an integer followed by [.config]
+        fnames = os.listdir(jammed_packing_folder)
+        jammed_fname = next(
+            fname for fname in fnames if fname.endswith(".config") and fname.split("_")[-1].isdigit()
+        )
+        config_file = os.path.join(jammed_packing_folder, jammed_fname)
+        configf = configparser.ConfigParser()
+        configf.read(config_file)
+        dim = int(configf["JAMMED_PACKING"]["ndim"])
+        pt_default_kwargs["nreplicas"] = max(64, int(dim/5))
+    
     mpi_procs = int(pt_default_kwargs["nreplicas"] / 4)  # Best performance according to Johannes
     if (
         mpi_procs > MAX_PROC_NUMBER
