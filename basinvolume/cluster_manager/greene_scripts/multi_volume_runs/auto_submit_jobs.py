@@ -76,12 +76,15 @@ def submit_jobs(simulation_dir, generate_packings=False):
 
     simulation_dir_name = os.path.basename(simulation_dir)
     jammed_packings_dir = os.path.join(simulation_dir, "jammed_packings")
-    jammed_packing_fnames = os.listdir(jammed_packings_dir)
-    jammed_packing_fnames = [
-        fname
-        for fname in jammed_packing_fnames
-        if fname.endswith(".xydr") or fname.endswith(".xyzdr")
-    ]
+    if not os.path.exists(jammed_packings_dir):
+        jammed_packing_fnames = [""]
+    else:
+        jammed_packing_fnames = os.listdir(jammed_packings_dir)
+        jammed_packing_fnames = [
+            fname
+            for fname in jammed_packing_fnames
+            if fname.endswith(".xydr") or fname.endswith(".xyzdr")
+        ]
     n_analysis = 0
     # simulation dir is assumed to be of the form {minimizer}_{n_particles}_{packing_fraction}
     minimizer_name = simulation_dir_name.split("_")[0]
