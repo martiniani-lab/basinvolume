@@ -554,10 +554,8 @@ def submit_initial_jobs(
                     # write the script
                     with open(script_path, "w") as script_file:
                         script_file.write(script)
-
-
-                if submit:
-                    os.system(f"sbatch {script_path}")
+                    if submit:
+                        os.system(f"sbatch {script_path}")
 
 
 def submit_job(
