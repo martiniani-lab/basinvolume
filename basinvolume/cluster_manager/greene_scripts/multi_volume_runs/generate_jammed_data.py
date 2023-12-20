@@ -34,7 +34,7 @@ def main():
                 )
 
 
-def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ensemble):
+def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ensemble, template=GREENE_SCRIPT_TEMPLATE):
 
     # generate a directory for the experiment
     experiment_dir = os.path.join(base_dir, f"{minimizer}_{n_particles}_{packing_fraction}")
@@ -55,7 +55,7 @@ def generate_packings(base_dir, minimizer, n_particles, packing_fraction, n_ense
     jpack_com += f" -p {packing_fraction} --minimizer CVODE --interaction INVERSE_POWER"  # keep the minimizer same for all
     full_command = f"{pack_comm};\n{jpack_com}"
     time_str = "00:30:00"
-    script = GREENE_SCRIPT_TEMPLATE.format(
+    script = template.format(
         time_str=time_str,
         mem_str="4GB",
         ntasks=1,

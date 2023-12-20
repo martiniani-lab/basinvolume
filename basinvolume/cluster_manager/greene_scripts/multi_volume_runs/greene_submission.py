@@ -70,7 +70,6 @@ singularity exec --overlay {ext3_file}:ro \
     {run_command};"
 """
 
-
 def format_args_from_dict(arg_dict):
     """
     Convert a dictionary of arguments into a formatted string suitable for command-line usage.
@@ -107,6 +106,7 @@ def calculate_volume(
     run_params,
     submit=True,
     checkpoint_file=None,
+    template=GREENE_SCRIPT_TEMPLATE,
 ):
     # global args that should be the same across scripts
     # only kmax sees the optimizer kwargs, the following steps just read them off from the kmax config file
@@ -136,6 +136,7 @@ def calculate_volume(
             time_str,
             mem_str,
             submit=submit,
+            template=template,
         )
     elif simulation_type == SimStage.KMIN:
         mem_str = RESOURCE_CONFIG["memory"]["kmin"]
@@ -146,6 +147,7 @@ def calculate_volume(
             time_str,
             mem_str,
             submit=submit,
+            template=template,
         )
     elif simulation_type == SimStage.PT:
         mem_str = RESOURCE_CONFIG["memory"]["pt"]
@@ -158,6 +160,7 @@ def calculate_volume(
             checkpoint_time=checkpoint_time,
             checkpoint_file=checkpoint_file,
             submit=submit,
+            template=template,
         )
     elif simulation_type == SimStage.INNER_SPHERE:
         mem_str = RESOURCE_CONFIG["memory"]["innersphere"]
@@ -168,6 +171,7 @@ def calculate_volume(
             time_str,
             mem_str,
             submit=submit,
+            template=template,
         )
     elif simulation_type == SimStage.ANALYSIS:
         mem_str = RESOURCE_CONFIG["memory"]["analysis"]
@@ -214,7 +218,7 @@ def setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str,
     return 0
 
 
-def setup_kmax(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True):
+def setup_kmax(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True,template=GREENE_SCRIPT_TEMPLATE):
     # single core args
     ntasks = 1
     cpus_per_task = 1
@@ -239,11 +243,12 @@ def setup_kmax(simulation_folder, run_params, packing_file, time_str, mem_str, s
         job_name_prefix,
         submit=submit,
         kmax=True,
+        template=template,
     )
     return 0
 
 
-def setup_kmin(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True):
+def setup_kmin(simulation_folder, run_params, packing_file, time_str, mem_str, submit=True, template=GREENE_SCRIPT_TEMPLATE):
     ntasks = 1
     cpus_per_task = 1
     # defaults but you can change them at the script level
@@ -263,6 +268,7 @@ def setup_kmin(simulation_folder, run_params, packing_file, time_str, mem_str, s
         mem_str,
         job_name_prefix,
         submit=submit,
+        template=template,
     )
     return 0
 
@@ -276,6 +282,7 @@ def setup_parallel_tempering(
     checkpoint_time=None,
     checkpoint_file=None,
     submit=True,
+    template=GREENE_SCRIPT_TEMPLATE,
 ):
     ntasks = 1
     pt_default_kwargs = DEFAULT_CONFIG["pt_defaults"]
@@ -324,12 +331,13 @@ def setup_parallel_tempering(
         script_run_prefix=f"mpiexec -n {mpi_procs} python",
         extra_args=explore_dir,
         submit=submit,
+        template=template,
     )
     return 0
 
 
 def setup_inner_sphere(
-    simulation_folder, run_params, packing_file, time_str, mem_str, submit=True
+    simulation_folder, run_params, packing_file, time_str, mem_str, submit=True, template=GREENE_SCRIPT_TEMPLATE
 ):
     ntasks = 1
     cpus_per_task = 1
@@ -349,11 +357,12 @@ def setup_inner_sphere(
         mem_str,
         job_name_prefix,
         submit=submit,
+        template=template,
     )
     return 0
 
 
-def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=True):
+def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=True, template=GREENE_SCRIPT_TEMPLATE):
     # TODO make this more like the others with fewer hardcoded values
     ntasks = 1
     cpus_per_task = 1
@@ -374,7 +383,7 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
 
     run_command = f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias}"
 
-    script = GREENE_SCRIPT_TEMPLATE.format(
+    script = template.format(
         time_str=time_str,
         ntasks=ntasks,
         cpus_per_task=cpus_per_task,
@@ -566,6 +575,7 @@ def submit_job(
     extra_args="",
     submit=True,
     kmax=False,
+    template=GREENE_SCRIPT_TEMPLATE,
 ):
     script_kwargs = default_kwargs.copy()
     script_kwargs.update(run_specific_kwargs)
@@ -592,7 +602,7 @@ def submit_job(
     os.makedirs(out_folder, exist_ok=True)
     out_file = f"{out_folder}/{job_name_prefix}_{packing_file_name}"
 
-    script = GREENE_SCRIPT_TEMPLATE.format(
+    script = template.format(
         time_str=time_str,
         ntasks=ntasks,
         cpus_per_task=cpus_per_task,
