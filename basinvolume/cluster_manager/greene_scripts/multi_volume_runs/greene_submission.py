@@ -2,6 +2,7 @@
 """
 
 
+import configparser
 from enum import unique, Enum
 import os
 import toml
@@ -281,6 +282,21 @@ def setup_parallel_tempering(
     run_params["pt"]["checkpoint-time"] = checkpoint_time
     run_params["pt"]["load-checkpoint"] = checkpoint_file
     pt_default_kwargs.update(run_params["pt"])
+    
+    if pt_default_kwargs["nreplicas"] == "auto":
+        # load dim from jammed_packing config file
+        jammed_packing_folder = os.path.join(simulation_folder, "jammed_packing")
+        # get the first file ending with an integer followed by [.config]
+        fnames = os.listdir(jammed_packing_folder)
+        jammed_fname = next(
+            fname for fname in fnames if fname.endswith(".config") and fname.split("_")[-1].isdigit()
+        )
+        config_file = os.path.join(jammed_packing_folder, jammed_fname)
+        configf = configparser.ConfigParser()
+        configf.read(config_file)
+        dim = int(configf["JAMMED_PACKING"]["ndim"])
+        pt_default_kwargs["nreplicas"] = max(64, int(dim/5))
+    
     mpi_procs = int(pt_default_kwargs["nreplicas"] / 4)  # Best performance according to Johannes
     if (
         mpi_procs > MAX_PROC_NUMBER
@@ -382,7 +398,7 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
 
 def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     if simstage == SimStage.JAMMED_PACKING:
-        time = 1
+        time = 2
         return hours_to_slurm_time(time), time
 
     sim_folder = os.path.basename(simulation_folder)
@@ -527,12 +543,19 @@ def submit_initial_jobs(
                     singularity_overlay=GREENE_SINGULARITY_OVERLAY,
                 )
                 script_path = os.path.join(scripts_folder, f"{job_name_prefix}.sh")
-                # write the script
-                with open(script_path, "w") as script_file:
-                    script_file.write(script)
 
-                if submit:
-                    os.system(f"sbatch {script_path}")
+                # check if job with same script name is still running
+                user = USER_EMAIL.split("@")[0]  # XXX This might be a bit too us-dependent, could adapt this
+                jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell=True)
+                conflict = script_path in jobs_list.decode()
+                if conflict:
+                    print(f"Job already running for script {script_path}! Skipping.")
+                else:
+                    # write the script
+                    with open(script_path, "w") as script_file:
+                        script_file.write(script)
+                    if submit:
+                        os.system(f"sbatch {script_path}")
 
 
 def submit_job(
