@@ -285,7 +285,7 @@ def setup_parallel_tempering(
     
     if pt_default_kwargs["nreplicas"] == "auto":
         # load dim from jammed_packing config file
-        jammed_packing_folder = os.path.join(simulation_folder, "jammed_packing")
+        jammed_packing_folder = os.path.join(simulation_folder, "jammed_packings")
         # get the first file ending with an integer followed by [.config]
         fnames = os.listdir(jammed_packing_folder)
         jammed_fname = next(
