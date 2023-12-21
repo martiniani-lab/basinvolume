@@ -289,7 +289,7 @@ def setup_parallel_tempering(
         # get the first file ending with an integer followed by [.config]
         fnames = os.listdir(jammed_packing_folder)
         jammed_fname = next(
-            fname for fname in fnames if fname.endswith(".config") and fname.split("_")[-1].isdigit()
+            fname for fname in fnames if fname.endswith(".config") # and fname.split("_")[-1].isdigit() # XXX this broke the code and I don't get why it's here
         )
         config_file = os.path.join(jammed_packing_folder, jammed_fname)
         configf = configparser.ConfigParser()
