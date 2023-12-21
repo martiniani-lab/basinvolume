@@ -281,7 +281,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 atol = 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
                 rtol = 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
             if self.interaction is Interaction.NEGATIVE_COS:
-                global_symmetry_offset = np.zeros((len(self.start_coords, self.start_coords)))
+                global_symmetry_offset = np.zeros((len(self.start_coords), len(self.start_coords)))
             else:
                 global_symmetry_offset = []
             optimizer = ExtendedMixedOptimizer(
