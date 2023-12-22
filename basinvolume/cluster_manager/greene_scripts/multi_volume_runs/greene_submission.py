@@ -296,6 +296,7 @@ def setup_parallel_tempering(
         configf.read(config_file)
         dim = int(configf["JAMMED_PACKING"]["ndim"])
         pt_default_kwargs["nreplicas"] = max(64, int(dim/5))
+        run_params["pt"]["nreplicas"] = pt_default_kwargs["nreplicas"]
     
     mpi_procs = int(pt_default_kwargs["nreplicas"] / 4)  # Best performance according to Johannes
     if (
