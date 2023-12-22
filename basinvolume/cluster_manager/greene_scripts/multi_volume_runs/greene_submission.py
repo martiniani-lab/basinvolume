@@ -292,12 +292,14 @@ def setup_parallel_tempering(
     
     if pt_default_kwargs["nreplicas"] == "auto":
         # load dim from jammed_packing config file
-        jammed_packing_folder = os.path.join(simulation_folder, "jammed_packing")
+        jammed_packing_folder = os.path.join(simulation_folder, "jammed_packings")
         # get the first file ending with an integer followed by [.config]
         fnames = os.listdir(jammed_packing_folder)
-        jammed_fname = next(
-            fname for fname in fnames if fname.endswith(".config") and fname.split("_")[-1].isdigit()
-        )
+        for fname in fnames:
+            if fname.endswith(".config"):
+                config_ofile = os.path.join(jammed_packing_folder, fname)
+                jammed_fname = fname
+                break
         config_file = os.path.join(jammed_packing_folder, jammed_fname)
         configf = configparser.ConfigParser()
         configf.read(config_file)
