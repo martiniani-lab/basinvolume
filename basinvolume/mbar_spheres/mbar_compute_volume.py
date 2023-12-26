@@ -50,6 +50,7 @@ from pymbar.timeseries import (
     statistical_inefficiency_fft,
 )
 from pymbar.mbar import MBAR
+import emus
 
 # from FastMBAR import *
 from basinvolume.experiment_2d.cross_validation_bandwidth_selection import (
@@ -142,6 +143,7 @@ class mbar_compute_dos(object):
         plot_dos_data=True,
         ncores=7,
         bias="harmonic",
+        method = "mbar"
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -151,6 +153,7 @@ class mbar_compute_dos(object):
         self.plot_dos_data = plot_dos_data
         self.ncores = ncores
         self.bias = bias
+        self.method = method
 
     def __call__(
         self,
@@ -175,6 +178,8 @@ class mbar_compute_dos(object):
             explore_dir = os.path.join(os.getcwd(), explore_dir + number)
         if self.bootstrap:
             base_dir = base_dir + "_bootstrap"
+        if self.method == "emus":
+            base_dir = base_dir + "_emus"
         self.explore_dir = explore_dir
         self.base_directory = os.path.join(self.explore_dir, base_dir)
         self.frozen = frozen
@@ -250,12 +255,22 @@ class mbar_compute_dos(object):
         self._subtract_eqtime()
         logging.info("importing innersphere time series")
         self._import_ts_spheres()
-        logging.info("subsampling time series")
-        self._build_flat_timeseries()
-        logging.info("building mbar")
-        self._build_mbar()
-        logging.info("mbar computing volume")
-        self._mbar_compute_volume()
+        if self.method == "mbar":
+            logging.info("subsampling time series")
+            self._build_flat_timeseries()
+            logging.info("building mbar")
+            self._build_mbar()
+            logging.info("mbar computing volume")
+            self._mbar_compute_volume()
+        elif self.method == "emus":
+            logging.info("subsampling time series")
+            self._build_flat_timeseries()
+            logging.info("building emus")
+            self._build_emus()
+            logging.info("emus computing volume")
+            self._emus_compute_volume()
+        else:
+            raise NotImplementedError
         self._compute_hs_fluid_volume()
         self._print_volumes()
         if self.plot_dos_data:
@@ -277,12 +292,22 @@ class mbar_compute_dos(object):
         self._subtract_eqtime()
         logging.info("importing innersphere time series")
         self._import_ts_spheres()
-        logging.info("subsampling time series")
-        self._build_flat_timeseries()
-        logging.info("building mbar")
-        self._build_mbar()
-        logging.info("mbar computing volume")
-        self._mbar_compute_volume()
+        if self.method == "mbar":
+            logging.info("subsampling time series")
+            self._build_flat_timeseries()
+            logging.info("building mbar")
+            self._build_mbar()
+            logging.info("mbar computing volume")
+            self._mbar_compute_volume()
+        elif self.method == "emus":
+            logging.info("subsampling time series")
+            self._build_flat_timeseries()
+            logging.info("building emus")
+            self._build_emus()
+            logging.info("emus computing volume")
+            self._emus_compute_volume()
+        else:
+            raise NotImplementedError
         self._compute_hs_fluid_volume()
         self._print_volumes()
         logging.info("plotting data all")
@@ -442,6 +467,55 @@ class mbar_compute_dos(object):
         assert self.karray.size == u_kn.shape[0]
         assert N == u_kn.shape[1]
         return u_kn
+    
+    def _build_psis(self, flat_timeseries):
+        K, N = self.karray.size, flat_timeseries.size
+        psis = np.empty((K, N, K))
+
+        for i in range(K):
+            for j in range(K):
+                # Index i is which timeseries the data comes from, Index j is which bias is applied to it
+                if j < self.number_nested_spheres:
+                    psis[i,:,j] = (self.ndof - 1) * np.log(flat_timeseries[i]) + 0.5 * self.karray[
+                        j
+                    ] * flat_timeseries[i]**2
+                else:
+                    if self.bias == "harmonic":
+                        psis[i,:,j] = 0.5 * self.karray[j] * flat_timeseries[i]**2
+                    elif self.bias == "radial_gaussian":
+                        psis[i,:,j] = 0.5 * self.karray[j] * (flat_timeseries[i] - self.l0array[j]) ** 2
+                        if self.karray[j] != 0.0:
+                            psis[i,:,j] += (self.ndof - 1) * np.log(
+                                np.where(
+                                    flat_timeseries[i] > self.r_cutoffarray[j],
+                                    flat_timeseries[i] / self.r_cutoffarray[j],
+                                    1.0,
+                                )
+                            )
+                    else:
+                        raise NotImplementedError
+        psis = np.exp(-psis)
+        assert K == psis.shape[0]
+        assert N == psis.shape[1]
+        assert K == psis.shape[2] 
+        return psis
+
+    def _flatten_timeseries(self, ts_spheres, timeseries):
+        
+        K = self.karray.size
+        flat_ts = np.empty(0)
+        
+        # Split between innerspheres and pt time series here
+        # Start with inner spheres
+        for i in range(self.number_nested_spheres):
+            flat_ts = np.append(flat_ts, ts_spheres[i][:])
+        # Now loop through pt timeseries
+        print(K - self.number_nested_spheres, "pt timeseries")
+        for i in range(K - self.number_nested_spheres):  # subsample the energies
+            j = i + self.number_nested_spheres
+            print(timeseries)
+            flat_ts = np.append(flat_ts, timeseries[i][:])
+        return flat_ts
 
     def _subsample_timeseries(self, ts_spheres, timeseries):
         """
@@ -482,10 +556,23 @@ class mbar_compute_dos(object):
             ts_sphere = np.trim_zeros(ts_sphere)
             self.ts_spheres.append(ts_sphere)
 
-    def _build_flat_timeseries(self):
-        self.flat_timeseries, self.N_k, g = self._subsample_timeseries(
-            self.ts_spheres, self.timeseries
-        )
+    def _build_flat_timeseries(self, always_subsample = True):
+        if self.method == "mbar":
+            self.flat_timeseries, self.N_k, g = self._subsample_timeseries(
+                self.ts_spheres, self.timeseries
+            )
+        elif self.method == "emus":
+            if always_subsample:
+                self.flat_timeseries, self.N_k, g = self._subsample_timeseries(
+                self.ts_spheres, self.timeseries
+                )
+            else: 
+                self.flat_timeseries = self._flatten_timeseries(
+                    self.ts_spheres, self.timeseries
+                )
+        else: 
+            raise NotImplementedError
+            
 
     def _build_mbar(
         self, verbose=True, initial_f_k=None, maxiter=10000, reltol=1.0e-7
@@ -541,6 +628,81 @@ class mbar_compute_dos(object):
         # vol = Deltaf_ij[1,0]
         self.F0, self.sigF0 = (Fmin - Deltaf_ij[1, 0]) - np.log(self.vcavity), dDeltaf_ij[1, 0]
         self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1, 0]), dDeltaf_ij[1, 0]
+
+        self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
+        self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
+
+        if self.verbose:
+            logging.info("F0 {} F0unc {} +/- {}".format(self.F0, self.F0unc, self.sigF0))
+            logging.info(
+                "unit_box_F0 {} unit_box_F0unc {} +/- {}".format(
+                    self.unit_box_F0, self.unit_box_F0unc, self.sigF0
+                )
+            )
+
+
+    def _build_emus(
+        self,
+    ): 
+        
+        self.psis = self._build_psis(self.flat_timeseries)
+        print(np.shape(self.psis))
+        
+        kappa=[np.shape(self.psis[i])[0] for i in np.arange(np.shape(self.psis)[0])]
+        self.kappa=kappa/np.sum(kappa)
+        
+        print(self.kappa)
+        
+        
+
+    def _emus_compute_volume(self):
+        
+        # Use the smallest radius of all the innersphere runs as a reference
+        rmin = self.ref_radii[0]
+        logging.info("kmax {}".format(self.kmax))
+        logging.info("rmin {}".format(rmin))
+        logging.info("ref acceptance {}".format(self.ref_acceptances[0]))
+        logvmin = log_volume_nball(rmin, self.ndof)
+        # logvmin = np.log( gammainc(self.ndof / 2, 0.5 ))
+        Fmin = -logvmin - np.log(self.ref_acceptances[0])
+        
+        logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
+
+        psis_ballpick = np.copy(self.psis[:,:,self.k0_index])
+        r = self.flat_timeseries
+        SMALL = 0.0
+        psis_ballpick = np.where(r < rmin, psis_ballpick, SMALL)
+        psis_ballpick = np.reshape(psis_ballpick, (1, psis_ballpick.size))
+        psis_freewalker = np.copy(self.psis[:,:,self.k0_index])
+        psis_freewalker = np.reshape(psis_freewalker, (1, psis_freewalker.size))
+        psis_ballpick = np.vstack(
+            (psis_ballpick, psis_freewalker)
+        )  # measure free energy difference between k=0 and reference case from ballpick
+        
+        print(np.shape(psis_ballpick))
+        
+        # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
+        z, F = emus.emus.calculate_zs(self.psis, n_iter=0)
+        z_iter, F_iter = emus.emus.calculate_zs(self.psis, n_iter=5)
+        
+        print(z)
+        print(F)
+        print(z_iter)
+        print(F_iter)
+        
+        self.w_i_final = z
+        
+        stateA = psis_ballpick[0,:] # reference ball
+        stateB = psis_ballpick[1,:] # free walker
+        
+        fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=False))
+        fediff_iter = -np.log(emus.emus.calculate_avg(self.psis,z_iter,stateB,stateA,use_iter=True)) # XXX kappa = self.kappa does not work? Version discrepancy?
+        
+        print(fediff)
+        print(fediff_iter)
+        
+        self.F0, self.sigF0 = (Fmin - fediff) - np.log(self.vcavity), 0.0
+        self.F0unc, self.sigF0unc = (Fmin - fediff), 0.0
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
@@ -1084,6 +1246,14 @@ if __name__ == "__main__":
         help="Type of biasing potential, default = harmonic",
         default="harmonic",
     )
+    parser.add_argument(
+        "--method",
+        help = "Method used to recombine data from umbrella sampling\
+            options = mbar, emus\
+            default = mbar",
+        default = "mbar"
+    )
+    
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -1104,6 +1274,7 @@ if __name__ == "__main__":
         kde=args.kde,
         plot_dos_data=True,
         bias=args.bias,
+        method = args.method
     )
     if fname != None:
         if not os.path.isabs(fdir):

@@ -1215,7 +1215,7 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
         self.rattlers_draw = np.empty(self.nparticles, dtype="d")
         self.opt_maxstep = 1.0
         print("ndim", self.ndim)
-        radii = np.array([1.0] * self.nparticles)  # no radiii
+        radii = np.array([1.0] * self.nparticles)  # no radii
         # periodic anyway
         box_length = self.parameters["period"]
 

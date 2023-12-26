@@ -4,6 +4,7 @@ import numpy as np
 import sys
 import argparse
 import os
+import logging
 from mpi4py import MPI
 
 from basinvolume.spheres import (
@@ -122,6 +123,13 @@ if __name__ == "__main__":
     )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
+
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s: %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
+    logging.info(args)
 
     ndof = args.cubedim
     override_replicas = args.auto_replica_number
