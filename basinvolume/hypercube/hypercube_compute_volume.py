@@ -25,7 +25,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         kde=True,
         plot_dos_data=True,
         ncores=7,
-        bias = "harmonic"
+        bias = "harmonic",
+        method = "mbar"
     ):
         super(hypercube_mbar_compute_dos, self).__init__(
             nbins=nbins,
@@ -33,7 +34,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             kde=kde,
             plot_dos_data=plot_dos_data,
             ncores=ncores,
-            bias = bias
+            bias = bias,
+            method = method
         )
 
     def __call__(self, explore_dir, base_dir="analysis", show=False, verbose=True):
@@ -41,6 +43,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             self.explore_dir = os.path.join(os.getcwd(), explore_dir)
         else:
             self.explore_dir = explore_dir
+        if self.method == "emus":
+            base_dir += "_emus"
         self.base_directory = os.path.join(self.explore_dir, base_dir)
 
         dlist = explore_dir.split("_")
@@ -163,6 +167,12 @@ if __name__ == "__main__":
         help = "Biasing potential used in the PT",
         default = "harmonic"
     )
+    parser.add_argument(
+        "--method",
+        help = "Solving method to recombine samples from umbrella sampling, \
+            options = mbar, emus; default = mbar",
+        default = "mbar"
+    )
     args = parser.parse_args()
     
     logging.basicConfig(
@@ -174,7 +184,7 @@ if __name__ == "__main__":
     
 
     sim = hypercube_mbar_compute_dos(
-        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1, bias = args.bias
+        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1, bias = args.bias, method = args.method
     )
 
     sim(args.explore_dir, show=args.show)

@@ -264,11 +264,11 @@ class mbar_compute_dos(object):
             self._mbar_compute_volume()
         elif self.method == "emus":
             logging.info("subsampling time series")
-            self._build_flat_timeseries()
+            self._build_flat_timeseries(always_subsample=True)
             logging.info("building emus")
             self._build_emus()
             logging.info("emus computing volume")
-            self._emus_compute_volume()
+            self._emus_compute_volume(n_iter = 10)
         else:
             raise NotImplementedError
         self._compute_hs_fluid_volume()
@@ -494,6 +494,8 @@ class mbar_compute_dos(object):
                             )
                     else:
                         raise NotImplementedError
+                    
+        # psis are the exp(-beta potential), not just the potential
         psis = np.exp(-psis)
         assert K == psis.shape[0]
         assert N == psis.shape[1]
@@ -646,16 +648,16 @@ class mbar_compute_dos(object):
     ): 
         
         self.psis = self._build_psis(self.flat_timeseries)
-        print(np.shape(self.psis))
+        logging.info("Built psi tensor with shape {}".format(np.shape(self.psis)))
         
         kappa=[np.shape(self.psis[i])[0] for i in np.arange(np.shape(self.psis)[0])]
         self.kappa=kappa/np.sum(kappa)
         
-        print(self.kappa)
+        logging.info("Found kappas {}".format(self.kappa))
         
         
 
-    def _emus_compute_volume(self):
+    def _emus_compute_volume(self, n_iter = 5):
         
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
@@ -679,27 +681,20 @@ class mbar_compute_dos(object):
             (psis_ballpick, psis_freewalker)
         )  # measure free energy difference between k=0 and reference case from ballpick
         
-        print(np.shape(psis_ballpick))
-        
         # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
-        z, F = emus.emus.calculate_zs(self.psis, n_iter=0)
-        z_iter, F_iter = emus.emus.calculate_zs(self.psis, n_iter=5)
+        z, F = emus.emus.calculate_zs(self.psis, n_iter=n_iter)
         
-        print(z)
-        print(F)
-        print(z_iter)
-        print(F_iter)
+        logging.info("Found normalizations {}".format(z))
         
         self.w_i_final = z
         
         stateA = psis_ballpick[0,:] # reference ball
         stateB = psis_ballpick[1,:] # free walker
         
-        fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=False))
-        fediff_iter = -np.log(emus.emus.calculate_avg(self.psis,z_iter,stateB,stateA,use_iter=True)) # XXX kappa = self.kappa does not work? Version discrepancy?
+        # Calculate average computes the ratio stateB / stateA
+        fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=True)) #XXX kappa = self.kappa does not work? Version discrepancy?
         
-        print(fediff)
-        print(fediff_iter)
+        logging.info("Found free energy difference {}".format(fediff))
         
         self.F0, self.sigF0 = (Fmin - fediff) - np.log(self.vcavity), 0.0
         self.F0unc, self.sigF0unc = (Fmin - fediff), 0.0

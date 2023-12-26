@@ -121,6 +121,12 @@ if __name__ == "__main__":
             default = harmonic",
         default = "harmonic"
     )
+    parser.add_argument(
+        "--method",
+        help = "Solving method to recombine samples from umbrella sampling, \
+            options = mbar, emus; default = mbar",
+        default = "mbar"
+    )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
 
@@ -151,6 +157,7 @@ if __name__ == "__main__":
     force_kmax_value = args.force_kmax_value
     k_spreading = args.k_spreading
     bias = args.bias
+    method = args.method
     i32max = np.iinfo(np.int32).max
     seeds = dict(
         seed_takestep=np.random.randint(i32max),
@@ -522,6 +529,6 @@ if __name__ == "__main__":
             print("\n\nsimulation: Volume computation started")
             print("\nThread {} here!".format(rank))
             sim_compute_volume = hypercube_mbar_compute_dos(
-                bootstrap=bootstrap, kde=kde, plot_dos_data=True, ncores=cores, bias = bias
+                bootstrap=bootstrap, kde=kde, plot_dos_data=True, ncores=cores, bias = bias, method = method
             )
             sim_compute_volume(directory_name, show=show)
