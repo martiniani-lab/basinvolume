@@ -268,7 +268,7 @@ class mbar_compute_dos(object):
             logging.info("building emus")
             self._build_emus()
             logging.info("emus computing volume")
-            self._emus_compute_volume(n_iter = 10)
+            self._emus_compute_volume(n_iter = 10, use_iats=True)
         else:
             raise NotImplementedError
         self._compute_hs_fluid_volume()
@@ -627,7 +627,6 @@ class mbar_compute_dos(object):
         ]  # the free energy differences are nothing but the log weights that one would compute from wham
         # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
 
-        print(self.w_i_final)
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
         logging.info("kmax {}".format(self.kmax))
@@ -690,7 +689,7 @@ class mbar_compute_dos(object):
         return psi_free
         
 
-    def _emus_compute_volume(self, n_iter = 0):
+    def _emus_compute_volume(self, n_iter = 0, use_iats = False):
         
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
@@ -715,11 +714,14 @@ class mbar_compute_dos(object):
         )  # measure free energy difference between k=0 and reference case from ballpick
         
         # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
-        z, F = emus.emus.calculate_zs(self.psis, n_iter=n_iter) #, use_iats = True, iat_method = "acor")
+        if use_iats:
+            z, F, iats = emus.emus.calculate_zs(self.psis, n_iter=n_iter, use_iats=use_iats)  # iat_method = "acor")
+        else: 
+            z, F = emus.emus.calculate_zs(self.psis, n_iter=n_iter)
         
         logging.info("Found normalizations {}".format(z))
         
-        relative_free_energies = - np.log(z)
+        relative_free_energies = np.log(z)
         relative_free_energies -= relative_free_energies[0]
         
         logging.info("Corresponding relative free energies {}".format(relative_free_energies))
