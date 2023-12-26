@@ -264,11 +264,11 @@ class mbar_compute_dos(object):
             self._mbar_compute_volume()
         elif self.method == "emus":
             logging.info("subsampling time series")
-            self._build_flat_timeseries(always_subsample=True)
+            self._build_flat_timeseries(always_subsample=False)
             logging.info("building emus")
             self._build_emus()
             logging.info("emus computing volume")
-            self._emus_compute_volume(n_iter = 0)
+            self._emus_compute_volume(n_iter = 10)
         else:
             raise NotImplementedError
         self._compute_hs_fluid_volume()
@@ -524,7 +524,7 @@ class mbar_compute_dos(object):
         logging.info("Found {} PT timeseries".format(K - self.number_nested_spheres))
         for i in range(K - self.number_nested_spheres):  # subsample the energies
             j = i + self.number_nested_spheres
-            stacked_ts.append(stacked_ts, timeseries[i][:])
+            stacked_ts.append(timeseries[i][:])
             
         logging.info("Stacked {} timeseries".format(len(stacked_ts)))
         return stacked_ts
@@ -715,7 +715,7 @@ class mbar_compute_dos(object):
         )  # measure free energy difference between k=0 and reference case from ballpick
         
         # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
-        z, F = emus.emus.calculate_zs(self.psis, n_iter=n_iter) #, iat_method = "acor")
+        z, F = emus.emus.calculate_zs(self.psis, n_iter=n_iter) #, use_iats = True, iat_method = "acor")
         
         logging.info("Found normalizations {}".format(z))
         
