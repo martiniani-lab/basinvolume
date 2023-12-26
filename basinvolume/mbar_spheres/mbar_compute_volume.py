@@ -268,7 +268,7 @@ class mbar_compute_dos(object):
             logging.info("building emus")
             self._build_emus()
             logging.info("emus computing volume")
-            self._emus_compute_volume(n_iter = 10)
+            self._emus_compute_volume(n_iter = 0)
         else:
             raise NotImplementedError
         self._compute_hs_fluid_volume()
@@ -468,65 +468,78 @@ class mbar_compute_dos(object):
         assert N == u_kn.shape[1]
         return u_kn
     
-    def _build_psis(self, flat_timeseries):
-        K, N = self.karray.size, flat_timeseries.size
-        psis = np.empty((K, N, K))
+    def _build_psis(self, list_timeseries):
+        K = self.karray.size
+        psis = []
 
         for i in range(K):
+            # psis[i,t,j] is a 3d structure (here a list of arrays because lengths can differ)
+            # i is the timeseries the data comes from
+            # t is the sample index in the timeseries
+            # j is the bias is applied to it
+            
+            # Get number of elements in the considered timeseries
+            N = list_timeseries[i].shape[0]
+            psi = np.empty((N, K))
+            
             for j in range(K):
-                # Index i is which timeseries the data comes from, Index j is which bias is applied to it
+                # Go through biases
                 if j < self.number_nested_spheres:
-                    psis[i,:,j] = (self.ndof - 1) * np.log(flat_timeseries[i]) + 0.5 * self.karray[
+                    psi[:,j] = (self.ndof - 1) * np.log(list_timeseries[i]) + 0.5 * self.karray[
                         j
-                    ] * flat_timeseries[i]**2
+                    ] * list_timeseries[i]**2
                 else:
                     if self.bias == "harmonic":
-                        psis[i,:,j] = 0.5 * self.karray[j] * flat_timeseries[i]**2
+                        psi[:,j] = 0.5 * self.karray[j] * list_timeseries[i]**2
                     elif self.bias == "radial_gaussian":
-                        psis[i,:,j] = 0.5 * self.karray[j] * (flat_timeseries[i] - self.l0array[j]) ** 2
+                        psi[:,j] = 0.5 * self.karray[j] * (list_timeseries[i] - self.l0array[j]) ** 2
                         if self.karray[j] != 0.0:
-                            psis[i,:,j] += (self.ndof - 1) * np.log(
+                            psi[:,j] += (self.ndof - 1) * np.log(
                                 np.where(
-                                    flat_timeseries[i] > self.r_cutoffarray[j],
-                                    flat_timeseries[i] / self.r_cutoffarray[j],
+                                    list_timeseries[i] > self.r_cutoffarray[j],
+                                    list_timeseries[i] / self.r_cutoffarray[j],
                                     1.0,
                                 )
                             )
                     else:
                         raise NotImplementedError
                     
-        # psis are the exp(-beta potential), not just the potential
-        psis = np.exp(-psis)
-        assert K == psis.shape[0]
-        assert N == psis.shape[1]
-        assert K == psis.shape[2] 
+            # psis are the exp(-beta potential), not just the potential
+            # here beta = 1
+            psis.append(np.exp(-psi))
+                    
+        assert K == len(psis)
         return psis
 
-    def _flatten_timeseries(self, ts_spheres, timeseries):
+    def _stack_timeseries(self, ts_spheres, timeseries):
         
         K = self.karray.size
-        flat_ts = np.empty(0)
+        stacked_ts = []
         
         # Split between innerspheres and pt time series here
         # Start with inner spheres
         for i in range(self.number_nested_spheres):
-            flat_ts = np.append(flat_ts, ts_spheres[i][:])
-        # Now loop through pt timeseries
-        print(K - self.number_nested_spheres, "pt timeseries")
+            stacked_ts.append(ts_spheres[i][:])
+        # Now loop through PT timeseries
+        logging.info("Found {} PT timeseries".format(K - self.number_nested_spheres))
         for i in range(K - self.number_nested_spheres):  # subsample the energies
             j = i + self.number_nested_spheres
-            print(timeseries)
-            flat_ts = np.append(flat_ts, timeseries[i][:])
-        return flat_ts
+            stacked_ts.append(stacked_ts, timeseries[i][:])
+            
+        logging.info("Stacked {} timeseries".format(len(stacked_ts)))
+        return stacked_ts
 
-    def _subsample_timeseries(self, ts_spheres, timeseries):
+    def _subsample_timeseries(self, ts_spheres, timeseries, flatten=True):
         """
         returns a flatten timeseries of the uncorrelated data
         """
         K = self.karray.size
         g = np.ones(K)
         N_k = np.zeros(K, dtype="i")
-        flat_ts = np.empty(0)
+        if flatten:
+            flat_ts = np.empty(0)
+        else:
+            stacked_ts = []
 
         # Split between innerspheres and pt time series here
         # Start with inner spheres
@@ -536,19 +549,30 @@ class mbar_compute_dos(object):
                 subsample_correlated_data(ts_spheres[i], g=g[i])
             )  # indices of uncorrelated samples
             N_k[i] = len(indices)  # number of uncorrelated samples
-            flat_ts = np.append(flat_ts, ts_spheres[i][indices])
-        # Now loop through pt timeseries
-        print(K - self.number_nested_spheres, "pt timeseries")
+            if flatten:
+                flat_ts = np.append(flat_ts, ts_spheres[i][indices])
+            else: 
+                stacked_ts.append(ts_spheres[i][indices])
+        # Now loop through PT timeseries
+        logging.info("Found {} PT timeseries".format(K - self.number_nested_spheres))
         for i in range(K - self.number_nested_spheres):  # subsample the energies
             j = i + self.number_nested_spheres
-            print(timeseries)
             g[j] = statistical_inefficiency_fft(timeseries[i])
             indices = np.array(
                 subsample_correlated_data(timeseries[i], g=g[j])
             )  # indices of uncorrelated samples
             N_k[j] = len(indices)  # number of uncorrelated samples
-            flat_ts = np.append(flat_ts, timeseries[i][indices])
-        return flat_ts, N_k, g
+            if flatten:
+                flat_ts = np.append(flat_ts, timeseries[i][indices])
+            else:
+                stacked_ts.append(timeseries[i][indices])
+            
+        if flatten:
+            logging.info("Flat timeseries shape: {}".format(flat_ts.shape))
+            return flat_ts, N_k, g
+        else:
+            logging.info("Stacked {} timeseries".format(len(stacked_ts)))
+            return stacked_ts, N_k, g
 
     def _import_ts_spheres(self):
         # There can be several innerspheres now
@@ -566,10 +590,10 @@ class mbar_compute_dos(object):
         elif self.method == "emus":
             if always_subsample:
                 self.flat_timeseries, self.N_k, g = self._subsample_timeseries(
-                self.ts_spheres, self.timeseries
+                self.ts_spheres, self.timeseries, flatten = False
                 )
             else: 
-                self.flat_timeseries = self._flatten_timeseries(
+                self.flat_timeseries = self._stack_timeseries(
                     self.ts_spheres, self.timeseries
                 )
         else: 
@@ -603,6 +627,7 @@ class mbar_compute_dos(object):
         ]  # the free energy differences are nothing but the log weights that one would compute from wham
         # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
 
+        print(self.w_i_final)
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
         logging.info("kmax {}".format(self.kmax))
@@ -621,7 +646,7 @@ class mbar_compute_dos(object):
         u_lk = np.reshape(u_lk, (1, u_lk.size))
         u_lk = np.vstack(
             (u_lk, self.u_kn[self.k0_index])
-        )  # measure free energy difference between k=0 and kw
+        )  # measure free energy difference between k=0 and reference case from ballpick
         # Deltaf_ij, dDeltaf_ij = self.mbar.compute_perturbed_free_energies(u_lk)
         result_dict = self.mbar.compute_perturbed_free_energies(u_lk)
         Deltaf_ij = result_dict["Delta_f"]
@@ -656,8 +681,16 @@ class mbar_compute_dos(object):
         logging.info("Found kappas {}".format(self.kappa))
         
         
+    def _extract_free_list(self):
+        K = self.karray.size
+        psi_free = []
+        for i in range(K):
+            psi_free.append(np.copy(self.psis[i][:,self.k0_index]))
+        psi_free = np.array(np.concatenate(psi_free, axis=None))
+        return psi_free
+        
 
-    def _emus_compute_volume(self, n_iter = 5):
+    def _emus_compute_volume(self, n_iter = 0):
         
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
@@ -670,29 +703,42 @@ class mbar_compute_dos(object):
         
         logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
 
-        psis_ballpick = np.copy(self.psis[:,:,self.k0_index])
-        r = self.flat_timeseries
+        psis_ballpick = self._extract_free_list()
+        psis_freewalker = self._extract_free_list()
+        r = np.array(np.concatenate(self.flat_timeseries))
         SMALL = 0.0
         psis_ballpick = np.where(r < rmin, psis_ballpick, SMALL)
         psis_ballpick = np.reshape(psis_ballpick, (1, psis_ballpick.size))
-        psis_freewalker = np.copy(self.psis[:,:,self.k0_index])
         psis_freewalker = np.reshape(psis_freewalker, (1, psis_freewalker.size))
         psis_ballpick = np.vstack(
             (psis_ballpick, psis_freewalker)
         )  # measure free energy difference between k=0 and reference case from ballpick
         
         # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
-        z, F = emus.emus.calculate_zs(self.psis, n_iter=n_iter)
+        z, F = emus.emus.calculate_zs(self.psis, n_iter=n_iter) #, iat_method = "acor")
         
         logging.info("Found normalizations {}".format(z))
         
-        self.w_i_final = z
+        relative_free_energies = - np.log(z)
+        relative_free_energies -= relative_free_energies[0]
+        
+        logging.info("Corresponding relative free energies {}".format(relative_free_energies))
+        self.w_i_final = relative_free_energies
         
         stateA = psis_ballpick[0,:] # reference ball
         stateB = psis_ballpick[1,:] # free walker
         
         # Calculate average computes the ratio stateB / stateA
-        fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=True)) #XXX kappa = self.kappa does not work? Version discrepancy?
+        use_iter = n_iter > 0
+        fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=use_iter)) #XXX kappa = self.kappa does not work? Version discrepancy?
+        
+        zerr, zcontribs, ztaus = emus.avar.calc_partition_functions(self.psis, z, F, iat_method='acor')
+        # zerr_iter, log_zcontribs_iter, log_ztaus_iter = emus.emus.iter_avar.calc_partition_functions(psis, z_iter,iat_method='acor',kappa=kappa)
+        # print("Calculated variance in z_iter: ",zerr_iter)
+        print("Calculated variance in z: ",zerr)
+        # fe_err_iter, fe_contribs_iter, fe_taus_iter = emus.avar.calc_log_avg(self.psis,z,stateB,stateA,iat_method='acor')
+        # print("calculated avar for fediff:",fe_err_iter)
+        # # iats, fediff_EMUS, fediff_vars = emus.avar.calc_log_avg(psis,z,F,stateB,stateA,kappa=kappa)
         
         logging.info("Found free energy difference {}".format(fediff))
         
