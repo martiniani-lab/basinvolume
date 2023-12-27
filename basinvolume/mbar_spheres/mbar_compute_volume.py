@@ -268,7 +268,7 @@ class mbar_compute_dos(object):
             logging.info("Building EMUS")
             self._build_emus()
             logging.info("EMUS computing volume")
-            self._emus_compute_volume(n_iter = 10, use_iats=True)
+            self._emus_compute_volume(n_iter = 5, use_iats=True)
         else:
             raise NotImplementedError
         self._compute_hs_fluid_volume()
@@ -653,7 +653,8 @@ class mbar_compute_dos(object):
         u_lk = np.vstack(
             (u_lk, self.u_kn[self.k0_index])
         ) # measure free energy difference between k=0 and reference case from ballpick
-        # Deltaf_ij, dDeltaf_ij = self.mbar.compute_perturbed_free_energies(u_lk)
+    
+        # Compute average FE difference from MBAR solution
         result_dict = self.mbar.compute_perturbed_free_energies(u_lk)
         Deltaf_ij = result_dict["Delta_f"]
         dDeltaf_ij = result_dict["dDelta_f"]
@@ -694,8 +695,7 @@ class mbar_compute_dos(object):
             psi_free.append(np.copy(self.psis[i][:,self.k0_index]))
         psi_free = np.array(np.concatenate(psi_free, axis=None))
         return psi_free
-        
-
+    
     def _emus_compute_volume(self, n_iter = 0, use_iats = False):
         
         # Use the smallest radius of all the innersphere runs as a reference
@@ -721,11 +721,6 @@ class mbar_compute_dos(object):
             (psis_ballpick, psis_freewalker)
         )  # measure free energy difference between k=0 and reference case from ballpick
         
-        print(r.shape)
-        print(psis_ballpick.shape)
-        print(self.psis[0].shape)
-        print(self.k0_index)
-        
         # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
         if use_iats:
             z, F, iats = emus.emus.calculate_zs(self.psis, n_iter=n_iter, use_iats=use_iats)  # iat_method = "acor")
@@ -739,28 +734,34 @@ class mbar_compute_dos(object):
         
         logging.info("Corresponding relative free energies {}".format(relative_free_energies))
         self.w_i_final = relative_free_energies
-        
+                
         stateA = psis_ballpick[0,:] # reference ball
         stateB = psis_ballpick[1,:] # free walker
-        
-        print(stateA.sum()/stateA.size)
-        print(stateB.sum()/stateB.size)
         
         # Calculate average computes the ratio stateB / stateA
         use_iter = n_iter > 0
         fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=use_iter))
-        print(fediff + 2*relative_free_energies[1])
-        print(self.karray)
         
-        # zerr, zcontribs, ztaus = emus.avar.calc_partition_functions(self.psis, z, F, iat_method='acor')
-        # zerr_iter, log_zcontribs_iter, log_ztaus_iter = emus.emus.iter_avar.calc_partition_functions(psis, z_iter,iat_method='acor',kappa=kappa)
-        # print("Calculated variance in z_iter: ",zerr_iter)
-        # print("Calculated variance in z: ",zerr)
+        # XXX DEBUG: calculate_avg computes:
+        g1star = emus.emus._calculate_win_avgs(self.psis, z, stateB, use_iter = use_iter)
+        g2star = emus.emus._calculate_win_avgs(self.psis, z, stateA, use_iter = use_iter)
+        print(g1star)
+        print(g2star)
+        print(np.dot(g1star, z))
+        print(np.dot(g2star, z))
+        print(np.dot(g1star, z)/np.dot(g2star, z))
+        print(-np.log(np.dot(g1star, z)/np.dot(g2star, z)))
+        
+        logging.info("Found free energy difference {}".format(fediff))
+        logging.info("THIS DIFFERENCE IS LIKELY WRONG AS EMUS HAS UNDER/OVERFLOW ISSUES")
+        
+        zerr, zcontribs, ztaus = emus.avar.calc_partition_functions(self.psis, z, F, iat_method='acor')
+        print("Calculated variance in z: ",zerr)
+        print("Calculated variance per window in z: ", zcontribs)
+        print("Total error per window in z: ", np.sum(zcontribs, axis=1))
         # fe_err_iter, fe_contribs_iter, fe_taus_iter = emus.avar.calc_log_avg(self.psis,z,stateB,stateA,iat_method='acor')
         # print("calculated avar for fediff:",fe_err_iter)
         # # iats, fediff_EMUS, fediff_vars = emus.avar.calc_log_avg(psis,z,F,stateB,stateA,kappa=kappa)
-        
-        logging.info("Found free energy difference {}".format(fediff))
         
         self.F0, self.sigF0 = (Fmin - fediff) - np.log(self.vcavity), 0.0
         self.F0unc, self.sigF0unc = (Fmin - fediff), 0.0
