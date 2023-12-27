@@ -226,6 +226,8 @@ class mbar_compute_dos(object):
             if os.path.isfile(ballpicking_timeseries_path) and not self.bypass_ballpicking_data:
                 self.ballpicking_timeseries_path = ballpicking_timeseries_path
                 self.ballpicking_timeseries_available = True
+            else:
+                self.ballpicking_timeseries_available = False
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
             self.number_nested_spheres = len(innersphere_dir_list)
             innersphere_dir_list = sorted(
@@ -243,6 +245,8 @@ class mbar_compute_dos(object):
                 if os.path.isfile(ballpicking_timeseries_path) and dir == innersphere_dir_list[0] and not self.bypass_ballpicking_data:
                     self.ballpicking_timeseries_path = ballpicking_timeseries_path
                     self.ballpicking_timeseries_available = True
+                else:
+                    self.ballpicking_timeseries_available = False
         
         self.show = show
         self.verbose = verbose
@@ -829,7 +833,7 @@ class mbar_compute_dos(object):
         
         logging.info("Found free energy difference {}".format(fediff))
         if not self.ballpicking_timeseries_available:
-            logging.info("THIS DIFFERENCE IS LIKELY WRONG AS EMUS HAS UNDER/OVERFLOW ISSUES IN COMPUTE_AVG!\nPlease save ballpicking data in innersphere!")
+            logging.warning("This difference is likely wrong as EMUS has under/overflow issues in compute_avg!\nPlease save ballpicking data in innersphere!")
         
         zerr, zcontribs, ztaus = emus.avar.calc_partition_functions(self.psis, z, F, iat_method='acor')
         print("Calculated variance in z: ",zerr)
