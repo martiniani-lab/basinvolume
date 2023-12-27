@@ -143,7 +143,8 @@ class mbar_compute_dos(object):
         plot_dos_data=True,
         ncores=7,
         bias="harmonic",
-        method = "mbar"
+        method = "mbar",
+        bypass_ballpicking_data = False
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -154,6 +155,7 @@ class mbar_compute_dos(object):
         self.ncores = ncores
         self.bias = bias
         self.method = method
+        self.bypass_ballpicking_data = bypass_ballpicking_data
 
     def __call__(
         self,
@@ -219,6 +221,11 @@ class mbar_compute_dos(object):
             innersphere_timeseries_path = os.path.join(self.explore_dir, "inner_sphere.timeseries")
             assert os.path.isfile(innersphere_timeseries_path)
             self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
+            # Also check whether the ballpicking part of innersphere was saved
+            ballpicking_timeseries_path = os.path.join(self.explore_dir, "inner_sphere_ballpick.timeseries")
+            if os.path.isfile(ballpicking_timeseries_path) and not self.bypass_ballpicking_data:
+                self.ballpicking_timeseries_path = ballpicking_timeseries_path
+                self.ballpicking_timeseries_available = True
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
             self.number_nested_spheres = len(innersphere_dir_list)
             innersphere_dir_list = sorted(
@@ -231,7 +238,12 @@ class mbar_compute_dos(object):
                 innersphere_timeseries_path = os.path.join(dir, "/inner_sphere.timeseries")
                 assert os.path.isfile(innersphere_timeseries_path)
                 self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
-
+                # Also check whether the ballpicking part of innersphere was saved
+                ballpicking_timeseries_path = dir + "/inner_sphere_ballpick.timeseries"
+                if os.path.isfile(ballpicking_timeseries_path) and dir == innersphere_dir_list[0] and not self.bypass_ballpicking_data:
+                    self.ballpicking_timeseries_path = ballpicking_timeseries_path
+                    self.ballpicking_timeseries_available = True
+        
         self.show = show
         self.verbose = verbose
         self._import_config_files()
@@ -442,14 +454,18 @@ class mbar_compute_dos(object):
 
     def _build_u_kn(self, flat_timeseries):
         K, N = self.karray.size, flat_timeseries.size
-        u_kn = np.empty((K, N))
+        if self.ballpicking_timeseries_available:
+            width = K+1
+        else:
+            width = K
+        u_kn = np.empty((width, N))
 
-        for i in range(K):
+        for i in range(width):
             if i < self.number_nested_spheres:
                 u_kn[i] = (self.ndof - 1) * np.log(flat_timeseries) + 0.5 * self.karray[
                     i
                 ] * flat_timeseries**2
-            else:
+            elif i < K:
                 if self.bias == "harmonic":
                     u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
                 elif self.bias == "radial_gaussian":
@@ -464,15 +480,28 @@ class mbar_compute_dos(object):
                         )
                 else:
                     raise NotImplementedError
-        assert self.karray.size == u_kn.shape[0]
+            else: # Only happens if width > K => there is ballpicking data
+                assert self.ballpicking_timeseries_available
+                # The potential is 0 in the ball, infinite outside
+                rmin = self.ref_radii[0]
+                LARGE = 1e70
+                u_kn[i] = np.where(flat_timeseries < rmin, 0, LARGE)
+                
+        assert width == u_kn.shape[0]
         assert N == u_kn.shape[1]
         return u_kn
     
     def _build_psis(self, list_timeseries):
         K = self.karray.size
         psis = []
+        
+        if self.ballpicking_timeseries_available:
+            # Ballpicking points were saved, append to psis
+            width  = K + 1
+        else:
+            width = K
 
-        for i in range(K):
+        for i in range(width):
             # psis[i,t,j] is a 3d structure (here a list of arrays because lengths can differ)
             # i is the timeseries the data comes from
             # t is the sample index in the timeseries
@@ -480,15 +509,15 @@ class mbar_compute_dos(object):
             
             # Get number of elements in the considered timeseries
             N = list_timeseries[i].shape[0]
-            psi = np.empty((N, K))
+            psi = np.empty((N, width))
             
-            for j in range(K):
+            for j in range(width):
                 # Go through biases
                 if j < self.number_nested_spheres:
                     psi[:,j] = (self.ndof - 1) * np.log(list_timeseries[i]) + 0.5 * self.karray[
                         j
                     ] * list_timeseries[i]**2
-                else:
+                elif j < K:
                     if self.bias == "harmonic":
                         psi[:,j] = 0.5 * self.karray[j] * list_timeseries[i]**2
                     elif self.bias == "radial_gaussian":
@@ -503,6 +532,12 @@ class mbar_compute_dos(object):
                             )
                     else:
                         raise NotImplementedError
+                else: # Only happens if width > K => there is ballpicking data
+                    assert self.ballpicking_timeseries_available
+                    # The potential is 0 in the ball, infinite outside
+                    rmin = self.ref_radii[0]
+                    LARGE = 1e70
+                    psi[:,j] = np.where(list_timeseries[i] < rmin, 0, LARGE)
                     
             # psis are the exp(-beta potential), not just the potential
             # here beta = 1
@@ -513,10 +548,10 @@ class mbar_compute_dos(object):
             # append to psis
             psis.append(psi)
                     
-        assert K == len(psis)
+        assert width == len(psis)
         return psis
 
-    def _stack_timeseries(self, ts_spheres, timeseries):
+    def _stack_timeseries(self, ts_ballpicking, ts_spheres, timeseries):
         
         K = self.karray.size
         stacked_ts = []
@@ -531,14 +566,19 @@ class mbar_compute_dos(object):
             j = i + self.number_nested_spheres
             stacked_ts.append(timeseries[i][:])
             
+        # Put the ballpicking in last
+        if self.ballpicking_timeseries_available:
+            stacked_ts.append(ts_ballpicking)
+            
         logging.info("Stacked {} timeseries".format(len(stacked_ts)))
         return stacked_ts
 
-    def _subsample_timeseries(self, ts_spheres, timeseries, flatten=True):
+    def _subsample_timeseries(self, ts_ballpicking, ts_spheres, timeseries, flatten=True):
         """
         returns a flatten timeseries of the uncorrelated data
         """
         K = self.karray.size
+        
         g = np.ones(K)
         N_k = np.zeros(K, dtype="i")
         if flatten:
@@ -572,6 +612,18 @@ class mbar_compute_dos(object):
             else:
                 stacked_ts.append(timeseries[i][indices])
             
+        # Put the ballpicking in last
+        if self.ballpicking_timeseries_available:
+            g_ballpick = statistical_inefficiency_fft(ts_ballpicking)
+            g = np.append(g, g_ballpick)
+            indices = np.array(subsample_correlated_data(ts_ballpicking, g=g_ballpick))
+            N_k = np.append(N_k, len(indices))
+            if flatten:
+                flat_ts = np.append(flat_ts, ts_ballpicking[indices])
+            else:
+                stacked_ts.append(ts_ballpicking[indices])
+            
+            
         if flatten:
             logging.info("Flat timeseries shape: {}".format(flat_ts.shape))
             return flat_ts, N_k, g
@@ -586,20 +638,29 @@ class mbar_compute_dos(object):
             ts_sphere = np.genfromtxt(ts_file)
             ts_sphere = np.trim_zeros(ts_sphere)
             self.ts_spheres.append(ts_sphere)
+            
+        # There can be ballpicking ts as well
+        if self.ballpicking_timeseries_available:
+            ts_ballpicking = np.genfromtxt(self.ballpicking_timeseries_path)
+            ts_ballpicking = np.trim_zeros(ts_ballpicking)
+            self.ts_ballpicking = ts_ballpicking
+        else:
+            # Useful for flatten timeseries argument consistency
+            self.ts_ballpicking = []
 
     def _build_flat_timeseries(self, always_subsample = True):
         if self.method == "mbar":
             self.flat_timeseries, self.N_k, g = self._subsample_timeseries(
-                self.ts_spheres, self.timeseries
+                self.ts_ballpicking, self.ts_spheres, self.timeseries
             )
         elif self.method == "emus":
             if always_subsample:
                 self.flat_timeseries, self.N_k, g = self._subsample_timeseries(
-                self.ts_spheres, self.timeseries, flatten = False
+                self.ts_ballpicking, self.ts_spheres, self.timeseries, flatten = False
                 )
             else: 
                 self.flat_timeseries = self._stack_timeseries(
-                    self.ts_spheres, self.timeseries
+                    self.ts_ballpicking, self.ts_spheres, self.timeseries
                 )
         else: 
             raise NotImplementedError
@@ -645,23 +706,32 @@ class mbar_compute_dos(object):
         
         logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
 
-        u_lk = np.copy(self.u_kn[self.k0_index])
-        r = self.flat_timeseries
-        LARGE = 1e70
-        u_lk = np.where(r < rmin, u_lk, LARGE)
-        u_lk = np.reshape(u_lk, (1, u_lk.size))
-        u_lk = np.vstack(
-            (u_lk, self.u_kn[self.k0_index])
-        ) # measure free energy difference between k=0 and reference case from ballpick
-    
-        # Compute average FE difference from MBAR solution
-        result_dict = self.mbar.compute_perturbed_free_energies(u_lk)
-        Deltaf_ij = result_dict["Delta_f"]
-        dDeltaf_ij = result_dict["dDelta_f"]
+        if self.ballpicking_timeseries_available:
+            logging.info("Ballpicking data available")
+            fediff = Deltaf_ij[self.k0_index][-1]
+            error_fediff = dDeltaf_ij[self.k0_index][-1]
+        else:
+            logging.info("No ballpicking data available, creating fake states from timeseries")
+            u_lk = np.copy(self.u_kn[self.k0_index])
+            r = self.flat_timeseries
+            LARGE = 1e70
+            u_lk = np.where(r < rmin, u_lk, LARGE)
+            u_lk = np.reshape(u_lk, (1, u_lk.size))
+            u_lk = np.vstack(
+                (u_lk, self.u_kn[self.k0_index])
+            ) # measure free energy difference between k=0 and reference case from ballpick
+        
+            # Compute average FE difference from MBAR solution
+            result_dict = self.mbar.compute_perturbed_free_energies(u_lk)
+            Deltaf_ij = result_dict["Delta_f"]
+            dDeltaf_ij = result_dict["dDelta_f"]
+            
+            fediff = Deltaf_ij[1,0]
+            error_fediff = dDeltaf_ij[1,0]
 
         # vol = Deltaf_ij[1,0]
-        self.F0, self.sigF0 = (Fmin - Deltaf_ij[1, 0]) - np.log(self.vcavity), dDeltaf_ij[1, 0]
-        self.F0unc, self.sigF0unc = (Fmin - Deltaf_ij[1, 0]), dDeltaf_ij[1, 0]
+        self.F0, self.sigF0 = (Fmin - fediff) - np.log(self.vcavity), error_fediff
+        self.F0unc, self.sigF0unc = (Fmin - fediff), error_fediff
 
         self.unit_box_F0 = self.F0 + self.nparticles * np.log(self.vcavity)
         self.unit_box_F0unc = self.F0unc + self.nparticles * np.log(self.vcavity)
@@ -676,7 +746,7 @@ class mbar_compute_dos(object):
 
 
     def _build_emus(
-        self,
+        self
     ): 
         
         self.psis = self._build_psis(self.flat_timeseries)
@@ -709,18 +779,6 @@ class mbar_compute_dos(object):
         
         logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
 
-        # Generate 2 samples: one corresponding to points inside the rmin-ball only, the other one to the free walker
-        psis_ballpick = self._extract_free_list()
-        psis_freewalker = self._extract_free_list()
-        r = np.array(np.concatenate(self.flat_timeseries, axis = None))
-        SMALL = 0.0
-        psis_ballpick = np.where(r < rmin, psis_ballpick, SMALL)
-        psis_ballpick = np.reshape(psis_ballpick, (1, psis_ballpick.size))
-        psis_freewalker = np.reshape(psis_freewalker, (1, psis_freewalker.size))
-        psis_ballpick = np.vstack(
-            (psis_ballpick, psis_freewalker)
-        )  # measure free energy difference between k=0 and reference case from ballpick
-        
         # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
         if use_iats:
             z, F, iats = emus.emus.calculate_zs(self.psis, n_iter=n_iter, use_iats=use_iats)  # iat_method = "acor")
@@ -735,25 +793,43 @@ class mbar_compute_dos(object):
         logging.info("Corresponding relative free energies {}".format(relative_free_energies))
         self.w_i_final = relative_free_energies
                 
-        stateA = psis_ballpick[0,:] # reference ball
-        stateB = psis_ballpick[1,:] # free walker
-        
-        # Calculate average computes the ratio stateB / stateA
-        use_iter = n_iter > 0
-        fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=use_iter))
-        
-        # XXX DEBUG: calculate_avg computes:
-        g1star = emus.emus._calculate_win_avgs(self.psis, z, stateB, use_iter = use_iter)
-        g2star = emus.emus._calculate_win_avgs(self.psis, z, stateA, use_iter = use_iter)
-        print(g1star)
-        print(g2star)
-        print(np.dot(g1star, z))
-        print(np.dot(g2star, z))
-        print(np.dot(g1star, z)/np.dot(g2star, z))
-        print(-np.log(np.dot(g1star, z)/np.dot(g2star, z)))
+        if self.ballpicking_timeseries_available:
+            logging.info("Ballpicking data available")
+            fediff = relative_free_energies[self.k0_index] - relative_free_energies[-1]
+        else: 
+            logging.info("No ballpicking data available, creating fake states from timeseries")
+            # Generate 2 samples: one corresponding to points inside the rmin-ball only, the other one to the free walker
+            psis_ballpick = self._extract_free_list()
+            psis_freewalker = self._extract_free_list()
+            r = np.array(np.concatenate(self.flat_timeseries, axis = None))
+            SMALL = 0.0
+            psis_ballpick = np.where(r < rmin, psis_ballpick, SMALL)
+            psis_ballpick = np.reshape(psis_ballpick, (1, psis_ballpick.size))
+            psis_freewalker = np.reshape(psis_freewalker, (1, psis_freewalker.size))
+            psis_ballpick = np.vstack(
+                (psis_ballpick, psis_freewalker)
+            )  # measure free energy difference between k=0 and reference case from ballpick
+            
+            stateA = psis_ballpick[0,:] # reference ball
+            stateB = psis_ballpick[1,:] # free walker
+            
+            # Calculate average computes the ratio stateB / stateA
+            use_iter = n_iter > 0
+            fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=use_iter))
+            
+            # XXX DEBUG: calculate_avg computes:
+            g1star = emus.emus._calculate_win_avgs(self.psis, z, stateB, use_iter = use_iter)
+            g2star = emus.emus._calculate_win_avgs(self.psis, z, stateA, use_iter = use_iter)
+            print(g1star)
+            print(g2star)
+            print(np.dot(g1star, z))
+            print(np.dot(g2star, z))
+            print(np.dot(g1star, z)/np.dot(g2star, z))
+            print(-np.log(np.dot(g1star, z)/np.dot(g2star, z)))
         
         logging.info("Found free energy difference {}".format(fediff))
-        logging.info("THIS DIFFERENCE IS LIKELY WRONG AS EMUS HAS UNDER/OVERFLOW ISSUES")
+        if not self.ballpicking_timeseries_available:
+            logging.info("THIS DIFFERENCE IS LIKELY WRONG AS EMUS HAS UNDER/OVERFLOW ISSUES IN COMPUTE_AVG!\nPlease save ballpicking data in innersphere!")
         
         zerr, zcontribs, ztaus = emus.avar.calc_partition_functions(self.psis, z, F, iat_method='acor')
         print("Calculated variance in z: ",zerr)
@@ -911,7 +987,7 @@ class mbar_compute_dos(object):
         log_dos = np.where(
             self.hist_visits == 0, SMALL, np.log(hist_visits) + hist_unbiased
         )  # sends back a warning
-        ldos = dos_from_offsets(self.hist_visits, log_dos, self.w_i_final)
+        ldos = dos_from_offsets(self.hist_visits, log_dos, self.w_i_final[0:karray.size])
         self.logn_E = np.array(ldos)
 
     def _plot_dos_data(self):
@@ -1315,6 +1391,13 @@ if __name__ == "__main__":
             default = mbar",
         default = "mbar"
     )
+    parser.add_argument(
+        "--bypass_ballpicking_data",
+        action="store_true",
+        help="Ignore ballpicking timeseries even if it is there\
+        used to compare strategies",
+        default = False
+    )
     
     args = parser.parse_args()
 
@@ -1336,7 +1419,8 @@ if __name__ == "__main__":
         kde=args.kde,
         plot_dos_data=True,
         bias=args.bias,
-        method = args.method
+        method = args.method,
+        bypass_ballpicking_data = args.bypass_ballpicking_data
     )
     if fname != None:
         if not os.path.isabs(fdir):

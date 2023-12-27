@@ -26,7 +26,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         plot_dos_data=True,
         ncores=7,
         bias = "harmonic",
-        method = "mbar"
+        method = "mbar",
+        bypass_ballpicking_data = False
     ):
         super(hypercube_mbar_compute_dos, self).__init__(
             nbins=nbins,
@@ -35,7 +36,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             plot_dos_data=plot_dos_data,
             ncores=ncores,
             bias = bias,
-            method = method
+            method = method,
+            bypass_ballpicking_data=bypass_ballpicking_data
         )
 
     def __call__(self, explore_dir, base_dir="analysis", show=False, verbose=True):
@@ -74,6 +76,11 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             innersphere_timeseries_path = os.path.join(self.explore_dir, "inner_sphere.timeseries")
             assert os.path.isfile(innersphere_timeseries_path)
             self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
+            # Also check whether the ballpicking part of innersphere was saved
+            ballpicking_timeseries_path = os.path.join(self.explore_dir, "inner_sphere_ballpick.timeseries")
+            if os.path.isfile(ballpicking_timeseries_path) and not self.bypass_ballpicking_data:
+                self.ballpicking_timeseries_path = ballpicking_timeseries_path
+                self.ballpicking_timeseries_available = True
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
             self.number_nested_spheres = len(innersphere_dir_list)
             innersphere_dir_list = sorted(
@@ -86,6 +93,11 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
                 innersphere_timeseries_path = dir + "/inner_sphere.timeseries"
                 assert os.path.isfile(innersphere_timeseries_path)
                 self.innersphere_timeseries_paths.append(innersphere_timeseries_path)
+                # Also check whether the ballpicking part of innersphere was saved
+                ballpicking_timeseries_path = dir + "/inner_sphere_ballpick.timeseries"
+                if os.path.isfile(ballpicking_timeseries_path) and dir == innersphere_dir_list[0] and not self.bypass_ballpicking_data:
+                    self.ballpicking_timeseries_path = ballpicking_timeseries_path
+                    self.ballpicking_timeseries_available = True
 
         self.show = show
         self.verbose = verbose
@@ -173,6 +185,13 @@ if __name__ == "__main__":
             options = mbar, emus; default = mbar",
         default = "mbar"
     )
+    parser.add_argument(
+        "--bypass_ballpicking_data",
+        action="store_true",
+        help="Ignore ballpicking timeseries even if it is there\
+        used to compare strategies",
+        default = False
+    )
     args = parser.parse_args()
     
     logging.basicConfig(
@@ -184,7 +203,13 @@ if __name__ == "__main__":
     
 
     sim = hypercube_mbar_compute_dos(
-        bootstrap=args.bootstrap, kde=args.kde, plot_dos_data=True, ncores=1, bias = args.bias, method = args.method
+        bootstrap=args.bootstrap,
+        kde=args.kde,
+        plot_dos_data=True,
+        ncores=1,
+        bias = args.bias,
+        method = args.method,
+        bypass_ballpicking_data = args.bypass_ballpicking_data
     )
 
     sim(args.explore_dir, show=args.show)

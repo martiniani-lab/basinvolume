@@ -211,6 +211,8 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         f.close()
         path = os.path.join(self.output_directory, "inner_sphere.timeseries")
         self.mcrunner.dump_timeseries(path, clear=False)
+        path_ballpick = os.path.join(self.output_directory, "inner_sphere_ballpick.timeseries")
+        self.mcrunner_ballpick.dump_timeseries(path_ballpick, clear=False)
 
 
 if __name__ == "__main__":
