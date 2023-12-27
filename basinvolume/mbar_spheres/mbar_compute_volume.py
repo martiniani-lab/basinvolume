@@ -247,27 +247,27 @@ class mbar_compute_dos(object):
         base_directory = self.base_directory
         logging.info("Analysing {}".format(self.explore_dir))
         trymakedir(base_directory)
-        logging.info("importing k array")
+        logging.info("Importing k array")
         self._import_ks()
-        logging.info("importing time series")
+        logging.info("Importing time series")
         self._import_pt_time_series()
-        logging.info("subtracting equilibration point")
+        logging.info("Substracting equilibration point")
         self._subtract_eqtime()
-        logging.info("importing innersphere time series")
+        logging.info("Importing innersphere time series")
         self._import_ts_spheres()
         if self.method == "mbar":
-            logging.info("subsampling time series")
+            logging.info("Subsampling time series")
             self._build_flat_timeseries()
-            logging.info("building mbar")
+            logging.info("Building MBAR")
             self._build_mbar()
-            logging.info("mbar computing volume")
+            logging.info("MBAR computing volume")
             self._mbar_compute_volume()
         elif self.method == "emus":
-            logging.info("subsampling time series")
-            self._build_flat_timeseries(always_subsample=False)
-            logging.info("building emus")
+            logging.info("Subsampling time series")
+            self._build_flat_timeseries(always_subsample=True)
+            logging.info("Building EMUS")
             self._build_emus()
-            logging.info("emus computing volume")
+            logging.info("EMUS computing volume")
             self._emus_compute_volume(n_iter = 10, use_iats=True)
         else:
             raise NotImplementedError
@@ -506,7 +506,12 @@ class mbar_compute_dos(object):
                     
             # psis are the exp(-beta potential), not just the potential
             # here beta = 1
-            psis.append(np.exp(-psi))
+            psi = np.exp(-psi)
+            # remove infs if any
+            LARGE = 1e70
+            psi = np.where(psi > LARGE, LARGE, psi)
+            # append to psis
+            psis.append(psi)
                     
         assert K == len(psis)
         return psis
@@ -627,6 +632,8 @@ class mbar_compute_dos(object):
         ]  # the free energy differences are nothing but the log weights that one would compute from wham
         # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
 
+        logging.info("Found relative free energies {}".format(self.w_i_final))
+
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
         logging.info("kmax {}".format(self.kmax))
@@ -645,7 +652,7 @@ class mbar_compute_dos(object):
         u_lk = np.reshape(u_lk, (1, u_lk.size))
         u_lk = np.vstack(
             (u_lk, self.u_kn[self.k0_index])
-        )  # measure free energy difference between k=0 and reference case from ballpick
+        ) # measure free energy difference between k=0 and reference case from ballpick
         # Deltaf_ij, dDeltaf_ij = self.mbar.compute_perturbed_free_energies(u_lk)
         result_dict = self.mbar.compute_perturbed_free_energies(u_lk)
         Deltaf_ij = result_dict["Delta_f"]
@@ -702,9 +709,10 @@ class mbar_compute_dos(object):
         
         logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
 
+        # Generate 2 samples: one corresponding to points inside the rmin-ball only, the other one to the free walker
         psis_ballpick = self._extract_free_list()
         psis_freewalker = self._extract_free_list()
-        r = np.array(np.concatenate(self.flat_timeseries))
+        r = np.array(np.concatenate(self.flat_timeseries, axis = None))
         SMALL = 0.0
         psis_ballpick = np.where(r < rmin, psis_ballpick, SMALL)
         psis_ballpick = np.reshape(psis_ballpick, (1, psis_ballpick.size))
@@ -712,6 +720,11 @@ class mbar_compute_dos(object):
         psis_ballpick = np.vstack(
             (psis_ballpick, psis_freewalker)
         )  # measure free energy difference between k=0 and reference case from ballpick
+        
+        print(r.shape)
+        print(psis_ballpick.shape)
+        print(self.psis[0].shape)
+        print(self.k0_index)
         
         # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
         if use_iats:
@@ -730,14 +743,19 @@ class mbar_compute_dos(object):
         stateA = psis_ballpick[0,:] # reference ball
         stateB = psis_ballpick[1,:] # free walker
         
+        print(stateA.sum()/stateA.size)
+        print(stateB.sum()/stateB.size)
+        
         # Calculate average computes the ratio stateB / stateA
         use_iter = n_iter > 0
-        fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=use_iter)) #XXX kappa = self.kappa does not work? Version discrepancy?
+        fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=use_iter))
+        print(fediff + 2*relative_free_energies[1])
+        print(self.karray)
         
-        zerr, zcontribs, ztaus = emus.avar.calc_partition_functions(self.psis, z, F, iat_method='acor')
+        # zerr, zcontribs, ztaus = emus.avar.calc_partition_functions(self.psis, z, F, iat_method='acor')
         # zerr_iter, log_zcontribs_iter, log_ztaus_iter = emus.emus.iter_avar.calc_partition_functions(psis, z_iter,iat_method='acor',kappa=kappa)
         # print("Calculated variance in z_iter: ",zerr_iter)
-        print("Calculated variance in z: ",zerr)
+        # print("Calculated variance in z: ",zerr)
         # fe_err_iter, fe_contribs_iter, fe_taus_iter = emus.avar.calc_log_avg(self.psis,z,stateB,stateA,iat_method='acor')
         # print("calculated avar for fediff:",fe_err_iter)
         # # iats, fediff_EMUS, fediff_vars = emus.avar.calc_log_avg(psis,z,F,stateB,stateA,kappa=kappa)
