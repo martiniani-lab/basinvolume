@@ -15,7 +15,7 @@ import argparse
 import glob
 import time
 import logging
-from scipy.special import gammaln, gammainc
+from scipy.special import gammaln, gammainc, erf
 import warnings
 from itertools import cycle
 from basinvolume.enums import Interaction
@@ -147,7 +147,8 @@ class mbar_compute_dos(object):
         bypass_ballpicking_data = False,
         truncate_inner_gaussian = False,
         inner_gaussian_bias_cutoff = -np.log(1e10), # -np.log(max admissible value in psi=exp(-u_kn))
-        include_ballpicking_in_plots = False # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
+        include_ballpicking_in_plots = False, # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
+        use_inner_gaussians = True # Use innergaussians or just US outputs
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -162,6 +163,7 @@ class mbar_compute_dos(object):
         self.truncate_inner_gaussian = truncate_inner_gaussian
         self.inner_gaussian_bias_cutoff = inner_gaussian_bias_cutoff
         self.include_ballpicking_in_plots = include_ballpicking_in_plots # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
+        self.use_inner_gaussians = use_inner_gaussians
 
     def __call__(
         self,
@@ -250,6 +252,10 @@ class mbar_compute_dos(object):
                 if os.path.isfile(ballpicking_timeseries_path) and dir == innersphere_dir_list[0] and not self.bypass_ballpicking_data:
                     self.ballpicking_timeseries_path = ballpicking_timeseries_path
                     self.ballpicking_timeseries_available = True
+        
+        if not self.use_inner_gaussians:
+            # Just set this here so that ballpick can be used even in this case
+            self.number_nested_spheres = 0 
         
         self.show = show
         self.verbose = verbose
@@ -431,12 +437,15 @@ class mbar_compute_dos(object):
                 l0array.extend([float(l0)])
                 r_cutoff = params[2]
                 r_cutoffarray.extend([float(r_cutoff)])
-        # prepend k innersphere
-        # the list must be visited in reverse order to respect the innermost = first convention
-        for k_innersphere in reversed(self.ks_innersphere):
-            karray.insert(0, k_innersphere)
-            l0array.insert(0, 0)
-            r_cutoffarray.insert(0, 0)
+                
+        if self.use_inner_gaussians:
+            # prepend k innersphere
+            # the list must be visited in reverse order to respect the innermost = first convention
+            for k_innersphere in reversed(self.ks_innersphere):
+                karray.insert(0, k_innersphere)
+                l0array.insert(0, 0)
+                r_cutoffarray.insert(0, 0)
+                
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray == 0.0)[0][0]
         if self.bias == "radial_gaussian":
@@ -653,13 +662,14 @@ class mbar_compute_dos(object):
     def _import_ts_spheres(self):
         # There can be several innerspheres now
         self.ts_spheres = []
-        for n, ts_file in enumerate(self.innersphere_timeseries_paths):
-            ts_sphere = np.genfromtxt(ts_file)
-            ts_sphere = np.trim_zeros(ts_sphere)
-            if self.truncate_inner_gaussian:
-                bias = 0.5 * self.karray[n] * ts_sphere**2 + (self.ndof-1) * np.log(ts_sphere)
-                ts_sphere = ts_sphere[bias > self.inner_gaussian_bias_cutoff]
-            self.ts_spheres.append(ts_sphere)
+        if self.use_inner_gaussians:
+            for n, ts_file in enumerate(self.innersphere_timeseries_paths):
+                ts_sphere = np.genfromtxt(ts_file)
+                ts_sphere = np.trim_zeros(ts_sphere)
+                if self.truncate_inner_gaussian:
+                    bias = 0.5 * self.karray[n] * ts_sphere**2 + (self.ndof-1) * np.log(ts_sphere)
+                    ts_sphere = ts_sphere[bias > self.inner_gaussian_bias_cutoff]
+                self.ts_spheres.append(ts_sphere)
             
         # There can be ballpicking ts as well
         if self.ballpicking_timeseries_available:
@@ -717,8 +727,9 @@ class mbar_compute_dos(object):
 
         logging.info("Found relative free energies {}".format(self.w_i_final))
         
-        error_F0_innergaussianref = dDeltaf_ij[0][self.k0_index]
-        self._compute_F0_from_innergaussian(error=error_F0_innergaussianref)
+        if self.use_inner_gaussians:
+            error_F0_innergaussianref = dDeltaf_ij[0][self.k0_index]
+            self._compute_F0_from_innergaussian(error=error_F0_innergaussianref)
 
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
@@ -818,7 +829,8 @@ class mbar_compute_dos(object):
         logging.info("Corresponding relative free energies {}".format(relative_free_energies))
         self.w_i_final = relative_free_energies
         
-        self._compute_F0_from_innergaussian()
+        if self.use_inner_gaussians:
+            self._compute_F0_from_innergaussian()
                 
         if self.ballpicking_timeseries_available:
             logging.info("Ballpicking data available")
@@ -880,6 +892,37 @@ class mbar_compute_dos(object):
                 )
             )
             
+    def _compute_F0_from_first_walk(self, error = 0.0):   
+        # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r). 
+        # For f = 1 and r in [0;1], V = V1 = volume of unit ball
+        # jac = V1 / (int_0^1 dr r^(d-1)) = d V
+        log_hyperpherical_jacobian = np.log(self.ndof) + log_volume_nball(1, self.ndof)
+        
+        # The relevant volume depends on the nature of the bias!
+        if self.bias == "harmonic":
+            # d-dimensional gaussian integral
+            # The radial part is the integral over R+ of r^d-1 exp(-k r^2/2)
+            # It is equal to 2^(d/2 - 1) * k^(-d/2) * Gamma(d/2)
+            log_gaussian_int = gammaln(self.ndof/2.0) + (self.ndof/2.0 - 1) * np.log(2.0) - (self.ndof/2.0) * np.log(self.karray[self.number_nested_spheres])
+            firstwalk_log_volume = log_hyperpherical_jacobian + log_gaussian_int + np.log(self.prob_kmax)
+            
+        elif self.bias == "radial_gaussian":
+            # 1-dimensional gaussian integral around l0
+            # the radial part is the integral over R+ of exp(-k (r-l0)^2 / 2 )
+            # the result is the innersphere value times 1 + erf(sqrt(k/2) * l0)
+            log_gaussian_int = 0.5 * (np.log(np.pi/2) - np.log(self.karray[self.number_nested_spheres])) + np.log(1.0 + erf(np.sqrt(self.karray[self.number_nested_spheres]/2) * self.l0array[self.number_nested_spheres]))
+            firstwalk_log_volume = log_hyperpherical_jacobian + log_gaussian_int # XXX Missing acceptance
+        else:
+            raise NotImplementedError
+            
+            
+        F0_from_first_walk = self.w_i_final[self.k0_index] - self.w_i_final[self.number_nested_spheres] + firstwalk_log_volume
+        
+        if error != 0.0:
+            logging.info("Using inner gaussian as a reference, F0 = {} +/- {}".format(F0_from_first_walk, error))
+        else:
+            logging.info("Using inner gaussian as a reference, F0 = {}".format(F0_from_first_walk))
+    
     def _compute_F0_from_innergaussian(self, error = 0.0):
         
         # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r). 
