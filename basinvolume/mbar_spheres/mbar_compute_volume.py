@@ -204,6 +204,7 @@ class mbar_compute_dos(object):
         self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + fname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         # There can be several innersphere runs, each with a config path
+        self.ballpicking_timeseries_available = False
         self.innersphere_configpaths = []
         self.innersphere_timeseries_paths = (
             []
@@ -226,8 +227,6 @@ class mbar_compute_dos(object):
             if os.path.isfile(ballpicking_timeseries_path) and not self.bypass_ballpicking_data:
                 self.ballpicking_timeseries_path = ballpicking_timeseries_path
                 self.ballpicking_timeseries_available = True
-            else:
-                self.ballpicking_timeseries_available = False
         else:  # If there are actually several innerspheres, go to each directory to extract the path to the config file
             self.number_nested_spheres = len(innersphere_dir_list)
             innersphere_dir_list = sorted(
@@ -245,8 +244,6 @@ class mbar_compute_dos(object):
                 if os.path.isfile(ballpicking_timeseries_path) and dir == innersphere_dir_list[0] and not self.bypass_ballpicking_data:
                     self.ballpicking_timeseries_path = ballpicking_timeseries_path
                     self.ballpicking_timeseries_available = True
-                else:
-                    self.ballpicking_timeseries_available = False
         
         self.show = show
         self.verbose = verbose
@@ -549,6 +546,7 @@ class mbar_compute_dos(object):
             # remove infs if any
             LARGE = 1e70
             psi = np.where(psi > LARGE, LARGE, psi)
+            psi[np.isinf(psi)] = LARGE
             # append to psis
             psis.append(psi)
                     
