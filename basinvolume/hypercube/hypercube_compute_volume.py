@@ -121,6 +121,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         # There can be several inner spheres: each can come with its own k, radius and acceptance
         self.ks_innersphere = []
+        self.inner_gaussian_acceptances = []
         self.ref_radii = []
         self.ref_acceptances = []
         for innersphere_configpath in self.innersphere_configpaths:
@@ -128,9 +129,11 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             k_innersphere = configf.getfloat("INNERSPHERE_MCRUNNER", "k")
             self.ndof = configf.getfloat("INNERSPHERE_HYPERCUBE", "ndof")
             self.sidelength = configf.getfloat("INNERSPHERE_HYPERCUBE", "sidelength")
+            innergaussian_acceptance = configf.getfloat("INNERSPHERE_MCRUNNER_STATUS", "acc_frac")
             ref_radius = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "stepsize")
             ref_acceptance = configf.getfloat("INNERSPHERE_BALLPICK_MCRUNNER_STATUS", "acc_frac")
             self.ks_innersphere.append(k_innersphere)
+            self.inner_gaussian_acceptances.append(innergaussian_acceptance)
             self.ref_radii.append(ref_radius)
             self.ref_acceptances.append(ref_acceptance)
         self.nparticles = 1
