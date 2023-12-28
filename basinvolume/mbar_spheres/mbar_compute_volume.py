@@ -727,6 +727,8 @@ class mbar_compute_dos(object):
 
         logging.info("Found relative free energies {}".format(self.w_i_final))
         
+        error_F0_firstwalkref = dDeltaf_ij[self.number_nested_spheres][self.k0_index]
+        self._compute_F0_from_first_walk(error=error_F0_firstwalkref)
         if self.use_inner_gaussians:
             error_F0_innergaussianref = dDeltaf_ij[0][self.k0_index]
             self._compute_F0_from_innergaussian(error=error_F0_innergaussianref)
@@ -829,6 +831,7 @@ class mbar_compute_dos(object):
         logging.info("Corresponding relative free energies {}".format(relative_free_energies))
         self.w_i_final = relative_free_energies
         
+        self._compute_F0_from_first_walk()
         if self.use_inner_gaussians:
             self._compute_F0_from_innergaussian()
                 
@@ -919,9 +922,9 @@ class mbar_compute_dos(object):
         F0_from_first_walk = self.w_i_final[self.k0_index] - self.w_i_final[self.number_nested_spheres] + firstwalk_log_volume
         
         if error != 0.0:
-            logging.info("Using inner gaussian as a reference, F0 = {} +/- {}".format(F0_from_first_walk, error))
+            logging.info("Using first walk as a reference, F0 = {} +/- {}".format(F0_from_first_walk, error))
         else:
-            logging.info("Using inner gaussian as a reference, F0 = {}".format(F0_from_first_walk))
+            logging.info("Using first walk as a reference, F0 = {}".format(F0_from_first_walk))
     
     def _compute_F0_from_innergaussian(self, error = 0.0):
         
