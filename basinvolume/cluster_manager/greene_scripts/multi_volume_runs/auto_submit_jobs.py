@@ -33,6 +33,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
     kmin_config = os.path.join(explore_dir, f"kmin_{fname_wo_ext}.config")
     pt_config = os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
     innersphere_config = os.path.join(explore_dir, f"innersphere_{fname_wo_ext}.config")
+    ballpick_timeseries = os.path.join(explore_dir, f"inner_sphere_ballpick.timeseries")
 
     if not os.path.exists(first_jammed_packing_config):
         return SimStage.JAMMED_PACKING
@@ -46,7 +47,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         or not check_success(pt_config, pt=True)
     ):
         return SimStage.PT
-    elif not os.path.exists(innersphere_config) or not check_success(innersphere_config):
+    elif not os.path.exists(innersphere_config) or not check_success(innersphere_config) or not os.path.exists(ballpick_timeseries):
         return SimStage.INNER_SPHERE
     elif not os.path.isfile(os.path.join(explore_dir, "analysis", "mbar_volume_data")):
         return SimStage.ANALYSIS
