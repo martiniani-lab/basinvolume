@@ -717,18 +717,8 @@ class mbar_compute_dos(object):
 
         logging.info("Found relative free energies {}".format(self.w_i_final))
         
-        # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r). 
-        # For f = 1 and r in [0;1], V = V1 = volume of unit ball
-        # jac = V1 / (int_0^1 dr r^(d-1)) = d V
-        log_hyperpherical_jacobian = np.log(self.ndof) + log_volume_nball(1, self.ndof)
-        # For the innersphere, the radial integral is just that of a 1d gaussian
-        log_gaussian_int = 0.5 * (np.log(np.pi/2) - np.log(self.karray[0]))
-        innersphere_log_volume = log_hyperpherical_jacobian + log_gaussian_int + np.log(self.inner_gaussian_acceptances[0])
-        
-        F0_innergaussianref = self.w_i_final[self.k0_index] + innersphere_log_volume
         error_F0_innergaussianref = dDeltaf_ij[0][self.k0_index]
-        
-        logging.info("Using inner gaussian as a reference, F0 = {} +/- {}".format(F0_innergaussianref, error_F0_innergaussianref))
+        self._compute_F0_from_innergaussian(error=error_F0_innergaussianref)
 
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
@@ -828,17 +818,7 @@ class mbar_compute_dos(object):
         logging.info("Corresponding relative free energies {}".format(relative_free_energies))
         self.w_i_final = relative_free_energies
         
-        # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r). 
-        # For f = 1 and r in [0;1], V = V1 = volume of unit ball
-        # jac = V1 / (int_0^1 dr r^(d-1)) = d V
-        log_hyperpherical_jacobian = np.log(self.ndof) + log_volume_nball(1, self.ndof)
-        # For the innersphere, the radial integral is just that of a 1d gaussian
-        log_gaussian_int = 0.5 * (np.log(np.pi/2) - np.log(self.karray[0]))
-        innersphere_log_volume = log_hyperpherical_jacobian + log_gaussian_int + np.log(self.inner_gaussian_acceptances[0])
-        
-        F0_innergaussianref = self.w_i_final[self.k0_index] + innersphere_log_volume
-        
-        logging.info("Using inner gaussian as a reference, F0 = {}".format(F0_innergaussianref))
+        self._compute_F0_from_innergaussian()
                 
         if self.ballpicking_timeseries_available:
             logging.info("Ballpicking data available")
@@ -899,6 +879,22 @@ class mbar_compute_dos(object):
                     self.unit_box_F0, self.unit_box_F0unc, self.sigF0
                 )
             )
+            
+    def _compute_F0_from_innergaussian(self, error = 0.0):
+        
+        # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r). 
+        # For f = 1 and r in [0;1], V = V1 = volume of unit ball
+        # jac = V1 / (int_0^1 dr r^(d-1)) = d V
+        log_hyperpherical_jacobian = np.log(self.ndof) + log_volume_nball(1, self.ndof)
+        # For the innersphere, the radial integral is just that of a 1d gaussian
+        log_gaussian_int = 0.5 * (np.log(np.pi/2) - np.log(self.karray[0]))
+        innersphere_log_volume = log_hyperpherical_jacobian + log_gaussian_int + np.log(self.inner_gaussian_acceptances[0])
+        
+        F0_innergaussianref = self.w_i_final[self.k0_index] + innersphere_log_volume
+        if error != 0.0:
+            logging.info("Using inner gaussian as a reference, F0 = {} +/- {}".format(F0_innergaussianref, error))
+        else:
+            logging.info("Using inner gaussian as a reference, F0 = {}".format(F0_innergaussianref))
 
     def _compute_hs_fluid_volume(self, numerical_moments=False):
         if self.interaction is Interaction.NEGATIVE_COS:
