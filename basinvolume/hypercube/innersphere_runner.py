@@ -73,8 +73,8 @@ if __name__ == "__main__":
         "--number_nested_spheres",
         type=int,
         help="number of nested inner spheres to use, \
-                        default: 2",
-        default=2,
+                        default: 1",
+        default=1,
     )
     parser.add_argument(
         "-prefix",

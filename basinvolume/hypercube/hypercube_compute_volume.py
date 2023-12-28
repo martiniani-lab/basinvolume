@@ -27,7 +27,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         ncores=7,
         bias = "harmonic",
         method = "mbar",
-        bypass_ballpicking_data = False
+        bypass_ballpicking_data = False,
+        truncate_inner_gaussian = False,
     ):
         super(hypercube_mbar_compute_dos, self).__init__(
             nbins=nbins,
@@ -37,7 +38,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             ncores=ncores,
             bias = bias,
             method = method,
-            bypass_ballpicking_data=bypass_ballpicking_data
+            bypass_ballpicking_data=bypass_ballpicking_data,
+            truncate_inner_gaussian = truncate_inner_gaussian
         )
 
     def __call__(self, explore_dir, base_dir="analysis", show=False, verbose=True):
@@ -193,6 +195,14 @@ if __name__ == "__main__":
         used to compare strategies",
         default = False
     )
+    parser.add_argument(
+        "-t",
+        "--truncate_inner_gaussian",
+        action="store_true",
+        help="Truncate inner gaussian to avoid overflows in the unbiasing\
+        used to compare strategies",
+        default = False
+    )
     args = parser.parse_args()
     
     logging.basicConfig(
@@ -210,7 +220,8 @@ if __name__ == "__main__":
         ncores=1,
         bias = args.bias,
         method = args.method,
-        bypass_ballpicking_data = args.bypass_ballpicking_data
+        bypass_ballpicking_data = args.bypass_ballpicking_data,
+        truncate_inner_gaussian=args.truncate_inner_gaussian
     )
 
     sim(args.explore_dir, show=args.show)

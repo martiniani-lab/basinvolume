@@ -144,7 +144,9 @@ class mbar_compute_dos(object):
         ncores=7,
         bias="harmonic",
         method = "mbar",
-        bypass_ballpicking_data = False
+        bypass_ballpicking_data = False,
+        truncate_inner_gaussian = False,
+        inner_gaussian_bias_cutoff = -np.log(1e10) # -np.log(max admissible value in psi=exp(-u_kn))
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -156,6 +158,8 @@ class mbar_compute_dos(object):
         self.bias = bias
         self.method = method
         self.bypass_ballpicking_data = bypass_ballpicking_data
+        self.truncate_inner_gaussian = truncate_inner_gaussian
+        self.inner_gaussian_bias_cutoff = inner_gaussian_bias_cutoff
 
     def __call__(
         self,
@@ -466,6 +470,9 @@ class mbar_compute_dos(object):
                 u_kn[i] = (self.ndof - 1) * np.log(flat_timeseries) + 0.5 * self.karray[
                     i
                 ] * flat_timeseries**2
+                if self.truncate_inner_gaussian:
+                    LARGE = 1e70
+                    u_kn[i] = np.where(u_kn[i] <= self.inner_gaussian_bias_cutoff, LARGE, u_kn[i])
             elif i < K:
                 if self.bias == "harmonic":
                     u_kn[i] = 0.5 * self.karray[i] * flat_timeseries**2
@@ -518,6 +525,9 @@ class mbar_compute_dos(object):
                     psi[:,j] = (self.ndof - 1) * np.log(list_timeseries[i]) + 0.5 * self.karray[
                         j
                     ] * list_timeseries[i]**2
+                    if self.truncate_inner_gaussian:
+                        LARGE = 1e70
+                        psi[:,j] = np.where(psi[:,j] <= self.inner_gaussian_bias_cutoff, LARGE, psi[:,j])
                 elif j < K:
                     if self.bias == "harmonic":
                         psi[:,j] = 0.5 * self.karray[j] * list_timeseries[i]**2
@@ -542,6 +552,8 @@ class mbar_compute_dos(object):
                     
             # psis are the exp(-beta potential), not just the potential
             # here beta = 1
+            print(np.amin(psi))
+            print(np.unravel_index(np.argmin(psi), psi.shape))
             psi = np.exp(-psi)
             # remove infs if any
             LARGE = 1e70
@@ -636,9 +648,12 @@ class mbar_compute_dos(object):
     def _import_ts_spheres(self):
         # There can be several innerspheres now
         self.ts_spheres = []
-        for ts_file in self.innersphere_timeseries_paths:
+        for n, ts_file in enumerate(self.innersphere_timeseries_paths):
             ts_sphere = np.genfromtxt(ts_file)
             ts_sphere = np.trim_zeros(ts_sphere)
+            if self.truncate_inner_gaussian:
+                bias = 0.5 * self.karray[n] * ts_sphere**2 + (self.ndof-1) * np.log(ts_sphere)
+                ts_sphere = ts_sphere[bias > self.inner_gaussian_bias_cutoff]
             self.ts_spheres.append(ts_sphere)
             
         # There can be ballpicking ts as well
@@ -892,7 +907,7 @@ class mbar_compute_dos(object):
         self.bin_edges = bin_edges + (bin_edges[1] - bin_edges[0]) / 2  # shift bin edges by bin/2
         self._unbias_histogram()
 
-    def _build_histogram_simple(self, bin_edges):
+    def _build_histogram_simple(self, bin_edges): # XXX Can add innersphere ballpick here if any
         hist_visits = []
         for sphere_number in range(self.number_nested_spheres):
             hist = np.histogram(self.ts_spheres[sphere_number], bin_edges, density=True)[0]
@@ -958,10 +973,13 @@ class mbar_compute_dos(object):
             raise NotImplementedError
 
         for sphere_number in range(self.number_nested_spheres):
+            u_kn = (self.ndof - 1) * np.log(self.bin_edges[:-1]) + 0.5 * self.karray[sphere_number] * self.bin_edges[:-1] ** 2
+            # if self.truncate_inner_gaussian:
+            #     LARGE = 1e70
+            #     u_kn = np.where(u_kn < self.inner_gaussian_bias_cutoff, LARGE, u_kn) # Is it necessary here?
             hist_unbiased = np.vstack(
                 (
-                    (self.ndof - 1) * np.log(self.bin_edges[:-1])
-                    + 0.5 * self.karray[sphere_number] * self.bin_edges[:-1] ** 2,
+                    u_kn,
                     hist_unbiased,
                 )
             )
@@ -989,7 +1007,7 @@ class mbar_compute_dos(object):
         log_dos = np.where(
             self.hist_visits == 0, SMALL, np.log(hist_visits) + hist_unbiased
         )  # sends back a warning
-        ldos = dos_from_offsets(self.hist_visits, log_dos, self.w_i_final[0:karray.size])
+        ldos = dos_from_offsets(self.hist_visits, log_dos, self.w_i_final[0:karray.size]) # XXX Can include innersphere ballpicking here as well
         self.logn_E = np.array(ldos)
 
     def _plot_dos_data(self):
@@ -1400,6 +1418,14 @@ if __name__ == "__main__":
         used to compare strategies",
         default = False
     )
+    parser.add_argument(
+        "-t",
+        "--truncate_inner_gaussian",
+        action="store_true",
+        help="Truncate inner gaussian to avoid overflows in the unbiasing\
+        used to compare strategies",
+        default = False
+    )
     
     args = parser.parse_args()
 
@@ -1422,7 +1448,8 @@ if __name__ == "__main__":
         plot_dos_data=True,
         bias=args.bias,
         method = args.method,
-        bypass_ballpicking_data = args.bypass_ballpicking_data
+        bypass_ballpicking_data = args.bypass_ballpicking_data,
+        truncate_inner_gaussian = args.truncate_inner_gaussian
     )
     if fname != None:
         if not os.path.isabs(fdir):
