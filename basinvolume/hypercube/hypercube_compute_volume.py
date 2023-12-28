@@ -29,6 +29,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         method = "mbar",
         bypass_ballpicking_data = False,
         truncate_inner_gaussian = False,
+        include_ballpicking_in_plots = False # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
     ):
         super(hypercube_mbar_compute_dos, self).__init__(
             nbins=nbins,
@@ -39,7 +40,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             bias = bias,
             method = method,
             bypass_ballpicking_data=bypass_ballpicking_data,
-            truncate_inner_gaussian = truncate_inner_gaussian
+            truncate_inner_gaussian = truncate_inner_gaussian,
+            include_ballpicking_in_plots = include_ballpicking_in_plots
         )
 
     def __call__(self, explore_dir, base_dir="analysis", show=False, verbose=True):

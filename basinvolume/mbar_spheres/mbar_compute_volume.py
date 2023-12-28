@@ -146,7 +146,8 @@ class mbar_compute_dos(object):
         method = "mbar",
         bypass_ballpicking_data = False,
         truncate_inner_gaussian = False,
-        inner_gaussian_bias_cutoff = -np.log(1e10) # -np.log(max admissible value in psi=exp(-u_kn))
+        inner_gaussian_bias_cutoff = -np.log(1e10), # -np.log(max admissible value in psi=exp(-u_kn))
+        include_ballpicking_in_plots = False # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -160,6 +161,7 @@ class mbar_compute_dos(object):
         self.bypass_ballpicking_data = bypass_ballpicking_data
         self.truncate_inner_gaussian = truncate_inner_gaussian
         self.inner_gaussian_bias_cutoff = inner_gaussian_bias_cutoff
+        self.include_ballpicking_in_plots = include_ballpicking_in_plots # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
 
     def __call__(
         self,
@@ -331,8 +333,8 @@ class mbar_compute_dos(object):
         if self.plot_dos_data:
             self._build_histogram(kde=self.kde)
             self._compute_dos()
-            # now bootstrap timeseries to compute error bars on dos
-            # the timeseries after find_eqtime has already discared the burn out region
+            # Now bootstrap timeseries to compute error bars on dos
+            # The timeseries after find_eqtime has already discarded the burn out region
             full_flat_timeseries = np.copy(self.flat_timeseries)
             self.logn_E_subs = self.logn_E.copy()
             initial_f_k = np.array(self.mbar.f_k)
@@ -907,7 +909,7 @@ class mbar_compute_dos(object):
         self.bin_edges = bin_edges + (bin_edges[1] - bin_edges[0]) / 2  # shift bin edges by bin/2
         self._unbias_histogram()
 
-    def _build_histogram_simple(self, bin_edges): # XXX Can add innersphere ballpick here if any
+    def _build_histogram_simple(self, bin_edges):
         hist_visits = []
         for sphere_number in range(self.number_nested_spheres):
             hist = np.histogram(self.ts_spheres[sphere_number], bin_edges, density=True)[0]
@@ -918,6 +920,9 @@ class mbar_compute_dos(object):
         )
         for hist in results:
             hist_visits.append(hist[0])
+        if self.ballpicking_timeseries_available and self.include_ballpicking_in_plots:
+            hist = np.histogram(self.ts_ballpicking, bin_edges, density=True)[0]
+            hist_visits.append(hist)
         return hist_visits
 
     def _build_histogram_kde(self, bin_edges):
@@ -940,6 +945,9 @@ class mbar_compute_dos(object):
         for hist in results:
             hist_visits.append(hist)
         logging.info(np.shape(hist_visits))
+        if self.ballpicking_timeseries_available and self.include_ballpicking_in_plots:
+            hist = get_kde_hist(self.ts_ballpicking, kde_bin_edges, kernel="epanechnikov", bw=0.001)
+            hist_visits.append(hist)
         return hist_visits
 
     def _unbias_histogram(self):
@@ -983,12 +991,23 @@ class mbar_compute_dos(object):
                     hist_unbiased,
                 )
             )
+            
+        if self.ballpicking_timeseries_available and self.include_ballpicking_in_plots:
+            LARGE = 1e70
+            u_kn = np.where(self.bin_edges[:-1] < self.ref_radii[0], 0, LARGE)
+            hist_unbiased = np.vstack((u_kn, hist_unbiased))
+        
         self.hist_unbiased = hist_unbiased
+        
+        if self.ballpicking_timeseries_available and self.include_ballpicking_in_plots:
+            width = self.karray.shape[0] + 1
+        else: 
+            width = self.karray.shape[0]
         assert (
             self.hist_visits.shape == self.hist_unbiased.shape
         ), f"Histogram visit shapes do not match: \nraw {self.hist_visits.shape}\nunbiased {self.hist_unbiased.shape}"
         assert (
-            self.hist_visits.shape[0] == self.karray.shape[0]
+            self.hist_visits.shape[0] == width
         ), f"Histogram visit's shape[0] does not match karray length: \nhist {self.hist_visits.shape[0]}\nkarray {self.karray.size}"
 
     def _compute_dos(self):
@@ -1007,7 +1026,11 @@ class mbar_compute_dos(object):
         log_dos = np.where(
             self.hist_visits == 0, SMALL, np.log(hist_visits) + hist_unbiased
         )  # sends back a warning
-        ldos = dos_from_offsets(self.hist_visits, log_dos, self.w_i_final[0:karray.size]) # XXX Can include innersphere ballpicking here as well
+        if self.ballpicking_timeseries_available and self.include_ballpicking_in_plots:
+            weights = self.w_i_final
+        else:
+            weights = self.w_i_final[:self.karray.shape[0]]
+        ldos = dos_from_offsets(self.hist_visits, log_dos, weights) 
         self.logn_E = np.array(ldos)
 
     def _plot_dos_data(self):
@@ -1067,12 +1090,16 @@ class mbar_compute_dos(object):
             herr.append(np.sqrt(var) / (np.amax(self.bin_edges) - np.amin(self.bin_edges)))
         herr = np.array(herr)
         for i, (hist, err) in enumerate(zip(self.hist_visits, herr)):
+            if i == self.karray.shape[0]:
+                label = "ballpick"
+            else:
+                label = "{:.1f}".format(self.karray[i])
             ax.errorbar(
                 self.bin_edges[:-1],
                 hist,
                 linewidth=2,
                 color=next(color_cycle),
-                label="{:.1f}".format(self.karray[i]),
+                label=label,
             )  # yerr=err
             write_csv_xy(
                 self.bin_edges[:-1],
