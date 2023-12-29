@@ -209,6 +209,8 @@ class mbar_compute_dos(object):
 
         self.findk_configpath = os.path.join(self.explore_dir, "findk_" + fname + ".config")
         assert os.path.isfile(self.findk_configpath)
+        self.kmax_statuspath = os.path.join(self.explore_dir,"0/status")
+        assert os.path.isfile(self.kmax_statuspath)
         self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + fname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         # There can be several innersphere runs, each with a config path
@@ -386,8 +388,10 @@ class mbar_compute_dos(object):
         self.prob_kmax = configf.getfloat("FINDK", "prob")
         self.ndof = (self.nparticles - 1) * self.bdim
         self.interaction = imp_packing["interaction"]
+        # import acceptance of actual kmax run
+        file = np.loadtxt(self.kmax_statuspath)
+        self.first_run_acceptance = 1.0 - file[3]
         # Deal with special "test" cases
-        # XXX Fix this if needed after other fixes
         if self.interaction is Interaction.NEGATIVE_COS:
             # In the cosine, the other steps are hackily computed by setting a fake bdim and nparticles
             # Here: set back the nparticles to 1 and the number of dof's to the right value
@@ -817,7 +821,7 @@ class mbar_compute_dos(object):
         
         logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
 
-        # Compute normalizations and F matrices from emus, in two different ways (QR or iterative? XXX CHECK)
+        # Compute normalizations and F matrices from emus, with or without iats at each iteration
         if use_iats:
             z, F, iats = emus.emus.calculate_zs(self.psis, n_iter=n_iter, use_iats=use_iats)  # iat_method = "acor")
         else: 
@@ -907,19 +911,34 @@ class mbar_compute_dos(object):
             # The radial part is the integral over R+ of r^d-1 exp(-k r^2/2)
             # It is equal to 2^(d/2 - 1) * k^(-d/2) * Gamma(d/2)
             log_gaussian_int = gammaln(self.ndof/2.0) + (self.ndof/2.0 - 1) * np.log(2.0) - (self.ndof/2.0) * np.log(self.karray[self.number_nested_spheres])
-            firstwalk_log_volume = log_hyperpherical_jacobian + log_gaussian_int + np.log(self.prob_kmax)
+            firstwalk_log_volume = log_hyperpherical_jacobian + log_gaussian_int + np.log(self.first_run_acceptance)
             
         elif self.bias == "radial_gaussian":
             # 1-dimensional gaussian integral around l0
-            # the radial part is the integral over R+ of exp(-k (r-l0)^2 / 2 )
-            # the result is the innersphere value times 1 + erf(sqrt(k/2) * l0)
-            log_gaussian_int = 0.5 * (np.log(np.pi/2) - np.log(self.karray[self.number_nested_spheres])) + np.log(1.0 + erf(np.sqrt(self.karray[self.number_nested_spheres]/2) * self.l0array[self.number_nested_spheres]))
-            firstwalk_log_volume = log_hyperpherical_jacobian + log_gaussian_int # XXX Missing acceptance
+            # the radial part is the sum of two integrals.
+            # The first is the integral over [rc; +inf] of exp(-k (r-l0)^2 / 2 )
+            # the result is the innersphere value times 1 + erf(sqrt(k/2) * (l0-rc))
+            # the second is the integral over [0;rc] of r^(d-1)exp(-k (r-l0)^2 / 2 )
+            # this one does not have a nice expression but should become negligible fast...
+            # in the limit rc << l0, it is well approximated by 0.5* (2/k)^(d/2) * gammainc(d/2, k rc^2/2)
+            k_walk = self.karray[self.number_nested_spheres]
+            l0_walk = self.l0array[self.number_nested_spheres]
+            r_cutoff_walk = self.r_cutoffarray[self.number_nested_spheres]
+            integral_rc_inf = np.sqrt((np.pi/2)/k_walk) * (1.0 + erf(np.sqrt(k_walk/2) * (l0_walk - r_cutoff_walk))) 
+            integral_0_rc_proxy = 0.5 * (2/k_walk)**(self.ndof/2) * gammainc(self.ndof/2, k_walk * r_cutoff_walk**2 /2)
+            log_gaussian_int = np.log(integral_0_rc_proxy + integral_rc_inf)
+            # due to the location of the cutoff, the jacobian inherits an extra factor with the cutoff..
+            extra_term = (self.ndof - 1)*np.log(r_cutoff_walk)
+            firstwalk_log_volume = log_hyperpherical_jacobian + extra_term + log_gaussian_int + np.log(self.first_run_acceptance)
         else:
             raise NotImplementedError
             
             
         F0_from_first_walk = self.w_i_final[self.k0_index] - self.w_i_final[self.number_nested_spheres] + firstwalk_log_volume
+        print(self.w_i_final[self.k0_index])
+        print(self.w_i_final[self.number_nested_spheres])
+        print(firstwalk_log_volume)
+        print((self.ndof - 1)*np.log(r_cutoff_walk))
         
         if error != 0.0:
             logging.info("Using first walk as a reference, F0 = {} +/- {}".format(F0_from_first_walk, error))

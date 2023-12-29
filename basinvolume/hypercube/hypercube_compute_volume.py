@@ -1,6 +1,6 @@
 from __future__ import print_function
 from future import standard_library
-from numpy import inner
+from numpy import inner, loadtxt
 
 standard_library.install_aliases()
 from builtins import str
@@ -60,6 +60,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         assert os.path.isfile(self.pt_configpath)
         self.findk_configpath = os.path.join(self.explore_dir, "findk_" + dname + ".config")
         assert os.path.isfile(self.findk_configpath)
+        self.kmax_statuspath = os.path.join(self.explore_dir,"0/status")
+        assert os.path.isfile(self.kmax_statuspath)
         self.kmin_configpath = os.path.join(self.explore_dir, "kmin_" + dname + ".config")
         assert os.path.isfile(self.kmin_configpath)
         # There can be several innersphere runs, each with a config path
@@ -119,6 +121,9 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         configf.read(str(self.findk_configpath))
         self.kmax = configf.getfloat("FINDK", "kmax")
         self.prob_kmax = configf.getfloat("FINDK", "prob")
+        # import acceptance of actual kmax run
+        file = loadtxt(self.kmax_statuspath)
+        self.first_run_acceptance = 1.0 - file[3]
         # There can be several inner spheres: each can come with its own k, radius and acceptance
         self.ks_innersphere = []
         self.inner_gaussian_acceptances = []
