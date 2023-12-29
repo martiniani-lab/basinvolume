@@ -29,7 +29,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         method = "mbar",
         bypass_ballpicking_data = False,
         truncate_inner_gaussian = False,
-        include_ballpicking_in_plots = False # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
+        include_ballpicking_in_plots = False, # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
+        use_inner_gaussian = True
     ):
         super(hypercube_mbar_compute_dos, self).__init__(
             nbins=nbins,
@@ -41,7 +42,8 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
             method = method,
             bypass_ballpicking_data=bypass_ballpicking_data,
             truncate_inner_gaussian = truncate_inner_gaussian,
-            include_ballpicking_in_plots = include_ballpicking_in_plots
+            include_ballpicking_in_plots = include_ballpicking_in_plots,
+            use_inner_gaussian = use_inner_gaussian
         )
 
     def __call__(self, explore_dir, base_dir="analysis", show=False, verbose=True):
@@ -105,6 +107,10 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
                 if os.path.isfile(ballpicking_timeseries_path) and dir == innersphere_dir_list[0] and not self.bypass_ballpicking_data:
                     self.ballpicking_timeseries_path = ballpicking_timeseries_path
                     self.ballpicking_timeseries_available = True
+
+        if not self.use_inner_gaussian:
+            # Just set this here so that ballpick can be used even in this case
+            self.number_nested_spheres = 0 
 
         self.show = show
         self.verbose = verbose
@@ -213,6 +219,13 @@ if __name__ == "__main__":
         used to compare strategies",
         default = False
     )
+    parser.add_argument(
+        "--discard_inner_gaussian",
+        action = "store_true",
+        help = "Do not use the inner gaussian run from innersphere at all",
+        default = False
+    )
+    
     args = parser.parse_args()
     
     logging.basicConfig(
@@ -231,7 +244,8 @@ if __name__ == "__main__":
         bias = args.bias,
         method = args.method,
         bypass_ballpicking_data = args.bypass_ballpicking_data,
-        truncate_inner_gaussian=args.truncate_inner_gaussian
+        truncate_inner_gaussian=args.truncate_inner_gaussian,
+        use_inner_gaussian = not args.discard_inner_gaussian
     )
 
     sim(args.explore_dir, show=args.show)

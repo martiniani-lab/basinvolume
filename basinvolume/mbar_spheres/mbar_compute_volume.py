@@ -148,7 +148,7 @@ class mbar_compute_dos(object):
         truncate_inner_gaussian = False,
         inner_gaussian_bias_cutoff = -np.log(1e10), # -np.log(max admissible value in psi=exp(-u_kn))
         include_ballpicking_in_plots = False, # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
-        use_inner_gaussians = True # Use innergaussians or just US outputs
+        use_inner_gaussian = True # Use innergaussians or just US outputs
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -163,7 +163,7 @@ class mbar_compute_dos(object):
         self.truncate_inner_gaussian = truncate_inner_gaussian
         self.inner_gaussian_bias_cutoff = inner_gaussian_bias_cutoff
         self.include_ballpicking_in_plots = include_ballpicking_in_plots # Option to include the ballpicking data in plots. Breaks naïve histogram reconstruction
-        self.use_inner_gaussians = use_inner_gaussians
+        self.use_inner_gaussian = use_inner_gaussian
 
     def __call__(
         self,
@@ -255,7 +255,7 @@ class mbar_compute_dos(object):
                     self.ballpicking_timeseries_path = ballpicking_timeseries_path
                     self.ballpicking_timeseries_available = True
         
-        if not self.use_inner_gaussians:
+        if not self.use_inner_gaussian:
             # Just set this here so that ballpick can be used even in this case
             self.number_nested_spheres = 0 
         
@@ -442,7 +442,7 @@ class mbar_compute_dos(object):
                 r_cutoff = params[2]
                 r_cutoffarray.extend([float(r_cutoff)])
                 
-        if self.use_inner_gaussians:
+        if self.use_inner_gaussian:
             # prepend k innersphere
             # the list must be visited in reverse order to respect the innermost = first convention
             for k_innersphere in reversed(self.ks_innersphere):
@@ -666,7 +666,7 @@ class mbar_compute_dos(object):
     def _import_ts_spheres(self):
         # There can be several innerspheres now
         self.ts_spheres = []
-        if self.use_inner_gaussians:
+        if self.use_inner_gaussian:
             for n, ts_file in enumerate(self.innersphere_timeseries_paths):
                 ts_sphere = np.genfromtxt(ts_file)
                 ts_sphere = np.trim_zeros(ts_sphere)
@@ -733,7 +733,7 @@ class mbar_compute_dos(object):
         
         error_F0_firstwalkref = dDeltaf_ij[self.number_nested_spheres][self.k0_index]
         self._compute_F0_from_first_walk(error=error_F0_firstwalkref)
-        if self.use_inner_gaussians:
+        if self.use_inner_gaussian:
             error_F0_innergaussianref = dDeltaf_ij[0][self.k0_index]
             self._compute_F0_from_innergaussian(error=error_F0_innergaussianref)
 
@@ -836,7 +836,7 @@ class mbar_compute_dos(object):
         self.w_i_final = relative_free_energies
         
         self._compute_F0_from_first_walk()
-        if self.use_inner_gaussians:
+        if self.use_inner_gaussian:
             self._compute_F0_from_innergaussian()
                 
         if self.ballpicking_timeseries_available:
@@ -1542,6 +1542,12 @@ if __name__ == "__main__":
         used to compare strategies",
         default = False
     )
+    parser.add_argument(
+        "--discard_inner_gaussian",
+        action = "store_true",
+        help = "Do not use the inner gaussian run from innersphere at all",
+        default = False
+    )
     
     args = parser.parse_args()
 
@@ -1565,7 +1571,8 @@ if __name__ == "__main__":
         bias=args.bias,
         method = args.method,
         bypass_ballpicking_data = args.bypass_ballpicking_data,
-        truncate_inner_gaussian = args.truncate_inner_gaussian
+        truncate_inner_gaussian = args.truncate_inner_gaussian,
+        use_inner_gaussian = not args.discard_inner_gaussian
     )
     if fname != None:
         if not os.path.isabs(fdir):
