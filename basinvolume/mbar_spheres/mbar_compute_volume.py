@@ -935,10 +935,6 @@ class mbar_compute_dos(object):
             
             
         F0_from_first_walk = self.w_i_final[self.k0_index] - self.w_i_final[self.number_nested_spheres] + firstwalk_log_volume
-        print(self.w_i_final[self.k0_index])
-        print(self.w_i_final[self.number_nested_spheres])
-        print(firstwalk_log_volume)
-        print((self.ndof - 1)*np.log(r_cutoff_walk))
         
         if error != 0.0:
             logging.info("Using first walk as a reference, F0 = {} +/- {}".format(F0_from_first_walk, error))
