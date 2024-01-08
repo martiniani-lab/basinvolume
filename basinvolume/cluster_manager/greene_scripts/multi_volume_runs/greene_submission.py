@@ -399,7 +399,7 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
 
 def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     if simstage == SimStage.JAMMED_PACKING:
-        time = 2
+        time = 8
         return hours_to_slurm_time(time), time
 
     sim_folder = os.path.basename(simulation_folder)
@@ -412,7 +412,7 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
         nearest_power_of_two == 256
     time = time_dict[str(nearest_power_of_two)]
 
-    if minimizer == "CVODE":
+    if minimizer == "CVODE" or minimizer == "MXD":
         time *= 4
 
     if simstage == SimStage.PT:
