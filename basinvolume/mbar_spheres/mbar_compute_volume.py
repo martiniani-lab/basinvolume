@@ -522,8 +522,12 @@ class mbar_compute_dos(object):
         logvmin = log_volume_nball(rmin, self.ndof)
         # logvmin = np.log( gammainc(self.ndof / 2, 0.5 ))
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
-        
-        logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
+
+        logging.info(
+            "Log-volume of {}-ball with radius {}: {} (Free energy {})".format(
+                self.ndof, rmin, logvmin, Fmin
+            )
+        )
 
         u_lk = np.copy(self.u_kn[self.k0_index])
         r = self.flat_timeseries
@@ -556,7 +560,7 @@ class mbar_compute_dos(object):
     def _compute_hs_fluid_volume(self, numerical_moments=False):
         if self.interaction is Interaction.NEGATIVE_COS:
             self.F0_acc = 0.0
-        else: 
+        else:
             volume_sanity_check = VolumeSanityCheck(
                 self.packing_configpath, numerical_moments=numerical_moments
             )

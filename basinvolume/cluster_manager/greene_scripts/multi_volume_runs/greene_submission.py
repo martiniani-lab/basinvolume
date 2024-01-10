@@ -171,7 +171,14 @@ def calculate_volume(
         )
     elif simulation_type == SimStage.ANALYSIS:
         mem_str = RESOURCE_CONFIG["memory"]["analysis"]
-        setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=submit)
+        setup_compute_volume(
+            simulation_folder,
+            run_params,
+            packing_file,
+            time_str,
+            mem_str,
+            submit=submit,
+        )
     else:
         raise NotImplementedError("simulation type not implemented")
 
@@ -282,21 +289,23 @@ def setup_parallel_tempering(
     run_params["pt"]["checkpoint-time"] = checkpoint_time
     run_params["pt"]["load-checkpoint"] = checkpoint_file
     pt_default_kwargs.update(run_params["pt"])
-    
+
     if pt_default_kwargs["nreplicas"] == "auto":
         # load dim from jammed_packing config file
         jammed_packing_folder = os.path.join(simulation_folder, "jammed_packing")
         # get the first file ending with an integer followed by [.config]
         fnames = os.listdir(jammed_packing_folder)
         jammed_fname = next(
-            fname for fname in fnames if fname.endswith(".config") and fname.split("_")[-1].isdigit()
+            fname
+            for fname in fnames
+            if fname.endswith(".config") and fname.split("_")[-1].isdigit()
         )
         config_file = os.path.join(jammed_packing_folder, jammed_fname)
         configf = configparser.ConfigParser()
         configf.read(config_file)
         dim = int(configf["JAMMED_PACKING"]["ndim"])
-        pt_default_kwargs["nreplicas"] = max(64, int(dim/5))
-    
+        pt_default_kwargs["nreplicas"] = max(64, int(dim / 5))
+
     mpi_procs = int(pt_default_kwargs["nreplicas"] / 4)  # Best performance according to Johannes
     if (
         mpi_procs > MAX_PROC_NUMBER
@@ -353,46 +362,35 @@ def setup_inner_sphere(
     return 0
 
 
-def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=True):
+def setup_compute_volume(
+    simulation_folder, run_params, packing_file, time_str, mem_str, submit=True
+):
     # TODO make this more like the others with fewer hardcoded values
+
+    script_subpath = "mbar_spheres/mbar_compute_volume.py"
     ntasks = 1
     cpus_per_task = 1
 
-    script_run_prefix = "python"
-    script_location = os.path.join(BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py")
+    job_name_prefix = "bv_compute_volume"
 
-    job_name_prefix = "bv_computevolume"
+    # only doing this to give exactly similar arguments to submit job as the others
+    cv_default_kwargs = {"bias": DEFAULT_CONFIG["pt_defaults"]["bias"]}
+    cv_kwargs = {"bias": run_params["pt"]["bias"]}
 
-    out_folder = os.path.join(simulation_folder, "job_out")
-    out_file = f"{out_folder}/{job_name_prefix}"
-    explore_dir_prefix = "explore_bv_jammed_packing"
-
-    # Use the same bias as in PT here
-    pt_default_kwargs = DEFAULT_CONFIG["pt_defaults"]
-    pt_default_kwargs.update(run_params["pt"])
-    bias = pt_default_kwargs["bias"]
-
-    run_command = f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias}"
-
-    script = GREENE_SCRIPT_TEMPLATE.format(
-        time_str=time_str,
-        ntasks=ntasks,
-        cpus_per_task=cpus_per_task,
-        mem_str=mem_str,
-        out_file=out_file,
-        run_command=run_command,
-        simulation_folder=simulation_folder,
-        email=USER_EMAIL,
-        email_type=EMAIL_TYPE,
-        ext3_file=EXT3_FILE,
-        conda_env=CONDA_ENV,
-        singularity_overlay=GREENE_SINGULARITY_OVERLAY,
+    submit_job(
+        simulation_folder,
+        cv_kwargs,
+        packing_file,
+        ntasks,
+        cpus_per_task,
+        cv_default_kwargs,
+        script_subpath,
+        time_str,
+        mem_str,
+        job_name_prefix,
+        submit=submit,
+        compute_volume=True,
     )
-    script_save_folder = os.path.join(simulation_folder, "job_scripts")
-    with open(os.path.join(script_save_folder, "compute_volume.sh"), "w") as script_file:
-        script_file.write(script)
-    if submit:
-        os.system(f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}")
     return 0
 
 
@@ -545,7 +543,9 @@ def submit_initial_jobs(
                 script_path = os.path.join(scripts_folder, f"{job_name_prefix}.sh")
 
                 # check if job with same script name is still running
-                user = USER_EMAIL.split("@")[0]  # XXX This might be a bit too us-dependent, could adapt this
+                user = USER_EMAIL.split("@")[
+                    0
+                ]  # XXX This might be a bit too us-dependent, could adapt this
                 jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell=True)
                 conflict = script_path in jobs_list.decode()
                 if conflict:
@@ -573,6 +573,7 @@ def submit_job(
     extra_args="",
     submit=True,
     kmax=False,
+    compute_volume=False,
 ):
     script_kwargs = default_kwargs.copy()
     script_kwargs.update(run_specific_kwargs)
@@ -590,8 +591,14 @@ def submit_job(
     script_location = os.path.join(BASINVOLUME_PATH, script_subpath)
 
     packing_file_name = os.path.splitext(packing_file)[0]
-    run_command = f"{script_run_prefix} {script_location} {packing_file} {extra_args} {args_str}"
-    # replace spaces with underscores
+    if compute_volume:
+        run_command = f"{script_run_prefix} {script_location} -f {packing_file_name} -w {simulation_folder} {extra_args} {args_str}"
+    else:
+        run_command = (
+            f"{script_run_prefix} {script_location} {packing_file} {extra_args} {args_str}"
+        )
+
+    # replace spaces with underscores for the job name
     args_str = args_str.replace(" ", "_")
     scripts_folder = os.path.join(simulation_folder, "job_scripts")
     out_folder = os.path.join(simulation_folder, "job_out")
