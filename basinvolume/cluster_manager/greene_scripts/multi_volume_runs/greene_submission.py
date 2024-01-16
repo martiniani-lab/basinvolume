@@ -416,7 +416,7 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     if minimizer == "CVODE" or minimizer == "MXD":
         time *= 4
 
-    if simstage == SimStage.PT:
+    if simstage == SimStage.PT or simstage == SimStage.ANALYSIS:
         time *= 4
 
     # max job time
@@ -498,8 +498,10 @@ def submit_initial_jobs(
                 os.chdir(experiment_dir)
                 job_script_dir = os.path.join(experiment_dir, "job_scripts")
                 job_out_dir = os.path.join(experiment_dir, "job_out")
+                packings_dir = os.path.join(experiment_dir, "packings")
                 os.makedirs(job_script_dir, exist_ok=True)
                 os.makedirs(job_out_dir, exist_ok=True)
+                os.makedirs(packings_dir, exist_ok=True)
 
                 # Add loop arguments to the dictionaries
                 local_packing_kwargs = {"npackings": jammed_data_kwargs["n_ensemble"]}
