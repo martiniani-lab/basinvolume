@@ -1231,6 +1231,10 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
 
         self.parameters["radii"] = self.hs_radii
         self.parameters["box_length"] = self.boxl
+        self.pot_kwargs = {"dim" : self.parameters["dim"],
+                           "period" : self.parameters["period"],
+                           "power" : self.parameters["power"],
+                           "offset" : self.parameters["offset"]}
         self.potential = PoweredCosineSum(
             self.parameters["dim"],
             self.parameters["period"],
