@@ -38,14 +38,13 @@ wca-exp = 6
 sort = false
 
 
-
 ["kmax_defaults"]
 kstart = 500
 packings-dir = "jammed_packings"
 explore-dir = "explore_bv_jammed_packing"
 nocell = false
-minimizer="CVODE"
-verbose= false
+minimizer = "CVODE"
+verbose = false
 niter = 1e8
 dtol = 1e-2
 eps = 1.0
@@ -55,16 +54,16 @@ ktol = 0.025
 opt_tol = 1e-5
 opt_nsteps = 1e5
 
-[["kmax_defaults".opt_kwargs.FIRE]]  # optimizer-specific arguments
+[["kmax_defaults".opt_kwargs.FIRE]] # optimizer-specific arguments
 opt_dtmax = 1.0
 [["kmax_defaults".opt_kwargs.CG]]
 [["kmax_defaults".opt_kwargs.CVODE]]
-atol_values = {8 = 1e-7, 16 = 1e-7, 32 = 1e-7, 64 = 1e-7, 128 = 1e-7, 256 = 1e-8, 512 = 1e-9, 1024 = 1e-10}
-rtol_values = {8 = 1e-7, 16 = 1e-7, 32 = 1e-7, 64 = 1e-7, 128 = 1e-7, 256 = 1e-8, 512 = 1e-9, 1024 = 1e-10}
+atol_values = { 8 = 1e-7, 16 = 1e-7, 32 = 1e-7, 64 = 1e-7, 128 = 1e-7, 256 = 1e-8, 512 = 1e-9, 1024 = 1e-10 }
+rtol_values = { 8 = 1e-7, 16 = 1e-7, 32 = 1e-7, 64 = 1e-7, 128 = 1e-7, 256 = 1e-8, 512 = 1e-9, 1024 = 1e-10 }
 [["kmax_defaults".opt_kwargs.LBFGS]]
 [["kmax_defaults".opt_kwargs.MXD]]
-atol_values = {8 = 1e-8, 16 = 1e-8, 32 = 1e-8, 64 = 1e-8, 128 = 1e-8, 256 = 1e-9, 512 = 1e-10, 1024 = 1e-11}
-rtol_values = {8 = 1e-8, 16 = 1e-8, 32 = 1e-8, 64 = 1e-8, 128 = 1e-8, 256 = 1e-9, 512 = 1e-10, 1024 = 1e-11}
+atol_values = { 8 = 1e-8, 16 = 1e-8, 32 = 1e-8, 64 = 1e-8, 128 = 1e-8, 256 = 1e-9, 512 = 1e-10, 1024 = 1e-11 }
+rtol_values = { 8 = 1e-8, 16 = 1e-8, 32 = 1e-8, 64 = 1e-8, 128 = 1e-8, 256 = 1e-9, 512 = 1e-10, 1024 = 1e-11 }
 
 ["kmin_defaults"]
 packings-dir = "jammed_packings"
@@ -100,7 +99,7 @@ adjustf-navg = 100
 verbose = false
 collect-minima = false
 packings-dir = "jammed_packings"
-delraw = false
+delraw = true
 sleep-seconds = 0.0001
 exchange-scheme = "NEIGHBOR_EXCHANGE"
 stepsize = 1e-1
