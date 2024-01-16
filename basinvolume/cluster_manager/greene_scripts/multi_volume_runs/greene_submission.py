@@ -295,10 +295,11 @@ def setup_parallel_tempering(
         configf = configparser.ConfigParser()
         configf.read(config_file)
         dim = int(configf["JAMMED_PACKING"]["ndim"])
-        pt_default_kwargs["nreplicas"] = max(64, int(dim/5))
-        run_params["pt"]["nreplicas"] = pt_default_kwargs["nreplicas"]
-    
-    mpi_procs = int(pt_default_kwargs["nreplicas"] / 4)  # Best performance according to Johannes
+        max_replicas = max(64, int(dim/4))
+        max_replicas = max_replicas if max_replicas % 4 == 0 else max_replicas - max_replicas % 4 + 4
+        run_params["pt"]["nreplicas"] = max_replicas
+    pt_default_kwargs["nreplicas"] = 64
+    mpi_procs = int(run_params["pt"]["nreplicas"] / 4)  # Best performance according to Johannes
     if (
         mpi_procs > MAX_PROC_NUMBER
     ):  # Bound by a config-file specified max value that depends on the cluster
