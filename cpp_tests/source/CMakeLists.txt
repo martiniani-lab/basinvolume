@@ -16,6 +16,20 @@ endif()
 
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
+# set OpenMP
+find_package(OpenMP)
+message("${OpenMP_C_FLAGS}")
+message("${OpenMP_CXX_FLAGS}")
+
+if(OPENMP_FOUND)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
+# include LAPACK AND BLAS
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb3 -O0")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0")
@@ -32,20 +46,6 @@ message(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES})
 # find conda path for python header
 set(PYTHON_INCLUDE_DIR $ENV{CONDA_PREFIX}/include/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
 message("PYTHON INCLUDE DIR" ${PYTHON_INCLUDE_DIR})
-
-# set OpenMP
-find_package(OpenMP)
-message("${OpenMP_C_FLAGS}")
-message("${OpenMP_CXX_FLAGS}")
-
-if(OPENMP_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
-
-# include LAPACK AND BLAS
-find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
 
 set(EXT_INSTALL_PATH "../../../pele/extern/install")
 
@@ -84,12 +84,12 @@ set(SUNDIALS_LIBRARIES
 # cmake_policy(SET CMP0015 NEW)
 
 # Add and compile the gtest library
-set(gtest_src ../gtest)
+set(gtest_src ../../../pele/cpp_tests/gtest)
 set(gtest_binary_dir googletest)
 set(gtest_include ${gtest_src}/include/)
 include_directories(${gtest_include})
 message("gtest include directory ${gtest_include}")
-add_subdirectory(../gtest ${gtest_binary_dir})
+add_subdirectory(../../../pele/cpp_tests/gtest ${gtest_binary_dir})
 set(gtest_libs gtest gtest_main)
 message("gtest_libs ${gtest_libs}")
 
