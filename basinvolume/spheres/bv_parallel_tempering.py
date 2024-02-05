@@ -122,7 +122,7 @@ if __name__ == "__main__":
         "--delraw",
         action="store_true",
         help="Delete raw timeseries textfiles " "and only use the HDF5 format.",
-        default=False,
+        default=True,
     )
     parser.add_argument(
         "--nreplicas",
@@ -237,14 +237,14 @@ if __name__ == "__main__":
         "--save_coordinates",
         type=bool,
         help="Save coordinates every N steps of the monte carlo",
-        default=False,
+        default=True,
     )
     parser.add_argument(
         "--n_save_coordinates",
         type=int,
         help="How many coordinate to save if the simulation runs for mintotniter steps \
             Default: 100.",
-        default=100,
+        default=1000,
     )
 
     args = parser.parse_args()

@@ -242,7 +242,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 dim=self.ndim,
                 period=self.pot_kwargs["period"],
                 power=0.5,
-                offset=1,
+                offset=float(self.ndim),
             )
 
         else:

@@ -10,12 +10,12 @@
 1024 = 168
 
 ["cpu"]
-max_proc_number = 96
+max_proc_number = 48
 
 ["memory"] # Default values that were hardcoded, these could be fine-tuned depending on some parameters
 generate = "4GB"
 kmax = "4GB"
 kmin = "4GB"
-pt = "20GB"
+pt = "40GB"
 innersphere = "8GB"
-analysis = "16GB"
+analysis = "128GB"

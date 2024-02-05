@@ -158,7 +158,7 @@ class ConfigMCRunner(with_metaclass(abc.ABCMeta, object)):
             res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
         elif self.interaction is Interaction.NEGATIVE_COS:
-            pot_optimizer = PoweredCosineSum(dim=self.ndim, period=1, power=0.5, offset=1)
+            pot_optimizer = PoweredCosineSum(dim=self.ndim, period=1, power=0.5, offset=float(self.ndim))
             res = quench(self.red_coords, pot_optimizer)
             new_coords = res.coords
 

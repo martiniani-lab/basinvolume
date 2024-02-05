@@ -295,10 +295,11 @@ def setup_parallel_tempering(
         configf = configparser.ConfigParser()
         configf.read(config_file)
         dim = int(configf["JAMMED_PACKING"]["ndim"])
-        pt_default_kwargs["nreplicas"] = max(64, int(dim/5))
-        run_params["pt"]["nreplicas"] = pt_default_kwargs["nreplicas"]
-    
-    mpi_procs = int(pt_default_kwargs["nreplicas"] / 4)  # Best performance according to Johannes
+        max_replicas = max(64, int(dim/4))
+        max_replicas = max_replicas if max_replicas % 4 == 0 else max_replicas - max_replicas % 4 + 4
+        run_params["pt"]["nreplicas"] = max_replicas
+    pt_default_kwargs["nreplicas"] = 64
+    mpi_procs = int(run_params["pt"]["nreplicas"] / 4)  # Best performance according to Johannes
     if (
         mpi_procs > MAX_PROC_NUMBER
     ):  # Bound by a config-file specified max value that depends on the cluster
@@ -399,7 +400,7 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
 
 def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     if simstage == SimStage.JAMMED_PACKING:
-        time = 2
+        time = 8
         return hours_to_slurm_time(time), time
 
     sim_folder = os.path.basename(simulation_folder)
@@ -412,10 +413,10 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
         nearest_power_of_two == 256
     time = time_dict[str(nearest_power_of_two)]
 
-    if minimizer == "CVODE":
+    if minimizer == "CVODE" or minimizer == "MXD":
         time *= 4
 
-    if simstage == SimStage.PT:
+    if simstage == SimStage.PT or simstage == SimStage.ANALYSIS:
         time *= 4
 
     # max job time
@@ -497,8 +498,10 @@ def submit_initial_jobs(
                 os.chdir(experiment_dir)
                 job_script_dir = os.path.join(experiment_dir, "job_scripts")
                 job_out_dir = os.path.join(experiment_dir, "job_out")
+                packings_dir = os.path.join(experiment_dir, "packings")
                 os.makedirs(job_script_dir, exist_ok=True)
                 os.makedirs(job_out_dir, exist_ok=True)
+                os.makedirs(packings_dir, exist_ok=True)
 
                 # Add loop arguments to the dictionaries
                 local_packing_kwargs = {"npackings": jammed_data_kwargs["n_ensemble"]}

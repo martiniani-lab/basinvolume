@@ -1208,7 +1208,7 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
         self.parameters["dim"] = self.bdim * self.nparticles
         self.parameters["period"] = 1.0
         self.parameters["power"] = 0.5
-        self.parameters["offset"] = 0.0
+        self.parameters["offset"] = float(self.parameters["dim"])
         self.parameters["n_part"] = self.nparticles
 
         self.rattlers = np.empty(self.nparticles, dtype="d")
@@ -1231,6 +1231,10 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
 
         self.parameters["radii"] = self.hs_radii
         self.parameters["box_length"] = self.boxl
+        self.pot_kwargs = {"dim" : self.parameters["dim"],
+                           "period" : self.parameters["period"],
+                           "power" : self.parameters["power"],
+                           "offset" : self.parameters["offset"]}
         self.potential = PoweredCosineSum(
             self.parameters["dim"],
             self.parameters["period"],
