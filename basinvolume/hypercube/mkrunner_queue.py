@@ -180,6 +180,9 @@ if __name__ == "__main__":
         "explore_bv_hypercube_n" + str(ndof) + "_l1"
     )  # +'_numposk'+str(numposk)+'_numnegk'+str(numnegk)+'_mintotniter'+str(min_tot_niter)
 
+    if os.path.isdir(directory_name):
+        raise RuntimeError(f"Directory {directory_name} already exists, please remove it first.")
+
     # First, run the findk routine
     if rank == 0:
         sidelength = 1.0
