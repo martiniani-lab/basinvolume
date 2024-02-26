@@ -46,7 +46,7 @@ from pymbar.timeseries import (
     subsample_correlated_data,
     statistical_inefficiency_fft,
 )
-from pymbar.mbar import MBAR
+from .MBAR_wrapper import MBARWrapper
 import emus
 
 # from FastMBAR import *
@@ -342,7 +342,7 @@ class mbar_compute_dos(object):
             # The timeseries after find_eqtime has already discarded the burn out region
             full_flat_timeseries = np.copy(self.flat_timeseries)
             self.logn_E_subs = self.logn_E.copy()
-            initial_f_k = np.array(self.mbar.f_k)
+            initial_f_k = np.array(self.mbar.get_f_k())
             for iter in range(nr_subsamples):
                 logging.info("subsampling - iteration {}".format(iter))
                 j = 0
@@ -703,7 +703,11 @@ class mbar_compute_dos(object):
         self, verbose=True, initial_f_k=None, maxiter=10000, reltol=1.0e-7
     ):  # subsampling=6 no longer supported
         self.u_kn = self._build_u_kn(self.flat_timeseries)
-        self.mbar = MBAR(
+        permutation = np.arange(len(self.N_k))
+        permutation = np.roll(permutation, 1)
+        permutation = np.flip(permutation)
+        self.mbar = MBARWrapper(
+            permutation,
             self.u_kn,
             self.N_k,
             maximum_iterations=maxiter,
