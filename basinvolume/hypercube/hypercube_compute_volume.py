@@ -9,9 +9,9 @@ import configparser
 import argparse
 import glob
 import logging
+os.environ["JAX_ENABLE_X64"] = "True"
 from basinvolume.utils import import_pt_time_series
 from basinvolume.mbar_spheres.mbar_compute_volume import mbar_compute_dos
-os.environ["JAX_ENABLE_X64"] = "True"
 
 class hypercube_mbar_compute_dos(mbar_compute_dos):
     """
