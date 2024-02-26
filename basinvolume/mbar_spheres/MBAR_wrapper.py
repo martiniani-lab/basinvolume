@@ -9,12 +9,10 @@ class MBARWrapper(MBAR):
         self.permutation = permutation
         assert np.all(np.sort(permutation) == np.arange(len(n_k)))
         # See https://stackoverflow.com/questions/20265229/rearrange-columns-of-numpy-2d-array
-        self.idx = np.empty_like(permutation)
-        self.idx[permutation] = np.arange(len(permutation))
-        permuted_u_kn = u_kn[self.idx, :]
-        permuted_n_k = n_k[self.idx]
+        permuted_u_kn = u_kn[self.permutation, :]
+        permuted_n_k = n_k[self.permutation]
         if "initial_f_k" in kwargs and kwargs["initial_f_k"] is not None:
-            kwargs["initial_f_k"] = kwargs["initial_f_k"][self.idx]
+            kwargs["initial_f_k"] = kwargs["initial_f_k"][self.permutation]
         x_kindices = np.zeros(u_kn.shape[1], dtype=np.int64)
         n_sum = 0
         for k in range(len(n_k)):
