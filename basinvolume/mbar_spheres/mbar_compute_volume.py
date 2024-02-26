@@ -22,7 +22,7 @@ from basinvolume.enums import Interaction
 
 try:
     import matplotlib
-
+    matplotlib.set_loglevel("warning")
     matplotlib.use("Agg")  # matplotlib.use('Agg', warn=False)
     import matplotlib.pyplot as plt
     from matplotlib import rc
