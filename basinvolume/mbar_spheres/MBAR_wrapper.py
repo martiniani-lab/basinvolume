@@ -51,6 +51,9 @@ class MBARWrapper(MBAR):
             self.result_array = -self.result_array
             return self
 
+        def __str__(self):
+            return f"{self.result_array} (inv. permutation {self.inverse_permutation})"
+
     def compute_free_energy_differences(self, *args, **kwargs):
         result_dict = super().compute_free_energy_differences(*args, **kwargs)
         wrapped_result_dict = {}
