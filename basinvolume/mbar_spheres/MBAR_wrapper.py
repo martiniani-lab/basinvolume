@@ -9,6 +9,8 @@ class MBARWrapper(MBAR):
         self.permutation = permutation
         assert np.all(np.sort(permutation) == np.arange(len(n_k)))
         # See https://stackoverflow.com/questions/20265229/rearrange-columns-of-numpy-2d-array
+        self.inverse_permutation = np.empty_like(self.permutation)
+        self.inverse_permutation[self.permutation] = np.arange(len(self.permutation))
         permuted_u_kn = u_kn[self.permutation, :]
         permuted_n_k = n_k[self.permutation]
         if "initial_f_k" in kwargs and kwargs["initial_f_k"] is not None:
@@ -22,26 +24,26 @@ class MBARWrapper(MBAR):
         super().__init__(permuted_u_kn, permuted_n_k, *args, x_kindices=x_kindices, **kwargs)
 
     class _ResultWrapper(object):
-        def __init__(self, result_array, permutation):
+        def __init__(self, result_array, inverse_permutation):
             self.result_array = result_array
-            self.permutation = permutation
+            self.inverse_permutation = inverse_permutation
 
         def __getitem__(self, key):
             if isinstance(key, (int, np.integer)):
                 if len(self.result_array.shape) > 1:
-                    return type(self)(self.result_array[self.permutation[key]], self.permutation)
+                    return type(self)(self.result_array[self.inverse_permutation[key]], self.inverse_permutation)
                 else:
-                    return self.result_array[self.permutation[key]]
+                    return self.result_array[self.inverse_permutation[key]]
             elif isinstance(key, tuple):
-                new_key = tuple(self.permutation[i] for i in key)
+                new_key = tuple(self.inverse_permutation[i] for i in key)
                 if len(new_key) < len(self.result_array.shape):
-                    return type(self)(self.result_array[new_key], self.permutation)
+                    return type(self)(self.result_array[new_key], self.inverse_permutation)
                 else:
                     return self.result_array[new_key]
             elif isinstance(key, slice):
                 if len(self.result_array.shape) > 1:
                     raise TypeError("Invalid key type")
-                return self.result_array[self.permutation[key]]
+                return self.result_array[self.inverse_permutation[key]]
             else:
                 raise TypeError("Invalid key type")
 
@@ -53,17 +55,15 @@ class MBARWrapper(MBAR):
         result_dict = super().compute_free_energy_differences(*args, **kwargs)
         wrapped_result_dict = {}
         for key, value in result_dict.items():
-            wrapped_result_dict[key] = self._ResultWrapper(value, self.permutation)
+            wrapped_result_dict[key] = self._ResultWrapper(value, self.inverse_permutation)
         return wrapped_result_dict
 
     def compute_perturbed_free_energies(self, *args, **kwargs):
         result_dict = super().compute_perturbed_free_energies(*args, **kwargs)
         wrapped_result_dict = {}
         for key, value in result_dict.items():
-            wrapped_result_dict[key] = self._ResultWrapper(value, self.permutation)
+            wrapped_result_dict[key] = self._ResultWrapper(value, self.inverse_permutation)
         return wrapped_result_dict
 
     def get_f_k(self):
-        # TODO: TEST RUN_BS
-        print("HALLO")
-        return self._ResultWrapper(self.f_k, self.permutation)
+        return self.f_k[self.inverse_permutation]
