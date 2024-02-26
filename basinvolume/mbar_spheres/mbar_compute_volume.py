@@ -7,18 +7,15 @@ from builtins import zip
 from builtins import str
 from builtins import next
 from builtins import range
-from builtins import object
 import numpy as np
 import os
 import re
-import argparse
 import glob
 import time
 import logging
 from scipy.special import gammaln, gammainc, erf
-import warnings
 from itertools import cycle
-from basinvolume.enums import Interaction
+os.environ["JAX_ENABLE_X64"] = "True"
 
 try:
     import matplotlib

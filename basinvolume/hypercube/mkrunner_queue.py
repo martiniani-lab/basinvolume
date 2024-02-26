@@ -6,6 +6,7 @@ import argparse
 import os
 import logging
 from mpi4py import MPI
+os.environ["JAX_ENABLE_X64"] = "True"
 
 from basinvolume.spheres import (
     MPI_BV_PT_RLhandshake,
