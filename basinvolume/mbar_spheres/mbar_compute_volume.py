@@ -704,8 +704,16 @@ class mbar_compute_dos(object):
     ):  # subsampling=6 no longer supported
         self.u_kn = self._build_u_kn(self.flat_timeseries)
         permutation = np.arange(len(self.N_k))
-        permutation = np.roll(permutation, 1)
-        permutation = np.flip(permutation)
+        if self.ballpicking_timeseries_available:
+            # If ballpicking data exists, use window order [k_min, ..., k_max, inner Gaussian, ballpicking] in MBAR
+            # because the free energies are initialized with the BAR method which requires overlap between neighbored
+            # windows. Note that the ballpicking window should be the last one, as its very large potentials would
+            # otherwise mess up the free energy differences.
+            # Initial order is [inner Gaussian, k_max, ...., k_min, ballpicking].
+            # Move the ballpicking window to the end front.
+            permutation = np.roll(permutation, 1)
+            # Invert the order.
+            permutation = np.flip(permutation)
         self.mbar = MBARWrapper(
             permutation,
             self.u_kn,
