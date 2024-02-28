@@ -802,9 +802,8 @@ class mbar_compute_dos(object):
     ): 
         
         self.psis = self._build_psis(self.flat_timeseries)
-        logging.info("Built psi tensor with shape {}".format(np.shape(self.psis)))
-        
-        kappa=[np.shape(self.psis[i])[0] for i in np.arange(np.shape(self.psis)[0])]
+        logging.info("Built psi tensor with length {}".format(len(self.psis)))
+        kappa = [np.shape(self.psis[i])[0] for i in np.arange(len(self.psis))]
         self.kappa=kappa/np.sum(kappa)
         
         logging.info("Found kappas {}".format(self.kappa))
