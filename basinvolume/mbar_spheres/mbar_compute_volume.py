@@ -1354,6 +1354,15 @@ class mbar_compute_dos(object):
         if self.show:
             plt.show()
 
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(bin_edges, rg)  # -np.amax(rg)
+        ax.set_xlabel(r"$\Delta r$")
+        ax.set_ylabel(r"$\log(\xi(r)/r^{N-1})$")
+        plt.savefig(self.base_directory + "/ratio_g_log.pdf")
+        if self.show:
+            plt.show()
+
     #        corey's S_n^gamma function
     #        fig = plt.figure()
     #        ax = fig.add_subplot(111)
