@@ -85,6 +85,7 @@ class HypercubeMCrunner(_BaseMCRunner):
         record_trajectory_npoints=1e4,
         single=False,
         record_histogram=False,
+        hyperball=False
     ):
         # construct base class
         super(HypercubeMCrunner, self).__init__(bias_potential, full_coords, temperature, niter)
@@ -129,6 +130,7 @@ class HypercubeMCrunner(_BaseMCRunner):
                 seed_metropolis=np.random.randint(i32max),
             )
         self.seeds = seeds
+        self.hyperball = hyperball
 
         # set up pele:MC
         self._set_takestep(stepsize)
@@ -157,7 +159,11 @@ class HypercubeMCrunner(_BaseMCRunner):
 
     def _set_conf_tests(self):
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
+        if not self.hyperball:
+            conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
+        else:
+            assert self.sidelength == 1.0
+            conftest = CheckHyperSphericalContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
         self.add_late_conf_test(self.conftest)
 
@@ -339,6 +345,7 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         hmax=1,
         hbinsize=0.001,
         seeds=None,
+        hyperball=False
     ):
         # construct base class
         super(HypercubeFindkMCrunner, self).__init__(bias_potential, full_coords, temperature, niter)
@@ -364,12 +371,17 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         self.hmin = hmin
         self.hmax = hmax
         self.hbinsize = hbinsize
+        self.hyperball = hyperball
 
         # construct test/action classes
         self.takestep = SampleGaussian(self.seeds["seed_takestep"], stepsize, self.origin)
 
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
+        if not self.hyperball:
+            conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
+        else:
+            assert self.sidelength == 1.0
+            conftest = CheckHyperSphericalContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
 
         self.findk = Findk(
@@ -490,6 +502,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         seeds=None,
         record_histogram=False,
         gaussian_step=True,
+        hyperball=False
     ):
         # construct base class
         super(HypercubeInnerSphereMCrunner, self).__init__(
@@ -514,6 +527,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
             i32max = np.iinfo(np.int32).max
             seeds = dict(seed_takestep=np.random.randint(i32max))
         self.seeds = seeds
+        self.hyperball = hyperball
 
         # construct test/action classes
         if record_histogram:
@@ -531,7 +545,11 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
             self.add_action(self.histogram)
 
         self.conftest = ConfTestOR()
-        conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
+        if not self.hyperball:
+            conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
+        else:
+            assert self.sidelength == 1.0
+            conftest = CheckHyperSphericalContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
         # conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
         # self.conftest.add_test(conftest2)
@@ -643,8 +661,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")
         plt.tight_layout()
-        plt.savefig(output_directory + "/innersphere_histogram.eps")
-        plt.show()
+        plt.savefig(output_directory + "/innersphere_histogram.pdf")
 
 
 if __name__ == "__main__":

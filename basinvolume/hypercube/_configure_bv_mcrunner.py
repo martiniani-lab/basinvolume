@@ -46,6 +46,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         record_trajectory_npoints=1e4,
         record_histogram=False,
         verbose=False,
+        hyperball=False
     ):
 
         self.temperature = 1.0
@@ -75,6 +76,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
             seeds=seeds,
             single=single,
             record_histogram=record_histogram,
+            hyperball=hyperball
         )
 
         self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
@@ -113,7 +115,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         set base_directory, packings_directory and configpaths, configfile
         """
         dlist = base_dir.split("_")
-        assert dlist[2] == "hypercube"
+        assert dlist[2] == "hypercube" or dlist[2] == "hyperball"
         if not os.path.isabs(base_dir):
             base_directory = os.path.join(os.getcwd(), base_dir)
             assert os.path.exists(base_directory)

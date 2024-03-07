@@ -48,6 +48,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
         seeds=None,
         verbose=False,
         workspace=None,
+        hyperball=False
     ):
 
         self.temperature = 1.0
@@ -63,6 +64,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
         else:
             self.workspace = os.path.abspath(workspace)
 
+        self.hyperball = hyperball
         self._set_paths()
 
         # self.mc_params = dict(k=k, temperature=temperature, )
@@ -83,6 +85,7 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
             seeds=seeds,
             single=single,
             record_histogram=True,
+            hyperball=hyperball
         )
 
         self.mc_params = dict(temperature=self.temperature, niter=niter, stepsize=stepsize)
@@ -126,7 +129,10 @@ class _hypercube_kmin_mcrunner(ConfigMCRunner):
         self.asphericity = asphericity_factor(self.traj_eval)
 
     def _set_paths(self):
-        dname = "hypercube_n" + str(self.ndof) + "_l" + str(self.sidelength)
+        if not self.hyperball:
+            dname = "hypercube_n" + str(self.ndof) + "_l" + str(self.sidelength)
+        else:
+            dname = "hyperball_n" + str(self.ndof) + "_l" + str(self.sidelength)
         self.base_directory = os.path.join(self.workspace, "explore_bv_" + dname)
         configfile = "kmin_" + dname
         self.configfile = "{}/{}.config".format(self.base_directory, configfile)

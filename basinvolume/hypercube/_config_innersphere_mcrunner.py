@@ -33,6 +33,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         seeds=None,
         record_histogram=False,
         verbose=False,
+        hyperball=False
     ):
 
         self.temperature = 1.0
@@ -84,6 +85,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
             seeds=seeds,
             record_histogram=record_histogram,
             sidelength=self.sidelength,
+            hyperball=hyperball
         )
 
         self.mc_params = dict(

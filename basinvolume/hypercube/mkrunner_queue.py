@@ -128,6 +128,11 @@ if __name__ == "__main__":
             options = mbar, emus; default = mbar",
         default = "mbar"
     )
+    parser.add_argument(
+        "--hyperball", action="store_true",
+        help="use hyperball of radius one instead of hypercube (use with force k)",
+        default=False
+    )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
 
@@ -177,9 +182,14 @@ if __name__ == "__main__":
     publicdoneflag = False
     rank0doneflag = False
     # Create a string with the name of the relevant directory
-    directory_name = (
-        "explore_bv_hypercube_n" + str(ndof) + "_l1"
-    )  # +'_numposk'+str(numposk)+'_numnegk'+str(numnegk)+'_mintotniter'+str(min_tot_niter)
+    if not args.hyperball:
+        directory_name = (
+            "explore_bv_hypercube_n" + str(ndof) + "_l1"
+        )  # +'_numposk'+str(numposk)+'_numnegk'+str(numnegk)+'_mintotniter'+str(min_tot_niter)
+    else:
+        directory_name = (
+                "explore_bv_hyperball_n" + str(ndof) + "_l1"
+        )  # +'_numposk'+str(numposk)+'_numnegk'+str(numnegk)+'_mintotniter'+str(min_tot_niter)
 
     # First, run the findk routine
     if rank == 0:
@@ -209,6 +219,7 @@ if __name__ == "__main__":
             niter=findk_niter,
             seeds=seeds,
             verbose=True,
+            hyperball=args.hyperball,
         )
         print("\n\nsimulation: Find k started")
         start = time.time()
@@ -235,6 +246,7 @@ if __name__ == "__main__":
             verbose=True,
             hmax=15,
             hbinsize=0.001,
+            hyperball=args.hyperball
         )
         # record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
         print("\n\nsimulation: k_min started")
@@ -343,6 +355,7 @@ if __name__ == "__main__":
             seeds=seeds,
             single=single,
             record_histogram=record_histogram,
+            hyperball=args.hyperball
         )
         if not check_kmax_reasonable(sim_pt.findk_configpath):
             print("bv_parallel_tempering: kmax is unreasonable, exiting")
@@ -494,6 +507,7 @@ if __name__ == "__main__":
                         seeds=seeds,
                         number_nested_spheres=number_nested_spheres,
                         verbose=False,
+                        hyperball=args.hyperball
                     )  # switched to min_tot_niter iterations to be consistent!
                     print(
                         "\n\nsimulation: Inner Sphere number {} started on rank {}".format(

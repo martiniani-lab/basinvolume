@@ -32,6 +32,7 @@ class _hypercube_findk_mcrunner(ConfigMCRunner):
         seeds=None,
         verbose=False,
         workspace=None,
+        hyperball=False
     ):
 
         self.temperature = 1.0
@@ -45,6 +46,7 @@ class _hypercube_findk_mcrunner(ConfigMCRunner):
         else:
             self.workspace = os.path.abspath(workspace)
 
+        self.hyperball = hyperball
         self._set_paths()
         stepsize = np.sqrt(1.0 / k)  # stepsize plays the role of the standard deviation
 
@@ -59,6 +61,7 @@ class _hypercube_findk_mcrunner(ConfigMCRunner):
             hbinsize=hbinsize,
             sidelength=self.sidelength,
             seeds=seeds,
+            hyperball=hyperball
         )
 
         self.mc_params = dict(k=k, temperature=self.temperature, niter=niter, stepsize=stepsize)
@@ -91,7 +94,10 @@ class _hypercube_findk_mcrunner(ConfigMCRunner):
             self._print_success(False)
 
     def _set_paths(self):
-        dname = "hypercube_n" + str(self.ndof) + "_l" + str(self.sidelength)
+        if not self.hyperball:
+            dname = "hypercube_n" + str(self.ndof) + "_l" + str(self.sidelength)
+        else:
+            dname = "hyperball_n" + str(self.ndof) + "_l" + str(self.sidelength)
         self.base_directory = os.path.join(self.workspace, "explore_bv_" + dname)
         configfile = "findk_" + dname
         self.configfile = "{}/{}.config".format(self.base_directory, configfile)
