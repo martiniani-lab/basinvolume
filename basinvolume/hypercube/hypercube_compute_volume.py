@@ -56,7 +56,7 @@ class hypercube_mbar_compute_dos(mbar_compute_dos):
         self.base_directory = os.path.join(self.explore_dir, base_dir)
 
         dlist = explore_dir.split("_")
-        assert dlist[2] == "hypercube"
+        assert dlist[2] == "hypercube" or dlist[2] == "hyperball"
         dname = dlist[2] + "_" + dlist[3] + "_" + dlist[4]
         self.pt_configpath = os.path.join(self.explore_dir, "explore_" + dname + ".config")
         assert os.path.isfile(self.pt_configpath)
