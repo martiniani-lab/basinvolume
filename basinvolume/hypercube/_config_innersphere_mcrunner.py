@@ -39,6 +39,7 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         self.temperature = 1.0
         self.current_nested_sphere = current_nested_sphere
 
+        self.hyperball = hyperball
         self._set_paths(base_dir)
         self._import_packing_config_files()
 
@@ -139,7 +140,10 @@ class _hypercube_innersphere_mcrunner(ConfigMCRunner):
         set base_directory, output directory, packings_directory and configpaths, configfile
         """
         dlist = base_dir.split("_")
-        assert dlist[2] == "hypercube"
+        if not self.hyperball:
+            assert dlist[2] == "hypercube"
+        else:
+            assert dlist[2] == "hyperball"
         if not os.path.isabs(base_dir):
             base_dir = os.path.join(os.getcwd(), base_dir)
             assert os.path.exists(base_dir)
