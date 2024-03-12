@@ -60,11 +60,10 @@ protected:
   pele::Array<double> _origin;
   pele::Array<double> _rattlers;
   pele::Array<double> _new_minimum;
-  double _dtol, _dtol_barriercheck;
+  double _dtol;
   double _d;
   double _dmax;
   size_t _nbarrierchecks;
-  double _tol_barrier;
   size_t _nparticles;
   const std::shared_ptr<distance_policy> _dist_policy;
   size_t _Nnoratt;
@@ -116,9 +115,8 @@ CheckSameMinimum<distance_policy, OPT_T>::CheckSameMinimum(
     const bool perform_convergence_test, const bool collect_minima_list)
     : _optimizer(optimizer), _potential(potential), _origin(origin.copy()),
       _rattlers(rattlers.size() / _ndim), _new_minimum(origin.size()),
-      _dtol(dtol), _dtol_barriercheck(100 * _dtol), _tol_barrier(1e-5),
-      _nbarrierchecks(20), _d(0), _dmax(0), _nparticles(origin.size() / _ndim),
-      _dist_policy(dist), _Nnoratt(0),
+      _dtol(dtol), _nbarrierchecks(20), _d(0), _dmax(0),
+      _nparticles(origin.size() / _ndim), _dist_policy(dist), _Nnoratt(0),
       _perform_convergence_test(perform_convergence_test),
       _conv_test(30, 1e-10, _optimizer->get_tol(), 0.1, _origin, potential,
                  _ndim),
@@ -260,7 +258,6 @@ template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::_quench(
     pele::Array<double> &trial_coords) {
   _optimizer->reset(trial_coords);
-
   bool success = true;
   double d2max = this->_get_d2_max(_optimizer->get_x());
   double dtol2 = _dtol * _dtol;
@@ -279,7 +276,6 @@ bool CheckSameMinimum<distance_policy, OPT_T>::_quench(
     _optimizer->one_iteration();
     d2max = this->_get_d2_max(_optimizer->get_x());
   }
-
   // assign attributes for rms displacement from origin
   _dmax = sqrt(d2max);
   _d = sqrt(this->_get_d2(_optimizer->get_x()));
@@ -302,8 +298,8 @@ inline bool CheckSameMinimum<pele::cartesian_distance<2UL>,
   return _optimizer->success();
 }
 template <>
-bool CheckSameMinimum<pele::cartesian_distance<3UL>,
-                      BvCGDescent<pele::cartesian_distance<3UL>>>::
+inline bool CheckSameMinimum<pele::cartesian_distance<3UL>,
+                             BvCGDescent<pele::cartesian_distance<3UL>>>::
     _quench(pele::Array<double> &trial_coords) {
   _optimizer->reset(trial_coords);
   _optimizer->run();
@@ -316,34 +312,9 @@ template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(
     pele::Array<double> &trial_coords, mcpele::MC *mc) {
   bool quench_success;
-  bool same_minimum = this->_quench(trial_coords);
+  bool optimizer_converged = this->_quench(trial_coords);
 
-  // Check if this is indeed a different minimum by searching for a barrier
-  // between origin and coordinates
-  if (!same_minimum && _dmax <= _dtol_barriercheck) {
-    quench_success = true;
-    double energy_minima =
-        std::max(_potential->get_energy(_origin), _optimizer->get_f());
-    bool barrier_found = false;
-    for (int icheck = 1; icheck <= _nbarrierchecks; ++icheck) {
-      double stepratio = icheck / (_nbarrierchecks + 1);
-#pragma simd
-      for (int i = 0; i < _origin.size(); ++i) {
-        _new_minimum[i] =
-            (1 - stepratio) * _origin[i] + stepratio * _optimizer->get_x()[i];
-      }
-      if (_potential->get_energy(_new_minimum) > energy_minima + _tol_barrier) {
-        barrier_found = true;
-        break;
-      }
-    }
-    same_minimum = !barrier_found;
-  } else {
-    // check if minimisation has converged
-    // if exited loop with dmax > dtol and success == true
-    // then the quench has failed in the given no. of steps
-    quench_success = _dmax <= _dtol || !same_minimum;
-  }
+  quench_success = _dmax <= _dtol || !optimizer_converged;
 
   // add number of energy evaluations to mc eval count
   const size_t nfev = _optimizer->get_nfev();
@@ -358,7 +329,7 @@ bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(
     return false;
   }
 
-  if (!same_minimum) {
+  if (!optimizer_converged) {
     // if quench has converged to different minimum then one might want to
     // save the new minimum
     //  std::cout <<" failed quench dmax " << _dmax << ", dtol " << _dtol <<
