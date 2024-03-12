@@ -44,8 +44,8 @@ except ImportError as err:
 INVERSE_POWER_CVODE_95_ACC = {
     1: 1e-6,
     2: 1e-7,
-    8: 1e-7,
-    16: 1e-7,
+    8: 1e-6,
+    16: 1e-6,
     32: 1e-7,
     64: 1e-7,
     128: 1e-7,
