@@ -185,6 +185,7 @@ def main():
     simlist = os.listdir(folder)
     if simlist != []:
         simlist.remove("run_params.toml")
+        simlist.remove("checklist.md")
 
     if simlist == []:
         print("Empty directory: starting packing generation")
