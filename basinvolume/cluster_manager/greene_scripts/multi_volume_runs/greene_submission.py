@@ -298,7 +298,8 @@ def setup_parallel_tempering(
         max_replicas = max(64, int(dim/4))
         max_replicas = max_replicas if max_replicas % 4 == 0 else max_replicas - max_replicas % 4 + 4
         run_params["pt"]["nreplicas"] = max_replicas
-    pt_default_kwargs["nreplicas"] = 64
+    else:
+        run_params["pt"]["nreplicas"] = run_params["pt"].get("nreplicas", pt_default_kwargs["nreplicas"])
     mpi_procs = int(run_params["pt"]["nreplicas"] / 4)  # Best performance according to Johannes
     if (
         mpi_procs > MAX_PROC_NUMBER
