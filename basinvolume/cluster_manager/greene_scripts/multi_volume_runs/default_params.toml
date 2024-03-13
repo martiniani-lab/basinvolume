@@ -67,7 +67,7 @@ rtol_values = { 8 = 1e-8, 16 = 1e-8, 32 = 1e-8, 64 = 1e-8, 128 = 1e-8, 256 = 1e-
 
 ["kmin_defaults"]
 packings-dir = "jammed_packings"
-explore-dir = "explore_bv_jammzed_packing"
+explore-dir = "explore_bv_jammed_packing"
 niter = 1e5
 adjustf-niter = 1e4
 nocell = false
