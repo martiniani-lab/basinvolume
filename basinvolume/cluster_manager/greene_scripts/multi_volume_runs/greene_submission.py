@@ -171,7 +171,7 @@ def calculate_volume(
         )
     elif simulation_type == SimStage.ANALYSIS:
         mem_str = RESOURCE_CONFIG["memory"]["analysis"]
-        setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=submit)
+        setup_compute_volume(simulation_folder, packing_file, run_params, time_str, mem_str, submit=submit)
     else:
         raise NotImplementedError("simulation type not implemented")
 
@@ -356,7 +356,7 @@ def setup_inner_sphere(
     return 0
 
 
-def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=True):
+def setup_compute_volume(simulation_folder, packing_file, run_params, time_str, mem_str, submit=True):
     # TODO make this more like the others with fewer hardcoded values
     ntasks = 1
     cpus_per_task = 1
@@ -374,8 +374,11 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
     pt_default_kwargs = DEFAULT_CONFIG["pt_defaults"]
     pt_default_kwargs.update(run_params["pt"])
     bias = pt_default_kwargs["bias"]
+    
+    # give the explore directory as the argument
+    packing_fname = os.path.splitext(packing_file)[0]
 
-    run_command = f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias}"
+    run_command = f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias} -f {packing_fname}"
 
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str=time_str,
@@ -392,10 +395,11 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
         singularity_overlay=GREENE_SINGULARITY_OVERLAY,
     )
     script_save_folder = os.path.join(simulation_folder, "job_scripts")
-    with open(os.path.join(script_save_folder, "compute_volume.sh"), "w") as script_file:
+    script_name = "compute_volume_"+packing_fname+".sh"
+    with open(os.path.join(script_save_folder, script_name), "w") as script_file:
         script_file.write(script)
     if submit:
-        os.system(f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}")
+        os.system(f"sbatch {os.path.join(script_save_folder, script_name)}")
     return 0
 
 
@@ -417,7 +421,7 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     if minimizer == "CVODE" or minimizer == "MXD":
         time *= 4
 
-    if simstage == SimStage.PT or simstage == SimStage.ANALYSIS:
+    if simstage == SimStage.PT:
         time *= 4
 
     # max job time
