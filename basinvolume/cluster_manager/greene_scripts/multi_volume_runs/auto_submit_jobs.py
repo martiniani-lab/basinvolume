@@ -112,11 +112,6 @@ def submit_jobs(simulation_dir, generate_packings=False):
         if simstage != SimStage.ANALYSIS and SimStage != SimStage.COMPLETE:
             n_prev_stages += 1
 
-        if simstage == SimStage.ANALYSIS:
-            n_analysis += 1
-            print(f"analysis waiting for {simulation_dir_name}")
-            continue
-
         if simstage == SimStage.PT:
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
@@ -134,15 +129,6 @@ def submit_jobs(simulation_dir, generate_packings=False):
             run_params,
             submit=True,
             checkpoint_file=checkpoint_file,
-        )
-    if n_prev_stages == 0 and n_analysis != 0:
-        print(f"Submitting analysis for {simulation_dir_name}")
-        calculate_volume(
-            simulation_dir,
-            jammed_packing_fnames[0],
-            SimStage.ANALYSIS,
-            run_params,
-            submit=True,
         )
     return
 
@@ -185,7 +171,8 @@ def main():
     simlist = os.listdir(folder)
     if simlist != []:
         simlist.remove("run_params.toml")
-        simlist.remove("checklist.md")
+        if "checklist.md" in simlist:
+            simlist.remove("checklist.md")
 
     if simlist == []:
         print("Empty directory: starting packing generation")
