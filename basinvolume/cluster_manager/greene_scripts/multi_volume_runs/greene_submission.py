@@ -394,12 +394,23 @@ def setup_compute_volume(simulation_folder, packing_file, run_params, time_str, 
         conda_env=CONDA_ENV,
         singularity_overlay=GREENE_SINGULARITY_OVERLAY,
     )
+    
     script_save_folder = os.path.join(simulation_folder, "job_scripts")
-    script_name = "compute_volume_"+packing_fname+".sh"
-    with open(os.path.join(script_save_folder, script_name), "w") as script_file:
-        script_file.write(script)
-    if submit:
-        os.system(f"sbatch {os.path.join(script_save_folder, script_name)}")
+    script_path = os.path.join(script_save_folder,"compute_volume_"+packing_fname+".sh")
+    
+    # check if job with same script name is still running
+    user = USER_EMAIL.split("@")[0]  # XXX This might be a bit too us-dependent, could adapt this
+    jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell=True)
+    conflict = script_path in jobs_list.decode()
+    if conflict:
+        print(f"Job already running for script {script_path}! Skipping.")
+    else:
+        # write the script
+        with open(script_path, "w") as script_file:
+            script_file.write(script)
+        if submit:
+            os.system(f"sbatch {script_path}")
+            
     return 0
 
 
