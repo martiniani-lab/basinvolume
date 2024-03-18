@@ -37,3 +37,5 @@ basinvolume/cluster_manager/greene_scripts/multi_volume_runs/local_config.toml
 scratch.ipynb
 analysis_notebooks/cubic_basin_dos.ipynb
 analysis_notebooks/data_plots.ipynb
+*.egg-info/
+.idea/
