@@ -118,19 +118,19 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--bias",
-        help = "Biasing potentials used in PT\
-            default = harmonic",
+        help = "Biasing potentials used in PT, default = harmonic",
+        choices = ["harmonic", "radial_gaussian"],
         default = "harmonic"
     )
     parser.add_argument(
         "--method",
-        help = "Solving method to recombine samples from umbrella sampling, \
-            options = mbar, emus; default = mbar",
+        help = "Solving method to recombine samples from umbrella sampling, default = mbar",
+        choices = ["mbar", "emus"],
         default = "mbar"
     )
     parser.add_argument(
         "--hyperball", action="store_true",
-        help="use hyperball of radius one instead of hypercube (use with force k)",
+        help="Use hyperball of radius one instead of hypercube (use with force k)",
         default=False
     )
     parser.add_argument(

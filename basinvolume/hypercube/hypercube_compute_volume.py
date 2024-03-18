@@ -196,12 +196,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--bias",
         help = "Biasing potential used in the PT",
+        choices = ["harmonic", "radial_gaussian"],
         default = "harmonic"
     )
     parser.add_argument(
         "--method",
-        help = "Solving method to recombine samples from umbrella sampling, \
-            options = mbar, emus; default = mbar",
+        help = "Solving method to recombine samples from umbrella sampling, default = mbar",
+        choices = ["mbar", "emus"],
         default = "mbar"
     )
     parser.add_argument(
