@@ -269,9 +269,9 @@ if __name__ == "__main__":
         traj = sim_kmin.trajectory
         print(np.shape(traj))
 
-        plt.plot(sim_kmin.traj_eval / np.amax(sim_kmin.traj_eval))
+        #plt.plot(sim_kmin.traj_eval / np.amax(sim_kmin.traj_eval))
         print("asphericity factor", sim_kmin.asphericity)
-        plt.show()
+        #plt.show()
 
         # Configure_bv_mcrunner
         sim_bvconfig = _hypercube_bv_mcrunner(0, 1)
