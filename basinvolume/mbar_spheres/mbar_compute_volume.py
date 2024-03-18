@@ -1214,7 +1214,7 @@ class mbar_compute_dos(object):
             ncol=2,
         )
         ax.set_xlabel(r"$r$", fontsize=28)
-        plt.savefig(self.base_directory + "/histograms.")
+        plt.savefig(self.base_directory + "/histograms.pdf")
         if self.show:
             plt.show()
 
