@@ -577,7 +577,7 @@ class PT_Master(object):
     def _independence_sampling(self, exchange_pattern):
         if self.bias == "harmonic":
             dxs = np.array([replica.dx for replica in self.replica_states])
-            betas = np.array([replica.bias_params for replica in self.replica_states])
+            betas = np.array([replica.bias_params[0] for replica in self.replica_states])
 
             # According to Chodera & Shirts 2011 nreplicas**3 to nreplicas**5 exchanges
             # should be sufficient
@@ -605,6 +605,39 @@ class PT_Master(object):
                                 self.replica_states[j].bias_params,
                             )
                         )
+        elif self.bias == "radial_gaussian":
+            # According to Chodera & Shirts 2011 nreplicas**3 to nreplicas**5 exchanges
+            # should be sufficient
+            nexchanges = self.nreplicas ** 3
+
+            energies = np.array([
+                self.energies_radial_gaussian(pos_rep.dx, *param_rep.bias_params)
+                for param_rep in self.replica_states for pos_rep in self.replica_states
+            ])
+
+            naccept = self.indep_sampling.exchange_energies(exchange_pattern, energies, nexchanges)
+
+            if naccept > 0:
+                self.anyswap = True
+
+            logging.debug("Acceptance ratio: %f" % (naccept / nexchanges))
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
+                for i in range(self.nreplicas):
+                    j = exchange_pattern[i]
+                    if i != j:
+                        self.ex_outstream.write(
+                            "{}: Accepting exchange {:>2} -> {:<2}: "
+                            "{:.4g} -> {:.4g}, {:.4g} -> {:.4g}\n".format(
+                                self.ptiter,
+                                i,
+                                j,
+                                self.replica_states[i].dx,
+                                self.replica_states[j].dx,
+                                self.replica_states[i].bias_params,
+                                self.replica_states[j].bias_params,
+                            )
+                        )
+
         else:
             raise NotImplementedError
 

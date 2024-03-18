@@ -133,6 +133,12 @@ if __name__ == "__main__":
         help="use hyperball of radius one instead of hypercube (use with force k)",
         default=False
     )
+    parser.add_argument(
+        "--exchange",
+        help="Exchange scheme for replica exchange simulation, default = neighbor",
+        choices = ["neighbor", "independence"],
+        default="neighbor"
+    )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
 
@@ -369,7 +375,11 @@ if __name__ == "__main__":
         kmax = sim_pt.kmax
         path = sim_pt.base_directory
 
-        exchange_scheme = ExchangeScheme.NEIGHBOR_EXCHANGE
+        if args.exchange == "neighbor":
+            exchange_scheme = ExchangeScheme.NEIGHBOR_EXCHANGE
+        else:
+            assert args.exchange == "independence"
+            exchange_scheme = ExchangeScheme.INDEPENDENCE_SAMPLING
 
         if nprocs < nreplicas:
             if rank == 0:
@@ -424,6 +434,9 @@ if __name__ == "__main__":
         else:
             if rank == 0:
                 print("Using handshake with {} replicas.".format(nprocs))
+
+            if exchange_scheme == ExchangeScheme.INDEPENDENCE_SAMPLING:
+                raise NotImplementedError("Independence sampling not implemented for handshake")
 
             ptrunner = MPI_BV_PT_RLhandshake(
                 mcrunner_pt,

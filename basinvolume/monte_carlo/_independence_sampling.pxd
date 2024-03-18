@@ -75,6 +75,7 @@ cdef extern from "basinvolume/independence_sampling.h" namespace "bv":
     cdef cppclass  cppIndependenceSampling "bv::IndependenceSampling":
         cppIndependenceSampling(size_t) except+
         int exchange (Array[int], Array[double], Array[double], int)
+        int exchange_energies (Array[int], Array[double], int)
 
 #===============================================================================
 # cython IndependenceSampling

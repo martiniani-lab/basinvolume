@@ -54,6 +54,42 @@ public:
     }
     return naccept;
   }
+
+  int exchange_energies(pele::Array<int> exchange_pattern, pele::Array<double> energies, int nexchanges) {
+    int number_of_replicas = exchange_pattern.size();
+
+    m_index_dist =
+        std::uniform_int_distribution<int>(0, number_of_replicas - 1);
+
+    for (int i = 0; i < number_of_replicas; i++) {
+      exchange_pattern[i] = i;
+    }
+
+    int naccept = 0;
+    for (int i = 0; i < nexchanges; i++) {
+
+      int irep = m_index_dist(m_generator);
+      int jrep = m_index_dist(m_generator);
+      while (irep == jrep) {
+        jrep = m_index_dist(m_generator);
+      }
+
+      int inow = exchange_pattern[irep];
+      int jnow = exchange_pattern[jrep];
+
+      double w = exp(
+          -energies[irep * number_of_replicas + jnow] - energies[jrep * number_of_replicas + inow]
+          + energies[irep * number_of_replicas + inow] + energies[jrep * number_of_replicas + jnow]);
+
+      double rnd = m_real_dist(m_generator);
+      if (w > rnd) {
+        exchange_pattern[irep] = jnow;
+        exchange_pattern[jrep] = inow;
+        naccept += 1;
+      }
+    }
+    return naccept;
+  }
 };
 
 } // namespace bv

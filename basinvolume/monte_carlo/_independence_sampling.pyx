@@ -20,3 +20,8 @@ cdef class IndependenceSampling(object):
         return self.thisptr.get().exchange(array_wrap_np_int(exchange_pattern),
                                            array_wrap_np(dxs), array_wrap_np(betas),
                                            nexchanges)
+
+    def exchange_energies(self, np.ndarray[int, ndim=1] exchange_pattern not None,
+                          np.ndarray[double, ndim=1] energies not None, int nexchanges):
+        return self.thisptr.get().exchange_energies(array_wrap_np_int(exchange_pattern),
+                                                    array_wrap_np(energies), nexchanges)
