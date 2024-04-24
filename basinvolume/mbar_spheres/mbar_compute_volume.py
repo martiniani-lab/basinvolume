@@ -351,9 +351,6 @@ class mbar_compute_dos(object):
             self.bdim = self.ndim
             self.boxv = np.ones(self.bdim) * self.boxv[0]
             self.vcavity = np.prod(self.boxv)
-            print(self.vcavity)
-            print(self.boxv)
-            print(self.ndof)
         # There can be several inner spheres: each can come with its own k, radius and acceptance
         self.ks_innersphere = []
         self.ref_radii = []
@@ -478,7 +475,6 @@ class mbar_compute_dos(object):
         print(K - self.number_nested_spheres, "pt timeseries")
         for i in range(K - self.number_nested_spheres):  # subsample the energies
             j = i + self.number_nested_spheres
-            print(timeseries)
             g[j] = statistical_inefficiency_fft(timeseries[i])
             indices = np.array(
                 subsample_correlated_data(timeseries[i], g=g[j])
@@ -667,10 +663,6 @@ class mbar_compute_dos(object):
             hist_unbiased = np.vstack(hist_unbiased)
         else:
             raise NotImplementedError
-
-        print(self.number_nested_spheres)
-        print(hist_unbiased.shape)
-        print(self.karray.shape)
 
         for sphere_number in range(self.number_nested_spheres):
             hist_unbiased = np.vstack(
