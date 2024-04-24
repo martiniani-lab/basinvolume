@@ -142,6 +142,7 @@ class mbar_compute_dos(object):
         plot_dos_data=True,
         ncores=7,
         bias="harmonic",
+        ignore_neg_ks=False
     ):
         self.nbins = (
             np.power(2, int(np.log2(nbins) + 0.5)) + 1
@@ -151,6 +152,7 @@ class mbar_compute_dos(object):
         self.plot_dos_data = plot_dos_data
         self.ncores = ncores
         self.bias = bias
+        self.ignore_neg_ks = ignore_neg_ks
 
     def __call__(
         self,
@@ -175,6 +177,8 @@ class mbar_compute_dos(object):
             explore_dir = os.path.join(os.getcwd(), explore_dir + number)
         if self.bootstrap:
             base_dir = base_dir + "_bootstrap"
+        if self.ignore_neg_ks:
+            base_dir = base_dir + "_ignore_neg_ks"
         self.explore_dir = explore_dir
         self.base_directory = os.path.join(self.explore_dir, base_dir)
         self.frozen = frozen
@@ -439,6 +443,12 @@ class mbar_compute_dos(object):
                         )
                 else:
                     raise NotImplementedError
+        
+        if self.ignore_neg_ks:
+            positive_k_indices = np.nonzero(self.karray >= 0.0)
+            self.karray = self.karray[positive_k_indices]
+            u_kn = u_kn[positive_k_indices,:].reshape(self.karray.size, -1)
+        
         assert self.karray.size == u_kn.shape[0]
         assert N == u_kn.shape[1]
         return u_kn
@@ -1084,6 +1094,12 @@ if __name__ == "__main__":
         help="Type of biasing potential, default = harmonic",
         default="harmonic",
     )
+    parser.add_argument(
+        "--ignore_neg_ks",
+        action="store_true",
+        help="Ignore negative ks in the volume computation",
+        default=False,
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -1104,6 +1120,7 @@ if __name__ == "__main__":
         kde=args.kde,
         plot_dos_data=True,
         bias=args.bias,
+        ignore_neg_ks=args.ignore_neg_ks
     )
     if fname != None:
         if not os.path.isabs(fdir):
