@@ -365,9 +365,12 @@ def setup_compute_volume(simulation_folder, packing_file, run_params, time_str, 
     script_location = os.path.join(BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py")
 
     job_name_prefix = "bv_computevolume"
+    
+    # give the explore directory as the argument
+    packing_fname = os.path.splitext(packing_file)[0]
 
     out_folder = os.path.join(simulation_folder, "job_out")
-    out_file = f"{out_folder}/{job_name_prefix}"
+    out_file = f"{out_folder}/{job_name_prefix}_{packing_fname}"
     explore_dir_prefix = "explore_bv_jammed_packing"
 
     # Use the same bias as in PT here
@@ -375,8 +378,6 @@ def setup_compute_volume(simulation_folder, packing_file, run_params, time_str, 
     pt_default_kwargs.update(run_params["pt"])
     bias = pt_default_kwargs["bias"]
     
-    # give the explore directory as the argument
-    packing_fname = os.path.splitext(packing_file)[0]
 
     run_command = f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias} -f {packing_fname}"
 

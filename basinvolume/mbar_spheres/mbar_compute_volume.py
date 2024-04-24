@@ -399,6 +399,10 @@ class mbar_compute_dos(object):
         if self.bias == "radial_gaussian":
             self.l0array = np.array(l0array)
             self.r_cutoffarray = np.array(r_cutoffarray)
+            
+        if self.ignore_neg_ks:
+            self.positive_k_indices = np.nonzero(self.karray >= 0.0)
+            self.karray = self.karray[self.positive_k_indices]
 
     def _import_pt_time_series(self):
         self.timeseries = import_pt_time_series(
@@ -409,6 +413,9 @@ class mbar_compute_dos(object):
             crop_adjustf_niter=True,
             del_raw=False,
         )
+        
+        if self.ignore_neg_ks:
+            self.timeseries = self.timeseries[self.positive_k_indices,:].reshape(self.karray.size,-1)
 
     def _subtract_eqtime(self):
         # remove equilibration region from pt timeseries
@@ -443,11 +450,6 @@ class mbar_compute_dos(object):
                         )
                 else:
                     raise NotImplementedError
-        
-        if self.ignore_neg_ks:
-            positive_k_indices = np.nonzero(self.karray >= 0.0)
-            self.karray = self.karray[positive_k_indices]
-            u_kn = u_kn[positive_k_indices,:].reshape(self.karray.size, -1)
         
         assert self.karray.size == u_kn.shape[0]
         assert N == u_kn.shape[1]
