@@ -415,7 +415,8 @@ class mbar_compute_dos(object):
         )
         
         if self.ignore_neg_ks:
-            self.timeseries = self.timeseries[self.positive_k_indices,:].reshape(self.karray.size,-1)
+            rep_number = self.karray.size - self.number_nested_spheres 
+            self.timeseries = self.timeseries[:rep_number, :]
 
     def _subtract_eqtime(self):
         # remove equilibration region from pt timeseries
@@ -666,6 +667,10 @@ class mbar_compute_dos(object):
             hist_unbiased = np.vstack(hist_unbiased)
         else:
             raise NotImplementedError
+
+        print(self.number_nested_spheres)
+        print(hist_unbiased.shape)
+        print(self.karray.shape)
 
         for sphere_number in range(self.number_nested_spheres):
             hist_unbiased = np.vstack(
