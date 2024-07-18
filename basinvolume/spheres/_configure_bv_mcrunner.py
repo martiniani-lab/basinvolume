@@ -9,7 +9,7 @@ import numpy as np
 import os
 import logging
 from pele.potentials import Harmonic, RadialGaussian
-from basinvolume.spheres import BV_MCrunner, ConfigMCRunner
+from basinvolume.spheres import BV_MCrunner, ConfigMCRunner, SpheresGMCRunner, SpheresGuidedMCRunner
 from basinvolume.utils import trymakedir, conf_get_default
 from basinvolume.spheres import read_jammed_packing_config
 from basinvolume.enums import Interaction, Minimizer
@@ -69,6 +69,7 @@ class ConfigBVMCRunner(ConfigMCRunner):
         minimizer=None,
         opt_tol=None,
         dtol=None,
+        runner="metropolis"
     ):
         if minimizer is None:
             self.minimizer = None
@@ -155,19 +156,50 @@ class ConfigBVMCRunner(ConfigMCRunner):
             "bias_params"
         ] = bias_params  # Needed to properly initialise with the right lengths in each list of parameters
 
-        mcrunner = BV_MCrunner(
-            bias_potential,
-            self.coords,
-            temperature,
-            stepsize,
-            niter,
-            self.coords,
-            self.hs_radii,
-            self.boxv,
-            self.sca,
-            rattlers=self.rattlers,
-            **kwargs
-        )
+        if runner == "metropolis":
+            mcrunner = BV_MCrunner(
+                bias_potential,
+                self.coords,
+                temperature,
+                stepsize,
+                niter,
+                self.coords,
+                self.hs_radii,
+                self.boxv,
+                self.sca,
+                rattlers=self.rattlers,
+                **kwargs
+            )
+        elif runner == "galilean":
+            mcrunner = SpheresGMCRunner(
+                bias_potential,
+                self.coords,
+                temperature,
+                stepsize,
+                niter,
+                self.coords,
+                self.hs_radii,
+                self.boxv,
+                self.sca,
+                rattlers=self.rattlers,
+                **kwargs
+            )
+        else:
+            if runner != "guided":
+                raise NotImplementedError("runner={} not implemented".format(runner))
+            mcrunner = SpheresGuidedMCRunner(
+                bias_potential,
+                self.coords,
+                temperature,
+                stepsize,
+                niter,
+                self.coords,
+                self.hs_radii,
+                self.boxv,
+                self.sca,
+                rattlers=self.rattlers,
+                **kwargs
+            )
 
         return mcrunner
 

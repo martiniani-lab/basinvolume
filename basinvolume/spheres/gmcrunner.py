@@ -56,7 +56,6 @@ class SpheresGMCRunner(_BaseGMCRunner):
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
         opt_kwargs={},
-
         acceptance=0.2,
         adjustf=0.9,
         adjustf_niter=1e4,

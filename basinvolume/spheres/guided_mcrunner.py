@@ -16,7 +16,7 @@ from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t, write_2d_ar
 from .mcrunner import vec_analytical_d2, color_cycle, BV_MCRunner_State
 
 
-class SpheresGMCRunner(_BaseGuidedMCRunner):
+class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
     def __init__(
         self,
         potential,
@@ -56,7 +56,6 @@ class SpheresGMCRunner(_BaseGuidedMCRunner):
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
         opt_kwargs={},
-
         acceptance=0.2,
         adjustf=0.9,
         adjustf_niter=1e4,

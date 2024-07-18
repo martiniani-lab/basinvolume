@@ -246,6 +246,12 @@ if __name__ == "__main__":
             Default: 100.",
         default=1000,
     )
+    parser.add_argument(
+        "--runner",
+        help="Choose the MCMC runner to use, default = metropolis",
+        choices=["metropolis", "galilean", "guided"],
+        default="metropolis"
+    )
 
     args = parser.parse_args()
 
@@ -329,6 +335,7 @@ if __name__ == "__main__":
     if ".xydfr" in fname or ".xyzdfr" in fname:
         if rank == 0:
             logging.info("found experimental packing")
+        raise NotImplementedError("Experimental packings not supported")
         sim = configure_bv_exp_mcrunner(rank, nprocs)
     else:
         if rank == 0:
@@ -367,6 +374,7 @@ if __name__ == "__main__":
         minimizer=args.force_minimizer,
         dtol=args.force_dtol,
         opt_tol=args.force_opt_tol,
+        runner=args.runner
     )
     fix_com = mcrunner.fix_com
 
