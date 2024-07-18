@@ -4,10 +4,11 @@
 #include "pele/optimizer.hpp"
 
 #include "mcpele/mc.h"
+#include "mcpele/gmc.h"
 
 namespace bv {
 
-class CheckSameMinimumConfig : public mcpele::ConfTest {
+class CheckSameMinimumConfig : public mcpele::GMCConfTest {
 protected:
   pele::Array<double> m_delta_orig;
 
@@ -39,6 +40,12 @@ public:
     m_delta_orig -= m_origin;
     dist_orig_2 = pele::dot(m_delta_orig, m_delta_orig);
     return m_optimizer->success();
+  }
+  pele::Array<double> gmc_gradient(pele::Array<double> &coords,
+                                   mcpele::MCBase *mc) override {
+    pele::Array<double> gradient(coords.size());
+    m_potential->get_energy_gradient(coords, gradient);
+    return -gradient;
   }
   size_t get_nfev() const { return m_nfev; }
   double get_failed_quench_fraction() const {

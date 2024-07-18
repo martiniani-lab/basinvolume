@@ -381,6 +381,37 @@ class CheckSameMinimumConfig(_Cdef_CheckSameMinimumConfig):
     """interface
     """
 
+cdef class _Cdef_CheckSameMinimumConfigGMC(_Cdef_GMCConfTest):
+    cdef _pele_opt.GradientOptimizer optimizer # this is stored so that the memory is not freed
+    cdef _pele.BasePotential potential
+    cdef cppCheckSameMinimumConfig* newptr
+    def __cinit__(self, pot, origin, dtol, opt=None, opt_tol=1e-4, opt_maxiter=1e5):
+        cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
+        self.optimizer = opt
+        self.potential = pot
+        self.thisptr = shared_ptr[cppGMCConfTest](<cppGMCConfTest*>new
+            cppCheckSameMinimumConfig(self.optimizer.thisptr,
+            self.potential.thisptr,
+            _pele.Array[double](<double*> orginc.data, orginc.size), dtol))
+        self.newptr = <cppCheckSameMinimumConfig*>self.thisptr.get()
+    def get_nfev(self):
+        nfev = self.newptr.get_nfev()
+        return nfev
+    def get_failed_quench_fraction(self):
+        failed_quench_fraction = self.newptr.get_failed_quench_fraction()
+        return failed_quench_fraction
+    def get_origin(self):
+        cdef _pele.Array[double] origin = self.newptr.get_origin()
+        cdef double* origin_data = origin.data()
+        cdef np.ndarray[double, ndim=1, mode="c"] origin_result = np.zeros(origin.size())
+        cdef size_t i
+        for i in xrange(origin.size()):
+            origin_result[i] = origin_data[i]
+        return origin_result
+
+class CheckSameMinimumConfigGMC(_Cdef_CheckSameMinimumConfig):
+    pass
+
 #===============================================================================
 # Check HCP compatible
 #===============================================================================
