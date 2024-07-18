@@ -171,7 +171,7 @@ def calculate_volume(
         )
     elif simulation_type == SimStage.ANALYSIS:
         mem_str = RESOURCE_CONFIG["memory"]["analysis"]
-        setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=submit)
+        setup_compute_volume(simulation_folder, packing_file, run_params, time_str, mem_str, submit=submit)
     else:
         raise NotImplementedError("simulation type not implemented")
 
@@ -298,7 +298,8 @@ def setup_parallel_tempering(
         max_replicas = max(64, int(dim/4))
         max_replicas = max_replicas if max_replicas % 4 == 0 else max_replicas - max_replicas % 4 + 4
         run_params["pt"]["nreplicas"] = max_replicas
-    pt_default_kwargs["nreplicas"] = 64
+    else:
+        run_params["pt"]["nreplicas"] = run_params["pt"].get("nreplicas", pt_default_kwargs["nreplicas"])
     mpi_procs = int(run_params["pt"]["nreplicas"] / 4)  # Best performance according to Johannes
     if (
         mpi_procs > MAX_PROC_NUMBER
@@ -355,7 +356,7 @@ def setup_inner_sphere(
     return 0
 
 
-def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submit=True):
+def setup_compute_volume(simulation_folder, packing_file, run_params, time_str, mem_str, submit=True):
     # TODO make this more like the others with fewer hardcoded values
     ntasks = 1
     cpus_per_task = 1
@@ -364,17 +365,21 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
     script_location = os.path.join(BASINVOLUME_PATH, "mbar_spheres/mbar_compute_volume.py")
 
     job_name_prefix = "bv_computevolume"
+    
+    # give the explore directory as the argument
+    packing_fname = os.path.splitext(packing_file)[0]
 
     out_folder = os.path.join(simulation_folder, "job_out")
-    out_file = f"{out_folder}/{job_name_prefix}"
+    out_file = f"{out_folder}/{job_name_prefix}_{packing_fname}"
     explore_dir_prefix = "explore_bv_jammed_packing"
 
     # Use the same bias as in PT here
     pt_default_kwargs = DEFAULT_CONFIG["pt_defaults"]
     pt_default_kwargs.update(run_params["pt"])
     bias = pt_default_kwargs["bias"]
+    
 
-    run_command = f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias}"
+    run_command = f"{script_run_prefix} {script_location} -w {simulation_folder} --bias {bias} -f {packing_fname}"
 
     script = GREENE_SCRIPT_TEMPLATE.format(
         time_str=time_str,
@@ -390,11 +395,23 @@ def setup_compute_volume(simulation_folder, run_params, time_str, mem_str, submi
         conda_env=CONDA_ENV,
         singularity_overlay=GREENE_SINGULARITY_OVERLAY,
     )
+    
     script_save_folder = os.path.join(simulation_folder, "job_scripts")
-    with open(os.path.join(script_save_folder, "compute_volume.sh"), "w") as script_file:
-        script_file.write(script)
-    if submit:
-        os.system(f"sbatch {os.path.join(script_save_folder, 'compute_volume.sh')}")
+    script_path = os.path.join(script_save_folder,"compute_volume_"+packing_fname+".sh")
+    
+    # check if job with same script name is still running
+    user = USER_EMAIL.split("@")[0]  # XXX This might be a bit too us-dependent, could adapt this
+    jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell=True)
+    conflict = script_path in jobs_list.decode()
+    if conflict:
+        print(f"Job already running for script {script_path}! Skipping.")
+    else:
+        # write the script
+        with open(script_path, "w") as script_file:
+            script_file.write(script)
+        if submit:
+            os.system(f"sbatch {script_path}")
+            
     return 0
 
 
@@ -416,7 +433,7 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
     if minimizer == "CVODE" or minimizer == "MXD":
         time *= 4
 
-    if simstage == SimStage.PT or simstage == SimStage.ANALYSIS:
+    if simstage == SimStage.PT:
         time *= 4
 
     # max job time

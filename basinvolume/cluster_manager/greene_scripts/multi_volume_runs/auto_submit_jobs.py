@@ -2,6 +2,7 @@
 Automatically figures out which runs have finished/haven't finished in a run folder
 and submits the appropriate jobs to the cluster.
 """
+
 from greene_submission import SimStage, calculate_volume
 import os
 import argparse
@@ -58,14 +59,20 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
 def submit_jobs(simulation_dir, generate_packings=False):
     if generate_packings:
         simstage = SimStage.JAMMED_PACKING
-        RUN_PARAMS_CONFIG_FILE = os.path.join(simulation_dir, "run_params.toml")
-        if os.path.exists(RUN_PARAMS_CONFIG_FILE):
-            run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
+        run_params_config_file = os.path.join(simulation_dir, "run_params.toml")
+        if os.path.exists(run_params_config_file):
+            run_params = toml.load(run_params_config_file)
         else:
             print("No param file in destination folder, copying template from basinvolume source")
-            EMPTY_PARAMS_CONFIG_FILE = os.path.join(os.getcwd(), "run_params.toml")
-            shutil.copy(EMPTY_PARAMS_CONFIG_FILE, RUN_PARAMS_CONFIG_FILE)
-            run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
+            empty_params_config_file = os.path.join(os.getcwd(), "run_params.toml")
+            shutil.copy(empty_params_config_file, run_params_config_file)
+            run_params = toml.load(run_params_config_file)
+        checklist_file = os.path.join(simulation_dir, "checklist.md")
+        if not os.path.exists(checklist_file):
+            print(f"No checklist file, {checklist_file} exists, copying template over")
+            checklist_template_file = os.path.join(os.getcwd(), "checklist.md")
+            shutil.copy(checklist_template_file, checklist_file)
+
         calculate_volume(
             simulation_dir,
             "",
@@ -92,8 +99,8 @@ def submit_jobs(simulation_dir, generate_packings=False):
     # minimizer = Minimizer[minimizer_name]
     minimizer = minimizer_name
 
-    RUN_PARAMS_CONFIG_FILE = os.path.join(simulation_dir, "../run_params.toml")
-    run_params = toml.load(RUN_PARAMS_CONFIG_FILE)
+    run_params_config_file = os.path.join(simulation_dir, "../run_params.toml")
+    run_params = toml.load(run_params_config_file)
     run_params["kmax"]["minimizer"] = minimizer
 
     n_prev_stages = 0
@@ -105,11 +112,6 @@ def submit_jobs(simulation_dir, generate_packings=False):
             continue
         if simstage != SimStage.ANALYSIS and SimStage != SimStage.COMPLETE:
             n_prev_stages += 1
-
-        if simstage == SimStage.ANALYSIS:
-            n_analysis += 1
-            print(f"analysis waiting for {simulation_dir_name}")
-            continue
 
         if simstage == SimStage.PT:
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
@@ -128,15 +130,6 @@ def submit_jobs(simulation_dir, generate_packings=False):
             run_params,
             submit=True,
             checkpoint_file=checkpoint_file,
-        )
-    if n_prev_stages == 0 and n_analysis != 0:
-        print(f"Submitting analysis for {simulation_dir_name}")
-        calculate_volume(
-            simulation_dir,
-            jammed_packing_fnames[0],
-            SimStage.ANALYSIS,
-            run_params,
-            submit=True,
         )
     return
 
@@ -179,6 +172,8 @@ def main():
     simlist = os.listdir(folder)
     if simlist != []:
         simlist.remove("run_params.toml")
+        if "checklist.md" in simlist:
+            simlist.remove("checklist.md")
 
     if simlist == []:
         print("Empty directory: starting packing generation")

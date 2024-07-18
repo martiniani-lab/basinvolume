@@ -141,6 +141,7 @@ class mbar_compute_dos(object):
         plot_dos_data=True,
         ncores=7,
         bias="harmonic",
+        ignore_neg_ks=False,
         method = "mbar",
         bypass_ballpicking_data = False,
         truncate_inner_gaussian = False,
@@ -156,6 +157,7 @@ class mbar_compute_dos(object):
         self.plot_dos_data = plot_dos_data
         self.ncores = ncores
         self.bias = bias
+        self.ignore_neg_ks = ignore_neg_ks
         self.method = method
         self.bypass_ballpicking_data = bypass_ballpicking_data
         self.truncate_inner_gaussian = truncate_inner_gaussian
@@ -188,6 +190,8 @@ class mbar_compute_dos(object):
             base_dir = base_dir + "_bootstrap"
         if self.method == "emus":
             base_dir = base_dir + "_emus"
+        if self.ignore_neg_ks:
+            base_dir = base_dir + "_ignore_neg_ks"
         self.explore_dir = explore_dir
         self.base_directory = os.path.join(self.explore_dir, base_dir)
         self.frozen = frozen
@@ -252,11 +256,11 @@ class mbar_compute_dos(object):
                 if os.path.isfile(ballpicking_timeseries_path) and dir == innersphere_dir_list[0] and not self.bypass_ballpicking_data:
                     self.ballpicking_timeseries_path = ballpicking_timeseries_path
                     self.ballpicking_timeseries_available = True
-        
+
         if not self.use_inner_gaussian:
             # Just set this here so that ballpick can be used even in this case
-            self.number_nested_spheres = 0 
-        
+            self.number_nested_spheres = 0
+
         self.show = show
         self.verbose = verbose
         self._import_config_files()
@@ -399,9 +403,6 @@ class mbar_compute_dos(object):
             self.bdim = self.ndim
             self.boxv = np.ones(self.bdim) * self.boxv[0]
             self.vcavity = np.prod(self.boxv)
-            print(self.vcavity)
-            print(self.boxv)
-            print(self.ndof)
         # There can be several inner spheres: each can come with its own k, radius and acceptance
         self.ks_innersphere = []
         self.inner_gaussian_acceptances = []
@@ -439,7 +440,7 @@ class mbar_compute_dos(object):
                 l0array.extend([float(l0)])
                 r_cutoff = params[2]
                 r_cutoffarray.extend([float(r_cutoff)])
-                
+
         if self.use_inner_gaussian:
             # prepend k innersphere
             # the list must be visited in reverse order to respect the innermost = first convention
@@ -447,12 +448,16 @@ class mbar_compute_dos(object):
                 karray.insert(0, k_innersphere)
                 l0array.insert(0, 0)
                 r_cutoffarray.insert(0, 0)
-                
+
         self.karray = np.array(karray)
         self.k0_index = np.where(self.karray == 0.0)[0][0]
         if self.bias == "radial_gaussian":
             self.l0array = np.array(l0array)
             self.r_cutoffarray = np.array(r_cutoffarray)
+
+        if self.ignore_neg_ks:
+            self.positive_k_indices = np.nonzero(self.karray >= 0.0)
+            self.karray = self.karray[self.positive_k_indices]
 
     def _import_pt_time_series(self):
         self.timeseries = import_pt_time_series(
@@ -463,6 +468,10 @@ class mbar_compute_dos(object):
             crop_adjustf_niter=True,
             del_raw=False,
         )
+
+        if self.ignore_neg_ks:
+            rep_number = self.karray.size - self.number_nested_spheres
+            self.timeseries = self.timeseries[:rep_number, :]
 
     def _subtract_eqtime(self):
         # remove equilibration region from pt timeseries
@@ -510,15 +519,15 @@ class mbar_compute_dos(object):
                 rmin = self.ref_radii[0]
                 LARGE = 1e70
                 u_kn[i] = np.where(flat_timeseries < rmin, 0, LARGE)
-                
-        assert width == u_kn.shape[0]
+
+        assert self.karray.size == u_kn.shape[0]
         assert N == u_kn.shape[1]
         return u_kn
-    
+
     def _build_psis(self, list_timeseries):
         K = self.karray.size
         psis = []
-        
+
         if self.ballpicking_timeseries_available:
             # Ballpicking points were saved, append to psis
             width  = K + 1
@@ -530,11 +539,11 @@ class mbar_compute_dos(object):
             # i is the timeseries the data comes from
             # t is the sample index in the timeseries
             # j is the bias is applied to it
-            
+
             # Get number of elements in the considered timeseries
             N = list_timeseries[i].shape[0]
             psi = np.empty((N, width))
-            
+
             for j in range(width):
                 # Go through biases
                 if j < self.number_nested_spheres:
@@ -565,7 +574,7 @@ class mbar_compute_dos(object):
                     rmin = self.ref_radii[0]
                     LARGE = 1e70
                     psi[:,j] = np.where(list_timeseries[i] < rmin, 0, LARGE)
-                    
+
             # psis are the exp(-beta potential), not just the potential
             # here beta = 1
             print(np.amin(psi))
@@ -577,15 +586,15 @@ class mbar_compute_dos(object):
             psi[np.isinf(psi)] = LARGE
             # append to psis
             psis.append(psi)
-                    
+
         assert width == len(psis)
         return psis
 
     def _stack_timeseries(self, ts_ballpicking, ts_spheres, timeseries):
-        
+
         K = self.karray.size
         stacked_ts = []
-        
+
         # Split between innerspheres and pt time series here
         # Start with inner spheres
         for i in range(self.number_nested_spheres):
@@ -595,11 +604,11 @@ class mbar_compute_dos(object):
         for i in range(K - self.number_nested_spheres):  # subsample the energies
             j = i + self.number_nested_spheres
             stacked_ts.append(timeseries[i][:])
-            
+
         # Put the ballpicking in last
         if self.ballpicking_timeseries_available:
             stacked_ts.append(ts_ballpicking)
-            
+
         logging.info("Stacked {} timeseries".format(len(stacked_ts)))
         return stacked_ts
 
@@ -608,7 +617,7 @@ class mbar_compute_dos(object):
         returns a flatten timeseries of the uncorrelated data
         """
         K = self.karray.size
-        
+
         g = np.ones(K)
         N_k = np.zeros(K, dtype="i")
         if flatten:
@@ -626,7 +635,7 @@ class mbar_compute_dos(object):
             N_k[i] = len(indices)  # number of uncorrelated samples
             if flatten:
                 flat_ts = np.append(flat_ts, ts_spheres[i][indices])
-            else: 
+            else:
                 stacked_ts.append(ts_spheres[i][indices])
         # Now loop through PT timeseries
         logging.info("Found {} PT timeseries".format(K - self.number_nested_spheres))
@@ -641,7 +650,7 @@ class mbar_compute_dos(object):
                 flat_ts = np.append(flat_ts, timeseries[i][indices])
             else:
                 stacked_ts.append(timeseries[i][indices])
-            
+
         # Put the ballpicking in last
         if self.ballpicking_timeseries_available:
             g_ballpick = statistical_inefficiency_fft(ts_ballpicking)
@@ -652,8 +661,8 @@ class mbar_compute_dos(object):
                 flat_ts = np.append(flat_ts, ts_ballpicking[indices])
             else:
                 stacked_ts.append(ts_ballpicking[indices])
-            
-            
+
+
         if flatten:
             logging.info("Flat timeseries shape: {}".format(flat_ts.shape))
             return flat_ts, N_k, g
@@ -672,7 +681,7 @@ class mbar_compute_dos(object):
                     bias = 0.5 * self.karray[n] * ts_sphere**2 + (self.ndof-1) * np.log(ts_sphere)
                     ts_sphere = ts_sphere[bias > self.inner_gaussian_bias_cutoff]
                 self.ts_spheres.append(ts_sphere)
-            
+
         # There can be ballpicking ts as well
         if self.ballpicking_timeseries_available:
             ts_ballpicking = np.genfromtxt(self.ballpicking_timeseries_path)
@@ -692,13 +701,13 @@ class mbar_compute_dos(object):
                 self.flat_timeseries, self.N_k, g = self._subsample_timeseries(
                 self.ts_ballpicking, self.ts_spheres, self.timeseries, flatten = False
                 )
-            else: 
+            else:
                 self.flat_timeseries = self._stack_timeseries(
                     self.ts_ballpicking, self.ts_spheres, self.timeseries
                 )
-        else: 
+        else:
             raise NotImplementedError
-            
+
 
     def _build_mbar(
         self, verbose=True, initial_f_k=None, maxiter=10000, reltol=1.0e-7
@@ -740,7 +749,7 @@ class mbar_compute_dos(object):
         # logging.info("effective sample number {}".format(self.mbar.computeEffectiveSampleNumber()))
 
         logging.info("Found relative free energies {}".format(self.w_i_final))
-        
+
         error_F0_firstwalkref = dDeltaf_ij[self.number_nested_spheres][self.k0_index]
         self._compute_F0_from_first_walk(error=error_F0_firstwalkref)
         if self.use_inner_gaussian:
@@ -772,12 +781,12 @@ class mbar_compute_dos(object):
             u_lk = np.vstack(
                 (u_lk, self.u_kn[self.k0_index])
             ) # measure free energy difference between k=0 and reference case from ballpick
-        
+
             # Compute average FE difference from MBAR solution
             result_dict = self.mbar.compute_perturbed_free_energies(u_lk)
             Deltaf_ij = result_dict["Delta_f"]
             dDeltaf_ij = result_dict["dDelta_f"]
-            
+
             fediff = Deltaf_ij[1,0]
             error_fediff = dDeltaf_ij[1,0]
 
@@ -799,16 +808,16 @@ class mbar_compute_dos(object):
 
     def _build_emus(
         self
-    ): 
-        
+    ):
+
         self.psis = self._build_psis(self.flat_timeseries)
         logging.info("Built psi tensor with length {}".format(len(self.psis)))
         kappa = [np.shape(self.psis[i])[0] for i in np.arange(len(self.psis))]
         self.kappa=kappa/np.sum(kappa)
-        
+
         logging.info("Found kappas {}".format(self.kappa))
-        
-        
+
+
     def _extract_free_list(self):
         K = self.karray.size
         psi_free = []
@@ -816,9 +825,9 @@ class mbar_compute_dos(object):
             psi_free.append(np.copy(self.psis[i][:,self.k0_index]))
         psi_free = np.array(np.concatenate(psi_free, axis=None))
         return psi_free
-    
+
     def _emus_compute_volume(self, n_iter = 0, use_iats = False):
-        
+
         # Use the smallest radius of all the innersphere runs as a reference
         rmin = self.ref_radii[0]
         logging.info("kmax {}".format(self.kmax))
@@ -827,31 +836,31 @@ class mbar_compute_dos(object):
         logvmin = log_volume_nball(rmin, self.ndof)
         # logvmin = np.log( gammainc(self.ndof / 2, 0.5 ))
         Fmin = -logvmin - np.log(self.ref_acceptances[0])
-        
+
         logging.info("Log-volume of {}-ball with radius {}: {} (Free energy {})".format(self.ndof,rmin, logvmin, Fmin))
 
         # Compute normalizations and F matrices from emus, with or without iats at each iteration
         if use_iats:
             z, F, iats = emus.emus.calculate_zs(self.psis, n_iter=n_iter, use_iats=use_iats)  # iat_method = "acor")
-        else: 
+        else:
             z, F = emus.emus.calculate_zs(self.psis, n_iter=n_iter)
-        
+
         logging.info("Found normalizations {}".format(z))
-        
+
         relative_free_energies = np.log(z)
         relative_free_energies -= relative_free_energies[0]
-        
+
         logging.info("Corresponding relative free energies {}".format(relative_free_energies))
         self.w_i_final = relative_free_energies
-        
+
         self._compute_F0_from_first_walk()
         if self.use_inner_gaussian:
             self._compute_F0_from_innergaussian()
-                
+
         if self.ballpicking_timeseries_available:
             logging.info("Ballpicking data available")
             fediff = relative_free_energies[self.k0_index] - relative_free_energies[-1]
-        else: 
+        else:
             logging.info("No ballpicking data available, creating fake states from timeseries")
             # Generate 2 samples: one corresponding to points inside the rmin-ball only, the other one to the free walker
             psis_ballpick = self._extract_free_list()
@@ -864,14 +873,14 @@ class mbar_compute_dos(object):
             psis_ballpick = np.vstack(
                 (psis_ballpick, psis_freewalker)
             )  # measure free energy difference between k=0 and reference case from ballpick
-            
+
             stateA = psis_ballpick[0,:] # reference ball
             stateB = psis_ballpick[1,:] # free walker
-            
+
             # Calculate average computes the ratio stateB / stateA
             use_iter = n_iter > 0
             fediff = -np.log(emus.emus.calculate_avg(self.psis,z,stateB,stateA,use_iter=use_iter))
-            
+
             # XXX DEBUG: calculate_avg computes:
             g1star = emus.emus._calculate_win_avgs(self.psis, z, stateB, use_iter = use_iter)
             g2star = emus.emus._calculate_win_avgs(self.psis, z, stateA, use_iter = use_iter)
@@ -881,11 +890,11 @@ class mbar_compute_dos(object):
             print(np.dot(g2star, z))
             print(np.dot(g1star, z)/np.dot(g2star, z))
             print(-np.log(np.dot(g1star, z)/np.dot(g2star, z)))
-        
+
         logging.info("Found free energy difference {}".format(fediff))
         if not self.ballpicking_timeseries_available:
             logging.warning("This difference is likely wrong as EMUS has under/overflow issues in compute_avg!\nPlease save ballpicking data in innersphere!")
-        
+
         zerr, zcontribs, ztaus = emus.avar.calc_partition_functions(self.psis, z, F, iat_method='acor')
         print("Calculated variance in z: ",zerr)
         print("Calculated variance per window in z: ", zcontribs)
@@ -893,7 +902,7 @@ class mbar_compute_dos(object):
         # fe_err_iter, fe_contribs_iter, fe_taus_iter = emus.avar.calc_log_avg(self.psis,z,stateB,stateA,iat_method='acor')
         # print("calculated avar for fediff:",fe_err_iter)
         # # iats, fediff_EMUS, fediff_vars = emus.avar.calc_log_avg(psis,z,F,stateB,stateA,kappa=kappa)
-        
+
         self.F0, self.sigF0 = (Fmin - fediff) - np.log(self.vcavity), 0.0
         self.F0unc, self.sigF0unc = (Fmin - fediff), 0.0
 
@@ -907,13 +916,13 @@ class mbar_compute_dos(object):
                     self.unit_box_F0, self.unit_box_F0unc, self.sigF0
                 )
             )
-            
-    def _compute_F0_from_first_walk(self, error = 0.0):   
-        # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r). 
+
+    def _compute_F0_from_first_walk(self, error = 0.0):
+        # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r).
         # For f = 1 and r in [0;1], V = V1 = volume of unit ball
         # jac = V1 / (int_0^1 dr r^(d-1)) = d V
         log_hyperpherical_jacobian = np.log(self.ndof) + log_volume_nball(1, self.ndof)
-        
+
         # The relevant volume depends on the nature of the bias!
         if self.bias == "harmonic":
             # d-dimensional gaussian integral
@@ -921,7 +930,7 @@ class mbar_compute_dos(object):
             # It is equal to 2^(d/2 - 1) * k^(-d/2) * Gamma(d/2)
             log_gaussian_int = gammaln(self.ndof/2.0) + (self.ndof/2.0 - 1) * np.log(2.0) - (self.ndof/2.0) * np.log(self.karray[self.number_nested_spheres])
             firstwalk_log_volume = log_hyperpherical_jacobian + log_gaussian_int + np.log(self.first_run_acceptance)
-            
+
         elif self.bias == "radial_gaussian":
             # 1-dimensional gaussian integral around l0
             # the radial part is the sum of two integrals.
@@ -933,7 +942,7 @@ class mbar_compute_dos(object):
             k_walk = self.karray[self.number_nested_spheres]
             l0_walk = self.l0array[self.number_nested_spheres]
             r_cutoff_walk = self.r_cutoffarray[self.number_nested_spheres]
-            integral_rc_inf = np.sqrt((np.pi/2)/k_walk) * (1.0 + erf(np.sqrt(k_walk/2) * (l0_walk - r_cutoff_walk))) 
+            integral_rc_inf = np.sqrt((np.pi/2)/k_walk) * (1.0 + erf(np.sqrt(k_walk/2) * (l0_walk - r_cutoff_walk)))
             integral_0_rc_proxy = 0.5 * (2/k_walk)**(self.ndof/2) * gammainc(self.ndof/2, k_walk * r_cutoff_walk**2 /2)
             log_gaussian_int = np.log(integral_0_rc_proxy + integral_rc_inf)
             # due to the location of the cutoff, the jacobian inherits an extra factor with the cutoff..
@@ -941,25 +950,25 @@ class mbar_compute_dos(object):
             firstwalk_log_volume = log_hyperpherical_jacobian + extra_term + log_gaussian_int + np.log(self.first_run_acceptance)
         else:
             raise NotImplementedError
-            
-            
+
+
         F0_from_first_walk = self.w_i_final[self.k0_index] - self.w_i_final[self.number_nested_spheres] + firstwalk_log_volume
-        
+
         if error != 0.0:
             logging.info("Using first walk as a reference, F0 = {} +/- {}".format(F0_from_first_walk, error))
         else:
             logging.info("Using first walk as a reference, F0 = {}".format(F0_from_first_walk))
-    
+
     def _compute_F0_from_innergaussian(self, error = 0.0):
-        
-        # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r). 
+
+        # Useful for 1d integral use: V = int dvecr f(r) = jac int dr r^(d-1) f(r).
         # For f = 1 and r in [0;1], V = V1 = volume of unit ball
         # jac = V1 / (int_0^1 dr r^(d-1)) = d V
         log_hyperpherical_jacobian = np.log(self.ndof) + log_volume_nball(1, self.ndof)
         # For the innersphere, the radial integral is just that of a 1d gaussian
         log_gaussian_int = 0.5 * (np.log(np.pi/2) - np.log(self.karray[0]))
         innersphere_log_volume = log_hyperpherical_jacobian + log_gaussian_int + np.log(self.inner_gaussian_acceptances[0])
-        
+
         F0_innergaussianref = self.w_i_final[self.k0_index] + innersphere_log_volume
         if error != 0.0:
             logging.info("Using inner gaussian as a reference, F0 = {} +/- {}".format(F0_innergaussianref, error))
@@ -1085,17 +1094,17 @@ class mbar_compute_dos(object):
                     hist_unbiased,
                 )
             )
-            
+
         if self.ballpicking_timeseries_available and self.include_ballpicking_in_plots:
             LARGE = 1e70
             u_kn = np.where(self.bin_edges[:-1] < self.ref_radii[0], 0, LARGE)
             hist_unbiased = np.vstack((u_kn, hist_unbiased))
-        
+
         self.hist_unbiased = hist_unbiased
-        
+
         if self.ballpicking_timeseries_available and self.include_ballpicking_in_plots:
             width = self.karray.shape[0] + 1
-        else: 
+        else:
             width = self.karray.shape[0]
         assert (
             self.hist_visits.shape == self.hist_unbiased.shape
@@ -1124,7 +1133,7 @@ class mbar_compute_dos(object):
             weights = self.w_i_final
         else:
             weights = self.w_i_final[:self.karray.shape[0]]
-        ldos = dos_from_offsets(self.hist_visits, log_dos, weights) 
+        ldos = dos_from_offsets(self.hist_visits, log_dos, weights)
         self.logn_E = np.array(ldos)
 
     def _plot_dos_data(self):
@@ -1562,7 +1571,12 @@ if __name__ == "__main__":
         help = "Do not use the inner gaussian run from innersphere at all",
         default = False
     )
-    
+    parser.add_argument(
+        "--ignore_neg_ks",
+        action="store_true",
+        help="Ignore negative ks in the volume computation",
+        default=False,
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -1583,6 +1597,7 @@ if __name__ == "__main__":
         kde=args.kde,
         plot_dos_data=True,
         bias=args.bias,
+        ignore_neg_ks=args.ignore_neg_ks,
         method = args.method,
         bypass_ballpicking_data = args.bypass_ballpicking_data,
         truncate_inner_gaussian = args.truncate_inner_gaussian,
