@@ -9,7 +9,7 @@ import numpy as np
 import os
 from pele.potentials import Harmonic, RadialGaussian
 from basinvolume.spheres import ConfigMCRunner
-from basinvolume.hypercube import HypercubeMCrunner, HypercubeGMCRunner
+from basinvolume.hypercube import HypercubeMCrunner, HypercubeGMCRunner, HypercubeGuidedMCRunner
 from basinvolume.utils import trymakedir
 import configparser
 import time
@@ -107,11 +107,14 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
             mcrunner = HypercubeMCrunner(
                 bias_potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
             )
-        else:
-            if runner != "galilean":
-                raise ValueError("runner={} not implemented".format(runner))
+        elif runner == "galilean":
             mcrunner = HypercubeGMCRunner(
                 bias_potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs)
+        else:
+            if runner != "guided":
+                raise ValueError("runner={} not implemented".format(runner))
+            mcrunner = HypercubeGuidedMCRunner(
+                bias_potential, self.coords, self.temperature, stepsize, stepsize, niter, self.coords, **kwargs)
         return mcrunner
 
     def _set_paths(self, base_dir):

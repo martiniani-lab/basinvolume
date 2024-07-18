@@ -123,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--runner",
         help="Choose the MCMC runner to use, default = metropolis",
-        choices=["metropolis", "galilean"],
+        choices=["metropolis", "galilean", "guided"],
         default="metropolis"
     )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
@@ -320,7 +320,7 @@ if __name__ == "__main__":
             hmin=0,
             hmax=1,
             hbinsize=1e-4,
-            acceptance=0.2 if args.runner == "metropolis" else 0.8,
+            acceptance=0.2 if args.runner == "metropolis" else 0.8 if args.runner == "galilean" else 0.8, # TODO: WHAT TO PUT HERE?
             adjustf=0.9,
             adjustf_niter=adjustf_niter,
             adjustf_navg=100,

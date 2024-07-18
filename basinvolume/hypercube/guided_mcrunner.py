@@ -1,6 +1,6 @@
 import numpy as np
-from mcpele.monte_carlo import MetropolisTest, RecordCoordsTimeseries
-from mcpele.galilean_monte_carlo import _BaseGMCRunner
+from mcpele.monte_carlo import RecordCoordsTimeseries
+from mcpele.guided_monte_carlo import _BaseGuidedMCRunner
 from basinvolume.monte_carlo import (
     RecordDisplacementTimeseries,
     CheckHyperCubicContainerGMC,
@@ -10,13 +10,14 @@ from basinvolume.monte_carlo import (
 from .mcrunner import BV_MCRunner_State
 
 
-class HypercubeGMCRunner(_BaseGMCRunner):
+class HypercubeGuidedMCRunner(_BaseGuidedMCRunner):
     def __init__(
             self,
             bias_potential,
             full_coords,
             temperature,
             stepsize,
+            standard_deviation,
             niter,
             origin,
             sidelength=1,
@@ -40,17 +41,14 @@ class HypercubeGMCRunner(_BaseGMCRunner):
             single=False,
             record_histogram=False,
             hyperball=False):
-        print("Using Galilean MC.")
+        print("Using Guided MC.")
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(
-                seed_takestep=np.random.randint(i32max),
-                seed_metropolis=np.random.randint(i32max),
+                seed_takestep=np.random.randint(i32max)
             )
-        resample_velocity_steps = niter  # TODO: THIS SHOULD REALLY BECOME SOMETHING ELSE
-        super().__init__(bias_potential, full_coords, temperature, niter, stepsize, 1, len(full_coords),
-                         seeds["seed_takestep"], resample_velocity_steps, 0.0, False, adjustf_navg, adjustf,
-                         acceptance, acceptance)
+        super().__init__(bias_potential, full_coords, temperature, niter, stepsize, standard_deviation,
+                         seeds["seed_takestep"], True, 0.0, adjustf_navg, adjustf, acceptance, acceptance)
 
         # Necessary variables for PT.
         self.niter = niter
@@ -66,10 +64,6 @@ class HypercubeGMCRunner(_BaseGMCRunner):
             ts_niter = niter
 
         self.set_report_steps(adjustf_niter)  # set number of iterations for which steps are adapted
-
-        self.metropolis = MetropolisTest(seeds["seed_metropolis"])
-        # noinspection PyTypeChecker
-        self.add_accept_test(self.metropolis)
 
         if not hyperball:
             self.conftest = CheckHyperCubicContainerGMC(np.zeros(self.bdim), sidelength, self.bdim)
