@@ -19,6 +19,7 @@ from ._conf_test_cpp import (
     CheckOverlapLeesEdwardsCellLists,
     CheckSameMinimum,
     CheckSameMinimumConfig,
+    CheckSameMinimumConfigGMC,
     CheckMinimumIsHCP,
     CheckExponentiallyDecayingProfile,
 )

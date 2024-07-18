@@ -10,7 +10,7 @@ from pele.potentials import PoweredCosineSum
 from mcpele.monte_carlo import RecordCoordsTimeseries
 from mcpele.guided_monte_carlo import _BaseGuidedMCRunner
 from basinvolume.enums import Minimizer, Interaction
-from basinvolume.monte_carlo import (CheckSameMinimumConfig, RecordDisp2Histogram, RecordDisplacementTimeseries,
+from basinvolume.monte_carlo import (CheckSameMinimumConfigGMC, RecordDisp2Histogram, RecordDisplacementTimeseries,
                                      RecordStepsTimeseries)
 from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t, write_2d_array_to_hdf5
 from .mcrunner import vec_analytical_d2, color_cycle, BV_MCRunner_State
@@ -107,9 +107,6 @@ class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
         else:
             red_coords = full_coords
 
-        # TODO CHECK THAT THE FOLLOWING WORKS!
-        super().__init__(potential, red_coords, temperature, niter)
-
         self.boxv = boxv
         self.bdim = len(boxv)
         self.origin = np.array(origin)
@@ -150,8 +147,6 @@ class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
         self.reflect_boundary = True
         self.reflect_potential = False
         self.standard_deviation = stepsize
-        if self.nparticles != 1:
-            raise NotImplementedError("nparticles != 1 not implemented")
         super().__init__(potential, red_coords, temperature, niter, stepsize, self.standard_deviation,
                          self.seeds["seed_takestep"], True, 0.0, self.adjustf_navg, self.adjustf, self.acceptance,
                          self.acceptance)
@@ -397,7 +392,7 @@ class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
     def _get_check_same_minimum(self):
         use_cgd = self.minimizer is Minimizer.CG
         if self.interaction is Interaction.NEGATIVE_COS:
-            csm = CheckSameMinimumConfig(
+            csm = CheckSameMinimumConfigGMC(
                 self.pot_optimizer,
                 self.red_origin,
                 self.dtol,
@@ -686,3 +681,6 @@ class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
         self.set_timestep(mcrunner_state.stepsize)
         self.set_count(mcrunner_state.takestep_count)
         self.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
+
+    def set_control(self, c):
+        raise NotImplementedError

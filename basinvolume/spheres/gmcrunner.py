@@ -10,7 +10,7 @@ from pele.potentials import PoweredCosineSum
 from mcpele.monte_carlo import MetropolisTest, RecordCoordsTimeseries
 from mcpele.galilean_monte_carlo import _BaseGMCRunner
 from basinvolume.enums import Minimizer, Interaction
-from basinvolume.monte_carlo import (CheckSameMinimumConfig, RecordDisp2Histogram, RecordDisplacementTimeseries,
+from basinvolume.monte_carlo import (CheckSameMinimumConfigGMC, RecordDisp2Histogram, RecordDisplacementTimeseries,
                                      RecordStepsTimeseries)
 from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t, write_2d_array_to_hdf5
 from .mcrunner import vec_analytical_d2, color_cycle, BV_MCRunner_State
@@ -107,9 +107,6 @@ class SpheresGMCRunner(_BaseGMCRunner):
         else:
             red_coords = full_coords
 
-        # TODO CHECK THAT THE FOLLOWING WORKS!
-        super().__init__(potential, red_coords, temperature, niter)
-
         self.boxv = boxv
         self.bdim = len(boxv)
         self.origin = np.array(origin)
@@ -150,8 +147,6 @@ class SpheresGMCRunner(_BaseGMCRunner):
         self.resample_velocity_steps = niter  # TODO: THIS SHOULD REALLY BECOME SOMETHING ELSE
         self.reflect_boundary = True
         self.reflect_potential = False
-        if self.nparticles != 1:
-            raise NotImplementedError("nparticles != 1 not implemented")
         super().__init__(potential, red_coords, temperature, niter, stepsize, self.nparticles,
                          self.bdim, self.seeds["seed_takestep"], self.resample_velocity_steps, 0.0, False,
                          self.adjustf_navg, self.adjustf, self.acceptance, self.acceptance, self.reflect_boundary,
@@ -403,7 +398,7 @@ class SpheresGMCRunner(_BaseGMCRunner):
     def _get_check_same_minimum(self):
         use_cgd = self.minimizer is Minimizer.CG
         if self.interaction is Interaction.NEGATIVE_COS:
-            csm = CheckSameMinimumConfig(
+            csm = CheckSameMinimumConfigGMC(
                 self.pot_optimizer,
                 self.red_origin,
                 self.dtol,
@@ -691,3 +686,6 @@ class SpheresGMCRunner(_BaseGMCRunner):
         self.set_timestep(mcrunner_state.stepsize)
         self.set_count(mcrunner_state.takestep_count)
         self.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
+
+    def set_control(self, c):
+        raise NotImplementedError

@@ -409,7 +409,7 @@ cdef class _Cdef_CheckSameMinimumConfigGMC(_Cdef_GMCConfTest):
             origin_result[i] = origin_data[i]
         return origin_result
 
-class CheckSameMinimumConfigGMC(_Cdef_CheckSameMinimumConfig):
+class CheckSameMinimumConfigGMC(_Cdef_CheckSameMinimumConfigGMC):
     pass
 
 #===============================================================================
