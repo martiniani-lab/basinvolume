@@ -40,6 +40,7 @@ class HypercubeGMCRunner(_BaseGMCRunner):
             single=False,
             record_histogram=False,
             hyperball=False):
+        print("Using Galilean MC.")
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(
