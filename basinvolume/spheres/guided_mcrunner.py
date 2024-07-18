@@ -7,8 +7,8 @@ from scipy.integrate import quad
 from pele.distance import Distance
 from pele.optimize import CVODEBDFOptimizer, ExtendedMixedOptimizer, LBFGS_CPP, ModifiedFireCPP
 from pele.potentials import PoweredCosineSum
-from mcpele.monte_carlo import MetropolisTest, RecordCoordsTimeseries
-from mcpele.galilean_monte_carlo import _BaseGMCRunner
+from mcpele.monte_carlo import RecordCoordsTimeseries
+from mcpele.guided_monte_carlo import _BaseGuidedMCRunner
 from basinvolume.enums import Minimizer, Interaction
 from basinvolume.monte_carlo import (CheckSameMinimumConfig, RecordDisp2Histogram, RecordDisplacementTimeseries,
                                      RecordStepsTimeseries)
@@ -16,7 +16,7 @@ from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t, write_2d_ar
 from .mcrunner import vec_analytical_d2, color_cycle, BV_MCRunner_State
 
 
-class SpheresGMCRunner(_BaseGMCRunner):
+class SpheresGMCRunner(_BaseGuidedMCRunner):
     def __init__(
         self,
         potential,
@@ -69,7 +69,7 @@ class SpheresGMCRunner(_BaseGMCRunner):
         record_trajectory_npoints=1e4,
         single=False,
     ):
-        print("Using Galilean MC.")
+        print("Using guided MC.")
 
         if ts_niter is None:
             ts_niter = niter
@@ -143,20 +143,19 @@ class SpheresGMCRunner(_BaseGMCRunner):
         if not seeds:
             i32max = np.iinfo(np.int32).max
             seeds = dict(
-                seed_takestep=random.randint(0, i32max),
-                seed_metropolis=random.randint(0, i32max),
+                seed_takestep=random.randint(0, i32max)
             )
         self.seeds = seeds
 
         self.resample_velocity_steps = niter  # TODO: THIS SHOULD REALLY BECOME SOMETHING ELSE
         self.reflect_boundary = True
         self.reflect_potential = False
+        self.standard_deviation = stepsize
         if self.nparticles != 1:
             raise NotImplementedError("nparticles != 1 not implemented")
-        super().__init__(potential, red_coords, temperature, niter, stepsize, self.nparticles,
-                         self.bdim, self.seeds["seed_takestep"], self.resample_velocity_steps, 0.0, False,
-                         self.adjustf_navg, self.adjustf, self.acceptance, self.acceptance, self.reflect_boundary,
-                         self.reflect_potential)
+        super().__init__(potential, red_coords, temperature, niter, stepsize, self.standard_deviation,
+                         self.seeds["seed_takestep"], True, 0.0, self.adjustf_navg, self.adjustf, self.acceptance,
+                         self.acceptance)
 
         # manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof
@@ -190,17 +189,12 @@ class SpheresGMCRunner(_BaseGMCRunner):
         # construct custom test/action/takestep classes
         self.set_report_steps(report_steps)
         self._set_conf_tests()
-        self._set_accept_tests()
         self._set_actions()
 
         self.bias_potential = potential
         self.bias = bias
         self.full_coords = full_coords
         self.set_bias_parameters(bias, bias_params)
-
-    def _set_accept_tests(self):
-        self.metropolis = MetropolisTest(self.seeds["seed_metropolis"])
-        self.add_accept_test(self.metropolis)
 
     def _set_record_histogram(self, hmin, hmax, binsize):
         self.histogram = RecordDisp2Histogram(
@@ -675,6 +669,7 @@ class SpheresGMCRunner(_BaseGMCRunner):
         self.record_trajectory.clear()
 
     def get_complete_state(self):
+        # TODO: THIS SHOULD INCLUDE THE WIDTH AT SOME POINT
         return BV_MCRunner_State(
             coords=self.get_coords(),
             energy=self.get_energy(),
