@@ -21,7 +21,7 @@ public:
   SampleUniformSphereGaussian(const size_t rseed, const double stepsize,
                               const pele::Array<double> origin);
   virtual ~SampleUniformSphereGaussian() {}
-  virtual void displace(pele::Array<double> &coords, mcpele::MC *mc);
+  virtual void displace(pele::Array<double> &coords, mcpele::MCBase *mc);
 };
 
 } // namespace bv

@@ -41,7 +41,7 @@ void RecordDisplacementTimeseries::m_get_vec_distance(
 
 double RecordDisplacementTimeseries::get_recorded_scalar(
     pele::Array<double> &coords, const double energy, const bool accepted,
-    mcpele::MC *mc) {
+    mcpele::MCBase *mc) {
   this->m_get_vec_distance(coords);
   return norm(m_distance); // norm
 }

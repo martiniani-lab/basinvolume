@@ -4,6 +4,7 @@ from .mcrunner import (
     HypercubeMCrunner,
     HypercubeInnerSphereMCrunner,
 )
+from .gmcrunner import HypercubeGMCRunner
 from ._findk_mcrunner import _hypercube_findk_mcrunner
 from ._kmin_mcrunner import _hypercube_kmin_mcrunner
 from ._configure_bv_mcrunner import _hypercube_bv_mcrunner

@@ -33,7 +33,7 @@ void CheckHyperSphericalContainer::_get_vec_distance(
 }
 
 bool CheckHyperSphericalContainer::conf_test(Array<double> &trial_coords,
-                                             mcpele::MC *mc) {
+                                             mcpele::MCBase *mc) {
   /*
   //debug
   std::shared_ptr<pele::BaseHarmonic> potential;

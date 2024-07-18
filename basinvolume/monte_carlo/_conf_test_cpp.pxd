@@ -1,6 +1,7 @@
 from libcpp cimport bool as cbool
 cimport pele.potentials._pele as _pele
 cimport pele.optimize._pele_opt as _pele_opt
+from mcpele.galilean_monte_carlo._gmc_cpp cimport cppGMCConfTest, _Cdef_GMCConfTest
 from mcpele.monte_carlo._pele_mc cimport cppConfTest,_Cdef_ConfTest,shared_ptr
 from ctypes import c_size_t as size_t
 

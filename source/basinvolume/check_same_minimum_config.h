@@ -18,7 +18,7 @@ public:
       : m_optimizer(optimizer), m_potential(potential), m_origin(origin.copy()),
         m_dtol(dtol), m_nfev(0), m_nr_failed_quenches(0),
         m_nr_total_quenches(0), m_delta_orig(origin.size()) {}
-  bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc) {
+  bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc) {
     double dist_orig_2;
     const bool quench_success = quench(trial_coords, dist_orig_2);
     ++m_nr_total_quenches;

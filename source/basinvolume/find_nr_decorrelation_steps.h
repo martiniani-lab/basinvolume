@@ -24,7 +24,7 @@ public:
                            const size_t boxdim_);
   virtual ~FindNrDecorrelationSteps() {}
   virtual void action(pele::Array<double> &coords, double energy, bool accepted,
-                      mcpele::MC *mc);
+                      mcpele::MCBase *mc);
   size_t get_nr_decorrelation_steps() const;
   bool done() const;
 };

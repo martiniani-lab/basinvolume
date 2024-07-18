@@ -32,7 +32,7 @@ bool FindNrDecorrelationSteps::done() const {
 
 void FindNrDecorrelationSteps::action(pele::Array<double> &coords,
                                       double energy, bool accepted,
-                                      mcpele::MC *mc) {
+                                      mcpele::MCBase *mc) {
   if (done()) {
     // this will trigger premature exit from the MC run loop
     mc->m_niter =

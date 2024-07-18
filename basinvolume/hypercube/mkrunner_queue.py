@@ -116,9 +116,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--bias",
-        help = "Biasing potentials used in PT\
-            default = harmonic",
+        help = "Biasing potentials used in PT, default = harmonic",
+        choices = ["harmonic", "radial_gaussian"],
         default = "harmonic"
+    )
+    parser.add_argument(
+        "--runner",
+        help="Choose the MCMC runner to use, default = metropolis",
+        choices=["metropolis", "galilean"],
+        default="metropolis"
     )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
@@ -314,7 +320,7 @@ if __name__ == "__main__":
             hmin=0,
             hmax=1,
             hbinsize=1e-4,
-            acceptance=0.2,
+            acceptance=0.2 if args.runner == "metropolis" else 0.8,
             adjustf=0.9,
             adjustf_niter=adjustf_niter,
             adjustf_navg=100,
@@ -324,6 +330,7 @@ if __name__ == "__main__":
             seeds=seeds,
             single=single,
             record_histogram=record_histogram,
+            runner=args.runner
         )
         if not check_kmax_reasonable(sim_pt.findk_configpath):
             print("bv_parallel_tempering: kmax is unreasonable, exiting")

@@ -33,7 +33,7 @@ public:
         m_fix_com(fix_com) {}
   virtual ~RecordDisp2Histogram(){};
   virtual void action(pele::Array<double> &coords, double energy, bool accepted,
-                      mcpele::MC *mc);
+                      mcpele::MCBase *mc);
 };
 
 } // namespace bv

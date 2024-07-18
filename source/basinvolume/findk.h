@@ -31,7 +31,7 @@ class Findk : public mcpele::Action {
 
 protected:
   void _get_vec_distance(const pele::Array<double> &x);
-  void adjust_k(const size_t, mcpele::MC *);
+  void adjust_k(const size_t, mcpele::MCBase *);
   pele::Array<double> _origin;
   pele::Array<double> _rattlers;
   pele::Array<double> _distance;
@@ -58,7 +58,7 @@ public:
         double max, double bin, const bool fix_com = true);
   virtual ~Findk() {}
   virtual void action(pele::Array<double> &coords, double energy, bool accepted,
-                      mcpele::MC *mc);
+                      mcpele::MCBase *mc);
   double get_prob() const {
     double prob =
         static_cast<double>(_naccepted) /

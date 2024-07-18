@@ -21,7 +21,7 @@ protected:
 public:
   CheckHyperSphericalContainer(pele::Array<double> origin, double radius,
                                size_t ndim);
-  virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc);
+  virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc);
   virtual ~CheckHyperSphericalContainer(){};
 };
 

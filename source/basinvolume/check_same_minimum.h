@@ -40,7 +40,7 @@ namespace bv {
 class CheckSameMinimumInterface : public mcpele::ConfTest {
 public:
   virtual ~CheckSameMinimumInterface(){};
-  virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc) = 0;
+  virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc) = 0;
   virtual size_t ml_nr_distinct_minima() const = 0;
   virtual pele::Array<Minimum *> get_array_of_minima() = 0;
   virtual double get_failed_quench_frac() const = 0;
@@ -85,7 +85,7 @@ public:
                    std::shared_ptr<distance_policy> const &dist,
                    const bool perform_convergence_test,
                    const bool collect_minima_list);
-  virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc);
+  virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc);
   virtual ~CheckSameMinimum() {}
   double get_distance() const { return _d; }
   bool perform_convergence_test() const { return _perform_convergence_test; }
@@ -310,7 +310,7 @@ inline bool CheckSameMinimum<pele::cartesian_distance<3UL>,
 // linetest
 template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(
-    pele::Array<double> &trial_coords, mcpele::MC *mc) {
+    pele::Array<double> &trial_coords, mcpele::MCBase *mc) {
   bool quench_success;
   bool optimizer_converged = this->_quench(trial_coords);
 

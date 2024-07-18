@@ -15,7 +15,7 @@ CheckHyperCubicContainer::CheckHyperCubicContainer(pele::Array<double> origin,
 }
 
 bool CheckHyperCubicContainer::conf_test(Array<double> &trial_coords,
-                                         mcpele::MC *mc) {
+                                         mcpele::MCBase *mc) {
   m_distance.assign(m_origin);
   m_distance -= trial_coords;
 
@@ -27,6 +27,42 @@ bool CheckHyperCubicContainer::conf_test(Array<double> &trial_coords,
   }
 
   return true;
+}
+
+pele::Array<double> CheckHyperCubicContainer::gmc_gradient(
+    pele::Array<double>& coords, mcpele::MCBase* mc) {
+  const auto c = coords - m_origin;
+  pele::Array gradient(c.size(), 0.0);
+  size_t min_index = c.size();
+  double min_distance = std::numeric_limits<double>::infinity();
+  bool positive = true;
+  for (size_t i = 0; i < c.size(); ++i) {
+    const double positive_distance = m_halfside - c[i];
+    const double negative_distance = c[i] + m_halfside;
+    assert(positive_distance >= 0.0);
+    assert(negative_distance >= 0.0);
+    double smaller_distance;
+    bool smaller_positive;
+    if (positive_distance < negative_distance) {
+      smaller_distance = positive_distance;
+      smaller_positive = true;
+    } else {
+      smaller_distance = negative_distance;
+      smaller_positive = false;
+    }
+    if (smaller_distance < min_distance) {
+      min_distance = smaller_distance;
+      min_index = i;
+      positive = smaller_positive;
+    }
+  }
+  assert(min_index < c.size() && min_distance > 0.0 && !std::isinf(min_distance));
+  if (positive) {
+    gradient[min_index] = -1.0;
+  } else {
+    gradient[min_index] = 1.0;
+  }
+  return gradient;
 }
 
 } // namespace bv

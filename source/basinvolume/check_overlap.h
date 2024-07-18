@@ -40,7 +40,7 @@ public:
     static_assert(DIST_POL::_ndim > 0,
                   "CheckOverlap: illegal input: distance policy");
   }
-  bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc) {
+  bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc) {
     if (trial_coords.size() % m_ndim) {
       throw std::runtime_error("CheckOverlap::conf_test: illegal input");
     }

@@ -38,7 +38,7 @@ public:
         m_fixed_distance_cutoff(fixed_distance_cutoff),
         m_record_q4_histogram(record_q4_histogram),
         m_q4_histogram(0, 0.4, 0.4 / nr_bins) {}
-  bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc) {
+  bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc) {
     m_optimizer->reset(trial_coords);
     m_optimizer->run();
     if (!m_optimizer->success()) {

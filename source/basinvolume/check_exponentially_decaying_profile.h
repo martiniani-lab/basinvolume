@@ -23,7 +23,7 @@ public:
         m_unity_radius2(unity_radius * unity_radius),
         m_decay_length(decay_length), m_origin(origin.copy()), m_cubic(cubic),
         m_generator(seed) {}
-  bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc) {
+  bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc) {
     pele::Array<double> tmp = trial_coords.copy();
     tmp -= m_origin;
     double oracle_probability = 0;

@@ -12,7 +12,7 @@ SampleUniformSphereGaussian::SampleUniformSphereGaussian(
  * with mean centered at the origin and stdev defined by the stepsize
  * */
 void SampleUniformSphereGaussian::displace(pele::Array<double> &coords,
-                                           mcpele::MC *mc) {
+                                           mcpele::MCBase *mc) {
   // assert(coords.size() == m_ndim);
   this->m_sample_normal_vec();
   m_normal_vec /= norm(m_normal_vec);

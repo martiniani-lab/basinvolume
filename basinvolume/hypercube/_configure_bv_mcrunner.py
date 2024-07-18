@@ -9,7 +9,7 @@ import numpy as np
 import os
 from pele.potentials import Harmonic, RadialGaussian
 from basinvolume.spheres import ConfigMCRunner
-from basinvolume.hypercube import HypercubeMCrunner
+from basinvolume.hypercube import HypercubeMCrunner, HypercubeGMCRunner
 from basinvolume.utils import trymakedir
 import configparser
 import time
@@ -46,6 +46,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         record_trajectory_npoints=1e4,
         record_histogram=False,
         verbose=False,
+        runner="metropolis"
     ):
 
         self.temperature = 1.0
@@ -102,10 +103,15 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         
         kwargs["bias_params"] = bias_params # Needed to properly initialise with the right lengths in each list of parameters
 
-            
-        mcrunner = HypercubeMCrunner(
-            bias_potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
-        )
+        if runner == "metropolis":
+            mcrunner = HypercubeMCrunner(
+                bias_potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs
+            )
+        else:
+            if runner != "galilean":
+                raise ValueError("runner={} not implemented".format(runner))
+            mcrunner = HypercubeGMCRunner(
+                bias_potential, self.coords, self.temperature, stepsize, niter, self.coords, **kwargs)
         return mcrunner
 
     def _set_paths(self, base_dir):

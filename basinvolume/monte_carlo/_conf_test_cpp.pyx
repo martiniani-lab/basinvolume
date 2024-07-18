@@ -86,6 +86,18 @@ class CheckHyperCubicContainer(_Cdef_CheckHyperCubicContainer):
 # Check Overlap Periodic
 #===============================================================================
 
+cdef class _Cdef_CheckHyperCubicContainerGMC(_Cdef_GMCConfTest):
+    """This class is the python interface for the c++ pele::CheckHyperCubicContainer configuration test class implementation
+    """
+    cdef cppCheckHyperCubicContainer* newptr
+    def __cinit__(self, origin, sidelength, ndim):
+        cdef _pele.Array[double] ori_ = array_wrap_np(origin)
+        self.thisptr = shared_ptr[cppGMCConfTest](<cppGMCConfTest*>new cppCheckHyperCubicContainer(ori_, sidelength, ndim))
+        self.newptr = <cppCheckHyperCubicContainer*> self.thisptr.get()
+
+class CheckHyperCubicContainerGMC(_Cdef_CheckHyperCubicContainerGMC):
+    pass
+
 cdef class _Cdef_CheckOverlapPeriodic(_Cdef_ConfTest):
     """This class is the python interface for the c++ pele::CheckOverlap configuration test class implementation
     """

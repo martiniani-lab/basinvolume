@@ -30,7 +30,7 @@ protected:
                         pele::Array<size_t> const &frozen_dof)
       : coords_converter(reference_coords, frozen_dof),
         _underlying_conftest(conftest) {}
-  inline bool conf_test(pele::Array<double> &reduced_coords, mcpele::MC *mc) {
+  inline bool conf_test(pele::Array<double> &reduced_coords, mcpele::MCBase *mc) {
     if (reduced_coords.size() != coords_converter.ndof_mobile()) {
       throw std::runtime_error("reduced coords does not have the right size");
     }

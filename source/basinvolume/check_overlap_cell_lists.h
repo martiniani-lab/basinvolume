@@ -82,7 +82,7 @@ protected:
     }
   }
 
-  void save_changes(pele::Array<double> &trial_coords, mcpele::MC *mc) {
+  void save_changes(pele::Array<double> &trial_coords, mcpele::MCBase *mc) {
     m_last_changed_atoms = std::vector<size_t>(mc->get_changed_atoms());
     m_last_changed_coords =
         std::vector<double>(m_ndim * m_last_changed_atoms.size());
@@ -117,7 +117,7 @@ public:
                   "CellListCheckOverlap: illegal input: distance policy");
   }
 
-  bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc) {
+  bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc) {
     if (trial_coords.size() % m_ndim) {
       throw std::runtime_error(
           "CellListCheckOverlap::conf_test: illegal input");

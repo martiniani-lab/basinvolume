@@ -32,7 +32,7 @@ void RecordDisp2Histogram::m_get_vec_distance(const pele::Array<double> &x) {
 }
 
 void RecordDisp2Histogram::action(pele::Array<double> &coords, double energy,
-                                  bool accepted, mcpele::MC *mc) {
+                                  bool accepted, mcpele::MCBase *mc) {
   if (mc->get_iterations_count() > get_eqsteps()) {
     // compute distances subtracting the origin's coordinates
     this->m_get_vec_distance(coords);

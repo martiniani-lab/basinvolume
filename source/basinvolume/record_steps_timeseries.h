@@ -43,7 +43,7 @@ public:
   virtual ~RecordStepsTimeseries() {}
   virtual double get_recorded_scalar(pele::Array<double> &coords,
                                      const double energy, const bool accepted,
-                                     mcpele::MC *mc) {
+                                     mcpele::MCBase *mc) {
     if (!accepted) {
       return 0.;
     }

@@ -48,7 +48,7 @@ public:
       : m_origin(origin.copy()), m_dist_acc(rmin, rmax, nbins),
         m_eqsteps(eqsteps) {}
   void action(pele::Array<double> &coords, double energy, bool accepted,
-              mcpele::MC *mc) {
+              mcpele::MCBase *mc) {
     if (mc->get_iterations_count() > m_eqsteps) {
       pele::Array<double> tmp = coords.copy();
       tmp -= m_origin;

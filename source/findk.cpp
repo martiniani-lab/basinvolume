@@ -47,7 +47,7 @@ void Findk::_get_vec_distance(const pele::Array<double> &x) {
 }
 
 void Findk::action(pele::Array<double> &coords, double energy, bool accepted,
-                   mcpele::MC *mc) {
+                   mcpele::MCBase *mc) {
 
   const size_t mc_count = mc->get_iterations_count();
 
@@ -89,7 +89,7 @@ void Findk::action(pele::Array<double> &coords, double energy, bool accepted,
   // coords.assign(_origin);
 }
 
-void Findk::adjust_k(const size_t iterations, mcpele::MC *mc) {
+void Findk::adjust_k(const size_t iterations, mcpele::MCBase *mc) {
   // parameter: can be adapted for better convergence
   const size_t period = 3;
   // get k
