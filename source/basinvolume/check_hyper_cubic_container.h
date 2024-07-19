@@ -16,12 +16,14 @@ class CheckHyperCubicContainer : public mcpele::GMCConfTest {
 protected:
   void _get_vec_distance(const pele::Array<double> &coords);
   pele::Array<double> m_origin, m_distance;
-  double m_halfside;
-  size_t m_ndim, m_N;
+  const double m_halfside;
+  const size_t m_ndim, m_N;
+  const double m_side_length;
+  const bool m_use_powered_cosine_sum;
 
 public:
   CheckHyperCubicContainer(pele::Array<double> origin, double sidelength,
-                           size_t ndim);
+                           size_t ndim, bool use_powered_cosine_sum = false);
   virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc);
   virtual ~CheckHyperCubicContainer(){};
   pele::Array<double> gmc_gradient(pele::Array<double> &coords, mcpele::MCBase *mc) override;
