@@ -12,7 +12,7 @@ CheckHyperCubicContainer::CheckHyperCubicContainer(pele::Array<double> origin,
     : m_origin(origin.copy()), m_distance(origin.size(), 0),
       m_halfside(sidelength / 2.0), m_ndim(ndim), m_N((origin.size() / ndim)),
       m_side_length(sidelength), m_use_powered_cosine_sum(use_powered_cosine_sum) {
-  std::cout << "m_halfside" << m_halfside << std::endl;
+  std::cout << "m_halfside " << m_halfside << std::endl;
   std::cout << "m_origin.size() " << m_origin.size() << std::endl;
   std::cout << "m_distance.size() " << m_distance.size() << std::endl;
 }
