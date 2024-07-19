@@ -143,10 +143,7 @@ class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
             )
         self.seeds = seeds
 
-        self.resample_velocity_steps = niter  # TODO: THIS SHOULD REALLY BECOME SOMETHING ELSE
-        self.reflect_boundary = True
-        self.reflect_potential = False
-        self.standard_deviation = stepsize
+        self.standard_deviation = stepsize * 0.35  # TODO: This should not be hardcoded
         super().__init__(potential, red_coords, temperature, niter, stepsize, self.standard_deviation,
                          self.seeds["seed_takestep"], True, 0.0, self.adjustf_navg, self.adjustf, self.acceptance,
                          self.acceptance)
