@@ -72,7 +72,7 @@ class HypercubeGMCRunner(_BaseGMCRunner):
         self.add_accept_test(self.metropolis)
 
         if not hyperball:
-            self.conftest = CheckHyperCubicContainerGMC(np.zeros(self.bdim), sidelength, self.bdim)
+            self.conftest = CheckHyperCubicContainerGMC(np.zeros(self.bdim), sidelength, self.bdim, True)
         else:
             raise RuntimeError("Hyperball not implemented for GMC")
         self.add_late_conf_test(self.conftest)
