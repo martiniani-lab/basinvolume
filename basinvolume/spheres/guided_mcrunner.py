@@ -56,10 +56,10 @@ class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
         opt_kwargs={},
-        acceptance=0.2,
+        acceptance=0.3,
         adjustf=0.9,
-        adjustf_niter=1e4,
-        adjustf_navg=100,
+        adjustf_niter=1e5,
+        adjustf_navg=5000,
         ts_niter=None,
         ts_freq=1,
         record_steps_timeseries=False,
@@ -143,7 +143,7 @@ class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
             )
         self.seeds = seeds
 
-        self.standard_deviation = stepsize * 0.35  # TODO: This should not be hardcoded
+        self.standard_deviation = stepsize * 0.2  # TODO: This should not be hardcoded
         super().__init__(potential, red_coords, temperature, niter, stepsize, self.standard_deviation,
                          self.seeds["seed_takestep"], True, 0.0, self.adjustf_navg, self.adjustf, self.acceptance,
                          self.acceptance)

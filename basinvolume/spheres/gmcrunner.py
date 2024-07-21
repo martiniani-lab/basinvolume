@@ -56,10 +56,10 @@ class SpheresGMCRunner(_BaseGMCRunner):
         interaction=Interaction.HS_WCA,
         pot_kwargs={},
         opt_kwargs={},
-        acceptance=0.2,
+        acceptance=0.4,
         adjustf=0.9,
-        adjustf_niter=1e4,
-        adjustf_navg=100,
+        adjustf_niter=1e5,
+        adjustf_navg=5000,
         ts_niter=None,
         ts_freq=1,
         record_steps_timeseries=False,
@@ -144,7 +144,7 @@ class SpheresGMCRunner(_BaseGMCRunner):
             )
         self.seeds = seeds
 
-        self.resample_velocity_steps = niter  # TODO: THIS SHOULD REALLY BECOME SOMETHING ELSE
+        self.resample_velocity_steps = 0  # Velocity will be resampled after each call of run.
         self.reflect_boundary = True
         self.reflect_potential = False
         super().__init__(potential, red_coords, temperature, niter, stepsize, self.nparticles,
