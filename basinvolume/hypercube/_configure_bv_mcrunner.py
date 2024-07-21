@@ -114,7 +114,7 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
             if runner != "guided":
                 raise ValueError("runner={} not implemented".format(runner))
             mcrunner = HypercubeGuidedMCRunner(
-                bias_potential, self.coords, self.temperature, stepsize, stepsize, niter, self.coords, **kwargs)
+                bias_potential, self.coords, self.temperature, stepsize, 0.2 * stepsize, niter, self.coords, **kwargs)
         return mcrunner
 
     def _set_paths(self, base_dir):
