@@ -46,10 +46,10 @@ class HypercubeGMCRunner(_BaseGMCRunner):
                 seed_takestep=np.random.randint(i32max),
                 seed_metropolis=np.random.randint(i32max),
             )
-        resample_velocity_steps = niter  # TODO: THIS SHOULD REALLY BECOME SOMETHING ELSE
+        resample_velocity_steps = 0  # Velocity will be resampled after each call of run.
         super().__init__(bias_potential, full_coords, temperature, niter, stepsize, 1, len(full_coords),
                          seeds["seed_takestep"], resample_velocity_steps, 0.0, False, adjustf_navg, adjustf,
-                         acceptance, acceptance)
+                         acceptance, acceptance, True, False)
 
         # Necessary variables for PT.
         self.niter = niter
