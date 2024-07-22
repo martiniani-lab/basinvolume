@@ -68,7 +68,7 @@ pele::Array<double> CheckHyperCubicContainer::gmc_gradient(
     }
     return gradient;
   }
-  pele::PoweredCosineSum powered_cosine_sum(c.size(), m_side_length, 0.5, c.size());
+  pele::PoweredCosineSum powered_cosine_sum(c.size(), m_side_length, 0.5, 1.0);
   pele::Array<double> gradient(c.size());
   powered_cosine_sum.get_energy_gradient(c, gradient);
   return -gradient;
