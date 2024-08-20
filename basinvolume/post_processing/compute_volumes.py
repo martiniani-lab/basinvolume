@@ -51,7 +51,7 @@ try:
         VolumeSanityCheck,
     )
     from basinvolume.spheres import _collect_u2_vs_k
-    from basinvolume.mbar_spheres import mbar_compute_dos
+    import basinvolume.mbar_spheres.mbar_compute_volume as mbar_compute_volume
 except ImportError as err:
     print(err)
 
@@ -249,7 +249,7 @@ class ComputeVolumesMBARMultiConfigFile(ComputeVolumesCommon):
             set_explore_dir=set_explore_dir,
         )
         self.plot_dos_data = False
-        self.series_collector = mbar_compute_dos(
+        self.series_collector = mbar_compute_volume.mbar_compute_dos(
             nbins=1000,
             bootstrap=True,
             kde=True,
