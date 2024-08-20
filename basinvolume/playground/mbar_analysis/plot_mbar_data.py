@@ -33,7 +33,7 @@ except ImportError as err:
     print(err)
 #######################SET LATEX OPTIONS###################
 rc('text', usetex=True)
-rc('font',**{'family':'serif','serif':['Computer Modern']})
+rc('font',**{'family':'serif'})
 params = {'backend': 'pdf',
           'text.latex.preamble': ['\usepackage{gensymb}'],
           'font.size': 20,

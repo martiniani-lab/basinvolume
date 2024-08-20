@@ -33,7 +33,7 @@ from scipy.optimize import curve_fit
 
 #######################SET LATEX OPTIONS###################
 rc("text", usetex=True)
-rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
+rc("font", **{"family": "serif"})
 # rc('text.latex',preamble=r'\usepackage{times}')
 glob_fontsize = 25
 plt.rcParams.update({"font.size": glob_fontsize})

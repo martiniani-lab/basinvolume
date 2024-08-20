@@ -36,7 +36,7 @@ try:
     # more stuff for plotting histogram and comparing to prediction
     #######################SET LATEX OPTIONS###################
     plt.rc("text", usetex=False)  # True = bugs on the cluster!
-    plt.rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
+    plt.rc("font", **{"family": "serif"})
     # rc('text.latex',preamble=r'\usepackage{times}')
     plt.rcParams.update({"font.size": 20})
     plt.rcParams["xtick.major.pad"] = 8

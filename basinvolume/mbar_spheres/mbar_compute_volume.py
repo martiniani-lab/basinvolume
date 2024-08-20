@@ -60,7 +60,7 @@ from basinvolume.spheres import read_jammed_packing_config
 
 #######################SET LATEX OPTIONS###################
 rc("text", usetex=False)
-# rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
+# rc("font", **{"family": "serif"})
 # rc('text.latex',preamble=r'\usepackage{times}')
 plt.rcParams.update({"font.size": 28})
 plt.rcParams["xtick.major.pad"] = 8

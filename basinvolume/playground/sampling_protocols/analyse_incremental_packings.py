@@ -43,7 +43,7 @@ except ImportError as err:
     print(err)
 #######################SET LATEX OPTIONS###################
 rc("text", usetex=True)
-rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
+rc("font", **{"family": "serif"})
 # rc('text.latex',preamble=r'\usepackage{times}')
 plt.rcParams.update({"font.size": 18})
 plt.rcParams["xtick.major.pad"] = 8
