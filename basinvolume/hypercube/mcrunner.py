@@ -643,8 +643,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
         plt.ylabel(r"frequency $\times 10$")
         plt.tight_layout()
-        plt.savefig(output_directory + "/innersphere_histogram.eps")
-        plt.show()
+        plt.savefig(output_directory + "/innersphere_histogram.pdf")
 
 
 if __name__ == "__main__":

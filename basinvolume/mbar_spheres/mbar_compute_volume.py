@@ -8,6 +8,7 @@ from builtins import str
 from builtins import next
 from builtins import range
 from builtins import object
+import h5py
 import numpy as np
 import os
 import re
@@ -246,20 +247,29 @@ class mbar_compute_dos(object):
         base_directory = self.base_directory
         logging.info("Analysing {}".format(self.explore_dir))
         trymakedir(base_directory)
-        logging.info("importing k array")
+        logging.info("Importing k array")
         self._import_ks()
-        logging.info("importing time series")
+        logging.info("Importing time series")
         self._import_pt_time_series()
-        logging.info("subtracting equilibration point")
+        self._info_file = h5py.File(self.base_directory + "/info.h5", "w")
+        self._info_file.create_dataset("bias_parameters",
+                                       data=self.karray[self.number_nested_spheres:])
+        self._info_file.attrs["number_initial_samples"] = self.timeseries.shape[1]
+        logging.info("Subtracting equilibration point")
         self._subtract_eqtime()
-        logging.info("importing innersphere time series")
+        logging.info("Importing innersphere time series")
         self._import_ts_spheres()
-        logging.info("subsampling time series")
+        logging.info("Subsampling time series")
         self._build_flat_timeseries()
-        logging.info("building mbar")
+        logging.info("Building MBAR")
         self._build_mbar()
-        logging.info("mbar computing volume")
+        logging.info("MBAR computing volume")
         self._mbar_compute_volume()
+        self._info_file.create_dataset("number_final_samples",
+                                       data=self.N_k[self.number_nested_spheres:len(self.karray)])
+        self._info_file.attrs["free_energy"] = self.F0unc
+        self._info_file.attrs["free_energy_sigma"] = self.sigF0
+        self._info_file.close()
         self._compute_hs_fluid_volume()
         self._print_volumes()
         if self.plot_dos_data:
@@ -770,7 +780,7 @@ class mbar_compute_dos(object):
             )
         ax.legend(
             frameon=False,
-            loc="best",
+            loc="upper left",
             prop={"size": 17},
             numpoints=1,
             scatterpoints=1,
@@ -782,7 +792,7 @@ class mbar_compute_dos(object):
             ncol=2,
         )
         ax.set_xlabel(r"$r$", fontsize=28)
-        plt.savefig(self.base_directory + "/histograms.")
+        plt.savefig(self.base_directory + "/histograms.pdf")
         if self.show:
             plt.show()
 
@@ -919,6 +929,15 @@ class mbar_compute_dos(object):
         ax.set_ylabel(r"$\log(\xi(r)/r^{N-1})$")
         ax.set_xscale("log")
         plt.savefig(self.base_directory + "/ratio_g_loglog.pdf")
+        if self.show:
+            plt.show()
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(bin_edges, rg)  # -np.amax(rg)
+        ax.set_xlabel(r"$\Delta r$")
+        ax.set_ylabel(r"$\log(\xi(r)/r^{N-1})$")
+        plt.savefig(self.base_directory + "/ratio_g_log.pdf")
         if self.show:
             plt.show()
 
