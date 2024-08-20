@@ -16,10 +16,9 @@ import argparse
 import glob
 import time
 import logging
-from scipy.special import gammaln, gammainc
-import warnings
 from itertools import cycle
-from basinvolume.enums import Interaction
+from tqdm import tqdm
+
 
 try:
     import matplotlib
@@ -428,7 +427,7 @@ class mbar_compute_dos(object):
     def _subtract_eqtime(self):
         # remove equilibration region from pt timeseries
         results = Parallel(n_jobs=max(1, self.ncores))(
-            delayed(find_eqtime)(timeseries) for timeseries in self.timeseries
+            delayed(find_eqtime)(timeseries) for timeseries in tqdm(self.timeseries, unit="queue")
         )
         logging.info("eq_times: {}".format(results))
         eq_time = int(np.amax(results))
