@@ -74,10 +74,15 @@ cdef class _Cdef_CheckHyperCubicContainer(_Cdef_ConfTest):
     """This class is the python interface for the c++ pele::CheckHyperCubicContainer configuration test class implementation
     """
     cdef cppCheckHyperCubicContainer* newptr
-    def __cinit__(self, origin, sidelength, ndim):
+    def __cinit__(self, origin, sidelengths, ndim):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
+        if isinstance(sidelengths, float):
+            sidelengths_array = [sidelengths for _ in range(len(origin))]
+        else:
+            sidelengths_array = sidelengths
+        cdef _pele.Array[double] sls_ = array_wrap_np(sidelengths_array)
         self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckHyperCubicContainer(
-            ori_, sidelength, ndim, False))
+            ori_, sls_, ndim, False))
         self.newptr = <cppCheckHyperCubicContainer*> self.thisptr.get()
 
 class CheckHyperCubicContainer(_Cdef_CheckHyperCubicContainer):
@@ -91,10 +96,15 @@ cdef class _Cdef_CheckHyperCubicContainerGMC(_Cdef_GMCConfTest):
     """This class is the python interface for the c++ pele::CheckHyperCubicContainer configuration test class implementation
     """
     cdef cppCheckHyperCubicContainer* newptr
-    def __cinit__(self, origin, sidelength, ndim, use_powered_cosine_sum=False):
+    def __cinit__(self, origin, sidelengths, ndim, use_powered_cosine_sum=False):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
+        if isinstance(sidelengths, float):
+            sidelengths_array = [sidelengths for _ in range(len(origin))]
+        else:
+            sidelengths_array = sidelengths
+        cdef _pele.Array[double] sls_ = array_wrap_np(sidelengths_array)
         self.thisptr = shared_ptr[cppGMCConfTest](<cppGMCConfTest*>new cppCheckHyperCubicContainer(
-            ori_, sidelength, ndim, use_powered_cosine_sum))
+            ori_, sls_, ndim, use_powered_cosine_sum))
         self.newptr = <cppCheckHyperCubicContainer*> self.thisptr.get()
 
 class CheckHyperCubicContainerGMC(_Cdef_CheckHyperCubicContainerGMC):
