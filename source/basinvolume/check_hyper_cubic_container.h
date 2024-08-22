@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "pele/array.hpp"
+#include "pele/rosenbrock.hpp"
 #include "pele/distance.hpp"
 #include "pele/optimizer.hpp"
 
@@ -16,13 +17,13 @@ class CheckHyperCubicContainer : public mcpele::GMCConfTest {
 protected:
   void _get_vec_distance(const pele::Array<double> &coords);
   pele::Array<double> m_origin, m_distance;
-  const double m_halfside;
   const size_t m_ndim, m_N;
-  const double m_side_length;
+  pele::Array<double> m_halfsides;
   const bool m_use_powered_cosine_sum;
+  pele::PoweredCosineSum m_powered_cosine_sum;
 
 public:
-  CheckHyperCubicContainer(pele::Array<double> origin, double sidelength,
+  CheckHyperCubicContainer(pele::Array<double> origin, pele::Array<double> sidelengths,
                            size_t ndim, bool use_powered_cosine_sum = false);
   virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc);
   virtual ~CheckHyperCubicContainer(){};

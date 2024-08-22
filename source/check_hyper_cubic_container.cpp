@@ -1,18 +1,25 @@
 #include "basinvolume/check_hyper_cubic_container.h"
-#include "pele/rosenbrock.hpp"
 
 using pele::Array;
 
 namespace bv {
 
-CheckHyperCubicContainer::CheckHyperCubicContainer(pele::Array<double> origin,
-                                                   double sidelength,
-                                                   size_t ndim,
+CheckHyperCubicContainer::CheckHyperCubicContainer(const Array<double> origin,
+                                                   const Array<double> sidelengths,
+                                                   const size_t ndim,
                                                    const bool use_powered_cosine_sum)
     : m_origin(origin.copy()), m_distance(origin.size(), 0),
-      m_halfside(sidelength / 2.0), m_ndim(ndim), m_N((origin.size() / ndim)),
-      m_side_length(sidelength), m_use_powered_cosine_sum(use_powered_cosine_sum) {
-  std::cout << "m_halfside " << m_halfside << std::endl;
+      m_ndim(ndim), m_N((origin.size() / ndim)),
+      m_use_powered_cosine_sum(use_powered_cosine_sum),
+      m_powered_cosine_sum(origin.size(), sidelengths.copy(), 0.5, 1.0) {
+  if (sidelengths.size() != origin.size()) {
+    throw std::runtime_error("sidelengths.size() != origin.size()");
+  }
+  m_halfsides = Array<double>(origin.size());
+  for (size_t i = 0; i < m_N; ++i) {
+    m_halfsides[i] = sidelengths[i] / 2.0;
+  }
+  std::cout << "m_halfsides " << m_halfsides << std::endl;
   std::cout << "m_origin.size() " << m_origin.size() << std::endl;
   std::cout << "m_distance.size() " << m_distance.size() << std::endl;
 }
@@ -23,26 +30,24 @@ bool CheckHyperCubicContainer::conf_test(Array<double> &trial_coords,
   m_distance -= trial_coords;
 
   for (size_t i = 0; i < m_distance.size(); ++i) {
-    double l = m_distance[i];
-    bool inside = std::fabs(l) <= m_halfside;
+    const double l = m_distance[i];
+    bool inside = std::fabs(l) <= m_halfsides[i];
     if (not inside)
       return false;
   }
-
   return true;
 }
 
-pele::Array<double> CheckHyperCubicContainer::gmc_gradient(
-    pele::Array<double>& coords, mcpele::MCBase* mc) {
+Array<double> CheckHyperCubicContainer::gmc_gradient(Array<double>& coords, mcpele::MCBase* mc) {
   auto c = coords - m_origin;
   if (not m_use_powered_cosine_sum) {
-    pele::Array gradient(c.size(), 0.0);
+    Array gradient(c.size(), 0.0);
     size_t min_index = c.size();
     double min_distance = std::numeric_limits<double>::infinity();
     bool positive = true;
     for (size_t i = 0; i < c.size(); ++i) {
-      const double positive_distance = m_halfside - c[i];
-      const double negative_distance = c[i] + m_halfside;
+      const double positive_distance = m_halfsides[i] - c[i];
+      const double negative_distance = c[i] + m_halfsides[i];
       assert(positive_distance >= 0.0);
       assert(negative_distance >= 0.0);
       double smaller_distance;
@@ -68,9 +73,8 @@ pele::Array<double> CheckHyperCubicContainer::gmc_gradient(
     }
     return gradient;
   }
-  pele::PoweredCosineSum powered_cosine_sum(c.size(), m_side_length, 0.5, 1.0);
-  pele::Array<double> gradient(c.size());
-  powered_cosine_sum.get_energy_gradient(c, gradient);
+  Array<double> gradient(c.size());
+  m_powered_cosine_sum.get_energy_gradient(c, gradient);
   return -gradient;
 }
 
