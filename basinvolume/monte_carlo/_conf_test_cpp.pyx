@@ -16,7 +16,7 @@ from pele.storage.database import Minimum
 from pele.potentials._pele cimport array_wrap_np
 from pele.potentials._pele cimport array_wrap_np_long
 from pele.potentials._pele cimport array_wrap_np_size_t
-from ctypes import c_size_t as size_t, c_double as double
+from ctypes import c_size_t as size_t
 
 #===============================================================================
 # Check hyper spherical container
@@ -76,7 +76,7 @@ cdef class _Cdef_CheckHyperCubicContainer(_Cdef_ConfTest):
     cdef cppCheckHyperCubicContainer* newptr
     def __cinit__(self, origin, sidelengths, ndim):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
-        if isinstance(sidelengths, double):
+        if isinstance(sidelengths, float):
             sidelengths_array = np.full(len(origin), sidelengths)
         else:
             sidelengths_array = sidelengths
@@ -98,7 +98,7 @@ cdef class _Cdef_CheckHyperCubicContainerGMC(_Cdef_GMCConfTest):
     cdef cppCheckHyperCubicContainer* newptr
     def __cinit__(self, origin, sidelengths, ndim, use_powered_cosine_sum=False):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
-        if isinstance(sidelengths, double):
+        if isinstance(sidelengths, float):
             sidelengths_array = np.full(len(origin), sidelengths)
         else:
             sidelengths_array = sidelengths
