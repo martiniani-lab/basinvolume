@@ -77,7 +77,7 @@ cdef class _Cdef_CheckHyperCubicContainer(_Cdef_ConfTest):
     def __cinit__(self, origin, sidelengths, ndim):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
         if isinstance(sidelengths, float):
-            sidelengths_array = [sidelengths for _ in range(len(origin))]
+            sidelengths_array = np.array([sidelengths for _ in range(len(origin))])
         else:
             sidelengths_array = sidelengths
         cdef _pele.Array[double] sls_ = array_wrap_np(sidelengths_array)
@@ -99,7 +99,7 @@ cdef class _Cdef_CheckHyperCubicContainerGMC(_Cdef_GMCConfTest):
     def __cinit__(self, origin, sidelengths, ndim, use_powered_cosine_sum=False):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
         if isinstance(sidelengths, float):
-            sidelengths_array = [sidelengths for _ in range(len(origin))]
+            sidelengths_array = np.array([sidelengths for _ in range(len(origin))])
         else:
             sidelengths_array = sidelengths
         cdef _pele.Array[double] sls_ = array_wrap_np(sidelengths_array)
