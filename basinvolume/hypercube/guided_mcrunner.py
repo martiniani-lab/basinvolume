@@ -39,8 +39,7 @@ class HypercubeGuidedMCRunner(_BaseGuidedMCRunner):
             record_trajectory=False,
             record_trajectory_npoints=1e4,
             single=False,
-            record_histogram=False,
-            hyperball=False):
+            record_histogram=False):
         print("Using Guided MC.")
         if not seeds:
             i32max = np.iinfo(np.int32).max
@@ -65,10 +64,7 @@ class HypercubeGuidedMCRunner(_BaseGuidedMCRunner):
 
         self.set_report_steps(adjustf_niter)  # set number of iterations for which steps are adapted
 
-        if not hyperball:
-            self.conftest = CheckHyperCubicContainerGMC(np.zeros(self.bdim), sidelength, self.bdim, True)
-        else:
-            raise RuntimeError("Hyperball not implemented for GMC")
+        self.conftest = CheckHyperCubicContainerGMC(np.zeros(self.bdim), sidelength, self.bdim, True)
         self.add_late_conf_test(self.conftest)
 
         self.action_record_displ = RecordDisplacementTimeseries(
