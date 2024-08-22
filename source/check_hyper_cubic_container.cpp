@@ -16,10 +16,10 @@ CheckHyperCubicContainer::CheckHyperCubicContainer(const Array<double> origin,
     throw std::runtime_error("sidelengths.size() != origin.size()");
   }
   m_halfsides = Array<double>(origin.size());
-  for (size_t i = 0; i < m_N; ++i) {
+  for (size_t i = 0; i < m_halfsides.size(); ++i) {
     m_halfsides[i] = sidelengths[i] / 2.0;
   }
-  std::cout << "m_halfsides " << m_halfsides << std::endl;
+  std::cout << "m_halfsides " << m_halfsides;
   std::cout << "m_origin.size() " << m_origin.size() << std::endl;
   std::cout << "m_distance.size() " << m_distance.size() << std::endl;
 }
