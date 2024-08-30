@@ -81,8 +81,10 @@ cdef class _Cdef_CheckHyperCubicContainer(_Cdef_ConfTest):
         else:
             sidelengths_array = sidelengths
         cdef _pele.Array[double] sls_ = array_wrap_np(sidelengths_array)
+        prefactor_array = np.ones(len(origin))
+        cdef _pele.Array[double] prefactors_ = array_wrap_np(prefactor_array)
         self.thisptr = shared_ptr[cppConfTest](<cppConfTest*>new cppCheckHyperCubicContainer(
-            ori_, sls_, ndim, False))
+            ori_, sls_, ndim, False, prefactors_))
         self.newptr = <cppCheckHyperCubicContainer*> self.thisptr.get()
 
 class CheckHyperCubicContainer(_Cdef_CheckHyperCubicContainer):
@@ -96,15 +98,22 @@ cdef class _Cdef_CheckHyperCubicContainerGMC(_Cdef_GMCConfTest):
     """This class is the python interface for the c++ pele::CheckHyperCubicContainer configuration test class implementation
     """
     cdef cppCheckHyperCubicContainer* newptr
-    def __cinit__(self, origin, sidelengths, ndim, use_powered_cosine_sum=False):
+    def __cinit__(self, origin, sidelengths, ndim, use_powered_cosine_sum=False, powered_cosine_sum_prefactors=None):
         cdef _pele.Array[double] ori_ = array_wrap_np(origin)
         if isinstance(sidelengths, float):
             sidelengths_array = np.full(len(origin), sidelengths)
         else:
             sidelengths_array = sidelengths
         cdef _pele.Array[double] sls_ = array_wrap_np(sidelengths_array)
+        if (not use_powered_cosine_sum) and powered_cosine_sum_prefactors is not None:
+            raise ValueError("powered_cosine_sum_prefactors should be None if use_powered_cosine_sum is False")
+        if powered_cosine_sum_prefactors is None:
+            prefactors_array = np.ones(len(origin))
+        else:
+            prefactors_array = powered_cosine_sum_prefactors
+        cdef _pele.Array[double] prefactors_ = array_wrap_np(prefactors_array)
         self.thisptr = shared_ptr[cppGMCConfTest](<cppGMCConfTest*>new cppCheckHyperCubicContainer(
-            ori_, sls_, ndim, use_powered_cosine_sum))
+            ori_, sls_, ndim, use_powered_cosine_sum, prefactors_))
         self.newptr = <cppCheckHyperCubicContainer*> self.thisptr.get()
 
 class CheckHyperCubicContainerGMC(_Cdef_CheckHyperCubicContainerGMC):

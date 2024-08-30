@@ -15,7 +15,8 @@ cdef extern from "basinvolume/check_exponentially_decaying_profile.h" namespace 
 
 cdef extern from "basinvolume/check_hyper_cubic_container.h" namespace "bv":
     cdef cppclass cppCheckHyperCubicContainer "bv::CheckHyperCubicContainer":
-        cppCheckHyperCubicContainer(_pele.Array[double], _pele.Array[double], size_t, cbool) except +
+        cppCheckHyperCubicContainer(_pele.Array[double], _pele.Array[double], size_t, cbool,
+                                    _pele.Array[double]) except +
 
 # cython has no support for integer template argument.  This is a hack to get around it
 # https://groups.google.com/forum/#!topic/cython-users/xAZxdCFw6Xs

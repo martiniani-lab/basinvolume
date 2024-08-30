@@ -7,13 +7,17 @@ namespace bv {
 CheckHyperCubicContainer::CheckHyperCubicContainer(const Array<double> origin,
                                                    const Array<double> sidelengths,
                                                    const size_t ndim,
-                                                   const bool use_powered_cosine_sum)
+                                                   const bool use_powered_cosine_sum,
+                                                   const Array<double> powered_cosine_sum_prefactors)
     : m_origin(origin.copy()), m_distance(origin.size(), 0),
       m_ndim(ndim), m_N((origin.size() / ndim)),
       m_use_powered_cosine_sum(use_powered_cosine_sum),
-      m_powered_cosine_sum(origin.size(), sidelengths.copy(), 0.5, 1.0) {
+      m_powered_cosine_sum(origin.size(), sidelengths.copy(), powered_cosine_sum_prefactors.copy(), 0.5, 1.0) {
   if (sidelengths.size() != origin.size()) {
     throw std::runtime_error("sidelengths.size() != origin.size()");
+  }
+  if (powered_cosine_sum_prefactors.size() != origin.size()) {
+    throw std::runtime_error("powered_cosine_sum_prefactors.size() != origin.size()");
   }
   m_halfsides = Array<double>(origin.size());
   for (size_t i = 0; i < m_halfsides.size(); ++i) {

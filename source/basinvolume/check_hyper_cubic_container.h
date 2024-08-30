@@ -24,7 +24,8 @@ protected:
 
 public:
   CheckHyperCubicContainer(pele::Array<double> origin, pele::Array<double> sidelengths,
-                           size_t ndim, bool use_powered_cosine_sum = false);
+                           size_t ndim, bool use_powered_cosine_sum,
+                           pele::Array<double> powered_cosine_sum_prefactors);
   virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc);
   virtual ~CheckHyperCubicContainer(){};
   pele::Array<double> gmc_gradient(pele::Array<double> &coords, mcpele::MCBase *mc) override;
