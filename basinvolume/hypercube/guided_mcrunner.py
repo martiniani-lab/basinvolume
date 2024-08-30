@@ -39,7 +39,8 @@ class HypercubeGuidedMCRunner(_BaseGuidedMCRunner):
             record_trajectory=False,
             record_trajectory_npoints=1e4,
             single=False,
-            record_histogram=False):
+            record_histogram=False,
+            powered_cosine_sum_prefactors=None):
         print("Using Guided MC.")
         if not seeds:
             i32max = np.iinfo(np.int32).max
@@ -64,7 +65,8 @@ class HypercubeGuidedMCRunner(_BaseGuidedMCRunner):
 
         self.set_report_steps(adjustf_niter)  # set number of iterations for which steps are adapted
 
-        self.conftest = CheckHyperCubicContainerGMC(np.zeros(self.bdim), sidelength, self.bdim, True)
+        self.conftest = CheckHyperCubicContainerGMC(np.zeros(self.bdim), sidelength, self.bdim, True,
+                                                    powered_cosine_sum_prefactors)
         self.add_late_conf_test(self.conftest)
 
         self.action_record_displ = RecordDisplacementTimeseries(
