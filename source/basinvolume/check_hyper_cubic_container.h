@@ -29,6 +29,7 @@ public:
   virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MCBase *mc);
   virtual ~CheckHyperCubicContainer(){};
   pele::Array<double> gmc_gradient(pele::Array<double> &coords, mcpele::MCBase *mc) override;
+  pele::Array<double> gmc_hessian(pele::Array<double> &coords, mcpele::MCBase *mc) override;
 };
 
 } // namespace bv

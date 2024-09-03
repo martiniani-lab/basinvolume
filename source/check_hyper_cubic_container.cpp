@@ -82,4 +82,14 @@ Array<double> CheckHyperCubicContainer::gmc_gradient(Array<double>& coords, mcpe
   return -gradient;
 }
 
+Array<double> CheckHyperCubicContainer::gmc_hessian(Array<double>& coords, mcpele::MCBase* mc) {
+  auto c = coords - m_origin;
+  if (not m_use_powered_cosine_sum) {
+    throw std::runtime_error("CheckHyperCubicContainer::gmc_hessian not implemented for m_use_powered_cosine_sum == false");
+  }
+  Array<double> hessian(c.size() * c.size());
+  m_powered_cosine_sum.get_hessian(c, hessian);
+  return hessian;
+}
+
 } // namespace bv

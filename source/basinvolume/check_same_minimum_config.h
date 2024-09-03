@@ -47,6 +47,12 @@ public:
     m_potential->get_energy_gradient(coords, gradient);
     return -gradient;
   }
+  pele::Array<double> gmc_hessian(pele::Array<double> &coords,
+                                  mcpele::MCBase *mc) override {
+    pele::Array<double> hessian(coords.size() * coords.size());
+    m_potential->get_hessian(coords, hessian);
+    return hessian;
+  }
   size_t get_nfev() const { return m_nfev; }
   double get_failed_quench_fraction() const {
     return static_cast<double>(m_nr_failed_quenches) /
