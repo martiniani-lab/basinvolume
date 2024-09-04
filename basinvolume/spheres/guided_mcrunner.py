@@ -145,8 +145,8 @@ class SpheresGuidedMCRunner(_BaseGuidedMCRunner):
 
         self.standard_deviation = stepsize * 0.2  # TODO: This should not be hardcoded
         super().__init__(potential, red_coords, temperature, niter, stepsize, self.standard_deviation,
-                         self.seeds["seed_takestep"], True, 0.0, self.adjustf_navg, self.adjustf, self.acceptance,
-                         self.acceptance)
+                         self.seeds["seed_takestep"], True, False, 0.0, self.adjustf_navg, self.adjustf,
+                         self.acceptance, self.acceptance)
 
         # manage array of rattlers, if not rattler: 1 -> jammed dof
         #                                          0 -> rattler dof

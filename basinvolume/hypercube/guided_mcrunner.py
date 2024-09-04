@@ -40,7 +40,9 @@ class HypercubeGuidedMCRunner(_BaseGuidedMCRunner):
             record_trajectory_npoints=1e4,
             single=False,
             record_histogram=False,
-            powered_cosine_sum_prefactors=None):
+            powered_cosine_sum_prefactors=None,
+            normalize_conf_gradient=True,
+            use_hessian=False):
         print("Using Guided MC.")
         if not seeds:
             i32max = np.iinfo(np.int32).max
@@ -48,7 +50,8 @@ class HypercubeGuidedMCRunner(_BaseGuidedMCRunner):
                 seed_takestep=np.random.randint(i32max)
             )
         super().__init__(bias_potential, full_coords, temperature, niter, stepsize, standard_deviation,
-                         seeds["seed_takestep"], True, 0.0, adjustf_navg, adjustf, acceptance, acceptance)
+                         seeds["seed_takestep"], normalize_conf_gradient, use_hessian, 0.0, adjustf_navg, adjustf,
+                         acceptance, acceptance)
 
         # Necessary variables for PT.
         self.niter = niter
