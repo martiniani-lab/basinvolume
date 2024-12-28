@@ -57,6 +57,8 @@ INVERSE_POWER_CVODE_95_ACC = {
 
 def get_mxd_t(ndim):
     """Get number for checking convergence for mixed descent."""
+    if ndim < 100:
+        return 20
     if ndim < 600:
         return 50
     else:

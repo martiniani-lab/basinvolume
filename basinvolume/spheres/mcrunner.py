@@ -293,6 +293,7 @@ class SpheresMCRunner(BaseSpheresMCrunner):
                 rtol=rtol,
                 T=get_mxd_t(self.nparticles),
                 global_symmetry_offset=global_symmetry_offset,
+                conv_tol=1e-1,
             )
         elif self.minimizer is Minimizer.FIRE:
             try:

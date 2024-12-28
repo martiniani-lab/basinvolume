@@ -1,7 +1,6 @@
 """Script to submit multi volume calculations on the cluster.
 """
 
-
 import configparser
 from enum import unique, Enum
 import os
@@ -282,21 +281,27 @@ def setup_parallel_tempering(
     run_params["pt"]["checkpoint-time"] = checkpoint_time
     run_params["pt"]["load-checkpoint"] = checkpoint_file
     pt_default_kwargs.update(run_params["pt"])
-    
+
     if pt_default_kwargs["nreplicas"] == "auto":
         # load dim from jammed_packing config file
         jammed_packing_folder = os.path.join(simulation_folder, "jammed_packings")
         # get the first file ending with an integer followed by [.config]
         fnames = os.listdir(jammed_packing_folder)
         jammed_fname = next(
-            fname for fname in fnames if fname.endswith(".config") # and fname.split("_")[-1].isdigit() # XXX this broke the code and I don't get why it's here
+            fname
+            for fname in fnames
+            if fname.endswith(
+                ".config"
+            )  # and fname.split("_")[-1].isdigit() # XXX this broke the code and I don't get why it's here
         )
         config_file = os.path.join(jammed_packing_folder, jammed_fname)
         configf = configparser.ConfigParser()
         configf.read(config_file)
         dim = int(configf["JAMMED_PACKING"]["ndim"])
-        max_replicas = max(64, int(dim/4))
-        max_replicas = max_replicas if max_replicas % 4 == 0 else max_replicas - max_replicas % 4 + 4
+        max_replicas = max(64, int(dim / 4))
+        max_replicas = (
+            max_replicas if max_replicas % 4 == 0 else max_replicas - max_replicas % 4 + 4
+        )
         run_params["pt"]["nreplicas"] = max_replicas
     pt_default_kwargs["nreplicas"] = 64
     mpi_procs = int(run_params["pt"]["nreplicas"] / 4)  # Best performance according to Johannes
@@ -549,7 +554,9 @@ def submit_initial_jobs(
                 script_path = os.path.join(scripts_folder, f"{job_name_prefix}.sh")
 
                 # check if job with same script name is still running
-                user = USER_EMAIL.split("@")[0]  # XXX This might be a bit too us-dependent, could adapt this
+                user = USER_EMAIL.split("@")[
+                    0
+                ]  # XXX This might be a bit too us-dependent, could adapt this
                 jobs_list = subprocess.check_output(f'squeue -u {user} -o "%o"', shell=True)
                 conflict = script_path in jobs_list.decode()
                 if conflict:
