@@ -107,6 +107,7 @@ def calculate_volume(
     run_params,
     submit=True,
     checkpoint_file=None,
+    checkpoint_fraction = 0.8
 ):
     # global args that should be the same across scripts
     # only kmax sees the optimizer kwargs, the following steps just read them off from the kmax config file
@@ -121,9 +122,9 @@ def calculate_volume(
         minimizer, simulation_folder, simulation_type, RESOURCE_CONFIG["time"]
     )
 
-    # Always checkpoint after 90% of required wall time to avoid bad surprises
+    # Always checkpoint after a fraction of required wall time to avoid bad surprises
     # This one time is in minutes, not hours, so it needs a factor of 60
-    checkpoint_time = int(0.9 * 60 * time)
+    checkpoint_time = int(checkpoint_fraction * 60 * time)
     if simulation_type == SimStage.JAMMED_PACKING:
         mem_str = RESOURCE_CONFIG["memory"]["generate"]
         setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=submit)
@@ -308,6 +309,9 @@ def setup_parallel_tempering(
     cpus_per_task = mpi_procs
     script_subpath = "spheres/bv_parallel_tempering.py"
     job_name_prefix = "bv_pt"
+    
+    if checkpoint_file is not None:
+        job_name_prefix += "_fromcheckpoint"
 
     # give the explore directory as the argument
     packing_fname = os.path.splitext(packing_file)[0]

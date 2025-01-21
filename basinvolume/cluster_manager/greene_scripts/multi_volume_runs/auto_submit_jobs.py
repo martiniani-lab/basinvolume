@@ -55,7 +55,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         return SimStage.COMPLETE
 
 
-def submit_jobs(simulation_dir, generate_packings=False):
+def submit_jobs(simulation_dir, generate_packings=False, ignore_checkpoints = False):
     if generate_packings:
         simstage = SimStage.JAMMED_PACKING
         run_params_config_file = os.path.join(simulation_dir, "run_params.toml")
@@ -115,7 +115,7 @@ def submit_jobs(simulation_dir, generate_packings=False):
         if simstage == SimStage.PT:
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
-            if os.path.exists(os.path.join(explore_dir, "checkpoint.dmp")):
+            if os.path.exists(os.path.join(explore_dir, "checkpoint.dmp")) and not ignore_checkpoints:
                 checkpoint_file = os.path.join(explore_dir, "checkpoint.dmp")
             else:
                 checkpoint_file = None
@@ -164,9 +164,17 @@ def main():
         type=str,
         help="Head directory containing the OPTIMIZER_N_PHI directories",
     )
+    
+    parser.add_argument(
+        "--ignore_checkpoints",
+        action = 'store_true',
+        help = "Ignore checkpoints if any, and just restart PT from scratch",
+        default = False
+    )
 
     args = parser.parse_args()
     folder = args.folder
+    ignore_checkpoints = args.ignore_checkpoints
 
     simlist = os.listdir(folder)
     if simlist != []:
@@ -179,7 +187,7 @@ def main():
         submit_jobs(folder, generate_packings=True)
     else:
         for simfolder in simlist:
-            submit_jobs(os.path.join(folder, simfolder))
+            submit_jobs(os.path.join(folder, simfolder), ignore_checkpoints = ignore_checkpoints)
 
 
 if __name__ == "__main__":
