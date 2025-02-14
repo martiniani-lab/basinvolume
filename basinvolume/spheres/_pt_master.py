@@ -492,10 +492,14 @@ class PT_Master(object):
 
         # Wait for all workers to finish
         for _ in range(self.nworkers):
+            # calculate total time
+            start_time = time.time()
             if self.sleep_seconds > 0:
                 while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
                     time.sleep(self.sleep_seconds)
             self._receive_result()
+            end_time = time.time()
+            logging.debug("Time to recieve all results: %f" % (end_time - start_time))
 
         if self.ptiter >= self.skip:
             self._exchange_coords()
