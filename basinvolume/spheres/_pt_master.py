@@ -453,8 +453,13 @@ class PT_Master(object):
         del self.histogram_mean_streams
         del self.status_streams
         checkpoint_path = os.path.join(self.base_directory, self.checkpoint_file)
+        logging.info("Creating checkpoint at %s" % checkpoint_path)
+        time_to_create = time.time()
         with open(checkpoint_path, "wb") as outfile:
             pickle.dump(self, outfile)
+        time_to_create = time.time() - time_to_create
+        logging.info("Checkpoint created in %f seconds" % time_to_create)
+        logging.info("Checkpoint created")
 
     def _one_iteration(self):
         """Perform one parallel tempering iteration
