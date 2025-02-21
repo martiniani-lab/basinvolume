@@ -460,6 +460,10 @@ class PT_Master(object):
         time_to_create = time.time() - time_to_create
         logging.info("Checkpoint created in %f seconds" % time_to_create)
         logging.info("Checkpoint created")
+        # write an extra temp file to say that the checkpoint was written without corruption
+        with open(checkpoint_path + "done", "w") as outfile:
+            outfile.write("write done")
+        logging.info("Checkpoint done flag file written")
 
     def _one_iteration(self):
         """Perform one parallel tempering iteration
