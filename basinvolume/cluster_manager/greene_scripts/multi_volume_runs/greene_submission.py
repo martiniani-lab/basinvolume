@@ -119,7 +119,7 @@ def calculate_volume(
         kmax_dict.update(run_params["kmax"])
     minimizer = kmax_dict["minimizer"]
     time_str, time = make_time_str(
-        minimizer, simulation_folder, simulation_type, RESOURCE_CONFIG["time"]
+        minimizer, simulation_folder, simulation_type, RESOURCE_CONFIG["time"], DEFAULT_CONFIG["hard_sphere_packing_defaults"]["boxdim"]
     )
 
     # Always checkpoint after a fraction of required wall time to avoid bad surprises
