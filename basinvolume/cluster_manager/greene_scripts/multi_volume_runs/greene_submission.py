@@ -52,6 +52,7 @@ class SimStage(Enum):
 GREENE_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --time={time_str}
 #SBATCH --ntasks={ntasks}
+#SBATCH --partition=cs
 #SBATCH --cpus-per-task={cpus_per_task}
 #SBATCH --mem={mem_str}
 #SBATCH --mail-type={email_type}
@@ -419,9 +420,9 @@ def setup_compute_volume(simulation_folder, packing_file, run_params, time_str, 
     return 0
 
 
-def make_time_str(minimizer, simulation_folder, simstage, time_dict):
+def make_time_str(minimizer, simulation_folder, simstage, time_dict, box_dim=2):
     if simstage == SimStage.JAMMED_PACKING:
-        time = 1
+        time = 2
         return hours_to_slurm_time(time), time
 
     sim_folder = os.path.basename(simulation_folder)
@@ -441,7 +442,9 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
         time *= 4
     if simstage == SimStage.ANALYSIS:
         time *= 4
-
+    if box_dim == 3:
+        time *=2
+        
     # max job time
     if time > 168:
         time = 168
@@ -579,6 +582,7 @@ def submit_initial_jobs(
                     print(f"Job already running for script {script_path}! Skipping.")
                 else:
                     # write the script
+                    print("script_path", script_path)
                     with open(script_path, "w") as script_file:
                         script_file.write(script)
                     if submit:
@@ -651,8 +655,9 @@ def submit_job(
         print(f"Job already running for script {script_path}! Skipping.")
     else:
         # write the script
+        print("script_path", script_path)
         with open(script_path, "w") as script_file:
             script_file.write(script)
-
+        print("script_file written")
         if submit:
             os.system(f"sbatch {script_path}")
