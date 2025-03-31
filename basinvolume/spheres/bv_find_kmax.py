@@ -7,7 +7,6 @@ import logging
 import traceback
 import copy
 from _findk_mcrunner import _findk_mcrunner
-from basinvolume.experiment_2d import _findk_exp_mcrunner
 from basinvolume.enums import Minimizer
 from time import time
 import toml
@@ -15,12 +14,8 @@ import toml
 
 def worker_findk(fname, kwargs):
     try:
-        if ".xydfr" in fname or ".xyzdfr" in fname:
-            logging.info("Found experimental packing")
-            mcrunner = _findk_exp_mcrunner(fname, **kwargs)
-        else:
-            logging.info("Found numerical packing")
-            mcrunner = _findk_mcrunner(fname, **kwargs)
+        logging.info("Found numerical packing")
+        mcrunner = _findk_mcrunner(fname, **kwargs)
         mcrunner.run()
     except:
         logging.error("find_k worker: %s" % (traceback.format_exc()))

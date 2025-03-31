@@ -453,8 +453,17 @@ class PT_Master(object):
         del self.histogram_mean_streams
         del self.status_streams
         checkpoint_path = os.path.join(self.base_directory, self.checkpoint_file)
+        logging.info("Creating checkpoint at %s" % checkpoint_path)
+        time_to_create = time.time()
         with open(checkpoint_path, "wb") as outfile:
             pickle.dump(self, outfile)
+        time_to_create = time.time() - time_to_create
+        logging.info("Checkpoint created in %f seconds" % time_to_create)
+        logging.info("Checkpoint created")
+        # write an extra temp file to say that the checkpoint was written without corruption
+        with open(checkpoint_path + "done", "w") as outfile:
+            outfile.write("write done")
+        logging.info("Checkpoint done flag file written")
 
     def _one_iteration(self):
         """Perform one parallel tempering iteration
@@ -487,10 +496,14 @@ class PT_Master(object):
 
         # Wait for all workers to finish
         for _ in range(self.nworkers):
+            # calculate total time
+            start_time = time.time()
             if self.sleep_seconds > 0:
                 while not self.comm.Iprobe(source=MPI.ANY_SOURCE):
                     time.sleep(self.sleep_seconds)
             self._receive_result()
+            end_time = time.time()
+            logging.debug("Time to recieve all results: %f" % (end_time - start_time))
 
         if self.ptiter >= self.skip:
             self._exchange_coords()

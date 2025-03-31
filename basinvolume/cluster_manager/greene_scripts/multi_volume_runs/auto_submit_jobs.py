@@ -115,7 +115,7 @@ def submit_jobs(simulation_dir, generate_packings=False, ignore_checkpoints = Fa
         if simstage == SimStage.PT:
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
-            if os.path.exists(os.path.join(explore_dir, "checkpoint.dmp")) and not ignore_checkpoints:
+            if os.path.exists(os.path.join(explore_dir, "checkpoint.dmpdone")) and not ignore_checkpoints:
                 checkpoint_file = os.path.join(explore_dir, "checkpoint.dmp")
             else:
                 checkpoint_file = None
