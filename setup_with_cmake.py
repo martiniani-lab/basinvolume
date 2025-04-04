@@ -97,6 +97,22 @@ if build_type == "Release":
         "-DNDEBUG",
         "-march=native",
     ]
+elif build_type == "Greene":
+    cmake_compiler_extra_args = [
+        "-std=c++2a",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-O3",
+        "-fPIC",
+        "-DNDEBUG",
+        "-unroll",
+        "-ip",
+        "-axCORE-AVX512",
+        "-qopenmp",
+        "-qopt-report-stdout",
+        "-qopt-report-phase=openmp",
+    ]
 elif build_type == "Debug":
     cmake_compiler_extra_args = [
         "-std=c++2a",
@@ -244,12 +260,14 @@ def get_compiler_env(compiler_id):
                 except subprocess.CalledProcessError:
                     version -= 1
             if version == 9:
-                raise RuntimeError("Could not detect a GNU C compiler "
-                                   "with an executable in the format 'gcc-version' "
-                                   "on your darwin platform (tried versions 10 to "
-                                   "20). Make sure that you installed a GNU C "
-                                   "compiler and that its executable is in one of your "
-                                   "PATH directories.")
+                raise RuntimeError(
+                    "Could not detect a GNU C compiler "
+                    "with an executable in the format 'gcc-version' "
+                    "on your darwin platform (tried versions 10 to "
+                    "20). Make sure that you installed a GNU C "
+                    "compiler and that its executable is in one of your "
+                    "PATH directories."
+                )
             assert cc is not None
             env["CC"] = cc
             env["CXX"] = (
@@ -274,56 +292,22 @@ def get_compiler_env(compiler_id):
                 .rstrip("\n")
             )
         else:
-            env["CC"] = (
-                (subprocess.check_output(["which", "gcc"]))
-                .decode(encoding)
-                .rstrip("\n")
-            )
-            env["CXX"] = (
-                (subprocess.check_output(["which", "g++"]))
-                .decode(encoding)
-                .rstrip("\n")
-            )
-        env["LD"] = (
-            (subprocess.check_output(["which", "ld"]))
-            .decode(encoding)
-            .rstrip("\n")
-        )
-        env["AR"] = (
-            (subprocess.check_output(["which", "ar"]))
-            .decode(encoding)
-            .rstrip("\n")
-        )
+            env["CC"] = (subprocess.check_output(["which", "gcc"])).decode(encoding).rstrip("\n")
+            env["CXX"] = (subprocess.check_output(["which", "g++"])).decode(encoding).rstrip("\n")
+        env["LD"] = (subprocess.check_output(["which", "ld"])).decode(encoding).rstrip("\n")
+        env["AR"] = (subprocess.check_output(["which", "ar"])).decode(encoding).rstrip("\n")
     elif compiler_id.lower() in ("intel"):
-        env["CC"] = (
-            (subprocess.check_output(["which", "icc"]))
-            .decode(encoding)
-            .rstrip("\n")
-        )
-        env["CXX"] = (
-            (subprocess.check_output(["which", "icpc"]))
-            .decode(encoding)
-            .rstrip("\n")
-        )
-        env["LD"] = (
-            (subprocess.check_output(["which", "xild"]))
-            .decode(encoding)
-            .rstrip("\n")
-        )
-        env["AR"] = (
-            (subprocess.check_output(["which", "xiar"]))
-            .decode(encoding)
-            .rstrip("\n")
-        )
+        env["CC"] = (subprocess.check_output(["which", "icc"])).decode(encoding).rstrip("\n")
+        env["CXX"] = (subprocess.check_output(["which", "icpc"])).decode(encoding).rstrip("\n")
+        env["LD"] = (subprocess.check_output(["which", "xild"])).decode(encoding).rstrip("\n")
+        env["AR"] = (subprocess.check_output(["which", "xiar"])).decode(encoding).rstrip("\n")
     else:
         raise Exception("compiler id not known")
     # this line only works if the build directory has been deleted
     cmake_compiler_args = shlex.split(
         "-D CMAKE_EXPORT_COMPILE_COMMANDS=1 "
         "-D CMAKE_C_COMPILER={} -D CMAKE_CXX_COMPILER={} "
-        "-D CMAKE_LINKER={} -D CMAKE_AR={}".format(
-            env["CC"], env["CXX"], env["LD"], env["AR"]
-        )
+        "-D CMAKE_LINKER={} -D CMAKE_AR={}".format(env["CC"], env["CXX"], env["LD"], env["AR"])
     )
     # Add search path for brew installed openblas on MacOs.
     if sys.platform.startswith("darwin"):
@@ -337,8 +321,7 @@ def get_compiler_env(compiler_id):
             .decode(encoding)
             .rstrip("\n")
         )
-        cmake_compiler_args.extend(
-            shlex.split(f"-D CMAKE_PREFIX_PATH={openblas};{gettext}"))
+        cmake_compiler_args.extend(shlex.split(f"-D CMAKE_PREFIX_PATH={openblas};{gettext}"))
     return env, cmake_compiler_args
 
 
@@ -388,9 +371,7 @@ def get_ldflags(opt="--ldflags"):
         # On MacOs, explicitly including the python library leads to a
         # segmentation fault when libraries created by cython are
         # imported
-        libs.append(
-            "-lpython" + pyver
-        )
+        libs.append("-lpython" + pyver)
     # add the prefix/lib/pythonX.Y/config dir, but only if there is no
     # shared library in prefix/lib/.
     if opt == "--ldflags":
