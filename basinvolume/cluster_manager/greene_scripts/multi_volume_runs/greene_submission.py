@@ -52,6 +52,7 @@ class SimStage(Enum):
 GREENE_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --time={time_str}
 #SBATCH --ntasks={ntasks}
+#SBATCH --partition=cs
 #SBATCH --cpus-per-task={cpus_per_task}
 #SBATCH --mem={mem_str}
 #SBATCH --mail-type={email_type}
@@ -107,6 +108,7 @@ def calculate_volume(
     run_params,
     submit=True,
     checkpoint_file=None,
+    checkpoint_fraction = 0.8
 ):
     # global args that should be the same across scripts
     # only kmax sees the optimizer kwargs, the following steps just read them off from the kmax config file
@@ -118,12 +120,12 @@ def calculate_volume(
         kmax_dict.update(run_params["kmax"])
     minimizer = kmax_dict["minimizer"]
     time_str, time = make_time_str(
-        minimizer, simulation_folder, simulation_type, RESOURCE_CONFIG["time"]
+        minimizer, simulation_folder, simulation_type, RESOURCE_CONFIG["time"], DEFAULT_CONFIG["hard_sphere_packing_defaults"]["boxdim"]
     )
 
-    # Always checkpoint after 90% of required wall time to avoid bad surprises
+    # Always checkpoint after a fraction of required wall time to avoid bad surprises
     # This one time is in minutes, not hours, so it needs a factor of 60
-    checkpoint_time = int(0.9 * 60 * time)
+    checkpoint_time = int(checkpoint_fraction * 60 * time)
     if simulation_type == SimStage.JAMMED_PACKING:
         mem_str = RESOURCE_CONFIG["memory"]["generate"]
         setup_generate_jammed_data(simulation_folder, run_params, time_str, mem_str, submit=submit)
@@ -308,6 +310,9 @@ def setup_parallel_tempering(
     cpus_per_task = mpi_procs
     script_subpath = "spheres/bv_parallel_tempering.py"
     job_name_prefix = "bv_pt"
+    
+    if checkpoint_file is not None:
+        job_name_prefix += "_fromcheckpoint"
 
     # give the explore directory as the argument
     packing_fname = os.path.splitext(packing_file)[0]
@@ -415,9 +420,9 @@ def setup_compute_volume(simulation_folder, packing_file, run_params, time_str, 
     return 0
 
 
-def make_time_str(minimizer, simulation_folder, simstage, time_dict):
+def make_time_str(minimizer, simulation_folder, simstage, time_dict, box_dim=2):
     if simstage == SimStage.JAMMED_PACKING:
-        time = 8
+        time = 2
         return hours_to_slurm_time(time), time
 
     sim_folder = os.path.basename(simulation_folder)
@@ -432,10 +437,14 @@ def make_time_str(minimizer, simulation_folder, simstage, time_dict):
 
     if minimizer == "CVODE" or minimizer == "MXD":
         time *= 4
-
+        
     if simstage == SimStage.PT:
         time *= 4
-
+    if simstage == SimStage.ANALYSIS:
+        time *= 4
+    if box_dim == 3:
+        time *=2
+        
     # max job time
     if time > 168:
         time = 168
@@ -573,6 +582,7 @@ def submit_initial_jobs(
                     print(f"Job already running for script {script_path}! Skipping.")
                 else:
                     # write the script
+                    print("script_path", script_path)
                     with open(script_path, "w") as script_file:
                         script_file.write(script)
                     if submit:
@@ -645,8 +655,9 @@ def submit_job(
         print(f"Job already running for script {script_path}! Skipping.")
     else:
         # write the script
+        print("script_path", script_path)
         with open(script_path, "w") as script_file:
             script_file.write(script)
-
+        print("script_file written")
         if submit:
             os.system(f"sbatch {script_path}")

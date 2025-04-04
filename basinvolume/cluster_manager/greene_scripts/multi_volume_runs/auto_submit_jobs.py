@@ -55,7 +55,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         return SimStage.COMPLETE
 
 
-def submit_jobs(simulation_dir, generate_packings=False):
+def submit_jobs(simulation_dir, generate_packings=False, ignore_checkpoints = False, checkpoint_fraction = 0.8):
     if generate_packings:
         simstage = SimStage.JAMMED_PACKING
         run_params_config_file = os.path.join(simulation_dir, "run_params.toml")
@@ -115,7 +115,7 @@ def submit_jobs(simulation_dir, generate_packings=False):
         if simstage == SimStage.PT:
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
-            if os.path.exists(os.path.join(explore_dir, "checkpoint.dmp")):
+            if os.path.exists(os.path.join(explore_dir, "checkpoint.dmpdone")) and not ignore_checkpoints:
                 checkpoint_file = os.path.join(explore_dir, "checkpoint.dmp")
             else:
                 checkpoint_file = None
@@ -129,6 +129,7 @@ def submit_jobs(simulation_dir, generate_packings=False):
             run_params,
             submit=True,
             checkpoint_file=checkpoint_file,
+            checkpoint_fraction = checkpoint_fraction
         )
     return
 
@@ -164,9 +165,25 @@ def main():
         type=str,
         help="Head directory containing the OPTIMIZER_N_PHI directories",
     )
+    
+    parser.add_argument(
+        "--ignore_checkpoints",
+        action = 'store_true',
+        help = "Ignore checkpoints if any, and just restart PT from scratch",
+        default = False
+    )
+    
+    parser.add_argument(
+        "--checkpoint_fraction",
+        type = float,
+        help = "Fraction of total time at which point the job should checkpoint its state and stop, default = 0.8",
+        default = 0.8
+    )
 
     args = parser.parse_args()
     folder = args.folder
+    ignore_checkpoints = args.ignore_checkpoints
+    checkpoint_fraction = args.checkpoint_fraction
 
     simlist = os.listdir(folder)
     if simlist != []:
@@ -179,7 +196,7 @@ def main():
         submit_jobs(folder, generate_packings=True)
     else:
         for simfolder in simlist:
-            submit_jobs(os.path.join(folder, simfolder))
+            submit_jobs(os.path.join(folder, simfolder), ignore_checkpoints = ignore_checkpoints, checkpoint_fraction = checkpoint_fraction)
 
 
 if __name__ == "__main__":

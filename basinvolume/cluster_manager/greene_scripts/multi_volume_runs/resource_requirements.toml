@@ -2,7 +2,7 @@
 ["time"] # Base times in hours for power-of-two numbers of particles. These have hard-coded multipliers for given minimizers. Other sizes are sent to one of these.
 8 = 2
 16 = 2
-32 = 4
+32 = 8
 64 = 8
 128 = 168
 256 = 168
@@ -13,9 +13,9 @@
 max_proc_number = 48
 
 ["memory"] # Default values that were hardcoded, these could be fine-tuned depending on some parameters
-generate = "4GB"
-kmax = "4GB"
-kmin = "4GB"
-pt = "40GB"
+generate = "8GB"
+kmax = "8GB"
+kmin = "8GB"
+pt = "64GB"
 innersphere = "8GB"
-analysis = "32GB"
+analysis = "64GB"
