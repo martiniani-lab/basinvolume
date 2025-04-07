@@ -52,7 +52,6 @@ class SimStage(Enum):
 GREENE_SCRIPT_TEMPLATE = """#!/bin/bash
 #SBATCH --time={time_str}
 #SBATCH --ntasks={ntasks}
-#SBATCH --partition=cs
 #SBATCH --cpus-per-task={cpus_per_task}
 #SBATCH --mem={mem_str}
 #SBATCH --mail-type={email_type}
