@@ -95,7 +95,6 @@ if build_type == "Release":
         "-O3",
         "-fPIC",
         "-DNDEBUG",
-        "-march=native",
     ]
 elif build_type == "Greene":
     cmake_compiler_extra_args = [
