@@ -17,5 +17,13 @@ n_ensemble = 1
 ["pt"]
 mintotniter = 5e5
 maxtotniter = 2e6
+# Checkpoint format for parallel tempering runs
+# Options: "auto", "pickle", "json", "joblib", "dill"
+# "auto" = auto-detect from file extension (default)
+# "pickle" = standard Python serialization (fast, binary)
+# "json" = human-readable format (great for debugging)
+# "joblib" = compressed format (smaller files, requires joblib)
+# "dill" = handles complex objects (requires dill)
+# checkpoint-format = "auto"
 
 ["innersphere"]

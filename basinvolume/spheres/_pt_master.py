@@ -29,6 +29,38 @@ from basinvolume.monte_carlo import IndependenceSampling
 from basinvolume.spheres import BV_MCRunner_State
 import pandas as pd
 
+# Additional imports for checkpointing
+import json
+import tempfile
+import shutil
+try:
+    import joblib
+    HAS_JOBLIB = True
+except ImportError:
+    HAS_JOBLIB = False
+    
+try:
+    import dill
+    HAS_DILL = True
+except ImportError:
+    HAS_DILL = False
+
+# Additional imports for checkpointing
+import json
+import tempfile
+import shutil
+try:
+    import joblib
+    HAS_JOBLIB = True
+except ImportError:
+    HAS_JOBLIB = False
+    
+try:
+    import dill
+    HAS_DILL = True
+except ImportError:
+    HAS_DILL = False
+
 
 @unique
 class ExchangeScheme(Enum):
@@ -183,7 +215,7 @@ class PT_Master(object):
         exchange_scheme=ExchangeScheme.NEIGHBOR_EXCHANGE,
         checkpoint_time=None,
         checkpoint_file="checkpoint.dmp",
-        record_traj_npoints=-1,
+        checkpoint_format="auto",
     ):
         self.nreplicas = nreplicas
         self.sleep_seconds = sleep_seconds
@@ -245,6 +277,8 @@ class PT_Master(object):
         self._init_sampling()
         self.checkpoint_time = checkpoint_time
         self.checkpoint_file = checkpoint_file
+        self.checkpoint_format = checkpoint_format
+        self._validate_checkpoint_format()
         assert self.nreplicas > self.nworkers
         assert self.eq_min_ptiter > self.skip
         assert self.max_ptiter > self.eq_min_ptiter
@@ -443,27 +477,327 @@ class PT_Master(object):
             logging.info("Master finished")
 
     def _create_checkpoint(self):
-        del self.comm
-        del self._calculate_exchange
-        if hasattr(self, "indep_sampling"):
+        """Create checkpoint with improved error handling and multiple format support"""
+        logging.info("Starting checkpoint creation...")
+        
+        try:
+            # Prepare data for checkpointing
+            temp_attrs = self._prepare_checkpoint_data()
+            
+            checkpoint_path = os.path.join(self.base_directory, self.checkpoint_file)
+            format_type = self._get_checkpoint_format(self.checkpoint_file)
+            
+            # Choose what to save based on format
+            if format_type == 'json':
+                # For JSON, create a dictionary representation
+                data = self._create_checkpoint_dict()
+            else:
+                # For pickle/joblib/dill, save the entire object
+                data = self
+            
+            # Save checkpoint atomically
+            self._save_checkpoint_atomic(data, checkpoint_path, format_type)
+            
+            logging.info(f"Checkpoint created successfully using {format_type} format")
+            
+        except Exception as e:
+            logging.error(f"Failed to create checkpoint: {e}")
+            logging.error(f"Checkpoint format: {format_type}")
+            logging.error(f"Checkpoint path: {checkpoint_path}")
+            raise
+
+    def _prepare_checkpoint_data(self):
+        """Prepare data for checkpointing by removing non-serializable objects"""
+        # Store references to objects we'll remove temporarily
+        temp_attrs = {}
+        
+        # Remove MPI comm and function references
+        if hasattr(self, 'comm'):
+            temp_attrs['comm'] = self.comm
+            del self.comm
+        if hasattr(self, '_calculate_exchange'):
+            temp_attrs['_calculate_exchange'] = self._calculate_exchange
+            del self._calculate_exchange
+        if hasattr(self, 'indep_sampling'):
+            temp_attrs['indep_sampling'] = self.indep_sampling
             del self.indep_sampling
+            
+        # Close and remove file streams
         self._flush_close_streams()
-        del self.ex_outstream
-        del self.permutations_stream
-        del self.histogram_mean_streams
-        del self.status_streams
-        checkpoint_path = os.path.join(self.base_directory, self.checkpoint_file)
-        logging.info("Creating checkpoint at %s" % checkpoint_path)
-        time_to_create = time.time()
-        with open(checkpoint_path, "wb") as outfile:
-            pickle.dump(self, outfile)
-        time_to_create = time.time() - time_to_create
-        logging.info("Checkpoint created in %f seconds" % time_to_create)
-        logging.info("Checkpoint created")
-        # write an extra temp file to say that the checkpoint was written without corruption
-        with open(checkpoint_path + "done", "w") as outfile:
-            outfile.write("write done")
-        logging.info("Checkpoint done flag file written")
+        if hasattr(self, 'ex_outstream'):
+            del self.ex_outstream
+        if hasattr(self, 'permutations_stream'):
+            del self.permutations_stream
+        if hasattr(self, 'histogram_mean_streams'):
+            del self.histogram_mean_streams
+        if hasattr(self, 'status_streams'):
+            del self.status_streams
+            
+        return temp_attrs
+
+    def _create_checkpoint_dict(self):
+        """Create a dictionary representation of the checkpoint data for JSON serialization"""
+        # Helper function to convert numpy arrays to lists for JSON serialization
+        def serialize_numpy(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            return obj
+        
+        # Serialize replica states data
+        replica_states_data = []
+        for rs in self.replica_states:
+            state_dict = {}
+            for key, value in rs.__dict__.items():
+                if key == 'coords':
+                    state_dict[key] = value.tolist() if isinstance(value, np.ndarray) else value
+                elif key == 'counters':
+                    state_dict[key] = value.tolist() if isinstance(value, np.ndarray) else value
+                elif key == 'step_adaptation_counters':
+                    state_dict[key] = value.tolist() if isinstance(value, np.ndarray) else value
+                elif key == 'bias_params':
+                    if isinstance(value, np.ndarray):
+                        state_dict[key] = value.tolist()
+                    elif isinstance(value, (np.integer, np.floating)):
+                        state_dict[key] = float(value)
+                    else:
+                        state_dict[key] = value
+                else:
+                    state_dict[key] = serialize_numpy(value)
+            replica_states_data.append(state_dict)
+
+        checkpoint_data = {
+            'nreplicas': int(self.nreplicas),
+            'sleep_seconds': float(self.sleep_seconds),
+            'nworkers': int(self.nworkers),
+            'rank': int(self.rank),
+            'nparticles': int(self.nparticles),
+            'bdim': int(self.bdim),
+            'kmax': float(self.kmax),
+            'kmin': float(self.kmin),
+            'max_ptiter': int(self.max_ptiter),
+            'ptiter': int(self.ptiter),
+            'print_status': bool(self.print_status),
+            'skip': int(self.skip),
+            'pfreq': int(self.pfreq),
+            'NO_EXCHANGE': int(self.NO_EXCHANGE),
+            'base_directory': str(self.base_directory),
+            'exchange_choice': int(self.exchange_choice),
+            'anyswap': bool(self.anyswap),
+            'permutation_pattern': self.permutation_pattern.tolist(),
+            'u2meank0': float(self.u2meank0),
+            'mcrunner_niter': int(self.mcrunner_niter),
+            'mcrunner_eqsteps': int(self.mcrunner_eqsteps),
+            'test_convergence': bool(self.test_convergence),
+            'eq_time': int(self.eq_time),
+            'fast_ct': bool(self.fast_ct),
+            'rel_std_err': float(self.rel_std_err),
+            'last_rel_std_errs': self.last_rel_std_errs.tolist(),
+            'eq_min_ptiter': int(self.eq_min_ptiter),
+            'eq_max_ptiter': int(self.eq_max_ptiter),
+            'min_window': int(self.min_window),
+            'max_eq_time': int(self.max_eq_time),
+            'bs_nodes': int(self.bs_nodes),
+            'numnegk': int(self.numnegk),
+            'lownegk': float(self.lownegk),
+            'k_spreading': str(self.k_spreading),
+            'bias': str(self.bias),
+            'recv_buffer': self.recv_buffer.tolist(),
+            'exchange_cnts': self.exchange_cnts.tolist(),
+            'exchange_scheme': int(self.exchange_scheme.value),
+            'checkpoint_time': self.checkpoint_time,
+            'checkpoint_file': str(self.checkpoint_file),
+            'checkpoint_format': str(self.checkpoint_format),
+            'replica_timeseries': self.replica_timeseries,
+            'replica_timeseries2': self.replica_timeseries2,
+            'replica_states_data': replica_states_data,
+            'seed_exchanges': getattr(self, 'seed_exchanges', None),
+            'created_checkpoint': getattr(self, 'created_checkpoint', False)
+        }
+        return checkpoint_data
+
+    def _save_checkpoint_atomic(self, data, filepath, format_type):
+        """Save checkpoint data atomically using a temporary file"""
+        temp_dir = os.path.dirname(filepath)
+        temp_file = None
+        
+        try:
+            # Create temporary file in the same directory
+            with tempfile.NamedTemporaryFile(mode='wb', dir=temp_dir, delete=False) as temp_file:
+                temp_filepath = temp_file.name
+                
+                logging.info(f"Creating checkpoint with {format_type} format...")
+                logging.info(f"Temporary file: {temp_filepath}")
+                
+                if format_type == 'pickle':
+                    pickle.dump(data, temp_file, protocol=pickle.HIGHEST_PROTOCOL)
+                elif format_type == 'joblib':
+                    joblib.dump(data, temp_file, compress=3)
+                elif format_type == 'dill':
+                    dill.dump(data, temp_file, protocol=dill.HIGHEST_PROTOCOL)
+                elif format_type == 'json':
+                    # For JSON, we need text mode
+                    temp_file.close()
+                    with open(temp_filepath, 'w') as json_file:
+                        json.dump(data, json_file, indent=2)
+                else:
+                    raise ValueError(f"Unsupported format: {format_type}")
+                
+                if format_type != 'json':
+                    temp_file.flush()
+                    os.fsync(temp_file.fileno())
+            
+            # Verify the file was written correctly
+            if not os.path.exists(temp_filepath):
+                raise IOError(f"Temporary checkpoint file was not created: {temp_filepath}")
+            
+            file_size = os.path.getsize(temp_filepath)
+            if file_size == 0:
+                raise IOError(f"Temporary checkpoint file is empty: {temp_filepath}")
+            
+            logging.info(f"Checkpoint file size: {file_size} bytes")
+            
+            # Atomically move temp file to final location
+            shutil.move(temp_filepath, filepath)
+            logging.info(f"Checkpoint saved successfully to: {filepath}")
+            
+            # Verify final file
+            final_size = os.path.getsize(filepath)
+            if final_size != file_size:
+                raise IOError(f"File size mismatch after move: expected {file_size}, got {final_size}")
+                
+        except Exception as e:
+            # Clean up temp file if it exists
+            if temp_file and os.path.exists(temp_filepath):
+                try:
+                    os.unlink(temp_filepath)
+                except:
+                    pass
+            logging.error(f"Failed to save checkpoint: {e}")
+            raise
+
+    def _get_checkpoint_format(self, filename):
+        """Determine checkpoint format from filename or configured format"""
+        if self.checkpoint_format == "auto":
+            # Auto-detect from file extension
+            ext = os.path.splitext(filename)[1].lower()
+            if ext == '.json':
+                return 'json'
+            elif ext == '.joblib' and HAS_JOBLIB:
+                return 'joblib'
+            elif ext == '.dill' and HAS_DILL:
+                return 'dill'
+            else:
+                return 'pickle'  # default
+        else:
+            return self.checkpoint_format
+
+    @classmethod
+    def load_checkpoint(cls, checkpoint_path, example_mcrunner=None):
+        """Load checkpoint with automatic format detection"""
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+        
+        # Determine format from file extension
+        ext = os.path.splitext(checkpoint_path)[1].lower()
+        
+        logging.info(f"Loading checkpoint from: {checkpoint_path}")
+        logging.info(f"File size: {os.path.getsize(checkpoint_path)} bytes")
+        
+        try:
+            if ext == '.json':
+                return cls._load_checkpoint_json(checkpoint_path, example_mcrunner)
+            elif ext == '.joblib' and HAS_JOBLIB:
+                logging.info("Loading with joblib...")
+                return joblib.load(checkpoint_path)
+            elif ext == '.dill' and HAS_DILL:
+                logging.info("Loading with dill...")
+                with open(checkpoint_path, 'rb') as f:
+                    return dill.load(f)
+            else:
+                # Default to pickle
+                logging.info("Loading with pickle...")
+                with open(checkpoint_path, 'rb') as f:
+                    return pickle.load(f)
+                    
+        except EOFError as e:
+            logging.error(f"EOF error loading checkpoint - file may be corrupted: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Error loading checkpoint: {e}")
+            raise
+
+    @classmethod
+    def _load_checkpoint_json(cls, checkpoint_path, example_mcrunner):
+        """Load checkpoint from JSON format"""
+        with open(checkpoint_path, 'r') as f:
+            data = json.load(f)
+        
+        # Create a new instance
+        if example_mcrunner is None:
+            raise ValueError("example_mcrunner is required for loading JSON checkpoints")
+        
+        # Create instance with data from checkpoint
+        instance = cls(
+            nreplicas=data['nreplicas'],
+            example_mcrunner=example_mcrunner,
+            kmax=data['kmax'],
+            kmin=data['kmin'],
+            u2meank0=data['u2meank0'],
+            max_ptiter=data['max_ptiter'],
+            pfreq=data['pfreq'],
+            skip=data['skip'],
+            test_convergence=data['test_convergence'],
+            fast_ct=data['fast_ct'],
+            rel_std_err=data['rel_std_err'],
+            min_window=data['min_window'],
+            max_eq_time=data['max_eq_time'],
+            numnegk=data['numnegk'],
+            lownegk=data['lownegk'],
+            k_spreading=data['k_spreading'],
+            bias=data['bias'],
+            print_status=data['print_status'],
+            base_directory=data['base_directory'],
+            bs_nodes=data['bs_nodes'],
+            eq_min_ptiter=data['eq_min_ptiter'],
+            eq_max_ptiter=data['eq_max_ptiter'],
+            sleep_seconds=data['sleep_seconds'],
+            exchange_scheme=ExchangeScheme(data['exchange_scheme']),
+            checkpoint_time=data['checkpoint_time'],
+            checkpoint_file=data['checkpoint_file'],
+            checkpoint_format=data['checkpoint_format']
+        )
+        
+        # Restore state
+        instance.ptiter = data['ptiter']
+        instance.exchange_choice = data['exchange_choice']
+        instance.anyswap = data['anyswap']
+        instance.permutation_pattern = np.array(data['permutation_pattern'], dtype='int32')
+        instance.eq_time = data['eq_time']
+        instance.last_rel_std_errs = np.array(data['last_rel_std_errs'])
+        instance.recv_buffer = np.array(data['recv_buffer'])
+        instance.exchange_cnts = np.array(data['exchange_cnts'], dtype='int32')
+        instance.replica_timeseries = data['replica_timeseries']
+        instance.replica_timeseries2 = data['replica_timeseries2']
+        instance.seed_exchanges = data.get('seed_exchanges')
+        instance.created_checkpoint = data.get('created_checkpoint', False)
+        
+        # Restore replica states
+        for i, state_data in enumerate(data['replica_states_data']):
+            for key, value in state_data.items():
+                if key == 'coords':
+                    instance.replica_states[i].coords = np.array(value)
+                elif key == 'counters':
+                    instance.replica_states[i].counters = np.array(value, dtype='uintp')
+                elif key == 'step_adaptation_counters':
+                    instance.replica_states[i].step_adaptation_counters = np.array(value, dtype='uintp')
+                else:
+                    setattr(instance.replica_states[i], key, value)
+        
+        return instance
 
     def _one_iteration(self):
         """Perform one parallel tempering iteration
@@ -937,3 +1271,20 @@ class PT_Master(object):
             self.histogram_mean_streams[ireplica].close()
             self.status_streams[ireplica].flush()
             self.status_streams[ireplica].close()
+
+    def _validate_checkpoint_format(self):
+        """Validate checkpoint format and check for required libraries"""
+        valid_formats = ["auto", "pickle", "json"]
+        if HAS_JOBLIB:
+            valid_formats.append("joblib")
+        if HAS_DILL:
+            valid_formats.append("dill")
+            
+        if self.checkpoint_format not in valid_formats:
+            raise ValueError(f"Invalid checkpoint_format '{self.checkpoint_format}'. Must be one of {valid_formats}")
+        
+        # Warn about missing libraries
+        if self.checkpoint_format == "joblib" and not HAS_JOBLIB:
+            raise ImportError("joblib is required for joblib checkpoint format. Install with: pip install joblib")
+        if self.checkpoint_format == "dill" and not HAS_DILL:
+            raise ImportError("dill is required for dill checkpoint format. Install with: pip install dill")

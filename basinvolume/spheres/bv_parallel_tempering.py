@@ -157,7 +157,13 @@ if __name__ == "__main__":
         help="File from which to load a saved checkpoint.",
         default=None,
     )
-
+    parser.add_argument(
+        "--checkpoint-format",
+        type=str,
+        help="Format for saving checkpoints. Options: 'auto', 'pickle', 'json', 'joblib', 'dill'. "
+        "Default: 'auto' (detects from file extension)",
+        default="auto",
+    )
     parser.add_argument(
         "--stepsize",
         type=float,
@@ -383,6 +389,34 @@ if __name__ == "__main__":
     start = time.time()
     exit_on_checkpoint = False
     logging.info("path: {}".format(path))
+    
+    def find_checkpoint_file(directory, filename=None):
+        """Find checkpoint file, supporting multiple formats"""
+        if filename is not None:
+            # Specific file requested
+            checkpoint_path = os.path.join(directory, filename)
+            if not os.path.exists(checkpoint_path):
+                checkpoint_path = filename  # Try absolute path
+            if os.path.exists(checkpoint_path):
+                return checkpoint_path
+            else:
+                raise FileNotFoundError(f"Checkpoint file not found: {filename}")
+        else:
+            # Auto-detect checkpoint file
+            checkpoint_patterns = [
+                'checkpoint.dmp',      # Legacy format
+                'checkpoint.pkl',      # Pickle format
+                'checkpoint.json',     # JSON format  
+                'checkpoint.joblib',   # Joblib format
+                'checkpoint.dill',     # Dill format
+            ]
+            
+            for pattern in checkpoint_patterns:
+                checkpoint_path = os.path.join(directory, pattern)
+                if os.path.exists(checkpoint_path):
+                    return checkpoint_path
+            return None
+    
     if nprocs < nreplicas:
         if rank == 0:
             logging.info("Using job queue with {} workers.".format(nprocs - 1))
@@ -417,15 +451,14 @@ if __name__ == "__main__":
                         sleep_seconds=args.sleep_seconds,
                         exchange_scheme=exchange_scheme,
                         checkpoint_time=checkpoint_time,
+                        checkpoint_format=args.checkpoint_format,
                         record_traj_npoints=record_traj_npoints,
                     )
                 else:
-                    checkpoint_path = os.path.join(path, args.load_checkpoint)
-                    # print current working directory
-                    if not os.path.exists(checkpoint_path):
-                        checkpoint_path = args.load_checkpoint
-                    with open(checkpoint_path, "rb") as infile:
-                        master = pickle.load(infile)
+                    checkpoint_path = find_checkpoint_file(path, args.load_checkpoint)
+                    
+                    logging.info(f"Loading checkpoint from: {checkpoint_path}")
+                    master = PT_Master.load_checkpoint(checkpoint_path, mcrunner)
                     master.init_state(base_directory=path, checkpoint_time=checkpoint_time)
                 master.run()
                 exit_on_checkpoint = master.created_checkpoint

@@ -111,6 +111,7 @@ acceptance = 0.2
 adjustf = 0.9
 k_spreading = "positionlinspace"
 bias = "harmonic"
+checkpoint-format = "auto"
 
 ["innersphere_defaults"]
 packings-dir = "jammed_packings"

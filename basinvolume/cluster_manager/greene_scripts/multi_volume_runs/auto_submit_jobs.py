@@ -35,6 +35,21 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
     pt_config = os.path.join(explore_dir, f"explore_{fname_wo_ext}.config")
     innersphere_config = os.path.join(explore_dir, f"innersphere_{fname_wo_ext}.config")
 
+    # Check for checkpoint files with different extensions
+    def has_checkpoint(directory):
+        """Check if any checkpoint file exists in the directory"""
+        checkpoint_extensions = ['.dmp', '.pkl', '.json', '.joblib', '.dill']
+        checkpoint_base_names = ['checkpoint', 'checkpoint.dmp']  # Keep .dmp for backward compatibility
+        
+        for base_name in checkpoint_base_names:
+            for ext in checkpoint_extensions:
+                if base_name.endswith('.dmp') and ext != '.dmp':
+                    continue  # Skip adding extension to checkpoint.dmp
+                checkpoint_path = os.path.join(directory, base_name + ('' if base_name.endswith('.dmp') else ext))
+                if os.path.exists(checkpoint_path):
+                    return True
+        return False
+
     if not os.path.exists(first_jammed_packing_config):
         return SimStage.JAMMED_PACKING
     elif not os.path.exists(kmax_config) or not check_success(kmax_config):
@@ -43,7 +58,7 @@ def get_calculation_stage(simulation_dir, jammed_packing_fname):
         return SimStage.KMIN
     elif (
         not os.path.exists(pt_config)  # PT not started
-        or (os.path.exists(os.path.join(explore_dir, "checkpoint.dmp")))  # PT not finished
+        or has_checkpoint(explore_dir)  # PT not finished (checkpoint exists)
         or not check_success(pt_config, pt=True)
     ):
         return SimStage.PT
@@ -115,8 +130,29 @@ def submit_jobs(simulation_dir, generate_packings=False, ignore_checkpoints = Fa
         if simstage == SimStage.PT:
             fname_wo_ext = os.path.splitext(jammed_packing_fname)[0]
             explore_dir = os.path.join(simulation_dir, f"explore_bv_{fname_wo_ext}")
-            if os.path.exists(os.path.join(explore_dir, "checkpoint.dmpdone")) and not ignore_checkpoints:
-                checkpoint_file = os.path.join(explore_dir, "checkpoint.dmp")
+            
+            # Find checkpoint file with any supported extension
+            def find_checkpoint_file(directory):
+                """Find the most recent checkpoint file in the directory"""
+                checkpoint_patterns = [
+                    'checkpoint.dmp',      # Legacy format
+                    'checkpoint.pkl',      # Pickle format
+                    'checkpoint.json',     # JSON format  
+                    'checkpoint.joblib',   # Joblib format
+                    'checkpoint.dill',     # Dill format
+                ]
+                
+                for pattern in checkpoint_patterns:
+                    checkpoint_path = os.path.join(directory, pattern)
+                    if os.path.exists(checkpoint_path):
+                        return checkpoint_path
+                return None
+            
+            # Check for completion marker (legacy)
+            checkpoint_done_file = os.path.join(explore_dir, "checkpoint.dmpdone")
+            
+            if os.path.exists(checkpoint_done_file) and not ignore_checkpoints:
+                checkpoint_file = find_checkpoint_file(explore_dir)
             else:
                 checkpoint_file = None
         else:
