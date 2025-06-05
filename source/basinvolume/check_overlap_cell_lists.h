@@ -230,7 +230,7 @@ public:
             std::make_shared<
                 pele::CellListsWithBreak<pele::cartesian_distance<ndim>>>(
                 std::make_shared<pele::cartesian_distance<ndim>>(), boxvec,
-                ncellx_scale),
+                2 * hs_radii.get_max(), ncellx_scale),
             specific) {}
 };
 
