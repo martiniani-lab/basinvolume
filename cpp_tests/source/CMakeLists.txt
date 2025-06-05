@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.5)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -37,8 +36,17 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DNDEBUG")
 elseif(CMAKE_BUILD_TYPE STREQUAL Coverage)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG -fprofile-arcs -ftest-coverage")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DNDEBUG -fprofile-arcs -ftest-coverage")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g --coverage -fprofile-arcs -ftest-coverage")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g --coverage -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+endif()
+
+# Coverage option
+option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
+if(ENABLE_COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g --coverage -fprofile-arcs -ftest-coverage")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g --coverage -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 endif()
 
 message(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES})
@@ -141,7 +149,61 @@ FILE(GLOB sources *.cpp)
 
 add_executable(test_main ${sources})
 
-# target_link_libraries(test_main basinvolume_lib gtest gtest_main pthread)
-# target_link_libraries(test_main pele_lib mcpele_lib basinvolume_lib gtest gtest_main pthread)
-# target_link_libraries(test_main pele_lib gtest gtest_main pthread)
+# Link libraries
 target_link_libraries(test_main basinvolume_lib pycgd_lib mcpele_lib pele_lib gtest gtest_main pthread)
+
+# Add coverage linking for coverage builds
+if(CMAKE_BUILD_TYPE STREQUAL Coverage OR ENABLE_COVERAGE)
+    target_link_libraries(test_main gcov)
+    target_link_libraries(basinvolume_lib gcov)
+    target_link_libraries(mcpele_lib gcov)
+    target_link_libraries(pele_lib gcov)
+    target_link_libraries(pycgd_lib gcov)
+endif()
+
+# Coverage targets
+if(CMAKE_BUILD_TYPE STREQUAL Coverage OR ENABLE_COVERAGE)
+    # Find required tools
+    find_program(LCOV_PATH lcov)
+    find_program(GENHTML_PATH genhtml)
+    
+    # Get the real absolute path to the basinvolume source directory for lcov
+    get_filename_component(BASINVOLUME_REAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../source" REALPATH)
+
+    if(LCOV_PATH AND GENHTML_PATH)
+        message(STATUS "Coverage tools found: lcov and genhtml")
+        
+        # Add basinvolume-only coverage target
+        add_custom_target(coverage
+            # Cleanup lcov
+            COMMAND ${LCOV_PATH} --directory . --zerocounters
+            
+            # Run tests
+            COMMAND test_main
+            
+            # Capture coverage data only for basinvolume source files
+            COMMAND ${LCOV_PATH} --directory . --capture --output-file coverage_all.info
+                --ignore-errors inconsistent,usage,unused,empty
+                --rc geninfo_unexecuted_blocks=1
+            
+            # Keep only basinvolume source files
+            COMMAND ${LCOV_PATH} --extract coverage_all.info 
+                "${BASINVOLUME_REAL_SOURCE_DIR}/*" 
+                --output-file coverage_basinvolume.info
+                --ignore-errors inconsistent,unused,empty
+            
+            # Generate HTML report for basinvolume only
+            COMMAND ${GENHTML_PATH} -o coverage_html coverage_basinvolume.info
+                --ignore-errors inconsistent,empty
+                --title "Basinvolume Coverage Report"
+            
+            # Show summary
+            COMMAND ${LCOV_PATH} --summary coverage_basinvolume.info
+            
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Generating coverage report for basinvolume source code only"
+        )
+    else()
+        message(WARNING "lcov or genhtml not found! Coverage target will not be available.")
+    endif()
+endif()
