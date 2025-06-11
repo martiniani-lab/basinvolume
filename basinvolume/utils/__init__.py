@@ -10,3 +10,11 @@ from ._utils_cpp import (
     get_dist_vec_com,
 )
 from ._weighted_kde import weighted_gaussian_kde
+from .plotting_utils import (
+    analytical_d2,
+    vec_analytical_d2,
+    setup_matplotlib_for_hypercube,
+    get_color_cycle,
+    get_line_cycler,
+    PlottingMixin,
+)

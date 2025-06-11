@@ -1,3 +1,5 @@
+#ifndef _BV_BASIN_DESCRIPTORS_H
+#define _BV_BASIN_DESCRIPTORS_H
 /*
 * Abstract class that defines a BasinDescriptor for basin volume calculation
 * A BasinDescriptor should be defined by 
@@ -83,11 +85,16 @@ protected:
 public:
     PairPotentialBasin(std::shared_ptr<pele::BasePotential> potential,
     std::shared_ptr<pele::GradientOptimizer> optimizer,
-    pele::Array<double> const &attractor);
+    pele::Array<double> const &attractor,
+    pele::Array<double> const &rattlers,
+    double dtol,
+    size_t eqsteps,
+    bool collect_minima_list);
 
     virtual ~PairPotentialBasin() = default;
     virtual bool collect_attractor(const pele::Array<double> &candidate_attractor, std::shared_ptr<pele::GradientOptimizer> optimizer) override;
     bool is_same_attractor(const pele::Array<double> &candidate_attractor);
+    MinimaList& get_minima_list() { return _minima_list; }
 };
 
 
@@ -213,7 +220,34 @@ bool PairPotentialBasin<distance_policy>::collect_attractor(
   return same_attractor;
 }
 
+template<typename distance_policy>
+PairPotentialBasin<distance_policy>::PairPotentialBasin(std::shared_ptr<pele::BasePotential> potential,
+    std::shared_ptr<pele::GradientOptimizer> optimizer,
+    pele::Array<double> const &attractor,
+    pele::Array<double> const &rattlers,
+    double dtol,
+    size_t eqsteps,
+    bool collect_minima_list)
+    : AbstractBasinCollector(potential, optimizer, attractor),
+      _nparticles(attractor.size() / _ndim),
+      _dtol2(dtol * dtol),
+      _rattlers(rattlers.copy()),
+      _m_eq_steps(eqsteps),
+      _collect_minima_list(collect_minima_list),
+      _new_minimum(attractor.size()),
+      _minima_list(dtol * sqrt(attractor.size()), optimizer->get_tol(), dtol) {
+    bool no_stable_yet = true;
+    for (size_t i = 0; i < _rattlers.size(); ++i) {
+        if (no_stable_yet && _rattlers[i] != 0) {
+        _inoratt = i;
+        no_stable_yet = false;
+        }
+        _Nnoratt += _rattlers[i];
+    }
+}
+
 } // namespace bv
+#endif // _BV_BASIN_DESCRIPTORS_H
 
 
 

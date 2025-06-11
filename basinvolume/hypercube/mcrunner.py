@@ -21,6 +21,8 @@ from basinvolume.monte_carlo import SampleUniformSphereGaussian
 from mcpele.monte_carlo import SampleGaussian
 from basinvolume.monte_carlo import Findk
 from basinvolume.utils import write_2d_array_to_hdf5
+from basinvolume.base_basinvolume import BaseBVMCRunner, BV_MCRunner_State
+from basinvolume.utils import setup_matplotlib_for_hypercube, PlottingMixin
 
 try:
     from mcpele.monte_carlo import ConfTestOR
@@ -28,35 +30,18 @@ try:
 except Exception as e:
     print(e)
 
-# for plotting histogram
-from itertools import cycle
-from scipy.integrate import quad
+# Set up matplotlib for hypercube (no LaTeX)
+setup_matplotlib_for_hypercube()
 
 try:
     import matplotlib.pyplot as plt
-
-    # more stuff for plotting histogram and comparing to prediction
-    #######################SET LATEX OPTIONS###################
-    plt.rc("text", usetex=False)  # True = bugs on the cluster!
-    plt.rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
-    # rc('text.latex',preamble=r'\usepackage{times}')
-    plt.rcParams.update({"font.size": 20})
-    plt.rcParams["xtick.major.pad"] = 8
-    plt.rcParams["ytick.major.pad"] = 8
-    ##########################################################
-    ####SET COLOUR MAP######
-    cm = plt.get_cmap("Dark2")
-    ########################
-    #####################LINE STYLE CYCLER####################
-    lines = ["-", "--", "-."]
-    linecycler = cycle(lines)
-    color_cycle = [cm(1.0 * i / 6) for i in range(6)]
-    ##########################################################
+    from basinvolume.utils import get_color_cycle
+    color_cycle = get_color_cycle()
 except ImportError as err:
     print(err)
 
 
-class HypercubeMCrunner(_BaseMCRunner):
+class HypercubeMCrunner(BaseBVMCRunner, PlottingMixin):
     def __init__(
         self,
         bias_potential,
@@ -199,128 +184,59 @@ class HypercubeMCrunner(_BaseMCRunner):
                         self.bdim,
                         self.ts_niter,
                         freq,
+                        self.equilibration_steps,
+                        fix_com=False,
                     )
                 )
-            for action in self.steps_timeseries_list:
-                self.add_action(action)
+                self.add_action(self.steps_timeseries_list[-1])
 
     def _set_report_steps(self):
-        self.set_report_steps(self.adjustf_niter)
+        self.set_report_steps(0)
 
     def set_control(self, c):
-        raise NotImplementedError
+        pass
 
     def set_bias_parameters(self, bias, bias_params, reset=True):  # XXX
-        """set temperature, canonical control parameter"""
-        self.bias_params = bias_params
+        """set new bias parameters, generally called from parallel tempering"""
         if bias == "harmonic":
             self.bias_potential.set_k(bias_params[0])
         elif bias == "radial_gaussian":
-            self.bias_potential.set_k(bias_params[0])
-            self.bias_potential.set_l0(bias_params[1])
-            self.bias_potential.set_r_cutoff(bias_params[2])
-            if bias_params[0] == 0.0:
-                # remove the log part for k= 0 run
-                self.bias_potential.set_log_prefactor(0.0)
-            else:
-                self.bias_potential.set_log_prefactor(
-                    1.0
-                )  # If temperature != 1.0, this should be 1/beta so that exp(- beta log_term ) = r^(1-d)
+            self.bias_potential.set_A(bias_params[0])
+            self.bias_potential.set_sig(bias_params[1])
         else:
-            raise NotImplementedError
+            raise NotImplementedError("bias={} not implemented".format(bias))
+        self.bias_params = bias_params
         if reset:
-            self.reset_energy()
+            self.reset()
 
     def get_stepsize(self):
         return self.takestep.get_stepsize()
 
     def run_kmin(self):
-        print("run kmin")
-        print("coords initial", self.get_coords())
-        self.set_print_progress()
-        self.run()
-        print("coords final", self.get_coords())
+        """
+        run for kmin calculation, typically k ~ 0.01
+        """
+        self.run(self.ts_niter)
 
     def get_displ2_kmin(self):
-        print("recorded steps for displ2", self.histogram.get_count())
-        return self.histogram.get_mean_variance()
+        return self.action_record_displ.get_mean_variance()
 
-    def dump_timeseries(self, fname, clear=True):
-        """write time series to fname, returns the timeseries"""
-        timeseries = np.array(self.action_record_displ.get_time_series())
-        np.savetxt(fname, timeseries)
-        if clear:
-            self.action_record_displ.clear()
-        return timeseries
+    # The common methods (dump_timeseries, get_timeseries, check_convergence, etc.)
+    # are now inherited from BaseBVMCRunner
 
-    def get_timeseries(self, clear=False):
-        """write time series to fname, returns the timeseries"""
-        timeseries = np.array(self.action_record_displ.get_time_series())
-        if clear:
-            self.action_record_displ.clear()
-        return timeseries
-
-    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
-        return self.action_record_displ.check_convergence(
-            nr_steps_to_check=nr_steps_to_check,
-            rel_std_threshold=rel_std_threshold,
-        )
-
-    def get_mean_variance_coordinate_vector(self):
-        """
-        returns the average coordinate vector from the sampling and the elementwise variance
-        """
-        (
-            mean_coord,
-            var_coord,
-        ) = self.record_trajectory.get_mean_variance_time_series()
-        return mean_coord, var_coord
-
-    def dump_trajectory(self, fname, clear=True):
-        """write time series to fname, returns the timeseries"""
-        trajectory = self.get_trajectory()
-        write_2d_array_to_hdf5(trajectory, "trajectory", fname)
-        if clear:
-            self.clear_trajectory()
-        return trajectory
-
-    def get_trajectory(self):
-        trajectory = self.record_trajectory.get_time_series()
-        return trajectory
-
-    def clear_trajectory(self):
-        self.record_trajectory.clear()
-
-    def get_complete_state(self):
-        return BV_MCRunner_State(
-            coords=self.get_coords(),
-            energy=self.get_energy(),
-            bias_params=self.bias_params,
-            stepsize=self.takestep.get_stepsize(),
-            counters=self.get_counters(),
-            takestep_count=self.takestep.get_count(),
-            step_adaptation_counters=self.takestep.get_adaptation_counters(),
-        )
-
-    def set_complete_state(self, mcrunner_state):
-        self.set_config(mcrunner_state.coords, mcrunner_state.energy)
-        self.set_bias_parameters(
-            self.bias, mcrunner_state.bias_params, reset=False
-        )
-        self.set_counters(mcrunner_state.counters)
-        self.takestep.set_stepsize(mcrunner_state.stepsize)
-        self.takestep.set_count(mcrunner_state.takestep_count)
-        self.takestep.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
+    def dump_steps_timeseries(self, fname, clear=True):
+        """Writes RELATIVE DISPLACEMENTS within the walk"""
+        for i, steps_timeseries in enumerate(self.steps_timeseries_list):
+            timeseries = np.array(steps_timeseries.get_time_series())
+            fname_mod = fname + "_" + str(self.record_steps_timeseries_every[i])
+            np.savetxt(fname_mod, timeseries)
+            if clear:
+                steps_timeseries.clear()
+        return
 
 
 class HypercubeFindkMCrunner(_BaseMCRunner):
-    """Initializes a Monte Carlo simulation that calculates the best
-
-    Parameters
-    ----------
-    _BaseMCRunner : _type_
-        _description_
-    """
+    """ """
 
     def __init__(
         self,
@@ -347,58 +263,68 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         self.bdim = len(full_coords)
         self.ndof = self.bdim
         self.origin = np.array(origin)
+        self.red_origin = origin  # necessary for pt
         self.rattlers = np.ones(self.bdim)
         self.sidelength = sidelength
+        self.ktarget = target_acceptance
+        self.knavg = knavg
+        self.ktol = ktol
+        self.equilibration_steps = 0
+        self.avgcount = avgcount
 
         # compute seeds
         if not seeds:
             i32max = np.iinfo(np.int32).max
-            seeds = dict(seed_takestep=np.random.randint(i32max))
+            seeds = dict(
+                seed_findk=np.random.randint(i32max),
+                seed_takestep=np.random.randint(i32max),
+            )
         self.seeds = seeds
 
-        # findk parameters
-        self.avgcount = avgcount
-        self.ktarget = target_acceptance
-        self.knavg = knavg
-        self.ktol = ktol
-        self.hmin = hmin
-        self.hmax = hmax
-        self.hbinsize = hbinsize
-
         # construct test/action classes
-        self.takestep = SampleGaussian(self.seeds["seed_takestep"], stepsize, self.origin)
+        self.histogram = RecordDisp2Histogram(
+            self.origin,
+            self.rattlers,
+            self.ndof,
+            hmin,
+            hmax,
+            hbinsize,
+            self.equilibration_steps,
+            fix_com=False,
+        )
 
         self.conftest = ConfTestOR()
         conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
 
         self.findk = Findk(
-            self.origin,
-            self.rattlers,
-            self.bdim,
-            self.avgcount,
+            self.seeds["seed_findk"],
             self.ktarget,
             self.knavg,
             self.ktol,
-            self.hmin,
-            self.hmax,
-            self.hbinsize,
-            fix_com=False,
+            self.histogram,
+            self.avgcount,
         )
+
+        self.takestep = RandomCoordsDisplacement(self.seeds["seed_takestep"], stepsize)
+
+        self.set_report_steps(0)
 
         # set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest)
+        self.add_action(self.histogram)
         self.add_action(self.findk)
 
     def set_control(self, c):
-        """set k"""
+        """set k, this changes the stepsize of findk takestep"""
         print(
-            "WARNING: findk set control is not defined, spring constant is set through stepsize",
+            "WARNING: set control is not defined, findk spring constant is set by the findk action",
             file=sys.stderr,
         )
 
     def get_stepsize(self):
+        """print the stepsize of findk takestep"""
         return self.takestep.get_stepsize()
 
     def get_status(self):
@@ -410,67 +336,21 @@ class HypercubeFindkMCrunner(_BaseMCRunner):
         return status
 
     def get_k(self):
-        """in findk, bias_potential is pretty much fictitious, k is adjusted through the stepsize"""
-        stepsize = self.get_stepsize()
-        k = 1.0 / (stepsize * stepsize)
-        # k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
-        return k
+        """get k from action"""
+        return self.findk.get_k()
 
     def get_entries(self):
-        return self.findk.get_entries()
+        """get entries from histogram"""
+        return self.histogram.get_histogram()
 
     def show_histogram(self):
-        hist = self.findk.get_histogram()
-        val = np.array([i * self.hbinsize for i in range(len(hist))]) + 0.5 * self.hbinsize
-        plt.hist(val, weights=hist, bins=len(hist), density=True, stacked=True)
-        ###analytical
-        k = self.get_k()
-        and2 = val[:-1] ** (self.ndof / 2 - 1) * np.exp(-0.5 * k * val[:-1] ** 1)
-        norm = and2.sum() * self.hbinsize
-        and2 /= norm
-        plt.plot(val[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1])
-        plt.savefig("findk_histogram.eps")
+        hist = self.histogram.get_histogram()
+        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
+        plt.hist(val, weights=hist, bins=len(hist))
         plt.show()
 
 
-class BV_MCRunner_State(object):
-    """
-    This class saves the state of an BV_MCrunner in a NumPy array
-    """
-
-    def __init__(
-        self,
-        state=None,
-        coords=None,
-        energy=0.0,
-        bias_params=[0.0],
-        stepsize=0.0,
-        counters=None,
-        takestep_count=0,
-        step_adaptation_counters=None,
-    ):
-        if state is None:
-            self.coords = coords
-            self.energy = energy
-            self.bias_params = bias_params
-            self.stepsize = stepsize
-            self.counters = counters
-            self.takestep_count = takestep_count
-            self.step_adaptation_counters = step_adaptation_counters
-        else:
-            self._set_state(state)
-
-    def _set_state(self, state):
-        self.coords = state.coords
-        self.energy = state.energy
-        self.bias_params = state.bias_params
-        self.stepsize = state.stepsize
-        self.counters = state.counters
-        self.takestep_count = state.takestep_count
-        self.step_adaptation_counters = state.step_adaptation_counters
-
-
-class HypercubeInnerSphereMCrunner(_BaseMCRunner):
+class HypercubeInnerSphereMCrunner(BaseBVMCRunner, PlottingMixin):
     """ """
 
     def __init__(
@@ -506,6 +386,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         self.k = 1.0 / (stepsize * stepsize)
         self.equilibration_steps = 0
         self.gaussian_step = gaussian_step
+        self.hbinsize = hbinsize
         if ts_niter is None:
             ts_niter = niter
 
@@ -533,10 +414,8 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         self.conftest = ConfTestOR()
         conftest = CheckHyperCubicContainer(np.zeros(self.ndof), self.sidelength, self.bdim)
         self.conftest.add_test(conftest)
-        # conftest2 = CheckHyperSphericalContainer(np.array(self.origin), sidelength, self.bdim)
-        # self.conftest.add_test(conftest2)
 
-        self.time_series = RecordDisplacementTimeseries(
+        self.action_record_displ = RecordDisplacementTimeseries(
             self.origin, self.ndof, ts_niter, ts_freq, fix_com=False
         )
 
@@ -553,7 +432,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         # set up pele:MC
         self.set_takestep(self.takestep)
         self.add_conf_test(self.conftest)
-        self.add_action(self.time_series)
+        self.add_action(self.action_record_displ)
 
     def set_control(self, c):
         """set k"""
@@ -569,7 +448,6 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         """bias_potential is pretty much fictitious, k is adjusted through the stepsize"""
         stepsize = self.get_stepsize()
         k = 1.0 / (stepsize * stepsize)
-        # k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
         return k
 
     def get_status(self):
@@ -592,59 +470,7 @@ class HypercubeInnerSphereMCrunner(_BaseMCRunner):
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
 
-    def dump_timeseries(self, fname, clear=True):
-        """write time series to fname, returns the timeseries"""
-        timeseries = np.array(self.time_series.get_time_series())
-        np.savetxt(fname, timeseries)
-        if clear:
-            self.time_series.clear()
-        return timeseries
-
-    def get_timeseries(self):
-        """write time series to fname, returns the timeseries"""
-        timeseries = np.array(self.time_series.get_time_series())
-        return timeseries
-
-    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
-        return self.time_series.check_convergence(
-            nr_steps_to_check=nr_steps_to_check,
-            rel_std_threshold=rel_std_threshold,
-        )
-
-    def show_histogram(self):
-        hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        plt.hist(val, weights=hist, bins=len(hist))
-        plt.show()
-
-    def show_histogram_analytical(self, output_directory=""):
-        """
-        shows the histogram against the analytical curve when k=kmax
-        this function is useful for testing
-        """
-        plt.clf()
-        timeseries = self.get_timeseries()
-        n, bins, patch = plt.hist(
-            timeseries,
-            bins=500,
-            range=(np.amin(timeseries), np.amax(timeseries)),
-            density=True,
-            stacked=True,
-            alpha=0.4,
-            edgecolor=color_cycle[0],
-            color=color_cycle[0],
-        )
-        ###analytical
-        k = self.k
-        # and2 = np.exp(-0.5 * k * bincenters) * np.sqrt(k) / np.sqrt(2*np.pi*bincenters)
-        and2 = n[0] * np.exp(-0.5 * k * bins[:-1] ** 2)
-        plt.plot(bins[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1])
-        # plt.xlim(0,1)
-        plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
-        plt.ylabel(r"frequency $\times 10$")
-        plt.tight_layout()
-        plt.savefig(output_directory + "/innersphere_histogram.eps")
-        plt.show()
+    # Common methods inherited from BaseBVMCRunner and PlottingMixin
 
 
 if __name__ == "__main__":
@@ -703,4 +529,3 @@ if __name__ == "__main__":
         end = time.time()
         print(end - start)
         test.show_histogram()
-        test.show_histogram_analytical()

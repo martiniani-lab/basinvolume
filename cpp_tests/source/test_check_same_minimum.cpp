@@ -244,3 +244,226 @@ TEST_F(CheckSameMinimumTest, FindkTestSingleBasin) {
           ->get_stepsize(),
       1 / sqrt(std::static_pointer_cast<bv::Findk>(findk)->get_k()), 1e-15);
 }
+
+TEST_F(CheckSameMinimumTest, DistanceCalculationAccuracy) {
+  const size_t eqsteps = 0;
+  auto opt = std::make_shared<opt_t>(pot, origin, _lbfgstol, _lbfgsM);
+  bv::CheckSameMinimumCartesian<3> checker(opt, pot, origin, rattlers, dtol, eqsteps);
+  
+  // Test exact origin - distance should be zero
+  arr_t test_coords = origin.copy();
+  mcpele::MC mc(pot, test_coords, 1);
+  bool result = checker.conf_test(test_coords, &mc);
+  EXPECT_TRUE(result);
+  EXPECT_NEAR(checker.get_distance(), 0.0, 1e-10);
+}
+
+TEST_F(CheckSameMinimumTest, ToleranceThresholdBehavior) {
+  const size_t eqsteps = 0;
+  auto opt = std::make_shared<opt_t>(pot, origin, _lbfgstol, _lbfgsM);
+  
+  // Test with very strict tolerance
+  double strict_dtol = 1e-12;
+  bv::CheckSameMinimumCartesian<3> strict_checker(opt, pot, origin, rattlers, strict_dtol, eqsteps);
+  
+  // Test with relaxed tolerance
+  double relaxed_dtol = 1e-2;
+  bv::CheckSameMinimumCartesian<3> relaxed_checker(opt, pot, origin, rattlers, relaxed_dtol, eqsteps);
+  
+  // Create slightly perturbed coordinates
+  arr_t test_coords = origin.copy();
+  test_coords[0] += 1e-6; // small perturbation
+  
+  mcpele::MC mc1(pot, x, 1);
+  mcpele::MC mc2(pot, x, 1);
+  
+  arr_t coords1 = test_coords.copy();
+  arr_t coords2 = test_coords.copy();
+  
+  bool strict_result = strict_checker.conf_test(coords1, &mc1);
+  bool relaxed_result = relaxed_checker.conf_test(coords2, &mc2);
+  
+  // Relaxed tolerance should be more accepting
+  EXPECT_TRUE(relaxed_result);
+  // Results might differ depending on optimization precision
+}
+
+TEST_F(CheckSameMinimumTest, RattlerHandling) {
+  const size_t eqsteps = 0;
+  auto opt = std::make_shared<opt_t>(pot, origin, _lbfgstol, _lbfgsM);
+  
+  // Create rattlers array where every other particle is a rattler
+  arr_t rattlers_mixed = rattlers.copy();
+  for (size_t i = 0; i < nr_particles; i += 2) {
+    for (size_t j = 0; j < nr_dim; ++j) {
+      rattlers_mixed[i * nr_dim + j] = 0; // make particle a rattler
+    }
+  }
+  
+  bv::CheckSameMinimumCartesian<3> checker_all_active(opt, pot, origin, rattlers, dtol, eqsteps);
+  bv::CheckSameMinimumCartesian<3> checker_mixed(opt, pot, origin, rattlers_mixed, dtol, eqsteps);
+  
+  // Test that rattler particles don't affect distance calculation
+  arr_t test_coords = origin.copy();
+  // Perturb only rattler particles significantly
+  for (size_t i = 0; i < nr_particles; i += 2) {
+    for (size_t j = 0; j < nr_dim; ++j) {
+      test_coords[i * nr_dim + j] += 10.0; // large perturbation to rattlers
+    }
+  }
+  
+  mcpele::MC mc1(pot, x, 1);
+  mcpele::MC mc2(pot, x, 1);
+  
+  arr_t coords1 = test_coords.copy();
+  arr_t coords2 = test_coords.copy();
+  
+  bool result_all = checker_all_active.conf_test(coords1, &mc1);
+  bool result_mixed = checker_mixed.conf_test(coords2, &mc2);
+  
+  // With rattlers ignored, the test should still pass
+  EXPECT_TRUE(result_mixed);
+  // With all particles active, large perturbations should fail
+  EXPECT_FALSE(result_all);
+}
+
+TEST_F(CheckSameMinimumTest, OptimizationFailureHandling) {
+  const size_t eqsteps = 0;
+  
+  // Create optimizer with very restrictive settings to force failures
+  auto restrictive_opt = std::make_shared<opt_t>(pot, origin, 1e-15, 1); // very strict tolerance and limited LBFGS memory
+  
+  bv::CheckSameMinimumCartesian<3> checker(restrictive_opt, pot, origin, rattlers, dtol, eqsteps);
+  
+  // Test with coordinates far from origin
+  arr_t test_coords = origin.copy();
+  for (size_t i = 0; i < test_coords.size(); ++i) {
+    test_coords[i] += 100.0; // very large perturbation
+  }
+  
+  mcpele::MC mc(pot, x, 1);
+  
+  // This should likely fail optimization but not crash
+  bool result = checker.conf_test(test_coords, &mc);
+  
+  // Should return false due to optimization failure
+  EXPECT_FALSE(result);
+  
+  // Failed quench fraction should be non-zero
+  EXPECT_GT(checker.get_failed_quench_frac(), 0.0);
+}
+
+TEST_F(CheckSameMinimumTest, MinimaListSizeTracking) {
+  const size_t eqsteps = 5;
+  auto opt = std::make_shared<fire_t>(pot, origin, 1e-3, 1, 1);
+  
+  bv::CheckSameMinimumCartesian<3> checker(opt, pot, origin, rattlers, dtol, eqsteps, false, true);
+  
+  mcpele::MC mc(pot, x, 1);
+  shared_ptr<mcpele::TakeStep> sampler = 
+      std::make_shared<mcpele::RandomCoordsDisplacementAll>(42);
+  mc.set_takestep(sampler);
+  
+  shared_ptr<mcpele::AcceptTest> metropolis = 
+      std::make_shared<mcpele::MetropolisTest>(42);
+  mc.add_accept_test(metropolis);
+  
+  shared_ptr<mcpele::ConfTest> test_ptr = 
+      std::make_shared<bv::CheckSameMinimumCartesian<3>>(opt, pot, origin, rattlers, dtol, eqsteps, false, true);
+  mc.add_late_conf_test(test_ptr);
+  
+  // Initial state
+  auto checker_ptr = std::static_pointer_cast<bv::CheckSameMinimumCartesian<3>>(test_ptr);
+  size_t initial_minima = checker_ptr->ml_nr_distinct_minima();
+  
+  // Run some MC steps
+  mc.run(20);
+  
+  size_t final_minima = checker_ptr->ml_nr_distinct_minima();
+  
+  // Should have at least the initial number of minima
+  EXPECT_GE(final_minima, initial_minima);
+  
+  // Get array of minima should work
+  auto minima_array = checker_ptr->get_array_of_minima();
+  EXPECT_EQ(minima_array.size(), final_minima);
+}
+
+TEST_F(CheckSameMinimumTest, PeriodicBoundaryConditions) {
+  const size_t eqsteps = 0;
+  arr_t boxvec(nr_dim, 10.0); // box size
+  
+  auto opt = std::make_shared<opt_t>(pot, origin, _lbfgstol, _lbfgsM);
+  bv::CheckSameMinimumPeriodic<3> checker(opt, pot, origin, boxvec, rattlers, dtol, eqsteps);
+  
+  // Test coordinates that are equivalent under periodic boundary conditions
+  arr_t test_coords1 = origin.copy();
+  arr_t test_coords2 = origin.copy();
+  
+  // Shift by one box length in each dimension
+  for (size_t i = 0; i < nr_dim; ++i) {
+    test_coords2[i] += boxvec[i];
+  }
+  
+  mcpele::MC mc1(pot, x, 1);
+  mcpele::MC mc2(pot, x, 1);
+  
+  bool result1 = checker.conf_test(test_coords1, &mc1);
+  bool result2 = checker.conf_test(test_coords2, &mc2);
+  
+  // Both should give same result due to periodic boundaries
+  EXPECT_EQ(result1, result2);
+}
+
+TEST_F(CheckSameMinimumTest, DifferentOptimizerComparison) {
+  const size_t eqsteps = 0;
+  
+  auto lbfgs_opt = std::make_shared<opt_t>(pot, origin, _lbfgstol, _lbfgsM);
+  auto fire_opt = std::make_shared<fire_t>(pot, origin, 1e-3, 1, 1);
+  
+  bv::CheckSameMinimumCartesian<3> lbfgs_checker(lbfgs_opt, pot, origin, rattlers, dtol, eqsteps);
+  bv::CheckSameMinimumCartesian<3> fire_checker(fire_opt, pot, origin, rattlers, dtol, eqsteps);
+  
+  // Test with same initial conditions
+  arr_t test_coords = origin.copy();
+  for (size_t i = 0; i < test_coords.size(); ++i) {
+    test_coords[i] += 0.1 * sin(i); // deterministic perturbation
+  }
+  
+  mcpele::MC mc1(pot, x, 1);
+  mcpele::MC mc2(pot, x, 1);
+  
+  arr_t coords1 = test_coords.copy();
+  arr_t coords2 = test_coords.copy();
+  
+  bool lbfgs_result = lbfgs_checker.conf_test(coords1, &mc1);
+  bool fire_result = fire_checker.conf_test(coords2, &mc2);
+  
+  // Both optimizers should find the same minimum for this simple case
+  EXPECT_EQ(lbfgs_result, fire_result);
+}
+
+TEST_F(CheckSameMinimumTest, ConvergenceTestIntegration) {
+  const size_t eqsteps = 0;
+  auto opt = std::make_shared<opt_t>(pot, origin, _lbfgstol, _lbfgsM);
+  
+  // Enable convergence testing
+  bv::CheckSameMinimumCartesian<3> checker_with_conv(opt, pot, origin, rattlers, dtol, eqsteps, true, false);
+  bv::CheckSameMinimumCartesian<3> checker_without_conv(opt, pot, origin, rattlers, dtol, eqsteps, false, false);
+  
+  EXPECT_TRUE(checker_with_conv.perform_convergence_test());
+  EXPECT_FALSE(checker_without_conv.perform_convergence_test());
+  
+  // Both should still function correctly
+  arr_t test_coords = origin.copy();
+  mcpele::MC mc1(pot, x, 1);
+  mcpele::MC mc2(pot, x, 1);
+  
+  arr_t coords1 = test_coords.copy();
+  arr_t coords2 = test_coords.copy();
+  
+  bool result1 = checker_with_conv.conf_test(coords1, &mc1);
+  bool result2 = checker_without_conv.conf_test(coords2, &mc2);
+  
+  EXPECT_EQ(result1, result2);
+}

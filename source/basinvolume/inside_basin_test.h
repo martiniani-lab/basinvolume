@@ -11,16 +11,14 @@ namespace bv {
 
 class InsideBasinTest : public mcpele::ConfTest {
     protected:
-        std::unique_ptr<AbstractGradientBasin> _basin; // description of what the basin is
+        AbstractGradientBasin* _basin; // description of what the basin is
         bool _collect_attractors; 
         // statistics
         mcpele::Moments _failed_optimizations;
-
     public:
-        InsideBasinTest(std::unique_ptr<AbstractGradientBasin> basin);
+        InsideBasinTest(AbstractGradientBasin* basin);
         virtual ~InsideBasinTest() = default;
     bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc) override;
+    double get_failed_quench_frac() const { return _failed_optimizations.mean(); }
 };
-
-
 }

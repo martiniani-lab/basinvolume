@@ -63,7 +63,6 @@ protected:
   double _dtol;
   double _d;
   double _dmax;
-  size_t _nbarrierchecks;
   size_t _nparticles;
   const std::shared_ptr<distance_policy> _dist_policy;
   size_t _Nnoratt;
@@ -115,7 +114,7 @@ CheckSameMinimum<distance_policy, OPT_T>::CheckSameMinimum(
     const bool perform_convergence_test, const bool collect_minima_list)
     : _optimizer(optimizer), _potential(potential), _origin(origin.copy()),
       _rattlers(rattlers.size() / _ndim), _new_minimum(origin.size()),
-      _dtol(dtol), _nbarrierchecks(20), _d(0), _dmax(0),
+      _dtol(dtol), _d(0), _dmax(0),
       _nparticles(origin.size() / _ndim), _dist_policy(dist), _Nnoratt(0),
       _perform_convergence_test(perform_convergence_test),
       _conv_test(30, 1e-10, _optimizer->get_tol(), 0.1, _origin, potential,
@@ -258,7 +257,7 @@ template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::_quench(
     pele::Array<double> &trial_coords) {
   _optimizer->reset(trial_coords);
-  bool success = true;
+  bool converged_to_origin = true;
   double d2max = this->_get_d2_max(_optimizer->get_x());
   double dtol2 = _dtol * _dtol;
   const size_t opt_maxiter = _optimizer->get_maxiter();
@@ -270,7 +269,7 @@ bool CheckSameMinimum<distance_policy, OPT_T>::_quench(
     if (_optimizer->stop_criterion_satisfied()) {
       // minimisation converged before satisfying distance criterion,
       // save minimum and return false
-      success = false;
+      converged_to_origin = false;
       break;
     }
     _optimizer->one_iteration();
@@ -280,7 +279,7 @@ bool CheckSameMinimum<distance_policy, OPT_T>::_quench(
   _dmax = sqrt(d2max);
   _d = sqrt(this->_get_d2(_optimizer->get_x()));
 
-  return success;
+  return converged_to_origin;
 }
 
 /* template specialization when using cg_descent
@@ -312,9 +311,9 @@ template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(
     pele::Array<double> &trial_coords, mcpele::MC *mc) {
   bool quench_success;
-  bool optimizer_converged = this->_quench(trial_coords);
+  bool converged_to_origin = this->_quench(trial_coords);
 
-  quench_success = _dmax <= _dtol || !optimizer_converged;
+  quench_success = _dmax <= _dtol || !converged_to_origin;
 
   // add number of energy evaluations to mc eval count
   const size_t nfev = _optimizer->get_nfev();
@@ -329,7 +328,7 @@ bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(
     return false;
   }
 
-  if (!optimizer_converged) {
+  if (!converged_to_origin) {
     // if quench has converged to different minimum then one might want to
     // save the new minimum
     //  std::cout <<" failed quench dmax " << _dmax << ", dtol " << _dtol <<

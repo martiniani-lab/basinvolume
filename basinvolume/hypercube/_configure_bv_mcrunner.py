@@ -11,17 +11,18 @@ from pele.potentials import Harmonic, RadialGaussian
 from basinvolume.spheres import ConfigMCRunner
 from basinvolume.hypercube import HypercubeMCrunner
 from basinvolume.utils import trymakedir
+from basinvolume.base_basinvolume import BaseConfigBVMCRunner
 import configparser
 import time
 import warnings
 
 
-class _hypercube_bv_mcrunner(ConfigMCRunner):
+class _hypercube_bv_mcrunner(ConfigMCRunner, BaseConfigBVMCRunner):
     """ """
 
     def __init__(self, rank, nprocs):
-        self.rank = rank
-        self.nprocs = nprocs
+        ConfigMCRunner.__init__(self, rank, nprocs)
+        BaseConfigBVMCRunner.__init__(self, rank, nprocs)
 
     def __call__(
         self,
@@ -124,24 +125,6 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         self.kmin_configpath = os.path.join(self.base_directory, "kmin_" + dname + ".config")
         self.configfile = "{}/explore_{}.config".format(self.base_directory, dname)
 
-    def _get_histogram_bin(self, k):
-        """automatically estimate size of histogram"""
-        hmax = self.displ_k_min * k  # self.displ_k_max*self.kmax
-        hbinsize = hmax * 0.0001
-        return hbinsize
-
-    def _initialise(self):
-        """initialisation function"""
-        # change directory only at the end of initialise
-        self._print_initialise()
-        os.chdir(self.base_directory)
-
-    def _print_initialise(self):
-        base_directory = self.base_directory
-        trymakedir(base_directory)
-        if self.rank == 0:
-            self._print_parameters()
-
     def _write_sim_params(self, f):
         """
         write simulation parameters
@@ -177,17 +160,8 @@ class _hypercube_bv_mcrunner(ConfigMCRunner):
         self.ndof = kmin_ndof
         self.sidelength = kmin_sidelength
 
-    def print_success_all(self, success):
-        """
-        print whether calculation has completed successfully
-        """
-        assert hasattr(self, "configfile")
-        if self.rank == 0:
-            configf = configparser.ConfigParser()
-            configf.read(str(self.configfile))
-            for i in range(self.nprocs):
-                configf.set("STATUS", "success_rank{}".format(str(i)), success)
-            configf.write(open(str(self.configfile), "w"))
+    # _get_histogram_bin, _initialise, _print_initialise, and print_success_all 
+    # are now inherited from BaseConfigBVMCRunner
 
 
 if __name__ == "__main__":

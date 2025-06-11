@@ -47,7 +47,8 @@ from basinvolume.monte_carlo import (
 )
 from basinvolume.enums import Minimizer, Interaction
 from basinvolume.utils import INVERSE_POWER_CVODE_95_ACC, get_mxd_t
-
+from basinvolume.base_basinvolume import BaseBVMCRunner, BV_MCRunner_State
+from basinvolume.utils import analytical_d2, vec_analytical_d2, PlottingMixin
 
 try:
     from mcpele.monte_carlo import RecordCoordsTimeseries
@@ -60,12 +61,12 @@ from scipy.integrate import quad
 
 try:
     import matplotlib.pyplot as plt
-
+    from basinvolume.utils import get_color_cycle, get_line_cycler
+    
     # more stuff for plotting histogram and comparing to prediction
     #######################SET LATEX OPTIONS###################
     plt.rc("text", usetex=True)
     plt.rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
-    # rc('text.latex',preamble=r'\usepackage{times}')
     plt.rcParams.update({"font.size": 20})
     plt.rcParams["xtick.major.pad"] = 8
     plt.rcParams["ytick.major.pad"] = 8
@@ -76,20 +77,12 @@ try:
     ########################
     #####################LINE STYLE CYCLER####################
     lines = ["-", "--", "-."]
-    linecycler = cycle(lines)
-    color_cycle = [cm(old_div(1.0 * i, 6)) for i in range(6)]
+    linecycler = get_line_cycler()
+    color_cycle = get_color_cycle()
     ##########################################################
 except ImportError as err:
     print(err)
 
-
-def analytical_d2(x, k, N, boxdim=2):
-    f = float(k * x) / 2
-    g = float(boxdim * N - boxdim) / 2 - 1
-    return np.exp(-f) * np.power(f, g)
-
-
-vec_analytical_d2 = np.vectorize(analytical_d2)
 # end: things for histogram
 
 """
@@ -198,315 +191,184 @@ class SpheresMCRunner(BaseSpheresMCrunner):
         # here put a flag and pick potential
         if self.interaction is Interaction.HS_WCA:
             pot_optimizer = HS_WCA(
-                distance_method=self.distance_method,
-                pot_kwargs=self.pot_kwargs,
-                use_cell_lists=self.use_cell_lists,
-                use_frozen=self.use_frozen,
                 eps=self.eps,
                 sca=self.sca,
+                use_cell_lists=self.use_cell_lists,
+                bdim=self.bdim,
                 radii=self.hs_radii,
+                use_periodic=True,
                 boxvec=self.boxv,
-                reference_coords=self.origin,
-                ndim=self.bdim,
-                ncellx_scale=self.ncellx_scale,
-                frozen_atoms=self.frozen_atoms,
-            )
-        elif self.interaction is Interaction.INVERSE_POWER_STILLINGER:
-            pow = self.pot_kwargs["pow"]
-            rcut = self.pot_kwargs["rcut"]
-            pot_optimizer = InversePowerStillingerCut(
-                pow,
-                self.stillinger_a_radii,
-                ndim=self.bdim,
-                boxvec=self.boxv,
-                rcut=rcut,
-                use_cell_lists=True,
+                balance_omp=False,
             )
         elif self.interaction is Interaction.INVERSE_POWER:
-            power = self.pot_kwargs["power"]
-            eps = self.pot_kwargs["eps"]
-            if len(self.hs_radii) * self.bdim > 100:
-                use_cell_lists = True
-            else:
-                use_cell_lists = False
             pot_optimizer = InversePower(
-                power,
-                eps,
-                ndim=self.bdim,
-                boxvec=self.boxv,
+                pow=self.pot_kwargs["pow"],
+                eps=self.eps,
+                use_cell_lists=self.use_cell_lists,
+                ndim=self.ndim,
                 radii=self.hs_radii,
-                use_cell_lists=use_cell_lists,
+                use_periodic=True,
+                boxvec=self.boxv,
+            )
+        elif self.interaction is Interaction.INVERSE_POWER_STILLINGER:
+            pot_optimizer = InversePowerStillingerCut(
+                pow=self.pot_kwargs["pow"],
+                eps=self.eps,
+                use_cell_lists=self.use_cell_lists,
+                ndim=self.ndim,
+                radii=self.hs_radii,
+                use_periodic=True,
+                boxvec=self.boxv,
             )
         elif self.interaction is Interaction.NEGATIVE_COS:
             pot_optimizer = PoweredCosineSum(
-                dim=self.ndim,
-                period=self.pot_kwargs["period"],
-                power=0.5,
-                offset=float(self.ndim),
+                pow=self.pot_kwargs["pow"],
+                radii=self.hs_radii,
+                eps=self.eps,
             )
-
         else:
-            raise NotImplementedError
+            raise RuntimeError("unknown interaction")
         return pot_optimizer
 
     def get_optimizer(self):
-        if self.minimizer is Minimizer.LBFGS:
-            optimizer = LBFGS_CPP(
-                self.start_coords,
-                self.pot_optimizer,
+        # here put a flag and pick opt strategy
+        pot_optimizer = self.get_pot_optimizer()
+        if self.minimizer is Minimizer.FIRE:
+            return ModifiedFireCPP(
+                pot_optimizer,
+                maxstep=self.opt_maxstep,
+                dtmax=self.opt_maxstep,
+                maxErise=1e-4,
                 tol=self.opt_tol,
                 nsteps=self.opt_nsteps,
+                **self.opt_kwargs
+            )
+        elif self.minimizer is Minimizer.LBFGS:
+            return LBFGS_CPP(
+                pot_optimizer,
                 maxstep=self.opt_maxstep,
-                maxErise=0,
+                tol=self.opt_tol,
+                nsteps=self.opt_nsteps,
+                **self.opt_kwargs
             )
         elif self.minimizer is Minimizer.CVODE:
-            try:
-                atol = self.opt_kwargs["atol_values"][str(len(self.start_coords) // self.bdim)]
-                rtol = self.opt_kwargs["rtol_values"][str(len(self.start_coords) // self.bdim)]
-            except KeyError:
-                atol = 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
-                rtol = 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
-            optimizer = CVODEBDFOptimizer(
-                self.pot_optimizer,
-                self.start_coords,
+            gamma = self.pot_kwargs.get("gamma", INVERSE_POWER_CVODE_95_ACC)
+            mxstep = self.pot_kwargs.get("mxstep", get_mxd_t(gamma))
+            return CVODEBDFOptimizer(
+                pot_optimizer,
                 tol=self.opt_tol,
-                atol=atol,
-                rtol=rtol,
+                gamma=gamma,
+                mxstep=mxstep,
+                rtol=1e-9,
+                atol=1e-12,
+                **self.opt_kwargs
             )
-        elif self.minimizer is Minimizer.MXD:
-            try:
-                atol = self.opt_kwargs["atol_values"][str(len(self.start_coords) // self.bdim)]
-                rtol = self.opt_kwargs["rtol_values"][str(len(self.start_coords) // self.bdim)]
-            except KeyError:
-                atol = 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
-                rtol = 0.1 * INVERSE_POWER_CVODE_95_ACC[len(self.start_coords) // self.bdim]
-            if self.interaction is Interaction.NEGATIVE_COS:
-                global_symmetry_offset = np.zeros((len(self.start_coords), len(self.start_coords)))
-            else:
-                global_symmetry_offset = []
-            optimizer = ExtendedMixedOptimizer(
-                self.pot_optimizer,
-                self.start_coords,
-                tol=self.opt_tol,
-                nsteps=1e7,
-                atol=atol,
-                rtol=rtol,
-                T=get_mxd_t(self.nparticles),
-                global_symmetry_offset=global_symmetry_offset,
-            )
-        elif self.minimizer is Minimizer.FIRE:
-            try:
-                opt_dtmax = self.opt_kwargs["opt_dtmax"]
-            except KeyError:
-                opt_dtmax = 1.0
-            optimizer = ModifiedFireCPP(
-                self.start_coords,
-                self.pot_optimizer,
-                dtmax=opt_dtmax,
+        elif self.minimizer is Minimizer.MIXED:
+            return ExtendedMixedOptimizer(
+                pot_optimizer,
                 maxstep=self.opt_maxstep,
                 tol=self.opt_tol,
                 nsteps=self.opt_nsteps,
+                **self.opt_kwargs
             )
         else:
-            raise NotImplementedError("minimizer={} not implemented".format(self.minimizer))
-        return optimizer
+            raise RuntimeError("unknown minimizer")
 
     def _get_check_same_minimum(self):
-        use_cgd = self.minimizer is Minimizer.CG
         if self.interaction is Interaction.NEGATIVE_COS:
-            csm = CheckSameMinimumConfig(
-                self.pot_optimizer,
-                self.red_origin,
-                self.dtol,
-                opt=self.optimizer,
-                opt_tol=self.opt_tol,
-                opt_maxiter=self.opt_nsteps,
+            # modular arithmetic distance
+            ma_rcut = 0.25
+            return CheckSameMinimumConfig(
+                self.minimizer,
+                self.coords,
+                self.distance_method,
+                use_cell_lists=self.use_cell_lists,
+                checkoverlap_cell_lists=self.checkoverlap_cell_lists,
+                bdim=self.bdim,
+                ndim=self.ndim,
+                nparticles=self.nparticles,
+                origin=self.origin,
+                boxvec=self.boxv,
+                radii=self.hs_radii,
+                ma_rcut=ma_rcut,
             )
         else:
-            csm = CheckSameMinimum(
-                self.pot_optimizer,
-                self.red_origin,
-                self.rattlers,
-                self.dtol,
-                opt=self.optimizer,
-                opt_tol=self.opt_tol,
-                opt_maxiter=self.opt_nsteps,
+            return CheckSameMinimum(
+                self.minimizer,
+                self.coords,
+                self.distance_method,
+                use_cell_lists=self.use_cell_lists,
+                checkoverlap_cell_lists=self.checkoverlap_cell_lists,
                 bdim=self.bdim,
-                eqsteps=self.equilibration_steps,
-                use_cgd=use_cgd,
-                perform_convergence_test=self.perform_convergence_test,
-                collect_minima_list=self.collect_minima_list,
+                ndim=self.ndim,
+                nparticles=self.nparticles,
+                origin=self.origin,
+                boxvec=self.boxv,
+                radii=self.hs_radii,
             )
-        return csm
 
     def _set_conf_tests(self):
-        if self.use_frozen:
-            self.conftest0 = CheckSphericalContainer(self.rcontainer, self.bdim)
-            self.add_conf_test(self.conftest0)
-        if self.interaction is Interaction.HS_WCA:
-            if self.distance_method is Distance.PERIODIC:
-                if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
-                ) or self.checkoverlap_cell_lists:
-                    self.conftest1 = CheckOverlapPeriodicCellLists(
-                        self.hs_radii,
-                        self.boxv,
-                        ncellx_scale=self.ncellx_scale,
-                        use_frozen=self.use_frozen,
-                        frozen_atoms=self.frozen_atoms,
-                        reference_coords=self.origin,
-                    )
-                else:
-                    self.conftest1 = CheckOverlapPeriodic(
-                        self.hs_radii,
-                        self.boxv,
-                        use_frozen=self.use_frozen,
-                        reference_coords=self.origin,
-                        frozen_atoms=self.frozen_atoms,
-                    )
-            elif self.distance_method is Distance.CARTESIAN:
-                if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
-                ) or self.checkoverlap_cell_lists:
-                    self.conftest1 = CheckOverlapCartesianCellLists(
-                        self.hs_radii,
-                        self.boxv,
-                        ncellx_scale=self.ncellx_scale,
-                        use_frozen=self.use_frozen,
-                        frozen_atoms=self.frozen_atoms,
-                        reference_coords=self.origin,
-                    )
-                else:
-                    self.conftest1 = CheckOverlapCartesian(
-                        self.hs_radii,
-                        self.bdim,
-                        use_frozen=self.use_frozen,
-                        reference_coords=self.origin,
-                        frozen_atoms=self.frozen_atoms,
-                    )
-            elif self.distance_method is Distance.LEES_EDWARDS:
-                if (
-                    self.checkoverlap_cell_lists is None and self.use_cell_lists
-                ) or self.checkoverlap_cell_lists:
-                    self.conftest1 = CheckOverlapLeesEdwardsCellLists(
-                        self.hs_radii,
-                        self.boxv,
-                        shear=self.pot_kwargs["shear"],
-                        ncellx_scale=self.ncellx_scale,
-                        use_frozen=self.use_frozen,
-                        frozen_atoms=self.frozen_atoms,
-                        reference_coords=self.origin,
-                    )
-                else:
-                    self.conftest1 = CheckOverlapLeesEdwards(
-                        self.hs_radii,
-                        self.boxv,
-                        shear=self.pot_kwargs["shear"],
-                        use_frozen=self.use_frozen,
-                        reference_coords=self.origin,
-                        frozen_atoms=self.frozen_atoms,
-                    )
+        # configuration tests
+        if self.distance_method is Distance.PERIODIC:
+            if self.use_cell_lists:
+                overlap_test = CheckOverlapPeriodicCellLists(
+                    self.hs_radii, self.boxv, ncellx_scale=self.sca
+                )
             else:
-                raise NotImplementedError("Specified distance method " "not implemented.")
-            self.add_late_conf_test(self.conftest1)
+                overlap_test = CheckOverlapPeriodic(
+                    self.hs_radii, self.boxv, ndim=self.bdim
+                )
+        elif self.distance_method is Distance.LEES_EDWARDS:
+            if self.use_cell_lists:
+                overlap_test = CheckOverlapLeesEdwardsCellLists(
+                    self.hs_radii, self.boxv, shear=0.0, ncellx_scale=self.sca
+                )
+            else:
+                overlap_test = CheckOverlapLeesEdwards(
+                    self.hs_radii, self.boxv, shear=0.0, ndim=self.bdim
+                )
+        elif self.distance_method is Distance.CARTESIAN:
+            if self.use_cell_lists:
+                overlap_test = CheckOverlapCartesianCellLists(
+                    self.hs_radii, ncellx_scale=self.sca
+                )
+            else:
+                overlap_test = CheckOverlapCartesian(self.hs_radii)
+            if self.use_frozen and self.rcontainer is not None:
+                spherical_container = CheckSphericalContainer(
+                    self.red_origin, self.rcontainer
+                )
+                self.add_conf_test(spherical_container)
         else:
-            warnings.warn(
-                "not setting an excluded volume conf_test because using other potential than hs_wca"
-            )
-        self.conftest2 = self._get_check_same_minimum()
-        self.add_late_conf_test(self.conftest2)
+            raise RuntimeError("distance method not recognized")
+        self.add_conf_test(overlap_test)
+
+        if self.perform_convergence_test:
+            same_minimum = self._get_check_same_minimum()
+            self.add_conf_test(same_minimum)
 
     def dump_minima_list(self, fname):
-        """write minima list to pele database"""
-        if self.interaction is Interaction.HS_WCA:
-            system = HSWCASystem(
-                self.eps,
-                self.sca,
-                self.hs_radii,
-                self.boxv,
-                bdim=self.bdim,
-                dtol=self.dtol,
-                etol=1,
+        """
+        dump the minima list in the database
+        """
+        mlist = self.same_minimum.get_minima_list()
+        print("number of minima visited during the simulation", len(mlist))
+        for minimum in mlist:
+            minimum.coords = full_coordinates(
+                minimum.coords.copy(), self.nparticles, self.bdim
             )
-            db = system.create_database(fname)
-            minima_dicts = []
-            # add origin to database, with _id == 0, to make post processing
-            # possible
-            # for origin: set count to zero, but it does not have meaning, since we are only recording minima when quench took us to neighbor
-            # distance should be zero because it is distance to itself
-            mindict0 = dict(
-                energy=self.pot_optimizer.getEnergy(self.red_origin),
-                coords=self.origin,
-                user_data=dict(count=0, distance=0),
-            )
-            minima_dicts.append(mindict0)
-            # add neighboring minima to database
-            self.conftest2.dump_minima(minima_dicts)
-            # add spring constant to user_data
-            for m in minima_dicts:
-                # XXX Is this good?
-                m["user_data"].update(k=self.bias_params[0])
-                if self.use_frozen:
-                    redcoords = m["coords"]
-                    m["coords"] = full_coordinates(
-                        redcoords, self.origin, self.frozen_atoms, self.bdim
-                    )
-            assert len(minima_dicts) == self.conftest2.ml_nr_distinct_minima() + 1
-            logging.info("Number of minima: %i" % len(minima_dicts))
-            size_estimate = len(minima_dicts) * len(self.origin)
-            if size_estimate > 1e8:
-                logging.warning(
-                    "The size of the minima dictionary is extremely "
-                    "long. This can cause the program to run out of "
-                    "memory and crash (indicated by MPI noticing that "
-                    "a process has exited on signal 9 (Killed)). You "
-                    "should probably deactivate minima collection "
-                    "(--nocollectminima)."
-                )
-            db.engine.execute(Minimum.__table__.insert(), minima_dicts)
-            db.session.commit()
-        else:
-            warnings.warn("dump_minima_list is not implemented for potentials other than hs_wca")
+        f = open(fname, "wb")
+        system = HSWCASystem()
+        system.params.database.accuracy = 1e-3
+        # database = Database(accuracy=1e-3)
+        for m in mlist:
+            # database.addMinimum(m.energy, m.coords)
+            new_minimum = system.params.database.addMinimum(m.energy, m.coords)
+        system.params.database.write_minima_xyz(f)
+        f.close()
 
 
-class BV_MCRunner_State(object):
-    """
-    This class saves the state of an BV_MCrunner in a NumPy array
-    """
-
-    def __init__(
-        self,
-        state=None,
-        coords=None,
-        energy=0.0,
-        bias_params=None,
-        stepsize=0.0,
-        counters=None,
-        takestep_count=0,
-        step_adaptation_counters=None,
-    ):
-        if state is None:
-            self.coords = coords
-            self.energy = energy
-            self.bias_params = bias_params
-            self.stepsize = stepsize
-            self.counters = counters
-            self.takestep_count = takestep_count
-            self.step_adaptation_counters = step_adaptation_counters
-        else:
-            self._set_state(state)
-
-    def _set_state(self, state):
-        self.coords = state.coords
-        self.energy = state.energy
-        self.bias_params = state.bias_params
-        self.stepsize = state.stepsize
-        self.counters = state.counters
-        self.takestep_count = state.takestep_count
-        self.step_adaptation_counters = state.step_adaptation_counters
-
-
-class BV_MCrunner(SpheresMCRunner):
+class BV_MCrunner(SpheresMCRunner, BaseBVMCRunner, PlottingMixin):
     """
     Basin volume MC runner
 
@@ -684,8 +546,6 @@ class BV_MCrunner(SpheresMCRunner):
             hmin=hmin,
             hmax=hmax,
             hbinsize=hbinsize,
-            report_steps=adjustf_niter,
-            pt_eq_niter=pt_eq_niter,
             opt_maxstep=opt_maxstep,
             opt_tol=opt_tol,
             opt_nsteps=opt_nsteps,
@@ -705,12 +565,14 @@ class BV_MCrunner(SpheresMCRunner):
             pot_kwargs=pot_kwargs,
         )
 
-        self.bias_potential = bias_potential
         self.bias = bias
-        self.full_coords = full_coords
+        self.bias_potential = bias_potential
+        self.bias_params = bias_params
 
-        # set bias parameters in potential
-        self.set_bias_parameters(bias, bias_params)
+        # set up pele:MC
+        self._set_takestep(stepsize)
+        self._set_accept_tests()
+        self._set_actions()
 
     def _set_takestep(self, stepsize):
         self.takestep = RandomCoordsDisplacement(
@@ -731,59 +593,48 @@ class BV_MCrunner(SpheresMCRunner):
         self.add_accept_test(self.metropolis)
 
     def _set_actions(self):
-        self.time_series = RecordDisplacementTimeseries(
-            self.red_origin, self.bdim, self.ts_niter, self.ts_freq, fix_com=self.fix_com
+        self.action_record_displ = RecordDisplacementTimeseries(
+            self.origin, self.bdim, self.ts_niter, self.ts_freq, self.fix_com
         )
-        self.add_action(self.time_series)
+        self.add_action(self.action_record_displ)
+        if self.record_steps_timeseries:
+            self.steps_timeseries_list = []
+            self.record_steps_timeseries_every = self.record_steps_timeseries_every
+            for freq in self.record_steps_timeseries_every:
+                self.steps_timeseries_list.append(
+                    RecordStepsTimeseries(
+                        self.origin,
+                        self.rattlers,
+                        self.bdim,
+                        self.ts_niter,
+                        freq,
+                        self.equilibration_steps,
+                        self.fix_com,
+                    )
+                )
+                self.add_action(self.steps_timeseries_list[-1])
         if self.record_trajectory:
             rte = max(
-                int(
-                    old_div(
-                        (self.niter - self.equilibration_steps),
-                        self.record_trajectory_npoints,
-                    )
-                ),
+                int((self.niter - self.equilibration_steps) / self.record_trajectory_npoints),
                 1,
             )
             self.record_trajectory = RecordCoordsTimeseries(
                 self.ndim, record_every=rte, eqsteps=self.equilibration_steps
             )
             self.add_action(self.record_trajectory)
-        if self.record_steps_timeseries:
-            self.steps_timeseries_list = []
-            for freq in self.record_steps_timeseries_every:
-                self.steps_timeseries_list.append(
-                    RecordStepsTimeseries(
-                        self.red_origin,
-                        self.rattlers,
-                        self.bdim,
-                        self.ts_niter,
-                        freq,
-                    )
-                )
-            for action in self.steps_timeseries_list:
-                self.add_action(action)
 
     def set_bias_parameters(self, bias, bias_params, reset=True):  # XXX
-        """set temperature, canonical control parameter"""
-        self.bias_params = bias_params
+        """set new bias parameters, generally called from parallel tempering"""
         if bias == "harmonic":
             self.bias_potential.set_k(bias_params[0])
         elif bias == "radial_gaussian":
-            self.bias_potential.set_k(bias_params[0])
-            self.bias_potential.set_l0(bias_params[1])
-            self.bias_potential.set_r_cutoff(bias_params[2])
-            if bias_params[0] == 0.0:
-                # remove the log part for k= 0 run
-                self.bias_potential.set_log_prefactor(0.0)
-            else:
-                self.bias_potential.set_log_prefactor(
-                    1.0
-                )  # If temperature != 1.0, this should be 1/beta so that exp(- beta log_term ) = r^(1-d)
+            self.bias_potential.set_A(bias_params[0])
+            self.bias_potential.set_sig(bias_params[1])
         else:
-            raise NotImplementedError
+            raise NotImplementedError("bias={} not implemented".format(bias))
+        self.bias_params = bias_params
         if reset:
-            self.reset_energy()
+            self.reset()
 
     def dump_histogram(self, fname):
         """write histogram to fname"""
@@ -792,152 +643,101 @@ class BV_MCrunner(SpheresMCRunner):
         hist = np.array(histl)
         Energies, step = np.linspace(Emin, Emax, num=len(hist), endpoint=False, retstep=True)
         Energies += 0.5 * step
-        assert abs(step - self.binsize) < old_div(self.binsize, 100)
+        assert abs(step - self.binsize) < self.binsize / 100
         np.savetxt(fname, np.column_stack((Energies, hist)), delimiter="\t")
         mean, variance = self.histogram.get_mean_variance()
         return mean, variance
 
-    def dump_timeseries(self, fname, clear=True):  # Writes ABSOLUTE DISPLACEMENTS from the origin
-        """write time series to fname, returns the timeseries"""
-        timeseries = np.array(self.time_series.get_time_series())
-        np.savetxt(fname, timeseries)
-        if clear:
-            self.time_series.clear()
-        return timeseries
+    # Common methods now inherited from BaseBVMCRunner
+    # dump_timeseries, get_timeseries, check_convergence, dump_trajectory, 
+    # get_trajectory, clear_trajectory, get_complete_state, set_complete_state
 
-    def dump_steps_timeseries(
-        self, fname, clear=True
-    ):  # Writes RELATIVE DISPLACEMENTS within the walk
-        """write time series to fname, returns the timeseries"""
-        for i, action in enumerate(self.steps_timeseries_list):
-            timeseries = np.array(action.get_time_series())
-            np.savetxt(
-                fname + ".every{}".format(self.record_steps_timeseries_every[i]),
-                timeseries,
-            )
+    def dump_steps_timeseries(self, fname, clear=True):
+        """Writes RELATIVE DISPLACEMENTS within the walk"""
+        for i, steps_timeseries in enumerate(self.steps_timeseries_list):
+            timeseries = np.array(steps_timeseries.get_time_series())
+            fname_mod = fname + "_" + str(self.record_steps_timeseries_every[i])
+            np.savetxt(fname_mod, timeseries)
             if clear:
-                action.clear()
-
-    def get_timeseries(self, clear=False):
-        """write time series to fname, returns the timeseries"""
-        timeseries = np.array(self.time_series.get_time_series())
-        if clear:
-            self.time_series.clear()
-        return timeseries
-
-    def check_convergence(self, nr_steps_to_check=10000, rel_std_threshold=0.05):
-        return self.time_series.check_convergence(
-            nr_steps_to_check=nr_steps_to_check,
-            rel_std_threshold=rel_std_threshold,
-        )
-
-    def show_histogram(self):
-        hist = self.histogram.get_histogram()
-        val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        plt.hist(val, weights=hist, bins=len(hist))
-        plt.show()
+                steps_timeseries.clear()
+        return
 
     def show_histogram_kmax(self):
-        """
-        shows the histogram against the analytical curve when k=kmax
-        this function is useful for testing
-        """
+        """show the histogram against theoretical expectation when K = Kmax"""
         hist = self.histogram.get_histogram()
         val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        n, bins, patches = plt.hist(
-            val,
-            weights=hist,
-            bins=len(hist),
-            normed=1,
-            alpha=0.4,
-            edgecolor=color_cycle[0],
-            color=color_cycle[0],
-        )
+        plt.clf()
+        plt.hist(val, weights=hist, bins=len(hist), density=True, stacked=True)
         ###analytical
-        bincenters = 0.5 * (bins[1:] + bins[:-1])
-        and2 = old_div(
-            vec_analytical_d2(val, self.bias_params[0], self.nparticles),
-            quad(
-                vec_analytical_d2,
-                bincenters[0],
-                bincenters[-1],
-                args=(self.bias_params[0], self.nparticles),
-            )[0],
-        )
-        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
-        # plt.xlim(0,1)
+        k = self.bias_params[0]
+        and2 = vec_analytical_d2(val[:-1], k, self.nparticles, self.bdim)
+        norm = and2.sum() * self.binsize
+        and2 /= norm
+        plt.plot(val[:-1], and2, linewidth=2.5, ls=next(linecycler), color=color_cycle[-1])
+        if hasattr(self, "kmax"):
+            kmax = self.kmax
+            and2 = vec_analytical_d2(val[:-1], kmax, self.nparticles, self.bdim)
+            norm = and2.sum() * self.binsize
+            and2 /= norm
+            plt.plot(
+                val[:-1],
+                and2,
+                linewidth=2.5,
+                ls=next(linecycler),
+                color=color_cycle[-2],
+                label="kmax analytical",
+            )
+        else:
+            print("no kmax available")
+        if hasattr(self, "prob_kmax"):
+            prob_kmax = self.prob_kmax
+            k = 3.0 * prob_kmax
+            integral = quad(
+                analytical_d2,
+                0,
+                200,
+                args=(
+                    k,
+                    self.nparticles,
+                    self.bdim,
+                ),
+            )
+            print("test integral", integral)
+            and2 = vec_analytical_d2(val[:-1], k, self.nparticles, self.bdim)
+            norm = integral[0]
+            and2 /= norm
+            plt.plot(
+                val[:-1],
+                and2,
+                linewidth=2.5,
+                ls=next(linecycler),
+                color=color_cycle[-3],
+                label="kmax x 3 analytical",
+            )
         plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
-        plt.ylabel(r"frequency $\times 10$")
+        plt.ylabel(r"$P(|{\bf r}-{\bf r}_0|^2)$")
+        plt.legend()
         plt.tight_layout()
-        plt.savefig("kmax_histogram.eps")
+        # plt.ylim(0,0.05)
+        # plt.xlim(0,200)
+        plt.savefig("bv_histogram.eps")
         plt.show()
-
-    def get_mean_variance_coordinate_vector(self):
-        """
-        returns the average coordinate vector from the sampling and the elementwise variance
-        """
-        (
-            mean_coord,
-            var_coord,
-        ) = self.record_trajectory.get_mean_variance_time_series()
-        return mean_coord, var_coord
-
-    def dump_trajectory(self, fname, clear=True):
-        """write time series to fname, returns the timeseries"""
-        trajectory = self.get_trajectory()
-        write_2d_array_to_hdf5(trajectory, "trajectory", fname)
-        if clear:
-            self.clear_trajectory()
-        return trajectory
-
-    def get_trajectory(self):
-        trajectory = self.record_trajectory.get_time_series()
-        return trajectory
-
-    def clear_trajectory(self):
-        self.record_trajectory.clear()
-
-    def get_complete_state(self):
-        return BV_MCRunner_State(
-            coords=self.get_coords(),
-            energy=self.get_energy(),
-            bias_params=self.bias_params,
-            stepsize=self.takestep.get_stepsize(),
-            counters=self.get_counters(),
-            takestep_count=self.takestep.get_count(),
-            step_adaptation_counters=self.takestep.get_adaptation_counters(),
-        )
-
-    def set_complete_state(self, mcrunner_state):
-        self.set_config(mcrunner_state.coords, mcrunner_state.energy)
-        self.set_bias_parameters(self.bias, mcrunner_state.bias_params, reset=False)
-        self.set_counters(mcrunner_state.counters)
-        self.takestep.set_stepsize(mcrunner_state.stepsize)
-        self.takestep.set_count(mcrunner_state.takestep_count)
-        self.takestep.set_adaptation_counters(mcrunner_state.step_adaptation_counters)
 
 
 class Findk_MCrunner(SpheresMCRunner):
-    """Findk MCrunner
-    *coords: initial coordinates, can be the same as origin
-    *origin: jammed minimised structure
-    *hs_radii: array of the radii of the particles
-    *boxv: array with the box size lengths
-    *rattlers: array of rattlers, if not rattler: 1 -> jammed dof
-                                                  0 -> rattler dof
-    *k: spring constant
-    *temperature
-    *niter: number of MC takesteps to perform
-    *
-    *stepsize
-    *Etol: tolerance with which a mini mised structure is accepted
-     when compared to origin energy
-    *dtol: tolerance on the rms displacement of the minimised structure
-     with respect to the origin coordinates
-    *ktarget: target acceptance associated to kmax
-    *knavg: number of steps over findk averages the acceptance
-    *ktol: when acceptance-ktarget<ktol the search for k terminates
-    * this class requires 1 seed
+    """
+    Find k
+
+    Parameters
+    ----------
+    See SpheresMCRunner.
+
+    ktarget : double
+        target step acceptance ratio
+    knavg : int
+        number of MC steps from which to compute the acceptance ratio
+    ktol : double
+        tolerance on the target acceptance ratio
     """
 
     def __init__(
@@ -983,7 +783,8 @@ class Findk_MCrunner(SpheresMCRunner):
         self.ktarget = ktarget
         self.knavg = knavg
         self.ktol = ktol
-        self.fix_com = fix_com
+        self.avgcount = avgcount
+        self.binsize = binsize
         super(Findk_MCrunner, self).__init__(
             potential,
             full_coords,
@@ -993,26 +794,23 @@ class Findk_MCrunner(SpheresMCRunner):
             origin,
             hs_radii,
             boxv,
-            sca=sca,
+            sca,
             rattlers=rattlers,
-            bias_params=[1],
             dtol=dtol,
-            avgcount=avgcount,
             eps=eps,
             hmin=hmin,
             hmax=hmax,
             hbinsize=binsize,
-            report_steps=0,
-            pt_eq_niter=0,
+            avgcount=avgcount,
             opt_maxstep=opt_maxstep,
             opt_tol=opt_tol,
-            opt_kwargs=opt_kwargs,
             opt_nsteps=opt_nsteps,
+            opt_kwargs=opt_kwargs,
             perform_convergence_test=perform_convergence_test,
             collect_minima_list=collect_minima_list,
             seeds=seeds,
             use_cell_lists=use_cell_lists,
-            record_histogram=False,
+            single=single,
             distance_method=distance_method,
             use_frozen=use_frozen,
             frozen_atoms=frozen_atoms,
@@ -1020,7 +818,13 @@ class Findk_MCrunner(SpheresMCRunner):
             minimizer=minimizer,
             interaction=interaction,
             pot_kwargs=pot_kwargs,
+            fix_com=fix_com,
         )
+
+        # set up pele:MC
+        self._set_takestep(stepsize)
+        self._set_actions()
+        self._set_accept_tests()
 
     def _set_takestep(self, stepsize):
         self.takestep = SampleGaussian(self.seeds["seed_takestep"], stepsize, self.origin)
@@ -1028,7 +832,7 @@ class Findk_MCrunner(SpheresMCRunner):
 
     def _set_actions(self):
         self.findk = Findk(
-            self.red_origin,
+            self.origin,
             self.rattlers,
             self.bdim,
             self.avgcount,
@@ -1038,7 +842,7 @@ class Findk_MCrunner(SpheresMCRunner):
             self.hmin,
             self.hmax,
             self.binsize,
-            fix_com=self.fix_com,
+            self.fix_com,
         )
         self.add_action(self.findk)
 
@@ -1046,51 +850,24 @@ class Findk_MCrunner(SpheresMCRunner):
         pass
 
     def set_control(self, c):
-        """set k"""
-        print(
-            "WARNING: findk set control is not defined, spring constant is set through stepsize",
-            file=sys.stderr,
-        )
+        print("WARNING: findk set control is not defined")
 
     def get_k(self):
-        """in findk, potential is pretty much fictitious, k is adjusted through the stepsize"""
-        stepsize = self.get_stepsize()
-        k = 1.0 / (stepsize * stepsize)
-        # k = self.bdim*len(self.hs_radii)/(stepsize*stepsize)##############
-        return k
+        return self.findk.get_k()
 
     def get_entries(self):
         return self.findk.get_entries()
 
     def show_histogram(self):
-        """shows the histogram"""
         hist = self.findk.get_histogram()
         val = np.array([i * self.binsize for i in range(len(hist))]) + 0.5 * self.binsize
-        n, bins, patches = plt.hist(
-            val,
-            weights=hist,
-            bins=len(hist),
-            density=True,
-            alpha=0.4,
-            edgecolor=color_cycle[0],
-            color=color_cycle[0],
-        )
+        plt.hist(val, weights=hist, bins=len(hist), density=True, stacked=True)
         ###analytical
-        bincenters = 0.5 * (bins[1:] + bins[:-1])
-        and2 = old_div(
-            vec_analytical_d2(val, self.get_k(), self.nparticles, self.bdim),
-            quad(
-                vec_analytical_d2,
-                bincenters[0],
-                bincenters[-1],
-                args=(self.get_k(), self.nparticles, self.bdim),
-            )[0],
-        )
-        plt.plot(bincenters, and2, linewidth=2.5, ls="--", color=color_cycle[-1])
-        # plt.xlim(0,1)
-        plt.xlabel(r"$|{\bf r}-{\bf r}_0|^2$")
-        plt.ylabel(r"frequency $\times 10$")
-        plt.tight_layout()
+        k = self.get_k()
+        and2 = vec_analytical_d2(val[:-1], k, self.nparticles, self.bdim)
+        norm = and2.sum() * self.binsize
+        and2 /= norm
+        plt.plot(val[:-1], and2, linewidth=2.5, ls="--", color=color_cycle[-1])
         plt.savefig("findk_histogram.eps")
         plt.show()
 
