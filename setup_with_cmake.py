@@ -12,20 +12,34 @@ import shlex
 
 import numpy as np
 
-from distutils import sysconfig
-from numpy.distutils.core import setup
-from numpy.distutils.core import Extension
-from numpy.distutils.command.build_ext import build_ext as old_build_ext
+import sysconfig
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext as old_build_ext
+
+
+# Create compatibility layer for distutils.sysconfig using standard sysconfig
+class SysconfigCompat:
+    @staticmethod
+    def get_python_inc(plat_specific=False):
+        if plat_specific:
+            return sysconfig.get_path("platinclude")
+        return sysconfig.get_path("include")
+
+    @staticmethod
+    def get_config_var(name):
+        return sysconfig.get_config_var(name)
+
+
+# Use the compatibility layer
+sysconfig_compat = SysconfigCompat()
 
 import pele
 import mcpele
-import PyCG_DESCENT
 
 
 encoding = "utf-8"
 ## Numpy header files
-numpy_lib = os.path.split(np.__file__)[0]
-numpy_include = os.path.join(numpy_lib, "core/include")
+numpy_include = np.get_include()
 
 ##find pele path
 try:
@@ -38,13 +52,6 @@ try:
     print(mcpelepath)
 except:
     sys.stderr.write("WARNING: could't find path to mcpele\n")
-    sys.exit()
-
-try:
-    py_cgdescentpath = os.path.dirname(PyCG_DESCENT.__file__)[: -len("/PyCG_DESCENT")]
-    print(py_cgdescentpath)
-except:
-    sys.stderr.write("WARNING: could't find path to PyCG_DESCENT\n")
     sys.exit()
 
 # extract the -j flag and pass save it for running make on the CMake makefile
@@ -291,10 +298,14 @@ def get_compiler_env(compiler_id):
                 .rstrip("\n")
             )
         else:
-            env["CC"] = (subprocess.check_output(["which", "gcc"])).decode(encoding).rstrip("\n")
-            env["CXX"] = (subprocess.check_output(["which", "g++"])).decode(encoding).rstrip("\n")
-        env["LD"] = (subprocess.check_output(["which", "ld"])).decode(encoding).rstrip("\n")
-        env["AR"] = (subprocess.check_output(["which", "ar"])).decode(encoding).rstrip("\n")
+            # Using `which` to find the compiler executable can cause C++ ABI
+            # mismatches when working in a conda environment. The conda
+            # environment provides its own compilers which should be used.
+            # We now trust that the environment PATH is set up correctly
+            # so that CMake can find the appropriate compilers.
+            env["CC"] = "gcc"
+            env["CXX"] = "g++"
+            env["AR"] = "ar"
     elif compiler_id.lower() in ("intel"):
         env["CC"] = (subprocess.check_output(["which", "icc"])).decode(encoding).rstrip("\n")
         env["CXX"] = (subprocess.check_output(["which", "icpc"])).decode(encoding).rstrip("\n")
@@ -303,11 +314,16 @@ def get_compiler_env(compiler_id):
     else:
         raise Exception("compiler id not known")
     # this line only works if the build directory has been deleted
-    cmake_compiler_args = shlex.split(
+    cmake_compiler_args_str = (
         "-D CMAKE_EXPORT_COMPILE_COMMANDS=1 "
-        "-D CMAKE_C_COMPILER={} -D CMAKE_CXX_COMPILER={} "
-        "-D CMAKE_LINKER={} -D CMAKE_AR={}".format(env["CC"], env["CXX"], env["LD"], env["AR"])
+        "-D CMAKE_C_COMPILER={CC} -D CMAKE_CXX_COMPILER={CXX}"
     )
+    if "AR" in env:
+        cmake_compiler_args_str += " -D CMAKE_AR={AR}"
+    if "LD" in env:
+        cmake_compiler_args_str += " -D CMAKE_LINKER={LD}"
+
+    cmake_compiler_args = shlex.split(cmake_compiler_args_str.format(**env))
     # Add search path for brew installed openblas on MacOs.
     if sys.platform.startswith("darwin"):
         openblas = (
@@ -362,24 +378,38 @@ cxx_files = [
 
 
 def get_ldflags(opt="--ldflags"):
-    """return the ldflags.  This was taken directly from python-config"""
-    getvar = sysconfig.get_config_var
-    pyver = sysconfig.get_config_var("VERSION")
-    libs = getvar("LIBS").split() + getvar("SYSLIBS").split()
-    if not sys.platform.startswith("darwin"):
-        # On MacOs, explicitly including the python library leads to a
-        # segmentation fault when libraries created by cython are
-        # imported
-        libs.append("-lpython" + pyver)
-    # add the prefix/lib/pythonX.Y/config dir, but only if there is no
-    # shared library in prefix/lib/.
-    if opt == "--ldflags":
-        if not getvar("Py_ENABLE_SHARED"):
-            libs.insert(0, "-L" + getvar("LIBDIR"))
-        if not getvar("PYTHONFRAMEWORK"):
-            # See https://github.com/kovidgoyal/kitty/issues/289#issuecomment-416040645
-            libs.extend(getvar("LINKFORSHARED").replace('-Wl,-stack_size,1000000', '').split())
-    return " ".join(libs)
+    """return the ldflags using modern sysconfig"""
+    try:
+        getvar = sysconfig_compat.get_config_var
+        pyver = sysconfig_compat.get_config_var("VERSION")
+        libs = getvar("LIBS").split() + getvar("SYSLIBS").split()
+        if not sys.platform.startswith("darwin"):
+            # On MacOs, explicitly including the python library leads to a
+            # segmentation fault when libraries created by cython are
+            # imported
+            libs.append("-lpython" + pyver)
+        # add the prefix/lib/pythonX.Y/config dir, but only if there is no
+        # shared library in prefix/lib/.
+        if opt == "--ldflags":
+            if not getvar("Py_ENABLE_SHARED"):
+                libs.insert(0, "-L" + getvar("LIBDIR"))
+            if not getvar("PYTHONFRAMEWORK"):
+                # See https://github.com/kovidgoyal/kitty/issues/289#issuecomment-416040645
+                libs.extend(getvar("LINKFORSHARED").replace('-Wl,-stack_size,1000000', '').split())
+        return " ".join(libs)
+    except (AttributeError, TypeError):
+        # Fallback for modern Python versions
+        pyver = sysconfig.get_python_version()
+        libs = []
+        if not sys.platform.startswith("darwin"):
+            libs.append(f"-lpython{pyver}")
+
+        # Add library directory
+        libdir = sysconfig.get_config_var("LIBDIR")
+        if libdir:
+            libs.insert(0, f"-L{libdir}")
+
+        return " ".join(libs)
 
 
 # create file CMakeLists.txt from CMakeLists.txt.in
@@ -389,12 +419,15 @@ with open("CMakeLists.txt.in", "r") as fin:
 cmake_txt = cmake_txt.replace("__PELE_INCLUDE__", pelepath + "/source")
 cmake_txt = cmake_txt.replace("__PELE_DIR__", pelepath)
 cmake_txt = cmake_txt.replace("__MCPELE_INCLUDE__", mcpelepath + "/source")
-cmake_txt = cmake_txt.replace("__PY_CGDESCENT_INCLUDE__", py_cgdescentpath + "/source")
 # note: the code to find python_includes was taken from the python-config executable
-python_includes = [
-    sysconfig.get_python_inc(),
-    sysconfig.get_python_inc(plat_specific=True),
-]
+try:
+    python_includes = [
+        sysconfig_compat.get_python_inc(),
+        sysconfig_compat.get_python_inc(plat_specific=True),
+    ]
+except (AttributeError, TypeError):
+    # Fallback for modern Python versions
+    python_includes = [sysconfig.get_path("include")]
 cmake_txt = cmake_txt.replace("__PYTHON_INCLUDE__", " ".join(python_includes))
 if isinstance(numpy_include, basestring):
     numpy_include = [numpy_include]
@@ -449,12 +482,13 @@ class build_ext_precompiled(old_build_ext):
         """
         ext_path = self.get_ext_fullpath(ext.name)
         pre_compiled_library = ext.sources[0]
-        if pre_compiled_library[-3:] != ".so":
-            raise RuntimeError("library is not a .so file: " + pre_compiled_library)
         if not os.path.isfile(pre_compiled_library):
             raise RuntimeError(
                 "file does not exist: " + pre_compiled_library + " Did CMake not run correctly"
             )
+
+        # Ensure the destination directory exists before copying
+        os.makedirs(os.path.dirname(ext_path), exist_ok=True)
         print("copying", pre_compiled_library, "to", ext_path)
         shutil.copy2(pre_compiled_library, ext_path)
 

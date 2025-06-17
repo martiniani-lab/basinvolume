@@ -15,7 +15,6 @@
 #include "mcpele/histogram.h"
 #include "mcpele/mc.h"
 
-#include "bv_cg_descent.h"
 #include "convergence_test.h"
 #include "minima_list.h"
 
@@ -39,7 +38,7 @@ namespace bv {
 
 class CheckSameMinimumInterface : public mcpele::ConfTest {
 public:
-  virtual ~CheckSameMinimumInterface(){};
+  virtual ~CheckSameMinimumInterface() {};
   virtual bool conf_test(pele::Array<double> &trial_coords, mcpele::MC *mc) = 0;
   virtual size_t ml_nr_distinct_minima() const = 0;
   virtual pele::Array<Minimum *> get_array_of_minima() = 0;
@@ -283,30 +282,6 @@ bool CheckSameMinimum<distance_policy, OPT_T>::_quench(
   return success;
 }
 
-/* template specialization when using cg_descent
- * Since a partially specialized class member is impossible, this needs to be
- * done for each distance_policy when using CG
- */
-template <>
-inline bool CheckSameMinimum<pele::cartesian_distance<2UL>,
-                             BvCGDescent<pele::cartesian_distance<2UL>>>::
-    _quench(pele::Array<double> &trial_coords) {
-  _optimizer->reset(trial_coords);
-  _optimizer->run();
-  _dmax = sqrt(_optimizer->get_d2_max());
-  _d = sqrt(_optimizer->get_d2());
-  return _optimizer->success();
-}
-template <>
-inline bool CheckSameMinimum<pele::cartesian_distance<3UL>,
-                             BvCGDescent<pele::cartesian_distance<3UL>>>::
-    _quench(pele::Array<double> &trial_coords) {
-  _optimizer->reset(trial_coords);
-  _optimizer->run();
-  _dmax = sqrt(_optimizer->get_d2_max());
-  _d = sqrt(_optimizer->get_d2());
-  return _optimizer->success();
-}
 // linetest
 template <typename distance_policy, class OPT_T>
 bool CheckSameMinimum<distance_policy, OPT_T>::conf_test(
@@ -377,53 +352,6 @@ public:
                            bool collect_minima_list = false)
       : CheckSameMinimum<pele::periodic_distance<ndim>>(
             optimizer, potential, origin, rattlers, dtol, eqsteps,
-            std::make_shared<pele::periodic_distance<ndim>>(boxvec),
-            perform_convergence_test, collect_minima_list) {}
-};
-
-template <size_t ndim>
-class CheckSameMinimumCGDCartesian
-    : public CheckSameMinimum<pele::cartesian_distance<ndim>,
-                              BvCGDescent<pele::cartesian_distance<ndim>>> {
-public:
-  CheckSameMinimumCGDCartesian(std::shared_ptr<pele::BasePotential> potential,
-                               pele::Array<double> origin,
-                               pele::Array<double> rattlers, double tol,
-                               double dtol, size_t opt_maxiter,
-                               size_t opt_PrintLevel, size_t eqsteps = 0,
-                               bool perform_convergence_test = false,
-                               bool collect_minima_list = false)
-      : CheckSameMinimum<pele::cartesian_distance<ndim>,
-                         BvCGDescent<pele::cartesian_distance<ndim>>>(
-            std::make_shared<BvCGDescent<pele::cartesian_distance<ndim>>>(
-                potential, origin, origin, rattlers,
-                std::make_shared<pele::cartesian_distance<ndim>>(), tol, dtol,
-                opt_maxiter, opt_PrintLevel),
-            potential, origin, rattlers, dtol, eqsteps,
-            std::make_shared<pele::cartesian_distance<ndim>>(),
-            perform_convergence_test, collect_minima_list) {}
-};
-
-template <size_t ndim>
-class CheckSameMinimumCGDPeriodic
-    : public CheckSameMinimum<pele::periodic_distance<ndim>,
-                              BvCGDescent<pele::periodic_distance<ndim>>> {
-public:
-  CheckSameMinimumCGDPeriodic(std::shared_ptr<pele::BasePotential> potential,
-                              pele::Array<double> origin,
-                              pele::Array<double> boxvec,
-                              pele::Array<double> rattlers, double tol,
-                              double dtol, size_t opt_maxiter,
-                              size_t opt_PrintLevel, size_t eqsteps = 0,
-                              bool perform_convergence_test = false,
-                              bool collect_minima_list = false)
-      : CheckSameMinimum<pele::periodic_distance<ndim>,
-                         BvCGDescent<pele::periodic_distance<ndim>>>(
-            std::make_shared<BvCGDescent<pele::periodic_distance<ndim>>>(
-                potential, origin, origin, rattlers,
-                std::make_shared<pele::periodic_distance<ndim>>(boxvec), tol,
-                dtol, opt_maxiter, opt_PrintLevel),
-            potential, origin, rattlers, dtol, eqsteps,
             std::make_shared<pele::periodic_distance<ndim>>(boxvec),
             perform_convergence_test, collect_minima_list) {}
 };

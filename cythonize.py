@@ -30,8 +30,6 @@ Note: this script does not check any of the dependent C libraries; it only
 operates on the Cython .pyx files.
 """
 
-from __future__ import division, print_function, absolute_import
-
 import os
 import re
 import sys
@@ -57,13 +55,13 @@ def process_pyx(fromfile, tofile):
         from Cython.Compiler.Version import version as cython_version
         from distutils.version import LooseVersion
 
-        if LooseVersion(cython_version) < LooseVersion("0.16"):
-            raise Exception("Building pele requires Cython >= 0.16")
+        if LooseVersion(cython_version) < LooseVersion("3.0"):
+            raise Exception("Building basinvolume requires Cython >= 3.0")
 
     except ImportError:
         pass
 
-    flags = ["--fast-fail"]
+    flags = ["--fast-fail", "-3"]
     if tofile.endswith(".cxx"):
         flags += ["--cplus"]
 

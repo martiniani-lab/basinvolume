@@ -96,29 +96,6 @@ TEST_F(CheckSameMinimumTest, BasicFunctionality) {
   EXPECT_TRUE(check_both.collect_minima_list() == true);
 }
 
-TEST_F(CheckSameMinimumTest, CGDBasicFunctionality) {
-  const size_t eqsteps = 0;
-  bv::CheckSameMinimumCGDCartesian<3> check_basic(
-      pot, origin, rattlers, etol, dtol, opt_max_iter, opt_PrintLevel, eqsteps);
-  EXPECT_TRUE(check_basic.perform_convergence_test() == false);
-  EXPECT_TRUE(check_basic.collect_minima_list() == false);
-  bv::CheckSameMinimumCGDCartesian<3> check_eigenvalues(
-      pot, origin, rattlers, etol, dtol, opt_max_iter, opt_PrintLevel, eqsteps,
-      true, false);
-  EXPECT_TRUE(check_eigenvalues.perform_convergence_test() == true);
-  EXPECT_TRUE(check_eigenvalues.collect_minima_list() == false);
-  bv::CheckSameMinimumCGDCartesian<3> check_minima(
-      pot, origin, rattlers, etol, dtol, opt_max_iter, opt_PrintLevel, eqsteps,
-      false, true);
-  EXPECT_TRUE(check_minima.perform_convergence_test() == false);
-  EXPECT_TRUE(check_minima.collect_minima_list() == true);
-  bv::CheckSameMinimumCGDCartesian<3> check_both(
-      pot, origin, rattlers, etol, dtol, opt_max_iter, opt_PrintLevel, eqsteps,
-      true, true);
-  EXPECT_TRUE(check_both.perform_convergence_test() == true);
-  EXPECT_TRUE(check_both.collect_minima_list() == true);
-}
-
 TEST_F(CheckSameMinimumTest, MCInteraction) {
   const size_t adj_iter(max_iter / 1e1);
   const size_t eqsteps = adj_iter;
@@ -146,51 +123,6 @@ TEST_F(CheckSameMinimumTest, MCInteraction) {
   shared_ptr<mcpele::ConfTest> check_both =
       std::make_shared<bv::CheckSameMinimumCartesian<3>>(
           opt, pot, origin, rattlers, dtol, eqsteps, true, true);
-  mc.add_conf_test(check_basic);
-  mc.add_conf_test(check_eigenvalues);
-  mc.add_late_conf_test(check_minima);
-  mc.add_late_conf_test(check_both);
-  // run mc
-  // mc.set_print_progress();
-  const size_t niter = 1e2;
-  mc.run(niter);
-  // check output
-  EXPECT_TRUE(mc.get_iterations_count() == niter);
-  EXPECT_NEAR(mc.get_conf_rejection_fraction(), 0,
-              1e-10); // there is only one minimum, so there should be no
-                      // rejection due to check same minimum
-}
-
-TEST_F(CheckSameMinimumTest, CGDMCInteraction) {
-  const size_t adj_iter(max_iter / 1e1);
-  const size_t eqsteps = adj_iter;
-  mcpele::MC mc(pot, x, 1);
-  shared_ptr<mcpele::TakeStep> sampler_uniform =
-      std::make_shared<mcpele::RandomCoordsDisplacementAll>(42);
-  auto sampler_uniform_adaptive = std::make_shared<mcpele::AdaptiveTakeStep>(
-      sampler_uniform, adj_iter / 1e1, 0.9, 0.2, 0.5);
-  mc.set_takestep(sampler_uniform_adaptive);
-  mc.set_report_steps(adj_iter);
-  shared_ptr<mcpele::AcceptTest> metropolis =
-      std::make_shared<mcpele::MetropolisTest>(42);
-  mc.add_accept_test(metropolis);
-  // add conf tests, check same minimum
-  shared_ptr<mcpele::ConfTest> check_basic =
-      std::make_shared<bv::CheckSameMinimumCGDCartesian<3>>(
-          pot, origin, rattlers, etol, dtol, opt_max_iter, opt_PrintLevel,
-          eqsteps);
-  shared_ptr<mcpele::ConfTest> check_eigenvalues =
-      std::make_shared<bv::CheckSameMinimumCGDCartesian<3>>(
-          pot, origin, rattlers, etol, dtol, opt_max_iter, opt_PrintLevel,
-          eqsteps, true, false);
-  shared_ptr<mcpele::ConfTest> check_minima =
-      std::make_shared<bv::CheckSameMinimumCGDCartesian<3>>(
-          pot, origin, rattlers, etol, dtol, opt_max_iter, opt_PrintLevel,
-          eqsteps, false, true);
-  shared_ptr<mcpele::ConfTest> check_both =
-      std::make_shared<bv::CheckSameMinimumCGDCartesian<3>>(
-          pot, origin, rattlers, etol, dtol, opt_max_iter, opt_PrintLevel,
-          eqsteps, true, true);
   mc.add_conf_test(check_basic);
   mc.add_conf_test(check_eigenvalues);
   mc.add_late_conf_test(check_minima);

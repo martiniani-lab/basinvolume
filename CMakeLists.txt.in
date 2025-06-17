@@ -5,19 +5,16 @@ set(PYTHON_INCLUDE_DIRS __PYTHON_INCLUDE__)
 set(PYTHON_LDFLAGS "__PYTHON_LDFLAGS__")
 set(pele_include __PELE_INCLUDE__)
 set(mcpele_include __MCPELE_INCLUDE__)
-set(py_cgdescent_include __PY_CGDESCENT_INCLUDE__)
 set(pele_dir __PELE_DIR__)
 
 message("python include dirs: ${PYTHON_INCLUDE_DIRS}")
 message("numpy include dirs: ${numpy_include}")
 message("pele include dirs: ${pele_include}")
 message("mcpele include dirs: ${mcpele_include}")
-message("py_cgdescent include dirs: ${py_cgdescent_include}")
 include_directories(${numpy_include})
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${pele_include})
 include_directories(${mcpele_include})
-include_directories(${py_cgdescent_include})
 
 set(EXT_INSTALL_PATH "${pele_dir}/extern/install")
 
@@ -93,9 +90,33 @@ message("basinvolume include directory: ${bv_include}")
 # build the bv library
 FILE(GLOB pele_sources ${pele_include}/*.c*)
 FILE(GLOB mcpele_sources ${mcpele_include}/*.c*)
-FILE(GLOB py_cgdescent_sources ${py_cgdescent_include}/CG_DESCENT/*.c)
 FILE(GLOB bv_sources ${bv_include}/*.cpp)
-add_library(bv_lib SHARED ${bv_sources} ${py_cgdescent_sources} ${mcpele_sources} ${pele_sources})
+add_library(bv_lib SHARED ${bv_sources} ${mcpele_sources} ${pele_sources})
+
+# Ensure proper libstdc++ ABI consistency by statically linking libstdc++
+execute_process(
+    COMMAND ${CMAKE_CXX_COMPILER} -print-file-name=libstdc++.a
+    OUTPUT_VARIABLE COMPILER_LIBSTDCPP_STATIC
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(EXISTS "${COMPILER_LIBSTDCPP_STATIC}")
+    # Static linking of libstdc++ to avoid version conflicts
+    target_link_libraries(bv_lib PUBLIC ${COMPILER_LIBSTDCPP_STATIC})
+    # Also need to statically link libgcc_s for exception handling
+    execute_process(
+        COMMAND ${CMAKE_CXX_COMPILER} -print-file-name=libgcc_s.so
+        OUTPUT_VARIABLE COMPILER_LIBGCC_S
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(EXISTS "${COMPILER_LIBGCC_S}")
+        target_link_libraries(bv_lib PUBLIC ${COMPILER_LIBGCC_S})
+    endif()
+    message(STATUS "Using static libstdc++: ${COMPILER_LIBSTDCPP_STATIC}")
+else()
+    target_link_libraries(bv_lib PUBLIC stdc++)
+    message(STATUS "Using default libstdc++ (fallback)")
+endif()
+
 if(APPLE)
   target_link_libraries(bv_lib PUBLIC ${SUNDIALS_LIBRARIES})
   target_link_libraries(bv_lib PUBLIC ${LAPACK_LIBRARIES})
@@ -123,6 +144,16 @@ function(make_cython_lib cython_cxx_source)
   string(REGEX REPLACE ".cxx$" "" library_name ${library_name})
   add_library(${library_name} SHARED ${cython_cxx_source})
   target_link_libraries(${library_name} bv_lib)
+  
+  # Use the same static libstdc++ for consistency
+  if(EXISTS "${COMPILER_LIBSTDCPP_STATIC}")
+    target_link_libraries(${library_name} PUBLIC ${COMPILER_LIBSTDCPP_STATIC})
+    # Also link libgcc_s for exception handling
+    if(EXISTS "${COMPILER_LIBGCC_S}")
+      target_link_libraries(${library_name} PUBLIC ${COMPILER_LIBGCC_S})
+    endif()
+  endif()
+  
   target_link_libraries(${library_name} ${SUNDIALS_LIBRARIES})
   target_link_libraries(${library_name} ${LAPACK_LIBRARIES})
   if(APPLE)
