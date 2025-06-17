@@ -1,7 +1,6 @@
 # distutils: language = c++
 # distutils: sources = ['check_same_minimum.cpp', 'check_hyper_spherical_container.cpp']
 
-from __future__ import division
 
 cimport cython
 import sys
@@ -359,9 +358,9 @@ cdef class _Cdef_CheckSameMinimumConfig(_Cdef_ConfTest):
     def get_origin(self):
         cdef _pele.Array[double] origin = self.newptr.get_origin()
         cdef double* origin_data = origin.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] origin_result = np.zeros(origin.size())
+        cdef np.ndarray[double, ndim=1] origin_result = np.zeros(origin.size())
         cdef size_t i
-        for i in xrange(origin.size()):
+        for i in range(origin.size()):
             origin_result[i] = origin_data[i]
         return origin_result
 
@@ -394,9 +393,9 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
     def get_hist_x(self):
         cdef _pele.Array[double] histi = self.newptr.get_hist_x()
         cdef double *histdata = histi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef np.ndarray[double, ndim=1] hist = np.zeros(histi.size())
         cdef size_t i
-        for i in xrange(histi.size()):
+        for i in range(histi.size()):
             hist[i] = histdata[i]
         return hist
 
@@ -405,9 +404,9 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
     def get_hist_y(self):
         cdef _pele.Array[double] histi = self.newptr.get_hist_y()
         cdef double *histdata = histi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef np.ndarray[double, ndim=1] hist = np.zeros(histi.size())
         cdef size_t i
-        for i in xrange(histi.size()):
+        for i in range(histi.size()):
             hist[i] = histdata[i]
         return hist
 
@@ -416,9 +415,9 @@ cdef class _Cdef_CheckMinimumIsHCP(_Cdef_ConfTest):
     def get_hist_ey(self):
         cdef _pele.Array[double] histi = self.newptr.get_hist_ey()
         cdef double *histdata = histi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef np.ndarray[double, ndim=1] hist = np.zeros(histi.size())
         cdef size_t i
-        for i in xrange(histi.size()):
+        for i in range(histi.size()):
             hist[i] = histdata[i]
         return hist
 
@@ -440,8 +439,6 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
     def __cinit__(self, pot, origin, rattlers, dtol, opt=None, bdim=3, eqsteps=0, opt_tol=1e-4,
                   opt_maxiter=1e5, use_cgd=False, cbool perform_convergence_test=False,
                   cbool collect_minima_list=False):
-        if opt is None:
-            assert use_cgd is True
         if len(origin) != len(rattlers):
             raise Exception("_Cdef_CheckSameMinimum: illegal input: origin vs rattlers")
         if len(origin) % bdim != 0:
@@ -453,25 +450,7 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         #print rattlers
 
         if use_cgd:
-            if (bdim == 2):
-                self.thisptr = shared_ptr[cppConfTest](
-                    <cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT2](
-                        self.potential.thisptr,
-                        _pele.Array[double](<double*> orginc.data, orginc.size),
-                        _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
-                        opt_tol, dtol, opt_maxiter, 0, eqsteps, perform_convergence_test,
-                        collect_minima_list)
-                    )
-            else:
-                assert(bdim == 3)
-                self.thisptr = shared_ptr[cppConfTest](
-                    <cppConfTest*>new cppCheckSameMinimumCGDCartesian[INT3](
-                        self.potential.thisptr,
-                        _pele.Array[double](<double*> orginc.data, orginc.size),
-                        _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
-                        opt_tol, dtol, opt_maxiter, 0, eqsteps, perform_convergence_test,
-                        collect_minima_list)
-                    )
+            raise NotImplementedError("CheckSameMinimum: use_cgd is not implemented in this branch")
         else:
             if (bdim == 2):
                 self.thisptr = shared_ptr[cppConfTest](
@@ -499,15 +478,15 @@ cdef class _Cdef_CheckSameMinimum(_Cdef_ConfTest):
         cdef cppMinimum* minimumi
         cdef _pele.Array[double] coori
         cdef double* coordata
-        cdef np.ndarray[double, ndim=1, mode="c"] coor
+        cdef np.ndarray[double, ndim=1] coor
         cdef size_t ii
         cdef _pele.Array[cppMinimum *] minima = self.newptr.get_array_of_minima()
-        for i in xrange(nr_neighboring_minima):
+        for i in range(nr_neighboring_minima):
             minimumi = minima[i]
             coori = minimumi.get_coor()
             coordata = coori.data()
             coor = np.zeros(coori.size())
-            for ii in xrange(coori.size()):
+            for ii in range(coori.size()):
                 coor[ii] = coordata[ii]
             mindicti = dict(energy=minimumi.energy(), coords=coor, user_data=dict(count=minimumi.count(), distance=minimumi.delta_x()))
             minima_dicts.append(mindicti)

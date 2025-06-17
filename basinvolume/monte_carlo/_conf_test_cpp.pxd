@@ -103,10 +103,6 @@ cdef extern from "basinvolume/check_same_minimum.h" namespace "bv":
         cppCheckSameMinimumCartesian(shared_ptr[_pele_opt.cGradientOptimizer],
                                      shared_ptr[_pele.cBasePotential], _pele.Array[double],
                                      _pele.Array[double], double, size_t, cbool, cbool) except+
-    cdef cppclass cppCheckSameMinimumCGDCartesian "bv::CheckSameMinimumCGDCartesian"[ndim]:
-        cppCheckSameMinimumCGDCartesian(shared_ptr[_pele.cBasePotential], _pele.Array[double],
-                                     _pele.Array[double], double, double, size_t, size_t,
-                                     size_t, cbool, cbool) except+
 
 #    cdef cppclass cppCheckSameMinimumPeriodic "bv::CheckSameMinimumPeriodic"[ndim]:
 #        cppCheckSameMinimumPeriodic(shared_ptr[_pele_opt.cGradientOptimizer],

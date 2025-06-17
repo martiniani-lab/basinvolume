@@ -1,8 +1,25 @@
 # distutils: language = c++
+# cython: language_level=3str
 
 import sys
-from pele.potentials import _pele
-from pele.potentials._pele cimport array_wrap_np
+
+cimport pele.potentials._pele as _pele
+from pele.potentials._pele cimport shared_ptr, array_wrap_np
+
+# Import base classes from mcpele
+cimport mcpele.monte_carlo._pele_mc as _mcpele_mc
+from mcpele.monte_carlo._pele_mc cimport cppTakeStep, _Cdef_TakeStep
+
+cdef extern from "mcpele/takestep.h" namespace "mcpele":
+    cdef cppclass cppGaussianTakeStep "mcpele::GaussianTakeStep":
+        int get_seed() except +
+        void set_generator_seed(int) except +
+        size_t get_count() except +
+        double get_stepsize() except +
+
+cdef extern from "basinvolume/takestep.h" namespace "basinvolume":
+    cdef cppclass cppSampleUniformSphereGaussian "basinvolume::SampleUniformSphereGaussian":
+        cppSampleUniformSphereGaussian(int, double, _pele.Array[double]) except +
 
 cdef class _Cdef_SampleUniformSphereGaussian(_Cdef_TakeStep):
     cdef cppGaussianTakeStep* newptr

@@ -1,17 +1,18 @@
 # distutils: language = c++
+# cython: language_level=3str
+
 import numpy as np
 cimport numpy as np
-cimport pele.potentials._pele as _pele
-from pele.potentials import _pele
-from pele.potentials._pele cimport shared_ptr
-from pele.potentials._pele cimport array_wrap_np
-from pele.potentials._pele cimport array_wrap_np_long, array_wrap_np_size_t
-from pele.potentials._pele cimport BasePotential
-from libcpp.string cimport string
-cimport cython
 import sys
-from pymbar.timeseries import statistical_inefficiency_fft
 from ctypes import c_size_t as size_t
+
+cimport pele.potentials._pele as _pele
+from pele.potentials._pele cimport shared_ptr, array_wrap_np, array_wrap_np_long, array_wrap_np_size_t, BasePotential
+from libcpp.string cimport string
+
+cimport cython
+
+from pymbar.timeseries import statistical_inefficiency_fft
 
 cdef extern from "basinvolume/cross_validation_cost.h" namespace "bv":
     cdef cppclass cCrossValidationCost "bv::CrossValidationCost":
@@ -42,7 +43,7 @@ cdef class CrossValidationCost(BasePotential):
     References
     ----------
     http://en.wikipedia.org/wiki/Kernel_density_estimation
-    http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/ebooks/html/spm/spmhtmlnode15.html
+    http://sfb649.wiwi.hu-berlin.de/xplore/ebooks/html/spm/spmhtmlnode15.html
     http://www.control.aau.dk/~tk/undervisning/PhDAdvSI/Litterature/MadsenAndHolst2006.pdf
     http://www.jstor.org/stable/2336252
     """

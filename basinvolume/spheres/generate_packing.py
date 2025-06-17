@@ -780,9 +780,9 @@ class HS_Generate_Packing(_Generate_Packing):
     #            raise Exception("_generate_packing_coords_lattice_3d: "
     # "spheres can not be placed on lattice")
     #        coords=[]
-    #        for iz in xrange(NZ):
-    #            for iy in xrange(NY):
-    #                for ix in xrange(NX):
+    #        for iz in range(NZ):
+    #            for iy in range(NY):
+    #                for ix in range(NX):
     #                    coords.extend([ix*d[0],iy*d[1],iz*d[2]])
     #                    coords.extend([(ix+0.5)*d[0],(iy+0.5)*d[1],iz*d[2]])
     #                    coords.extend([(ix+0.5),(iy+1./6)*d[1],(iz+0.5)*d[2]])
@@ -796,9 +796,9 @@ class HS_Generate_Packing(_Generate_Packing):
     #        NZ = L_cube
     #        logging.debug(L_cube)
     #        a1 = (np.prod(self.boxv) / (NX * NY * NZ)) ** (1/3)
-    #        for iz in xrange(NZ):
-    #            for iy in xrange(NY):
-    #                for ix in xrange(NX):
+    #        for iz in range(NZ):
+    #            for iy in range(NY):
+    #                for ix in range(NX):
     #                    i = (ix + iy*NX + iz*NX*NY)*self.bdim
     #                    self.coords[i] = (2*ix+((iy+iz)%2))*a1
     #                    self.coords[i + 1] = (np.sqrt(3)*(iy+(iz%2)/3))*a1

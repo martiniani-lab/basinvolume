@@ -171,13 +171,6 @@ class configure_bv_gauss_mcrunner(object):
                 opt_nsteps,
             )
         )
-        if self.minimizer is Minimizer.CG:
-            self.optimizer = CGDescent(
-                self.origin,
-                self.pot_optimizer,
-                tol=self.opt_tol,
-                nsteps=opt_nsteps,
-            )
         elif self.minimizer is Minimizer.LBFGS:
             self.optimizer = LBFGS_CPP(
                 self.origin,

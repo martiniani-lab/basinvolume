@@ -64,7 +64,7 @@ cdef inline np.ndarray[double, ndim=1] pele_array_to_np(Array[double] v):
     cdef int i
     cdef int N = v.size()
     cdef np.ndarray[double, ndim=1] vnew = np.zeros(N)
-    for i in xrange(N):
+    for i in range(N):
         vnew[i] = v[i]
     return vnew
 

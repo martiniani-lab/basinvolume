@@ -15,10 +15,6 @@ from basinvolume.enums import Minimizer
 import time
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp, steepest_descent
 
-try:
-    from PyCG_DESCENT import CGDescent
-except Exception as e:
-    print(e)
 """
 run tests in
 /scratch/sm958/Results/basinvolume_tests/n32_phi88_2D
@@ -36,9 +32,9 @@ def _check_no_overlaps(coords, hs_radii, boxv):
     no_overlap = True
     bdim = len(boxv)
     nparticles = len(coords) // bdim
-    for i in xrange(nparticles):
+    for i in range(nparticles):
         if no_overlap == True:
-            for j in xrange(i, nparticles):
+            for j in range(i, nparticles):
                 dij = np.linalg.norm(
                     get_distance(
                         self.coords[i * bdim : (i + 1) * bdim],
@@ -99,7 +95,7 @@ def get_X(fname="test_data.npz", pppn=[2, 6], nconf=int(2e5)):
         X_overlap = np.empty([0, 64])
 
         print("Generating training samples...", end=" ")
-        for _ in xrange(nconf):
+        for _ in range(nconf):
             mcrunner.one_iteration()
             success = mcrunner.get_success()
             coords = mcrunner.get_trial_coords()
@@ -188,24 +184,21 @@ def test1(X, potential, origin, nconf, maxstep, fname="test"):
         maxstep=maxstep / 10,
         nsteps=int(1e6),
     )
-    cgd_Xbool, cgd_count, cgd_nfev = test_minimizer(
-        CGDescent, potential, X[:nconf], origin, tol=1e-7, nsteps=int(1e6)
-    )
 
     print(
-        "accuracy: fire {} lbfgs {} cgd {} ".format(
-            fire_count / nconf, lbfgs_count / nconf, cgd_count / nconf
+        "accuracy: fire {} lbfgs {}".format(
+            fire_count / nconf,
+            lbfgs_count / nconf,
         )
     )
 
-    print("nfev: fire {:e} lbfgs {:e} cgd {:e} ".format(fire_nfev, lbfgs_nfev, cgd_nfev))
+    print("nfev: fire {:e} lbfgs {:e}".format(fire_nfev, lbfgs_nfev))
 
     np.savez(
         "xbool_n{}_{}.npz".format(nconf, fname),
         X=X[:nconf],
         fire_Xbool=fire_Xbool,
         lbfgs_Xbool=lbfgs_Xbool,
-        cgd_Xbool=cgd_Xbool,
     )
 
 
@@ -351,9 +344,9 @@ def _hist_nnb_midpoint(fname, Xin, Xout):
     note: should check that midpoint is inside the basin!
     """
     array_dist = []
-    for i in xrange(len(Xin)):
+    for i in range(len(Xin)):
         dx = 1e100
-        for j in xrange(i + 1, len(Xin)):
+        for j in range(i + 1, len(Xin)):
             dx_trial = np.linalg.norm(Xin[i] - Xin[j])
             if dx_trial < dx:
                 nnb_in = (i, j)
@@ -501,14 +494,7 @@ def _walk_eig_direction(
         d += stepsize
         success = _check_no_overlaps(x, sim.mcrunner.hs_radii, sim.mcrunner.boxv)
         if success:
-            success = test_minimizer_single(
-                CGDescent,
-                sim.mcrunner.pot_optimizer,
-                x,
-                origin,
-                tol=1e-7,
-                nsteps=int(1e6),
-            )
+            continue
             # success = test_minimizer_single(modifiedfire_cpp, sim.mcrunner.pot_optimizer, x, origin, tol=1e-7, maxstep=0.01, nsteps=int(1e6))
         # print success, stepsize
         if not success and backtrack_count < 10:
@@ -538,8 +524,8 @@ def _walk_eig_loop(fname, ndim=128, npackings=250):
     distance_array = []
     te_array = []  # transition state energy (energy at point where we fall out from basin)
     ev_array = []
-    for i in xrange(ndim):
-        for j in xrange(npackings):
+    for i in range(ndim):
+        for j in range(npackings):
             try:
                 sim = KminMCRunner(
                     "jammed_packing{}.xydr".format(j),
@@ -603,7 +589,7 @@ def walk_eig(fname):
     dx_means, bin_edges, binnumber = binned_statistic(
         ev_array, distance_array, statistic="mean", bins=20
     )
-    bin_means = [(bin_edges[i] + bin_edges[i + 1]) / 2 for i in xrange(len(dx_means))]
+    bin_means = [(bin_edges[i] + bin_edges[i + 1]) / 2 for i in range(len(dx_means))]
     plt.plot(bin_means, dx_means, marker="o")
     plt.xscale("log")
     plt.yscale("log")
@@ -621,7 +607,7 @@ def walk_eig(fname):
 
     plt.figure()
     te_means, bin_edges, binnumber = binned_statistic(ev_array, te_array, statistic="mean", bins=8)
-    bin_means = [(bin_edges[i] + bin_edges[i + 1]) / 2 for i in xrange(len(te_means))]
+    bin_means = [(bin_edges[i] + bin_edges[i + 1]) / 2 for i in range(len(te_means))]
     plt.plot(bin_means, te_means, marker="o")
     plt.xlabel(r"$\lambda$")
     plt.ylabel(r"$\Delta E$")

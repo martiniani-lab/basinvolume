@@ -1,5 +1,6 @@
 # distutils: language = c++
 # distutils: sources = ['record_disp2_histogram.cpp', 'record_displacement_timeseries.cpp', 'findk.cpp']
+# cython: language_level=3str
 
 import numpy as np
 cimport numpy as np
@@ -38,9 +39,9 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         """return a histogram array"""
         cdef _pele.Array[double] histi = self.newptr.get_histogram()
         cdef double *histdata = histi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef np.ndarray[double, ndim=1] hist = np.zeros(histi.size())
         cdef size_t i
-        for i in xrange(histi.size()):
+        for i in range(histi.size()):
             hist[i] = histdata[i]
 
         return hist
@@ -83,9 +84,9 @@ cdef class _Cdef_RecordAcceptanceHistogram(_Cdef_Action):
         """return a histogram array"""
         cdef _pele.Array[double] histi = self.newptr.get_acceptance_distance_values()
         cdef double *histdata = histi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef np.ndarray[double, ndim=1] hist = np.zeros(histi.size())
         cdef size_t i
-        for i in xrange(histi.size()):
+        for i in range(histi.size()):
             hist[i] = histdata[i]
         return hist
     @cython.wraparound(False)
@@ -93,9 +94,9 @@ cdef class _Cdef_RecordAcceptanceHistogram(_Cdef_Action):
         """return a histogram array"""
         cdef _pele.Array[double] histi = self.newptr.get_acceptance_fraction_values()
         cdef double *histdata = histi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef np.ndarray[double, ndim=1] hist = np.zeros(histi.size())
         cdef size_t i
-        for i in xrange(histi.size()):
+        for i in range(histi.size()):
             hist[i] = histdata[i]
         return hist
 
@@ -149,9 +150,9 @@ cdef class _Cdef_Findk(_Cdef_Action):
         """return a histogram array"""
         cdef _pele.Array[double] histi = self.newptr.get_histogram()
         cdef double *histdata = histi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] hist = np.zeros(histi.size())
+        cdef np.ndarray[double, ndim=1] hist = np.zeros(histi.size())
         cdef size_t i
-        for i in xrange(histi.size()):
+        for i in range(histi.size()):
             hist[i] = histdata[i]
 
         return hist
@@ -186,9 +187,9 @@ cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
         """return a energy time series array"""
         cdef _pele.Array[double] seriesi = self.newptr.get_time_series()
         cdef double *seriesdata = seriesi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(seriesi.size())
+        cdef np.ndarray[double, ndim=1] series = np.zeros(seriesi.size())
         cdef size_t i
-        for i in xrange(seriesi.size()):
+        for i in range(seriesi.size()):
             series[i] = seriesdata[i]
 
         return series
@@ -233,9 +234,9 @@ cdef class _Cdef_RecordStepsTimeseries(_Cdef_Action):
         """return a energy time series array"""
         cdef _pele.Array[double] seriesi = self.newptr.get_time_series()
         cdef double *seriesdata = seriesi.data()
-        cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(seriesi.size())
+        cdef np.ndarray[double, ndim=1] series = np.zeros(seriesi.size())
         cdef size_t i
-        for i in xrange(seriesi.size()):
+        for i in range(seriesi.size()):
             series[i] = seriesdata[i]
 
         return series

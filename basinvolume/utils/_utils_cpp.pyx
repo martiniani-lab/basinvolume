@@ -1,4 +1,5 @@
 # distutils: language = c++
+# cython: language_level=3str
 
 import numpy as np
 cimport numpy as np
@@ -7,6 +8,19 @@ cimport cython
 import sys
 from pymbar.timeseries import statistical_inefficiency_fft
 from ctypes import c_size_t as size_t
+
+cimport pele.potentials._pele as _pele
+from pele.potentials._pele cimport shared_ptr
+from libcpp cimport bool as cbool
+from libcpp.string cimport string
+
+cdef extern from "basinvolume/utils.h" namespace "basinvolume":
+    double get_distance_com(_pele.Array[double], _pele.Array[double], size_t) except +
+    _pele.Array[double] get_distance_vec_com(_pele.Array[double], _pele.Array[double], size_t) except +
+    _pele.Array[double] cread_txt "basinvolume::read_txt"(string, size_t, size_t) except +
+    double auto_statistical_inefficiency(_pele.Array[double], cbool, size_t) except +
+    double statistical_inefficiency_cpp "basinvolume::statistical_inefficiency"(_pele.Array[double], _pele.Array[double], cbool, size_t) except +
+    _pele.Array[double] detect_equilibration(_pele.Array[double], cbool, size_t, cbool, string) except +
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -30,9 +44,9 @@ def get_dist_vec_com(coords, origin, bdim):
                                                           _pele.Array[double](<double*> originc.data, originc.size), cbdim)
     cdef double *distdata = cdist.data()
     cdef size_t ndof = cdist.size()
-    cdef np.ndarray[double, ndim=1, mode="c"] dist = np.zeros(ndof)
+    cdef np.ndarray[double, ndim=1] dist = np.zeros(ndof)
     cdef size_t i
-    for i in xrange(ndof):
+    for i in range(ndof):
         dist[i] = distdata[i]
     return dist
 
@@ -42,9 +56,9 @@ def read_txt(fname, ncrop=0, nmax=0):
     cdef _pele.Array[double] cseries = cread_txt(fname.encode('UTF-8'), ncrop, nmax)
     cdef double *seriesdata = cseries.data()
     cdef size_t ndof = cseries.size()
-    cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(ndof)
+    cdef np.ndarray[double, ndim=1] series = np.zeros(ndof)
     cdef size_t i
-    for i in xrange(ndof):
+    for i in range(ndof):
         series[i] = seriesdata[i]
     return series
 
@@ -159,8 +173,8 @@ def detectEquilibration(A, cbool fast=True, size_t nskip=1, cbool cprint=False, 
                                                             fast, nskip, cprint, fname)
     cdef double *seriesdata = cseries.data()
     cdef size_t ndof = cseries.size()
-    cdef np.ndarray[double, ndim=1, mode="c"] series = np.zeros(ndof)
+    cdef np.ndarray[double, ndim=1] series = np.zeros(ndof)
     cdef size_t i
-    for i in xrange(ndof):
+    for i in range(ndof):
         series[i] = seriesdata[i]
     return series

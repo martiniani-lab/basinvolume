@@ -11,7 +11,6 @@ import subprocess
 import shlex
 import shutil
 import numpy as np
-from PyCG_DESCENT import CGDescent
 from pele.optimize import LBFGS_CPP
 from pele.potentials import SumGaussianPot
 from pele.potentials import Harmonic
@@ -131,13 +130,6 @@ class GaussianBenchmark(object):
             )
         # self.pot_optimizer = SumGaussianPot(self.means, self.cov)
         #####
-        if self.minimizer is Minimizer.CG:
-            self.optimizer = CGDescent(
-                self.means[self.minimum_index][:],
-                self.pot_optimizer,
-                tol=self.opt_tol,
-                nsteps=self.opt_nsteps,
-            )
         elif self.minimizer is Minimizer.LBFGS:
             self.optimizer = LBFGS_CPP(
                 self.means[self.minimum_index][:],

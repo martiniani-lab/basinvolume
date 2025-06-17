@@ -14,7 +14,6 @@ import time
 from pele.optimize._quench import (
     modifiedfire_cpp,
     lbfgs_cpp,
-    cg_descent,
     steepest_descent,
 )
 from matplotlib import pyplot as plt

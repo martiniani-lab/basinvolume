@@ -255,7 +255,7 @@ if __name__ == "__main__":
         hmax=15,
         hbinsize=0.001,
     )
-    # record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
+    # record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],)
     print("simulation started")
     start = time.time()
     sim.run()

@@ -116,9 +116,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--bias",
-        help = "Biasing potentials used in PT\
+        help="Biasing potentials used in PT\
             default = harmonic",
-        default = "harmonic"
+        default="harmonic",
     )
     # parser.add_argument("-v","--verbose", action='store_true', help="verbosity",default=False)
     args = parser.parse_args()
@@ -217,7 +217,7 @@ if __name__ == "__main__":
             hmax=15,
             hbinsize=0.001,
         )
-        # record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in xrange(22)],)
+        # record_steps_timeseries=True, record_steps_timeseries_every=[int(np.ceil(1.5**n)) for n in range(22)],)
         print("\n\nsimulation: k_min started")
         start = time.time()
         sim_kmin.run()
@@ -308,7 +308,7 @@ if __name__ == "__main__":
 
         mcrunner_pt = sim_pt(
             directory_name,
-            bias = bias,
+            bias=bias,
             niter=niter,
             stepsize=5e-1,
             hmin=0,
@@ -365,7 +365,7 @@ if __name__ == "__main__":
                     eq_max_ptiter=int(max_tot_niter / niter),
                     numnegk=numnegk,
                     k_spreading=k_spreading,
-                    bias = bias,
+                    bias=bias,
                     print_status=bv_pt_printstatus,
                     base_directory=path,
                     sleep_seconds=sleep_seconds,
@@ -409,7 +409,7 @@ if __name__ == "__main__":
                 eq_max_ptiter=int(max_tot_niter / niter),
                 numnegk=numnegk,
                 k_spreading=k_spreading,
-                bias = bias,
+                bias=bias,
                 base_directory=path,
                 fix_com=False,
             )
@@ -514,6 +514,6 @@ if __name__ == "__main__":
             print("\n\nsimulation: Volume computation started")
             print("\nThread {} here!".format(rank))
             sim_compute_volume = hypercube_mbar_compute_dos(
-                bootstrap=bootstrap, kde=kde, plot_dos_data=True, ncores=cores, bias = bias
+                bootstrap=bootstrap, kde=kde, plot_dos_data=True, ncores=cores, bias=bias
             )
             sim_compute_volume(directory_name, show=show)

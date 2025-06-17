@@ -853,8 +853,8 @@ def log_gen_gauss(x, pars):
 #        self.term_A = nd(0, 2 * self.h**2)
 #        self.term_B = 0
 #        self.term_C = 0
-#        for ii in xrange(self.N):
-#            for jj in xrange(ii+1, self.N):
+#        for ii in range(self.N):
+#            for jj in range(ii+1, self.N):
 #                self.term_B += 2*nd(self.data[ii] - self.data[jj], 2 * self.h**2)
 #                self.term_C += 2*nd(self.data[ii] - self.data[jj], self.h**2)
 

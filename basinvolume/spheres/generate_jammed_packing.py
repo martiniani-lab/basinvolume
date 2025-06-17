@@ -9,9 +9,8 @@ import numpy as np
 import abc
 import os
 from pele.distance import put_in_box, Distance
-from pele.potentials import HS_WCA, InversePowerStillingerCut
+from pele.potentials import HS_WCA, InversePowerStillingerCut, InversePowerHS
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
-from PyCG_DESCENT import CGDescent
 from basinvolume.utils import (
     trymakedir,
     get_git_version,
@@ -457,7 +456,17 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 rcut=rcut,
                 use_cell_lists=True,
             )
-
+        elif self.interaction is Interaction.INVERSE_POWER_HS:
+            self.potential = InversePowerHS(
+                pow=self.pot_kwargs["pow"],
+                eps=self.eps,
+                sca=self.sca,
+                radii=self.hs_radii,
+                ndim=self.bdim,
+                boxvec=self.boxv,
+                use_cell_lists=self.use_cell_lists,
+                ncellx_scale=1.0,
+            )
         else:
             raise NotImplementedError
 
@@ -555,9 +564,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             return False
 
     def _generate_packing_coords(self):
-        """
-        
-        """
+        """ """
         for i in range(1000):
             self.coords = np.random.rand(self.nparticles * self.bdim) * self.boxv[0]
             self.initial_coords = self.coords.copy()
@@ -568,7 +575,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             logging.info(self._log("Failed to generate packing. iteration: {}".format(i)))
         if not success:
             logging.warning(self._log("Failed to generate packing."))
-        
+
         return success
 
     def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
@@ -592,15 +599,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 dtmax=self.opt_dtmax,
                 iprint=iprint,
             )
-        elif self.minimizer is Minimizer.CG:
-            optimizer = CGDescent(
-                self.coords,
-                self.potential,
-                tol=opt_tol,
-                nsteps=self.opt_nsteps,
-                print_level=iprint,
-            )
-            res = optimizer.run()
         elif self.minimizer is Minimizer.CVODE:
             from pele.optimize import CVODEBDFOptimizer
 
@@ -658,15 +656,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                     tol=opt_tol,
                     dtmax=self.opt_dtmax,
                 )
-            elif self.minimizer is Minimizer.CG:
-                optimizer = CGDescent(
-                    self.coords,
-                    self.potential,
-                    tol=opt_tol,
-                    nsteps=self.opt_nsteps,
-                    print_level=iprint,
-                )
-                res2 = optimizer.run()
             elif self.minimizer is Minimizer.CVODE:
                 from pele.optimize import CVODEBDFOptimizer
 
@@ -942,10 +931,6 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
     ):
         super().__init__(
             target_packing_frac=target_packing_frac,
-            opt_tol=opt_tol,
-            opt_dtmax=opt_dtmax,
-            opt_nsteps=opt_nsteps,
-            opt_maxstep_factor=opt_maxstep_factor,
             packings_dir=packings_dir,
             packing_nrs=packing_nrs,
             import_jammed=import_jammed,
@@ -1037,15 +1022,6 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                 dtmax=self.opt_dtmax,
                 iprint=iprint,
             )
-        elif self.minimizer is Minimizer.CG:
-            optimizer = CGDescent(
-                self.coords,
-                self.potential,
-                tol=opt_tol,
-                nsteps=self.opt_nsteps,
-                print_level=iprint,
-            )
-            res = optimizer.run()
         elif self.minimizer is Minimizer.CVODE:
             from pele.optimize import CVODEBDFOptimizer
 
@@ -1104,15 +1080,6 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
                     tol=opt_tol,
                     dtmax=self.opt_dtmax,
                 )
-            elif self.minimizer is Minimizer.CG:
-                optimizer = CGDescent(
-                    self.coords,
-                    self.potential,
-                    tol=opt_tol,
-                    nsteps=self.opt_nsteps,
-                    print_level=iprint,
-                )
-                res2 = optimizer.run()
             elif self.minimizer is Minimizer.CVODE:
                 from pele.optimize import CVODEBDFOptimizer
 
@@ -1241,10 +1208,12 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
 
         self.parameters["radii"] = self.hs_radii
         self.parameters["box_length"] = self.boxl
-        self.pot_kwargs = {"dim" : self.parameters["dim"],
-                           "period" : self.parameters["period"],
-                           "power" : self.parameters["power"],
-                           "offset" : self.parameters["offset"]}
+        self.pot_kwargs = {
+            "dim": self.parameters["dim"],
+            "period": self.parameters["period"],
+            "power": self.parameters["power"],
+            "offset": self.parameters["offset"],
+        }
         self.potential = PoweredCosineSum(
             self.parameters["dim"],
             self.parameters["period"],
@@ -1411,6 +1380,8 @@ if __name__ == "__main__":
         override_pot_kwargs.update(pow=8, rcut=4.5)
         logging.info("Setting inverse_power_stillinger parameters: {}".format(override_pot_kwargs))
     elif interaction is Interaction.INVERSE_POWER:
+        override_pot_kwargs.update(pow=2.5)
+    elif interaction is Interaction.INVERSE_POWER_HS:
         override_pot_kwargs.update(pow=2.5)
     elif interaction is Interaction.NEGATIVE_COS:
         override_pot_kwargs.update(pow=0.5)

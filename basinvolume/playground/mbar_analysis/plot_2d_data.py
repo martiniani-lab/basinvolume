@@ -62,6 +62,8 @@ plt.rcParams.update({"font.size": glob_fontsize})
 plt.rcParams["xtick.major.pad"] = 8
 plt.rcParams["ytick.major.pad"] = 8
 plt.rcParams.update({"figure.autolayout": True})
+
+
 ##########################################################
 def get_color_cycle(ncolors=8, reverse=True):
     cm = plt.get_cmap("Paired")
@@ -436,7 +438,12 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
                     phi_min < dataset.ss_phi < 0.865 and "fire" in dataset.set_name
                 ):
                     # should remoe both outliers in pressure and in volume
-                    (p_raw, f_raw, ferr_raw, non_outliers_indexes,) = remove_outliers_cluster(
+                    (
+                        p_raw,
+                        f_raw,
+                        ferr_raw,
+                        non_outliers_indexes,
+                    ) = remove_outliers_cluster(
                         np.log(dataset.pressures),
                         np.array(dataset.free_energies),
                         np.array(dataset.free_energies_err),
@@ -1692,13 +1699,13 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
             #     cost = 0
             #     alpha, beta = x[0], x[1]
             #     print alpha, beta
-            #     for i in xrange(dphi.size):
+            #     for i in range(dphi.size):
             #         x_integrate_i = x_integrate / np.power(dphi[i], beta)
             #         log_pdf = kde_list[i].score_samples(x_integrate_i[:, np.newaxis])
             #         log_hist = log_pdf + iNK * np.log(x_integrate_i)
             #         log_norm = np.log(integrate.romb(np.exp(log_hist), dx=x_integrate_i[1] - x_integrate_i[0]))
             #         logg_i = log_hist - log_norm + log_omega_list[i]
-            #         for j in xrange(i, dphi.size):
+            #         for j in range(i, dphi.size):
             #             if i != j:
             #                 print i, j
             #                 x_integrate_j = x_integrate / np.power(dphi[j], beta)
@@ -1715,7 +1722,10 @@ def plot(packing_datasets, figdir="figures", phi_min=0.825, phi_max=0.865):
 
             if False:
                 # assert y.size == pdf.size
-                X, Y, = np.array(
+                (
+                    X,
+                    Y,
+                ) = np.array(
                     x_integrate
                 ), np.array(ss_phi_list)
                 Z = np.array(pad_log_omega_p_hist)
