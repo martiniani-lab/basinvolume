@@ -45,21 +45,6 @@ try:
 except ImportError:
     HAS_DILL = False
 
-# Additional imports for checkpointing
-import json
-import tempfile
-import shutil
-try:
-    import joblib
-    HAS_JOBLIB = True
-except ImportError:
-    HAS_JOBLIB = False
-    
-try:
-    import dill
-    HAS_DILL = True
-except ImportError:
-    HAS_DILL = False
 
 
 @unique
@@ -216,6 +201,7 @@ class PT_Master(object):
         checkpoint_time=None,
         checkpoint_file="checkpoint.dmp",
         checkpoint_format="auto",
+        record_traj_npoints=-1,
     ):
         self.nreplicas = nreplicas
         self.sleep_seconds = sleep_seconds
@@ -615,7 +601,8 @@ class PT_Master(object):
             'replica_timeseries2': self.replica_timeseries2,
             'replica_states_data': replica_states_data,
             'seed_exchanges': getattr(self, 'seed_exchanges', None),
-            'created_checkpoint': getattr(self, 'created_checkpoint', False)
+            'created_checkpoint': getattr(self, 'created_checkpoint', False),
+            'record_traj_npoints': getattr(self, 'record_traj_npoints', -1)
         }
         return checkpoint_data
 
@@ -768,7 +755,8 @@ class PT_Master(object):
             exchange_scheme=ExchangeScheme(data['exchange_scheme']),
             checkpoint_time=data['checkpoint_time'],
             checkpoint_file=data['checkpoint_file'],
-            checkpoint_format=data['checkpoint_format']
+            checkpoint_format=data['checkpoint_format'],
+            record_traj_npoints=data.get('record_traj_npoints', -1)
         )
         
         # Restore state

@@ -1141,6 +1141,11 @@ def import_pt_time_series_raw(explore_dir, adjustf_niter, max_series_size=0, nco
     X = np.array(timeseries)
     Y = series_order
     timeseries = np.array([x for (y, x) in sorted(zip(Y, X))])
+    
+    # Ensure timeseries is always 2D, even with single replica
+    if timeseries.ndim == 1:
+        timeseries = timeseries.reshape(1, -1)
+    
     return timeseries
 
 
