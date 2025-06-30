@@ -484,7 +484,7 @@ class PT_Master(object):
             # Save checkpoint atomically
             self._save_checkpoint_atomic(data, checkpoint_path, format_type)
             
-            logging.info(f"Checkpoint created successfully using {format_type} format")
+            logging.info(f"Checkpoint created successfully using {format_type} format at {checkpoint_path}")
             
         except Exception as e:
             logging.error(f"Failed to create checkpoint: {e}")
@@ -688,8 +688,12 @@ class PT_Master(object):
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
         
-        # Determine format from file extension
-        ext = os.path.splitext(checkpoint_path)[1].lower()
+        # Determine format from file extension only if checkpoint_format is left as auto
+        # XXX This is a dirty fix for now
+        if self.checkpoint_format == "auto":
+            ext = os.path.splitext(checkpoint_path)[1].lower()
+        else:
+            ext = "."+self.checkpoint_format
         
         logging.info(f"Loading checkpoint from: {checkpoint_path}")
         logging.info(f"File size: {os.path.getsize(checkpoint_path)} bytes")
