@@ -683,17 +683,17 @@ class PT_Master(object):
             return self.checkpoint_format
 
     @classmethod
-    def load_checkpoint(cls, checkpoint_path, example_mcrunner=None):
+    def load_checkpoint(cls, checkpoint_path, checkpoint_format, example_mcrunner=None):
         """Load checkpoint with automatic format detection"""
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
         
         # Determine format from file extension only if checkpoint_format is left as auto
         # XXX This is a dirty fix for now
-        if cls.checkpoint_format == "auto":
+        if checkpoint_format == "auto":
             ext = os.path.splitext(checkpoint_path)[1].lower()
         else:
-            ext = "."+cls.checkpoint_format
+            ext = "."+checkpoint_format
         
         logging.info(f"Loading checkpoint from: {checkpoint_path}")
         logging.info(f"File size: {os.path.getsize(checkpoint_path)} bytes")

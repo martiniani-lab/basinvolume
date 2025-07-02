@@ -458,7 +458,7 @@ if __name__ == "__main__":
                     checkpoint_path = find_checkpoint_file(path, args.load_checkpoint)
                     
                     logging.info(f"Loading checkpoint from: {checkpoint_path}")
-                    master = PT_Master.load_checkpoint(checkpoint_path, mcrunner)
+                    master = PT_Master.load_checkpoint(checkpoint_path, args.checkpoint_format, mcrunner)
                     master.init_state(base_directory=path, checkpoint_time=checkpoint_time)
                 master.run()
                 exit_on_checkpoint = master.created_checkpoint
