@@ -102,6 +102,7 @@ if build_type == "Release":
         "-O3",
         "-fPIC",
         "-DNDEBUG",
+        "-D_GLIBCXX_USE_CXX11_ABI=1",
     ]
 elif build_type == "Greene":
     cmake_compiler_extra_args = [
@@ -128,6 +129,7 @@ elif build_type == "Debug":
         "-ggdb3",
         "-O0",
         "-fPIC",
+        "-D_GLIBCXX_USE_CXX11_ABI=1",
     ]
 elif build_type == "RelWithDebInfo":
     cmake_compiler_extra_args = [
@@ -210,16 +212,33 @@ write_version_py()
 
 def generate_cython():
     cwd = os.path.abspath(os.path.dirname(__file__))
-    print("Cythonizing sources")
-    p = subprocess.call(
-        [
-            sys.executable,
-            os.path.join(cwd, "cythonize.py"),
-            "basinvolume",
-            "-I %s/pele/potentials/".format(pelepath),
-        ],
-        cwd=cwd,
-    )
+    print("Cythonizing sources with debug symbols")
+    cython_args = [
+        sys.executable,
+        os.path.join(cwd, "cythonize.py"),
+        "basinvolume",
+        "-I %s/pele/potentials/".format(pelepath),
+    ]
+    
+    # Add debug flags for Cython
+    if build_type in ["Debug", "RelWithDebInfo", "MemCheck"]:
+        cython_args.extend([
+            "--gdb",  # Generate debug symbols for gdb
+            "--annotate",  # Generate .html annotation files
+            "-X", "linetrace=True",  # Enable line tracing
+            "-X", "boundscheck=True",  # Enable bounds checking
+            "-X", "wraparound=False",  # Disable wraparound for array indexing
+            "-X", "cdivision=False",  # Use Python division semantics
+        ])
+    
+    # Add Cython 3 compatibility flags for string handling
+    cython_args.extend([
+        "-X", "language_level=3",  # Use Python 3 language level
+        "-X", "c_string_type=unicode",  # Use unicode for C strings
+        "-X", "c_string_encoding=utf-8",  # Use UTF-8 encoding
+    ])
+    
+    p = subprocess.call(cython_args, cwd=cwd)
     if p != 0:
         raise RuntimeError("Running cythonize failed!")
 
