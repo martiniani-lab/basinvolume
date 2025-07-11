@@ -1,6 +1,7 @@
-# distutils: language = c++
-# distutils: sources = ['check_same_minimum.cpp', 'check_hyper_spherical_container.cpp']
-
+"""
+# distutils: language = C++
+# cython: language_level=3str
+"""
 
 cimport cython
 import sys
@@ -90,7 +91,7 @@ cdef class _Cdef_CheckOverlapPeriodic(_Cdef_ConfTest):
     """
     #cdef cppCheckOverlap* newptr
     def __cinit__(self, hs_radii, boxvec, use_frozen=False, reference_coords=None, frozen_atoms=None):
-        cdef np.ndarray[size_t, ndim=1] frozen_dof
+        cdef np.ndarray[size_t, ndim=1, mode='c'] frozen_dof
         cdef size_t ndim = len(boxvec)
         cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
         cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
@@ -209,9 +210,21 @@ class CheckOverlapLeesEdwards(_Cdef_CheckOverlapLeesEdwards):
 cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
     """define the python interface to the c++ CheckOverlapCellLists implementation
     """
+    # Keep references to numpy arrays to prevent garbage collection
+    cdef object _hs_radii
+    cdef object _boxvec
+    cdef object _reference_coords
+    cdef object _frozen_dof
+    
     def __cinit__(self, hs_radii, boxvec, cbool specific=True, ncellx_scale=1.0, use_frozen=False, frozen_atoms=None, reference_coords=None):
-        cdef np.ndarray[size_t, ndim=1] frozen_dof
+        print(boxvec)
+        cdef np.ndarray[size_t, ndim=1, mode="c"] frozen_dof
         cdef size_t ndim = len(boxvec)
+        
+        # Store references to prevent garbage collection
+        self._hs_radii = hs_radii
+        self._boxvec = boxvec
+        
         cdef _pele.Array[double] rd_ = array_wrap_np(hs_radii)
         cdef _pele.Array[double] bv_ = array_wrap_np(boxvec)
         cdef _pele.Array[double] rc_
@@ -231,6 +244,11 @@ cdef class _Cdef_CheckOverlapPeriodicCellLists(_Cdef_ConfTest):
         else:
             assert frozen_atoms is not None, " warning: initialising frozen particle conf test without frozen particles"
             frozen_dof = np.array([range(ndim * i, ndim * i + ndim) for i in frozen_atoms], dtype=size_t).reshape(-1)
+            
+            # Store references to prevent garbage collection
+            self._frozen_dof = frozen_dof
+            self._reference_coords = reference_coords
+            
             fd_ = array_wrap_np_size_t(frozen_dof)
             if reference_coords is None:
                 raise Exception("CheckOverlapPeriodicCellLists: no reference_coords specified")

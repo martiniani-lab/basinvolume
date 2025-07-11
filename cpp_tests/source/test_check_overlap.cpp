@@ -64,8 +64,9 @@ TEST_F(CheckOverlapTest, CellLists_Works) {
   std::shared_ptr<mcpele::TakeStep> sampler_uniform =
       std::make_shared<mcpele::SampleGaussian>(42, 1, x);
   mc.set_takestep(sampler_uniform);
+  double ncellx_scale = 10;
   bv::CheckOverlapCartesianCellLists<_ndim> check_overlap_non_periodic(
-      hs_radii, boxvec, false);
+      hs_radii, boxvec, false, 10);
   EXPECT_TRUE(check_overlap_non_periodic.conf_test(x, &mc));
   EXPECT_FALSE(check_overlap_non_periodic.conf_test(x_overlap, &mc));
 }

@@ -96,7 +96,7 @@ protected:
   }
 
 public:
-  virtual ~CellListCheckOverlap(){};
+  virtual ~CellListCheckOverlap() {};
   CellListCheckOverlap(
       pele::Array<double> &hs_radii, std::shared_ptr<distance_policy> dist,
       std::shared_ptr<pele::CellListsWithBreak<distance_policy>> cell_lists,
