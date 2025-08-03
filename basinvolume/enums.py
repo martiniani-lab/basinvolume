@@ -16,3 +16,4 @@ class Interaction(Enum):
     INVERSE_POWER_STILLINGER = 2
     INVERSE_POWER = 3
     NEGATIVE_COS = 4
+    INVERSE_POWER_HS = 5

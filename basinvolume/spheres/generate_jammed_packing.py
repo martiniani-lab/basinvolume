@@ -9,8 +9,9 @@ import numpy as np
 import abc
 import os
 from pele.distance import put_in_box, Distance
-from pele.potentials import HS_WCA, InversePowerStillingerCut
+from pele.potentials import HS_WCA, InversePowerStillingerCut, InversePowerHS
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
+from pele.utils._pressure_tensor import pressure_tensor
 from PyCG_DESCENT import CGDescent
 from basinvolume.utils import (
     trymakedir,
@@ -275,6 +276,11 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         f.write("sorted: {}\n".format(self.sort_atoms))
         f.write("sorted_nsubdoms: {}\n".format(os.environ["OMP_NUM_THREADS"]))
         f.write("maxstep_factor: {}\n".format(self.opt_maxstep_factor))
+        # Write energy and pressure if available
+        if hasattr(self, 'energy'):
+            f.write("energy: {:.16e}\n".format(self.energy))
+        if hasattr(self, 'pressure') and self.pressure is not None:
+            f.write("pressure: {:.16e}\n".format(self.pressure))
         f.write("\n")
         # print software version
         f.write("[CODEVERSION]\n")
@@ -457,7 +463,31 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
                 rcut=rcut,
                 use_cell_lists=True,
             )
-
+        elif self.interaction is Interaction.INVERSE_POWER_HS:
+            pow = self.pot_kwargs["pow"]
+            eps = self.pot_kwargs.get("eps", 1.0)
+            sigma = self.pot_kwargs.get("sigma", self.sca)  # Use sca as sigma if not specified
+            if self.use_cell_lists:
+                self.potential = InversePowerHS(
+                    pow=pow,
+                    eps=eps,
+                    sigma=sigma,
+                    radii=self.hs_radii,
+                    ndim=self.bdim,
+                    boxvec=self.boxv,
+                    use_cell_lists=True,
+                    ncellx_scale=1.0,
+                )
+            else:
+                self.potential = InversePowerHS(
+                    pow=pow,
+                    eps=eps,
+                    sigma=sigma,
+                    radii=self.hs_radii,
+                    ndim=self.bdim,
+                    boxvec=self.boxv,
+                    use_cell_lists=False,
+                )
         else:
             raise NotImplementedError
 
@@ -555,9 +585,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             return False
 
     def _generate_packing_coords(self):
-        """
-        
-        """
+        """ """
         for i in range(1000):
             self.coords = np.random.rand(self.nparticles * self.bdim) * self.boxv[0]
             self.initial_coords = self.coords.copy()
@@ -568,7 +596,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             logging.info(self._log("Failed to generate packing. iteration: {}".format(i)))
         if not success:
             logging.warning(self._log("Failed to generate packing."))
-        
+
         return success
 
     def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
@@ -646,6 +674,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         self.coords = res.coords
         self.energy = res.energy
+
+        # Calculate pressure after successful minimization
+        self.pressure = self._calculate_pressure()
 
         # test that on re-minimisation the structure does not change
         if __debug__ and self.check_packing:
@@ -726,6 +757,18 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         volumes = volume_nball(self.hs_radii, self.bdim)
         vtot = np.sum(volumes)
         return vtot
+
+    def _calculate_pressure(self):
+        """Calculate scalar pressure using pele's pressure_tensor function"""
+        try:
+            volume = np.prod(self.boxv)
+            scalar_pressure, ptensor = pressure_tensor(
+                self.potential, self.coords, volume, self.bdim
+            )
+            return scalar_pressure
+        except Exception as e:
+            logging.warning(self._log(f"Failed to calculate pressure: {e}"))
+            return None
 
     def _import_packing_configuration(self, fname):
         path = os.path.join(self.packings_dir, fname)
@@ -1093,6 +1136,9 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         self.coords = res.coords
         self.energy = res.energy
 
+        # Calculate pressure after successful minimization
+        self.pressure = self._calculate_pressure()
+
         # test that on re-minimisation the structure does not change
         if __debug__ and self.check_packing:
             if self.minimizer is Minimizer.FIRE:
@@ -1241,10 +1287,12 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
 
         self.parameters["radii"] = self.hs_radii
         self.parameters["box_length"] = self.boxl
-        self.pot_kwargs = {"dim" : self.parameters["dim"],
-                           "period" : self.parameters["period"],
-                           "power" : self.parameters["power"],
-                           "offset" : self.parameters["offset"]}
+        self.pot_kwargs = {
+            "dim": self.parameters["dim"],
+            "period": self.parameters["period"],
+            "power": self.parameters["power"],
+            "offset": self.parameters["offset"],
+        }
         self.potential = PoweredCosineSum(
             self.parameters["dim"],
             self.parameters["period"],
@@ -1275,6 +1323,7 @@ class PoweredCosineSumGeneratePackings(HS_Generate_Jammed_Packing):
         self.coords = np.array([0.0] * self.ndim)
         self.energy = self.potential.getEnergy(self.coords)
         print("energy", self.energy)
+        self.pressure = None
         return True
 
 
@@ -1360,7 +1409,7 @@ if __name__ == "__main__":
         type=str,
         help="Particle interaction potential. "
         "Options: 'HS_WCA', 'INVERSE_POWER_STILLINGER', INVERSE_POWER, \
-            'NEGATIVE_COS'. "
+            'INVERSE_POWER_HS', 'NEGATIVE_COS'. "
         "Default: 'HS_WCA'",
         default="HS_WCA",
     )
@@ -1370,6 +1419,18 @@ if __name__ == "__main__":
         help="Exponent of the WCA potential (if applicable). "
         "Options: 1, 2, 6. Default: 6 (Lennard-Jones-like)",
         default=6,
+    )
+    parser.add_argument(
+        "--inverse-power",
+        type=float,
+        help="Power exponent for INVERSE_POWER and INVERSE_POWER_HS potentials. " "Default: 2.5",
+        default=2.5,
+    )
+    parser.add_argument(
+        "--inverse-power-eps",
+        type=float,
+        help="Energy scale for INVERSE_POWER_HS potential. Default: 1.0",
+        default=1.0,
     )
     parser.add_argument(
         "--sort",
@@ -1411,9 +1472,13 @@ if __name__ == "__main__":
         override_pot_kwargs.update(pow=8, rcut=4.5)
         logging.info("Setting inverse_power_stillinger parameters: {}".format(override_pot_kwargs))
     elif interaction is Interaction.INVERSE_POWER:
-        override_pot_kwargs.update(pow=2.5)
+        override_pot_kwargs.update(pow=args.inverse_power)
     elif interaction is Interaction.NEGATIVE_COS:
         override_pot_kwargs.update(pow=0.5)
+    elif interaction is Interaction.INVERSE_POWER_HS:
+        # Default parameters for InversePowerHS - can be overridden by config
+        override_pot_kwargs.update(pow=args.inverse_power, eps=args.inverse_power_eps)
+        logging.info("Setting inverse_power_hs parameters: {}".format(override_pot_kwargs))
     else:
         raise NotImplementedError
     if args.balance_omp is not None:

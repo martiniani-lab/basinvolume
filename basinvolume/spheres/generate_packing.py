@@ -267,6 +267,11 @@ class HS_Generate_Packing(_Generate_Packing):
         distance_method=Distance.PERIODIC,
         pot_kwargs={},
         precalc_config_file=None,
+        bidisperse=False,
+        r1=1.0,
+        r2=1.4,
+        rstd1=0.05,
+        rstd2=0.07,
     ):
         super(HS_Generate_Packing, self).__init__(
             nparticles,
@@ -310,6 +315,11 @@ class HS_Generate_Packing(_Generate_Packing):
         self.hs_radii = hs_radii
         self.distance_method = distance_method
         self.pot_kwargs = pot_kwargs
+        self.bidisperse = bidisperse
+        self.r1 = r1
+        self.r2 = r2
+        self.rstd1 = rstd1
+        self.rstd2 = rstd2
         if precalc_config_file is not None:
             self._import_precalc_config(precalc_config_file)
         else:
@@ -369,18 +379,41 @@ class HS_Generate_Packing(_Generate_Packing):
     #        #endtest
 
     def _sample_hs_radii(self, new_poly=False):
-        if (self.hs_radii is None or new_poly) and self.sig > 1e-8:
-            logging.info("Sampling hs_radii")
-            self.hs_radii = self.rng.normal(self.mu, self.sig, self.nparticles)
-            while True:
-                outside_cut = self.hs_radii <= 0
-                n_outside = np.sum(outside_cut)
-                if n_outside == 0:
-                    break
-                self.hs_radii[outside_cut] = self.rng.normal(self.mu, self.sig, n_outside)
-        elif (self.hs_radii is None or new_poly) and self.sig <= 1e-8:
-            logging.info("Sampling hs_radii, setting to ones because sig <= 1e-8")
-            self.hs_radii = np.ones(self.nparticles) * self.mu
+        if (self.hs_radii is None or new_poly):
+            if self.bidisperse:
+                logging.info("Sampling bidisperse hs_radii")
+                n_part_by_2 = self.nparticles // 2
+                r1_radii = self.rng.normal(self.r1, self.rstd1, n_part_by_2)
+                r2_radii = self.rng.normal(self.r2, self.rstd2, self.nparticles - n_part_by_2)
+                # Ensure no negative radii
+                while True:
+                    outside_cut_1 = r1_radii <= 0
+                    n_outside_1 = np.sum(outside_cut_1)
+                    if n_outside_1 == 0:
+                        break
+                    r1_radii[outside_cut_1] = self.rng.normal(self.r1, self.rstd1, n_outside_1)
+                while True:
+                    outside_cut_2 = r2_radii <= 0
+                    n_outside_2 = np.sum(outside_cut_2)
+                    if n_outside_2 == 0:
+                        break
+                    r2_radii[outside_cut_2] = self.rng.normal(self.r2, self.rstd2, n_outside_2)
+                self.hs_radii = np.concatenate([r1_radii, r2_radii])
+                logging.info("Generated bidisperse radii: {} particles with mean {:.3f}, {} particles with mean {:.3f}".format(
+                    n_part_by_2, self.r1, self.nparticles - n_part_by_2, self.r2))
+                logging.info("Actual radii range: {:.3f} to {:.3f}".format(np.min(self.hs_radii), np.max(self.hs_radii)))
+            elif self.sig > 1e-8:
+                logging.info("Sampling hs_radii")
+                self.hs_radii = self.rng.normal(self.mu, self.sig, self.nparticles)
+                while True:
+                    outside_cut = self.hs_radii <= 0
+                    n_outside = np.sum(outside_cut)
+                    if n_outside == 0:
+                        break
+                    self.hs_radii[outside_cut] = self.rng.normal(self.mu, self.sig, n_outside)
+            else:
+                logging.info("Sampling hs_radii, setting to ones because sig <= 1e-8")
+                self.hs_radii = np.ones(self.nparticles) * self.mu
         else:
             self.hs_radii = np.array(self.hs_radii, dtype="d")
         assert np.all(self.hs_radii > 0)
@@ -930,8 +963,16 @@ class HS_Generate_Packing(_Generate_Packing):
         f.write("packing_fraction: {}\n".format(self.packing_frac))
         f.write("boxdim: {}\n".format(self.bdim))
         f.write("ndim: {}\n".format(self.ndof))
-        f.write("radii_mean: {}\n".format(self.mu))
-        f.write("radii_stdev: {}\n".format(self.sig))
+        if self.bidisperse:
+            f.write("bidisperse: True\n")
+            f.write("r1: {}\n".format(self.r1))
+            f.write("r2: {}\n".format(self.r2))
+            f.write("rstd1: {}\n".format(self.rstd1))
+            f.write("rstd2: {}\n".format(self.rstd2))
+        else:
+            f.write("bidisperse: False\n")
+            f.write("radii_mean: {}\n".format(self.mu))
+            f.write("radii_stdev: {}\n".format(self.sig))
         f.write("max_iter: {}\n".format(self.max_iter))
         assert self.box_resized
         f.write("boxv: ")
@@ -1068,6 +1109,36 @@ if __name__ == "__main__":
         help="Don't balance subdomains when using multi-threaded " "cell lists. Default: False",
         default=False,
     )
+    parser.add_argument(
+        "--bidisperse",
+        action="store_true",
+        help="Generate bidisperse radii distribution. Default: False",
+        default=False,
+    )
+    parser.add_argument(
+        "--r1",
+        type=float,
+        help="Mean radius for first species in bidisperse system. Default: 1.0",
+        default=1.0,
+    )
+    parser.add_argument(
+        "--r2",
+        type=float,
+        help="Mean radius for second species in bidisperse system. Default: 1.4",
+        default=1.4,
+    )
+    parser.add_argument(
+        "--rstd1",
+        type=float,
+        help="Standard deviation for first species in bidisperse system. Default: 0.05",
+        default=0.05,
+    )
+    parser.add_argument(
+        "--rstd2",
+        type=float,
+        help="Standard deviation for second species in bidisperse system. Default: 0.07",
+        default=0.07,
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -1117,5 +1188,10 @@ if __name__ == "__main__":
         distance_method=dist_method,
         pot_kwargs=pot_kwargs,
         precalc_config_file=args.precalc_config,
+        bidisperse=args.bidisperse,
+        r1=args.r1,
+        r2=args.r2,
+        rstd1=args.rstd1,
+        rstd2=args.rstd2,
     )
     sim.run()
