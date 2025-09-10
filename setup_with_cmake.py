@@ -11,11 +11,9 @@ import argparse
 import shlex
 
 import numpy as np
-
-from distutils import sysconfig
-from numpy.distutils.core import setup
-from numpy.distutils.core import Extension
-from numpy.distutils.command.build_ext import build_ext as old_build_ext
+import sysconfig
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext as old_build_ext
 
 import pele
 import mcpele
@@ -24,8 +22,7 @@ import PyCG_DESCENT
 
 encoding = "utf-8"
 ## Numpy header files
-numpy_lib = os.path.split(np.__file__)[0]
-numpy_include = os.path.join(numpy_lib, "core/include")
+numpy_include = np.get_include()
 
 ##find pele path
 try:
@@ -365,6 +362,8 @@ def get_ldflags(opt="--ldflags"):
     """return the ldflags.  This was taken directly from python-config"""
     getvar = sysconfig.get_config_var
     pyver = sysconfig.get_config_var("VERSION")
+    if pyver is None:
+        pyver = sysconfig.get_config_var("py_version_short")
     libs = getvar("LIBS").split() + getvar("SYSLIBS").split()
     if not sys.platform.startswith("darwin"):
         # On MacOs, explicitly including the python library leads to a
@@ -391,10 +390,15 @@ cmake_txt = cmake_txt.replace("__PELE_DIR__", pelepath)
 cmake_txt = cmake_txt.replace("__MCPELE_INCLUDE__", mcpelepath + "/source")
 cmake_txt = cmake_txt.replace("__PY_CGDESCENT_INCLUDE__", py_cgdescentpath + "/source")
 # note: the code to find python_includes was taken from the python-config executable
-python_includes = [
-    sysconfig.get_python_inc(),
-    sysconfig.get_python_inc(plat_specific=True),
-]
+python_includes = []
+try:
+    python_includes.append(sysconfig.get_python_inc())
+except:
+    python_includes.append(sysconfig.get_config_var('INCLUDEPY'))
+try:
+    python_includes.append(sysconfig.get_python_inc(plat_specific=True))
+except:
+    pass
 cmake_txt = cmake_txt.replace("__PYTHON_INCLUDE__", " ".join(python_includes))
 if isinstance(numpy_include, basestring):
     numpy_include = [numpy_include]
@@ -455,6 +459,10 @@ class build_ext_precompiled(old_build_ext):
             raise RuntimeError(
                 "file does not exist: " + pre_compiled_library + " Did CMake not run correctly"
             )
+        
+        # Ensure the destination directory exists before copying
+        os.makedirs(os.path.dirname(ext_path), exist_ok=True)
+        
         print("copying", pre_compiled_library, "to", ext_path)
         shutil.copy2(pre_compiled_library, ext_path)
 

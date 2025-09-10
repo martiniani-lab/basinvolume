@@ -55,10 +55,21 @@ _extra_flags = []
 def process_pyx(fromfile, tofile):
     try:
         from Cython.Compiler.Version import version as cython_version
-        from distutils.version import LooseVersion
-
-        if LooseVersion(cython_version) < LooseVersion("0.16"):
-            raise Exception("Building pele requires Cython >= 0.16")
+        # Try to use packaging.version for modern installations
+        try:
+            from packaging.version import Version
+            version_compare = lambda v1, v2: Version(v1) < Version(v2)
+        except ImportError:
+            # Fallback to distutils.version for older installations
+            try:
+                from distutils.version import LooseVersion
+                version_compare = lambda v1, v2: LooseVersion(v1) < LooseVersion(v2)
+            except ImportError:
+                # Final fallback - string comparison (not recommended but works)
+                version_compare = lambda v1, v2: v1 < v2
+                
+        if version_compare(cython_version, "3.0.0"):
+            raise Exception("Building basinvolume requires Cython >= 3.0.0")
 
     except ImportError:
         pass
@@ -66,6 +77,13 @@ def process_pyx(fromfile, tofile):
     flags = ["--fast-fail"]
     if tofile.endswith(".cxx"):
         flags += ["--cplus"]
+    
+    # Add Cython 3 compatibility flags
+    flags += [
+        "-X", "language_level=3",          # Use Python 3 language level
+        "-X", "c_string_type=unicode",     # Use unicode for C strings
+        "-X", "c_string_encoding=utf-8"    # Use UTF-8 encoding
+    ]
 
     if _extra_flags:
         flags += _extra_flags

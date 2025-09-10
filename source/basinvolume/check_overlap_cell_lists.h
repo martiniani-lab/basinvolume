@@ -96,7 +96,7 @@ protected:
   }
 
 public:
-  virtual ~CellListCheckOverlap(){};
+  virtual ~CellListCheckOverlap() {};
   CellListCheckOverlap(
       pele::Array<double> &hs_radii, std::shared_ptr<distance_policy> dist,
       std::shared_ptr<pele::CellListsWithBreak<distance_policy>> cell_lists,
@@ -200,7 +200,12 @@ public:
                 pele::CellListsWithBreak<pele::periodic_distance<ndim>>>(
                 std::make_shared<pele::periodic_distance<ndim>>(boxvec), boxvec,
                 2 * hs_radii.get_max(), ncellx_scale),
-            specific) {}
+            specific) {
+    std::cout << "hs_radii" << hs_radii << "\n";
+    std::cout << "boxvec" << boxvec << "\n";
+    std::cout << "specific" << specific << "\n";
+    std::cout << "ncellxscale" << ncellx_scale << "\n";
+  }
 };
 
 template <size_t ndim>

@@ -1,5 +1,7 @@
+# cython: language_level=3str
 # distutils: language = c++
 # distutils: sources = ['record_disp2_histogram.cpp', 'record_displacement_timeseries.cpp', 'findk.cpp']
+# distutils: define_macros=NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION
 
 import numpy as np
 cimport numpy as np
@@ -26,8 +28,8 @@ cdef class _Cdef_RecordDisp2Histogram(_Cdef_Action):
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
 
-        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.size),
-                                                               _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
+        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisp2Histogram(_pele.Array[double](<double*> orginc.data, orginc.shape[0]),
+                                                               _pele.Array[double](<double*> rattlersc.data, rattlersc.shape[0]),
                                                                ndim, min, max, bin, eqsteps, fix_com)
                                              )
         self.newptr = <cppRecordEnergyHistogram*> self.thisptr.get()
@@ -121,8 +123,8 @@ cdef class _Cdef_Findk(_Cdef_Action):
             raise Exception("_Cdef_Findk: illegal input: origin, bdim")
         cdef np.ndarray[double, ndim=1] orginc = np.array(origin, dtype=float)
         cdef np.ndarray[double, ndim=1] rattlersc = np.array(rattlers, dtype=float)
-        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.size),
-                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.size),
+        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppFindk(_pele.Array[double](<double*> orginc.data, orginc.shape[0]),
+                                                _pele.Array[double](<double*> rattlersc.data, rattlersc.shape[0]),
                                                 bdim, avgcount, target, navg, tol, min, max, bin, fix_com)
                                              )
         self.newptr = <cppFindk*> self.thisptr.get()
@@ -175,7 +177,7 @@ cdef class _Cdef_RecordDisplacementTimeseries(_Cdef_Action):
         cdef size_t cniter = niter
         cdef size_t crecord_every = record_every
 
-        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisplacementTimeseries(_pele.Array[double](<double*> orginc.data, orginc.size),
+        self.thisptr = shared_ptr[cppAction](<cppAction*>new cppRecordDisplacementTimeseries(_pele.Array[double](<double*> orginc.data, orginc.shape[0]),
                                                                        cbdim, cniter, crecord_every, fix_com)
                                              )
         self.newptr = <cppRecordScalarTimeseries*> self.thisptr.get()
@@ -265,7 +267,7 @@ cdef class _Cdef_FindNrDecorrelationSteps(_Cdef_Action):
         self.thisptr = shared_ptr[cppAction](<cppAction*>new
                          cppFindNrDecorrelationSteps(desired_mean_rsm_displ, nr_iterations_start,
                                                     nr_samples_average, _pele.Array[double](<double*>
-                                                         initial_coordsc.data, initial_coordsc.size), boxdim))
+                                                         initial_coordsc.data, initial_coordsc.shape[0]), boxdim))
         self.newptr = <cppFindNrDecorrelationSteps*> self.thisptr.get()
 
     def get_nr_decorrelation_steps(self):

@@ -1,4 +1,6 @@
+# cython: language_level=3str
 # distutils: language = c++
+# distutils: define_macros=NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION
 
 import numpy as np
 cimport numpy as np
@@ -15,8 +17,8 @@ def get_dist_com(coords, origin, bdim):
     cdef np.ndarray[double, ndim=1] originc = np.array(origin, dtype=float)
     cdef size_t cbdim = bdim
     
-    dist = get_distance_com(_pele.Array[double](<double*> coordsc.data, coordsc.size),
-                         _pele.Array[double](<double*> originc.data, originc.size), cbdim)
+    dist = get_distance_com(_pele.Array[double](<double*> coordsc.data, coordsc.shape[0]),
+                         _pele.Array[double](<double*> originc.data, originc.shape[0]), cbdim)
     return dist
 
 @cython.boundscheck(False)
@@ -26,8 +28,8 @@ def get_dist_vec_com(coords, origin, bdim):
     cdef np.ndarray[double, ndim=1] originc = np.array(origin, dtype=float)
     cdef size_t cbdim = bdim
     
-    cdef _pele.Array[double] cdist = get_distance_vec_com(_pele.Array[double](<double*> coordsc.data, coordsc.size),
-                                                          _pele.Array[double](<double*> originc.data, originc.size), cbdim)
+    cdef _pele.Array[double] cdist = get_distance_vec_com(_pele.Array[double](<double*> coordsc.data, coordsc.shape[0]),
+                                                          _pele.Array[double](<double*> originc.data, originc.shape[0]), cbdim)
     cdef double *distdata = cdist.data()
     cdef size_t ndof = cdist.size()
     cdef np.ndarray[double, ndim=1, mode="c"] dist = np.zeros(ndof)
@@ -93,13 +95,13 @@ def statistical_inefficiency(A, B=None, cbool fast=True, size_t mintime=10):
     """
     cdef np.ndarray[double, ndim=1] Ac = np.array(A, dtype=float)
     if B is None:
-        g = auto_statistical_inefficiency(_pele.Array[double](<double*> Ac.data, Ac.size),
+        g = auto_statistical_inefficiency(_pele.Array[double](<double*> Ac.data, Ac.shape[0]),
                                           fast, mintime)
         return g
     
     cdef np.ndarray[double, ndim=1] Bc = np.array(B, dtype=float)
-    g = statistical_inefficiency_cpp(_pele.Array[double](<double*> Ac.data, Ac.size),
-                                    _pele.Array[double](<double*> Bc.data, Bc.size),
+    g = statistical_inefficiency_cpp(_pele.Array[double](<double*> Ac.data, Ac.shape[0]),
+                                    _pele.Array[double](<double*> Bc.data, Bc.shape[0]),
                                     fast, mintime)
     return g
 
@@ -155,7 +157,7 @@ def detectEquilibration(A, cbool fast=True, size_t nskip=1, cbool cprint=False, 
     >>> [t, g, Neff_max] = detectEquilibration(C_t, nskip=50) # compute indices of uncorrelated timeseries
     """
     cdef np.ndarray[double, ndim=1] Ac = np.array(A, dtype=float)
-    cdef _pele.Array[double] cseries = detect_equilibration(_pele.Array[double](<double*> Ac.data, Ac.size), 
+    cdef _pele.Array[double] cseries = detect_equilibration(_pele.Array[double](<double*> Ac.data, Ac.shape[0]), 
                                                             fast, nskip, cprint, fname)
     cdef double *seriesdata = cseries.data()
     cdef size_t ndof = cseries.size()
