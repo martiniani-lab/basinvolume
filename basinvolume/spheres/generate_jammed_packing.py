@@ -9,7 +9,7 @@ import numpy as np
 import abc
 import os
 from pele.distance import put_in_box, Distance
-from pele.potentials import HS_WCA, InversePowerStillingerCut, InversePowerHS
+from pele.potentials import HS_WCA, InversePowerStillingerCut
 from pele.optimize._quench import modifiedfire_cpp, lbfgs_cpp
 from pele.utils._pressure_tensor import pressure_tensor
 from PyCG_DESCENT import CGDescent
@@ -30,6 +30,7 @@ from basinvolume.utils import (
     conf_getfloat_default,
 )
 from basinvolume.spheres import read_packing_config
+from basinvolume.spheres.generate_packing import HS_Generate_Packing
 from basinvolume.enums import Minimizer, Interaction
 import configparser
 import re
@@ -213,6 +214,7 @@ class _Generate_Jammed_Packing(with_metaclass(abc.ABCMeta, object)):
         self.boxv = imp_packing["boxv"].copy()
         self.vcavity = imp_packing["vcavity"]
         self.distance_method = imp_packing["distance_method"]
+        self.packing_method = imp_packing["method"]  # Store the method from the packing config
         if hasattr(self, "pot_kwargs") and self.pot_kwargs is not None:
             self.pot_kwargs.update(imp_packing["pot_kwargs"])
         else:
@@ -381,6 +383,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         write_opengl=False,
         check_packing=True,
         sort_atoms=False,
+        max_retries=1000,
     ):
         super(HS_Generate_Jammed_Packing, self).__init__(
             target_packing_frac=target_packing_frac,
@@ -401,6 +404,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
         self.opt_dtmax = opt_dtmax
         self.opt_nsteps = opt_nsteps
         self.check_packing = check_packing
+        self.max_retries = max_retries
+        self.packing_generator = None
+        self.current_attempt = 0
 
     def _initialise(self):
         self._print_initialise()
@@ -413,6 +419,9 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
         self._import_packing_configuration(fname)
         self.max_nrattlers = int(self.nparticles * 0.5)
+
+        # Initialize packing generator for robust generation
+        self._initialize_packing_generator()
 
         # assert that largest soft particle is not > 1/2 of smallest box size
         if np.amax(self.hs_radii) * 2 * (1 + self.sca) >= np.amin(self.boxv) / 2:
@@ -584,15 +593,117 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             )
             return False
 
+    def _initialize_packing_generator(self):
+        """Initialize the HS_Generate_Packing instance for regenerating configurations"""
+        if self.packing_generator is None:
+            # Use the method from the original packing config
+            if not hasattr(self, 'packing_method'):
+                raise RuntimeError("Packing method not found in config file")
+
+            # Debug: Print parameters being used
+            logging.info(self._log("=== DEBUG: Initializing HS_Generate_Packing ==="))
+            logging.info(self._log(f"nparticles: {self.nparticles}"))
+            logging.info(self._log(f"method: {self.packing_method}"))
+            logging.info(self._log(f"bdim: {self.bdim}"))
+            logging.info(self._log(f"boxv: {self.boxv}"))
+            logging.info(self._log(f"packing_frac: {self.packing_frac}"))
+            logging.info(self._log(f"hs_mean: {self.hs_mean}"))
+            logging.info(self._log(f"hs_stddev: {self.hs_stddev}"))
+            logging.info(self._log(f"sig (hs_stddev/hs_mean): {self.hs_stddev / self.hs_mean}"))
+            logging.info(self._log(f"use_cell_lists: {self.use_cell_lists}"))
+            logging.info(self._log(f"distance_method: {self.distance_method}"))
+            logging.info(self._log(f"pot_kwargs: {self.pot_kwargs if hasattr(self, 'pot_kwargs') else {}}"))
+            logging.info(self._log("==============================================="))
+
+            # Create HS_Generate_Packing instance with matching parameters
+            self.packing_generator = HS_Generate_Packing(
+                nparticles=self.nparticles,
+                output_dir=self.packings_dir,
+                method=self.packing_method,  # Use the same method as the original packing
+                bdim=self.bdim,
+                boxv=self.boxv.copy(),
+                packing_frac=self.packing_frac,
+                hs_radii=None,  # Will be set from imported configuration
+                mu=self.hs_mean,
+                sig=self.hs_stddev / self.hs_mean,
+                use_cell_lists=self.use_cell_lists,
+                distance_method=self.distance_method,
+                pot_kwargs=self.pot_kwargs.copy() if hasattr(self, 'pot_kwargs') else {},
+            )
+            # Initialize the generator
+            self.packing_generator._initialise()
+
+    def _generate_new_initial_configuration(self):
+        """Generate a new initial configuration using HS_Generate_Packing"""
+        if self.packing_generator is None:
+            raise RuntimeError("Packing generator not initialized")
+
+        # Debug: Print generation parameters
+        logging.info(self._log("=== DEBUG: Generating new configuration ==="))
+        logging.info(self._log(f"hs_radii (first 5): {self.hs_radii[:5]}"))
+        logging.info(self._log(f"generation_method: {self.packing_generator.method}"))
+        logging.info(self._log(f"packing_generator.hsf_stepsize: {getattr(self.packing_generator, 'hsf_stepsize', 'N/A')}"))
+        logging.info(self._log(f"packing_generator.hsf_niter_dif: {getattr(self.packing_generator, 'hsf_niter_dif', 'N/A')}"))
+        logging.info(self._log(f"packing_generator.iteration: {self.packing_generator.iteration}"))
+        logging.info(self._log(f"packing_generator.start_iteration: {self.packing_generator.start_iteration}"))
+        logging.info(self._log("=============================================="))
+
+        self.packing_generator.hs_radii = self.hs_radii.copy()
+        generation_method = self.packing_generator.method
+
+        if generation_method == "direct":
+            logging.info(self._log("Calling _generate_packing_coords_direct()"))
+            self.packing_generator._generate_packing_coords_direct()
+        elif generation_method == "quench":
+            logging.info(self._log("Calling _generate_packing_coords_quench()"))
+            # For quench method, we need to reinitialize each time
+            # Reset iteration to force reinitialization
+            original_iteration = self.packing_generator.iteration
+            self.packing_generator.iteration = self.packing_generator.start_iteration
+            self.packing_generator._generate_packing_coords_quench()
+            self.packing_generator.iteration = original_iteration
+        else:
+            raise ValueError(f"Unknown generation method: {generation_method}")
+
+        logging.info(self._log("Configuration generation completed"))
+        self.coords = self.packing_generator.coords.copy()
+        self.initial_coords = self.coords.copy()
+        return True
+
     def _generate_packing_coords(self):
-        """ """
-        success = self._generate_packing_coords_iteration(opt_tol=self.opt_tol)
-        return success
+        """Robust version that retries with new initial configurations when _find_rattlers fails."""
+        logging.info(self._log("=== DEBUG: Starting robust packing generation ==="))
+        logging.info(self._log(f"max_retries: {self.max_retries}"))
+        logging.info(self._log(f"coords shape: {self.coords.shape if hasattr(self, 'coords') else 'No coords yet'}"))
+        logging.info(self._log("==============================================="))
+
+        for attempt in range(self.max_retries):
+            self.current_attempt = attempt + 1
+            logging.info(self._log(f"=== ATTEMPT {attempt + 1}/{self.max_retries} ==="))
+
+            if attempt > 0:
+                logging.info(self._log(f"Attempt {attempt + 1}/{self.max_retries}: Generating new initial configuration"))
+                if not self._generate_new_initial_configuration():
+                    logging.warning(self._log(f"Failed to generate new initial configuration on attempt {attempt + 1}"))
+                    continue
+            else:
+                logging.info(self._log("Using original configuration from file"))
+
+            logging.info(self._log(f"Attempting jamming with coordinates shape: {self.coords.shape}"))
+            success = self._generate_packing_coords_iteration(opt_tol=self.opt_tol)
+
+            if success:
+                logging.info(self._log(f"Successfully generated jammed packing on attempt {attempt + 1}"))
+                return True
+            else:
+                logging.info(self._log(f"Failed to generate valid jammed packing on attempt {attempt + 1}"))
+
+        logging.warning(self._log(f"Failed to generate jammed packing after {self.max_retries} attempts"))
+        return False
 
     def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
         """quenches the imported structure"""
 
-        # asserts that none of the hard spheres is overlapping before quenching
         if __debug__ and self.check_packing:
             no_overlap = self._check_no_overlaps()
             if not no_overlap:
@@ -658,7 +769,6 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
             raise NotImplementedError
 
         if not res.success:
-            print(res)
             logging.warning(self._log("Quench failed"))
             return False
 
@@ -1011,7 +1121,6 @@ class InversePowerGeneratePackings(HS_Generate_Jammed_Packing):
         self.parameters["ndim"] = self.bdim
         self.rattlers = np.empty(self.nparticles, dtype="d")
         self.rattlers_draw = np.empty(self.nparticles, dtype="d")
-        print("ndim", self.ndim)
         result_dict = setup_bidisperse(self.parameters, seed=self.seed)
         radii = result_dict["radii"]
         box_length = result_dict["box_length"]
@@ -1435,8 +1544,15 @@ if __name__ == "__main__":
         "cell lists. Default: Use setting from packing config",
         default=None,
     )
+    # Robust generation parameters
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        help="Maximum number of attempts to generate a valid jammed packing. Default: 1000",
+        default=1000,
+    )
     args = parser.parse_args()
-
+    print("parser logged")
     logging.basicConfig(
         format="%(asctime)s %(levelname)s: %(message)s",
         datefmt="%d/%m/%Y %H:%M:%S",
@@ -1473,7 +1589,7 @@ if __name__ == "__main__":
         raise NotImplementedError
     if args.balance_omp is not None:
         override_pot_kwargs["balance_omp"] = args.balance_omp
-
+    print("are we here")
     if interaction is Interaction.INVERSE_POWER:
         sim = InversePowerGeneratePackings(
             target_packing_frac=args.density,
@@ -1513,6 +1629,7 @@ if __name__ == "__main__":
         )
 
     else:
+        print("HS generatge should be running")
         sim = HS_Generate_Jammed_Packing(
             target_packing_frac=args.density,
             packings_dir=args.packingsdir,
@@ -1530,5 +1647,6 @@ if __name__ == "__main__":
             override_pot_kwargs=override_pot_kwargs,
             write_opengl=args.write_opengl,
             sort_atoms=args.sort,
+            max_retries=args.max_retries,
         )
     sim.run()

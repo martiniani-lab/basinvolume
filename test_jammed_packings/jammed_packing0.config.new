@@ -1,0 +1,28 @@
+#BACKUP FILE - Generated from jammed_packing0.config
+#This file contains energy and pressure data from jammed packing
+
+[JAMMED_PACKING]
+nparticles: 32
+packing_fraction: 0.6400000000000000
+boxdim: 3
+ndim: 96
+boxv: 7.2932788805691011 7.2932788805691011 7.2932788805691011
+distance_method: PERIODIC
+interaction: INVERSE_POWER
+minimizer: FIRE
+opt_tol: 1e-09
+opt_maxstep: 0.44187423063402914
+opt_dtmax: 1.0
+opt_nsteps: 10000000.0
+pot_kwargs: {'ndim': 3, 'phi': 0.64, 'seed': 0, 'n_part': 32, 'r1': 1.0, 'r2': 1.4, 'rstd1': 0.05, 'rstd2': 0.06999999999999999, 'use_cell_lists': 0, 'power': 2.5, 'eps': 1.0, 'non_additivity': 0.0}
+sca: 0.0000000000000000
+sorted: False
+sorted_nsubdoms: 1
+maxstep_factor: 1.0
+
+[CODEVERSION]
+basinvolume_version: 7291e6676d8eb7dacd26483b5daf818736b65349
+mcpele_version: 1b2ac81cf188a28ae33d580b4de6d40d11447963
+pele_version: 170ea5aa43921e8a61daee1d7a16060a9de9cf72
+python_version: 3.10.8
+cython_version: 0.29.32

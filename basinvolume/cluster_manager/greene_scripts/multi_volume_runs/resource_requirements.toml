@@ -2,8 +2,8 @@
 ["time"] # Base times in hours for power-of-two numbers of particles. These have hard-coded multipliers for given minimizers. Other sizes are sent to one of these.
 8 = 2
 16 = 2
-32 = 8
-64 = 8
+32 = 168
+64 = 168
 128 = 168
 256 = 168
 512 = 168
