@@ -586,17 +586,7 @@ class HS_Generate_Jammed_Packing(_Generate_Jammed_Packing):
 
     def _generate_packing_coords(self):
         """ """
-        for i in range(1000):
-            self.coords = np.random.rand(self.nparticles * self.bdim) * self.boxv[0]
-            self.initial_coords = self.coords.copy()
-            success = self._generate_packing_coords_iteration(opt_tol=self.opt_tol)
-            if success:
-                logging.info(self._log("Generated packing. iteration: {}".format(i)))
-                break
-            logging.info(self._log("Failed to generate packing. iteration: {}".format(i)))
-        if not success:
-            logging.warning(self._log("Failed to generate packing."))
-
+        success = self._generate_packing_coords_iteration(opt_tol=self.opt_tol)
         return success
 
     def _generate_packing_coords_iteration(self, opt_tol=1e-9, iprint=-1):
