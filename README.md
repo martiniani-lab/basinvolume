@@ -1,8 +1,17 @@
-This is an implementation of the mean basin volume method.
+# basinvolume
 
-More information:
-https://www.authorea.com/users/8993/articles/9594/_show_article
+A library to calculate basin volumes for the basins of attraction of the energy minima of jammed packings. 
 
-## Formatting guidelines:
 
-The setting for code format for this project are set in pyproject.toml, currently it's a max line length of 99 characters, and the C/C++ uses the default clang-format settings.
+
+## Contributors
+
+This repository was migrated from Bitbucket, so GitHub's contributors does not reflect the actual authorship. The contributors are, 
+
+- Julian Schrenk
+- Stefano Martiniani
+- Johannes Gasteiger, né Klicpera
+- Praharsh Suryadevara
+- Mathias Casiulis
+- Philipp Hoellmer
+- Jacob Stevenson
