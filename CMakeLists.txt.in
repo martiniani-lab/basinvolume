@@ -1,4 +1,4 @@
-# this file is mean to be parsed by python before being a proper CMakeLists.txt file
+# this file is meant to be parsed by python before being a proper CMakeLists.txt file
 # in particular, the following strings will be set by python
 set(numpy_include __NUMPY_INCLUDE__)
 set(PYTHON_INCLUDE_DIRS __PYTHON_INCLUDE__)
@@ -9,6 +9,7 @@ set(py_cgdescent_include __PY_CGDESCENT_INCLUDE__)
 set(pele_dir __PELE_DIR__)
 
 message("python include dirs: ${PYTHON_INCLUDE_DIRS}")
+message("python ldflags: ${PYTHON_LDFLAGS}")
 message("numpy include dirs: ${numpy_include}")
 message("pele include dirs: ${pele_include}")
 message("mcpele include dirs: ${mcpele_include}")
@@ -65,17 +66,39 @@ set(SUNDIALS_LIBRARIES
   ${SUNDIALS_MANYVEC_LIB}
   ${SUNDIALS_EXTRA_LIBS})
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.18)
+
+project(basinvolume)
+message("${CMAKE_C_COMPILER}")
+message("${CMAKE_CXX_COMPILER}")
+
+# osx makes the suffix for shared object libraries .dylib
+IF(APPLE)
+  SET(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+ENDIF(APPLE)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 enable_language(CXX)
 SET(CMAKE_CXX_FLAGS __COMPILER_EXTRA_ARGS__)
 
-if(APPLE)
-  SET(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
-endif(APPLE)
+# note: We set CMAKE_SHARED_LINKER_FLAGS because I couldn't get it to work using
+# target_link_librarires().  CMake kept interpreting the flag CoreFoundation
+# as a library and appending -l to it and the compiler would complain
+unset(CMAKE_SHARED_LINKER_FLAGS CACHE)
+set(CMAKE_SHARED_LINKER_FLAGS ${PYTHON_LDFLAGS} CACHE STRING flags)
 
 # LAPACK (this also searches for BLAS automatically)
 find_package(LAPACK REQUIRED)
+
+# PYTHON_LDFLAGS attempts to link against the gettext libintl library
+# The gettext functions are not part of the C standard library on Apple
+# See https://cmake.org/cmake/help/latest/module/FindIntl.html
+if(APPLE)
+  find_package(Intl REQUIRED)
+  include_directories(${Intl_INCLUDE_DIRS})
+  get_filename_component(Intl_LIBRARY_DIR ${Intl_LIBRARIES} DIRECTORY)
+endif(APPLE)
 
 # # lapacke.h comes with Eigen
 # set(LAPACKE_INCLUDE_DIR
@@ -85,9 +108,10 @@ find_package(LAPACK REQUIRED)
 # cmake_policy(SET CMP0015 NEW)
 # set the basinvolume include directory
 set(bv_include ${CMAKE_SOURCE_DIR}/source)
-include_directories(${bv_include})
-include_directories(${SUNDIALS_INCLUDE_DIR})
-include_directories(${LAPACKE_INCLUDE_DIR})
+
+include_directories(BEFORE SYSTEM ${bv_include})
+include_directories(BEFORE SYSTEM ${SUNDIALS_INCLUDE_DIR})
+include_directories(BEFORE SYSTEM ${LAPACKE_INCLUDE_DIR})
 message("basinvolume include directory: ${bv_include}")
 
 # build the bv library
@@ -96,9 +120,21 @@ FILE(GLOB mcpele_sources ${mcpele_include}/*.c*)
 FILE(GLOB py_cgdescent_sources ${py_cgdescent_include}/CG_DESCENT/*.c)
 FILE(GLOB bv_sources ${bv_include}/*.cpp)
 add_library(bv_lib SHARED ${bv_sources} ${py_cgdescent_sources} ${mcpele_sources} ${pele_sources})
+target_include_directories(bv_lib PUBLIC
+    ${PYTHON_INCLUDE_DIRS}
+    ${numpy_include}
+)
+
+# Use dynamic linking for libstdc++ to avoid initialization conflicts
+target_link_libraries(bv_lib PUBLIC stdc++)
+message(STATUS "Using dynamic libstdc++ linking")
+
+target_link_libraries(bv_lib PUBLIC ${SUNDIALS_LIBRARIES})
+target_link_libraries(bv_lib PUBLIC ${LAPACK_LIBRARIES})
+
+# Apple-specific linking
 if(APPLE)
-  target_link_libraries(bv_lib PUBLIC ${SUNDIALS_LIBRARIES})
-  target_link_libraries(bv_lib PUBLIC ${LAPACK_LIBRARIES})
+  target_link_directories(bv_lib PUBLIC ${Intl_LIBRARY_DIR})
 endif(APPLE)
 
 # Apple changed the ld linker in Xcode 15 which breaks pele.
@@ -120,14 +156,37 @@ endif(APPLE)
 
 function(make_cython_lib cython_cxx_source)
   get_filename_component(library_name ${cython_cxx_source} NAME)
-  string(REGEX REPLACE ".cxx$" "" library_name ${library_name})
+  string(REGEX REPLACE "\\.c(xx)?$" "" library_name ${library_name})
   add_library(${library_name} SHARED ${cython_cxx_source})
-  target_link_libraries(${library_name} bv_lib)
-  target_link_libraries(${library_name} ${SUNDIALS_LIBRARIES})
-  target_link_libraries(${library_name} ${LAPACK_LIBRARIES})
+
+  # Add include directories for numpy and Python
+  target_include_directories(${library_name} PRIVATE
+    ${PYTHON_INCLUDE_DIRS}
+    ${numpy_include}
+    ${bv_include}
+    ${pele_include}
+    ${mcpele_include}
+    ${py_cgdescent_include}
+    ${SUNDIALS_INCLUDE_DIR}
+    ${LAPACKE_INCLUDE_DIR}
+  )
+
   if(APPLE)
     target_link_options(${library_name} PUBLIC ${APPLE_LINK_OPTIONS})
-  endif(APPLE)
+  elseif(UNIX)
+    # For static Python builds, Cython extensions will have undefined
+    # symbols. We tell the linker to ignore these, as they will be
+    # resolved at runtime when the module is imported.
+    # This is the equivalent of -undefined dynamic_lookup on macOS.
+    target_link_options(${library_name} PUBLIC "LINKER:--unresolved-symbols=ignore-all")
+  endif()
+
+  target_link_libraries(${library_name} PUBLIC bv_lib)
+  
+
+  target_link_libraries(${library_name} PUBLIC ${SUNDIALS_LIBRARIES})
+  target_link_libraries(${library_name} PUBLIC ${LAPACK_LIBRARIES})
   set_target_properties(${library_name} PROPERTIES PREFIX "")
+  set_target_properties(${library_name} PROPERTIES SUFFIX ".so")
   message("making library ${library_name} from source ${cython_cxx_source}")
 endfunction(make_cython_lib)
