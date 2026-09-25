@@ -579,9 +579,11 @@ def get_git_version_from_build(repository="basinvolume"):
     result = "Unknown"
     version_path = os.path.abspath(repo_path + "/" + repository + "/version.py")
     try:
-        f = open(version_path, "r")
-        result = (f.readlines()[2].strip().split("=")[1]).split("'")[1]
-        f.close()
+        with open(version_path, "r") as f:
+            # the layout differs between packages; find the line instead of indexing
+            for line in f:
+                if line.startswith("git_revision"):
+                    result = line.split("'")[1]
     except (OSError, IOError) as e:
         sys.stderr.write("WARNING: no version.py file found\n path: " + version_path + "\n")
         print("error", e)

@@ -78,6 +78,10 @@ def test_integration_with_transform(
     print(calculate_GL_integral_range(integrand, k[0], k[-1], nr_points))
 
 
+# a parametrized script (prints, no asserts), not a pytest test
+test_integration_with_transform.__test__ = False
+
+
 # if __name__ == "__main__":
 #     nr_points = 6
 #     k_max = 100
