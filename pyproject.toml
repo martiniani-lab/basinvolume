@@ -1,3 +1,33 @@
+[build-system]
+# pele, mcpele and PyCG_DESCENT are needed at build time for their C/C++ sources
+# and .pxd files; they are not on PyPI, so build with
+# `pip install --no-build-isolation .` in an env that has them.
+requires = ["setuptools>=65", "wheel", "numpy>=1.24", "cython>=3", "cmake>=3.18", "ninja",
+            "pele", "mcpele", "PyCG_DESCENT"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "basinvolume"
+version = "0.1.0"
+description = "Basin volume calculations for energy landscapes"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pele",
+    "mcpele",
+    "PyCG_DESCENT",
+    "numpy>=1.24",
+    "scipy",
+    "matplotlib",
+    "future",
+    "toml",
+]
+
+[project.optional-dependencies]
+analysis = ["pymbar", "joblib", "scikit-learn", "pandas"]
+mpi = ["mpi4py"]
+test = ["pytest"]
+
 [tool.black]
 line-length = 99
 skip-string-normalization = true
