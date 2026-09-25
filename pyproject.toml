@@ -21,11 +21,15 @@ dependencies = [
     "matplotlib",
     "future",
     "toml",
+    "pymbar",  # imported by basinvolume.spheres
+    "pandas",
+    "joblib",
+    "pyyaml",
+    "mpi4py",  # basinvolume.spheres runs parallel tempering over MPI
 ]
 
 [project.optional-dependencies]
-analysis = ["pymbar", "joblib", "scikit-learn", "pandas"]
-mpi = ["mpi4py"]
+analysis = ["scikit-learn"]
 test = ["pytest"]
 
 [tool.black]

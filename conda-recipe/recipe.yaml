@@ -53,6 +53,11 @@ requirements:
     - matplotlib-base
     - future
     - toml
+    - pymbar
+    - pandas
+    - joblib
+    - pyyaml
+    - mpi4py
 
 tests:
   - python:

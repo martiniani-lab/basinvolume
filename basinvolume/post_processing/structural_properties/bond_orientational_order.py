@@ -13,7 +13,15 @@ import traceback
 import configparser
 import logging
 import argparse
-from scipy.special import sph_harm
+try:
+    from scipy.special import sph_harm_y
+
+    def sph_harm(m, n, theta, phi):
+        """old scipy.special.sph_harm (removed in scipy 1.17): theta azimuthal, phi polar"""
+        return sph_harm_y(n, m, phi, theta)
+
+except ImportError:  # scipy < 1.15
+    from scipy.special import sph_harm
 from basinvolume.utils import trymakedir
 from basinvolume.post_processing.simple_solid_angle_neighbors import (
     SimpleSolidAngleNeighbors,
