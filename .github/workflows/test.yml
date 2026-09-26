@@ -1,0 +1,87 @@
+name: Tests
+
+on:
+  push:
+    branches: ["Lees_Edwards_BC_3", "packaging"]
+  pull_request:
+    branches: ["Lees_Edwards_BC_3"]
+  workflow_dispatch:
+
+jobs:
+  # pip install pele, mcpele and PyCG_DESCENT then basinvolume into a conda-forge environment (the path users
+  # and the conda recipe take), then test the installed package from outside the source tree
+  pip-install:
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ponytail: deps pinned to their packaging branches until they land on master
+      - name: Checkout pele
+        uses: actions/checkout@v4
+        with:
+          repository: martiniani-lab/pele
+          ref: packaging
+          path: deps/pele
+
+      - name: Checkout mcpele
+        uses: actions/checkout@v4
+        with:
+          repository: martiniani-lab/mcpele
+          ref: packaging
+          path: deps/mcpele
+
+      - name: Checkout PyCG_DESCENT
+        uses: actions/checkout@v4
+        with:
+          repository: martiniani-lab/PyCG_DESCENT
+          ref: packaging
+          path: deps/PyCG_DESCENT
+
+      - name: Set up conda-forge environment
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: basinvolume-pip
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: >
+          conda install -y -c conda-forge compilers cmake ninja meson "sundials>=6.2"
+          eigen blas-devel llvm-openmp numpy "cython>=3" setuptools pip pytest pytest-cov
+          scipy networkx matplotlib-base "sqlalchemy>=1.4,<2" munkres pyro4 future
+          toml pymbar pandas joblib pyyaml mpi4py
+
+      - name: pip install pele
+        run: PELE_NATIVE=0 python -m pip install ./deps/pele -v --no-deps --no-build-isolation
+
+      - name: pip install mcpele and PyCG_DESCENT
+        run: |
+          MCPELE_NATIVE=0 python -m pip install ./deps/mcpele -v --no-deps --no-build-isolation
+          PYCGD_NATIVE=0 python -m pip install ./deps/PyCG_DESCENT -v --no-deps --no-build-isolation
+
+      - name: pip install basinvolume
+        run: BV_NATIVE=0 python -m pip install . -v --no-deps --no-build-isolation
+
+      - name: Test installed package with coverage
+        run: |
+          cd "$RUNNER_TEMP"
+          OMP_NUM_THREADS=1 python -m pytest --pyargs basinvolume -v \
+            --cov=basinvolume --cov-report=xml:"$GITHUB_WORKSPACE/coverage.xml" --cov-report=term-missing
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        if: matrix.os == 'ubuntu-24.04'
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: python
+          fail_ci_if_error: false
