@@ -24,21 +24,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ponytail: deps pinned to their packaging branches until they land on master
       - name: Checkout pele
         uses: actions/checkout@v4
         with:
           repository: martiniani-lab/pele
-          ref: packaging
           path: deps/pele
 
       - name: Checkout mcpele
         uses: actions/checkout@v4
         with:
           repository: martiniani-lab/mcpele
-          ref: packaging
           path: deps/mcpele
 
+      # ponytail: pinned to PyCG_DESCENT packaging branch until martiniani-lab/PyCG_DESCENT#11 merges
       - name: Checkout PyCG_DESCENT
         uses: actions/checkout@v4
         with:
