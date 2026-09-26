@@ -67,3 +67,4 @@ auto_test_checkpoints/1/status
 auto_test_checkpoints/2/hist_mean
 auto_test_checkpoints/2/parameters
 auto_test_checkpoints/2/status
+*.egg-info/
