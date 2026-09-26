@@ -120,7 +120,9 @@ def dependency_paths():
         cgd=source_dir(pkgs["PyCG_DESCENT"]),
         # dirs holding the packages, so their .pxd cimports resolve under build isolation
         pxd_dirs=sorted({os.path.dirname(d) for d in pkgs.values()}),
-        prefix=[extern] if os.path.isdir(extern) else [],
+        # the environment prefix (sundials, eigen, lapack): under pip's build isolation
+        # cmake comes from PyPI and no longer searches the conda env on its own
+        prefix=([extern] if os.path.isdir(extern) else []) + [sys.prefix],
     )
 
 
