@@ -7,35 +7,39 @@ A library to calculate basin volumes for the basins of attraction of the energy 
 
 ## Installation
 
-basinvolume builds against installed [pele](https://github.com/martiniani-lab/pele),
-[mcpele](https://github.com/martiniani-lab/mcpele) and
-[PyCG_DESCENT](https://github.com/martiniani-lab/PyCG_DESCENT) (none are on PyPI).
-All build dependencies come from conda-forge:
+We recommend creating a conda environment to work with the package. basinvolume builds on
+[pele](https://github.com/martiniani-lab/pele), [mcpele](https://github.com/martiniani-lab/mcpele)
+and [PyCG_DESCENT](https://github.com/martiniani-lab/PyCG_DESCENT), which are installed first:
 
 ```bash
-conda create -n basinvolume -c conda-forge python=3.12 compilers cmake ninja meson \
-    "sundials>=6.2" eigen blas-devel llvm-openmp numpy "cython>=3" setuptools pip \
-    scipy networkx matplotlib-base "sqlalchemy>=1.4,<2" munkres pyro4 future \
-    toml pymbar pandas joblib pyyaml mpi4py pytest
+conda create -n basinvolume -c conda-forge python compilers sundials eigen blas-devel mpi4py
 conda activate basinvolume
-pip install --no-build-isolation git+https://github.com/martiniani-lab/pele
-pip install --no-build-isolation git+https://github.com/martiniani-lab/mcpele
-pip install --no-build-isolation git+https://github.com/martiniani-lab/PyCG_DESCENT
-pip install --no-build-isolation .   # or: pip install --no-build-isolation git+https://github.com/martiniani-lab/basinvolume
+pip install git+https://github.com/martiniani-lab/pele
+pip install git+https://github.com/martiniani-lab/mcpele
+pip install git+https://github.com/martiniani-lab/PyCG_DESCENT
+pip install git+https://github.com/martiniani-lab/basinvolume
 ```
 
-Build options are environment variables, e.g. `BV_BUILD_TYPE=Debug`, `BV_JOBS=8`, and
+If the machine already has gcc, g++ and gfortran (e.g. `sudo apt install gcc g++ gfortran`),
+leave out `compilers` for a much smaller environment.
+
+### Development
+
+From a clone, in the same environment:
+
+```bash
+pip install .                  # install, or
+python setup.py build_ext -i   # build in place; then put the clone on PYTHONPATH
+```
+
+Build options are environment variables: `BV_BUILD_TYPE=Debug`, `BV_JOBS=8`, and
 `BV_NATIVE=1` (add `-march=native`; off by default).
-
-On macOS, unless `CC`/`CXX` are set, the build (like pele's) uses the newest Homebrew
-`gcc-N` (`brew install gcc`); Apple clang has no OpenMP support.
-
-For development, the in-place build still works: `python setup.py build_ext -i`.
 
 ## Tests
 
 ```bash
-pytest --pyargs basinvolume
+pip install pytest
+OMP_NUM_THREADS=1 pytest --pyargs basinvolume
 ```
 
 
