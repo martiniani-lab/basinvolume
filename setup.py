@@ -1,4 +1,4 @@
-"""Build basinvolume. Works with `pip install --no-build-isolation .` and `python setup.py build_ext -i`.
+"""Build basinvolume. Works with `pip install .` and `python setup.py build_ext -i`.
 
 pele, mcpele and PyCG_DESCENT must be importable (installed, or source checkouts
 on PYTHONPATH): their C/C++ sources are compiled into basinvolume. The Cython
@@ -12,6 +12,8 @@ Options (command-line flags for direct `setup.py` use, env vars for pip):
   --native / BV_NATIVE         1 adds -march=native (default 0, as before)
 """
 import argparse
+import importlib.machinery
+import importlib.util
 import os
 import shlex
 import shutil
@@ -87,28 +89,40 @@ def git_version():
         return "Unknown"
 
 
-def source_dir(module):
-    """C/C++ source dir of a dependency: module.get_include() if it has one,
-    else `source/` next to the package in a source checkout"""
-    if hasattr(module, "get_include"):
-        return module.get_include()
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(module.__file__))), "source")
+def package_dir(name):
+    """Directory of an installed dependency, found without importing it. pele, mcpele and
+    PyCG_DESCENT are not on PyPI so they can't be build requirements; under pip's build
+    isolation the environment's site-packages is off sys.path, so it is searched too."""
+    site = list({sysconfig.get_paths()["purelib"], sysconfig.get_paths()["platlib"]})
+    spec = importlib.util.find_spec(name) or importlib.machinery.PathFinder.find_spec(name, site)
+    if spec is None or not spec.submodule_search_locations:
+        raise RuntimeError(f"{name} must be installed first: "
+                           f"pip install git+https://github.com/martiniani-lab/{name}")
+    return os.path.abspath(spec.submodule_search_locations[0])
+
+
+def source_dir(pkg):
+    """C/C++ sources of a dependency, same rule as its get_include(): installed next to
+    the package, or `source/` in a source checkout"""
+    installed = os.path.join(pkg, "source")
+    return installed if os.path.isdir(installed) else os.path.join(os.path.dirname(pkg), "source")
 
 
 def dependency_paths():
-    import mcpele
-    import pele
-    import PyCG_DESCENT
-
-    pele_include = source_dir(pele)
+    pkgs = {name: package_dir(name) for name in ("pele", "mcpele", "PyCG_DESCENT")}
+    pele_include = source_dir(pkgs["pele"])
     # a pele source checkout may carry its own sundials/eigen in extern/install
     extern = os.path.join(os.path.dirname(pele_include), "extern", "install")
     return dict(
         pele=pele_include,
-        pele_pkg=os.path.dirname(os.path.abspath(pele.__file__)),
-        mcpele=source_dir(mcpele),
-        cgd=source_dir(PyCG_DESCENT),
-        prefix=[extern] if os.path.isdir(extern) else [],
+        pele_pkg=pkgs["pele"],
+        mcpele=source_dir(pkgs["mcpele"]),
+        cgd=source_dir(pkgs["PyCG_DESCENT"]),
+        # dirs holding the packages, so their .pxd cimports resolve under build isolation
+        pxd_dirs=sorted({os.path.dirname(d) for d in pkgs.values()}),
+        # the environment prefix (sundials, eigen, lapack): under pip's build isolation
+        # cmake comes from PyPI and no longer searches the conda env on its own
+        prefix=([extern] if os.path.isdir(extern) else []) + [sys.prefix],
     )
 
 
@@ -117,6 +131,7 @@ def generate_cython(paths):
     print("Cythonizing sources")
     cmd = [sys.executable, os.path.join(cwd, "cythonize.py"), "basinvolume",
            "-I", os.path.join(paths["pele_pkg"], "potentials"),
+           *[a for d in paths["pxd_dirs"] for a in ("-I", d)],
            "-X", "language_level=3", "-X", "c_string_type=unicode", "-X", "c_string_encoding=utf-8"]
     if subprocess.call(cmd, cwd=cwd) != 0:
         raise RuntimeError("Running cythonize failed!")

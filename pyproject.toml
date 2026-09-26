@@ -1,9 +1,8 @@
 [build-system]
-# pele, mcpele and PyCG_DESCENT are needed at build time for their C/C++ sources
-# and .pxd files; they are not on PyPI, so build with
-# `pip install --no-build-isolation .` in an env that has them.
-requires = ["setuptools>=65", "wheel", "numpy>=1.24", "cython>=3", "cmake>=3.18", "ninja",
-            "pele", "mcpele", "PyCG_DESCENT"]
+# pele, mcpele and PyCG_DESCENT are needed at build time for their C/C++ sources and
+# .pxd files. They are not on PyPI, so setup.py finds the ones installed in the
+# environment (install them first).
+requires = ["setuptools>=65", "wheel", "numpy>=1.24", "cython>=3", "cmake>=3.18", "ninja"]
 build-backend = "setuptools.build_meta"
 
 [project]
