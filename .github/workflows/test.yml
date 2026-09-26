@@ -36,12 +36,10 @@ jobs:
           repository: martiniani-lab/mcpele
           path: deps/mcpele
 
-      # ponytail: pinned to PyCG_DESCENT packaging branch until martiniani-lab/PyCG_DESCENT#11 merges
       - name: Checkout PyCG_DESCENT
         uses: actions/checkout@v4
         with:
           repository: martiniani-lab/PyCG_DESCENT
-          ref: packaging
           path: deps/PyCG_DESCENT
 
       - name: Set up conda-forge environment

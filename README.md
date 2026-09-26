@@ -20,7 +20,7 @@ conda create -n basinvolume -c conda-forge python=3.12 compilers cmake ninja mes
 conda activate basinvolume
 pip install --no-build-isolation git+https://github.com/martiniani-lab/pele
 pip install --no-build-isolation git+https://github.com/martiniani-lab/mcpele
-pip install --no-build-isolation git+https://github.com/martiniani-lab/PyCG_DESCENT@packaging
+pip install --no-build-isolation git+https://github.com/martiniani-lab/PyCG_DESCENT
 pip install --no-build-isolation .   # or: pip install --no-build-isolation git+https://github.com/martiniani-lab/basinvolume
 ```
 
